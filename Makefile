@@ -1,7 +1,8 @@
+CMAKE=cmake
 
 all :
 	mkdir -p build
-	+cd build && cmake .. && cd .. && make -C build
+	+cd build && $(CMAKE) .. && cd .. && make -C build
 	
 clean:
 	rm -rf build
