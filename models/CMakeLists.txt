@@ -1,12 +1,11 @@
 # TODO: improve this. Gensim interface is a bit of a nightmare.
 
-function(define_model directory model-name arch-name)
-	SET(DLL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${directory}/output/${model-name}.dll")
+function(define_model target-name arch-file)
+	
+	SET(DLL_PATH "${CMAKE_CURRENT_BINARY_DIR}/output/${model-name}.dll")
 	
 	SET(gensim-binary "$<TARGET_FILE:gensim>")
-	
-	# TODO: glob files in the model source directory
-	SET(model-files "")
+	SET(model-files ${ARGN})
 	
 	# Some sort of weird bug with cmake if we try to get the interface
 	# include directories directory. 
@@ -15,31 +14,36 @@ function(define_model directory model-name arch-name)
 	
 	SET(gensim-options "-s decode,disasm,adapt_blkjit,jit,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=0")
 	
-	
 	ADD_CUSTOM_COMMAND(
-		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${directory}/output"
-		COMMAND "sh" "-c" "mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/${directory}/output"
-		COMMAND "sh" "-c" "${gensim-binary} -a ${CMAKE_CURRENT_SOURCE_DIR}/${directory}/${model-name}.ac ${gensim-options} -t ${CMAKE_CURRENT_BINARY_DIR}/${directory}/output/"
-		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${directory}"
+		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/output"
+		COMMAND "sh" "-c" "mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/output"
+		COMMAND "sh" "-c" "${gensim-binary} -a ${CMAKE_CURRENT_SOURCE_DIR}/${arch-file} ${gensim-options} -t ${CMAKE_CURRENT_BINARY_DIR}/output/"
+		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		DEPENDS gensim
 		DEPENDS trace
 		DEPENDS ${model-files}
-		COMMENT "Generating ${model-name} model"
+		COMMENT "Generating ${target-name}"
 	)
 	
 	ADD_CUSTOM_COMMAND(
-		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${directory}/output/${arch-name}.dll
-		COMMAND "sh" "-c" "make -C ${CMAKE_CURRENT_BINARY_DIR}/${directory}/output"
-		DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${directory}/output"
-		COMMENT "Compiling ${model-name} model"
+		OUTPUT ${DLL_PATH}
+		COMMAND "sh" "-c" "make -C ${CMAKE_CURRENT_BINARY_DIR}/output"
+		DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/output"
+		COMMENT "Compiling ${target-name}"
 	)
 	
 	ADD_CUSTOM_TARGET(
-		model-${model-name}-built
+		${target-name}
 		ALL
-		DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${directory}/output/${arch-name}.dll
+		DEPENDS ${DLL_PATH}
+	)
+	
+	SET_TARGET_PROPERTIES(
+		${target-name}
+		PROPERTIES
+			TARGET_FILE ${DLL_PATH}
 	)
 endfunction()
 
-define_model(armv7 armv7a armv7a)
-define_model(risc-v riscv riscv)
+ADD_SUBDIRECTORY(armv7)
+ADD_SUBDIRECTORY(risc-v)
