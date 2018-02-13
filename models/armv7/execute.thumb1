@@ -1,0 +1,810 @@
+
+execute(thumb_undef) {
+//	take_arm_exception(11, address_of_next_instruction());
+}
+
+execute(thumb_bkpt) {
+	trap();
+}
+
+execute(thumb_msr) {
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 shift_amount = inst.immu32;
+
+	uint8 new_C = read_register(C);
+	
+	if (inst.op == 0) {					// LSL
+		if (shift_amount != 0) {
+			new_C = (rs & (1 << (32 - shift_amount))) != 0;
+			rs <<= shift_amount;
+		}
+	} else if (inst.op == 1) {			// LSR
+		if (shift_amount == 0) {
+			new_C = (rs & 0x80000000) != 0;
+			rs = 0;
+		} else {
+			new_C = (rs & (1 << (shift_amount - 1))) != 0;
+			rs >>= shift_amount;
+		}
+	} else if (inst.op == 2) {			// ASR
+		rs = ASR_C(rs, shift_amount, new_C);
+	}
+	
+	write_register_bank(RB, inst.rd, rs);
+	if(!inst.IsPredicated) {
+		update_zn_flags(rs);
+		write_register(C, new_C);
+	}
+}
+
+
+execute(thumb_addsub) {
+	uint32 a = read_register_bank(RB, inst.rs);
+	uint32 b;
+	uint32 r;
+
+	if (inst.i == 0)
+		b = read_register_bank(RB, inst.rn);
+	else
+		b = inst.immu32;
+	
+	if (inst.op == 0) {
+		r = a + b;
+		
+		if(!inst.IsPredicated) {
+			update_cv_flags_add(a, b);
+		}
+	} else {
+		r = a - b;
+		
+		if(!inst.IsPredicated) {
+			update_cv_flags_sub(a, b);
+		}
+	}
+	
+	write_register_bank(RB, inst.rd, r);
+
+	if (!inst.IsPredicated) {
+		update_zn_flags(r);
+	}
+}
+
+execute(thumb_lro_mov) {
+	uint32 rs = read_register_bank(RB, inst.rs);
+	
+	write_register(C, 0);
+	write_register(V, 0);
+	
+	if(!inst.IsPredicated) {
+		update_zn_flags(rs);
+	}
+	
+	write_register_bank(RB, inst.rd, rs);
+}
+
+execute(thumb_mcas_mov) {
+	write_register_bank(RB, inst.rd, inst.immu32);
+
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(inst.immu32);
+	}
+}
+
+execute(thumb_mcas_cmp) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint8 carry_out;
+	uint8 overflow;
+	uint32 result = AddWithCarry(rd, ~inst.immu32, 1, carry_out, overflow);
+
+	write_register(N, bitsel(result, 31));
+	write_register(Z, result == 0);
+	write_register(C, carry_out);
+	write_register(V, overflow);
+	/*	uint32 r = rd - inst.immu32;
+	
+	write_register(Z, r == 0);
+	write_register(N, bitsel(result, 31));
+	write_register_ */
+	//update_zn_flags(r);
+	//update_cv_flags_sub(rd, inst.immu32);
+	
+}
+
+execute(thumb_mcas_add) {
+	uint32 a = read_register_bank(RB, inst.rd);
+	uint32 b = inst.immu32;
+	uint32 r = a + b;
+	
+	write_register_bank(RB, inst.rd, r);
+	
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(r);
+		update_cv_flags_add(a, b);
+	}
+}
+
+execute(thumb_mcas_sub) {
+	uint32 a = read_register_bank(RB, inst.rd);
+	uint32 b = inst.immu32;
+	uint32 r = a - b;
+	
+	write_register_bank(RB, inst.rd, r);
+	
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(r);
+		update_cv_flags_sub(a, b);
+	}
+}
+
+execute(thumb_alu_and) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 v = rd & rs;
+
+	write_register_bank(RB, inst.rd, v);
+	
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+	}
+}
+
+execute(thumb_alu_eor) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 v = rd ^ rs;
+	
+	write_register_bank(RB, inst.rd, v);
+
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+	}
+}
+
+execute(thumb_alu_lsl) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs) & 0xff;
+	uint32 v;
+
+	uint8 new_C = read_register(C);
+	
+	if (rs == 0) {
+		v = rd;
+	} else if (rs < 32) {
+		new_C = (rd & (1 << (32 - rs))) != 0;
+		v = rd << rs;
+	} else if (rs == 32) {
+		new_C = (rd & 1) != 0;
+		v = 0;
+	} else {
+		new_C = 0;
+		v = 0;
+	}
+	
+	write_register_bank(RB, inst.rd, v);
+
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+		write_register(C, new_C);
+	}
+}
+
+execute(thumb_alu_lsr) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs) & 0xff;
+	uint32 v;
+	
+	uint8 new_C = read_register(C);
+	
+	if (rs == 0) {
+		v = rd;
+	} else if (rs < 32) {
+		new_C = (rd & (1 << (rs - 1))) != 0;
+		v = rd >> rs;
+	} else if (rs == 32) {
+		new_C = (rd & 0x80000000) != 0;
+		v = 0;
+	} else {
+		new_C = 0;
+		v = 0;
+	}
+	
+	write_register_bank(RB, inst.rd, v);
+
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+		write_register(C, new_C);
+	}
+}
+
+execute(thumb_alu_asr) 
+{
+	uint32 m = read_register_bank(RB, inst.rs);
+	uint32 n = read_register_bank(RB, inst.rd);
+
+	uint8 shift_n = (uint8) m & 0xff;
+	
+	uint32 result;
+	uint8 carry;
+	result = Shift_C(n, 2, shift_n, read_register(C), carry);
+
+	write_register_bank(RB, inst.rd, result);
+
+	if (!inst.IsPredicated)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+	}
+
+
+/*
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 v;
+	
+	if (rs == 0) {
+		v = rd;
+	} else if (rs < 32) {
+		write_register(C, (rd & (1 << (rs - 1))) != 0);
+		v = (sint32)rd >> rs;
+	} else {
+		uint8 c = (rd & 0x80000000) != 0;
+		write_register(C, c);
+		
+		v = c ? 0xffffffff : (uint32)0;
+	}
+	
+	write_register_bank(RB, inst.rd, v);
+
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+		}*/
+}
+
+execute(thumb_alu_adc) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 c = read_register(C);
+	uint32 v = rd + rs + c;
+	
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+		update_cv_flags_adc(rd, rs, c);
+	}
+	
+	write_register_bank(RB, inst.rd, v);
+}
+
+execute(thumb_alu_sbc) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 c = read_register(C);
+	
+	rs = ~rs;
+	uint32 v = rd + rs + c;
+	
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+		update_cv_flags_adc(rd, rs, c);
+	}
+	
+	write_register_bank(RB, inst.rd, v);
+}
+
+execute(thumb_alu_ror) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint8 c = read_register(C);
+	
+	rd = rorr(rd, rs, c, c);
+	
+	write_register_bank(RB, inst.rd, rd);
+
+	if (!inst.IsPredicated)
+	{
+		write_register(C, c);
+		update_zn_flags(rd);
+	}
+}
+
+execute(thumb_alu_tst) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 v = rd & rs;
+	
+	update_zn_flags(v);
+}
+
+execute(thumb_alu_neg) { 
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 v = 0 - rs;
+	
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+		update_cv_flags_sub(0, rs);
+	}
+	
+	write_register_bank(RB, inst.rd, v);
+}
+
+execute(thumb_alu_cmp) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 r = rd - rs;
+	
+	update_zn_flags(r);
+	update_cv_flags_sub(rd, rs);
+}
+
+execute(thumb_alu_cmn) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 r = rd + rs;
+	
+	update_zn_flags(r);
+	update_cv_flags_add(rd, rs);
+}
+
+execute(thumb_alu_orr) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 v = rd | rs;
+	
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+	}
+	write_register_bank(RB, inst.rd, v);
+}
+
+execute(thumb_alu_mul) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 v = rd * rs;
+	
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+	}
+
+	write_register_bank(RB, inst.rd, v);
+}
+
+execute(thumb_alu_bic) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 v = rd & ~rs;
+	
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+	}
+
+	write_register_bank(RB, inst.rd, v);
+}
+
+execute(thumb_alu_mvn) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 rs = read_register_bank(RB, inst.rs);
+	uint32 v = ~rs;
+	
+	if (!inst.IsPredicated)
+	{
+		update_zn_flags(v);
+	}
+	write_register_bank(RB, inst.rd, v);
+}
+
+execute(thumb_hro_add) {
+	uint32 val;
+	
+	val = read_register_bank(RB, inst.vrd) + pc_check(inst.vrd);
+	val += read_register_bank(RB, inst.vrs) + pc_check(inst.vrs);
+	
+	if (inst.vrd == 15)
+	{
+		if ((val & 1) == 1)
+		{
+			write_register_bank(RB, inst.vrd, val & ~1);
+		}
+		else if ((val & 2) == 0)
+		{
+			set_cpu_mode(0);
+			write_register(T, 0);
+			write_register_bank(RB, inst.vrd, val);
+		}
+	}
+	else
+	{
+		write_register_bank(RB, inst.vrd, val);
+	}
+}
+
+execute(thumb_hro_cmp) {
+	uint32 a = read_register_bank(RB, inst.vrd) + pc_check(inst.vrd);
+	uint32 b = read_register_bank(RB, inst.vrs) + pc_check(inst.vrs);
+	uint32 r = a - b;
+	
+	update_zn_flags(r);
+	update_cv_flags_sub(a, b);
+}
+
+execute(thumb_hro_mov) {
+	uint32 rs;
+	
+	if (inst.vrs == 15) {
+		rs = read_pc() + 4;
+	} else {
+		rs = read_register_bank(RB, inst.vrs);
+	}
+	
+	write_register_bank(RB, inst.vrd, rs);
+}
+
+execute(thumb_hro_bx) { 
+	uint32 rs = read_register_bank(RB, inst.vrs) + pc_check(inst.vrs);
+	
+	set_cpu_mode((uint8)(rs & 1));
+	write_register(T, rs & 1);
+
+	if (inst.h1 == 1) {
+		uint32 pc_var = read_pc();
+		write_register_bank(RB, 14, (pc_var + 2) | 1);
+	}
+		
+	rs &= 0xfffffffe;
+	write_register_bank(RB, 15, rs);
+}
+
+execute(thumb_pcrl_ldr) {
+	uint32 addr = read_pc() + 4;
+	uint32 val;
+	
+	addr &= 0xfffffffc;
+	addr += inst.immu32;
+	
+	if (memory_read_32(addr, val)) {
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+execute(thumb_lsro_str) {
+	uint32 addr = read_register_bank(RB, inst.rb) + read_register_bank(RB, inst.ro) + pc_check(inst.ro) + pc_check(inst.rb);
+	uint32 val = read_register_bank(RB, inst.rd) + pc_check(inst.rd);
+	
+	if (inst.b)
+		memory_write_8(addr, (val & 0xff));
+	else
+		memory_write_32(addr, val);
+}
+
+execute(thumb_lsro_ldr) {
+	uint32 addr = read_register_bank(RB, inst.rb) + read_register_bank(RB, inst.ro) + pc_check(inst.ro) + pc_check(inst.rd);
+	uint32 val;
+	
+
+	if (inst.b) {
+		memory_read_8(addr, val);
+		val &= 0xff;
+	} else {
+		memory_read_32(addr, val);
+	}
+	
+	write_register_bank(RB, inst.rd, val);
+}
+
+execute(thumb_lsse_strh) {
+	uint32 addr = read_register_bank(RB, inst.rb) + read_register_bank(RB, inst.ro);
+	uint32 val = read_register_bank(RB, inst.rd) & 0xffff;
+	
+	memory_write_16(addr, val);
+}
+
+execute(thumb_lsse_ldrh) {
+	uint32 addr = read_register_bank(RB, inst.rb) + read_register_bank(RB, inst.ro);
+	uint32 val;
+	
+	if (memory_read_16(addr, val)) {
+		val &= 0xffff;
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+execute(thumb_lsse_ldsb) {
+	uint32 addr = read_register_bank(RB, inst.rb) + read_register_bank(RB, inst.ro);
+	uint32 val;
+	
+	if (memory_read_8(addr, val)) {
+		val &= 0xff;
+	
+		if (val & 0x80)
+			val |= 0xffffff00;
+	
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+execute(thumb_lsse_ldsh) {
+	uint32 addr = read_register_bank(RB, inst.rb) + read_register_bank(RB, inst.ro);
+	uint32 val;
+	
+	if (memory_read_16(addr, val)) {
+		val &= 0xffff;
+	
+		if (val & 0x8000)
+			val |= 0xffff0000;
+	
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+execute(thumb_lsimm_str) {
+	uint32 addr = read_register_bank(RB, inst.rb);
+	uint32 val = read_register_bank(RB, inst.rd);
+	
+	addr += inst.immu32;
+	
+	if (inst.b)
+		//memory_write_8(addr, val);
+		memory_write_8(addr, val & 0xff);
+	else
+		memory_write_32(addr, val);
+}
+
+execute(thumb_lsimm_ldr) {
+	uint32 addr = read_register_bank(RB, inst.rb);
+	uint32 val;
+	
+	addr += inst.immu32;		
+	
+	if (inst.b == 1) {
+		memory_read_8(addr, val);
+		val &= 0xff;
+	} else {
+		memory_read_32(addr, val);
+	}
+		
+	write_register_bank(RB, inst.rd, val);
+}
+
+execute(thumb_lshw_strh) {
+	uint32 addr = read_register_bank(RB, inst.rb) + inst.immu32;
+	uint32 val = read_register_bank(RB, inst.rd);
+	
+	memory_write_16(addr, val);
+}
+
+execute(thumb_lshw_ldrh) {
+	uint32 addr = read_register_bank(RB, inst.rb) + inst.immu32;
+	uint32 val;
+	
+	if (memory_read_16(addr, val)) {
+		val &= 0xffff;
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+execute(thumb_spr_str) {
+	uint32 rd = read_register_bank(RB, inst.rd);
+	uint32 addr = read_register_bank(RB, 13);
+	addr += inst.immu32;
+	
+	memory_write_32(addr, rd);
+}
+
+execute(thumb_spr_ldr) {
+	uint32 addr = read_register_bank(RB, 13);
+	uint32 val;
+	
+	addr += inst.immu32;
+	
+	if (memory_read_32(addr, val)) {
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+execute(thumb_lda_add) {
+	uint32 val;
+	
+	if (inst.sp == 0) {
+		val = read_pc() + 4;
+		val &= 0xfffffffc;
+	} else {
+		val = read_register_bank(RB, 13);
+	}
+	
+	val += inst.immu32;
+
+	write_register_bank(RB, inst.rd, val);
+}
+
+execute(thumb_addoff_add) {
+	uint32 sp = read_register_bank(RB, 13);
+	
+	if (inst.s == 0)
+		sp += inst.immu32;
+	else
+		sp -= inst.immu32;
+	
+	write_register_bank(RB, 13, sp);
+}
+
+execute(thumb_pp_push) {
+	uint32 sp = read_register_bank(RB, 13);
+	
+	if (inst.r) {
+		sp -= 4;
+		memory_write_32(sp, read_register_bank(RB, 14));
+	}
+	
+	for (uint32 i = 8; i > 0; i -= (uint32)1) {
+		uint32 f = i - 1;
+		if (inst.rlist & (1 << f)) {
+			sp -= 4;
+			memory_write_32(sp, read_register_bank(RB, (uint8)f));
+		}
+	}
+	
+	write_register_bank(RB, 13, sp);
+}
+
+execute(thumb_pp_pop) {
+	uint32 sp = read_register_bank(RB, 13);
+	uint32 v;
+	
+	for (uint32 i = 0; i < 8; i += (uint32)1) {
+		if (inst.rlist & (1 << i)) {
+			if (memory_read_32(sp, v)) {
+				write_register_bank(RB, i, v);
+			}
+			sp += 4;
+		}
+	}
+	
+	if (inst.r) {
+		if (memory_read_32(sp, v)) {
+			set_cpu_mode((uint8)(v & 1));
+			write_register(T, v & 1);
+		
+			v &= 0xfffffffe;
+			write_register_bank(RB, 15, v);
+		}
+		sp += 4;
+	}
+		
+	write_register_bank(RB, 13, sp);
+}
+
+execute(thumb_mls_stmia) {
+	uint32 addr = read_register_bank(RB, inst.rb);
+	
+	for (uint32 i = 0; i < 8; i += (uint32)1) {
+		if (inst.rlist & (1 << i)) {
+			memory_write_32(addr, read_register_bank(RB, i));
+			addr += 4;
+		}
+	}
+
+	if (!(inst.rlist & (1 << inst.rb)))
+		write_register_bank(RB, inst.rb, addr);
+}
+
+execute(thumb_mls_ldmia) {
+	uint32 addr = read_register_bank(RB, inst.rb);
+	
+	for (uint32 i = 0; i < 8; i += (uint32)1) {
+		if (inst.rlist & (1 << i)) {
+			uint32 val;
+			if (memory_read_32(addr, val)) {
+				write_register_bank(RB, i, val);
+			}
+			addr += 4;
+		}
+	}
+	
+	if (!(inst.rlist & (1 << inst.rb)))
+		write_register_bank(RB, inst.rb, addr);
+}
+
+execute(thumb_cbr) {
+	uint32 result = 1;
+	
+	switch(inst.cond)
+	{
+		case 0: // BEQ
+		{
+			result = read_register(Z);
+			break;
+		}
+		case 1: // BNE
+		{
+			result = !read_register(Z);
+			break;
+		}
+		case 2: //BCS
+		{
+			result = read_register(C);
+			break;
+		}
+		case 3: //BCC
+		{
+			result = !read_register(C);
+			break;
+		}
+		case 4: //BMI
+		{
+			result = read_register(N);
+			break;
+		}
+		case 5: //BPL
+		{
+			result = !read_register(N);
+			break;
+		}
+		case 6: //BVS
+		{
+			result = read_register(V);
+			break;
+		}
+		case 7:// BVC
+		{
+			result = !read_register(V);
+			break;
+		}
+		case 8: // BHI
+		{
+			result = read_register(C) & !read_register(Z);
+			break;
+		}
+		case 9: //BLS
+		{
+			result = !read_register(C) | read_register(Z);
+			break;
+		}
+		case 10: //BGE
+		{
+			result = read_register(N) == read_register(V);
+			break;
+		}
+		case 11: //BLT
+		{
+			result = read_register(N) != read_register(V);
+			break;
+		}
+		case 12: //BGT
+		{
+			result = !read_register(Z) & (read_register(N) == read_register(V));
+			break;
+		}
+		case 13: //BLE
+		{
+			result = read_register(Z) | (read_register(N) != read_register(V));
+			break;
+		}
+	}
+	
+	sint32 v = result ? inst.imms32 : (sint32)2;
+	uint32 pc_var = read_pc() + v;
+		
+	write_register_bank(RB, 15, pc_var);
+}
+
+execute(thumb_swi) { take_exception((uint32)3, (uint32)inst.immu32); }
+
+execute(thumb_b) {
+	uint32 pc_var = read_pc();
+	
+	pc_var += inst.imms32;
+	write_register_bank(RB, 15, pc_var);
+}

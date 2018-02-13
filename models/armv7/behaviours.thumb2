@@ -1,0 +1,86 @@
+
+
+decode(THUMB2_LSM)
+{
+	//registers = ((uint16)inst.m << 14) | (uint16) inst.immval;
+}
+
+behaviour(read_pc)
+{
+	return read_register_bank(RB, 15);
+}
+
+behaviour(write_pc)
+{
+	write_register_bank(RB, 15, val);
+}
+
+behaviour(read_sp)
+{
+	return read_register_bank(RB, 13);
+}
+
+behaviour(write_sp)
+{
+	write_register_bank(RB, 13, val);
+}
+
+behaviour(get_status_string) { }
+
+behaviour(is_predicated) {
+	// This ensures that the correct branch dispatch code is generated
+	// for the conditional branch instruction.
+  return (curr_interp_insn->Instr_Code == INST_thumb_cbr || curr_interp_insn->GetIsPredicated());
+}
+
+
+behaviour(instruction_predicate) {
+	if(!inst.GetIsPredicated()) return 1;
+	
+	uint32 pred = inst.GetPredicateInfo() >> 4;
+    
+	uint8 cond = pred >> 1;
+	uint8 invert = pred & 1;
+	
+	uint8 result;
+	
+	switch (cond)
+	{ // first 3 bits of the base condition are used
+	case 0:
+		result = read_register(Z);
+		break; //EQ or NE
+	case 1:
+		result = read_register(C);
+		break; //CS or CC
+	case 2:
+		result = read_register(N);
+		break; //MI or PL
+	case 3:
+		result = read_register(V);
+		break; //VS or VC
+	case 4:
+		result = (read_register(C) & !read_register(Z));
+		break; //HI or LS
+	case 5:
+		result = (read_register(N) == read_register(V));
+		break; //GE or LT
+	case 6:
+		result = ((read_register(N) == read_register(V)) & !read_register(Z));
+		break; //GT LE
+	case 7:
+		result = 1;
+		break; //AL
+	default:
+		break;
+	}
+	result = result ^ invert; // if invert is set, flip result
+	return result;
+}
+
+behaviour(simulation_start) { }
+
+behaviour(simulation_suspend) { }
+
+behaviour(simulation_resume) { }
+
+behaviour(simulation_end) { }

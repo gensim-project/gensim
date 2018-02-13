@@ -1,0 +1,1220 @@
+
+///////////////////////////////////////////////////////
+//// VFPv3 instructions
+///////////////////////////////////////////////////////
+
+helper uint32 read_cpacr()
+{
+	// if no cp15, we're in user mode simulation so pretend all coprocs are enabled
+	if(!probe_device(15)) return 0x7fffffff;
+	
+	return read_coproc_reg(15, 0, 2, 1, 0);
+}
+
+helper uint32 read_fpexc()
+{
+	return read_register(FPEXC);
+}
+
+helper uint8 get_rounding_mode()
+{
+	uint32 fpscr = read_register(FPSCR);
+	return (fpscr >> 22) & 0x3;
+}
+
+helper uint8 is_vfp4_enabled()
+{
+	if(__builtin_get_feature(ARM_FPU_ENABLED_FPEXC)) {
+		uint32 cpacr = __builtin_get_feature(ARM_FPU_ENABLED_CPACR);
+		if(cpacr == 1) return __builtin_get_feature(ARM_PRIV);
+		else if(cpacr == 2) return 1;
+		else return 0;
+		
+	} else {
+		return 0;
+	}
+}
+
+helper void check_vfp4_enabled()
+{
+	if(!is_vfp4_enabled()) take_exception(11, address_of_next_instruction());
+	return;
+}
+
+helper uint8 double_compare(double a, double b)
+{
+/*	if(double_is_snan(a) || double_is_qnan(a) || double_is_snan(b) || double_is_qnan(b))
+	{
+		write_register(FP_N, 0);
+		write_register(FP_Z, 0);
+		write_register(FP_C, 1);
+		write_register(FP_V, 1);
+		
+		return 0;
+	} else {*/
+		if(a == b) {
+			write_register(FP_N, 0);
+			write_register(FP_Z, 1);
+			write_register(FP_C, 1);
+			write_register(FP_V, 0);
+		} else if(a < b) {
+			write_register(FP_N, 1);
+			write_register(FP_Z, 0);
+			write_register(FP_C, 0);
+			write_register(FP_V, 0);
+		} else {
+			write_register(FP_N, 0);
+			write_register(FP_Z, 0);
+			write_register(FP_C, 1);
+			write_register(FP_V, 0);
+		}
+//	}
+	return 1;
+}
+
+helper uint8 float_compare(float a, float b)
+{
+	if(a == b) {
+		write_register(FP_N, 0);
+		write_register(FP_Z, 1);
+		write_register(FP_C, 1);
+		write_register(FP_V, 0);
+	} else if(a < b) {
+		write_register(FP_N, 1);
+		write_register(FP_Z, 0);
+		write_register(FP_C, 0);
+		write_register(FP_V, 0);
+	} else {
+		write_register(FP_N, 0);
+		write_register(FP_Z, 0);
+		write_register(FP_C, 1);
+		write_register(FP_V, 0);
+	}
+
+	return 1;
+}
+
+helper double double_expand_imm(uint8 val)
+{
+	uint64 sign = (val >> 7) & 1;
+	uint64 top = !((val >> 6) & 1);
+	
+	uint64 rep;
+	if(top) rep = 0;
+	else rep = 0xff;
+	
+	uint64 rem = val & 0x3f;
+	
+	uint64 v = (sign << 63) | (top << 62) | (rep << 54) | (rem << 48);
+	
+	return bitcast_u64_double(v);
+}
+
+helper float float_expand_imm(uint8 val)
+{
+	uint32 sign = (val >> 7) & 1;
+	uint32 top = !((val >> 6) & 1);
+	
+	uint32 rep;
+	if(top) rep = 0;
+	else rep = 0x1f;
+	
+	uint32 rem = val & 0x3f;
+	
+	uint32 v = (sign << 31) | (top << 30) | (rep << 25) | (rem << 19);
+	
+	return bitcast_u32_float(v);
+}
+
+helper double double_read_register(uint32 reg)
+{
+	double d = read_register_bank(FPDP, reg);
+	return d;
+}
+
+helper void double_write_register(uint32 reg, double d)
+{
+	write_register_bank(FPDP, reg, d);	
+	return;
+}
+
+helper float float_read_register(uint32 reg)
+{
+	float r = read_register_bank(FPSP, reg);
+	return r;
+}
+
+helper void float_write_register(uint32 reg, float f)
+{
+	write_register_bank(FPSP, reg, f);
+	return;
+}
+
+execute(vabs_sp)
+{
+	check_vfp4_enabled();
+	
+	float val = float_read_register(inst.vm);
+	
+	if(val < 0.0f) val = -val;
+	//val = float_abs(val);
+	float_write_register(inst.vd, val);
+}
+
+execute(vmovr_sp)
+{
+	check_vfp4_enabled();
+	
+	float val = read_register_bank(FPSP, inst.vm);
+	write_register_bank(FPSP, inst.vd, val);
+}
+
+execute(vcmp_sp)
+{
+	check_vfp4_enabled();
+	
+	float vn = float_read_register(inst.vd);
+	float vm = float_read_register(inst.vm);
+	
+	float_compare(vn, vm);
+}
+
+execute(vcmpz_sp)
+{
+	check_vfp4_enabled();
+	
+	float frm = float_read_register(inst.vd);
+	float zero = 0.0f;
+	
+	float_compare(frm, zero);
+}
+
+execute(vmul_sp)
+{
+	check_vfp4_enabled();
+	
+	float vm = read_register_bank(FPSP, inst.vm);
+	float vn = read_register_bank(FPSP, inst.vn);
+	
+	float data = vn*vm;
+
+	float_write_register(inst.vd, data);
+}
+
+execute(vdiv_sp)
+{
+	check_vfp4_enabled();
+	
+	float vm = float_read_register(inst.vm);
+	float vn = float_read_register(inst.vn);
+	
+	float data = vn/vm;
+	
+	float_write_register(inst.vd, data);
+}
+
+execute(vmovi_sp)
+{
+	check_vfp4_enabled();
+	
+	uint8 val = inst.vm | (inst.vn << 4);
+	float v = float_expand_imm(val);
+	float_write_register(inst.vd, v);
+}
+
+execute(vadd_sp)
+{
+	check_vfp4_enabled();
+	
+	float vn = float_read_register(inst.vn);
+	float vm = float_read_register(inst.vm);
+	
+	float val = vn + vm;
+	
+	float_write_register(inst.vd, val);
+}
+
+execute(vsub_sp)
+{
+	check_vfp4_enabled();
+	
+	float vn = float_read_register(inst.vn);
+	float vm = float_read_register(inst.vm);
+	
+	float val = vn - vm;
+	
+	float_write_register(inst.vd, val);
+}
+
+execute(vneg_sp)
+{
+	check_vfp4_enabled();
+	
+	float vn = float_read_register(inst.vm);
+	vn = 0-vn;
+	
+	float_write_register(inst.vd, vn);
+}
+
+execute(vmla_sp)
+{
+	check_vfp4_enabled();
+	
+	float vm = float_read_register(inst.vm);
+	float vn = float_read_register(inst.vn);
+	
+	float ml = vm * vn;
+	
+	float vd = float_read_register(inst.vd);
+	
+	if(inst.p) {
+		// mls
+		vd -= ml;
+	} else {
+		// mla
+		vd += ml;
+	}
+	
+	float_write_register(inst.vd, vd);
+}	
+
+execute(vnmla_sp)
+{
+	check_vfp4_enabled();
+	
+	float vm = float_read_register(inst.vm);
+	float vn = float_read_register(inst.vn);
+	
+	float product = vm * vn;
+	float result;
+	
+	float vd = float_read_register(inst.vd);
+	
+	if(inst.p) {
+		// vnmla
+		result = (-vd) + (-product);
+	} else {
+		// vnmls
+		result = (-vd) + product;
+	}
+	
+	float_write_register(inst.vd, result);
+}
+
+execute(vnmul_sp)
+{
+	check_vfp4_enabled();
+	
+	float vm = float_read_register(inst.vm);
+	float vn = float_read_register(inst.vn);
+	
+	float product = -(vm * vn);
+	
+	float_write_register(inst.vd, product);
+}
+
+execute(vsqrt_sp)
+{
+	check_vfp4_enabled();
+	
+	float vm = float_read_register(inst.vm);
+	float out = float_sqrt(vm);
+	
+	float_write_register(inst.vd, out);
+}
+
+execute(vmovr_dp)
+{
+	check_vfp4_enabled();
+	
+	double vn = double_read_register(inst.vm);
+	double_write_register(inst.vd, vn);
+}
+
+execute(vabs_dp)
+{
+	check_vfp4_enabled();
+	
+	double val = double_read_register(inst.vm);
+	
+	if(val < 0) val = -val;
+	
+	//val = double_abs(val);
+	double_write_register(inst.vd, val);
+}
+
+execute(vnmul_dp)
+{
+	check_vfp4_enabled();
+	
+	double vm = double_read_register(inst.vm);
+	double vn = double_read_register(inst.vn);
+	
+	double product = -(vm * vn);
+	
+	double_write_register(inst.vd, product);
+}
+
+execute(vsub_dp)
+{
+	check_vfp4_enabled();
+	
+	double vn = double_read_register(inst.vn);
+	double vm = double_read_register(inst.vm);
+	
+	double vd = vn - vm;
+	
+	double_write_register(inst.vd, vd);
+}
+
+execute(vmul_dp)
+{
+	check_vfp4_enabled();
+	
+	double vn = double_read_register(inst.vn);
+	double vm = double_read_register(inst.vm);
+	
+	double vd = vn * vm;
+	
+	double_write_register(inst.vd, vd);	
+}
+
+execute(vadd_dp)
+{
+	check_vfp4_enabled();
+	
+	double vn = double_read_register(inst.vn);
+	double vm = double_read_register(inst.vm);
+	
+	double vd = vn + vm;
+	
+	double_write_register(inst.vd, vd);	
+}
+
+execute(vdiv_dp)
+{
+	check_vfp4_enabled();
+	
+	double vn = double_read_register(inst.vn);
+	double vm = double_read_register(inst.vm);
+	
+	double vd = vn / vm;
+	
+	double_write_register(inst.vd, vd);	
+}
+
+execute(vmovi_dp)
+{
+	check_vfp4_enabled();
+	
+	uint8 val = inst.vm | (inst.vn << 4);
+	double d = double_expand_imm(val);
+	double_write_register(inst.vd, d);
+}
+
+execute(vmla_dp)
+{
+	check_vfp4_enabled();
+	
+	double vn = double_read_register(inst.vn);
+	double vm = double_read_register(inst.vm);
+	double vd = double_read_register(inst.vd);
+	
+	double out;
+	
+	if(inst.p) { 
+		//sub
+		out = vd - (vn * vm);
+	} else {
+		//add
+		out = vd + (vn * vm);
+	}
+	
+	double_write_register(inst.vd, out);
+}
+
+execute(vcmpz_dp)
+{
+	check_vfp4_enabled();
+	
+	double vd = double_read_register(inst.vd);
+	double zero = 0.0;
+	
+	double_compare(vd, zero);
+}
+
+execute(vcmp_dp)
+{
+	check_vfp4_enabled();
+	
+	double vd = double_read_register(inst.vd);
+	double vm = double_read_register(inst.vm);
+	
+	double_compare(vd, vm);
+}
+
+execute(vsqrt_dp)
+{
+	check_vfp4_enabled();
+	
+	double vm = double_read_register(inst.vm);
+	double out = double_sqrt(vm);
+	
+	double_write_register(inst.vd, out);
+}
+
+execute(vneg_dp)
+{
+	check_vfp4_enabled();
+	
+	double vn = double_read_register(inst.vm);
+	vn = 0-vn;
+	
+	double_write_register(inst.vd, vn);
+}
+
+execute(vnmla_dp)
+{
+	check_vfp4_enabled();
+	
+	double vm = double_read_register(inst.vm);
+	double vn = double_read_register(inst.vn);
+	
+	double product = vm * vn;
+	double result;
+	
+	double vd = double_read_register(inst.vd);
+	
+	if(inst.p) {
+		// vnmla
+		result = (-vd) + (-product);
+	} else {
+		// vnmls
+		result = (-vd) + product;
+	}
+	
+	double_write_register(inst.vd, result);
+}
+
+execute(vcvt_s32_f64) // convert double to sint32
+{
+	check_vfp4_enabled();
+
+	double fdata = double_read_register(inst.vm);
+
+	uint32 old_rounding = 0;
+	if(inst.N) // round towards zero
+	{
+		old_rounding = __builtin_get_fp_rounding();
+		__builtin_set_fp_rounding(3);
+	} else {
+		// use pre-set rounding mode
+	}
+
+	sint64 data = (sint64)fdata;
+	sint32 val = (sint32)data;
+
+	uint32 uval = val;
+	float si = bitcast_u32_float(uval);
+	write_register_bank(FPSP, inst.vd, si);
+	
+	if(inst.N)
+	{
+		__builtin_set_fp_rounding(old_rounding);
+	}
+}
+
+execute(vcvt_u32_f32) // convert float to uint32
+{
+	check_vfp4_enabled();
+	
+	float fdata = float_read_register(inst.vm);
+	
+	uint32 old_rounding = 0;
+	if(inst.N) // round towards zero
+	{
+		old_rounding = __builtin_get_fp_rounding();
+		__builtin_set_fp_rounding(3);
+	} else {
+
+	}
+	
+	uint32 data = (uint32)fdata;
+	float ui = bitcast_u32_float(data);
+	write_register_bank(FPSP, inst.vd, ui);
+	
+	if(inst.N)
+	{
+		__builtin_set_fp_rounding(old_rounding);
+	}
+}
+
+
+execute(vcvt_u32_f64) // convert double to uint32
+{
+	check_vfp4_enabled();
+	
+	// Read 64 bit DOUBLE from DP register
+	double fdata = double_read_register(inst.vm);
+
+	uint32 data32;
+	if(inst.N) // round towards zero
+	{
+		uint64 data = __builtin_cast_double_to_u64_truncate(fdata);
+		data32 = (uint32)data;
+	} else {
+		uint64 data = (uint64)(fdata);
+		data32 = (uint32)data;
+	}
+	
+	// Write back to SP register as INTEGER
+	float ui = bitcast_u32_float(data32);
+	write_register_bank(FPSP, inst.vd, ui);
+	
+}
+
+execute(vcvt_s32_f32) // convert float to sint32
+{
+	check_vfp4_enabled();
+	
+	float fdata = float_read_register(inst.vm);
+	
+	uint32 old_rounding = 0;
+	if(inst.N) // round towards zero
+	{
+		old_rounding = __builtin_get_fp_rounding();
+		__builtin_set_fp_rounding(3);
+	} else {
+
+	}
+	
+	sint32 data = (sint32)fdata;
+	uint32 udata = data;
+	
+	float si = bitcast_u32_float(udata);
+	write_register_bank(FPSP, inst.vd, si);
+	
+	if(inst.N)
+	{
+		__builtin_set_fp_rounding(old_rounding);
+	}
+}
+
+execute(vcvt_f32_s32) // convert sint32 to float
+{
+	check_vfp4_enabled();
+	
+	uint32 old_rounding = 0;
+	if(inst.N) // round towards zero
+	{
+		old_rounding = __builtin_get_fp_rounding();
+		__builtin_set_fp_rounding(3);
+	} else {
+
+	}
+	
+	// read INTEGER value from FP register
+	float dataf = read_register_bank(FPSP, inst.vm);
+	sint32 data = bitcast_float_u32(dataf);
+	
+	// cast to float
+	float fdata = (float)data;
+	
+	//write float back to FP register
+	write_register_bank(FPSP, inst.vd, fdata);
+	
+	if(inst.N)
+	{
+		__builtin_set_fp_rounding(old_rounding);
+	}
+}
+
+execute(vcvt_f32_u32) // convert uint32 to float
+{
+	check_vfp4_enabled();
+	
+	uint32 old_rounding = 0;
+	if(inst.N) // round towards zero
+	{
+		old_rounding = __builtin_get_fp_rounding();
+		__builtin_set_fp_rounding(3);
+	} else {
+
+	}
+	
+	// read INTEGER value from FP register
+	float dataf = read_register_bank(FPSP, inst.vm);
+	uint32 data = bitcast_float_u32(dataf);
+	
+	// cast to float
+	float fdata = (float)data;
+	
+	//write float back to FP register
+	write_register_bank(FPSP, inst.vd, fdata);
+	
+	if(inst.N)
+	{
+		__builtin_set_fp_rounding(old_rounding);
+	}
+}
+
+execute(vcvt_f64_u32) // convert uint32 to double
+{
+	check_vfp4_enabled();
+	
+	uint32 old_rounding = 0;
+	if(inst.N) // round towards zero
+	{
+		old_rounding = __builtin_get_fp_rounding();
+		__builtin_set_fp_rounding(3);
+	} else {
+
+	}
+	
+	// Read INTEGER from FP register
+	float dataf = read_register_bank(FPSP, inst.vm);
+	uint64 data = (uint64)bitcast_float_u32(dataf);
+	
+	// Cast to DOUBLE
+	double ddata = (double)data;
+	
+	// Write back to DP register
+	double_write_register(inst.vd, ddata);
+	
+	if(inst.N)
+	{
+		__builtin_set_fp_rounding(old_rounding);
+	}
+}
+
+execute(vcvt_f64_s32) // convert sint32 to double
+{
+	check_vfp4_enabled();
+		
+	uint32 old_rounding = 0;
+	if(inst.N) // round towards zero
+	{
+		old_rounding = __builtin_get_fp_rounding();
+		__builtin_set_fp_rounding(0);
+	} else {
+
+	}
+	
+	// Read INTEGER from FP register
+	float dataf = read_register_bank(FPSP, inst.vm);
+	sint32 data = bitcast_float_u32(dataf);
+	
+	// Cast to DOUBLE
+	double ddata = (double)data;
+	
+	// Write back to DP register
+	double_write_register(inst.vd, ddata);
+	
+	if(inst.N)
+	{
+		__builtin_set_fp_rounding(old_rounding);
+	}
+}
+
+helper double fxp_32_to_double(uint32 bits, uint8 bit_count, uint8 unsigned, uint8 round_nearest, uint8 i)
+{
+	uint64 divisor = ((uint64)1) << bit_count;
+
+	double b = 0;
+	if(unsigned) {
+		b = (uint64)bits;
+	} else {
+		b = (sint64)(sint32)bits;
+	}
+	
+	b = b / divisor;
+	
+	return b;
+}
+
+helper float fxp_32_to_single(uint32 bits, uint8 bit_count, uint8 unsigned, uint8 round_nearest, uint8 i)
+{
+	uint64 divisor = ((uint32)1) << bit_count;
+
+	float b = 0;
+	if(unsigned) {
+		b = (uint32)bits;
+	} else {
+		b = (sint32)bits;
+	}
+	
+	b = b / divisor;
+	
+	return b;
+}
+
+execute(vcvt_f64_s32_fxp)
+{
+	check_vfp4_enabled();
+	
+	double vdd = read_register_bank(FPDP, inst.vd);
+	uint64 vd = bitcast_double_u64(vdd);
+	uint32 bits = vd;
+	
+	double result = fxp_32_to_double(bits, 32-inst.vm, 0, 1, 1);
+	write_register_bank(FPDP, inst.vd, result);
+}
+
+execute(vcvt_f32_s32_fxp)
+{
+	trap();
+}
+
+execute(vcvt_s32_f64_fxp)
+{
+	trap();
+}
+
+execute(vcvt_s32_f32_fxp)
+{
+	trap();
+}
+
+execute(vcvt_f32_u32_fxp)
+{
+	check_vfp4_enabled();
+	
+	// to float
+	// not dp
+	// unsigned
+	// size = 32
+	
+	float input = read_register_bank(FPSP, inst.vd);
+	uint32 bits = bitcast_float_u32(input);
+	
+	float result = fxp_32_to_single(bits, 32-inst.vm, 1, 1, 1);
+	write_register_bank(FPSP, inst.vd, result);
+}
+
+execute(vldr_sp)
+{
+	check_vfp4_enabled();
+	
+	uint32 base;
+	if(inst.rn == 15) base = read_pc()+8;
+	else base = read_register_bank(RB, inst.rn);
+	uint32 imm32 = ((uint32)inst.imm8) << 2;
+	
+	uint32 addr = base;
+	if(inst.U) addr += imm32;
+	else addr -= imm32;
+	uint32 data;
+	mem_read_32(addr, data);
+	
+	float dataf = bitcast_u32_float(data);
+	write_register_bank(FPSP, inst.vd, dataf);
+}
+
+execute(vldr_dp)
+{
+	check_vfp4_enabled();
+	
+	uint32 base;
+	if(inst.rn == 15) base = read_pc()+8;
+	else base = read_register_bank(RB, inst.rn);
+	uint32 imm32 = ((uint32)inst.imm8) << 2;
+	
+	uint32 addr = base;
+	if(inst.U) addr += imm32;
+	else addr -= imm32;
+	uint32 data1;
+	uint32 data2;
+	mem_read_32(addr, data1);
+	mem_read_32(addr+4, data2);
+	
+	uint64 data = data1 | (((uint64)data2) << 32);
+	double dataf = bitcast_u64_double(data);
+	double_write_register(inst.vd, dataf);
+}
+
+execute(vstr_sp)
+{
+	check_vfp4_enabled();
+	
+	uint32 base;
+	if(inst.rn == 15) base = read_pc()+8;
+	else base = read_register_bank(RB, inst.rn);
+	uint32 imm32 = ((uint32)inst.imm8) << 2;
+	
+	uint32 addr = base;
+	if(inst.U) addr += imm32;
+	else addr -= imm32;
+	
+	float dataf = float_read_register(inst.vd);
+	uint32 data = bitcast_float_u32(dataf);
+	
+	mem_write_32(addr, data);
+}
+
+execute(vstr_dp)
+{
+	check_vfp4_enabled();
+	
+	uint32 base;
+	if(inst.rn == 15) base = read_pc()+8;
+	else base = read_register_bank(RB, inst.rn);
+	uint32 imm32 = ((uint32)inst.imm8) << 2;
+	
+	uint32 addr = base;
+	if(inst.U) addr += imm32;
+	else addr -= imm32;
+	
+	double dataf = double_read_register(inst.vd);
+	uint64 data = bitcast_double_u64(dataf);
+	
+	uint32 data1 = data & 0xffffffff;
+	uint32 data2 = data >> 32;
+		
+	mem_write_32(addr, data1);
+	mem_write_32(addr+4, data2);
+}
+
+execute(vldm_sp)
+{	
+	check_vfp4_enabled();
+	
+	if(inst.rn == 15) trap();
+	uint32 base = read_register_bank(RB, inst.rn);
+	uint32 regs = inst.imm8;
+	uint32 imm32 = inst.imm8 << 2;
+
+	uint32 start_reg = inst.vd;
+	
+	uint32 addr = base;
+	if(!inst.U) addr -= imm32;
+
+	if(inst.P) addr -= 4;
+	for(uint8 i = 0; i < regs; ++i)
+	{
+		if(inst.P) addr += 4;
+		
+		uint32 data1;
+		mem_read_32(addr, data1);
+
+		float dataf = bitcast_u32_float(data1);
+		float_write_register(start_reg+i, dataf);
+
+		if(!inst.P) addr += 4;
+	}
+	
+	if(inst.W) {
+		if(inst.U) {
+			write_register_bank(RB, inst.rn, base+imm32);
+		} else {
+			write_register_bank(RB, inst.rn, base-imm32);
+		}
+	}
+}
+
+execute(vldm_dp)
+{	
+	check_vfp4_enabled();
+	
+	if(inst.rn == 15) trap();
+	uint32 base = read_register_bank(RB, inst.rn);
+	uint32 regs = inst.imm8 / 2;
+	uint32 imm32 = inst.imm8 << 2;
+
+	uint32 start_reg = inst.vd;
+	
+	uint32 addr = base;
+	if(!inst.U) addr -= imm32;
+
+	if(inst.P) addr -= 8;
+	for(uint8 i = 0; i < regs; ++i)
+	{
+		if(inst.P) addr += 8;
+		uint32 data1;
+		uint32 data2;
+		mem_read_32(addr, data1);
+		mem_read_32(addr+4, data2);
+
+		uint64 data = data1 | (((uint64)data2) << 32);
+		double dataf = bitcast_u64_double(data);
+
+		double_write_register(start_reg+i, dataf);
+
+		if(!inst.P) addr += 8;
+	}
+	
+	if(inst.W) {
+		if(inst.U) {
+			write_register_bank(RB, inst.rn, base+imm32);
+		} else {
+			write_register_bank(RB, inst.rn, base-imm32);
+		}
+	}
+}
+
+execute(vstm_sp)
+{
+	check_vfp4_enabled();
+	
+	uint32 base = read_register_bank(RB, inst.rn);
+	uint32 regs = inst.imm8;
+	uint32 imm32 = inst.imm8 << 2;
+	
+	uint32 start_reg = inst.vd;
+	
+	uint32 addr = base;
+	if(!inst.U) addr -= imm32;
+
+	if(inst.P) addr -= 4;
+	for(uint8 i = 0; i < regs; ++i)
+	{
+		if(inst.P) addr += 4;
+		float dataf = float_read_register(start_reg+i);
+		uint32 data = bitcast_float_u32(dataf);
+
+		mem_write_32(addr, data);
+		
+		if(!inst.P) addr += 4;
+	}
+
+	if(inst.W) {
+		if(inst.U) {
+			write_register_bank(RB, inst.rn, base+imm32);
+		} else {
+			write_register_bank(RB, inst.rn, base-imm32);
+		}
+	}
+}
+
+execute(vstm_dp)
+{	
+	check_vfp4_enabled();
+	
+	uint32 base = read_register_bank(RB, inst.rn);
+	uint32 regs = inst.imm8 / 2;
+	uint32 imm32 = inst.imm8 << 2;
+	
+	uint32 start_reg = inst.vd;
+	
+	uint32 addr = base;
+	if(!inst.U) addr -= imm32;
+
+	if(inst.P) addr -= 8;
+	for(uint8 i = 0; i < regs; ++i)
+	{
+		if(inst.P) addr += 8;
+		double dataf = double_read_register(start_reg+i);
+		uint64 data = bitcast_double_u64(dataf);
+		
+		uint32 data1 = data & 0xffffffff;
+		uint32 data2 = data >> 32;
+
+		mem_write_32(addr, data1);
+		mem_write_32(addr+4, data2);
+		
+		if(!inst.P) addr += 8;
+	}
+	
+	if(inst.W) {
+		if(inst.U) {
+			write_register_bank(RB, inst.rn, base+imm32);
+		} else {
+			write_register_bank(RB, inst.rn, base-imm32);
+		}
+	}
+}
+
+execute(vmova_dp)
+{
+	check_vfp4_enabled();
+	
+	if(inst.op)
+	{
+		double rt = double_read_register(inst.vm);
+		uint64 data = bitcast_double_u64(rt);
+		
+		uint32 data1 = data & 0xffffffff;
+		uint32 data2 = data >> 32;
+		
+		write_register_bank(RB, inst.rt, data1);
+		write_register_bank(RB, inst.rt2, data2);
+	}
+	else 
+	{
+		uint64 rt = read_register_bank(RB, inst.rt);
+		uint64 rt2 = read_register_bank(RB, inst.rt2);
+	
+		uint64 data = rt | (rt2 << 32);
+		double dataf = bitcast_u64_double(data);
+		
+		double_write_register(inst.vm, dataf);
+	}
+}
+
+execute(vmova_dsp)
+{
+	check_vfp4_enabled();
+	
+	uint32 base_reg = inst.vm;
+
+	if(inst.op) {
+		// FPSP to ARM
+		float d1 = read_register_bank(FPSP, base_reg);
+		float d2 = read_register_bank(FPSP, base_reg+1);
+		write_register_bank(RB, inst.rt, bitcast_float_u32(d1));
+		write_register_bank(RB, inst.rt2, bitcast_float_u32(d2));
+	} else {
+		// ARM to FPSP
+		uint32 d1 = read_register_bank(RB, inst.rt);
+		uint32 d2 = read_register_bank(RB, inst.rt2);
+		write_register_bank(FPSP, base_reg, bitcast_u32_float(d1));
+		write_register_bank(FPSP, base_reg+1, bitcast_u32_float(d2));
+	}
+}
+
+execute(vcvt_fp)
+{
+	check_vfp4_enabled();
+	
+	if(inst.sz)
+	{
+		//double to single
+		double v = double_read_register(inst.vm);
+		float v2 = (float)v;
+		float_write_register(inst.vd, v2);
+	}
+	else
+	{
+		//single to double
+		float f_val = float_read_register(inst.vm);
+		double d_val = (double)f_val;
+		double_write_register(inst.vd, d_val);
+	}
+}
+
+execute(vmov_a_sp)
+{
+	check_vfp4_enabled();
+	
+	uint32 rt = read_register_bank(RB, inst.rt);
+	
+	float f = bitcast_u32_float(rt);
+	
+	float_write_register(inst.vn, f);
+}
+
+execute(vmov_a_msr)
+{
+	switch(inst.vn >> 1) {
+	case 1: {
+		check_vfp4_enabled();
+		
+		if(inst.rt == 15) {
+			write_register(FP_N, read_register(N));
+			write_register(FP_Z, read_register(Z));
+			write_register(FP_C, read_register(C));
+			write_register(FP_V, read_register(V));
+		} else {
+			uint32 fpscr = read_register_bank(RB, inst.rt);
+			uint32 n = (fpscr >> 31) & 1;
+			uint32 z = (fpscr >> 30) & 1;
+			uint32 c = (fpscr >> 29) & 1;
+			uint32 v = (fpscr >> 28) & 1;
+			
+			write_register(FP_N, n);
+			write_register(FP_Z, z);
+			write_register(FP_C, c);
+			write_register(FP_V, v);
+			
+			fpscr &= 0x0fffffff;
+			write_register(FPSCR, fpscr);
+			
+			// set new rounding mode
+			__builtin_set_fp_rounding((fpscr >> 22) & 0x3);
+		}
+		break;
+	} 
+	case 8:
+	{
+		//FPEXC
+		uint32 fpexc = read_register_bank(RB, inst.rt);
+		write_register(FPEXC, fpexc);
+		
+		if((fpexc >> 30) & 1) __builtin_set_feature(ARM_FPU_ENABLED_FPEXC, 1);
+		else __builtin_set_feature(ARM_FPU_ENABLED_FPEXC, 0);
+
+		break;
+	}
+	default:
+	{
+		trap();
+		break;
+	}
+	}
+}
+
+execute(vmov_sp_a)
+{
+	check_vfp4_enabled();
+	
+	float rt = float_read_register(inst.vn);
+	
+	uint32 data = bitcast_float_u32(rt);
+	
+	write_register_bank(RB, inst.rt, data);
+}
+
+execute(vmov_msr_a)
+{
+	switch(inst.vn >> 1) {
+	case 0: {
+		// ARM Cortex-A8 FPSID
+		write_register_bank(RB, inst.rt, 0x410330c0);
+		break;
+	}
+	case 1: {
+		check_vfp4_enabled();
+		
+		if(inst.rt == 15) {
+			write_register(N, read_register(FP_N));
+			write_register(Z, read_register(FP_Z));
+			write_register(C, read_register(FP_C));
+			write_register(V, read_register(FP_V));
+		} else {
+			uint32 fpscr = 0;
+			uint32 n = read_register(FP_N);
+			uint32 z = read_register(FP_Z);
+			uint32 c = read_register(FP_C);
+			uint32 v = read_register(FP_V);
+			
+			fpscr |= n << 31;
+			fpscr |= z << 30;
+			fpscr |= c << 29;
+			fpscr |= v << 28;
+
+			fpscr |= read_register(FPSCR);
+			
+			write_register_bank(RB, inst.rt, fpscr);
+		}
+		break;
+	}
+	case 7:	{
+		//MVFR0
+		write_register_bank(RB, inst.rt, 0x11110222);
+		break;
+	}
+	case 6: {
+		//MVFR1
+		write_register_bank(RB, inst.rt, 0x00011100);
+		break;
+	}
+	case 8: {
+		// FPEXC
+		write_register_bank(RB, inst.rt, read_register(FPEXC));
+		break;
+	}
+	default:{
+		trap();
+		break;
+	}
+	}
+}

@@ -1,0 +1,21 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any;
+
+    stages {
+        stage ('Build Image') {
+            steps {
+                sh 'cd scripts/dockerfiles/ubuntu-18.04; docker build -t gensim-ubuntu-18.04 . '
+            }
+        }
+
+        stage ('Build') {
+            steps {
+                sh '''
+                docker run --rm -v `pwd`:/workspace gensim-ubuntu-18.04 bash -c "cp -r /workspace ~/gensim-repo; cd ~/gensim-repo; make"
+                '''
+            }
+        }
+    }
+}

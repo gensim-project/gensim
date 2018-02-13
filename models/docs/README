@@ -1,0 +1,16 @@
+------------------------------------------------------------------------
+3.0 Gensim Models
+------------------------------------------------------------------------
+
+A Gensim model consists of several main components:
+1. The System description, which contains information on register banks,
+   features, etc.
+2. The Syntactic description, which specifies how instructions are
+   encoded
+3. The Semantic description, which specifies how instructions are 
+   executed.
+
+The System description also serves as a top-level file for the rest of
+the model. At least one syntactic description file and semantic 
+description file exist for each instruction set supported by the 
+architecture.

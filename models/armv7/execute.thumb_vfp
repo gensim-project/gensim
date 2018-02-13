@@ -1,0 +1,400 @@
+execute(tvfp_stmt1)
+{
+	if(!inst.U) trap();
+	if(inst.P) trap();
+	
+	uint32 start_reg = inst.vd | (inst.D << 4);
+	
+	uint32 regs = inst.imm8 / 2;
+	uint32 imm32 = ((uint32)inst.imm8) << 2;
+	
+	uint32 rn = read_register_bank(RB, inst.rn);
+	uint32 addr = inst.U ? rn : (rn-imm32);
+
+	for(uint32 i = 0; i < regs; ++i) {
+		double dataf = double_read_register(start_reg+i);
+		uint64 data = bitcast_double_u64(dataf);
+		
+		uint32 data1 = data & 0xffffffff;
+		uint32 data2 = data >> 32;
+
+		mem_write_32(addr, data1);
+		mem_write_32(addr+4, data2);
+		
+		addr += 8;
+	}
+
+	if(inst.W) {
+		uint32 wback_val = addr;
+		write_register_bank(RB, inst.rn, wback_val);
+	}
+}
+
+execute(tvfp_ldmt1)
+{
+	if(!inst.U) trap();
+	if(inst.P) trap();
+
+	uint32 start_reg = inst.vd | (inst.D << 4);
+	
+	uint32 regs = inst.imm8 / 2;
+	uint32 imm32 = ((uint32)inst.imm8) << 2;
+	
+	uint32 rn = read_register_bank(RB, inst.rn);
+	uint32 addr = inst.U ? rn : (rn-imm32);
+	
+	for(uint32 i = 0; i < regs; ++i) {
+		uint32 data1;
+		uint32 data2;
+		mem_read_32(addr, data1);
+		mem_read_32(addr+4, data2);
+
+		uint64 data = data1 | (((uint64)data2) << 32);
+		double dataf = bitcast_u64_double(data);
+
+		double_write_register(start_reg+i, dataf);
+
+		addr += 8;
+	}
+	
+	if(inst.W) {
+		uint32 wback_val = addr;
+		write_register_bank(RB, inst.rn, wback_val);
+	}
+}
+
+execute(tvmovi_sp)
+{
+	uint8 val = inst.vm | (inst.vn << 4);
+	float v = float_expand_imm(val);
+	
+	uint8 target_reg = (inst.vd << 1) | inst.D;
+	float_write_register(target_reg, v);
+}
+
+execute(tvmovi_dp)
+{
+	uint8 val = inst.vm | (inst.vn << 4);
+	double d = double_expand_imm(val);
+	
+	uint8 target_reg = (inst.vd) | (inst.D << 4);
+	double_write_register(target_reg, d);
+}
+
+execute(tvfp_txfr_arm_to_dp)
+{
+	uint8 index = (inst.m << 4) | inst.vm;
+	uint64 rt = read_register_bank(RB, inst.rt);
+	uint64 rt2 = read_register_bank(RB, inst.rt2);
+	uint64 v = (rt | (rt2 << 32));
+	
+	write_register_bank(VU64, index, v);
+}
+
+execute(tvfp_txfr_dp_to_arm)
+{
+	uint8 index = (inst.m << 4) | inst.vm;
+	uint64 val = read_register_bank(VU64, index);
+	
+	write_register_bank(RB, inst.rt, (uint32)val);
+	write_register_bank(RB, inst.rt2, val >> 32);
+}
+
+execute(tvfp_txfr_arm_to_sp)
+{
+	uint8 index = (inst.m) | (inst.vm << 1);
+	uint32 rt = read_register_bank(RB, inst.rt);
+	uint32 rt2 = read_register_bank(RB, inst.rt2);
+	
+	write_register_bank(FPSP, index, bitcast_u32_float(rt));
+	write_register_bank(FPSP, index+1, bitcast_u32_float(rt2));
+}
+
+execute(tvfp_txfr_sp_to_arm)
+{
+	uint8 index = (inst.m) | (inst.vm << 1);
+	float v1 = read_register_bank(FPSP, index);
+	float v2 = read_register_bank(FPSP, index+1);
+	
+	write_register_bank(RB, inst.rt, bitcast_float_u32(v1));
+	write_register_bank(RB, inst.rt2, bitcast_float_u32(v2));
+}
+
+execute(tvfp_arm_single_mov)
+{
+	uint8 index = (inst.vn << 1) | inst.N;
+	
+	if(inst.L) {
+		float data = read_register_bank(FPSP, index);
+		write_register_bank(RB, inst.rt, bitcast_float_u32(data));
+	} else {
+		uint32 data = read_register_bank(RB, inst.rt);
+		write_register_bank(FPSP, index, bitcast_u32_float(data));
+	}
+}
+
+execute(tvfp_vmsr)
+{
+	uint32 val = read_register_bank(RB, inst.rt);
+	
+	write_register(FP_N, (val >> 31) & 1);
+	write_register(FP_Z, (val >> 30) & 1);
+	write_register(FP_C, (val >> 29) & 1);
+	write_register(FP_V, (val >> 28) & 1);
+}
+
+execute(tvfp_vmrs)
+{
+	if(inst.rt != 0xf) {
+		uint32 val = 0;
+		val |= ((uint32)read_register(FP_N) << 31);
+		val |= ((uint32)read_register(FP_Z) << 30);
+		val |= ((uint32)read_register(FP_C) << 29);
+		val |= ((uint32)read_register(FP_V) << 28);
+		write_register_bank(RB, inst.rt, val);
+	} else {
+		write_register(N, read_register(FP_N));
+		write_register(Z, read_register(FP_Z));
+		write_register(C, read_register(FP_C));
+		write_register(V, read_register(FP_V));
+	}
+}
+
+execute(tvfp_vdp_vmul64)
+{
+	uint8 d = inst.vd | (inst.d << 4);
+	uint8 n = inst.vn | (inst.n << 4);
+	uint8 m = inst.vm | (inst.m << 4);
+	
+	double dn = read_register_bank(FPDP, n);
+	double dm = read_register_bank(FPDP, m);
+	
+	write_register_bank(FPDP, d, dn * dm);
+}
+
+execute(tvfp_vdp_vmul32)
+{
+	uint8 d = (inst.vd << 1) | (inst.d);
+	uint8 n = (inst.vn << 1) | (inst.n);
+	uint8 m = (inst.vm << 1) | (inst.m);
+	
+	float dn = read_register_bank(FPSP, n);
+	float dm = read_register_bank(FPSP, m);
+	
+	write_register_bank(FPSP, d, dn * dm);
+}
+
+
+execute(tvfp_vdp_vdiv64)
+{
+	uint8 d = inst.vd | (inst.d << 4);
+	uint8 n = inst.vn | (inst.n << 4);
+	uint8 m = inst.vm | (inst.m << 4);
+	
+	double dn = read_register_bank(FPDP, n);
+	double dm = read_register_bank(FPDP, m);
+	
+	write_register_bank(FPDP, d, dm / dn);
+}
+
+execute(tvfp_vdp_vdiv32)
+{
+	uint8 d = (inst.vd << 1) | (inst.d);
+	uint8 n = (inst.vn << 1) | (inst.n);
+	uint8 m = (inst.vm << 1) | (inst.m);
+	
+	float dn = read_register_bank(FPSP, n);
+	float dm = read_register_bank(FPSP, m);
+	
+	write_register_bank(FPSP, d, dm / dn);
+}
+
+execute(tvfp_vsub64)
+{
+	uint8 d = inst.vd | (inst.d << 4);
+	uint8 n = inst.vn | (inst.n << 4);
+	uint8 m = inst.vm | (inst.m << 4);
+	
+	double dn = read_register_bank(FPDP, n);
+	double dm = read_register_bank(FPDP, m);
+	
+	write_register_bank(FPDP, d, dm - dn);
+}
+
+execute(tvfp_vsub32)
+{
+	uint8 d = (inst.vd << 1) | (inst.d);
+	uint8 n = (inst.vn << 1) | (inst.n);
+	uint8 m = (inst.vm << 1) | (inst.m);
+	
+	float dn = read_register_bank(FPSP, n);
+	float dm = read_register_bank(FPSP, m);
+	
+	write_register_bank(FPSP, d, dm - dn);
+}
+
+execute(tvfp_vadd64)
+{
+	uint8 d = inst.vd | (inst.d << 4);
+	uint8 n = inst.vn | (inst.n << 4);
+	uint8 m = inst.vm | (inst.m << 4);
+	
+	double dn = read_register_bank(FPDP, n);
+	double dm = read_register_bank(FPDP, m);
+	
+	write_register_bank(FPDP, d, dm + dn);
+}
+
+execute(tvfp_vadd32)
+{
+	uint8 d = (inst.vd << 1) | (inst.d);
+	uint8 n = (inst.vn << 1) | (inst.n);
+	uint8 m = (inst.vm << 1) | (inst.m);
+	
+	float dn = read_register_bank(FPSP, n);
+	float dm = read_register_bank(FPSP, m);
+	
+	write_register_bank(FPSP, d, dm + dn);
+}
+
+execute(tvfp_vcmp64)
+{
+	uint8 d = inst.vd | (inst.d << 4);
+	uint8 m = inst.vm | (inst.m << 4);
+	
+	double dd = read_register_bank(FPDP, d);
+	double dm = read_register_bank(FPDP, m);
+	
+	double_compare_thumb(dd, dm);	
+}
+
+execute(tvfp_vcmp32)
+{
+	uint8 d = (inst.vd << 1) | (inst.d);
+	uint8 m = (inst.vm << 1) | (inst.m);
+	
+	float vd = read_register_bank(FPSP, d);
+	float vm = read_register_bank(FPSP, m);
+	
+	float_compare_thumb(vd, vm);
+}
+
+helper double double_read_register(uint32 reg)
+{
+	double d = read_register_bank(FPDP, reg);
+	return d;
+}
+
+helper void double_write_register(uint32 reg, double d)
+{
+	write_register_bank(FPDP, reg, d);	
+	return;
+}
+
+helper float float_read_register(uint32 reg)
+{
+	float r = read_register_bank(FPSP, reg);
+	return r;
+}
+
+helper void float_write_register(uint32 reg, float f)
+{
+	write_register_bank(FPSP, reg, f);
+	return;
+}
+
+helper double double_expand_imm(uint8 val)
+{
+	uint64 sign = (val >> 7) & 1;
+	uint64 top = !((val >> 6) & 1);
+	
+	uint64 rep;
+	if(top) rep = 0;
+	else rep = 0xff;
+	
+	uint64 rem = val & 0x3f;
+	
+	uint64 v = (sign << 63) | (top << 62) | (rep << 54) | (rem << 48);
+	
+	return bitcast_u64_double(v);
+	//double a = 0;
+	//return a;
+}
+
+helper float float_expand_imm(uint8 val)
+{
+	uint32 sign = (val >> 7) & 1;
+	uint32 top = !((val >> 6) & 1);
+	
+	uint32 rep;
+	if(top) rep = 0;
+	else rep = 0x1f;
+	
+	uint32 rem = val & 0x3f;
+	
+	uint32 v = (sign << 31) | (top << 30) | (rep << 25) | (rem << 19);
+	
+	return bitcast_u32_float(v);
+}
+
+helper uint8 double_compare_thumb(double a, double b)
+{
+/*	if(double_is_snan(a) || double_is_qnan(a) || double_is_snan(b) || double_is_qnan(b))
+	{
+		write_register(FP_N, 0);
+		write_register(FP_Z, 0);
+		write_register(FP_C, 1);
+		write_register(FP_V, 1);
+		
+		return 0;
+	} else { */
+		if(a == b) {
+			write_register(FP_N, 0);
+			write_register(FP_Z, 1);
+			write_register(FP_C, 1);
+			write_register(FP_V, 0);
+		} else if(a < b) {
+			write_register(FP_N, 1);
+			write_register(FP_Z, 0);
+			write_register(FP_C, 0);
+			write_register(FP_V, 0);
+		} else {
+			write_register(FP_N, 0);
+			write_register(FP_Z, 0);
+			write_register(FP_C, 1);
+			write_register(FP_V, 0);
+		}
+//	}
+	return 1;
+}
+
+helper uint8 float_compare_thumb(float a, float b)
+{
+/*	if(float_is_snan(a) || float_is_qnan(a) || float_is_snan(b) || float_is_qnan(b))
+	{
+		write_register(FP_N, 0);
+		write_register(FP_Z, 0);
+		write_register(FP_C, 1);
+		write_register(FP_V, 1);
+		
+		return 0;
+	} else {*/
+		if(a == b) {
+			write_register(FP_N, 0);
+			write_register(FP_Z, 1);
+			write_register(FP_C, 1);
+			write_register(FP_V, 0);
+		} else if(a < b) {
+			write_register(FP_N, 1);
+			write_register(FP_Z, 0);
+			write_register(FP_C, 0);
+			write_register(FP_V, 0);
+		} else {
+			write_register(FP_N, 0);
+			write_register(FP_Z, 0);
+			write_register(FP_C, 1);
+			write_register(FP_V, 0);
+		}
+//	}
+	return 1;
+}

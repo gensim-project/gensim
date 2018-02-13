@@ -1,0 +1,146 @@
+/*
+ * Copyright (C) University of Edinburgh 2014
+ *
+ * translate/AsynchronousTranslationManager.cpp
+ *
+ * Models a translation manager that provides one or more asynchronous worker threads to perform JIT
+ * compilation.
+ */
+#include "translate/AsynchronousTranslationManager.h"
+#include "translate/AsynchronousTranslationWorker.h"
+#include "translate/TranslationEngine.h"
+#include "translate/TranslationWorkUnit.h"
+#include "translate/profile/Region.h"
+#include "translate/llvm/LLVMOptimiser.h"
+#include "util/ComponentManager.h"
+#include "util/LogContext.h"
+#include "util/SimOptions.h"
+
+UseLogContext(LogTranslate);
+DeclareChildLogContext(LogWorkQueue, LogTranslate, "WorkQueue");
+
+using namespace archsim::translate;
+
+RegisterComponent(TranslationManager, AsynchronousTranslationManager, "async", "Asynchronous", archsim::util::PubSubContext*);
+
+AsynchronousTranslationManager::AsynchronousTranslationManager(util::PubSubContext *psctx) : TranslationManager(psctx) { }
+
+AsynchronousTranslationManager::~AsynchronousTranslationManager() { }
+
+bool WorkUnitQueueComparator::operator()(const TranslationWorkUnit* lhs, const TranslationWorkUnit* rhs) const
+{
+	return lhs->GetWeight() < rhs->GetWeight();
+}
+
+bool AsynchronousTranslationManager::Initialise()
+{
+	if (!TranslationManager::Initialise())
+		return false;
+
+	for (unsigned int i = 0; i < archsim::options::JitThreads; i++) {
+		auto worker = new AsynchronousTranslationWorker(*this, i);
+		workers.push_back(worker);
+		worker->start();
+	}
+
+	return true;
+}
+
+void AsynchronousTranslationManager::Destroy()
+{
+	// No point notfiying threads here of the change to the queue, as they are
+	// about to be terminated.
+	work_unit_queue_lock.lock();
+	fprintf(stderr, "*** QUEUE ENTRIES %lu\n", work_unit_queue.size());
+
+	while(!work_unit_queue.empty()) {
+		auto i = work_unit_queue.top();
+		work_unit_queue.pop();
+		delete i;
+	}
+
+	work_unit_queue_lock.unlock();
+
+	while (!workers.empty()) {
+		auto worker = workers.front();
+		workers.pop_front();
+
+		worker->stop();
+		delete worker;
+	}
+
+	TranslationManager::Destroy();
+}
+
+void AsynchronousTranslationManager::UpdateThreshold()
+{
+	if (work_unit_queue.size() > workers.size() * 2) {
+		curr_hotspot_threshold *= 10;
+
+		// Cap the threshold to stop it from overflowing
+		uint32_t max_threshold = archsim::options::JitProfilingInterval / 2;
+		if (curr_hotspot_threshold > max_threshold) {
+			curr_hotspot_threshold = max_threshold;
+		}
+	} else {
+		curr_hotspot_threshold /= 2;
+
+		if (curr_hotspot_threshold < archsim::options::JitHotspotThreshold) {
+			curr_hotspot_threshold = archsim::options::JitHotspotThreshold;
+		}
+	}
+
+	// Since the threshold modifications are multiplicative, if the threshold becomes 0 we will be stuck
+	assert(curr_hotspot_threshold > 0);
+}
+
+bool AsynchronousTranslationManager::TranslateRegion(gensim::Processor& cpu, profile::Region& region, uint32_t weight)
+{
+	if (!region.IsValid()) return false;
+
+	// Create the translation work unit for this region.
+	TranslationWorkUnit *twu = TranslationWorkUnit::Build(cpu, region, *ics, weight);
+	if (!twu) {
+		LC_WARNING(LogTranslate) << "Could not build TWU for " << region;
+		return false;
+	}
+
+	// Acquire the work unit queue lock.
+	work_unit_queue_lock.lock();
+
+	work_unit_queue.push(twu);
+	LC_DEBUG1(LogWorkQueue) << "[ENQUEUE] Enqueueing " << *twu << ", queue length " << work_unit_queue.size();
+
+	work_unit_queue_cond.notify_one();
+	work_unit_queue_lock.unlock();
+
+	return true;
+}
+
+void AsynchronousTranslationManager::PrintStatistics(std::ostream& stream)
+{
+	TranslationManager::PrintStatistics(stream);
+
+	work_unit_queue_lock.lock();
+	stream << "Work Queue Size: " << work_unit_queue.size() << std::endl;
+	work_unit_queue_lock.unlock();
+
+	stream << "-----------------------------------------------------" << std::endl;
+	stream << "#  Generation    Optimisation  Compilation" << std::endl;
+	stream << "-----------------------------------------------------" << std::endl;
+
+	uint32_t total_units = 0, total_txlns = 0;
+	for (auto worker : workers) {
+		total_units += worker->units.get_value();
+		total_txlns += worker->txlns.get_value();
+
+		stream << (uint32_t)worker->id << "  ";
+		worker->PrintStatistics(stream);
+	}
+
+	stream << "-----------------------------------------------------" << std::endl;
+
+	stream << "  Total Units:        " << total_units << std::endl;
+	stream << "  Total Translations: " << total_txlns;
+	stream << " (" << ((double)total_txlns / total_units) << " txlns/unit)" << std::endl;
+}

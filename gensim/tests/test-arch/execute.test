@@ -1,0 +1,301 @@
+
+helper  uint8 pc_check(uint32 reg)
+{
+	return reg == 15 ? 4 : 0;
+}
+
+helper void DecodeImmShift(uint8 type, uint8 imm5, uint8 &shift_t, uint8 &shift_n)
+{
+	if (type == 0)
+	{
+		shift_t = 0; shift_n = imm5;
+	}
+	else if (type == 1)
+	{
+		shift_t = 1;
+		if (imm5 == 0)
+			shift_n = 32;
+		else
+			shift_n = imm5;
+	}
+	else if (type == 2)
+	{
+		shift_t = 2;
+		if (imm5 == 0)
+			shift_n = 32;
+		else
+			shift_n = imm5;
+	}
+	else if (type == 3)
+	{
+		if (imm5 == 0)
+		{
+			shift_t = 4; 
+			shift_n = 1;
+		}
+		else
+		{
+			shift_t = 3; 
+			shift_n = imm5;
+		}
+	}
+	else
+	{
+		shift_t = 0;
+		shift_n = 0;
+	}
+	return;
+}
+
+helper uint32 Shift(uint32 value, uint8 type, uint32 amount, uint8 carry_in)
+{
+	uint8 carry_out;
+	uint32 result = Shift_C(value, type, amount, carry_in, carry_out);
+	return result;
+}
+
+helper uint32 Shift_C(uint32 value, uint8 type, uint32 amount, uint8 carry_in, uint8 &carry_out)
+{
+	uint32 result; 
+
+	if (amount == 0)
+	{
+		result = value;
+		carry_out = carry_in;
+		return result;
+	}
+	else
+	{
+		switch(type)
+		{
+		case 0:
+		{
+			result = LSL_C(value, amount, carry_out);
+			return result;
+		}
+		case 1:
+		{
+			result = LSR_C(value, amount, carry_out);
+			return result;
+		}
+		case 2:
+		{
+			result = ASR_C(value, amount, carry_out);
+			return result;
+		}
+		case 3:
+		{
+			result = ROR_C(value, amount, carry_out);
+			return result;
+		}
+		case 4:
+		{
+			result = RRX_C(value, carry_in, carry_out);
+			return result;
+		}
+		default: 
+		{
+			result = 0;
+			carry_out = 0;
+			return result;
+		}
+		}
+	}
+}
+
+helper uint32 RRX_C(uint32 x, uint8 carry_in, uint8 &carry_out)
+{
+	uint32 result = ((uint32)carry_in << 31) | (x >> 1);
+	carry_out = bitsel(x, 0);
+	return result;
+}
+
+helper uint32 ROR(uint32 x, uint8 shift)
+{
+	uint8 dummy_carry;
+	uint32 result;
+
+	if (shift == 0)
+	{
+		result = x;
+	}
+	else
+	{
+		result = ROR_C(x, shift, dummy_carry);
+	}
+	
+	return result;
+}
+
+helper uint32 ROR_C(uint32 x, uint8 shift, uint8 &carry_out)
+{
+	//assert shift != 0;
+	uint32 m = shift % 32;
+	uint32 result = LSR(x,m) | LSL(x,32-m);
+	carry_out = bitsel(result, 31);
+	return result;
+}
+
+helper uint32 LSR(uint32 x, uint32 shift)
+{
+	//assert shift >= 0;
+	uint32 result;
+	uint8 dummy_carry_out;
+
+	if (shift == 0)
+		result = x;
+	else
+		result = LSR_C(x, shift, dummy_carry_out);
+	
+	return result;
+}
+
+helper uint32 LSR_C(uint32 bits, uint32 shift, uint8 &carry_out)
+{
+	if (shift == 0)
+	{
+		carry_out = 0;
+		return bits;
+	}
+	else if(shift < 32)
+	{
+		carry_out = (bits >> ((shift) - 1)) & 1;
+		return bits >> (shift);
+	}
+	else if(shift == 32)
+	{
+		carry_out = bits >> (uint32)31;
+		return 0;
+	}
+	else
+	{
+		carry_out = 0;
+		return 0;
+	}
+}
+
+helper uint32 LSL(uint32 x, uint32 shift)
+{
+	uint32 result;
+	uint8 dummy_carry_out;
+	//assert shift >= 0;
+	if (shift == 0) 
+		result = x;
+	else
+		result = LSL_C(x, shift, dummy_carry_out);
+
+	return result;
+}
+
+helper uint32 ASR_C(uint32 x, uint32 shift, uint8 &carry_out)
+{
+	// TODO: Check this sign extension stuff
+/*	uint64 extended_x = ((sint64)x << (shift+32)) >> (shift+32);
+	uint32 result = (uint32) extended_x;
+	carry_out = bitsel(result, shift - 1);
+	return result;
+*/
+	carry_out = 0;
+
+	if (shift == 0)
+	{
+		return x;
+	}
+	else if (shift >= 32)
+	{
+		carry_out = ((sint32) x >> 31) & 1;
+		if (x & 0x80000000) return 0xffffffff;
+		else return 0x0;
+	}
+	else
+	{
+		carry_out = ((sint32)(x) >> ((shift) - 1)) & 1;
+		return ((sint32) x) >> shift;
+	}
+
+}
+helper uint32 LSL_C(uint32 bits, uint32 shift, uint8 &carry_out)
+{
+	// assert shift > 0;
+	if((shift) == 0) 
+	{
+		carry_out = 0;
+		return bits;
+	}
+	else if(shift < 32)
+	{
+		carry_out = bitsel(bits, (32- (shift)));
+		return (uint32) bits << (shift);
+	}
+	else if ((shift) == 32)
+	{
+		carry_out = bits & 1;
+		return 0;
+	}
+	else
+	{
+		carry_out = 0;
+		return 0;
+	}
+}
+
+helper uint32 ASR(uint32 x, uint32 shift)
+{
+	uint32 result;
+
+	if (shift == 0)
+	{
+		result = x;
+	}
+	else
+	{
+		uint8 dummy_carry;
+		result = ASR_C(x, shift, dummy_carry);
+	}
+	return result;
+}
+
+helper uint32 AddWithCarry(uint32 op1,  uint32 op2, uint8 carry_in, uint8 &carry_out, uint8 &overflow)
+{
+	uint32 result;
+	uint64 unsigned_sum = (uint64)op1 + (uint64)op2 + (uint64)carry_in;
+	sint64 signed_sum = (sint64) ((sint32) op1) + (sint64) ((sint32) op2) + (sint64) carry_in;
+
+	result = unsigned_sum & 0xFFFFFFFF;
+
+	carry_out = (unsigned_sum >> 32) != 0;
+	overflow = (sint64) ((sint32) result) != signed_sum;
+
+	return result;
+}
+
+helper uint32 bitsel(uint32 val, uint8 bit)
+{
+	return (val >> bit) & 1;
+}
+
+
+execute(test_behaviour) {
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint8 imm5 = (uint8)(inst.imm3 << 2) | (uint8)(inst.imm2);
+
+        uint8 c;
+//      uint32 imm32 = decode_imm((inst.type), imm5, read_register_bank(RB, inst.rm) + pc_check(inst.rm), read_register(C), c);
+
+	uint8 shift_t;
+	uint8 shift_n;
+	DecodeImmShift(inst.type, imm5, shift_t, shift_n);
+	
+	uint32 shifted = Shift(m, shift_t, shift_n, read_register(C));
+
+	uint8 carry_out;
+	uint8 overflow;
+
+	uint32 result = AddWithCarry(n, ~shifted, 1, carry_out, overflow); 
+
+	write_register(N, bitsel(result, 31));
+	write_register(Z, result == 0);
+	write_register(C, carry_out);
+	write_register(V, overflow);
+}

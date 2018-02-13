@@ -1,0 +1,10 @@
+archsim_add_sources(
+	LowerFAdd.cpp
+	LowerFCmp.cpp
+	LowerFCtrl.cpp
+	LowerFCvt.cpp
+	LowerFDiv.cpp
+	LowerFMul.cpp
+	LowerFSqrt.cpp
+	LowerFSub.cpp
+)

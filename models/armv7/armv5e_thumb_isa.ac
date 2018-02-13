@@ -1,0 +1,443 @@
+/*
+	Tom Spink
+	PASTA2 			2013
+*/
+AC_ISA(thumb) {
+	ac_fetchsize 16;
+
+	ac_format MSR_INS		= "0x00:3 %op:2 %off:5 %rs:3 %rd:3";
+	ac_format ADDSUB_INS	= "0x03:5 %i:1 %op:1 %rn:3 %rs:3 %rd:3";
+	ac_format MCAS_IMM_INS	= "0x01:3 %op:2 %rd:3 %off:8";
+	ac_format ALU_OP_INS	= "0x10:6 %op:4 %rs:3 %rd:3";
+	ac_format HRO_INS		= "0x11:6 %op:2 %h1:1 %h2:1 %rs:3 %rd:3";
+	ac_format PCRL_INS		= "0x09:5 %rd:3 %off:8";
+	ac_format LSRO_INS		= "0x05:4 %l:1 %b:1 0x00:1 %ro:3 %rb:3 %rd:3";
+	ac_format LSSE_INS		= "0x05:4 %h:1 %s:1 0x01:1 %ro:3 %rb:3 %rd:3";
+	ac_format LS_IMM_INS	= "0x03:3 %b:1 %l:1 %off:5 %rb:3 %rd:3";
+	ac_format LS_HW_INS		= "0x08:4 %l:1 %off:5 %rb:3 %rd:3";
+	ac_format SPR_LS_INS	= "0x09:4 %l:1 %rd:3 %off:8";
+	ac_format LDA_INS		= "0x0A:4 %sp:1 %rd:3 %off:8";
+	ac_format ADDOFF_INS	= "0xB0:8 %s:1 %off:7";
+	ac_format PP_REG_INS	= "0x0B:4 %l:1 0x02:2 %r:1 %rlist:8";
+	ac_format MLS_INS		= "0x0C:4 %l:1 %rb:3 %rlist:8";
+	ac_format CBR_INS		= "0x0D:4 %cond:4 %off:8";
+	ac_format SWI_INS		= "0xDF:8 %val:8";
+	ac_format UBR_INS		= "0x1C:5 %off:11";
+
+	ac_format LBL_HI_INS	= "0x1E:5 %off:11";
+	ac_format LBL_LO_INS	= "0x7:3 %h:1 0x1:1 %off:11";
+
+	//ac_format LBL_32_INS	= "0x1E:5 %offh:11 0x7:3 %h:1 0x1:1 %offl:11";
+	
+	ac_format BKPT_INS		= "0xBE:8 %off:8";
+	ac_format LRO_MOV		= "0x0e:7 0x0:3 %rs:3 %rd:3";
+
+	ac_format UNDEF			= "0xde:8 %off:8";
+
+	ac_format BL_ISB_INS = "0xf57ff06f:32";
+
+	ac_field<uint8> vrd;
+	ac_field<uint8> vrs;
+
+	ac_instr<MSR_INS>		msr;
+	ac_instr<ADDSUB_INS>	addsub;
+	ac_instr<MCAS_IMM_INS>	mcas_mov, mcas_cmp, mcas_add, mcas_sub;
+	ac_instr<ALU_OP_INS>	alu_and, alu_eor, alu_lsl, alu_lsr, alu_asr;
+	ac_instr<ALU_OP_INS>	alu_adc, alu_sbc, alu_ror, alu_tst, alu_neg;
+	ac_instr<ALU_OP_INS>	alu_cmp, alu_cmn, alu_orr, alu_mul, alu_bic;
+	ac_instr<ALU_OP_INS>	alu_mvn;
+	ac_instr<HRO_INS>		hro_add, hro_cmp, hro_mov, hro_bx;
+	ac_instr<PCRL_INS>		pcrl_ldr;
+	ac_instr<LSRO_INS>		lsro_str, lsro_ldr;
+	ac_instr<LSSE_INS>		lsse_strh, lsse_ldrh, lsse_ldsb, lsse_ldsh;
+	ac_instr<LS_IMM_INS>	lsimm_str, lsimm_ldr;
+	ac_instr<LS_HW_INS>		lshw_strh, lshw_ldrh;
+	ac_instr<SPR_LS_INS>	spr_str, spr_ldr;
+	ac_instr<LDA_INS>		lda_add;
+	ac_instr<ADDOFF_INS>	addoff_add;
+	ac_instr<PP_REG_INS>	pp_push, pp_pop;
+	ac_instr<MLS_INS>		mls_stmia, mls_ldmia;
+	ac_instr<CBR_INS>		cbr;
+	ac_instr<SWI_INS>		swi;
+	ac_instr<UBR_INS>		b;
+//	ac_instr<LBL_HI_INS>	bl_hi;
+//	ac_instr<LBL_LO_INS>	bl_lo;
+	//ac_instr<LBL_32_INS>	bl;
+	ac_instr<BKPT_INS>		bkpt;
+	ac_instr<LRO_MOV>		lro_mov;
+	ac_instr<UNDEF>         undef;
+	//ac_instr<BL_ISB_INS> bl_isb;
+	
+	ac_field<uint32>		immu32;
+	ac_field<sint32>		imms32;
+	
+	ac_field<uint8>			vrd;
+	ac_field<uint8>			vrs;
+
+	
+	ac_asm_map reg 
+	{
+		"r"[0..15] = [0..15];
+		"fp" = 11;
+		"ip" = 12;
+		"sp" = 13;
+		"lr" = 14;
+		"pc" = 15;
+	}
+	
+	ac_behaviour thumb_msr;
+	ac_behaviour thumb_lro_mov;
+	ac_behaviour thumb_addsub;
+	ac_behaviour thumb_mcas_mov;
+	ac_behaviour thumb_mcas_cmp;
+	ac_behaviour thumb_mcas_add;
+	ac_behaviour thumb_mcas_sub;
+	ac_behaviour thumb_alu_and;
+	ac_behaviour thumb_alu_eor;
+	ac_behaviour thumb_alu_lsl;
+	ac_behaviour thumb_alu_lsr;
+	ac_behaviour thumb_alu_asr;
+	ac_behaviour thumb_alu_adc;
+	ac_behaviour thumb_alu_sbc;
+	ac_behaviour thumb_alu_ror;
+	ac_behaviour thumb_alu_tst;
+	ac_behaviour thumb_alu_neg;
+	ac_behaviour thumb_alu_cmp;
+	ac_behaviour thumb_alu_cmn;
+	ac_behaviour thumb_alu_orr;
+	ac_behaviour thumb_alu_mul;
+	ac_behaviour thumb_alu_bic;
+	ac_behaviour thumb_alu_mvn;
+	ac_behaviour thumb_hro_add;
+	ac_behaviour thumb_hro_cmp;
+	ac_behaviour thumb_hro_mov;
+	ac_behaviour thumb_hro_bx;
+	ac_behaviour thumb_pcrl_ldr;
+	ac_behaviour thumb_lsro_str;
+	ac_behaviour thumb_lsro_ldr;
+	ac_behaviour thumb_lsse_strh;
+	ac_behaviour thumb_lsse_ldrh;
+	ac_behaviour thumb_lsse_ldsb;
+	ac_behaviour thumb_lsse_ldsh; 	
+	ac_behaviour thumb_lsimm_str; 	
+	ac_behaviour thumb_lsimm_ldr; 	
+	ac_behaviour thumb_lshw_strh; 	
+	ac_behaviour thumb_lshw_ldrh; 	
+	ac_behaviour thumb_spr_str; 	
+	ac_behaviour thumb_spr_ldr; 	
+	ac_behaviour thumb_lda_add; 	
+	ac_behaviour thumb_addoff_add; 	
+	ac_behaviour thumb_pp_push; 	
+	ac_behaviour thumb_pp_pop; 	
+	ac_behaviour thumb_mls_stmia; 	
+	ac_behaviour thumb_mls_ldmia; 	
+	ac_behaviour thumb_cbr; 	
+	ac_behaviour thumb_swi; 	
+	ac_behaviour thumb_b; 	
+	ac_behaviour thumb_bkpt; 	
+	ac_behaviour thumb_undef; 	
+	//ac_behaviour thumb_bl_isb;
+
+	ISA_CTOR(thumb) {
+		ac_behaviours("behaviours.thumb1");
+		ac_execute("execute.thumb1");
+		
+		// MSR_INS		= "0x00:3 %op:2 %off:5 %rs:3 %rd:3";
+		msr.set_decoder();
+		msr.set_asm("lsl %reg, %reg, #%imm", rd, rs, immu32, op=0);
+		msr.set_asm("lsr %reg, %reg, #%imm", rd, rs, immu32, op=1);
+		msr.set_asm("asr %reg, %reg, #%imm", rd, rs, immu32, op=2);
+		msr.set_behaviour(thumb_msr);
+		
+		lro_mov.set_decoder();
+		lro_mov.set_asm("mov %reg, %reg", rd, rs);
+		lro_mov.set_behaviour(thumb_lro_mov);
+		
+		// ADDSUB_INS	= "0x03:5 %i:1 %op:1 %rn:3 %rs:3 %rd:3";
+		addsub.set_decoder();
+		addsub.set_asm("add %reg, %reg, %reg", rd, rs, rn, i=0, op=0);
+		addsub.set_asm("add %reg, %reg, #%imm", rd, rs, immu32, i=1, op=0);
+		addsub.set_asm("sub %reg, %reg, %reg", rd, rs, rn, i=0, op=1);
+		addsub.set_asm("sub %reg, %reg, #%imm", rd, rs, immu32, i=1, op=1);
+		addsub.set_behaviour(thumb_addsub);
+		
+		// MCAS_IMM_INS	= "0x01:3 %op:2 %rd:3 %off:8";
+		mcas_mov.set_decoder(op=0x0);
+		mcas_mov.set_asm("mov %reg, #%imm", rd, immu32);
+		mcas_mov.set_behaviour(thumb_mcas_mov);
+
+		mcas_cmp.set_decoder(op=0x1);
+		mcas_cmp.set_asm("cmp %reg, #%imm", rd, immu32);
+		mcas_cmp.set_behaviour(thumb_mcas_cmp);
+
+		mcas_add.set_decoder(op=0x2);
+		mcas_add.set_asm("add %reg, #%imm", rd, immu32);
+		mcas_add.set_behaviour(thumb_mcas_add);
+
+		mcas_sub.set_decoder(op=0x3);
+		mcas_sub.set_asm("sub %reg, #%imm", rd, immu32);
+		mcas_sub.set_behaviour(thumb_mcas_sub);
+		
+		// ALU_OP_INS	= "0x10:6 %op:4 %rs:3 %rd:3";
+		alu_and.set_decoder(op=0x0);
+		alu_and.set_behaviour(thumb_alu_and);
+		alu_and.set_asm("and %reg, %reg", rd, rs);
+		
+		alu_eor.set_decoder(op=0x1);
+		alu_eor.set_behaviour(thumb_alu_eor);
+		alu_eor.set_asm("eor %reg, %reg", rd, rs);
+		
+		alu_lsl.set_decoder(op=0x2);
+		alu_lsl.set_behaviour(thumb_alu_lsl);
+		alu_lsl.set_asm("lsl %reg, %reg", rd, rs);
+		
+		alu_lsr.set_decoder(op=0x3);
+		alu_lsr.set_behaviour(thumb_alu_lsr);
+		alu_lsr.set_asm("lsr %reg, %reg", rd, rs);
+		
+		alu_asr.set_decoder(op=0x4);
+		alu_asr.set_behaviour(thumb_alu_asr);
+		alu_asr.set_asm("asr %reg, %reg", rd, rs);
+
+		alu_adc.set_decoder(op=0x5);
+		alu_adc.set_behaviour(thumb_alu_adc);
+		alu_adc.set_asm("adc %reg, %reg", rd, rs);
+		
+		alu_sbc.set_decoder(op=0x6);
+		alu_sbc.set_behaviour(thumb_alu_sbc);
+		alu_sbc.set_asm("sbc %reg, %reg", rd, rs);
+		
+		alu_ror.set_decoder(op=0x7);
+		alu_ror.set_behaviour(thumb_alu_ror);
+		alu_ror.set_asm("ror %reg, %reg", rd, rs);
+		
+		alu_tst.set_decoder(op=0x8);
+		alu_tst.set_behaviour(thumb_alu_tst);
+		alu_tst.set_asm("tst %reg, %reg", rd, rs);
+		
+		alu_neg.set_decoder(op=0x9);
+		alu_neg.set_behaviour(thumb_alu_neg);
+		alu_neg.set_asm("neg %reg, %reg", rd, rs);
+		
+		alu_cmp.set_decoder(op=0xA);
+		alu_cmp.set_behaviour(thumb_alu_cmp);
+		alu_cmp.set_asm("cmp %reg, %reg", rd, rs);
+
+		alu_cmn.set_decoder(op=0xB);
+		alu_cmn.set_behaviour(thumb_alu_cmn);
+		alu_cmn.set_asm("cmn %reg, %reg", rd, rs);
+
+		alu_orr.set_decoder(op=0xC);
+		alu_orr.set_behaviour(thumb_alu_orr);
+		alu_orr.set_asm("orr %reg, %reg", rd, rs);
+
+		alu_mul.set_decoder(op=0xD);
+		alu_mul.set_behaviour(thumb_alu_mul);
+		alu_mul.set_asm("mul %reg, %reg", rd, rs);
+
+		alu_bic.set_decoder(op=0xE);
+		alu_bic.set_behaviour(thumb_alu_bic);
+		alu_bic.set_asm("bic %reg, %reg", rd, rs);
+
+		alu_mvn.set_decoder(op=0xF);
+		alu_mvn.set_behaviour(thumb_alu_mvn);
+		alu_mvn.set_asm("mvn %reg, %reg", rd, rs);
+		
+		// HRO_INS		= "0x11:6 %op:2 %h1:1 %h2:1 %rs:3 %rd:3";
+		hro_add.set_decoder(op=0x0);
+		hro_add.set_behaviour(thumb_hro_add);
+		hro_add.set_asm("add %reg, %reg", vrd, vrs);
+
+		hro_cmp.set_decoder(op=0x1);
+		hro_cmp.set_behaviour(thumb_hro_cmp);
+		hro_cmp.set_asm("cmp %reg, %reg", vrd, vrs);
+
+		hro_mov.set_decoder(op=0x2);
+		hro_mov.set_behaviour(thumb_hro_mov);
+		hro_mov.set_asm("mov %reg, %reg", vrd, vrs);
+		hro_mov.set_end_of_block(vrd=15);
+		hro_mov.set_variable_jump();
+		hro_mov.set_reads_pc(vrs=15);
+		
+		hro_bx.set_decoder(op=0x3, rd=0);
+		hro_bx.set_behaviour(thumb_hro_bx);
+		hro_bx.set_asm("bx %reg", vrs, h1=0);
+		hro_bx.set_asm("blx %reg", vrs, h1=1);
+		hro_bx.set_end_of_block();
+		hro_bx.set_variable_jump();
+		hro_bx.set_reads_pc(h1=1);
+		
+		// PCRL_INS		= "0x09:5 %rd:3 %off:8";
+		pcrl_ldr.set_decoder();
+		pcrl_ldr.set_behaviour(thumb_pcrl_ldr);
+		pcrl_ldr.set_asm("ldr %reg, [PC, #%imm]", rd, immu32);
+		pcrl_ldr.set_reads_pc();
+
+		// LSRO_INS		= "0x05:4 %l:1 %b:1 0x00:1 %ro:3 %rb:3 %rd:3";
+		lsro_str.set_decoder(l=0);
+		lsro_str.set_behaviour(thumb_lsro_str);
+		lsro_str.set_asm("str %reg, [%reg, %reg]", rd, rb, ro, b=0);
+		lsro_str.set_asm("strb %reg, [%reg, %reg]", rd, rb, ro, b=1);
+
+		lsro_ldr.set_decoder(l=1);
+		lsro_ldr.set_behaviour(thumb_lsro_ldr);
+		lsro_ldr.set_asm("ldr %reg, [%reg, %reg]", rd, rb, ro, b=0);
+		lsro_ldr.set_asm("ldrb %reg, [%reg, %reg]", rd, rb, ro, b=1);
+		
+		// LSSE_INS		= "0x05:4 %h:1 %s:1 0x01:1 %ro:3 %rb:3 %rd:3";
+		lsse_strh.set_decoder(s=0, h=0);
+		lsse_strh.set_behaviour(thumb_lsse_strh);
+		lsse_strh.set_asm("strh %reg, [%reg, %reg]", rd, rb, ro);
+
+		lsse_ldrh.set_decoder(s=0, h=1);
+		lsse_ldrh.set_behaviour(thumb_lsse_ldrh);
+		lsse_ldrh.set_asm("ldrh %reg, [%reg, %reg]", rd, rb, ro);
+
+		lsse_ldsb.set_decoder(s=1, h=0);
+		lsse_ldsb.set_behaviour(thumb_lsse_ldsb);
+		lsse_ldsb.set_asm("ldsb %reg, [%reg, %reg]", rd, rb, ro);
+
+		lsse_ldsh.set_decoder(s=1, h=1);
+		lsse_ldsh.set_behaviour(thumb_lsse_ldsh);
+		lsse_ldsh.set_asm("ldsh %reg, [%reg, %reg]", rd, rb, ro);
+
+		// LS_IMM_INS	= "0x03:3 %b:1 %l:1 %off:5 %rb:3 %rd:3";
+		lsimm_str.set_decoder(l=0);
+		lsimm_str.set_behaviour(thumb_lsimm_str);
+		lsimm_str.set_asm("str %reg, [%reg, #%imm]", rd, rb, immu32, b=0);
+		lsimm_str.set_asm("strb %reg, [%reg, #%imm]", rd, rb, immu32, b=1);
+		
+		lsimm_ldr.set_decoder(l=1);
+		lsimm_ldr.set_behaviour(thumb_lsimm_ldr);
+		lsimm_ldr.set_asm("ldr %reg, [%reg, #%imm]", rd, rb, immu32, b=0);
+		lsimm_ldr.set_asm("ldrb %reg, [%reg, #%imm]", rd, rb, immu32, b=1);
+		
+		// LS_HW_INS		= "0x08:4 %l:1 %off:5 %rb:3 %rd:3";
+		lshw_strh.set_decoder(l=0);
+		lshw_strh.set_behaviour(thumb_lshw_strh);
+		lshw_strh.set_asm("strh %reg, [%reg, #%imm]", rd, rb, immu32);
+		
+		lshw_ldrh.set_decoder(l=1);
+		lshw_ldrh.set_behaviour(thumb_lshw_ldrh);
+		lshw_ldrh.set_asm("ldrh %reg, [%reg, #%imm]", rd, rb, immu32);
+		
+		// SPR_LS_INS	= "0x09:4 %l:1 %rd:3 %off:8";
+		spr_str.set_decoder(l=0);
+		spr_str.set_behaviour(thumb_spr_str);
+		spr_str.set_asm("str %reg, [SP, #%imm]", rd, immu32);
+
+		spr_ldr.set_decoder(l=1);
+		spr_ldr.set_behaviour(thumb_spr_ldr);
+		spr_ldr.set_asm("ldr %reg, [SP, #%imm]", rd, immu32);
+
+		// LDA_INS		= "0x0A:4 %sp:1 %rd:3 %off:8";
+		lda_add.set_decoder();
+		lda_add.set_behaviour(thumb_lda_add);
+		lda_add.set_asm("add %reg, PC, #%imm", rd, immu32, sp=0);
+		lda_add.set_asm("add %reg, SP, #%imm", rd, immu32, sp=1);
+		lda_add.set_reads_pc(sp=0);
+
+		// ADDOFF_INS	= "0xB0:8 %s:1 %off:7";
+		addoff_add.set_decoder();
+		addoff_add.set_behaviour(thumb_addoff_add);
+		addoff_add.set_asm("add SP, #%imm", immu32, s=0);
+		addoff_add.set_asm("sub SP, #%imm", immu32, s=1);
+		
+		// PP_REG_INS	= "0x0B:4 %l:1 0x02:2 %r:1 %rlist:8";
+		pp_push.set_decoder(l=0);
+		pp_push.set_behaviour(thumb_pp_push);
+		pp_push.set_asm("push { %reg... }", rlist, r=0);
+		pp_push.set_asm("push { %reg..., LR }", rlist, r=1);
+		
+		pp_pop.set_decoder(l=1);
+		pp_pop.set_behaviour(thumb_pp_pop);
+		pp_pop.set_asm("pop { %reg... }", rlist, r=0);
+		pp_pop.set_asm("pop { %reg..., PC }", rlist, r=1);
+		pp_pop.set_end_of_block(r=1);
+		pp_pop.set_variable_jump();
+		
+		// MLS_INS		= "0x0C:4 %l:1 %rb:3 %rlist:8";
+		mls_stmia.set_decoder(l=0);
+		mls_stmia.set_behaviour(thumb_mls_stmia);
+		mls_stmia.set_asm("stmia %reg!, { %reg... }", rb, rlist);
+
+		mls_ldmia.set_decoder(l=1);
+		mls_ldmia.set_behaviour(thumb_mls_ldmia);
+		mls_ldmia.set_asm("ldmia %reg!, { %reg... }", rb, rlist);
+		
+		// CBR_INS		= "0x0D:4 %cond:4 %off:8";
+		cbr.set_decoder();
+		cbr.set_behaviour(thumb_cbr);
+		cbr.set_asm("beq %reladdr", immu32, cond=0);
+		cbr.set_asm("bne %reladdr", immu32, cond=1);
+		cbr.set_asm("bcs %reladdr", immu32, cond=2);
+		cbr.set_asm("bcc %reladdr", immu32, cond=3);
+		cbr.set_asm("bmi %reladdr", immu32, cond=4);
+		cbr.set_asm("bpl %reladdr", immu32, cond=5);
+		cbr.set_asm("bvs %reladdr", immu32, cond=6);
+		cbr.set_asm("bvc %reladdr", immu32, cond=7);
+		cbr.set_asm("bhi %reladdr", immu32, cond=8);
+		cbr.set_asm("bls %reladdr", immu32, cond=9);
+		cbr.set_asm("bge %reladdr", immu32, cond=10);
+		cbr.set_asm("blt %reladdr", immu32, cond=11);
+		cbr.set_asm("bgt %reladdr", immu32, cond=12);
+		cbr.set_asm("ble %reladdr", immu32, cond=13);
+		cbr.set_end_of_block();
+		//cbr.set_fixed_jump(imms32, RELATIVE, 0);
+		// 'variable' jump due to hidden predication
+		cbr.set_variable_jump();
+		cbr.set_reads_pc();
+		
+		// SWI_INS		= "0xDF:8 %val:8";
+
+		swi.set_decoder();
+		swi.set_behaviour(thumb_swi);
+		swi.set_asm("swi %imm", immu32);
+		
+		// UBR_INS		= "0x1C:5 %off:11";
+
+		b.set_decoder();
+		b.set_behaviour(thumb_b);
+		b.set_asm("b %reladdr", imms32);
+		b.set_end_of_block();
+		b.set_fixed_jump(imms32, RELATIVE, 0);
+		b.set_reads_pc();
+		
+		/*bl.set_behaviour(thumb_bl);
+		bl.set_asm("bl %reladdr", immu32);
+		bl.set_end_of_block();
+		bl.set_fixed_jump(immu32, FIXED, 0);*/
+		
+		// LBL_HI_INS	= "0x1E:5 %off:11";
+		// LBL_LO_INS	= "0x7:3 %h:1 0x1:1 %off:11";
+
+/*
+		bl_hi.set_decoder();
+		bl_hi.set_behaviour(thumb_bl_hi);
+		bl_hi.set_asm("bl.hi #%imm", immu32);
+		bl_hi.set_reads_pc();
+		bl_hi.set_fixed_jump(imms32, FIXED, 0);
+		
+		bl_lo.set_decoder();
+		bl_lo.set_behaviour(thumb_bl_lo);
+		bl_lo.set_asm("bl.lo #%imm", immu32, h=1);
+		bl_lo.set_asm("blx.lo #%imm", immu32, h=0);
+		bl_lo.set_end_of_block();
+		bl_lo.set_variable_jump();
+*/	
+		bkpt.set_decoder();
+		bkpt.set_behaviour(thumb_bkpt);
+		bkpt.set_asm("bkpt #%imm", immu32);
+		bkpt.set_end_of_block();
+		bkpt.set_variable_jump();
+		
+		undef.set_decoder();
+		undef.set_asm("UNDEF #%imm", off);
+		undef.set_behaviour(thumb_undef);
+/*
+		bl_isb.set_decoder();
+		bl_isb.set_asm("bl_isb sy");
+		bl_isb.set_behaviour(thumb_bl_isb);
+*/
+	};
+};

@@ -1,0 +1,14 @@
+TARGET_ADD_SOURCES(gensim-lib
+	CallGraphAnalysis.cpp
+	ControlFlowGraphAnalyses.cpp
+	DominanceFrontierAnalysis.cpp
+	FeatureDominanceAnalysis.cpp
+	FeatureUseAnalysis.cpp
+	FindUseBeforeDefAnalysis.cpp
+	LoopAnalysis.cpp
+	ReachabilityAnalysis.cpp
+	RegisterAllocationAnalysis.cpp
+	SSADominance.cpp
+	VariableDominanceAnalysis.cpp
+	VariableUseDefAnalysis.cpp
+)

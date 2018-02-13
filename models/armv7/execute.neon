@@ -1,0 +1,2724 @@
+
+helper uint8 is_neon_enabled()
+{
+	if(__builtin_get_feature(ARM_FPU_ENABLED_FPEXC) && __builtin_get_feature(ARM_NEON_ENABLED_CPACR)) {
+		uint32 cpacr = __builtin_get_feature(ARM_FPU_ENABLED_CPACR);
+		if(cpacr == 1) return __builtin_get_feature(ARM_PRIV);
+		else if(cpacr == 2) return 1;
+		else return 0;
+		
+	} else {
+		return 0;
+	}
+}
+
+helper void check_neon_enabled()
+{
+	if(!is_neon_enabled()) take_exception(11, address_of_next_instruction());
+	return;
+}
+
+/*
+execute(neon_undef)
+{
+	trap();
+}
+*/
+
+helper uint64 advsimd_unpack_i64(uint8 imm8_)
+{
+	uint64 imm8 = imm8_;
+	uint64 a = (imm8 >> 7) & 1;
+	uint64 b = (imm8 >> 6) & 1;
+	uint64 c = (imm8 >> 5) & 1;
+	uint64 d = (imm8 >> 4) & 1;
+	uint64 e = (imm8 >> 3) & 1;
+	uint64 f = (imm8 >> 2) & 1;
+	uint64 g = (imm8 >> 1) & 1;
+	uint64 h = (imm8) & 1;
+	
+	if(a) a = 0xff;
+	if(b) b = 0xff;
+	if(c) c = 0xff;
+	if(d) d = 0xff;
+	if(e) e = 0xff;
+	if(f) f = 0xff;
+	if(g) g = 0xff;
+	if(h) h = 0xff;
+	
+	return (a << 56) | (b << 48) | (c << 40) | (d << 32) | (e << 24) | (f << 16) | (g << 8) | h;
+}
+
+helper uint64 advsimd_unpack_f32(uint8 imm8_)
+{
+	uint64 val = imm8_;
+	
+	uint32 sign = (val >> 7) & 1;
+	uint32 top = !((val >> 6) & 1);
+	
+	uint32 rep;
+	if(top) rep = 0;
+	else rep = 0x1f;
+	
+	uint32 rem = val & 0x3f;
+	
+	uint32 v = (sign << 31) | (top << 30) | (rep << 25) | (rem << 19);
+	
+	return (((uint64)v) << 32) | ((uint64)v);
+}
+
+helper uint64 advsimd_unpack(uint8 op, uint8 cmode, uint8 imm8_)
+{
+	uint64 rval = 0;
+	uint64 imm8 = imm8_;
+	
+	uint8 cmode_1 = cmode >> 1;
+	
+	switch(cmode_1) 
+	{
+		case 0: {
+			return imm8 | (imm8 << 32);
+		}
+		case 1: {
+			return (imm8 << 8) | (imm8 << 40);
+		}
+		case 2: {
+			return (imm8 << 16) | (imm8 << 48);
+		}
+		case 3: {
+			return (imm8 << 24) | (imm8 << 56);
+		}
+		case 4: {
+			return (imm8) | (imm8 << 16) | (imm8 << 32) | (imm8 << 48);
+		}
+		case 5: {
+			return (imm8 << 8) | (imm8 << 24) | (imm8 << 40) | (imm8 << 56);
+		}
+	}
+	
+	switch(cmode) {
+		case 12: {
+			return (imm8 << 8) |  (imm8 << 40) | (0xff000000ffUL);
+		}
+		case 13: {
+			return (imm8 << 16) |  (imm8 << 48) | (0xffff0000ffffUL);
+		}
+		case 14: {
+			if(!op) {
+				return (imm8) | (imm8 << 8) | (imm8 << 16) | (imm8 << 24) | (imm8 << 32) | (imm8 << 40) | (imm8 << 48) | (imm8 << 56);
+			} else {
+				return advsimd_unpack_i64(imm8_);
+			}
+		}
+		case 15: {
+			return advsimd_unpack_f32(imm8_);
+		}
+	}
+	
+	return 0;
+}
+
+execute(neon_vmov_i)
+{
+	check_neon_enabled();
+	
+	uint8 imm8 = (inst.i << 7) | (inst.imm3 << 4) | (inst.imm4);
+	uint64 imm64 = advsimd_unpack(inst.op, inst.cmode, imm8);
+	
+	write_register_bank(VU64, inst.vd, imm64);
+	if(inst.Q) {
+		write_register_bank(VU64, inst.vd+1, imm64);
+	}
+}
+
+execute(neon_vcvt_u_fp)
+{
+	check_neon_enabled();
+	
+	float[2] vm = read_register_bank(VD, inst.vm);
+	uint32[2] vd;
+	if(vm[0] < 0.0f) vd[0] = 0;
+	else vd[0] = (uint32)vm[0];
+	if(vm[1] < 0.0f) vd[1] = 0;
+	else vd[1] = (uint32)vm[1];
+	write_register_bank(VU32, inst.vd, vd);
+	
+	if(inst.Q)
+	{
+		vm = read_register_bank(VD, inst.vm+1);
+		
+		if(vm[0] < 0.0f) vd[0] = 0;
+		else vd[0] = (uint32)vm[0];
+		if(vm[1] < 0.0f) vd[1] = 0;
+		else vd[1] = (uint32)vm[1];
+		
+		write_register_bank(VU32, inst.vd+1, vd);
+	}
+}
+
+execute(neon_vcvt_s_fp)
+{
+	check_neon_enabled();
+	
+	float[2] vm = read_register_bank(VD, inst.vm);
+	uint32[2] vd;
+	vd[0] = (sint32)vm[0];
+	vd[1] = (sint32)vm[1];
+	write_register_bank(VU32, inst.vd, vd);
+	
+	if(inst.Q)
+	{
+		vm = read_register_bank(VD, inst.vm+1);
+		
+		vd[0] = (sint32)vm[0];
+		vd[1] = (sint32)vm[1];
+		
+		write_register_bank(VU32, inst.vd+1, vd);
+	}
+}
+
+execute(neon_vcvt_fp_u)
+{
+	check_neon_enabled();
+	
+	uint32[2] vm = read_register_bank(VU32, inst.vm);
+	float[2] vd;
+	vd[0] = (float)vm[0];
+	vd[1] = (float)vm[1];
+	write_register_bank(VD, inst.vd, vd);
+	
+	if(inst.Q)
+	{
+		vm = read_register_bank(VU32, inst.vm+1);
+		
+		vd[0] = (float)vm[0];
+		vd[1] = (float)vm[1];
+		
+		write_register_bank(VD, inst.vd+1, vd);
+	}
+}
+
+execute(neon_vcvt_fp_s)
+{
+	check_neon_enabled();
+	
+	uint32[2] vm = read_register_bank(VU32, inst.vm);
+	float[2] vd;
+	vd[0] = (float)(sint32)vm[0];
+	vd[1] = (float)(sint32)vm[1];
+	write_register_bank(VD, inst.vd, vd);
+	
+	if(inst.Q)
+	{
+		vm = read_register_bank(VU32, inst.vm+1);
+		
+		vd[0] = (float)(sint32)vm[0];
+		vd[1] = (float)(sint32)vm[1];
+		
+		write_register_bank(VD, inst.vd+1, vd);
+	}
+	
+}
+
+execute(neon_vmovn)
+{
+	check_neon_enabled();
+	
+	switch(inst.imm2)
+	{
+		case 0:
+		{
+			uint16[4] vm1 = read_register_bank(VU16, inst.vm);
+			uint16[4] vm2 = read_register_bank(VU16, inst.vm+1);
+			uint8[8] vd;
+			vd[0] = vm1[0];
+			vd[1] = vm1[1];
+			vd[2] = vm1[2];
+			vd[3] = vm1[3];
+			vd[4] = vm2[0];
+			vd[5] = vm2[1];
+			vd[6] = vm2[2];
+			vd[7] = vm2[3];
+			write_register_bank(VU8, inst.vd, vd);
+			break;
+		}
+		case 1:
+		{
+			uint32[2] vm1 = read_register_bank(VU32, inst.vm);
+			uint32[2] vm2 = read_register_bank(VU32, inst.vm+1);
+			uint16[4] vd;
+			vd[0] = vm1[0];
+			vd[1] = vm1[1];
+			vd[2] = vm2[0];
+			vd[3] = vm2[1];
+			write_register_bank(VU16, inst.vd, vd);
+			break;
+		}
+		case 2:
+		{
+			uint64 vm1 = read_register_bank(VU64, inst.vm);
+			uint64 vm2 = read_register_bank(VU64, inst.vm+1);
+			uint32[2] vd;
+			vd[0] = vm1;
+			vd[1] = vm2;
+			write_register_bank(VU32, inst.vd, vd);
+			break;
+		}
+	}
+}
+
+execute(neon_vneg)
+{
+	check_neon_enabled();
+	
+	float[2] vm = read_register_bank(VD, inst.vm);
+	vm[0] = -vm[0];
+	vm[1] = -vm[1];
+	write_register_bank(VD, inst.vd, vm);
+	
+	if(inst.Q)
+	{
+		vm = read_register_bank(VD, inst.vm+1);
+		vm[0] = -vm[0];
+		vm[1] = -vm[1];
+		write_register_bank(VD, inst.vd+1, vm);
+	}
+}
+
+execute(neon_vrev32_8)
+{
+	check_neon_enabled();
+	
+	uint8[8] vm = read_register_bank(VU8, inst.vm);
+	uint8[8] vd;
+	vd[0] = vm[3];
+	vd[1] = vm[2];
+	vd[2] = vm[1];
+	vd[3] = vm[0];
+	
+	vd[4] = vm[7];
+	vd[5] = vm[6];
+	vd[6] = vm[5];
+	vd[7] = vm[4];
+	write_register_bank(VU8, inst.vd, vd);
+	
+	if(inst.Q) {
+		vm = read_register_bank(VU8, inst.vm+1);
+		vd[0] = vm[3];
+		vd[1] = vm[2];
+		vd[2] = vm[1];
+		vd[3] = vm[0];
+		
+		vd[4] = vm[7];
+		vd[5] = vm[6];
+		vd[6] = vm[5];
+		vd[7] = vm[4];
+		write_register_bank(VU8, inst.vd+1, vd);
+	}
+}
+
+helper void vmull_u16(uint8 vd, uint8 vn, uint8 vm, uint8 M)
+{
+	trap();
+	
+	return;
+}
+
+helper void vmull_u32(uint8 vd, uint8 vn, uint8 vm, uint8 M)
+{
+	check_neon_enabled();
+	
+	uint32[2] n = read_register_bank(VU32, vn);
+	uint32[2] m = read_register_bank(VU32, vm);
+	uint64 mult = m[M];
+	
+	write_register_bank(VU64, vd, n[0]*mult);
+	write_register_bank(VU64, vd+1, n[1]*mult);
+	
+	return;
+}
+
+helper void vmull_s16(uint8 vd, uint8 vn, uint8 vm, uint8 M)
+{
+	uint16[4] n = read_register_bank(VU16, vn);
+	uint16[4] m = read_register_bank(VU16, vm & 0x7);
+	uint8 index = (vm >> 3) | (M << 1);
+	sint32 mult = m[index];
+	
+	uint32[2] d1;
+	uint32[2] d2;
+	d1[0] = ((sint32)(sint16)n[0]) * mult;
+	d1[1] = ((sint32)(sint16)n[1]) * mult;
+	d2[0] = ((sint32)(sint16)n[2]) * mult;
+	d2[1] = ((sint32)(sint16)n[3]) * mult;
+	
+	write_register_bank(VU32, vd, d1);
+	write_register_bank(VU32, vd+1, d2);
+	
+	return;
+}
+
+helper void vmull_s32(uint8 vd, uint8 vn, uint8 vm, uint8 M)
+{	
+	uint32[2] n = read_register_bank(VU32, vn);
+	uint32[2] m = read_register_bank(VU32, vm);
+	uint64 mult = m[M];
+	
+	write_register_bank(VU64, vd, n[0]*mult);
+	write_register_bank(VU64, vd+1, n[1]*mult);
+	
+	return;
+}
+
+execute(neon_vmull_scalar)
+{
+	check_neon_enabled();
+	
+	// 4 combinations:
+	// S16
+	// S32
+	// U16
+	// U32
+	
+	if(inst.B == 1) { // 16
+		if(inst.U) // unsigned
+			vmull_u16(inst.vd, inst.vn, inst.vm, inst.M);
+		else 
+			vmull_s16(inst.vd, inst.vn, inst.vm, inst.M);
+	} else if(inst.B == 2) { // 32
+		if(inst.U) // unsigned
+			vmull_u32(inst.vd, inst.vn, inst.vm, inst.M);
+		else 
+			vmull_s32(inst.vd, inst.vn, inst.vm, inst.M);	
+	}
+}
+
+execute(neon_vmlal_u32_scalar)
+{
+//	check_neon_enabled();
+	
+	uint32[2] vm = read_register_bank(VU32, inst.vm);
+	uint32[2] vn = read_register_bank(VU32, inst.vn);
+	uint64 vd0 = read_register_bank(VU64, inst.vd);
+	uint64 vd1 = read_register_bank(VU64, inst.vd+1);
+	
+	// just adds (mla) here, no subtracts (mls)
+	
+	vd0 += (vn[0] * (uint64)vm[inst.M]);
+	vd1 += (vn[1] * (uint64)vm[inst.M]);
+	
+	write_register_bank(VU64, inst.vd, vd0);
+	write_register_bank(VU64, inst.vd+1, vd1);
+}
+
+execute(neon_vmlal_s16_scalar)
+{
+//	check_neon_enabled();
+	
+	uint16[4] vm = read_register_bank(VU16, inst.vm & 7);
+	uint16[4] vn = read_register_bank(VU16, inst.vn);
+
+	uint32[2] vd0 = read_register_bank(VU32, inst.vd);
+	uint32[2] vd1 = read_register_bank(VU32, inst.vd+1);
+	
+	uint8 index = (inst.vm >> 3) | (inst.M << 1);
+	
+	// just adds (mla) here, no subtracts (mls)
+	vd0[0] += vn[0] * (sint32)vm[index];
+	vd0[1] += vn[1] * (sint32)vm[index];
+	vd1[0] += vn[2] * (sint32)vm[index];
+	vd1[1] += vn[3] * (sint32)vm[index];
+	
+	write_register_bank(VU32, inst.vd, vd0);
+	write_register_bank(VU32, inst.vd+1, vd1);
+}
+
+execute(neon_vmlsl_s16_scalar)
+{
+//	check_neon_enabled();
+	
+	uint16[4] vm = read_register_bank(VU16, inst.vm & 7);
+	uint16[4] vn = read_register_bank(VU16, inst.vn);
+
+	uint32[2] vd0 = read_register_bank(VU32, inst.vd);
+	uint32[2] vd1 = read_register_bank(VU32, inst.vd+1);
+	
+	uint8 index = (inst.vm >> 3) | (inst.M << 1);
+	
+	// just adds (mla) here, no subtracts (mls)
+	vd0[0] -= vn[0] * (sint32)vm[index];
+	vd0[1] -= vn[1] * (sint32)vm[index];
+	vd1[0] -= vn[2] * (sint32)vm[index];
+	vd1[1] -= vn[3] * (sint32)vm[index];
+	
+	write_register_bank(VU32, inst.vd, vd0);
+	write_register_bank(VU32, inst.vd+1, vd1);
+}
+
+helper void zip_8(uint8 m, uint8 d)
+{
+	uint8[8] A8 = read_register_bank(VU8, d);
+	uint8[8] B8 = read_register_bank(VU8, m);
+	
+	uint8[8] vd;
+	uint8[8] vm;
+	vd[0] = A8[0];
+	vd[1] = B8[0];
+	vd[2] = A8[1];
+	vd[3] = B8[1];
+	vd[4] = A8[2];
+	vd[5] = B8[2];
+	vd[6] = A8[3];
+	vd[7] = B8[3];
+	
+	vm[0] = A8[4];
+	vm[1] = B8[4];
+	vm[2] = A8[5];
+	vm[3] = B8[5];
+	vm[4] = A8[6];
+	vm[5] = B8[6];
+	vm[6] = A8[7];
+	vm[7] = B8[7];
+	
+	write_register_bank(VU8, m, vm);
+	write_register_bank(VU8, d, vd);
+	
+	return;
+}
+
+helper void zip_8q(uint8 m, uint8 d)
+{
+	uint8[8] A8 = read_register_bank(VU8, d);
+	uint8[8] A28 = read_register_bank(VU8, d+1);
+	uint8[8] B8 = read_register_bank(VU8, m);
+	uint8[8] B28 = read_register_bank(VU8, m+1);
+	
+	uint8[8] vd;
+	uint8[8] vm;
+	uint8[8] vd2;
+	uint8[8] vm2;
+	vd[0] = A8[0];
+	vd[1] = B8[0];
+	vd[2] = A8[1];
+	vd[3] = B8[1];
+	vd[4] = A8[2];
+	vd[5] = B8[2];
+	vd[6] = A8[3];
+	vd[7] = B8[3];
+	
+	vd2[0] = A8[4];
+	vd2[1] = B8[4];
+	vd2[2] = A8[5];
+	vd2[3] = B8[5];
+	vd2[4] = A8[6];
+	vd2[5] = B8[6];
+	vd2[6] = A8[7];
+	vd2[7] = B8[7];
+	
+	vm[0] = A28[0];
+	vm[1] = B28[0];
+	vm[2] = A28[1];
+	vm[3] = B28[1];
+	vm[4] = A28[2];
+	vm[5] = B28[2];
+	vm[6] = A28[3];
+	vm[7] = B28[3];
+		
+	vm2[0] = A28[4];
+	vm2[1] = B28[4];
+	vm2[2] = A28[5];
+	vm2[3] = B28[5];
+	vm2[4] = A28[6];
+	vm2[5] = B28[6];
+	vm2[6] = A28[7];
+	vm2[7] = B28[7];
+	
+	write_register_bank(VU8, m, vm);
+	write_register_bank(VU8, d, vd);
+	write_register_bank(VU8, m+1, vm2);
+	write_register_bank(VU8, d+1, vd2);
+	
+	return;
+}
+
+helper void zip_16(uint8 m, uint8 d)
+{
+	uint16[4] A16 = read_register_bank(VU16, d);
+	uint16[4] B16 = read_register_bank(VU16, m);
+	
+	uint16[4] vd;
+	uint16[4] vm;
+	vd[0] = A16[0];
+	vd[1] = B16[0];
+	vd[2] = A16[1];
+	vd[3] = B16[1];
+	
+	vm[0] = A16[2];
+	vm[1] = B16[2];
+	vm[2] = A16[3];
+	vm[3] = B16[3];
+
+	write_register_bank(VU16, m, vm);
+	write_register_bank(VU16, d, vd);
+	
+	return;
+}
+
+helper void zip_16q(uint8 m, uint8 d)
+{
+	uint16[4] A16 = read_register_bank(VU16, d);
+	uint16[4] B16 = read_register_bank(VU16, m);
+	uint16[4] A216 = read_register_bank(VU16, d+1);
+	uint16[4] B216 = read_register_bank(VU16, m+1);
+	
+	uint16[4] vd;
+	uint16[4] vm;
+	uint16[4] vd2;
+	uint16[4] vm2;
+	vd[0] = A16[0];
+	vd[1] = B16[0];
+	vd[2] = A16[1];
+	vd[3] = B16[1];
+	
+	vd2[0] = A16[2];
+	vd2[1] = B16[2];
+	vd2[2] = A16[3];
+	vd2[3] = B16[3];
+	
+	vm[0] = A216[0];
+	vm[1] = B216[0];
+	vm[2] = A216[1];
+	vm[3] = B216[1];
+		
+	vm2[0] = A216[2];
+	vm2[1] = B216[2];
+	vm2[2] = A216[3];
+	vm2[3] = B216[3];
+
+	write_register_bank(VU16, m, vm);
+	write_register_bank(VU16, d, vd);
+	write_register_bank(VU16, m+1, vm2);
+	write_register_bank(VU16, d+1, vd2);
+	
+	return;
+}
+
+// Only Q version of vzip.32
+helper void zip_32q(uint8 m, uint8 d)
+{
+	uint32[2] A32 = read_register_bank(VU32, d);
+	uint32[2] B32 = read_register_bank(VU32, m);
+	uint32[2] A232 = read_register_bank(VU32, d+1);
+	uint32[2] B232 = read_register_bank(VU32, m+1);
+	
+	uint32[2] vd;
+	uint32[2] vm;
+	uint32[2] vd2;
+	uint32[2] vm2;
+	vd[0] = A32[0];
+	vd[1] = B32[0];
+	vd2[0] = A32[1];
+	vd2[1] = B32[1];
+
+	vm[0] = A232[0];
+	vm[1] = B232[0];
+	vm2[0] = A232[1];
+	vm2[1] = B232[1];
+
+	write_register_bank(VU32, m, vm);
+	write_register_bank(VU32, d, vd);
+	write_register_bank(VU32, m+1, vm2);
+	write_register_bank(VU32, d+1, vd2);
+	
+	return;
+}
+
+execute(neon_vzip)
+{
+	check_neon_enabled();
+	
+	uint8 size = inst.imm2;
+	switch(size) {
+		case 0: {
+			if(inst.Q) zip_8q(inst.vm, inst.vd);
+			else zip_8(inst.vm, inst.vd);
+			break;
+		}
+		case 1: {
+			if(inst.Q) zip_16q(inst.vm, inst.vd);
+			else zip_16(inst.vm, inst.vd);
+			break;
+		}
+		case 2: {
+			if(inst.Q) zip_32q(inst.vm, inst.vd);
+			else trap();
+			break;
+		}
+		default: {
+			trap();
+			break;
+		}
+	}
+}
+
+helper void transpose_i16(uint8 vmi, uint8 vdi)
+{
+	uint16[4] vm = read_register_bank(VU16, vmi);
+	uint16[4] vd = read_register_bank(VU16, vdi);
+	
+	uint16 temp;
+	temp = vd[3];
+	vd[3] = vm[2];
+	vm[2] = temp;
+	
+	temp = vd[1];
+	vd[1] = vm[0];
+	vm[0] = temp;
+	
+	write_register_bank(VU16, vmi, vm);
+	write_register_bank(VU16, vdi, vd);
+	return;
+}
+
+execute(neon_vtrn_i16)
+{
+	check_neon_enabled();
+	
+	transpose_i16(inst.vm, inst.vd);
+	if(inst.Q) {
+		transpose_i16(inst.vm+1, inst.vd+1);
+	}
+}
+
+helper void transpose_i32(uint8 vmi, uint8 vdi)
+{
+	uint32[2] vm = read_register_bank(VU32, vmi);
+	uint32[2] vd = read_register_bank(VU32, vdi);
+	
+	uint32 temp;
+	temp = vd[1];
+	vd[1] = vm[0];
+	vm[0] = temp;
+	
+	write_register_bank(VU32, vmi, vm);
+	write_register_bank(VU32, vdi, vd);
+	return;
+}
+
+execute(neon_vtrn_i32)
+{
+	check_neon_enabled();
+	
+	transpose_i32(inst.vm, inst.vd);
+	if(inst.Q) {
+		transpose_i32(inst.vm+1, inst.vd+1);
+	}
+}
+
+execute(neon_vcvt_fxp)
+{
+	trap();
+}
+
+
+execute(neon_vshl)
+{
+	check_neon_enabled();
+	
+	uint32 imm6 = inst.op | (inst.imm3 << 3);
+	uint32 type = imm6 | (inst.L << 6);
+	
+	uint8 shift_amt = 0;
+	
+	if((type & 0x40) == 0x40) {
+		// esize = 64
+		shift_amt = imm6;
+		uint64 vm = read_register_bank(VU64, inst.vm);
+		vm <<= shift_amt;
+		write_register_bank(VU64, inst.vd, vm);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU64, inst.vm+1);
+			vm <<= shift_amt;
+			write_register_bank(VU64, inst.vd+1, vm);
+		}
+		
+	} else if((type & 0x60) == 0x20) {
+		// esize = 32
+		shift_amt = imm6 - 32;
+		uint32[2] vm = read_register_bank(VU32, inst.vm);
+		uint32[2] vd;
+		vd[0] = vm[0] << shift_amt;
+		vd[1] = vm[1] << shift_amt;
+		write_register_bank(VU32, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU32, inst.vm+1);
+			vd[0] = vm[0] << shift_amt;
+			vd[1] = vm[1] << shift_amt;
+			write_register_bank(VU32, inst.vd+1, vd);
+		}
+		
+	} else if((type & 0x70) == 0x10) {
+		// esize = 16
+		shift_amt = imm6 - 16;
+		uint16[4] vm = read_register_bank(VU16, inst.vm);
+		uint16[4] vd;
+		vd[0] = vm[0] << shift_amt;
+		vd[1] = vm[1] << shift_amt;
+		vd[2] = vm[2] << shift_amt;
+		vd[3] = vm[3] << shift_amt;
+		write_register_bank(VU16, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU16, inst.vm+1);
+			vd[0] = vm[0] << shift_amt;
+			vd[1] = vm[1] << shift_amt;
+			vd[2] = vm[2] << shift_amt;
+			vd[3] = vm[3] << shift_amt;
+			write_register_bank(VU16, inst.vd+1, vd);
+		}
+		
+	} else if((type & 0x78) == 0x8) {
+		// esize = 8
+		shift_amt = imm6 - 8;
+		uint8[8] vm = read_register_bank(VU8, inst.vm);
+		uint8[8] vd;
+		vd[0] = vm[0] << shift_amt;
+		vd[1] = vm[1] << shift_amt;
+		vd[2] = vm[2] << shift_amt;
+		vd[3] = vm[3] << shift_amt;
+		vd[4] = vm[4] << shift_amt;
+		vd[5] = vm[5] << shift_amt;
+		vd[6] = vm[6] << shift_amt;
+		vd[7] = vm[7] << shift_amt;
+		write_register_bank(VU8, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU8, inst.vm+1);
+			vd[0] = vm[0] << shift_amt;
+			vd[1] = vm[1] << shift_amt;
+			vd[2] = vm[2] << shift_amt;
+			vd[3] = vm[3] << shift_amt;
+			vd[4] = vm[4] << shift_amt;
+			vd[5] = vm[5] << shift_amt;
+			vd[6] = vm[6] << shift_amt;
+			vd[7] = vm[7] << shift_amt;
+			write_register_bank(VU8, inst.vd+1, vd);
+		}
+	} else {
+		trap();
+	}
+}
+
+
+execute(neon_vshr)
+{
+	check_neon_enabled();
+	
+	uint32 imm6 = inst.op | (inst.imm3 << 3);
+	uint32 type = imm6 | (inst.L << 6);
+	
+	uint8 shift_amt = 0;
+	
+	if(!inst.U) trap();
+	
+	if((type & 0x40) == 0x40) {
+		// esize = 64
+		shift_amt = 64 - imm6;
+		uint64 vm = read_register_bank(VU64, inst.vm);
+		vm >>= shift_amt;
+		write_register_bank(VU64, inst.vd, vm);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU64, inst.vm+1);
+			vm >>= shift_amt;
+			write_register_bank(VU64, inst.vd+1, vm);
+		}
+		
+	} else if((type & 0x60) == 0x20) {
+		// esize = 32
+		shift_amt = 64 - imm6;
+		uint32[2] vm = read_register_bank(VU32, inst.vm);
+		uint32[2] vd;
+		vd[0] = vm[0] >> shift_amt;
+		vd[1] = vm[1] >> shift_amt;
+		write_register_bank(VU32, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU32, inst.vm+1);
+			vd[0] = vm[0] >> shift_amt;
+			vd[1] = vm[1] >> shift_amt;
+			write_register_bank(VU32, inst.vd+1, vd);
+		}
+		
+	} else if((type & 0x70) == 0x10) {
+		// esize = 16
+		shift_amt = 32 - imm6;
+		uint16[4] vm = read_register_bank(VU16, inst.vm);
+		uint16[4] vd;
+		vd[0] = vm[0] >> shift_amt;
+		vd[1] = vm[1] >> shift_amt;
+		vd[2] = vm[2] >> shift_amt;
+		vd[3] = vm[3] >> shift_amt;
+		write_register_bank(VU16, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU16, inst.vm+1);
+			vd[0] = vm[0] >> shift_amt;
+			vd[1] = vm[1] >> shift_amt;
+			vd[2] = vm[2] >> shift_amt;
+			vd[3] = vm[3] >> shift_amt;
+			write_register_bank(VU16, inst.vd+1, vd);
+		}
+		
+	} else if((type & 0x78) == 0x8) {
+		// esize = 8
+		shift_amt = 16 - imm6;
+		uint8[8] vm = read_register_bank(VU8, inst.vm);
+		uint8[8] vd;
+		vd[0] = vm[0] >> shift_amt;
+		vd[1] = vm[1] >> shift_amt;
+		vd[2] = vm[2] >> shift_amt;
+		vd[3] = vm[3] >> shift_amt;
+		vd[4] = vm[4] >> shift_amt;
+		vd[5] = vm[5] >> shift_amt;
+		vd[6] = vm[6] >> shift_amt;
+		vd[7] = vm[7] >> shift_amt;
+		write_register_bank(VU8, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU8, inst.vm+1);
+			vd[0] = vm[0] >> shift_amt;
+			vd[1] = vm[1] >> shift_amt;
+			vd[2] = vm[2] >> shift_amt;
+			vd[3] = vm[3] >> shift_amt;
+			vd[4] = vm[4] >> shift_amt;
+			vd[5] = vm[5] >> shift_amt;
+			vd[6] = vm[6] >> shift_amt;
+			vd[7] = vm[7] >> shift_amt;
+			write_register_bank(VU8, inst.vd+1, vd);
+		}
+	} else {
+		trap();
+	}
+}
+
+
+execute(neon_vsli)
+{
+	check_neon_enabled();
+	
+	uint32 imm6 = inst.op | (inst.imm3 << 3);
+	uint32 type = imm6 | (inst.L << 6);
+	
+	uint8 shift_amt = 0;
+	
+	if((type & 0x40) == 0x40) {
+		// esize = 64
+		shift_amt = imm6;
+		uint64 mask = 0xffffffffffffffff;
+		mask <<= shift_amt;
+		uint64 vm = read_register_bank(VU64, inst.vm);
+		uint64 vd = read_register_bank(VU64, inst.vd);
+		
+		vd &= ~mask;
+		vd |= (vm << shift_amt);
+		
+		write_register_bank(VU64, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU64, inst.vm+1);
+			vd = read_register_bank(VU64, inst.vd+1);
+
+			vd &= ~mask;
+			vd |= (vm << shift_amt);
+
+			write_register_bank(VU64, inst.vd+1, vd);
+		}
+		
+	} else if((type & 0x60) == 0x20) {
+		// esize = 32
+		shift_amt = imm6 - 32;
+		uint32 mask = 0xffffffff;
+		mask <<= shift_amt;
+		mask = ~mask;
+		uint32[2] vm = read_register_bank(VU32, inst.vm);
+		uint32[2] vd = read_register_bank(VU32, inst.vd);
+		
+		vd[0] = (vd[0] & mask) | (vm[0] << shift_amt);
+		vd[1] = (vd[1] & mask) | (vm[1] << shift_amt);
+		
+		write_register_bank(VU32, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU32, inst.vm+1);
+			vd = read_register_bank(VU32, inst.vd+1);
+			
+			vd[0] = (vd[0] & mask) | (vm[0] << shift_amt);
+			vd[1] = (vd[1] & mask) | (vm[1] << shift_amt);
+			
+			write_register_bank(VU32, inst.vd+1, vd);
+		}
+		
+	} else if((type & 0x70) == 0x10) {
+		// esize = 16
+		shift_amt = imm6 - 16;
+		uint16 mask = 0xffff;
+		mask <<= shift_amt;
+		uint16[4] vm = read_register_bank(VU16, inst.vm);
+		uint16[4] vd = read_register_bank(VU16, inst.vd);
+		vd[0] = (vd[0] & (~mask)) | (vm[0] << shift_amt);
+		vd[1] = (vd[1] & (~mask)) | (vm[1] << shift_amt);
+		vd[2] = (vd[2] & (~mask)) | (vm[2] << shift_amt);
+		vd[3] = (vd[3] & (~mask)) | (vm[3] << shift_amt);
+		write_register_bank(VU16, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU16, inst.vm+1);
+			vd = read_register_bank(VU16, inst.vd+1);
+			vd[0] = (vd[0] & (~mask)) | (vm[0] << shift_amt);
+			vd[1] = (vd[1] & (~mask)) | (vm[1] << shift_amt);
+			vd[2] = (vd[2] & (~mask)) | (vm[2] << shift_amt);
+			vd[3] = (vd[3] & (~mask)) | (vm[3] << shift_amt);
+			write_register_bank(VU16, inst.vd+1, vd);
+		}
+		
+	} else if((type & 0x78) == 0x8) {
+		// esize = 8
+		shift_amt = imm6 - 8;
+		uint8 mask = 0xff;
+		mask <<= shift_amt;
+		uint8[8] vm = read_register_bank(VU8, inst.vm);
+		uint8[8] vd = read_register_bank(VU8, inst.vd);
+		vd[0] = (vd[0] & (~mask)) | (vm[0] << shift_amt);
+		vd[1] = (vd[1] & (~mask)) | (vm[1] << shift_amt);
+		vd[2] = (vd[2] & (~mask)) | (vm[2] << shift_amt);
+		vd[3] = (vd[3] & (~mask)) | (vm[3] << shift_amt);
+		vd[4] = (vd[4] & (~mask)) | (vm[4] << shift_amt);
+		vd[5] = (vd[5] & (~mask)) | (vm[5] << shift_amt);
+		vd[6] = (vd[6] & (~mask)) | (vm[6] << shift_amt);
+		vd[7] = (vd[7] & (~mask)) | (vm[7] << shift_amt);
+		write_register_bank(VU8, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU8, inst.vm+1);
+			vd = read_register_bank(VU8, inst.vd+1);
+			vd[0] = (vd[0] & (~mask)) | (vm[0] << shift_amt);
+			vd[1] = (vd[1] & (~mask)) | (vm[1] << shift_amt);
+			vd[2] = (vd[2] & (~mask)) | (vm[2] << shift_amt);
+			vd[3] = (vd[3] & (~mask)) | (vm[3] << shift_amt);
+			vd[4] = (vd[4] & (~mask)) | (vm[4] << shift_amt);
+			vd[5] = (vd[5] & (~mask)) | (vm[5] << shift_amt);
+			vd[6] = (vd[6] & (~mask)) | (vm[6] << shift_amt);
+			vd[7] = (vd[7] & (~mask)) | (vm[7] << shift_amt);
+			write_register_bank(VU8, inst.vd+1, vd);
+		}
+	} else {
+		trap();
+	}
+}
+
+helper void vrshrn_i16(uint8 vmm, uint8 vdd, uint8 shift)
+{
+	trap();
+	return;
+}
+
+helper void vrshrn_i32(uint8 vmm, uint8 vdd, uint8 shift)
+{
+	uint32[2] vm1 = read_register_bank(VU32, vmm);
+	uint32[2] vm2 = read_register_bank(VU32, vmm + 1);
+	uint32 round = 1 << ((uint32)shift - 1);
+	
+	uint16[4] vd;
+	vd[0] = (vm1[0] + round) >> shift;
+	vd[1] = (vm1[1] + round) >> shift;
+	vd[2] = (vm2[0] + round) >> shift;
+	vd[3] = (vm2[1] + round) >> shift;
+	
+	write_register_bank(VU16, vdd, vd);
+	return;
+}
+
+helper void vrshrn_i64(uint8 vmm, uint8 vdd, uint8 shift)
+{
+	trap();
+	return;
+}
+
+execute(neon_vrshrn)
+{
+	check_neon_enabled();
+	
+	uint32 imm6 = inst.op | (inst.imm3 << 3);
+	
+	if((imm6 >> 3) == 1) {
+		vrshrn_i16(inst.vm, inst.vd, 16-imm6);
+	} else if((imm6 >> 4) == 1) {
+		vrshrn_i32(inst.vm, inst.vd, 32-imm6);
+	} else if((imm6 >> 5) == 1) {
+		vrshrn_i64(inst.vm, inst.vd, 64-imm6);
+	} else {
+		trap();
+	}
+}
+
+execute(neon_vsri)
+{
+	check_neon_enabled();
+	
+	uint32 imm6 = inst.op | (inst.imm3 << 3);
+	uint32 type = imm6 | (inst.L << 6);
+	
+	uint8 shift_amt = 0;
+	
+	if(!inst.U) trap();
+	
+	if((type & 0x40) == 0x40) {
+		// esize = 64
+		shift_amt = 64 - imm6;
+		uint64 mask = 0xffffffffffffffff;
+		mask >>= shift_amt;
+		uint64 vm = read_register_bank(VU64, inst.vm);
+		uint64 vd = read_register_bank(VU64, inst.vd);
+		
+		vd &= ~mask;
+		vd |= (vm >> shift_amt);
+		
+		write_register_bank(VU64, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU64, inst.vm+1);
+			vd = read_register_bank(VU64, inst.vd+1);
+
+			vd &= ~mask;
+			vd |= (vm >> shift_amt);
+
+			write_register_bank(VU64, inst.vd+1, vd);
+		}
+		
+	} else if((type & 0x60) == 0x20) {
+		// esize = 32
+		shift_amt = 64 - imm6;
+		uint32 mask = 0xffffffff;
+		mask >>= shift_amt;
+		mask = ~mask;
+		uint32[2] vm = read_register_bank(VU32, inst.vm);
+		uint32[2] vd = read_register_bank(VU32, inst.vd);
+		
+		vd[0] = (vd[0] & mask) | (vm[0] >> shift_amt);
+		vd[1] = (vd[1] & mask) | (vm[1] >> shift_amt);
+		
+		write_register_bank(VU32, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU32, inst.vm+1);
+			vd = read_register_bank(VU32, inst.vd+1);
+			
+			vd[0] = (vd[0] & mask) | (vm[0] >> shift_amt);
+			vd[1] = (vd[1] & mask) | (vm[1] >> shift_amt);
+			
+			write_register_bank(VU32, inst.vd+1, vd);
+		}
+		
+	} else if((type & 0x70) == 0x10) {
+		// esize = 16
+		shift_amt = 32 - imm6;
+		uint16 mask = 0xffff;
+		mask >>= shift_amt;
+		uint16[4] vm = read_register_bank(VU16, inst.vm);
+		uint16[4] vd = read_register_bank(VU16, inst.vd);
+		vd[0] = (vd[0] & (~mask)) | (vm[0] >> shift_amt);
+		vd[1] = (vd[1] & (~mask)) | (vm[1] >> shift_amt);
+		vd[2] = (vd[2] & (~mask)) | (vm[2] >> shift_amt);
+		vd[3] = (vd[3] & (~mask)) | (vm[3] >> shift_amt);
+		write_register_bank(VU16, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU16, inst.vm+1);
+			vd = read_register_bank(VU16, inst.vd+1);
+			vd[0] = (vd[0] & (~mask)) | (vm[0] >> shift_amt);
+			vd[1] = (vd[1] & (~mask)) | (vm[1] >> shift_amt);
+			vd[2] = (vd[2] & (~mask)) | (vm[2] >> shift_amt);
+			vd[3] = (vd[3] & (~mask)) | (vm[3] >> shift_amt);
+			write_register_bank(VU16, inst.vd+1, vd);
+		}
+		
+	} else if((type & 0x78) == 0x8) {
+		// esize = 8
+		shift_amt = 16 - imm6;
+		uint8 mask = 0xff;
+		mask >>= shift_amt;
+		uint8[8] vm = read_register_bank(VU8, inst.vm);
+		uint8[8] vd = read_register_bank(VU8, inst.vd);
+		vd[0] = (vd[0] & (~mask)) | (vm[0] >> shift_amt);
+		vd[1] = (vd[1] & (~mask)) | (vm[1] >> shift_amt);
+		vd[2] = (vd[2] & (~mask)) | (vm[2] >> shift_amt);
+		vd[3] = (vd[3] & (~mask)) | (vm[3] >> shift_amt);
+		vd[4] = (vd[4] & (~mask)) | (vm[4] >> shift_amt);
+		vd[5] = (vd[5] & (~mask)) | (vm[5] >> shift_amt);
+		vd[6] = (vd[6] & (~mask)) | (vm[6] >> shift_amt);
+		vd[7] = (vd[7] & (~mask)) | (vm[7] >> shift_amt);
+		write_register_bank(VU8, inst.vd, vd);
+		
+		if(inst.B) {
+			vm = read_register_bank(VU8, inst.vm+1);
+			vd = read_register_bank(VU8, inst.vd+1);
+			vd[0] = (vd[0] & (~mask)) | (vm[0] >> shift_amt);
+			vd[1] = (vd[1] & (~mask)) | (vm[1] >> shift_amt);
+			vd[2] = (vd[2] & (~mask)) | (vm[2] >> shift_amt);
+			vd[3] = (vd[3] & (~mask)) | (vm[3] >> shift_amt);
+			vd[4] = (vd[4] & (~mask)) | (vm[4] >> shift_amt);
+			vd[5] = (vd[5] & (~mask)) | (vm[5] >> shift_amt);
+			vd[6] = (vd[6] & (~mask)) | (vm[6] >> shift_amt);
+			vd[7] = (vd[7] & (~mask)) | (vm[7] >> shift_amt);
+			write_register_bank(VU8, inst.vd+1, vd);
+		}
+	} else {
+		trap();
+	}
+}
+
+execute(neon_vmovl)
+{
+	check_neon_enabled();
+	
+	uint8 esize = 8 * inst.imm3;
+	
+	switch(esize)
+	{
+		case 8:
+		{
+			uint8[8] vm = read_register_bank(VU8, inst.vm);
+			
+			uint16[4] vd1;
+			uint16[4] vd2;
+			vd1[0] = vm[0];
+			vd1[1] = vm[1];
+			vd1[2] = vm[2];
+			vd1[3] = vm[3];
+			vd2[0] = vm[4];
+			vd2[1] = vm[5];
+			vd2[2] = vm[6];
+			vd2[3] = vm[7];
+			
+			write_register_bank(VU16, inst.vd, vd1);
+			write_register_bank(VU16, inst.vd+1, vd2);
+			break;
+		}
+		case 16:
+		{
+			uint16[4] vm = read_register_bank(VU16, inst.vm);
+			
+			uint32[2] vd1;
+			uint32[2] vd2;
+			vd1[0] = vm[0];
+			vd1[1] = vm[1];
+			vd2[0] = vm[2];
+			vd2[1] = vm[3];
+			
+			write_register_bank(VU32, inst.vd, vd1);
+			write_register_bank(VU32, inst.vd+1, vd2);
+			break;
+		}
+		case 32:
+		{
+			uint32[2] vm = read_register_bank(VU32, inst.vm);
+			
+			write_register_bank(FPDP, inst.vd, bitcast_u64_double(vm[0]));
+			write_register_bank(FPDP, inst.vd+1, bitcast_u64_double(vm[1]));
+			break;
+		}
+		default:
+		{
+			trap();
+			break;
+		}
+	}
+}
+
+execute(neon_vmovl_sx)
+{
+	check_neon_enabled();
+	
+	uint8 esize = 8 * inst.imm3;
+
+	switch(esize)
+	{
+		case 8:
+		{
+			uint8[8] vm = read_register_bank(VU8, inst.vm);
+			
+			uint16[4] vd1;
+			uint16[4] vd2;
+			vd1[0] = (sint16)(sint8)vm[0];
+			vd1[1] = (sint16)(sint8)vm[1];
+			vd1[2] = (sint16)(sint8)vm[2];
+			vd1[3] = (sint16)(sint8)vm[3];
+			vd2[0] = (sint16)(sint8)vm[4];
+			vd2[1] = (sint16)(sint8)vm[5];
+			vd2[2] = (sint16)(sint8)vm[6];
+			vd2[3] = (sint16)(sint8)vm[7];
+			
+			write_register_bank(VU16, inst.vd, vd1);
+			write_register_bank(VU16, inst.vd+1, vd2);
+			break;
+		}
+		case 16:
+		{
+			uint16[4] vm = read_register_bank(VU16, inst.vm);
+			
+			uint32[2] vd1;
+			uint32[2] vd2;
+			vd1[0] = (sint32)(sint16)vm[0];
+			vd1[1] = (sint32)(sint16)vm[1];
+			vd2[0] = (sint32)(sint16)vm[2];
+			vd2[1] = (sint32)(sint16)vm[3];
+			
+			write_register_bank(VU32, inst.vd, vd1);
+			write_register_bank(VU32, inst.vd+1, vd2);
+			break;
+		}
+		case 32:
+		{
+			uint32[2] vm = read_register_bank(VU32, inst.vm);
+			
+			write_register_bank(FPDP, inst.vd, bitcast_u64_double((sint64)(sint32)vm[0]));
+			write_register_bank(FPDP, inst.vd+1, bitcast_u64_double((sint64)(sint32)vm[1]));
+			break;
+		}
+		default:
+		{
+			trap();
+			break;
+		}
+	}
+}
+
+execute(neon_vorr)
+{
+	check_neon_enabled();
+	
+	uint64 vn = read_register_bank(VU64, inst.vn);
+	uint64 vm = read_register_bank(VU64, inst.vm);
+	
+	write_register_bank(VU64, inst.vd, vn | vm);
+	
+	if(inst.Q)
+	{
+		vn = read_register_bank(VU64, inst.vn+1);
+		vm = read_register_bank(VU64, inst.vm+1);
+		
+		write_register_bank(VU64, inst.vd+1, vn | vm);
+	}
+}
+
+execute(neon_vmin_sp)
+{
+	check_neon_enabled();
+	
+	float[2] vn = read_register_bank(VD, inst.vn);
+	float[2] vm = read_register_bank(VD, inst.vm);
+	float[2] vd;
+	vd[0] = vn[0] < vm[0] ? vn[0] : vm[0];
+	vd[1] = vn[1] < vm[1] ? vn[1] : vm[1];
+	write_register_bank(VD, inst.vd, vd);
+	
+	if(inst.Q)
+	{	
+		float[2] vn2 = read_register_bank(VD, inst.vn+1);
+		float[2] vm2 = read_register_bank(VD, inst.vm+1);
+		float[2] vd2;
+		vd2[0] = vn2[0] < vm2[0] ? vn2[0] : vm2[0];
+		vd2[1] = vn2[1] < vm2[1] ? vn2[1] : vm2[1];
+		write_register_bank(VD, inst.vd+1, vd2);
+	}
+}
+
+execute(neon_vmax_sp)
+{
+	check_neon_enabled();
+	
+	float[2] vn = read_register_bank(VD, inst.vn);
+	float[2] vm = read_register_bank(VD, inst.vm);
+	float[2] vd;
+	vd[0] = vn[0] > vm[0] ? vn[0] : vm[0];
+	vd[1] = vn[1] > vm[1] ? vn[1] : vm[1];
+	write_register_bank(VD, inst.vd, vd);
+	
+	if(inst.Q)
+	{	
+		float[2] vn2 = read_register_bank(VD, inst.vn+1);
+		float[2] vm2 = read_register_bank(VD, inst.vm+1);
+		float[2] vd2;
+		vd2[0] = vn2[0] > vm2[0] ? vn2[0] : vm2[0];
+		vd2[1] = vn2[1] > vm2[1] ? vn2[1] : vm2[1];
+		write_register_bank(VD, inst.vd+1, vd2);
+	}
+}
+
+execute(neon_vpmin_sp)
+{
+	check_neon_enabled();
+	
+	float[2] vn = read_register_bank(VD, inst.vn);
+	float[2] vm = read_register_bank(VD, inst.vm);
+	float[2] vd;
+	vd[0] = vn[0] < vn[1] ? vn[0] : vn[1];
+	vd[1] = vm[0] < vm[1] ? vm[0] : vm[1];
+	write_register_bank(VD, inst.vd, vd);
+}
+
+execute(neon_vpmax_sp)
+{
+	check_neon_enabled();
+	
+	float[2] vn = read_register_bank(VD, inst.vn);
+	float[2] vm = read_register_bank(VD, inst.vm);
+	float[2] vd;
+	vd[0] = vn[0] > vn[1] ? vn[0] : vn[1];
+	vd[1] = vm[0] > vm[1] ? vm[0] : vm[1];
+	write_register_bank(VD, inst.vd, vd);
+}
+
+execute(neon_vcgt_sp)
+{
+	check_neon_enabled();
+	
+	float[2] vn = read_register_bank(VD, inst.vn);
+	float[2] vm = read_register_bank(VD, inst.vm);
+	uint32[2] vd;
+	vd[0] = vn[0] > vm[0] ? (uint32)0xffffffff : (uint32)0;
+	vd[1] = vn[1] > vm[1] ? (uint32)0xffffffff : (uint32)0;
+	write_register_bank(VU32, inst.vd, vd);
+	
+	if(inst.Q)
+	{
+		vn = read_register_bank(VD, inst.vn+1);
+		vm = read_register_bank(VD, inst.vm+1);
+		vd[0] = vn[0] > vm[0] ? (uint32)0xffffffff : (uint32)0;
+		vd[1] = vn[1] > vm[1] ? (uint32)0xffffffff : (uint32)0;
+		write_register_bank(VU32, inst.vd+1, vd);
+	}
+}
+
+execute(neon_veor)
+{
+	check_neon_enabled();
+	
+	uint64 vn = read_register_bank(VU64, inst.vn);
+	uint64 vm = read_register_bank(VU64, inst.vm);
+	
+	uint64 vd = vn ^ vm;
+	
+	write_register_bank(VU64, inst.vd, vd);
+	
+	if(inst.Q) {
+		vn = read_register_bank(VU64, inst.vn+1);
+		vm = read_register_bank(VU64, inst.vm+1);
+		
+		vd = vn ^ vm;
+		
+		write_register_bank(VU64, inst.vd+1, vd);
+	}
+}
+
+execute(neon_vext)
+{
+	check_neon_enabled();
+	
+	uint8 position = 8 * inst.imm4;
+	
+	if(inst.Q) {
+		
+		uint64 v0 = 0;
+		uint64 tmp64 = 0;
+		
+		if(inst.imm4 < 8) {
+			v0 = read_register_bank(VU64, inst.vn);
+			tmp64 = read_register_bank(VU64, inst.vn+1);
+		} else {
+			v0 = read_register_bank(VU64, inst.vn+1);
+			tmp64 = read_register_bank(VU64, inst.vm);		
+		}
+		
+		v0 >>= ((inst.imm4 & 7) * 8);
+		uint64 v1 = tmp64 << (64-((inst.imm4 & 7) * 8));
+		
+		v0 = v0 | v1;
+		
+		if(inst.imm4 < 8) {
+			v1 = read_register_bank(VU64, inst.vm);
+		} else {
+			v1 = read_register_bank(VU64, inst.vm+1);
+			position -= 64;
+		}
+		
+		v1 <<= 64-position;
+		tmp64 >>= position;
+		
+		v1 |= tmp64;
+		
+		write_register_bank(VU64, inst.vd, v0);
+		write_register_bank(VU64, inst.vd+1, v1);
+		
+	} else {
+		uint64 vn = read_register_bank(VU64, inst.vn);
+		uint64 vm = read_register_bank(VU64, inst.vm);
+		
+		uint64 vd = 0;	
+		
+		vn >>= position;
+		vm <<= (64-position);
+		
+		vd = vn | vm;
+		
+		write_register_bank(VU64, inst.vd, vd);
+	}
+}
+
+execute(neon_vsub_sp)
+{
+	check_neon_enabled();
+	
+	float[2] vn = read_register_bank(VD, inst.vn);
+	float[2] vm = read_register_bank(VD, inst.vm);
+	
+	float[2] vd = vn - vm;
+		
+	write_register_bank(VD, inst.vd, vd);
+	
+	if(inst.Q) {
+		float[2] vn2 = read_register_bank(VD, inst.vn+1);
+		float[2] vm2 = read_register_bank(VD, inst.vm+1);
+		
+		float[2] vd2 = vn2 - vm2;
+		
+		write_register_bank(VD, inst.vd+1, vd2);
+		
+	}
+}
+
+execute(neon_vsub_i32)
+{
+	check_neon_enabled();
+	
+	uint32[2] vn = read_register_bank(VU32, inst.vn);
+	uint32[2] vm = read_register_bank(VU32, inst.vm);
+	
+	uint32[2] vd = vn - vm;
+	
+	write_register_bank(VU32, inst.vd, vd);
+	
+	if(inst.Q)
+	{
+		vn = read_register_bank(VU32, inst.vn+1);
+		vm = read_register_bank(VU32, inst.vm+1);
+		
+		vd = vn - vm;
+		
+		write_register_bank(VU32, inst.vd+1, vd);
+	}
+}
+
+
+execute(neon_vadd_sp)
+{
+	check_neon_enabled();
+	
+	float[2] vn = read_register_bank(VD, inst.vn);
+	float[2] vm = read_register_bank(VD, inst.vm);
+	
+	float[2] vd = vn + vm;
+		
+	write_register_bank(VD, inst.vd, vd);
+	
+	if(inst.Q) {
+		float[2] vn2 = read_register_bank(VD, inst.vn+1);
+		float[2] vm2 = read_register_bank(VD, inst.vm+1);
+		
+		float[2] vd2 = vn2 + vm2;
+		
+		write_register_bank(VD, inst.vd+1, vd2);
+		
+	}
+}
+
+execute(neon_vadd_i8)
+{
+	check_neon_enabled();
+	
+	uint8[8] vn = read_register_bank(VU8, inst.vn);
+	uint8[8] vm = read_register_bank(VU8, inst.vm);
+	
+	uint8[8] vd = vn + vm;
+	
+	write_register_bank(VU8, inst.vd, vd);
+	
+	if(inst.Q)
+	{
+		vn = read_register_bank(VU8, inst.vn+1);
+		vm = read_register_bank(VU8, inst.vm+1);
+		
+		vd = vn + vm;
+		
+		write_register_bank(VU8, inst.vd+1, vd);
+	}
+}
+
+execute(neon_vadd_i16)
+{
+	check_neon_enabled();
+	
+	uint16[4] vn = read_register_bank(VU16, inst.vn);
+	uint16[4] vm = read_register_bank(VU16, inst.vm);
+	
+	uint16[4] vd = vn + vm;
+	
+	write_register_bank(VU16, inst.vd, vd);
+	
+	if(inst.Q)
+	{
+		vn = read_register_bank(VU16, inst.vn+1);
+		vm = read_register_bank(VU16, inst.vm+1);
+		
+		vd = vn + vm;
+		
+		write_register_bank(VU16, inst.vd+1, vd);
+	}
+}
+
+execute(neon_vadd_i32)
+{
+	check_neon_enabled();
+	
+	uint32[2] vn = read_register_bank(VU32, inst.vn);
+	uint32[2] vm = read_register_bank(VU32, inst.vm);
+	
+	uint32[2] vd = vn + vm;
+	
+	write_register_bank(VU32, inst.vd, vd);
+	
+	if(inst.Q)
+	{
+		vn = read_register_bank(VU32, inst.vn+1);
+		vm = read_register_bank(VU32, inst.vm+1);
+		
+		vd = vn + vm;
+		
+		write_register_bank(VU32, inst.vd+1, vd);
+	}
+}
+
+execute(neon_vadd_i64)
+{
+	check_neon_enabled();
+	
+	uint64 vn = read_register_bank(VU64, inst.vn);
+	uint64 vm = read_register_bank(VU64, inst.vm);
+	
+	uint64 vd = vn + vm;
+	
+	write_register_bank(VU64, inst.vd, vd);
+	
+	if(inst.Q)
+	{
+		vn = read_register_bank(VU64, inst.vn+1);
+		vm = read_register_bank(VU64, inst.vm+1);
+		
+		vd = vn + vm;
+		
+		write_register_bank(VU64, inst.vd+1, vd);
+	}
+}
+
+
+execute(neon_vmul_sp)
+{
+	check_neon_enabled();
+	
+	uint32 old_flush = __builtin_get_fp_flush();
+	__builtin_set_fp_flush(1);
+
+	float[2] vn = read_register_bank(VD, inst.vn);
+	float[2] vm = read_register_bank(VD, inst.vm);
+	
+	float[2] vd;
+	vd[0] = vn[0] * vm[0];
+	vd[1] = vn[1] * vm[1];
+	
+	write_register_bank(VD, inst.vd, vd);
+	
+	if(inst.Q) {
+		float[2] vn2 = read_register_bank(VD, inst.vn+1);
+		float[2] vm2 = read_register_bank(VD, inst.vm+1);
+		
+		vd[0] = vn2[0] * vm2[0];
+		vd[1] = vn2[1] * vm2[1];
+	
+		write_register_bank(VD, inst.vd+1, vd);
+	}
+	__builtin_set_fp_flush(old_flush);
+}
+
+execute(neon_vmul_i32)
+{
+	check_neon_enabled();
+	
+	uint8 poly = inst.U;
+	if(poly) trap();
+	
+	uint32[2] vn = read_register_bank(VU32, inst.vn);
+	uint32[2] vm = read_register_bank(VU32, inst.vm);
+	
+	uint32[2] vd;
+	vd[0] = vn[0] * vm[0];
+	vd[1] = vn[1] * vm[1];
+	
+	write_register_bank(VU32, inst.vd, vd);
+	
+	if(inst.Q) {
+		vn = read_register_bank(VU32, inst.vn+1);
+		vm = read_register_bank(VU32, inst.vm+1);
+		
+		vd[0] = vn[0] * vm[0];
+		vd[1] = vn[1] * vm[1];
+		
+		write_register_bank(VU32, inst.vd+1, vd);
+	}
+}
+
+execute(neon_vmul_i16)
+{
+	check_neon_enabled();
+	
+	uint8 poly = inst.U;
+	if(poly) trap();
+	
+	uint16[4] vn = read_register_bank(VU16, inst.vn);
+	uint16[4] vm = read_register_bank(VU16, inst.vm);
+	
+	uint16[4] vd;
+	vd[0] = vn[0] * vm[0];
+	vd[1] = vn[1] * vm[1];
+	vd[2] = vn[2] * vm[2];
+	vd[3] = vn[3] * vm[3];
+	
+	write_register_bank(VU16, inst.vd, vd);
+	
+	if(inst.Q) {
+		vn = read_register_bank(VU16, inst.vn+1);
+		vm = read_register_bank(VU16, inst.vm+1);
+		
+		vd[0] = vn[0] * vm[0];
+		vd[1] = vn[1] * vm[1];
+		vd[2] = vn[2] * vm[2];
+		vd[3] = vn[3] * vm[3];
+		
+		write_register_bank(VU16, inst.vd+1, vd);
+	}
+}
+
+execute(neon_vmul_i8)
+{
+	check_neon_enabled();
+	
+	uint8 poly = inst.U;
+	if(poly) trap();
+	
+	uint8[8] vn = read_register_bank(VU8, inst.vn);
+	uint8[8] vm = read_register_bank(VU8, inst.vm);
+	
+	uint8[8] vd;
+	vd[0] = vn[0] * vm[0];
+	vd[1] = vn[1] * vm[1];
+	vd[2] = vn[2] * vm[2];
+	vd[3] = vn[3] * vm[3];
+	vd[4] = vn[4] * vm[4];
+	vd[5] = vn[5] * vm[5];
+	vd[6] = vn[6] * vm[6];
+	vd[7] = vn[7] * vm[7];
+	
+	write_register_bank(VU8, inst.vd, vd);
+	
+	if(inst.Q) {
+		vn = read_register_bank(VU8, inst.vn+1);
+		vm = read_register_bank(VU8, inst.vm+1);
+		
+		vd[0] = vn[0] * vm[0];
+		vd[1] = vn[1] * vm[1];
+		vd[2] = vn[2] * vm[2];
+		vd[3] = vn[3] * vm[3];
+		vd[4] = vn[4] * vm[4];
+		vd[5] = vn[5] * vm[5];
+		vd[6] = vn[6] * vm[6];
+		vd[7] = vn[7] * vm[7];
+		
+		write_register_bank(VU8, inst.vd+1, vd);
+	}
+}
+
+execute(neon_vmla_sp)
+{
+	check_neon_enabled();
+	
+	float[2] vn = read_register_bank(VD, inst.vn);
+	float[2] vm = read_register_bank(VD, inst.vm);
+	
+	float[2] vd = read_register_bank(VD, inst.vd);
+	vd += vn * vm;
+	
+	write_register_bank(VD, inst.vd, vd);
+	
+	if(inst.Q) {
+		float[2] vn2 = read_register_bank(VD, inst.vn+1);
+		float[2] vm2 = read_register_bank(VD, inst.vm+1);
+		
+		float[2] vd2 = read_register_bank(VD, inst.vd+1);
+		vd2 += vn2 * vm2;
+		
+		write_register_bank(VD, inst.vd+1, vd2);
+		
+	}
+}
+
+execute(neon_vmls_sp)
+{
+	check_neon_enabled();
+	
+	float[2] vn = read_register_bank(VD, inst.vn);
+	float[2] vm = read_register_bank(VD, inst.vm);
+	
+	float[2] vd = read_register_bank(VD, inst.vd);
+	vd -= vn * vm;
+	
+	write_register_bank(VD, inst.vd, vd);
+	
+	if(inst.Q) {
+		float[2] vn2 = read_register_bank(VD, inst.vn+1);
+		float[2] vm2 = read_register_bank(VD, inst.vm+1);
+		
+		float[2] vd2 = read_register_bank(VD, inst.vd+1);
+		vd2 -= vn2 * vm2;
+		
+		write_register_bank(VD, inst.vd+1, vd2);
+		
+	}
+}
+
+execute(neon_scalar_to_arm)
+{
+	check_neon_enabled();
+	
+	uint32 value;
+	
+	if(inst.opc1  & 0x2) {
+		//esize = 8
+		uint8[8] vector = read_register_bank(VU8, inst.vn);
+		if(!inst.U) value = (sint8)vector[inst.imm8];
+		else value = vector[inst.imm8];
+	}
+	else if(inst.opc2 & 0x1)
+	{
+		//assume esize = 16
+		uint16[4] vector = read_register_bank(VU16, inst.vn);
+		if(!inst.U) value = (sint16)vector[inst.imm8];
+		else value = vector[inst.imm8];
+	} 
+	else if(inst.U == 0 && inst.opc == 0)
+	{
+		float[2] vector = read_register_bank(VD, inst.vn);
+		float fval = vector[inst.imm8];
+		value = bitcast_float_u32(fval);
+	}
+	else 
+	{
+		value = 0;
+		trap();
+	}
+	
+	write_register_bank(RB, inst.rt, value);
+}
+
+execute(neon_arm_to_scalar)
+{
+	check_neon_enabled();
+	
+	uint32 value = read_register_bank(RB, inst.rt);
+	
+	if(inst.opc1  & 0x2) {
+		//esize = 8
+		uint8[8] vector = read_register_bank(VU8, inst.vn);
+		vector[inst.imm8] = value;
+		write_register_bank(VU8, inst.vn, vector);
+	}
+	else if(inst.opc2 & 0x1)
+	{
+		//assume esize = 16
+		uint16[4] vector = read_register_bank(VU16, inst.vn);
+		vector[inst.imm8] = value;
+		write_register_bank(VU16, inst.vn, vector);
+	} 
+	else if(inst.U == 0 && inst.opc == 0)
+	{
+		float[2] vector = read_register_bank(VD, inst.vn);
+		vector[inst.imm8] = bitcast_u32_float(value);
+		write_register_bank(VD, inst.vn, vector);
+	}
+	else 
+	{
+		value = 0;
+		trap();
+	}
+}
+
+execute(neon_memory_undef)
+{
+	trap();
+}
+
+/*
+ *  These memory access instructions really need cleaning up but are
+ *  fine for now.
+ */
+
+helper uint8 neon_memory_read_64(uint32 base, uint64 &out)
+{
+	uint64 acc64 = 0;
+	uint32 acc = 0;
+	
+	mem_read_32(base, acc);
+	base += 4;
+	acc64 |= acc;
+	
+	mem_read_32(base, acc);
+	base += 4;
+	acc64 |= ((uint64)acc)<<32;
+	
+	out = acc64;
+	return 0;
+}
+
+execute(neon_memory_ld1_mul)
+{
+	check_neon_enabled();
+	
+	uint8 regs = 0;
+	switch(inst.type) {
+		case 0x7:
+		{
+			regs = 1;
+			break;
+		}
+		case 0xa:
+		{
+			regs = 2;
+			break;
+		}
+		case 0x6:
+		{
+			regs = 3;
+			break;
+		}
+		case 0x2:
+		{
+			regs = 4;
+			break;
+		}
+		default:
+		{
+			trap();
+			break;
+		}
+	}
+	
+	uint32 base = read_register_bank(RB, inst.rn);
+	uint32 address = base;
+	
+	for(uint8 i = 0; i < regs; ++i)
+	{
+		uint64 value;
+		neon_memory_read_64(address, value);
+		write_register_bank(FPDP, inst.vd + i, bitcast_u64_double(value));
+		
+		address += 8;
+	}
+	
+	if(inst.rm != 15) {
+		//WBACK
+		if(inst.rm != 13) {
+			//register indexed
+			uint32 offset = read_register_bank(RB, inst.rm);
+			write_register_bank(RB, inst.rn, base + offset);
+		}
+		else 
+		{
+			uint32 offset = 8 * regs;
+			write_register_bank(RB, inst.rn, base + offset);
+		}
+		
+	}
+}
+
+execute(neon_memory_ld2_mul)
+{
+	check_neon_enabled();
+	
+	uint8 regs = 0;
+	uint8 inc = 0;
+	uint8 ebytes = 1 << inst.size;
+	uint8 elements = 8 / ebytes;
+	
+	uint32 address = read_register_bank(RB, inst.rn);
+	
+	switch(inst.type)
+	{
+		case 0x8:
+		{
+			regs = 1;
+			inc = 1;
+			break;
+		}
+		case 9:
+		{
+			regs = 1;
+			inc = 2;
+			break;
+		}
+		case 3:
+		{
+			regs = 2;
+			inc = 2;
+			break;
+		}
+		default:
+		{
+			trap();
+			break;
+		}
+	}
+	
+	uint8 vd2 = inst.vd + inc;
+	
+	if(inst.rm != 15)
+	{
+		if(inst.rm != 13)
+		{
+			uint32 offset = read_register_bank(RB, inst.rm);
+			offset += address;
+			write_register_bank(RB, inst.rn, offset);
+		} 
+		else
+		{
+			uint32 offset = regs * 16;
+			offset += address;
+			write_register_bank(RB, inst.rn, offset);
+		}
+	}
+	
+	for(uint8 r = 0; r < regs; ++r)
+	{
+		for(uint8 e = 0; e < elements; ++e)
+		{
+			switch(inst.size)
+			{
+				case 0:
+				{
+					uint8 data;
+					mem_read_8(address, data);
+					uint8[8] v1 = read_register_bank(VU8, inst.vd + r);
+					v1[e] = data;
+					write_register_bank(VU8, inst.vd + r, v1);
+					
+					mem_read_8(address+1, data);
+					uint8[8] v2 = read_register_bank(VU8, vd2 + r);
+					v2[e] = data;
+					write_register_bank(VU8, vd2 + r, v2);
+					
+					address += 2;
+					
+					break;
+				}
+				case 1:
+				{
+					uint16 data;
+					mem_read_16(address, data);
+					uint16[4] v1 = read_register_bank(VU16, inst.vd + r);
+					v1[e] = data;
+					write_register_bank(VU16, inst.vd + r, v1);
+					
+					mem_read_16(address+2, data);
+					uint16[4] v2 = read_register_bank(VU16, vd2 + r);
+					v2[e] = data;
+					write_register_bank(VU16, vd2 + r, v2);
+					
+					address += 4;
+					
+					break;
+				}
+				case 2:
+				{
+					uint32 data;
+					mem_read_32(address, data);
+					uint32[2] v1 = read_register_bank(VU32, inst.vd + r);
+					v1[e] = data;
+					write_register_bank(VU32, inst.vd + r, v1);
+					
+					mem_read_32(address+4, data);
+					uint32[2] v2 = read_register_bank(VU32, vd2 + r);
+					v2[e] = data;
+					write_register_bank(VU32, vd2 + r, v2);
+					
+					address += 8;
+					
+					break;
+				}
+				default:
+				{
+					trap();
+					break;
+				}
+			}
+		}
+	}
+}
+
+execute(neon_memory_ld4_mul)
+{
+	check_neon_enabled();
+	
+	uint8 regs = 0;
+	uint8 inc = 0;
+	uint8 ebytes = 1 << inst.size;
+	uint8 elements = 8 / ebytes;
+	
+	uint32 address = read_register_bank(RB, inst.rn);
+	
+	switch(inst.type)
+	{
+		case 0x0:
+		{
+			inc = 1;
+			break;
+		}
+		case 0x1:
+		{
+			inc = 2;
+			break;
+		}
+		default:
+		{
+			trap();
+			break;
+		}
+	}
+	
+	uint8 vd2 = inst.vd + inc;
+	uint8 vd3 = inst.vd + inc + inc;
+	uint8 vd4 = inst.vd + inc + inc + inc;
+	
+	if(inst.rm != 15)
+	{
+		if(inst.rm != 13)
+		{
+			uint32 offset = read_register_bank(RB, inst.rm);
+			offset += address;
+			write_register_bank(RB, inst.rn, offset);
+		} 
+		else
+		{
+			uint32 offset = 32;
+			offset += address;
+			write_register_bank(RB, inst.rn, offset);
+		}
+	}
+	
+	for(uint8 e = 0; e < elements; ++e)
+	{
+		switch(inst.size)
+		{
+			case 0:
+			{
+				uint8 data;
+				uint8[8] v1 = read_register_bank(VU8, inst.vd);
+				mem_read_8(address, data);
+				v1[e] = data;
+				write_register_bank(VU8, inst.vd, v1);
+				
+				uint8[8] v2 = read_register_bank(VU8, vd2);
+				mem_read_8(address+1, data);
+				v2[e] = data;
+				write_register_bank(VU8, vd2, v2);
+				
+				uint8[8] v3 = read_register_bank(VU8, vd3);
+				mem_read_8(address+2, data);
+				v3[e] = data;
+				write_register_bank(VU8, vd3, v3);
+				
+				uint8[8] v4 = read_register_bank(VU8, vd4);
+				mem_read_8(address+3, data);
+				v4[e] = data;
+				write_register_bank(VU8, vd4, v4);
+				
+				address += 4;
+				
+				break;
+			}
+			case 1:
+			{
+				uint16 data;
+				uint16[4] v1 = read_register_bank(VU16, inst.vd);
+				mem_read_16(address, data);
+				v1[e] = data;
+				write_register_bank(VU16, inst.vd, v1);
+				
+				uint16[4] v2 = read_register_bank(VU16, vd2);
+				mem_read_16(address+2, data);
+				v2[e] = data;
+				write_register_bank(VU16, vd2, v2);
+				
+				uint16[4] v3 = read_register_bank(VU16, vd3);
+				mem_read_16(address+4, data);
+				v3[e] = data;
+				write_register_bank(VU16, vd3, v3);
+				
+				uint16[4] v4 = read_register_bank(VU16, vd4);
+				mem_read_16(address+6, data);
+				v4[e] = data;
+				write_register_bank(VU16, vd4, v4);
+				
+				address += 8;
+				
+				break;
+			}
+			case 2:
+			{
+				uint32 data;
+				uint32[2] v1 = read_register_bank(VU32, inst.vd);
+				mem_read_32(address, data);
+				v1[e] = data;
+				write_register_bank(VU32, inst.vd, v1);
+				
+				uint32[2] v2 = read_register_bank(VU32, vd2);
+				mem_read_32(address+4, data);
+				v2[e] = data;
+				write_register_bank(VU32, vd2, v2);
+				
+				uint32[2] v3 = read_register_bank(VU32, vd3);
+				mem_read_32(address+8, data);
+				v3[e] = data;
+				write_register_bank(VU32, vd3, v3);
+				
+				uint32[2] v4 = read_register_bank(VU32, vd4);
+				mem_read_32(address+12, data);
+				v4[e] = data;
+				write_register_bank(VU32, vd4, v4);
+				
+				address += 16;
+				
+				break;
+			}
+			default:
+			{
+				trap();
+				break;
+			}
+		}
+	}
+}
+
+execute(neon_memory_ld1_sol)
+{
+	check_neon_enabled();
+	
+	uint32 address = read_register_bank(RB, inst.rn);
+		
+	uint32 offset = 0;
+		
+	switch(inst.size)
+	{
+		case 0:
+		{
+			// 8 bit read
+			uint8 index = inst.index >> 1;
+			uint8 value;
+			mem_read_8(address, value);
+			
+			uint8[8] vector = read_register_bank(VU8, inst.vd);
+			vector[index] = value;
+			write_register_bank(VU8, inst.vd, vector);
+			
+			offset = 1;
+			
+			break;
+		}
+		case 1:
+		{
+			// 16 bit read
+			uint8 index = inst.index >> 2;
+			uint16 value;
+			mem_read_16(address, value);
+			
+			uint16[4] vector = read_register_bank(VU16, inst.vd);
+			vector[index] = value;
+			write_register_bank(VU16, inst.vd, vector);
+			
+			offset = 2;
+			
+			break;
+		}
+		case 2:
+		{
+			// 32 bit read
+			uint8 index = inst.index >> 3;
+			uint32 value;
+			mem_read_32(address, value);
+			
+			uint32[2] vector = read_register_bank(VU32, inst.vd);
+			vector[index] = value;
+			write_register_bank(VU32, inst.vd, vector);
+			
+			offset = 4;
+			
+			break;
+		}
+		default:
+		{
+			trap();
+			break;
+		}
+	}
+	
+	uint8 writeback = inst.rm != 15;	
+	
+	if(writeback) {
+		uint8 reg_index = (inst.rm != 15) && (inst.rm != 13);
+		if(reg_index) {
+			offset = read_register_bank(RB, inst.rm);
+		}
+		write_register_bank(RB, inst.rn, address + offset);
+	}
+}
+
+execute(neon_memory_ld1_sal)
+{
+	check_neon_enabled();
+	
+	uint64 rep_element = 0;
+	uint32 address = read_register_bank(RB, inst.rn);
+
+	switch(inst.size)
+	{
+		case 0:
+		{
+			uint8 mem_value;
+			mem_read_8(address, mem_value);
+			
+			rep_element = mem_value;
+			rep_element |= rep_element << 8;
+			rep_element |= rep_element << 16;
+			rep_element |= rep_element << 32;
+			
+			break;
+		}
+		case 1:
+		{
+			uint16 mem_value;
+			mem_read_16(address, mem_value);
+			
+			rep_element = mem_value;
+			rep_element |= rep_element << 16;
+			rep_element |= rep_element << 32;
+			
+			break;
+		}
+		case 2:
+		{
+			uint32 mem_value;
+			mem_read_32(address, mem_value);
+			
+			rep_element = mem_value;
+			rep_element |= rep_element << 32;
+			
+			break;
+		}
+		default:
+		{
+			trap();
+			break;
+		}
+	}
+	
+	write_register_bank(FPDP, inst.vd, bitcast_u64_double(rep_element));
+	if(inst.T) {
+		write_register_bank(FPDP, inst.vd+1, bitcast_u64_double(rep_element));
+	}
+	
+	uint8 wback = inst.rm != 15;
+	uint8 indexed = inst.rm != 13;
+	if(wback)
+	{
+		if(indexed) 
+		{
+			uint32 offset = read_register_bank(RB, inst.rm);
+			write_register_bank(RB, inst.rn, address + offset);
+		}
+		else
+		{
+			uint32 offset = 1 << inst.size;
+			write_register_bank(RB, inst.rn, address + offset);
+		}
+	}
+}
+
+helper void hneon_memory_st1_mul(uint8 itype, uint8 irn, uint8 irm, uint8 ivd)
+{
+	uint8 regs = 0;
+	switch(itype) {
+		case 0x7:
+		{
+			regs = 1;
+			break;
+		}
+		case 0xa:
+		{
+			regs = 2;
+			break;
+		}
+		case 0x6:
+		{
+			regs = 3;
+			break;
+		}
+		case 0x2:
+		{
+			regs = 4;
+			break;
+		}
+		default:
+		{
+			trap();
+			break;
+		}
+	}
+	
+	uint32 base = read_register_bank(RB, irn);
+	uint32 address = base;
+	
+	for(uint8 i = 0; i < regs; ++i)
+	{
+		uint64 value;
+		
+		uint32[2] vector = read_register_bank(VU32, ivd + i);
+		mem_write_32(address, vector[0]);
+		mem_write_32(address+4, vector[1]);
+		
+		address += 8;
+	}
+	
+	if(irm != 15) {
+		//WBACK
+		if(irm != 13) {
+			//register indexed
+			uint32 offset = read_register_bank(RB, irm);
+			write_register_bank(RB, irn, base + offset);
+		}
+		else 
+		{
+			uint32 offset = 8 * regs;
+			write_register_bank(RB, irn, base + offset);
+		}
+		
+	}
+	
+	return;
+}
+
+execute(neon_memory_st1_mul)
+{
+	check_neon_enabled();
+	
+	hneon_memory_st1_mul(inst.type, inst.rn, inst.rm, inst.vd);
+}
+
+execute(neon_memory_st4_mul)
+{
+	check_neon_enabled();
+	
+	uint8 regs = 0;
+	uint8 inc = 0;
+	uint8 ebytes = 1 << inst.size;
+	uint8 elements = 8 / ebytes;
+	
+	uint32 address = read_register_bank(RB, inst.rn);
+	
+	switch(inst.type)
+	{
+		case 0x0:
+		{
+			inc = 1;
+			break;
+		}
+		case 0x1:
+		{
+			inc = 2;
+			break;
+		}
+		default:
+		{
+			trap();
+			break;
+		}
+	}
+	
+	uint8 vd2 = inst.vd + inc;
+	uint8 vd3 = inst.vd + inc + inc;
+	uint8 vd4 = inst.vd + inc + inc + inc;
+	
+	if(inst.rm != 15)
+	{
+		if(inst.rm != 13)
+		{
+			uint32 offset = read_register_bank(RB, inst.rm);
+			offset += address;
+			write_register_bank(RB, inst.rn, offset);
+		} 
+		else
+		{
+			uint32 offset = 32;
+			offset += address;
+			write_register_bank(RB, inst.rn, offset);
+		}
+	}
+	
+	uint32 data;
+	for(uint8 e = 0; e < elements; ++e)
+	{
+		switch(inst.size)
+		{
+			case 0:
+			{
+				uint8[8] v1 = read_register_bank(VU8, inst.vd);
+				mem_write_8(address, v1[e]);
+				
+				uint8[8] v2 = read_register_bank(VU8, vd2);
+				mem_write_8(address+1, v2[e]);
+				
+				uint8[8] v3 = read_register_bank(VU8, vd3);
+				mem_write_8(address+2, v3[e]);
+				
+				uint8[8] v4 = read_register_bank(VU8, vd4);
+				mem_write_8(address+3, v4[e]);
+				
+				address += 4;
+				
+				break;
+			}
+			case 1:
+			{
+				uint16[4] v1 = read_register_bank(VU16, inst.vd);
+				mem_write_16(address, v1[e]);
+				
+				uint16[4] v2 = read_register_bank(VU16, vd2);
+				mem_write_16(address+2, v2[e]);
+				
+				uint16[4] v3 = read_register_bank(VU16, vd3);
+				mem_write_16(address+4, v3[e]);
+				
+				uint16[4] v4 = read_register_bank(VU16, vd4);
+				mem_write_16(address+6, v4[e]);
+				
+				address += 8;
+				
+				break;
+			}
+			case 2:
+			{
+				uint32[2] v1 = read_register_bank(VU32, inst.vd);
+				mem_write_32(address, v1[e]);
+				
+				uint32[2] v2 = read_register_bank(VU32, vd2);
+				mem_write_32(address+4, v2[e]);
+				
+				uint32[2] v3 = read_register_bank(VU32, vd3);
+				mem_write_32(address+8, v3[e]);
+				
+				uint32[2] v4 = read_register_bank(VU32, vd4);
+				mem_write_32(address+12, v4[e]);
+				
+				address += 16;
+				
+				break;
+			}
+			default:
+			{
+				trap();
+				break;
+			}
+		}
+	}
+}
+
+execute(neon_memory_st1_sol)
+{
+	check_neon_enabled();
+	
+	uint32 address = read_register_bank(RB, inst.rn);
+		
+	uint32 offset = 0;
+		
+	switch(inst.size)
+	{
+		case 0:
+		{
+			// 8 bit read
+			uint8[8] vector = read_register_bank(VU8, inst.vd);
+			
+			uint8 index = inst.index >> 1;
+			mem_write_8(address, vector[index]);
+
+			offset = 1;
+			
+			break;
+		}
+		case 1:
+		{
+			// 16 bit read
+			uint16[4] vector = read_register_bank(VU16, inst.vd);
+			
+			uint8 index = inst.index >> 2;
+			mem_write_16(address, vector[index]);
+
+			offset = 2;
+			
+			break;
+		}
+		case 2:
+		{
+			// 32 bit read
+			uint32[2] vector = read_register_bank(VU32, inst.vd);
+			
+			uint8 index = inst.index >> 3;
+			mem_write_32(address, vector[index]);
+
+			offset = 4;
+			
+			break;
+		}
+		default:
+		{
+			trap();
+			break;
+		}
+	}
+	
+	uint8 writeback = inst.rm != 15;	
+	
+	if(writeback) {
+		uint8 reg_index = (inst.rm != 15) && (inst.rm != 13);
+		if(reg_index) {
+			offset = read_register_bank(RB, inst.rm);
+		}
+		write_register_bank(RB, inst.rn, address + offset);
+	}
+}
+
+execute(neon_vdup_core)
+{
+	check_neon_enabled();
+	
+	uint32 size = (inst.B << 1) | (inst.E);
+	uint32 value = read_register_bank(RB, inst.rt);
+	switch(size)
+	{
+		case 0:
+		{
+			uint32[2] vector;
+			vector[0] = value;
+			vector[1] = value;
+			write_register_bank(VU32, inst.vd, vector);
+			if(inst.Q) write_register_bank(VU32, inst.vd+1, vector);
+			break;
+		}
+		case 1:
+		{
+			uint16[4] vector;
+			vector[0] = value;
+			vector[1] = value;
+			vector[2] = value;
+			vector[3] = value;
+			write_register_bank(VU16, inst.vd, vector);
+			if(inst.Q) write_register_bank(VU16, inst.vd+1, vector);
+			break;
+		}
+		case 2:
+		{
+			uint8[8] vector;
+			vector[0] = value;
+			vector[1] = value;
+			vector[2] = value;
+			vector[3] = value;
+			vector[4] = value;
+			vector[5] = value;
+			vector[6] = value;
+			vector[7] = value;
+			write_register_bank(VU8, inst.vd, vector);
+			if(inst.Q) write_register_bank(VU8, inst.vd+1, vector);
+			break;
+		}
+		default:
+		{
+			trap();
+			break;
+		}
+	}
+}
+
+execute(neon_vdup_scalar)
+{
+	check_neon_enabled();
+	
+	uint8 index;
+	if(inst.imm4 & 1)
+	{
+		// uint8
+		index = inst.imm4 >> 1;
+		uint8[8] vm = read_register_bank(VU8, inst.vm);
+		uint8 val = vm[index];
+		vm[0] = val;
+		vm[1] = val;
+		vm[2] = val;
+		vm[3] = val;
+		vm[4] = val;
+		vm[5] = val;
+		vm[6] = val;
+		vm[7] = val;
+		write_register_bank(VU8, inst.vd, vm);
+		if(inst.Q) write_register_bank(VU8, inst.vd+1, vm);
+	}
+	else if(inst.imm4 & 2)
+	{
+		// uin16
+		index = inst.imm4 >> 2;
+		uint16[4] vm = read_register_bank(VU16, inst.vm);
+		uint16 val = vm[index];
+		vm[0] = val;
+		vm[1] = val;
+		vm[2] = val;
+		vm[3] = val;
+		write_register_bank(VU16, inst.vd, vm);
+		if(inst.Q) write_register_bank(VU16, inst.vd+1, vm);
+	}
+	else if(inst.imm4 & 4)
+	{
+		// uint32
+		index = inst.imm4 >> 3;
+		uint32[2] vm = read_register_bank(VU32, inst.vm);
+		uint32 val = vm[index];
+		vm[0] = val;
+		vm[1] = val;
+		write_register_bank(VU32, inst.vd, vm);
+		if(inst.Q) write_register_bank(VU32, inst.vd+1, vm);
+	}
+}

@@ -1,0 +1,3881 @@
+
+////////////////////////////////////////////////////////
+////	Execute Info
+////////////////////////////////////////////////////////
+
+helper uint32 read_gpr(uint32 index) {
+	if(index == 0xf) {
+		return read_pc() + 8;
+	} else {
+		uint32 value = read_register_bank(RB, index);
+		return value;
+	}
+}
+
+execute(pld)
+{
+
+}
+
+execute(wfi)
+{
+}
+
+execute(flush_itlb_entry)
+{
+	flush_itlb_entry(read_register_bank(RB, inst.rd));
+}
+execute(flush_dtlb_entry)
+{
+	flush_dtlb_entry(read_register_bank(RB, inst.rd));
+}
+
+////////////////////////////////////////////////////////
+////	DPI1 instructions
+////////////////////////////////////////////////////////
+
+execute(mov1)
+{
+        uint32 imm32;
+        uint32 val = read_gpr(inst.rm);
+        uint8 c;
+        imm32 = decode_imm(inst.shift_type, inst.shift_amt, val, read_register(C), c);
+        if(inst.s)
+        {
+			update_ZN_flags(imm32);
+			write_register(C, c);
+		}
+
+        write_register_bank(RB, inst.rd, imm32);
+        
+        if(inst.s && (inst.rd == 15)) return_from_exception();
+}
+
+execute(add1)
+{
+        uint32 t;
+        uint32 imm32;
+        
+        uint32 val = read_gpr(inst.rm);
+
+		uint8 c;
+        imm32 = decode_imm(inst.shift_type, inst.shift_amt, val, read_register(C), c);
+        
+        val = read_gpr(inst.rn);
+        
+        uint32 src1m = val;
+        if (inst.s)
+        {
+                t = add_with_carry(src1m, imm32, 1, 1, 0);
+        }
+        else
+        {
+                t = src1m + imm32;
+        }
+        
+        write_register_bank(RB, inst.rd, t);
+}
+
+execute(and1)
+{
+        uint32 val;
+        uint32 imm32;   
+        uint8 c;
+        imm32 = decode_imm(inst.shift_type, inst.shift_amt, read_gpr(inst.rm), read_register(C), c);
+        uint32 src1m = read_gpr(inst.rn);
+        val = src1m & imm32;    
+        if(inst.s) 
+        {
+			update_ZN_flags(val);
+			write_register(C, c);
+		}
+        write_register_bank(RB, inst.rd, val);
+}
+
+execute(eor1)
+{
+        uint32 imm32;
+        uint8 c;
+        imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+        uint32 src1m = read_gpr(inst.rn);
+        uint32 val = src1m ^ imm32;
+        if (inst.s) 
+        {
+			update_ZN_flags(val);
+			write_register(C, c);
+		}
+        write_register_bank(RB, inst.rd, val);
+}
+
+execute(sub1)
+{
+        uint32 t;
+        uint32 imm32;
+        uint8 c;
+        imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+        uint32 src1m = read_gpr(inst.rn);
+        if(inst.s)
+        {
+                imm32 = ~imm32;
+                t = add_with_carry(src1m, imm32, 1, 0, 1);
+        }
+        else
+        {
+                t = src1m - imm32;
+        }       
+        write_register_bank(RB, inst.rd, t);
+        
+        if(inst.s && (inst.rd == 15)) return_from_exception();
+}
+
+execute(rsb1)
+{
+        uint32 t;
+        uint32 imm32;
+        uint8 c;
+        imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+        uint32 src1m = read_gpr(inst.rn);
+        if (inst.s)
+        {
+                t = add_with_carry(imm32, ~src1m,  1, 0, 1);
+        }
+        else 
+        {
+                t = imm32 - src1m;      
+        }
+        write_register_bank(RB, inst.rd, t);
+}
+
+execute(adc1)
+{
+        uint32 t;
+        uint32 imm32;
+        uint8 c;
+        imm32 = decode_imm(inst.shift_type, inst.shift_amt, read_gpr(inst.rm), read_register(C), c);
+        uint32 src1m = read_gpr(inst.rn);
+        if (inst.s)
+        {
+                t = add_with_carry(src1m, imm32, 1, 1, read_register(C));
+        }
+        else
+        {
+                t = src1m + imm32 + read_register(C);
+        }
+        write_register_bank(RB, inst.rd, t);
+}
+
+execute(sbc1)
+{
+        uint32 imm32;
+        uint32 t;
+        uint8 c;
+        imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+        uint32 src1m = read_gpr(inst.rn);
+        imm32 = ~ imm32;        
+        if (inst.s)
+        {
+                t = add_with_carry(src1m, imm32,  1, 0, read_register(C));
+        }
+        else
+        {
+                t = add_with_carry(src1m, imm32,  0, 0, read_register(C));
+        }
+        write_register_bank(RB, inst.rd, t);    
+}
+
+execute(rsc1)
+{
+        uint32 imm32;
+        uint32 t;       
+        uint8 c;
+        t = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+        imm32 = read_gpr(inst.rn);
+        imm32 = ~imm32;
+        if (inst.s)
+        {
+                t = add_with_carry(t, imm32, 1, 0, read_register(C));
+        }
+        else
+        {
+                t = t + imm32 + read_register(C);
+        }
+        write_register_bank(RB, inst.rd, t);
+}
+
+execute(tst1)
+{
+        uint32 t = read_gpr(inst.rn);
+        uint8 c;
+        t &= decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+        update_ZN_flags(t);
+        write_register(C, c);
+}
+
+execute(teq1)
+{       
+        uint32 t;
+        uint8 c;
+        uint32 imm32 = decode_imm(inst.shift_type, inst.shift_amt, read_gpr(inst.rm), read_register(C), c);
+        t = read_gpr(inst.rn) ^ imm32;
+        update_ZN_flags(t);
+        write_register(C, c);
+}
+
+execute(cmp1)
+{
+        uint32 t;
+        uint8 c;
+        uint32 imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+        
+	    add_with_carry(read_gpr(inst.rn), ~imm32, 1, 0, 1); 
+}
+
+execute(cmn1)
+{
+        uint32 t;
+        uint32 imm32;
+        uint8 c;
+        imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+        t = add_with_carry(read_gpr(inst.rn), imm32, 1, 1, 0);
+}
+
+execute(orr1)
+{
+        uint32 t;
+        uint32 imm32;
+        uint8 c;
+        imm32 = decode_imm(inst.shift_type, inst.shift_amt, read_gpr(inst.rm), read_register(C), c);
+        uint32 src1m = read_gpr(inst.rn);
+        t = (src1m | imm32);
+        write_register_bank(RB, inst.rd, t);
+        if (inst.s) 
+        {
+			update_ZN_flags(t);
+			write_register(C, c);
+		}
+}
+
+execute(bic1)
+{
+		uint8 c;
+        uint32 imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+        uint32 val = (read_gpr(inst.rn)) & ~imm32;    
+        write_register_bank(RB, inst.rd, val);
+        if(inst.s)
+        {
+			update_ZN_flags(val);
+			write_register(C, c);
+		}
+}
+
+execute(mvn1)
+{
+        uint32 imm32;
+        uint32 t;
+        uint8 c;
+        imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+        t = (~imm32);
+        if (inst.s) 
+        {
+			update_ZN_flags(t);
+			write_register(C, c);
+		}
+        write_register_bank(RB, inst.rd, t);
+}
+
+////////////////////////////////////////////////////////
+////	DPI2 instructions
+////////////////////////////////////////////////////////
+
+execute(mov2)
+{
+	uint32 imm32;	
+	uint8 carry;
+	imm32 = decode_reg(inst.shift_type, read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+	if(inst.s) 
+	{
+		update_ZN_flags(imm32);
+		write_register(C, carry);
+	}
+	write_register_bank(RB, inst.rd, imm32);
+	
+	if(inst.s && (inst.rd == 15)) return_from_exception();
+}
+
+execute(add2)
+{
+	uint32 t;
+	uint32 imm32;
+	uint32 rm;
+	uint8 carry;
+	imm32 = decode_reg(inst.shift_type, read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+	uint32 rn = read_gpr(inst.rn);
+	if (inst.s)
+	{
+		t = add_with_carry(rn, imm32, 1, 1, 0);
+	}
+	else
+	{
+		t = rn + imm32;
+	}
+	write_register_bank(RB, inst.rd, t);
+}
+
+execute(and2)
+{
+
+	uint32 val;
+	uint32 imm32;
+	uint8 carry;
+	imm32 = decode_reg(inst.shift_type, read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+	val = read_gpr(inst.rn) & imm32;	
+	if(inst.s) 
+	{
+		update_ZN_flags(val);
+		write_register(C, carry);
+	}
+	write_register_bank(RB, inst.rd, val);	
+
+}
+
+execute(eor2)
+{
+	
+	uint32 imm32;
+	uint8 carry;
+	imm32 = decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+	uint32 val = (read_gpr(inst.rn)) ^ imm32;	
+
+	if (inst.s) 
+	{
+		update_ZN_flags(val);
+		write_register(C, carry);
+	}
+	write_register_bank(RB, inst.rd, val);
+
+}
+
+execute(sub2)
+{
+	uint32 t;
+	uint32 imm32;
+	uint8 carry;
+	imm32 = decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+	if(inst.s)
+	{
+		imm32 = ~imm32;
+		t = add_with_carry(read_gpr(inst.rn), imm32,  1, 0, 1);
+	}
+	else
+	{
+		t = read_gpr(inst.rn) - imm32;
+	}	
+	write_register_bank(RB, inst.rd, t);
+	
+	if(inst.s && (inst.rd == 15)) return_from_exception();
+}
+
+execute(rsb2)
+{
+	uint32 t;
+	uint32 imm32;
+	uint8 carry;
+	imm32 = decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm) , read_register(C), carry);
+
+	if (inst.s)
+	{
+
+		t = add_with_carry(imm32, ~(read_gpr(inst.rn)), 1, 0, 1);
+
+	}
+	else 
+	{
+
+		t = imm32 - read_gpr(inst.rn);
+	}
+	write_register_bank(RB, inst.rd, t);
+
+}
+
+execute(adc2)
+{
+	uint32 t;
+	uint32 imm32;
+	uint8 carry;
+	imm32 = decode_reg(inst.shift_type, read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);	
+
+	if (inst.s)
+	{
+
+		t = add_with_carry(read_gpr(inst.rn), imm32,1, 1, read_register(C));
+
+	}
+	else
+	{
+
+		t = read_gpr(inst.rn) + imm32 + read_register(C);
+
+	}
+	write_register_bank(RB, inst.rd, t);
+
+}
+
+execute(sbc2)
+{
+	uint32 imm32;
+	uint32 t;
+	uint8 carry;
+	imm32 = decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+
+	imm32 = ~ imm32;	
+	if (inst.s)
+	{
+		t = add_with_carry(read_gpr(inst.rn) , imm32, 1, 0, read_register(C));
+
+	}
+	else
+	{
+		t = add_with_carry(read_gpr(inst.rn), imm32, 0, 0, read_register(C));
+
+	}
+	write_register_bank(RB, inst.rd, t);	
+
+}
+
+execute(rsc2)
+{
+	uint32 imm32;
+	uint32 t;	
+	uint8 carry;
+	t = decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+	imm32 = read_gpr(inst.rn);
+	imm32 = ~imm32;
+	if (inst.s)
+	{
+		t = add_with_carry(t,imm32 , 1, 0, read_register(C));
+	}
+	else
+	{
+		t = t + imm32 + read_register(C);
+	}
+	write_register_bank(RB, inst.rd, t);
+
+}
+
+execute(tst2)
+{
+	uint32 t;	
+	uint8 carry;
+	t = ((read_gpr(inst.rn)) &   decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry));
+
+	update_ZN_flags(t);	
+	write_register(C, carry);
+}
+
+execute(teq2)
+{
+	uint8 carry;
+	uint32 t;
+	uint32 imm32;
+	imm32 = decode_reg(inst.shift_type, read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+	t = ((read_gpr(inst.rn)) ^ imm32 );
+	update_ZN_flags(t);
+	write_register(C, carry);
+
+}
+
+execute(cmp2)
+{
+	uint32 rn = read_gpr(inst.rn);
+	uint8 carry;
+	uint32 imm32 = decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+
+	add_with_carry(rn, ~imm32, 1, 0, 1); 
+
+}
+
+execute(cmn2)
+{
+	uint32 rn = read_gpr(inst.rn);
+	uint8 carry;
+	uint32 imm32 = decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+
+	add_with_carry(rn, imm32, 1, 1, 0);
+//	update_cv_flags_add(rn, imm32);
+//	update_ZN_flags(rn + imm32);
+}
+
+execute(orr2)
+{
+	uint32 t;
+	uint32 imm32;
+	uint8 carry;
+	imm32 = decode_reg(inst.shift_type,read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+	t = ((read_gpr(inst.rn)) | imm32);
+
+	write_register_bank(RB, inst.rd, t);
+	if (inst.s) 
+	{
+		update_ZN_flags(t);
+		write_register(C, carry);
+	}
+}
+
+execute(bic2)
+{
+	uint8 carry;
+	uint32 imm32 = decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
+	uint32 val = (read_gpr(inst.rn)) & ~imm32;	
+	write_register_bank(RB, inst.rd, val);
+	if(inst.s)
+	{
+		update_ZN_flags(val);
+		write_register(C, carry);
+	}
+
+}
+
+execute(mvn2)
+{
+	uint32 imm32;
+	uint32 t;
+	uint8 carry;
+	imm32 = decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm) , read_register(C), carry);
+
+	t = (~imm32);
+	write_register_bank(RB, inst.rd, t);
+	if (inst.s) 
+	{
+		update_ZN_flags(t);
+		write_register(C, carry);
+	}
+}
+
+////////////////////////////////////////////////////////
+////	DPI3 instructions
+////////////////////////////////////////////////////////
+
+
+execute(mov3)
+{
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	if(inst.s) 
+	{
+		update_ZN_flags(imm32);
+		write_register(C, carry_out);
+	}
+	write_register_bank(RB, inst.rd, imm32 );
+}
+
+execute(add3)
+{
+	uint32 t;	
+	uint32 rn;
+	if(inst.rn == 15) rn = read_pc() + 8;
+	else rn = read_register_bank(RB, inst.rn);
+	
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	if (inst.s)
+	{
+		t = add_with_carry(rn, imm32, 1, 1, 0);
+	}
+	else
+	{
+		t = rn + imm32;
+	}
+	write_register_bank(RB, inst.rd, t);
+
+}
+
+execute(and3)
+{	
+	uint32 t;
+	
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	t = read_gpr(inst.rn);
+	t &= imm32;
+	write_register_bank(RB, inst.rd, t);
+	if(inst.s)
+	{
+		write_register(C, carry_out);
+		update_ZN_flags(t);
+	}
+}
+
+execute(eor3)
+{
+	uint32 t;
+	
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	t = read_gpr(inst.rn);
+	t ^= imm32;
+	write_register_bank(RB, inst.rd, t);
+	if(inst.s) 
+	{
+		update_ZN_flags(t);
+		write_register(C,  carry_out);
+	}
+}
+
+execute(sub3)
+{	
+	uint32 rn;
+	uint32 result;
+	
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+		
+	if (inst.rn == 15) {
+		rn = read_pc() + 8;
+	} else {
+		rn = read_register_bank(RB, inst.rn);
+	}
+	
+	if(inst.s)
+	{
+			imm32 = ~imm32;
+			result = add_with_carry(rn, imm32, 1, 0, 1);
+	}
+	else
+	{
+			result = rn - imm32;
+	}       
+	write_register_bank(RB, inst.rd, result);
+	
+	if(inst.s && (inst.rd == 15)) return_from_exception();
+}
+
+execute(rsb3)
+{	
+	uint32 t;
+	uint32 val;
+	
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+		
+	if (inst.s)
+	{
+
+		val  = add_with_carry(imm32, ~(read_gpr(inst.rn)), 1, 0, 1);	
+
+	}
+	else 
+	{
+		val = imm32 - (read_gpr(inst.rn));	
+
+	}
+	write_register_bank(RB, inst.rd, val);
+}
+
+execute(adc3)
+{
+	uint32 t;
+	
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	if (inst.s)
+	{
+		t = add_with_carry(read_gpr(inst.rn), imm32, 1, 1, read_register(C));
+	}
+	else
+	{
+		t = read_gpr(inst.rn) + imm32 + read_register(C);
+	}
+	write_register_bank(RB, inst.rd, t);
+}
+
+execute(sbc3)
+{
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	uint32 t;
+
+	if(inst.s)
+	{
+		imm32 = ~imm32;
+		t = add_with_carry(read_gpr(inst.rn), imm32, 1, 0, read_register(C));
+	}
+	else
+	{
+		t = read_gpr(inst.rn) - imm32 - !read_register(C);
+	}
+	write_register_bank(RB, inst.rd, t);
+}
+
+execute(rsc3)
+{
+	uint8 carry_out;
+	uint32 t = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	uint32 imm32 = read_gpr(inst.rn);
+	imm32 = ~imm32;
+	t = add_with_carry(imm32, t, inst.s, 0, read_register(C));
+	write_register_bank(RB, inst.rd, t);
+}
+
+execute(tst3)
+{ 
+	uint32 t;
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	t = ( (read_gpr(inst.rn)) &  imm32);
+	update_ZN_flags(t);
+	write_register(C, carry_out);
+
+}
+
+execute(teq3)
+{
+	uint32 t; 
+	
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	t = ( (read_gpr(inst.rn)) ^ imm32 );
+	update_ZN_flags(t);
+	write_register(C, carry_out);
+
+}
+
+execute(cmp3)
+{
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	uint32 rn = read_register_bank(RB, inst.rn);
+
+	add_with_carry(rn, ~imm32, 1, 0, 1); 
+
+/*
+	update_cv_flags_sub(rn, imm32);
+g
+	imm32 = ~imm32;
+	update_ZN_flags(rn + imm32 + 1);
+*/
+}
+
+execute(cmn3)
+{
+	uint32 rn = read_register_bank(RB, inst.rn);
+	uint8 carry_out;
+	uint32 imm32 = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	add_with_carry(rn, imm32, 1, 1, 0);
+}
+
+execute(orr3)
+{
+	uint32 t;	
+	uint8 carry_out;
+	uint32 new_imm = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	t = (read_gpr(inst.rn));
+	t |= new_imm;
+	write_register_bank(RB, inst.rd, t);
+	if(inst.s) 
+	{
+		update_ZN_flags(t);
+		write_register(C, carry_out);
+	}
+}
+
+execute(bic3)
+{
+	uint8 carry_out;
+	uint32 new_imm = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	uint32 t = read_gpr(inst.rn);
+	t  &= ~new_imm;	
+	write_register_bank(RB, inst.rd, t);
+	if(inst.s) 
+	{
+		update_ZN_flags(t);
+		write_register(C, carry_out);
+	}
+}
+
+execute(mvn3)
+{
+	uint8 carry_out;
+	uint32 new_imm = rotate_imm((uint8)inst.imm32, inst.rotate, read_register(C), carry_out);
+	
+	uint32 t;
+	t = (~new_imm);
+	write_register_bank(RB, inst.rd, t);
+	if(inst.s)
+	{
+		update_ZN_flags(t);
+		write_register(C, carry_out);
+	}
+}
+
+
+////////////////////////////////////////////////////////
+////	Branch instructions
+////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////
+////	BBL instructions
+////////////////////////////////////////////////////////
+
+execute(b)
+{
+	uint32 pc_var = read_pc();
+	//uint32 imm32 = (signed_bits(inst.imm32, 23, 0) << 2) + 8;
+
+	pc_var += inst.imm32;
+	pc_var &= 0xfffffffe; //which will be this instruction
+
+	write_register_bank(RB,15,pc_var);
+}
+
+execute(bl)
+{
+	uint32 pc_var = read_pc();
+	//uint32 imm32 = (signed_bits(inst.imm32, 23, 0) << 2) + 8;
+	
+	write_register_bank(RB, 14, pc_var + 4);
+	
+	pc_var += inst.imm32;
+	pc_var &= 0xfffffffe;
+	
+	write_register_bank(RB, 15, pc_var);
+}
+
+////////////////////////////////////////////////////////
+////	BBLT instructions
+////////////////////////////////////////////////////////
+
+execute(blx1)
+{
+	uint32 pc_var = read_pc();
+	//uint32 imm32 = (signed_bits(inst.imm32, 23, 0) << 2) + 8 + (inst.h << 1);
+
+	write_register_bank(RB,14,pc_var+4);
+
+	set_cpu_mode((uint8)1);
+	write_register(T, (uint8)1);
+	
+	pc_var += inst.imm32;
+	pc_var &= 0xfffffffe;
+	write_register_bank(RB,15,pc_var);
+}
+
+////////////////////////////////////////////////////////
+////	MBXBLX instructions
+////////////////////////////////////////////////////////
+
+execute(bx)
+{
+	uint32 target = read_register_bank(RB, inst.rm);
+
+	set_cpu_mode((uint8)(target & 1));
+	write_register(T, (uint8)(target & 1));
+
+	target &= 0xfffffffe;
+	write_register_bank(RB, 15, target);
+}
+
+execute(bxj)
+{
+	uint32 target = read_register_bank(RB, inst.rm);
+
+	set_cpu_mode((uint8)(target & 1));
+	write_register(T, target & 1);
+	
+	target &= 0xfffffffe;
+	write_register_bank(RB, 15, target);
+}
+
+execute(blx2)
+{
+	uint32 pc_var = read_pc();
+	uint32 target = read_register_bank(RB, inst.rm);
+
+	write_register_bank(RB, 14, pc_var + 4);
+
+	set_cpu_mode((uint8)(target & 1));
+	write_register(T, (uint8)(target & 1));
+
+	target &= 0xfffffffe;	
+	write_register_bank(RB, 15, target);
+}
+
+
+////////////////////////////////////////////////////////
+////	Multiplication instructions
+////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////
+////	MULT1 instructions
+////////////////////////////////////////////////////////
+
+execute(swp) // Atomic Operation , mem_write(addr,value)
+{
+	// Read into dest reg [rn] -> rd
+	uint32 mem_value = 0;
+	uint32 reg_n = read_register_bank(RB, inst.rn);
+	uint32 reg_m = read_register_bank(RB, inst.rm);
+	
+	if(memory_read_32(reg_n, mem_value)) {
+		// Write to memory rm -> [rn]
+		if (memory_write_32(reg_n, reg_m)) {
+			write_register_bank(RB, inst.rd, mem_value);
+		}
+	}
+}
+
+execute(swpb) // Atomic Operation 
+{
+	// Read into dest reg [rn] -> rd
+	uint8 mem_value = 0;
+	uint32 reg_n = read_register_bank(RB, inst.rn);
+	uint32 reg_m = read_register_bank(RB, inst.rm);
+	
+	if(memory_read_8(reg_n, mem_value)) {
+		// Write to memory rm -> [rn]
+		if (memory_write_8(reg_n,reg_m & 0xFF)) {
+			write_register_bank(RB, inst.rd, mem_value);
+		}
+	}
+}
+
+execute(mul)
+{
+	uint32 t;
+	t = (read_gpr(inst.rm)) * (read_gpr(inst.rs));
+	if (inst.s) update_ZN_flags(t);
+	write_register_bank(RB, inst.rn, t);
+}
+
+execute(mla)
+{
+	//Format means rn and rd are switched
+
+	uint64 mult =  ((read_gpr(inst.rm)) * (read_gpr(inst.rs)));
+	mult  +=  (read_gpr(inst.rd));
+	if (inst.s) update_ZN_flags((uint32)mult);
+	write_register_bank(RB, inst.rn, (uint32)mult);
+}
+
+////////////////////////////////////////////////////////
+////	MULT2 instructions
+////////////////////////////////////////////////////////
+
+execute(smlal) // Multiply and add accumulate. Store values in rd & rn. SIGNED
+{
+	// Multiply
+	sint64 a = (sint32)(read_gpr(inst.rm));
+	sint64 b = (sint32)(read_gpr(inst.rs));
+	sint64 mult = a * b;
+	// Accumulate
+	uint64 dsthi = ((uint64)(read_gpr(inst.rd))) << 32;
+	uint64 dstlo = ((uint64)(read_gpr(inst.rn))) & 0xffffffff;
+	sint64 acc = (sint64)(dsthi | dstlo);
+	sint64 result = mult + acc;
+	if (inst.s) update_ZN_flags64(result);
+	write_register_bank(RB, inst.rn,(uint32)result);
+	write_register_bank(RB, inst.rd,(uint32)(result>>32));
+}
+
+execute(smull)// Multiply. Store values in rd & rn. SIGNED
+{
+	sint64 a = (sint32)(read_gpr(inst.rm));
+	sint64 b = (sint32)(read_gpr(inst.rs));
+	sint64 result = a * b;
+	//NOTE: UNPREDICTABLE behaviour can be exhibited here if rdhi and rdlo are the same register
+	//This typically exhibits itself as incorrect setting of Z flag
+	if (inst.s) update_ZN_flags64(result);
+	write_register_bank(RB, inst.rn, (uint32)(result));
+	write_register_bank(RB, inst.rd, (uint32)(result>>32));
+}
+
+execute(umlal) // Multiply and add accumulate. Store values in rd & rn. UNSIGNED
+{
+	uint64 a = (uint64)(read_gpr(inst.rm));
+	uint64 b = (uint64)(read_gpr(inst.rs));
+	uint64 mult = a * b;
+	uint64 dsthi = ((uint64)(read_gpr(inst.rd)) << 32);
+	uint64 dstlo = (uint64)(read_gpr(inst.rn));
+	uint64 acc = dsthi | dstlo;
+	uint64 result = mult + acc;
+	if (inst.s) update_ZN_flags64(result);
+	write_register_bank(RB, inst.rn,(uint32)result);
+	write_register_bank(RB, inst.rd,(uint32)(result >> 32));
+}
+
+//"%cond:4 %op!:3 %func1!:4 %s:1 %rd:4 %rn:4 %rs:4 %subop2!:1 %func2!:2 %subop1!:1 %rm:4";
+// rdhi rdlo rs rm
+//rd = rdhi rn = rdlo, rs = rs rm = rm
+execute(umull) // Multiply. Store values in rd & rn. UNSIGNED
+{	
+	uint64 a = (uint64)(read_gpr(inst.rm));
+	uint64 b = (uint64)(read_gpr(inst.rs));
+	uint64 result = a * b;
+	
+	uint32 rdhi = result >> 32;
+	uint32 rdlo = result & 0xffffffff;
+	
+	//NOTE: UNPREDICTABLE behaviour can be exhibited here if rdhi and rdlo are the same register
+	//This typically exhibits itself as incorrect setting of Z flag
+	if(inst.s)
+		update_ZN_flags64(result);
+	
+	write_register_bank(RB, inst.rn, rdlo);
+	write_register_bank(RB, inst.rd, rdhi);
+}
+
+execute(smulxy)
+{
+	uint32 rm = read_register_bank(RB, inst.rm);
+	uint32 rs = read_register_bank(RB, inst.rs);
+
+	uint32 op1 = inst.x == 0 ? ((uint32)(sint32)(sint16)(rm)) : ((uint32)(sint32)(sint16)(rm >> 16));
+	uint32 op2 = inst.y == 0 ? ((uint32)(sint32)(sint16)(rs)) : ((uint32)(sint32)(sint16)(rs >> 16));
+
+	write_register_bank(RB, inst.rd, op1 * op2);
+}
+
+execute(sdiv)
+{
+	sint32 rm = read_register_bank(RB, inst.rm);
+	sint32 rn = read_register_bank(RB, inst.rn);
+	
+	sint32 result = 0;
+	
+	if(rm == 0) {
+		result = 0;
+	} else {
+		result = rn / rm;
+	}
+	
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(udiv)
+{
+	uint32 rm = read_register_bank(RB, inst.rm);
+	uint32 rn = read_register_bank(RB, inst.rn);
+	
+	uint32 result = 0;
+	
+	if(rm == 0) {
+		result = 0;
+	} else {
+		result = rn / rm;
+	}
+	
+	write_register_bank(RB, inst.rd, result);
+}
+
+////////////////////////////////////////////////////////
+////	Load & Store instructions
+////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////
+////	LSI instructions
+////////////////////////////////////////////////////////
+
+execute(ldrt1)
+{
+	uint32 addr = read_gpr(inst.rn);
+	uint32 imm = inst.imm32;
+	uint32 offset = inst.u ? addr + imm : addr - imm; 
+
+	// P is always equal to zero so we keep the address to be addr not addr +/- imm.
+	if(inst.rn == 15)
+	{
+		addr = addr & 0xfffffffc;
+	}
+	
+	if(memory_read_32_user(addr, imm))
+	{
+
+		if(inst.rd == 15)
+		{
+			imm = imm & 0xfffffffe;
+		}
+		
+		if (inst.w || !(inst.p))
+		{// W is always 1 so we set this all the time.
+			write_register_bank(RB, inst.rn, offset);
+		}
+		
+		write_register_bank(RB, inst.rd, imm);
+	
+	}
+}
+
+execute(ldrbt1)
+{
+	uint32 addr = read_gpr(inst.rn);
+	uint32 imm = inst.imm32;
+	uint32 offset = inst.u ? addr + imm : addr - imm;
+
+
+	if(inst.rn == 15)
+	{
+		addr = addr & 0xfffffffc;
+	}
+
+	uint8 val = 0;
+	if(memory_read_8_user(addr, val))
+	{	
+		if (inst.w || !(inst.p)) 
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+		
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+execute(ldr1)
+{
+	uint32 addr;
+	uint32 imm = inst.imm32;
+	
+	if(inst.rn == 15) addr = read_pc() + 8;
+	else addr = read_register_bank(RB, inst.rn);
+	
+	uint32 offset;
+	if(inst.u) offset = addr + imm ;
+	else offset = addr - imm;
+
+	if(inst.p) addr = offset;
+	
+	imm = 0;
+	if(memory_read_32(addr, imm))
+	{
+		if(inst.w || !(inst.p))
+		{ 
+			write_register_bank(RB, inst.rn, offset);
+		}
+		
+		write_register_bank(RB, inst.rd, imm);
+	}
+}
+
+execute(ldr1_pc)
+{
+	uint32 addr;
+	uint32 imm = inst.imm32;
+	
+	if (inst.rn == 15) addr = read_pc() + 8;
+	else addr = read_register_bank(RB, inst.rn);
+	
+	uint32 offset = inst.u ? addr + imm : addr - imm;
+
+	addr = inst.p ? offset : addr;
+	
+	if(memory_read_32(addr, imm))
+	{
+		if ((imm & 1) == 1) {
+		  write_register(T, 1);
+		  set_cpu_mode((uint8)1);
+		}
+		
+		imm = imm & 0xfffffffe;
+		
+		if(inst.w || !(inst.p))
+		{ 
+			write_register_bank(RB, inst.rn, offset);
+		}
+		
+		write_register_bank(RB, inst.rd, imm);
+	}
+}
+
+execute(ldrb1)
+{
+	uint32 addr = read_gpr(inst.rn);
+	uint32 imm = inst.imm32;
+	uint32 offset = inst.u ? addr + imm : addr - imm;
+
+	addr = inst.p ? offset : addr;
+
+	uint8 val = 0;
+	if(memory_read_8(addr, val)) {
+		if(inst.w || !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+		
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+
+execute(str1)
+{
+
+	uint32 imm32 = inst.imm32;
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+	
+	addr = inst.p ? offset : addr;
+
+	uint32 val = read_register_bank(RB, inst.rd);
+	if(memory_write_32(addr, val)) {
+		if(inst.w || !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+	}
+}
+
+execute(strt1)
+{
+
+	uint32 imm32 = inst.imm32;
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+	
+	addr = inst.p ? offset : addr;
+
+	uint32 val = read_register_bank(RB, inst.rd);
+	if(memory_write_32_user(addr, val)) {
+		if (inst.w || !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+	}
+}
+
+execute(strb1)
+{
+
+	uint32 imm32 = inst.imm32;
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+	
+	addr = inst.p ? offset : addr;
+
+	uint32 val = read_register_bank(RB, inst.rd);
+	if(memory_write_8(addr,( val & 0xff))) { //Writes the least significant byte to addr
+		if(inst.w || !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+	}
+}
+
+execute(strbt1)
+{
+	uint32 imm32 = inst.imm32;
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+	addr = inst.p ? offset : addr;
+
+	uint32 val = read_register_bank(RB, inst.rd);
+	mem_write_8_user(addr, val & 0xff); //Writes the least significant byte to addr
+	
+	if (inst.w || !(inst.p))
+	{
+		write_register_bank(RB, inst.rn, offset);
+	}
+}
+
+////////////////////////////////////////////////////////
+////	LSR instructions
+////////////////////////////////////////////////////////
+
+execute(ldrt2)
+{
+	uint8 c;
+	uint32 imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+
+	addr = (inst.rn == 15) ? addr & (uint32)0xfffffffc : addr;
+	
+	if(memory_read_32_user(addr, imm32))
+	{
+		imm32 = (inst.rd == 15) ? imm32 & (uint32)0xfffffffe : imm32;
+
+		if (inst.w | !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+		
+		write_register_bank(RB, inst.rd, imm32);
+	}
+}
+
+execute(ldrbt2)
+{
+	uint8 c;
+	uint32 imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+
+    imm32 = 0;
+    uint8 val;
+	if(memory_read_8_user(addr, val)) {
+		if (inst.w || !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+		
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+
+execute(ldr2)
+{
+	uint32 rm_val = read_gpr(inst.rm);
+	uint8 c;
+	uint32 imm32 = decode_imm((inst.shift_type), (inst.shift_amt), rm_val, read_register(C), c);
+	uint32 addr = read_gpr(inst.rn);	
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+
+	addr = inst.p ? offset : addr;
+
+	if(memory_read_32(addr, imm32))
+	{	
+		if(inst.rd == 15)
+		{
+			imm32 = imm32 & 0xfffffffe;
+		}
+
+		if(inst.w || !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+		
+		write_register_bank(RB, inst.rd, imm32);
+	}
+}
+
+execute(ldrb2)
+{
+	uint8 c;
+	uint32 imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+	
+	addr = inst.p ? offset : addr;
+
+    imm32 = 0;
+    uint8 val;
+	if(memory_read_8(addr, val))
+	{
+		if(inst.w || !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+		
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+execute(strbt2)
+{
+	uint8 c;
+	uint32 imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+	
+	addr = inst.p ? offset : addr;
+
+	uint32 val = read_register_bank(RB, inst.rd);
+	if(memory_write_8_user(addr, val)) { //Writes the least significant byte to addr
+
+		if (inst.w || !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+	}
+}
+
+execute(str2)
+{
+	uint8 c;
+	uint32 imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+	
+	addr = inst.p ? offset : addr;
+	
+	uint32 val = read_register_bank(RB, inst.rd);
+	if(memory_write_32(addr, val)) {
+
+		if(inst.w || !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+	}
+}
+
+execute(strt2)
+{
+	uint8 c;
+	uint32 imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+	uint32 addr = read_gpr(inst.rn);	
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+	uint32 val = read_register_bank(RB, inst.rd);
+	if(memory_write_32_user(addr, val)) {
+		if (inst.w || !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+	}
+
+}
+
+execute(strb2)
+{
+	uint8 c;
+	uint32 imm32 = decode_imm((inst.shift_type), (inst.shift_amt), read_gpr(inst.rm), read_register(C), c);
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm32 : addr - imm32;
+	
+	addr = inst.p ? offset : addr;
+
+	uint32 val = read_register_bank(RB, inst.rd);
+	if(memory_write_8(addr, val)) { //Writes the least significant byte to addr
+
+		if(inst.w || !(inst.p))
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////
+////	LSE instructions
+////////////////////////////////////////////////////////
+
+execute(ldrh) // Load half word into register Rd
+{
+	// Select between immediate or register offset
+	uint32 imm;
+	imm = inst.i ? (uint32)((inst.addr1 << 4 ) | inst.addr2) : (read_gpr(inst.addr2));
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm : addr - imm;
+	addr = inst.p ? offset : addr;
+
+	// Write to Rd register
+	uint16 val;
+	if(memory_read_16(addr, val)) {		
+		// Write back to Rn register
+		if(inst.w || !(inst.p)) write_register_bank(RB, inst.rn, offset);
+		
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+execute(ldrsb) // Load signed byte into register Rd
+{            
+	// Select between immediate or register offset
+	uint32 imm;
+	imm = inst.i ? (uint32)((inst.addr1 << 4 ) | inst.addr2) : (read_gpr(inst.addr2));
+	uint32 addr = read_gpr(inst.rn);	
+	uint32 offset = inst.u ? addr + imm : addr - imm;
+	addr = inst.p ? offset : addr;
+
+	// Write to Rd register
+	uint8 val;
+	if(memory_read_8(addr, val))
+	{
+		uint32 sext_val = (uint32)((sint32)((sint8)val));;
+		
+		// Write back to Rn register
+		if(inst.w || !(inst.p)) write_register_bank(RB, inst.rn, offset);
+		
+		write_register_bank(RB, inst.rd, sext_val);
+	}
+}
+
+execute(ldrsh) // Load signed half word into register Rd
+{
+	// Select between immediate or register offset
+	uint32 imm;
+	imm = inst.i ? (uint32)((inst.addr1 << 4 ) | inst.addr2) : (read_gpr(inst.addr2));
+	uint32 addr = read_gpr(inst.rn);	
+	uint32 offset = inst.u ? addr + imm : addr - imm;
+	addr = inst.p ? offset : addr;
+
+	// Write to Rd register
+	uint16 val;
+	if(memory_read_16(addr, val)) {
+		uint32 sext_val = (uint32)((sint32)(sint16)val);
+		
+		// Write back to Rn register
+		if(inst.w || !(inst.p)) write_register_bank(RB, inst.rn, offset);
+		
+		write_register_bank(RB, inst.rd, sext_val);
+	}
+}
+
+execute(strh) // Store half word into memory
+{	
+	// Select between immediate or register offset
+	uint32 imm;
+	imm = inst.i ? (uint32)((inst.addr1 << 4 ) | inst.addr2) : (read_gpr(inst.addr2));
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm : addr - imm;
+	addr = inst.p ? offset : addr;
+	// Fetch from Rd register & write to memory at [addr]
+	uint32 val = read_register_bank(RB, inst.rd);
+	if(memory_write_16(addr, val)) {
+		// Write back to Rn register
+		if(inst.w || !(inst.p)) write_register_bank(RB, inst.rn, offset);
+	}
+}
+
+execute(ldrd) // Load double
+{
+	// Select between immediate or register offset
+	uint32 imm;
+	imm = inst.i ? (uint32)((inst.addr1 << 4 ) | inst.addr2) : read_register_bank(RB, inst.addr2);
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm : addr - imm;
+	addr = inst.p ? offset : addr;
+
+	// Write to Rd register
+	uint32 val = 0;
+	uint32 val2 = 0;
+	
+	memory_read_32(addr, val);
+	memory_read_32(addr+4, val2);
+
+	// Write back to Rn register
+	if(inst.w || !(inst.p)) 
+	{
+		write_register_bank(RB, inst.rn, offset);
+	}
+	
+	write_register_bank(RB, inst.rd, val);
+	write_register_bank(RB, inst.rd+1, val2);
+
+}
+
+execute(strd) // Store double
+{
+	// Select between immediate or register offset
+	uint32 imm;
+	imm = inst.i ? (uint32)((inst.addr1 << 4 ) | inst.addr2) : read_register_bank(RB, inst.addr2);
+	uint32 addr = read_gpr(inst.rn);
+	uint32 offset = inst.u ? addr + imm : addr - imm;
+	addr = inst.p ? offset : addr;
+
+	// Write to Rd register
+	uint32 val = read_register_bank(RB, inst.rd);
+	uint32 val2 = read_register_bank(RB, inst.rd+1);
+	
+	if(memory_write_32(addr, val) && memory_write_32(addr+4, val2)) {	
+		// Write back to Rn register
+		if(inst.w || !(inst.p)) 
+		{
+			write_register_bank(RB, inst.rn, offset);
+		}
+	}
+}
+
+////////////////////////////////////////////////////////
+////	LSM instructions
+////////////////////////////////////////////////////////
+
+helper uint8 ldm_loop(uint32 &addr, sint32 addr_delta, sint32 pos_delta, uint32 pos, sint32 pos_max, uint32 bitfield, uint32 p, uint32 rn)
+{
+	uint32 val;
+	uint32 bit;
+	
+	uint32 cached_rn_val = 0;
+	
+	for(pos; pos != pos_max; pos += pos_delta)
+	{
+		bit = 1 << pos;
+		if(bitfield & bit)
+		{
+			if(p) addr += addr_delta;
+			if(!memory_read_32(addr, val)) return 0;
+			if(pos != rn)
+				write_register_bank(RB, pos, val);
+			else
+				cached_rn_val = val;
+			if(!p) addr += addr_delta;
+		}
+	}
+
+	if(bitfield & (1 << rn))
+		write_register_bank(RB, rn, cached_rn_val);
+	
+	return 1;
+}
+
+execute(ldm)
+{
+	uint32 addr = read_register_bank(RB, inst.rn);
+	sint32 addr_delta = inst.u ? (sint32)4 : (sint32)-4;
+	sint32 pos_delta = inst.u ? (sint32)1 : (sint32)-1;
+	uint32 pos = inst.u ? 0 : 15;
+	sint32 pos_max = inst.u ? (sint32)16 : (sint32)-1;
+	
+	uint32 val;
+	uint32 bit;
+	
+	if(ldm_loop(addr, addr_delta, pos_delta, pos, pos_max, inst.imm32, inst.p, inst.rn))
+	{
+		if(inst.w) 
+			write_register_bank(RB, inst.rn, addr);
+
+		if ((inst.imm32 >> 15) & 1) {
+			uint32 pc_var = read_register_bank(RB, 15);
+			
+			write_register(T, pc_var & 1);
+			set_cpu_mode((uint8)(pc_var & 1));
+			
+			if (pc_var & 1) {	
+				pc_var &= 0xfffffffe;
+			} else {
+				pc_var &= 0xfffffffc;
+			}
+			
+			write_register_bank(RB, 15, pc_var);
+		}
+		else
+		{
+			//write_register_bank_nt(RB, 15, read_pc() + 4);
+		}
+	}
+}
+
+helper uint8 ldm_usr_loop(uint32 addr, sint32 addr_delta, sint32 pos_delta, uint32 pos, sint32 pos_max, uint32 bitfield, uint32 p, uint32 rn)
+{
+	uint32 val;
+	uint32 bit;
+	
+	uint32 cached_rn_val = 0;
+
+	for(pos; pos != pos_max; pos += pos_delta)
+	{
+		bit = 1 << pos;
+		if(bitfield & bit)
+		{
+			if(p) addr += addr_delta;
+			if(!memory_read_32(addr, val)) return 0;
+			
+			if(pos == rn) 
+			{
+				cached_rn_val = val;
+			}
+			else
+			{
+				if(pos == 13 || pos == 14) write_register_bank(RB_usr, pos, val);
+				else  write_register_bank(RB, pos, val);
+			}
+			
+			if(!p) addr += addr_delta;
+		}
+	}
+	
+	if(bitfield & (1 << rn)) 
+	{
+		if(rn == 13 || rn == 14) write_register_bank(RB_usr, rn, cached_rn_val);
+		else write_register_bank(RB, rn, cached_rn_val);
+	}
+	
+	return 1;
+}
+
+execute(ldm_usr)
+{
+	//LDM (2) and (3) implemented here.
+	if(inst.imm32 & 32768)
+	{
+		//LDM (3)
+		//If we are loading the PC, then we load into the GPRs and copy the SPSR to the CPSR
+		uint32 addr = read_register_bank(RB, inst.rn);
+		sint32 addr_delta = inst.u ? (sint32)4 : (sint32)-4;
+		sint32 pos_delta = inst.u ? (sint32)1 : (sint32)-1;
+		uint32 pos = inst.u ? 0 : 15;
+		sint32 pos_max = inst.u ? (sint32)16 : (sint32)-1;
+		
+		uint32 val;
+		uint32 bit;
+	
+		if(ldm_loop(addr, addr_delta, pos_delta, pos, pos_max, inst.imm32, inst.p, inst.rn))
+		{	
+			uint32 pc_var = read_register_bank(RB, 15);
+
+			uint32 spsr = get_spsr();
+			write_cpsr_simulation(spsr, 0xffffffff, 0);
+			
+			write_register(T, pc_var & 1);
+			set_cpu_mode((uint8)(pc_var & 1));
+			
+			if (pc_var & 1) {	
+				pc_var &= 0xfffffffe;
+			} else {
+				pc_var &= 0xfffffffc;
+			}
+			
+			write_register_bank(RB, 15, pc_var);
+		}
+	}
+	else
+	{
+		//LDM(2)
+		//If we are not loading the PC, we load into the USER MODE GPRs and DO NOT copy the SPSR
+		uint32 addr = read_register_bank(RB, inst.rn);
+		sint32 addr_delta = inst.u ? (sint32)4 : (sint32)-4;
+		sint32 pos_delta = inst.u ? (sint32)1 : (sint32)-1;
+		uint32 pos = inst.u ? 0 : 15;
+		sint32 pos_max = inst.u ? (sint32)16 : (sint32)-1;
+		
+		ldm_usr_loop(addr, addr_delta, pos_delta, pos, pos_max, inst.imm32, inst.p, inst.rn);
+		
+		//Cannot write back with this instruction
+	}
+}
+
+helper uint8 stm_loop(uint32 &addr, sint32 addr_delta, sint32 pos_delta, uint32 pos, sint32 pos_max, uint32 mask, uint32 p)
+{
+	uint32 bit = 0;
+	uint32 val = 0;
+	for(pos ; pos != pos_max; pos += pos_delta) //initial pos is dummy statement to shut the parser up
+	{
+		bit = 1 << pos;
+		if((mask & bit))
+		{
+			if(p) addr += addr_delta;
+
+			if (pos == 15)	
+			{
+				val = read_pc();
+				if(!memory_write_32(addr, val+8)) return 0;
+			}
+			else
+			{
+				val = read_register_bank(RB, pos);
+				if(!memory_write_32(addr, val)) return 0;
+			}
+			if (!p) addr += addr_delta;
+		}
+	}
+	return 1;
+}
+
+execute(stm)
+{
+	uint32 addr = read_register_bank(RB, inst.rn);
+	sint32 addr_delta = inst.u ? (sint32)4 : (sint32)-4;
+	sint32 pos_delta = inst.u ? (sint32)1 : (sint32)-1;
+	uint32 pos = inst.u ? 0 : 15;
+	sint32 pos_max = inst.u ? (sint32)16 : (sint32)-1;
+	uint32 bit;
+	uint32 val;
+	
+	if(stm_loop(addr, addr_delta, pos_delta, pos, pos_max, inst.imm32, inst.p))
+	{
+		if(inst.w) write_register_bank(RB, inst.rn, addr);
+	}
+}
+
+helper uint8 stm_usr_loop(uint32 &addr, sint32 addr_delta, sint32 pos_delta, uint32 pos, sint32 pos_max, uint32 mask, uint32 p)
+{
+	uint32 bit = 0;
+	uint32 val = 0;
+	for(pos ; pos != pos_max; pos += pos_delta) //initial pos is dummy statement to shut the parser up
+	{
+		bit = 1 << pos;
+		if(mask & bit)
+		{
+			if(p) addr += addr_delta;
+
+			if((pos == 13) || (pos == 14)) val = read_register_bank(RB_usr, pos);
+			else val = read_register_bank(RB, pos);
+			
+			if(!memory_write_32(addr, val)) return 0;
+			
+			if (!p) addr += addr_delta;
+		}
+	}
+	return 1;
+}
+
+execute(stm_usr)
+{
+	uint32 addr = read_register_bank(RB, inst.rn);
+	sint32 addr_delta = inst.u ? (sint32)4 : (sint32)-4;
+	sint32 pos_delta = inst.u ? (sint32)1 : (sint32)-1;
+	uint32 pos = inst.u ? 0 : 15;
+	sint32 pos_max = inst.u ? (sint32)16 : (sint32)-1;
+	uint32 bit;
+	uint32 val;
+	
+	stm_usr_loop(addr, addr_delta, pos_delta, pos, pos_max, inst.imm32, inst.p);
+}
+
+////////////////////////////////////////////////////////
+////	CDP instruction
+////////////////////////////////////////////////////////
+
+execute(cdp)
+{
+	take_exception(11, address_of_next_instruction());
+}
+
+execute(cdp2)
+{
+	take_exception(11, address_of_next_instruction());
+}
+
+execute(stc)
+{
+	take_exception(11, address_of_next_instruction());
+}
+
+execute(ldc)
+{
+	take_exception(11, address_of_next_instruction());
+}
+
+////////////////////////////////////////////////////////
+////	CRT instructions
+////////////////////////////////////////////////////////
+
+helper void mcr_write_dacr(uint32 new_dacr)
+{
+	if(read_register(DACR) != new_dacr) {
+		write_coproc_reg(15, 0, 0, 3, 0, new_dacr);	
+		write_register(DACR, new_dacr);
+	}
+	
+	return;
+}
+
+helper uint8 mcr_write_special(uint8 crn, uint8 crm, uint8 opc1, uint8 opc2, uint32 data)
+{
+	if(crn == 3 && crm == 0 && opc1 == 0 && opc2 == 0) {
+		mcr_write_dacr(data);
+		return 1;
+	}
+	
+	return 0;
+}
+
+execute(mcr)
+{
+	uint32 val = read_register_bank(RB, inst.rd);
+	if(inst.cp_num == 0xf) {
+		if(mcr_write_special(inst.crn, inst.crm, inst.funcc2, inst.funcc3, val)) {}
+		else write_coproc_reg(inst.cp_num, inst.funcc2, inst.funcc3, inst.crn, inst.crm, val);
+	} else {
+		write_coproc_reg(inst.cp_num, inst.funcc2, inst.funcc3, inst.crn, inst.crm, val);
+	}
+}
+
+helper uint8 mrc_read_special(uint8 crn, uint8 crm, uint8 opc1, uint8 opc2, uint32 &data)
+{
+	if(crn == 3 && crm == 0 && opc1 == 0 && opc2 == 0) {
+		data = read_register(DACR);
+		return 1;
+	}
+	return 0;
+}
+
+execute(mrc)
+{
+	uint32 data = 0;
+	
+	if(inst.cp_num == 0xf) {
+		if(mrc_read_special(inst.crn, inst.crm, inst.funcc2, inst.funcc3, data)) {}
+		else data = read_coproc_reg(inst.cp_num, inst.funcc2, inst.funcc3, inst.crn, inst.crm);
+	} else {
+		data = read_coproc_reg(inst.cp_num, inst.funcc2, inst.funcc3, inst.crn, inst.crm);
+	}
+	
+	if(inst.rd != 15)
+		write_register_bank(RB, inst.rd, data);
+	else
+		write_cpsr_simulation(data, 0xff000000, 0);
+}
+
+helper uint32 address_of_next_instruction()
+{
+	if(get_cpu_mode()) {
+		return read_register_bank(RB, 15) + 2;
+	} else {
+		return read_register_bank(RB, 15) + 4;
+	}
+}
+
+execute(mcr_fpu)
+{
+	take_exception(11, address_of_next_instruction());
+}
+
+execute(mrc_fpu)
+{
+	take_exception(11, address_of_next_instruction());
+}
+
+////////////////////////////////////////////////////////
+////	CLS instructions
+////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////
+////	MBKPT instruction
+////////////////////////////////////////////////////////
+
+execute(bkpt)
+{
+	take_exception(7, address_of_next_instruction());
+}
+
+////////////////////////////////////////////////////////
+////	MSWI instruction
+////////////////////////////////////////////////////////
+
+execute(swi)
+{
+	take_exception((uint32)3, (uint32)inst.imm32);
+}
+
+////////////////////////////////////////////////////////
+////	MCLZ instruction
+////////////////////////////////////////////////////////
+
+execute(clz)
+{
+	uint32 reg = read_register_bank(RB, inst.rm);
+	if(reg == 0) {
+		write_register_bank(RB, inst.rd, (uint32)32);
+	}
+	else {
+		uint32 val = __builtin_clz(reg);
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+////////////////////////////////////////////////////////
+////	MMSR1 instructions
+////////////////////////////////////////////////////////
+
+execute(mrs)
+{
+	if(inst.r)
+	{
+		uint32 spsr = get_spsr();
+		write_register_bank(RB, inst.rd, spsr);
+	}
+	else
+	{
+		uint32 cpsr = get_cpsr();
+		write_register_bank(RB, inst.rd, cpsr);
+	}
+}
+
+//"%cond:4 %op!:3 %func11!:2 %r:1 %func12!:2 %fieldmask:4 %rd:4 0x0:4 %subop2!:1 %func2!:2 %subop1!:1 %rm:4";
+execute(msr1)
+{
+	uint32 operand = read_register_bank(RB, inst.rm);
+	
+	if(inst.r)
+	{
+		uint32 byte_mask = 0;
+
+		if (inst.fieldmask & 1) byte_mask |= 0xff;
+		if (inst.fieldmask & 2) byte_mask |= 0xff00;
+		if (inst.fieldmask & 4) byte_mask |= 0xff0000;
+		if (inst.fieldmask & 8) byte_mask |= 0xff000000;
+
+		uint32 new_spsr = ((get_spsr() & (~byte_mask)) | (operand & byte_mask));
+
+		write_spsr(new_spsr);
+	}
+	else
+	{
+		uint32 byte_mask = 0;
+
+		if (inst.fieldmask & 1) byte_mask |= 0xff;
+		if (inst.fieldmask & 2) byte_mask |= 0xff00;
+		if (inst.fieldmask & 4) byte_mask |= 0xff0000;
+		if (inst.fieldmask & 8) byte_mask |= 0xff000000;
+
+		write_cpsr_simulation(operand, byte_mask, 0);
+	}
+}
+
+
+////////////////////////////////////////////////////////
+////MMSR2 instruction
+////////////////////////////////////////////////////////
+
+execute(cps)
+{
+	// TODO: In Kernel Mode
+	if (inst.imod == 2) {	// ENABLE
+		if (inst.a) write_register(A, 0);
+		if (inst.i) write_register(I, 0);
+		if (inst.f) write_register(F, 0);
+	} else if (inst.imod == 3) {	// DISABLE
+		if (inst.a) write_register(A, 1);
+		if (inst.i) write_register(I, 1);
+		if (inst.f) write_register(F, 1);
+	} else {
+		trap();
+	}
+
+	if (inst.nmod == 1) {
+		if (read_register(M) != (inst.mode & 0xF)) {
+			set_arm_mode(inst.mode & 0xF);
+		}
+	}
+	pend_interrupt();
+}
+
+execute(msr2)
+{
+	uint8 c;
+	uint32 operand = rori(inst.imm8, inst.rotate, c);
+	
+	if(inst.r)
+	{
+		uint32 byte_mask = 0;
+
+		if (inst.fieldmask & 1) byte_mask |= 0xff;
+		if (inst.fieldmask & 2) byte_mask |= 0xff00;
+		if (inst.fieldmask & 4) byte_mask |= 0xff0000;
+		if (inst.fieldmask & 8) byte_mask |= 0xff000000;
+
+		//uint32 mask = byte_mask & (0xF8000000 | 0x0000000F | 0x00000020);
+		uint32 mask = byte_mask & (0xF80F0200 | 0x000001DF | 0x01000020);
+		write_spsr(((get_spsr() & (~mask)) | (operand & mask)));
+	}
+	else
+	{
+		uint32 byte_mask = 0;
+
+		if (inst.fieldmask & 1) byte_mask |= 0xff;
+		if (inst.fieldmask & 2) byte_mask |= 0xff00;
+		if (inst.fieldmask & 4) byte_mask |= 0xff0000;
+		if (inst.fieldmask & 8) byte_mask |= 0xff000000;
+		
+		write_cpsr_simulation(operand, byte_mask, 0);
+	}
+}
+
+execute(smlaxy)
+{
+	uint32 op1 = read_register_bank(RB, inst.rm);
+	if (inst.x == 1)
+		op1 >>= 16;
+	op1 &= 0xffff;
+	op1 = (uint32)(sint32)(sint16)op1;
+	
+	uint32 op2 = read_register_bank(RB, inst.rs);
+	if (inst.y == 1)
+		op2 >>= 16;
+	op2 &= 0xffff;
+	op2 = (uint32)(sint32)(sint16)op2;
+	
+	uint32 a = read_register_bank(RB, inst.rn);
+
+	sint32 result = op1 * op2 + a;
+	sint64 result_64 = (sint64)op1 * (sint64)op2 + (sint64)a;
+	write_register_bank(RB, inst.rd, result);
+
+	if (result != result_64) // Signed overflow
+		write_register(Q, 1);
+}
+
+////////////////////////////////////////////////////////
+////	DSPSM instructions
+////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////
+//// ARMv7A instructions
+///////////////////////////////////////////////////////
+
+execute(movt)
+{
+	uint32 orig = read_register_bank(RB, inst.rd);
+	orig &= (uint32)0xffff;
+
+	uint32 rn = (uint32)inst.rn;
+	rn = rn << (uint32)12;
+
+	uint32 imm16 = (uint32)inst.imm32 | (rn);
+
+	orig |= (imm16) << (uint32)16;
+	write_register_bank(RB, inst.rd, orig);
+}
+
+execute(movw)
+{
+	uint32 rn = (uint32)inst.rn;
+	rn = rn << (uint32)12;
+	uint16 imm16 = (uint16)((uint32)inst.imm32 | (rn));
+	write_register_bank(RB, inst.rd, (uint32)imm16);
+}
+
+execute(ubfx)
+{
+	uint32 source = read_register_bank(RB, inst.rn);
+
+	uint32 shifted = source >> (uint32)inst.lsb;
+	uint32 mask = ((uint32)1 << (uint32)(inst.msb + 1)) - (uint32)1;
+
+	write_register_bank(RB, inst.rd, shifted & mask);
+}
+
+execute(sbfx)
+{
+	sint32 source = read_register_bank(RB, inst.rn);
+	uint8 msbit = (uint8)inst.lsb + (uint8)inst.msb;
+
+	sint32 shifted = ((sint32)(source << (31-msbit))) >> ((31-msbit) + inst.lsb);
+
+	write_register_bank(RB, inst.rd, shifted);
+}
+
+execute(bfc)
+{
+	uint32 mask = (((uint32)1 << (inst.msb - inst.lsb + 1)) - 1) << inst.lsb;
+	uint32 source = read_register_bank(RB, inst.rd);
+	source &= ~mask;
+	write_register_bank(RB, inst.rd, source);
+}
+
+execute(bfi)
+{
+	uint32 mask = (((uint32)1 << (inst.msb - inst.lsb + 1)) - 1);
+	uint32 source = read_register_bank(RB, inst.rn) & mask;
+	uint32 dest = read_register_bank(RB, inst.rd);
+
+	mask <<= inst.lsb;
+	dest &= ~mask;	// Clear bits in dest
+	
+	dest |= (source << inst.lsb);	// OR bits in dest
+	
+	write_register_bank(RB, inst.rd, dest);
+}
+
+execute(sxth)
+{
+	uint32 val = read_register_bank(RB, inst.rm);
+	uint32 rotation = (inst.imm8 & 0xc) << 1;
+	uint8 c;
+	if(rotation != 0) val = rori(val, rotation, c);
+	sint16 v = val;
+	sint32 v2 = (sint32)v;
+	write_register_bank(RB, inst.rd, v2);
+}
+
+execute(sxtb)
+{
+	uint32 val = read_register_bank(RB, inst.rm);
+	uint32 rotation = (inst.imm8 & 0xc) << 1;
+	uint8 c;
+	if(rotation != 0) val = rori(val, rotation, c);
+	sint8 v = val;
+	sint32 v2 = (sint32)v;
+	write_register_bank(RB, inst.rd, v2);
+}
+
+execute(sxtb16)
+{
+	uint32 val = read_register_bank(RB, inst.rm);
+	uint32 rotation = (inst.imm8 & 0xc) << 1;
+	uint8 c;
+	if(rotation != 0) val = rori(val, rotation, c);
+	
+	sint32 low = (sint8)val;
+	sint32 high = (sint8)(val >> 16);
+	
+	uint32 result = ((uint32)(uint16)low) | (high << 16);
+	
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(sxtab16)
+{
+	uint32 val = read_register_bank(RB, inst.rm);
+	uint32 rn = read_register_bank(RB, inst.rn);
+	
+	uint32 rotation = (inst.imm8 & 0xc) << 1;
+	uint8 c;
+	if(rotation != 0) val = rori(val, rotation, c);
+	
+	sint32 low = (sint8)val;
+	sint32 high = (sint8)(val >> 16);
+	
+	sint32 rnlow = (sint16)rn;
+	sint32 rnhigh = (sint16)(rn >> 16);
+	
+	uint32 result = ((uint32)(uint16)(low+rnlow)) | ((high+rnhigh) << 16);
+	
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(uxth)
+{
+	uint32 val = read_register_bank(RB, inst.rm);
+	uint32 rotation = (inst.imm8 & 0xc) << 1;
+	uint8 c;
+	if(rotation != 0) val = rori(val, rotation, c);
+	uint16 v = val;
+	uint32 v2 = (uint32)v;
+	write_register_bank(RB, inst.rd, v2);
+}
+
+execute(uxtb)
+{
+	uint32 val = read_register_bank(RB, inst.rm);
+	uint32 rotation = (inst.imm8 & 0xc) << 1;
+	uint8 c;
+	if(rotation != 0) val = rori(val, rotation, c);
+	uint8 v = val;
+	uint32 v2 = (uint32)v;
+	write_register_bank(RB, inst.rd, v2);
+}
+
+execute(uxtb16)
+{
+	uint32 val = read_register_bank(RB, inst.rm);
+	uint32 rotation = (inst.imm8 & 0xc) << 1;
+	uint8 c;
+	if(rotation != 0) val = rori(val, rotation, c);
+	
+	uint32 low = (uint8)val;
+	uint32 high = (uint8)(val >> 16);
+	
+	uint32 result = ((uint16)low) | (high << 16);
+	
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(uxtab16)
+{
+	uint32 val = read_register_bank(RB, inst.rm);
+	uint32 rn = read_register_bank(RB, inst.rn);
+	
+	uint32 rotation = (inst.imm8 & 0xc) << 1;
+	uint8 c;
+	if(rotation != 0) val = rori(val, rotation, c);
+	
+	uint32 low = (uint8)val;
+	uint32 high = (uint8)(val >> 16);
+	
+	uint32 rnlow = (uint16)rn;
+	uint32 rnhigh = (uint16)(rn >> 16);
+	
+	uint32 result = ((uint32)(uint16)(low+rnlow)) | ((high+rnhigh) << 16);
+	
+	write_register_bank(RB, inst.rd, result);
+}
+execute(sel)
+{
+	uint32 rn = read_register_bank(RB, inst.rn);
+	uint32 rm = read_register_bank(RB, inst.rm);
+	
+	uint32 b1;
+	uint32 b2;
+	uint32 b3;
+	uint32 b4;
+	
+	if(read_register(GE0)) b1 = rn & 0xff;
+	else b1 = rm & 0xff;
+	
+	if(read_register(GE1)) b2 = rn & 0xff00;
+	else b2 = rm & 0xff00;
+	
+	if(read_register(GE2)) b3 = rn  & 0xff0000;
+	else b3 = rm & 0xff0000;
+	
+	if(read_register(GE3)) b4 = rn & 0xff000000;
+	else b4 = rm & 0xff000000;
+	
+	uint32 rd = b1 | b2 | b3 | b4;
+	write_register_bank(RB, inst.rd, rd);	
+}
+
+execute(pkhtb)
+{
+	uint32 rn = read_register_bank(RB, inst.rn);
+	uint32 rm = read_register_bank(RB, inst.rm);
+	
+	uint8 shift = inst.imm5;
+	
+	uint8 c;
+	rm = asrr(rm, shift, read_register(C), c);
+	
+	uint32 rd = 0;
+	rd = (uint16)rm | (rn & 0xffff0000);
+	
+	write_register_bank(RB, inst.rd, rd);
+}
+
+execute(pkhbt)
+{
+	uint32 rn = read_register_bank(RB, inst.rn);
+	uint32 rm = read_register_bank(RB, inst.rm);
+	
+	uint8 shift = inst.imm5;
+	
+	uint8 c;
+	rm = lslr(rm, shift, read_register(C), c);
+	
+	uint32 rd = 0;
+	rd = (uint16)rn | (rm & 0xffff0000);
+	
+	write_register_bank(RB, inst.rd, rd);
+}
+
+execute(uxtah)
+{
+	uint32 rm = read_register_bank(RB, inst.rm);
+
+	uint8 c;
+	uint16 result = (uint16)rori(rm, (inst.rot << 3), c);
+
+	write_register_bank(RB, inst.rd, read_gpr(inst.rn) + result);
+}
+
+execute(uxtab)
+{
+	uint32 rm = read_register_bank(RB, inst.rm);
+
+	uint8 c;
+	uint8 result = (uint8)rori(rm, (inst.rot << 3), c);
+
+	write_register_bank(RB, inst.rd, read_gpr(inst.rn) + result);
+}
+
+execute(sxtah)
+{
+	uint32 rm = read_register_bank(RB, inst.rm);
+
+	uint8 c;
+	uint16 result = (uint16)rori(rm, (inst.rot << 3), c);
+
+	write_register_bank(RB, inst.rd, read_gpr(inst.rn) + (uint32)(sint32)(sint16)result);
+}
+
+execute(sxtab)
+{
+	uint32 rm = read_register_bank(RB, inst.rm);
+
+	uint8 c;
+	uint8 result = (uint8)rori(rm, (inst.rot << 3), c);
+
+	write_register_bank(RB, inst.rd, read_gpr(inst.rn) + (uint32)(sint32)(sint8)result);
+}
+
+execute(ldrex)
+{
+	uint32 addr = read_register_bank(RB, inst.rn);
+	
+	uint32 val;
+	mem_read_32(addr, val);
+
+	write_register_bank(RB, inst.rd, val);
+	
+	write_register(XState, 1);
+	write_register(XAddr, addr);
+}
+
+execute(strex)
+{
+	uint32 addr = read_register_bank(RB, inst.rn);
+	uint32 val = read_register_bank(RB, inst.addr2);
+	
+	if(read_register(XState) && read_register(XAddr) == addr) {
+		mem_write_32(addr, val);
+		write_register_bank(RB, inst.rd, 0);
+	} else {
+		write_register_bank(RB, inst.rd, 1);
+	}
+	
+	write_register(XState, 0);
+}
+
+execute(ldrexd)
+{
+	uint32 addr = read_register_bank(RB, inst.rn);
+	
+	uint32 val1;
+	uint32 val2;
+	mem_read_32(addr, val1);
+	mem_read_32(addr + 4, val2);
+
+	write_register_bank(RB, inst.rd, val1);
+	write_register_bank(RB, inst.rd+1, val2);
+	
+	write_register(XState, 1);
+	write_register(XAddr, addr);
+}
+
+execute(strexd)
+{
+	uint32 addr = read_register_bank(RB, inst.rn);
+	uint32 val1 = read_register_bank(RB, inst.addr2);
+	uint32 val2 = read_register_bank(RB, inst.addr2 + 1);
+	
+	if(read_register(XState) && read_register(XAddr) == addr) {
+		mem_write_32(addr, val1);
+		mem_write_32(addr + 4, val2);
+
+		write_register_bank(RB, inst.rd, (uint32)0);
+	} else {
+		write_register_bank(RB, inst.rd, 1);
+	}
+	
+	write_register(XState, 0);
+}
+
+execute(rev)
+{
+	uint32 val = read_register_bank(RB, inst.rm);
+	uint32 result =
+		((val & (uint32)0xff) << (uint32)24) |
+		(((val >> (uint32)8) & (uint32)0xff) << (uint32)16) |
+		(((val >> (uint32)16) & (uint32)0xff) << (uint32)8) |
+		((val >> (uint32)24) & (uint32)0xff);
+
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(rev16)
+{
+	uint32 val = read_register_bank(RB, inst.rm);
+	uint32 result =
+		(((val >> (uint32)16) & (uint32)0xff) << (uint32)24) |
+		(((val >> (uint32)24) & (uint32)0xff) << (uint32)16) |
+		((val & (uint32)0xff) << (uint32)8) |
+		((val >> (uint32)8) & (uint32)0xff);
+
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(rbit)
+{
+  uint32 x = read_register_bank(RB, inst.rm);
+   x = (((x & 0xaaaaaaaa) >> 1) | ((x & 0x55555555) << 1));
+    x = (((x & 0xcccccccc) >> 2) | ((x & 0x33333333) << 2));
+    x = (((x & 0xf0f0f0f0) >> 4) | ((x & 0x0f0f0f0f) << 4));
+    x = (((x & 0xff00ff00) >> 8) | ((x & 0x00ff00ff) << 8));
+    write_register_bank(RB, inst.rd, ((x >> 16) | (x << 16)));
+}
+
+execute(mls)
+{
+	uint64 mult = (uint64)read_register_bank(RB, inst.rn) * (uint64)read_register_bank(RB, inst.rm);
+	uint64 result = (uint64)read_register_bank(RB, inst.ra) - mult;
+	write_register_bank(RB, inst.rd, (uint32)result);
+}
+
+execute(clrex)
+{
+	write_register(XState, 0);
+}
+
+///////////////////////////////////////////////////////////
+////  ISB Instructions
+///////////////////////////////////////////////////////////
+
+execute(isb)
+{
+
+}
+
+execute(dsb)
+{
+
+}
+
+execute(dmb)
+{
+
+}
+
+///////////////////////////////////////////////////////////
+////  SAT Instructions
+///////////////////////////////////////////////////////////
+
+// This is kind of a nightmare but seems to work
+execute(uqsub8)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  sint16 sum1 = (uint32)(uint8)n - (uint32)(uint8)m;
+  sint16 sum2 = (uint32)(uint8)(n >> 8) - (uint32)(uint8)(m >> 8);
+  sint16 sum3 = (uint32)(uint8)(n >> 16) - (uint32)(uint8)(m >> 16);
+  sint16 sum4 = (uint32)(uint8)(n >> 24) - (uint32)(uint8)(m >> 24);
+
+  if (sum1 < (sint8)0)
+    sum1 = 0;
+
+  if (sum2 < (sint8)0)
+    sum2 = 0;
+
+  if (sum3 < (sint8)0)
+    sum3 = 0;
+  
+  if (sum4 < (sint8)0)
+    sum4 = 0;
+
+  uint32 sum = (uint32)sum4;
+  sum <<= 8;
+  sum |= (uint32)sum3;
+  sum <<= 8;
+  sum |= (uint32)sum2;
+  sum <<= 8;
+  sum |= (uint32)sum1;
+
+  write_register_bank(RB, inst.rd, sum);
+}
+
+// This is kind of a nightmare but seems to work
+execute(uqadd8)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint16 sum1 = (uint32)(uint8)n + (uint32)(uint8)m;
+  uint16 sum2 = (uint32)(uint8)(n >> 8) + (uint32)(uint8)(m >> 8);
+  uint16 sum3 = (uint32)(uint8)(n >> 16) + (uint32)(uint8)(m >> 16);
+  uint16 sum4 = (uint32)(uint8)(n >> 24) + (uint32)(uint8)(m >> 24);
+
+  if (sum1 > (uint8)0xff)
+    sum1 = 0xff;
+
+  if (sum2 > (uint8)0xff)
+    sum2 = 0xff;
+
+  if (sum3 > (uint8)0xff)
+    sum3 = 0xff;
+  
+  if (sum4 > (uint8)0xff)
+    sum4 = 0xff;
+
+  uint32 sum = (uint32)sum4;
+  sum <<= 8;
+  sum |= (uint32)sum3;
+  sum <<= 8;
+  sum |= (uint32)sum2;
+  sum <<= 8;
+  sum |= (uint32)sum1;
+
+  write_register_bank(RB, inst.rd, sum);
+}
+
+// This is kind of a nightmare but seems to work
+execute(uadd8)
+{
+	uint32 m = read_register_bank(RB, inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn);
+
+	uint16 sum1 = (uint32)(uint8)n + (uint32)(uint8)m;
+	uint16 sum2 = (uint32)(uint8)(n >> 8) + (uint32)(uint8)(m >> 8);
+	uint16 sum3 = (uint32)(uint8)(n >> 16) + (uint32)(uint8)(m >> 16);
+	uint16 sum4 = (uint32)(uint8)(n >> 24) + (uint32)(uint8)(m >> 24);
+
+	uint8 sat1 = sum1 > 0xff;
+	uint8 sat2 = sum2 > 0xff;
+	uint8 sat3 = sum3 > 0xff;
+	uint8 sat4 = sum4 > 0xff;
+
+	write_register(GE0, sat1);
+	write_register(GE1, sat2);
+	write_register(GE2, sat3);
+	write_register(GE3, sat4);
+
+	uint32 sum = (uint32)(sum4 & 0xff);
+	sum <<= 8;
+	sum |= (uint32)(sum3 & 0xff);
+	sum <<= 8;
+	sum |= (uint32)(sum2 & 0xff);
+	sum <<= 8;
+	sum |= (uint32)(sum1 & 0xff);
+
+	write_register_bank(RB, inst.rd, sum);
+}
+
+// This is kind of a nightmare but seems to work
+execute(usub8)
+{
+	uint32 m = read_register_bank(RB, inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn);
+
+	sint16 sum1 = (uint32)(uint8)n - (uint32)(uint8)m;
+	sint16 sum2 = (uint32)(uint8)(n >> 8) - (uint32)(uint8)(m >> 8);
+	sint16 sum3 = (uint32)(uint8)(n >> 16) - (uint32)(uint8)(m >> 16);
+	sint16 sum4 = (uint32)(uint8)(n >> 24) - (uint32)(uint8)(m >> 24);
+
+	uint8 sat1 = (sint16)sum1 >= 0x0;
+	uint8 sat2 = (sint16)sum2 >= 0x0;
+	uint8 sat3 = (sint16)sum3 >= 0x0;
+	uint8 sat4 = (sint16)sum4 >= 0x0;
+
+	write_register(GE0, sat1);
+	write_register(GE1, sat2);
+	write_register(GE2, sat3);
+	write_register(GE3, sat4);
+
+	uint32 sum = (uint32)((uint8)sum4);
+	sum <<= 8;
+	sum |= (uint32)((uint8)sum3);
+	sum <<= 8;
+	sum |= (uint32)((uint8)sum2);
+	sum <<= 8;
+	sum |= (uint32)((uint8)sum1);
+
+	write_register_bank(RB, inst.rd, sum);
+}
+
+execute(udf)
+{
+	take_exception(11, address_of_next_instruction());
+}
+
+///////////////////////////////////////////////////////////
+////  Helper Functions Info
+///////////////////////////////////////////////////////////
+
+helper  uint8 pc_check(uint32 reg)
+{
+	return reg == 15 ? 8 : 0;
+}
+
+helper  uint8 eval_cc(uint8 cond, uint8 invert)
+{
+	uint8 result = 0;
+	
+	switch (cond)
+	{ // first 3 bits of the base condition are used
+		case 0:
+		{
+			result = read_register(Z);
+			break; //EQ or NE
+		}
+		case 1:
+		{
+			result = read_register(C);
+			break; //CS or CC
+		}
+		case 2:
+		{
+			result = read_register(N);
+			break; //MI or PL
+		}
+		case 3:
+		{
+			result = read_register(V);
+			break; //VS or VC
+		}
+		case 4:
+		{
+			result = (read_register(C) & !read_register(Z));
+			break; //HI or LS
+		}
+		case 5:
+		{
+			result = (read_register(N) == read_register(V));
+			break; //GE or LT
+		}
+		case 6:
+		{
+			result = ((read_register(N) == read_register(V)) & !read_register(Z));
+			break; //GT LE
+		}
+		case 7:
+		{
+			result = 1;
+			break; //AL
+		}
+	}
+	result = result ^ invert; // if invert is set, flip result
+	return result;
+}
+
+/*** Start of shift decoding operations ***/
+
+helper uint32 decode_imm(uint32 type, uint32 shift, uint32 bits, uint8 carry_in, uint8 &carry_out)
+{
+	uint32 val = 0;
+	uint8 c = carry_in;
+	
+	
+	uint8 shift_p = (shift == 0) & (type == 1 | type == 2);
+	//if(shift_p) shift = 32;
+	
+	shift = shift_p ? (uint32)32 : (uint32)shift;
+	
+	switch(type)
+	{
+		case 0:
+		{
+			val = lsli(bits, shift, c);
+			break;
+		}
+		case 1:
+		{
+			val = lsri(bits, shift, c);
+			break;
+		}
+		case 2:
+		{
+			val = asri(bits, shift, c);
+			break;
+		}
+		case 3:
+		{
+			if(shift == 0)
+			{
+				val = rrxi(bits, carry_in, c);
+			}
+			else
+			{
+				val = rori(bits, shift, c);
+			}
+			break;
+		}
+	}
+	
+	carry_out = c;
+	return val;
+}
+
+helper uint32 lsli(uint32 bits, uint32 shift, uint8 &carry_out)
+{
+	uint8 carry_bit = bitsel(bits, (32-shift));
+	
+	carry_out = shift == 0 ? (uint8)carry_out : (uint8)carry_bit;
+	
+	
+	return (uint32) bits << shift;
+}
+
+
+helper uint32 lsri(uint32 bits,  uint32 shift,  uint8 &carry_out)
+{
+	uint8 carry_shift = shift - 1;
+	
+	//carry_out = shift ? (uint8)((bits >> carry_shift) & 1) : (uint8)(carry_out);
+	if(shift) carry_out = (uint8)((bits >> carry_shift) & 1);
+	
+	uint32 rval = 0;
+	if(shift != 32) rval = bits >> shift;
+	
+	return rval;
+}
+
+helper  uint32 asri(uint32 bits,  uint8 shift,  uint8 &carry_out)
+{
+	carry_out = ((sint32)(bits) >> (shift - 1)) & 1;
+	
+	// If we shift by 32, the shift semantics are as though we have shifted by 31 but the carry semantics are as though we shift by 32
+	//if(shift == 32) shift = 31;
+	shift = shift == 32 ? (uint8)31 : shift; 
+	
+	return ((sint32) bits) >> (sint8)shift;
+}
+
+helper  uint32 rrxi(uint32 bits,  uint8 carry_in, uint8 &carry_out)
+{
+	carry_out = (bits & 1);
+	bits >>= 1;
+	bits |= carry_in << (uint32)31;
+	return bits;
+}
+
+helper  uint32 rori(uint32 bits, uint32 shift, uint8 &carry_out)
+{
+	shift %= 32;
+	uint32 res = bits >>> shift;
+	carry_out = ((res & 0x80000000) != 0);
+	return res;
+}
+
+helper uint32 decode_reg(uint32 type, uint32 shift, uint32 bits, uint8 carry_in, uint8 &carry_out)
+{
+	uint8 c = carry_in;
+	
+	uint32 val = bits;
+	if(type != 0 || shift != 0)
+	{
+		switch(type)
+		{
+			case 0:
+			{
+				val = lslr(bits, shift, carry_in, c);
+				break;
+			}
+			case 1:
+			{
+				val = lsrr(bits, shift, carry_in, c);
+				break;
+			}
+			case 2:
+			{
+				val = asrr(bits, shift, carry_in, c);
+				break;
+			}
+			case 3:
+			{
+				val = rorr(bits, shift, carry_in, c);
+				break;
+			}
+		}
+	}
+	
+	carry_out = c;
+	return val;
+}
+
+helper uint32 lslr(uint32 bits, uint8 shift, uint8 carry_in, uint8 &carry_out)
+{
+	if((shift) == 0) 
+	{
+		return bits;
+	}
+	else if(shift < 32)
+	{
+		carry_out = bitsel(bits, (32- (shift)));
+		return (uint32) bits << (shift);
+	}
+	else if ((shift) == 32)
+	{
+		carry_out = bits & 1;
+		return 0;
+	}
+	else
+	{
+		carry_out = 0;
+		return 0;
+	}
+	
+}
+
+helper uint32 lsrr(uint32 bits, uint8 shift, uint8 carry_in, uint8 &carry_out)
+{
+	if (shift == 0)
+	{
+		return bits;
+	}
+	else if(shift < 32)
+	{
+		carry_out = (bits >> ((shift) - 1)) & 1;
+		return bits >> (shift);
+	}
+	else if(shift == 32)
+	{
+		carry_out = bits >> (uint32)31;
+		return 0;
+	}
+	else
+	{
+		carry_out = 0;
+		return 0;
+	}
+	
+}
+
+helper uint32 asrr(uint32 bits, uint8 shift, uint8 carry_in, uint8 &carry_out)
+{
+	if((shift) == 0)
+	{
+		return bits;
+	}
+	else if((shift) >= 32)
+	{
+		uint32 result = ((sint32)bits) >> 31;
+		carry_out = result & 1;
+		return result;
+	}
+	else
+	{
+		carry_out = ((sint32)(bits) >> ((shift) - 1)) & 1;
+		return ((sint32) bits) >> (shift);
+	}
+}
+
+helper uint32 rorr(uint32 bits, uint8 shift, uint8 carry_in, uint8 &carry_out)
+{
+	if((shift) == 0)
+	{
+		return bits;
+	}
+	else
+	{
+		shift %= 32;
+		uint32 res = bits >>> shift;
+		carry_out = (bits >> ((shift) - 1)) & 1;
+		return res;
+	}
+}
+
+/*** End of shift decoding operations ***/
+
+/*** Start of shift operations ***/
+
+helper uint32 rotate_imm(uint8 imm8, uint8 rot, uint8 carry_in, uint8 &carry_out)
+{
+	uint32 shift = (rot * 2) % 32;
+	uint32 imm32 = 0;
+	if(shift == 0) imm32 = imm8;
+	else imm32 = (imm8 >> shift) | (imm8 << (32 - shift));
+
+	if(rot == 0) carry_out = carry_in;
+	else carry_out = (uint8)((imm32 >> 31) & 1);
+	
+	return imm32;
+}
+
+/*** End of shift functions ***/
+
+helper  void update_ZN_flags(uint32 value)
+{
+	__builtin_update_zn_flags(value);
+
+	return;
+}
+
+helper  void update_ZN_flags64(uint64 value)
+{
+	__builtin_update_zn_flags64(value);
+	
+	return;
+}
+
+helper  uint32 add_with_carry( uint32 op1,  uint32 op2,  uint8 flags,  uint8 is_addition,  uint8 carry_in)
+{
+	uint32 result = op1 + op2 + carry_in;
+	
+	if(flags)
+	{
+		__builtin_adc_flags(op1, op2, carry_in);
+	}
+	
+	return result;
+}
+
+helper uint32 bitsel(uint32 val, uint8 bit)
+{
+	return (val >> bit) & 1;
+}
+
+helper uint32 ilog2(uint32 x)
+{
+	uint32 shift = 0;
+	
+	while ((1 << shift) <= x) {
+		shift++;
+	}
+
+	return shift - 1;
+}
+
+helper void not_implemented()
+{
+	return;
+}
+
+helper void update_v_flag(uint32 a, uint32 b, uint32 c)
+{
+	uint32 s = (a + (b + c)) & 0x80000000;
+	a &= 0x80000000;
+	
+	b += c;
+	b &= 0x80000000;
+	
+	uint8 v = a == b && a != s;
+
+	write_register(V, v);
+	
+	return;
+}
+
+helper void update_c_flag(uint32 a, uint32 b, uint32 c)
+{
+	uint64 sum_u = (uint64)a + (uint64)b + (uint64)c;
+	uint8 carry = (uint64)(sum_u >> 32) != (uint64)0;
+
+	write_register(C, carry);
+	
+	return;
+}
+
+helper void update_cv_flags_add(uint32 a, uint32 b) {
+	update_c_flag(a, b, 0);
+	update_v_flag(a, b, 0);
+	return;
+}
+
+helper void update_cv_flags_adc(uint32 a, uint32 b, uint32 c) {
+	update_c_flag(a, b, c);
+	update_v_flag(a, b, c);
+	return;
+}
+
+helper void update_cv_flags_sub(uint32 a, uint32 b) {
+	update_c_flag(a, ~b, 1);
+	update_v_flag(a, ~b, 1);
+	return;
+}
+
+helper void update_cv_flags_sbc(uint32 a, uint32 b, uint32 c) {
+	update_c_flag(a, ~b, c);
+	update_v_flag(a, ~b, c);
+	return;
+}
+
+helper uint32 signed_bits(uint32 v, uint32 u, uint32 l) {
+	uint32 expr = ((sint32)(v) << ((uint32)(31) - u)) >> ((uint32)(31) - (u + l));
+	return expr;
+}
+
+helper uint32 get_cpsr_exception()
+{
+	uint32 val = get_cpsr();
+	
+	// Handle ITSTATE
+	uint32 itstate = read_register(ITSTATE);
+	uint32 itstate_highbits = itstate >> 2;
+	uint32 itstate_lowbits = itstate & 0x3;
+	
+	val |= itstate_highbits << 10;
+	val |= itstate_lowbits << 25;
+	
+	return val;
+}
+
+helper uint32 get_cpsr()
+{
+	uint32 val = 0;
+	val |= read_register(N) << (uint32)31;
+	val |= read_register(Z) << (uint32)30;
+	val |= read_register(C) << (uint32)29;
+	val |= read_register(V) << (uint32)28;
+	val |= read_register(Q) << (uint32)27;
+	//Q - nope
+	//J - nope
+	val |= read_register(GE3) << (uint32)19;
+	val |= read_register(GE2) << (uint32)18;
+	val |= read_register(GE1) << (uint32)17;
+	val |= read_register(GE0) << (uint32)16;
+	//GE - nope
+	//E - nope
+	//A
+	val |= ((uint32)read_register(A)) << 8;
+	
+	val |= read_register(I) << 7;
+	val |= read_register(F) << 6;
+	//val |= get_cpu_mode() << 5;
+	val |= read_register(T) << 5;
+	val |= read_register(M) | 0x10;
+		
+	return val;
+}
+
+helper void write_cpsr_exception(uint32 val, uint32 mask, uint8 mask_itstate){
+	//First of all apply mask depending on which mode we are in
+	if(read_register(M) == 0)
+	{
+		//mask &= 0xffff0000;
+	}
+
+	if(mask & 0xff000000)
+	{
+		//start out by writing flags
+		write_register(N, (val & 0x80000000) != 0);
+		write_register(Z, (val & 0x40000000) != 0);
+		write_register(C, (val & 0x20000000) != 0);
+		write_register(V, (val & 0x10000000) != 0);
+	}
+		
+	if(mask & 0x00ff0000)
+	{
+		uint32 ge3 = (val >> 19) & 1;
+		uint32 ge2 = (val >> 18) & 1;
+		uint32 ge1 = (val >> 17) & 1;
+		uint32 ge0 = (val >> 16) & 1;
+		
+		write_register(GE0, ge0);
+		write_register(GE1, ge1);
+		write_register(GE2, ge2);
+		write_register(GE3, ge3);
+
+	}
+	
+	if(mask & 0x0000ff00) {
+		write_register(A, (val & (0x100)) != 0);
+	}
+
+	if(mask & 0x000000ff)
+	{
+		uint8 irq = read_register(I); // IRQ IS ACTIVE LOW
+		write_register(I, (val & (0x80)) != 0);
+		write_register(F, (val & (0x40)) != 0);
+		
+		if(read_register(M) != (val & 0xF)) 
+		{
+			write_register(M, val); //Don't do the actual mode switch in here
+		}
+		
+		//If we're enabling interrupts, pend an IRQ check immediately
+		 // IRQ IS ACTIVE LOW
+		if(irq && !(val & 0x80))
+			pend_interrupt();
+	}
+	
+	if(mask_itstate)
+	{
+		// fill in ITSTATE
+		uint32 itstate_highbits = (val >> 10) & 0x3f;
+		uint32 itstate_lowbits = (val >>25) & 0x3;
+		uint32 itstate = (itstate_highbits << 2) | itstate_lowbits;
+		write_register(ITSTATE, itstate);
+	}
+	
+	return;
+}
+
+helper void write_cpsr_simulation_priv(uint32 val, uint32 mask, uint8 mask_itstate) noinline 
+{
+	if(mask & 0xff000000)
+	{
+		//start out by writing flags
+		write_register(N, (val & 0x80000000) != 0);
+		write_register(Z, (val & 0x40000000) != 0);
+		write_register(C, (val & 0x20000000) != 0);
+		write_register(V, (val & 0x10000000) != 0);
+		write_register(Q, (val & 0x08000000) != 0);
+	}
+		
+	if(mask & 0x00ff0000)
+	{
+		uint32 ge3 = (val >> 19) & 1;
+		uint32 ge2 = (val >> 18) & 1;
+		uint32 ge1 = (val >> 17) & 1;
+		uint32 ge0 = (val >> 16) & 1;
+		
+		write_register(GE0, ge0);
+		write_register(GE1, ge1);
+		write_register(GE2, ge2);
+		write_register(GE3, ge3);
+	}
+	
+	if(mask & 0x0000ff00) {
+		write_register(A, (val & (0x100)) != 0);
+	}
+
+	if(mask & 0x000000ff)
+	{		
+		if(read_register(M) != (val & 0xF)) 
+		{
+			set_arm_mode(val & 0xF); 
+		}
+		
+		uint8 irq = read_register(I);  // IRQ IS ACTIVE LOW
+		write_register(I, (val & (0x80)) != 0);
+		write_register(F, (val & (0x40)) != 0);
+		
+		//If we're enabling interrupts, pend an IRQ check immediately
+		 // IRQ IS ACTIVE LOW
+		if(irq && !(val & 0x80))
+			pend_interrupt();
+	}
+	
+	if(mask_itstate)
+	{
+		// fill in ITSTATE
+		uint32 itstate_highbits = (val >> 10) & 0x3f;
+		uint32 itstate_lowbits = (val >>25) & 0x3;
+		uint32 itstate = (itstate_highbits << 2) | itstate_lowbits;
+		write_register(ITSTATE, itstate);
+	}
+	return;
+}
+
+helper void write_cpsr_simulation_user(uint32 val, uint32 mask, uint8 mask_itstate)
+{
+	if(mask & 0xff000000)
+	{
+		//start out by writing flags
+		write_register(N, (val & 0x80000000) != 0);
+		write_register(Z, (val & 0x40000000) != 0);
+		write_register(C, (val & 0x20000000) != 0);
+		write_register(V, (val & 0x10000000) != 0);
+		write_register(Q, (val & 0x08000000) != 0);
+	}
+		
+	if(mask & 0x00ff0000)
+	{
+		uint32 ge3 = (val >> 19) & 1;
+		uint32 ge2 = (val >> 18) & 1;
+		uint32 ge1 = (val >> 17) & 1;
+		uint32 ge0 = (val >> 16) & 1;
+		
+		write_register(GE0, ge0);
+		write_register(GE1, ge1);
+		write_register(GE2, ge2);
+		write_register(GE3, ge3);
+	}
+	return;
+}
+
+helper void write_cpsr_simulation(uint32 val, uint32 mask, uint8 mask_itstate) 
+{
+	if(__builtin_get_feature(ARM_PRIV)) write_cpsr_simulation_priv(val, mask, mask_itstate);
+	else write_cpsr_simulation_user(val, mask, mask_itstate);
+
+	return;
+}
+
+helper uint32 get_spsr()
+{
+	return read_register(SPSR);
+}
+
+helper void write_spsr(uint32 val)
+{
+	write_register(SPSR, val);
+	return;
+}
+
+helper void backup_registers() noinline
+{
+	//move the registers for the current mode into their backing storage
+	
+	uint8 curr_mode = read_register(M);
+	switch(curr_mode)
+	{
+		case 0: //User
+		{
+			//Back up R14, R13
+			uint32 val = read_register_bank(RB, 14);
+			write_register_bank(RB_usr, 14, val);
+			
+			val = read_register_bank(RB, 13);
+			write_register_bank(RB_usr, 13, val);
+			
+			uint32 spsr = get_spsr();
+			write_register_bank(RB_usr, 16, spsr);
+			break;
+		}
+		case 1: //FIQ
+		{
+			//FIQ not currently supported
+			//trap();
+			break;
+		}
+		case 2: //IRQ
+		{
+			//Back up R14, R13
+			uint32 val = read_register_bank(RB, 14);
+			write_register_bank(RB_irq, 14, val);
+			
+			val = read_register_bank(RB, 13);
+			write_register_bank(RB_irq, 13, val);
+			
+			uint32 spsr = get_spsr();
+			write_register_bank(RB_irq, 16, spsr);
+			
+			break;
+		}
+		case 3: //Supervisor
+		{
+			//Back up R14, r13
+			uint32 val = read_register_bank(RB, 14);
+			write_register_bank(RB_svc, 14, val);
+			
+			val = read_register_bank(RB, 13);
+			write_register_bank(RB_svc, 13, val);
+			
+			uint32 spsr = get_spsr();
+			write_register_bank(RB_svc, 16, spsr);
+			
+			break;
+		}
+		case 7: //Abort
+		{
+			//Back up R14, r13
+			uint32 val = read_register_bank(RB, 14);
+			write_register_bank(RB_abt, 14, val);
+			
+			val = read_register_bank(RB, 13);
+			write_register_bank(RB_abt, 13, val);
+			
+			uint32 spsr = get_spsr();
+			write_register_bank(RB_abt, 16, spsr);
+			
+			break;
+		}
+		case 11: //Undefined
+		{
+			//Back up R14, r13
+			uint32 val = read_register_bank(RB, 14);
+			write_register_bank(RB_und, 14, val);
+			
+			val = read_register_bank(RB, 13);
+			write_register_bank(RB_und, 13, val);
+			
+			uint32 spsr = get_spsr();
+			write_register_bank(RB_und, 16, spsr);
+			
+			break;
+		}
+		case 15: //System
+		{
+			//Back up R14, R13
+			uint32 val = read_register_bank(RB, 14);
+			write_register_bank(RB_usr, 14, val);
+			
+			val = read_register_bank(RB, 13);
+			write_register_bank(RB_usr, 13, val);
+			
+			uint32 spsr = get_spsr();
+			write_register_bank(RB_usr, 16, spsr);
+			break;
+		}
+		default:
+		{
+			//Something really bad has happened
+			trap();
+			halt_cpu();
+			
+			break;
+		}
+	}
+	
+	write_spsr(get_cpsr_exception());
+	
+	return;
+}
+
+helper void restore_registers() noinline{
+	//move the registers from the alternate bank for the current mode
+	//and into the 'current' bank
+	
+	uint8 curr_mode = read_register(M);
+	switch(curr_mode)
+	{
+		case 0: //User
+		{
+			uint32 val = read_register_bank(RB_usr, 14);
+			write_register_bank(RB, 14, val);
+			
+			val = read_register_bank(RB_usr, 13);
+			write_register_bank(RB, 13, val);
+			
+			break;
+		}
+		case 1: //FIQ
+		{
+			//FIQ not currently supported
+			//trap();
+			
+			break;
+		}
+		case 2: //IRQ
+		{
+			//Back up R14, R13
+			uint32 val = read_register_bank(RB_irq, 14);
+			write_register_bank(RB, 14, val);
+			
+			val = read_register_bank(RB_irq, 13);
+			write_register_bank(RB, 13, val);
+			
+			break;
+		}
+		case 3: //Supervisor
+		{
+			//Back up R14, r13
+			uint32 val = read_register_bank(RB_svc, 14);
+			write_register_bank(RB, 14, val);
+			
+			val = read_register_bank(RB_svc, 13);
+			write_register_bank(RB, 13, val);
+			
+			break;
+		}
+		case 7: //Abort
+		{
+			//Back up R14, r13
+			uint32 val = read_register_bank(RB_abt, 14);
+			write_register_bank(RB, 14, val);
+			
+			val = read_register_bank(RB_abt, 13);
+			write_register_bank(RB, 13, val);
+			
+			break;
+		}
+		case 11: //Undefined
+		{
+			//Back up R14, r13
+			uint32 val = read_register_bank(RB_und, 14);
+			write_register_bank(RB, 14, val);
+			
+			val = read_register_bank(RB_und, 13);
+			write_register_bank(RB, 13, val);
+			
+			break;
+		}
+		case 15: //System
+		{
+			uint32 val = read_register_bank(RB_usr, 14);
+			write_register_bank(RB, 14, val);
+			
+			val = read_register_bank(RB_usr, 13);
+			write_register_bank(RB, 13, val);
+			
+			break;
+		}
+		default:
+		{
+			//Something really bad has happened
+			trap();
+			halt_cpu();
+			
+			break;
+		}
+	}
+
+	uint32 spsr = get_spsr();
+	write_cpsr_exception(spsr, 0xffffffff, 0);
+	
+	return;
+}
+
+helper void set_arm_mode(uint32 mode) 
+{
+	//Need to switch out/back up certain registers depending on what 
+	//mode we are in and what mode we are switching to
+	
+	uint8 pre_mode = read_register(M);
+	
+	//Don't need to do anything if we're switching to the mode we're already in
+	if(pre_mode == mode) return;
+
+	push_interrupt(mode);
+	
+	backup_registers();
+	write_register(M, mode);
+	restore_registers();
+	write_register(M, mode);
+
+	if(mode) {
+		enter_kernel_mode();
+		__builtin_set_feature(ARM_PRIV, 1);
+	} else {
+		enter_user_mode();
+		__builtin_set_feature(ARM_PRIV, 0);
+	}
+	
+	return;
+}
+
+helper void take_arm_exception(uint32 mode, uint32 r14) noinline
+{
+	uint32 vector = 0;
+	uint32 lr_val = 0;
+	uint32 exception_type = mode;
+	switch(exception_type)
+	{
+		case 0: //reset
+		{
+			// If we're taking a reset exception, we need to switch to 
+			// supervisor mode
+			vector = 0;
+			mode = 3;
+			
+			break;
+		}
+		case 1: //FIQ
+		{
+			vector = 0x1C;
+			lr_val = read_pc()+4;
+			
+			break;
+		}
+		case 2: //IRQ
+		{
+			lr_val = read_pc()+4;
+			vector = 0x18;
+			
+			break;
+		}
+		case 3: //svc
+		{
+			lr_val = address_of_next_instruction();
+			vector = 0x8;
+			break;
+		}
+		case 6: //pabt
+		{
+			lr_val = r14;
+			vector = 0xC;
+			mode = 7; //same behaviour otherwise as dabt
+			
+			break;
+		}
+		case 7: //dabt
+		{
+			//depends on data or prefetch abort
+			lr_val = r14;
+			vector = 0x10;
+			
+			break;
+		}
+		case 11: //undef
+		{
+			if(get_cpu_mode()) lr_val = r14 - 2;
+			else lr_val = r14;
+			vector = 0x4;
+			break;
+		}
+		default:
+		{
+			//something bad has happened
+			trap();
+			halt_cpu();
+			break;
+		}
+	}
+	
+	set_arm_mode(mode);
+	write_register_bank(RB, 14, lr_val);
+	
+	// set up control regs depending on new mode
+	switch(exception_type) {
+		case 0: //reset
+		{
+			write_register(I, 1);
+			write_register(F, 1);
+			write_register(A, 1);
+			
+			break;
+		}
+		case 1: //FIQ
+		{
+			write_register(A, 1);
+			write_register(F, 1);
+			
+			break;
+		}
+		case 2: //IRQ
+		{
+			write_register(A, 1);
+			
+			break;
+		}
+		case 3: //svc
+		{
+			break;
+		}
+		case 6: //pabt
+		{
+			write_register(A, 1);
+			
+			break;
+		}
+		case 7: //dabt
+		{
+			write_register(A, 1);
+			
+			break;
+		}
+		case 11: //undef
+		{
+			break;
+		}
+		default:
+		{
+			//something bad has happened
+			trap();
+			halt_cpu();
+			break;
+		}
+	}
+	
+	//Switch to ARM mode
+	set_cpu_mode(0);
+	write_register(T, 0);
+	//Disable interrupts
+	write_register(I, 1);
+	
+	write_register(ITSTATE, 0);
+	
+	if(read_register(cpV)) vector |= 0xffff0000;
+	write_register_bank(RB, 15, vector);
+	
+	return;
+}
+
+
+internal helper void return_from_exception() noinline
+{
+	uint32 spsr = get_spsr();
+	if (spsr & (1 << 5)) {
+	  write_register(T, 1);
+		set_cpu_mode(1);
+	} else {
+	  write_register(T, 0);
+		set_cpu_mode(0);
+	}
+	
+
+	spsr = get_spsr();
+	write_cpsr_simulation(spsr, 0xffffffff, 1);
+	
+	pop_interrupt();
+	return;
+}
+
+internal helper uint8 instruction_predicate(Instruction inst)
+{
+	uint8 cond = inst.cond >> 1;
+	uint8 invert = inst.cond & 1;
+	
+	uint8 result = 0;
+	
+	switch (cond)
+	{ // first 3 bits of the base condition are used
+	case 0: {
+		result = read_register(Z);
+		break; //EQ or NE
+		}
+	case 1:{
+		result = read_register(C);
+		break; //CS or CC
+		}
+	case 2: {
+		result = read_register(N);
+		break; //MI or PL
+		}
+	case 3: {
+		result = read_register(V);
+		break; //VS or VC
+		}
+	case 4: {
+		result = (read_register(C) & !read_register(Z));
+		break; //HI or LS
+		}
+	case 5: {
+		result = (read_register(N) == read_register(V));
+		break; //GE or LT
+		}
+	case 6: {
+		result = ((read_register(N) == read_register(V)) & !read_register(Z));
+		break; //GT LE
+		}
+	case 7: {
+		result = 1;
+		break; //AL
+		}
+	default: {
+		break;
+		}
+	}
+	result = result ^ invert; // if invert is set, flip result
+	return result;
+}
+
+
+helper void write_coproc_reg(uint32 cp_num, uint32 op1, uint32 op2, uint32 crn, uint32 crm, uint32 data)
+{	
+	write_device((uint32)cp_num, (uint32)0, (uint32)op1);
+	write_device((uint32)cp_num, (uint32)1, (uint32)op2);
+	write_device((uint32)cp_num, (uint32)2, (uint32)crn);
+	write_device((uint32)cp_num, (uint32)3, (uint32)crm);
+	
+	write_device((uint32)cp_num, (uint32)4, data);
+	
+	return;
+}
+
+helper uint32 read_coproc_reg(uint32 cp_num, uint32 op1, uint32 op2, uint32 crn, uint32 crm)
+{
+	uint32 d;
+	
+	write_device((uint32)cp_num, (uint32)0, (uint32)op1);
+	write_device((uint32)cp_num, (uint32)1, (uint32)op2);
+	write_device((uint32)cp_num, (uint32)2, (uint32)crn);
+	write_device((uint32)cp_num, (uint32)3, (uint32)crm);
+	
+	read_device((uint32)cp_num, (uint32)4, d);
+	
+	return (uint32)d;
+}
+
+helper void update_fsr_insn_mmu_fault(uint32 IFSR, uint32 IFAR)
+{
+	write_coproc_reg(15, 0, 1, 5, 0, IFSR);
+	write_coproc_reg(15, 0, 2, 6, 0, IFAR);
+	return;
+}
+
+helper void raise_mem_fault(uint32 code, uint32 addr, uint8 is_write)
+{
+	take_exception(7, read_pc()+8);
+	return;	
+}
+
+/* 
+   Attempts a 32 bit memory read and sets up the cpu for an exception if the access fails.
+   Returns TRUE on SUCCESS
+   Returns FALSE and causes an EXCEPTION on FAILURE
+*/ 
+helper uint8 memory_read_32(uint32 addr, uint32 &data)
+{
+	mem_read_32(addr, data);
+	return 1;
+	/*
+	if(access) {
+		raise_mem_fault(access, addr, 0);
+		return 0;
+	}
+	return 1;
+	*/
+}
+
+helper uint8 memory_read_16(uint32 addr, uint16 &data)
+{
+	uint16 inner_data;
+	mem_read_16(addr, inner_data);
+	data = inner_data;
+	return 1;
+	/*
+	if(access) {
+		raise_mem_fault(access, addr, 0);
+		return 0;
+	}
+	return 1;
+	*/
+}
+
+helper uint8 memory_read_8(uint32 addr, uint8 &data)
+{
+	uint8 inner_data;
+	mem_read_8(addr, inner_data);
+	data = inner_data;
+	return 1;
+	/*
+	if(access) {
+		raise_mem_fault(access, addr, 0);
+		return 0;
+	}
+	return 1;
+	*/
+}
+
+helper uint8 memory_read_32_user(uint32 addr, uint32 &data)
+{
+	mem_read_32_user(addr, data);
+	return 1;
+	/*
+	if(access) {
+		raise_mem_fault(access, addr, 0);
+		return 0;
+	}
+	return 1;
+	*/
+}
+
+helper uint8 memory_read_8_user(uint32 addr, uint8 &data)
+{
+	uint8 inner_data;
+	mem_read_8_user(addr, inner_data);
+	data = inner_data;
+	return 1;
+	/*
+	if(access) {
+		raise_mem_fault(access, addr, 0);
+		return 0;
+	}
+	return 1;
+	*/
+}
+
+/* 
+   Attempts a 32 bit memory write and sets up the cpu for an exception if the access fails.
+   Returns TRUE on SUCCESS
+   Returns FALSE and causes an EXCEPTION on FAILURE
+*/ 
+helper uint8 memory_write_32(uint32 addr, uint32 data)
+{
+	mem_write_32(addr, data);
+	return 1;
+	/*
+	if(access) {
+		raise_mem_fault(access, addr, 1);
+		return 0;
+	}
+	return 1;
+	*/
+}
+
+helper uint8 memory_write_16(uint32 addr, uint32 data)
+{
+	mem_write_16(addr, data);
+	return 1;
+	/*
+	if(access) {
+		raise_mem_fault(access, addr, 1);
+		return 0;
+	}
+	return 1;
+	*/
+}
+
+helper uint8 memory_write_8(uint32 addr, uint32 data)
+{
+	mem_write_8(addr, data);
+	return 1;
+	/*
+	if(access) {
+		raise_mem_fault(access, addr, 1);
+		return 0;
+	}
+	return 1;
+	*/
+}
+
+helper uint8 memory_write_32_user(uint32 addr, uint32 data)
+{
+	mem_write_32_user(addr, data);
+	return 1;
+	/*
+	if(access) {
+		raise_mem_fault(access, addr, 1);
+		return 0;
+	}
+	return 1;
+	*/
+}
+
+
+helper uint8 memory_write_8_user(uint32 addr, uint32 data)
+{
+	mem_write_8_user(addr, data);
+	return 1;
+	/*
+	if(access) {
+		raise_mem_fault(access, addr, 1);
+		return 0;
+	}
+	return 1;
+	*/
+}

@@ -1,0 +1,156 @@
+
+AC_ISA(thumb)
+{
+
+	ac_format TVFP_LDSTM = "0xe:4 0x6:3 %P:1 %U:1 %D:1 %W:1 %L:1 %rn:4 %vd:4 0xb:4 %imm8:8";
+	ac_format TVFP_LDST  = "0xe:4 0x6:3 0x1:1 %U:1 %D:1 0x0:1 %L:1 %rn:4 %vd:4 0xb:4 %imm8:8";
+	ac_format Type_vfpv3_dpi_mov = "0xe:4 0xe:4 %op1:1 %D:1 %op:2 %vn:4 %vd:4 0x5:3 %sz:1 %N:1 %p:1 %M:1 0x0:1 %vm:4";
+	ac_format Type_vfpv3_arm_mov = "0xe:4 0xe:4 %A:3 %L:1 %vn:4 %rt:4 0x5:3 %C:1 %N:1 %B:2 0x1:1 0x0:4";
+	
+	ac_format TVFP_txfr = "0xe:4 0xc:4 0x2:3 %op:1 %rt2:4 %rt:4 %op2:4 0x0:2 %m:1 0x1:1 %vm:4";
+	ac_format TVFP_vfp_dpi = "0xe:4 0xe:4 %opc11:1 %d:1 %opc12:2 %vn:4 %vd:4 0x5:3 %sz:1 %n:1 %q:1 %m:1 0x0:1 %vm:4";
+	
+	ac_instr<TVFP_LDSTM> tvfp_stmt1, tvfp_ldmt1;
+	ac_instr<Type_vfpv3_dpi_mov> vmovi_sp, vmovi_dp;
+	ac_instr<TVFP_txfr> tvfp_txfr_arm_to_dp, tvfp_txfr_dp_to_arm, tvfp_txfr_arm_to_sp, tvfp_txfr_sp_to_arm;
+	ac_instr<Type_vfpv3_arm_mov> tvfp_arm_single_mov, tvfp_vmsr, tvfp_vmrs;
+	ac_instr<TVFP_vfp_dpi> tvfp_vdp_vmul64, tvfp_vdp_vmul32, tvfp_vdp_vdiv64, tvfp_vdp_vdiv32, tvfp_vsub64, tvfp_vsub32, tvfp_vadd64, tvfp_vadd32, tvfp_vcmp64, tvfp_vcmp32;
+	
+	ac_asm_map sreg
+	{
+		"s"[0..64] = [0..64];
+	}
+	
+	ac_asm_map sreghi
+	{
+		"s"[16..32] = [0..16];
+	}
+	
+	ac_asm_map dreg
+	{
+		"d"[0..32] = [0..32];
+	}
+
+	ac_behaviour tvfp_stmt1;
+	ac_behaviour tvfp_ldmt1;
+	ac_behaviour tvmovi_sp;
+	ac_behaviour tvmovi_dp;
+
+	ac_behaviour tvfp_txfr_arm_to_dp;
+	ac_behaviour tvfp_txfr_dp_to_arm;
+	
+	ac_behaviour tvfp_txfr_arm_to_sp;
+	ac_behaviour tvfp_txfr_sp_to_arm;
+	
+	ac_behaviour tvfp_arm_single_mov;
+	ac_behaviour tvfp_vmsr;
+	ac_behaviour tvfp_vmrs;
+	
+	ac_behaviour tvfp_vdp_vmul64;
+	ac_behaviour tvfp_vdp_vmul32;
+
+	ac_behaviour tvfp_vdp_vdiv64;
+	ac_behaviour tvfp_vdp_vdiv32;
+	
+	ac_behaviour tvfp_vsub64;
+	ac_behaviour tvfp_vsub32;
+	ac_behaviour tvfp_vadd64;
+	ac_behaviour tvfp_vadd32;
+	
+	ac_behaviour tvfp_vcmp32;
+	ac_behaviour tvfp_vcmp64;
+
+	ISA_CTOR(armv7a) 
+	{
+		ac_execute("execute.thumb_vfp");
+		
+		tvfp_stmt1.set_decoder(L=0);
+		tvfp_stmt1.set_asm("vstm %reg, {}", rn);
+		tvfp_stmt1.set_behaviour(tvfp_stmt1);
+		
+		tvfp_ldmt1.set_decoder(L=1);
+		tvfp_ldmt1.set_asm("vldm %reg, {}", rn);
+		tvfp_ldmt1.set_behaviour(tvfp_ldmt1);
+
+		vmovi_sp.set_decoder(op1=0x1, op=0x3, sz=0x0, p=0x0, M=0x0, N=0x0);
+		vmovi_sp.set_asm("vmov.f32 %sreg, #%imm", vd, imm8);
+		vmovi_sp.set_behaviour(tvmovi_sp);
+		
+		vmovi_dp.set_decoder(op1=0x1, op=0x3, sz=0x1, p=0x0, M=0x0, N=0x0);
+		vmovi_dp.set_asm("vmov.f64 %dreg, #%imm", vd, imm8);
+		vmovi_dp.set_behaviour(tvmovi_dp);
+		
+		// TVFP_txfr
+		tvfp_txfr_arm_to_dp.set_decoder(op=0, op2=0xb);
+		tvfp_txfr_arm_to_dp.set_asm("vmov");
+		tvfp_txfr_arm_to_dp.set_behaviour(tvfp_txfr_arm_to_dp);
+		
+		tvfp_txfr_dp_to_arm.set_decoder(op=1, op2=0xb);
+		tvfp_txfr_dp_to_arm.set_asm("vmov");
+		tvfp_txfr_dp_to_arm.set_behaviour(tvfp_txfr_dp_to_arm);
+		
+		tvfp_txfr_arm_to_sp.set_decoder(op=0, op2=0xa);
+		tvfp_txfr_arm_to_sp.set_asm("vmov");
+		tvfp_txfr_arm_to_sp.set_behaviour(tvfp_txfr_arm_to_sp);
+		
+		tvfp_txfr_sp_to_arm.set_decoder(op=1, op2=0xa);
+		tvfp_txfr_sp_to_arm.set_asm("vmov");
+		tvfp_txfr_sp_to_arm.set_behaviour(tvfp_txfr_sp_to_arm);
+		
+		// Type_vfpv3_arm_mov
+		tvfp_arm_single_mov.set_decoder(C=0, A=0);
+		tvfp_arm_single_mov.set_asm("vmov r%imm, s%imm", rt, vn, L=1);
+		tvfp_arm_single_mov.set_asm("vmov s%imm, r%imm", vn, rt, L=0);
+		tvfp_arm_single_mov.set_behaviour(tvfp_arm_single_mov);
+		
+		tvfp_vmsr.set_decoder(L=0, C=0, A=7);
+		tvfp_vmsr.set_asm("vmsr");
+		tvfp_vmsr.set_behaviour(tvfp_vmsr);
+		
+		tvfp_vmrs.set_decoder(L=1, C=0, A=7);
+		tvfp_vmrs.set_asm("vmrs");
+		tvfp_vmrs.set_behaviour(tvfp_vmrs);
+		
+		// TVFP_vfp_dpi
+		tvfp_vdp_vmul64.set_decoder(opc11=0, opc12=2, q=0, sz=1);
+		tvfp_vdp_vmul64.set_asm("vmul.f64");
+		tvfp_vdp_vmul64.set_behaviour(tvfp_vdp_vmul64);
+		
+		tvfp_vdp_vmul32.set_decoder(opc11=0, opc12=2, q=0, sz=0);
+		tvfp_vdp_vmul32.set_asm("vmul.f32");
+		tvfp_vdp_vmul32.set_behaviour(tvfp_vdp_vmul32);
+		
+		tvfp_vdp_vdiv64.set_decoder(opc11=1, opc12=0, q=0, sz=1);
+		tvfp_vdp_vdiv64.set_asm("vdiv.f64");
+		tvfp_vdp_vdiv64.set_behaviour(tvfp_vdp_vdiv64);
+		
+		tvfp_vdp_vdiv32.set_decoder(opc11=1, opc12=0, q=0, sz=0);
+		tvfp_vdp_vdiv32.set_asm("vdiv.f32");
+		tvfp_vdp_vdiv32.set_behaviour(tvfp_vdp_vdiv32);
+	
+		tvfp_vsub32.set_decoder(opc11=0, opc12=3, q=1, sz=0);
+		tvfp_vsub32.set_asm("vsub.f32");
+		tvfp_vsub32.set_behaviour(tvfp_vsub32);
+		
+		tvfp_vsub64.set_decoder(opc11=0, opc12=3, q=1, sz=1);
+		tvfp_vsub64.set_asm("vsub.f64");
+		tvfp_vsub64.set_behaviour(tvfp_vsub64);
+		
+		tvfp_vadd32.set_decoder(opc11=0, opc12=3, q=0, sz=0);
+		tvfp_vadd32.set_asm("vadd.f32");
+		tvfp_vadd32.set_behaviour(tvfp_vadd32);
+		
+		tvfp_vadd64.set_decoder(opc11=0, opc12=3, q=0, sz=1);
+		tvfp_vadd64.set_asm("vadd.f64");
+		tvfp_vadd64.set_behaviour(tvfp_vadd64);
+		
+		tvfp_vcmp32.set_decoder(opc11=1, opc12=3, vn=4, sz=0, q=1);
+		tvfp_vcmp32.set_asm("vcmp.f32");
+		tvfp_vcmp32.set_behaviour(tvfp_vcmp32);
+		
+		tvfp_vcmp64.set_decoder(opc11=1, opc12=3, vn=4, sz=1, q=1);
+		tvfp_vcmp64.set_asm("vcmp.f64");
+		tvfp_vcmp64.set_behaviour(tvfp_vcmp64);
+	};
+
+};

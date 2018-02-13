@@ -1,0 +1,13 @@
+------------------------------------------------------------------------
+3.3 The Semantic Description
+------------------------------------------------------------------------
+
+The Semantic description is generally the largest and most complex
+part of the model, and describes how instructions within the model 
+should behave i.e., what are their effects.
+
+Semantic descriptions are written in a C-like language called GenC.
+GenC has no pointer types, and no user-defined structured types. A 
+large number of intrinsic functions are defined in order to manipulate
+the state of the simulated machine (i.e., read/write registers and 
+memory) and to perform utility operations.

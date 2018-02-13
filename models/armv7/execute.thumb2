@@ -1,0 +1,5925 @@
+//
+//
+// Thumb Execution
+//
+
+execute(thumb2_ssatt1)
+{
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint8 saturate_to = inst.widthm1 + 1;
+  uint8 shift_t;
+  uint8 shift_n;
+  DecodeImmShift(inst.sh << 1, (uint8)inst.imm3 << 2 | inst.imm2, shift_t, shift_n); 
+  sint32 operand = Shift(n, shift_t, shift_n, read_register(C));
+  
+  sint32 top = operand >> (saturate_to - 1);
+  sint32 mask = ((uint32)1 << (saturate_to - 1)) - 1;
+  sint32 result = operand;
+  uint8 sat = 0;
+
+  if (top > 0)
+    {
+      sat = 1;
+      result = mask;
+    }
+  else if (top < -1)
+    {
+      sat = 1;
+      result = ~mask;
+    }
+
+  write_register_bank(RB, inst.rd, result);
+
+  if (sat)
+  write_register(Q, 1);
+}
+
+execute(thumb2_ssat16t1)
+{
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint8 saturate_to = inst.rm + 1;
+  uint8 shift_t;
+  uint8 shift_n;
+  
+  sint32 top1 = (sint32)(sint16)n >> (saturate_to - 1);
+  sint32 top2 = (sint32)(sint16)(n >> 16) >> (saturate_to - 1);
+  sint16 mask = ((uint16)1 << (saturate_to - 1)) - 1;
+  sint16 result1 = (sint16)n;
+  sint16 result2 = (sint16)(n >> 16);
+  uint8 sat1 = 0;
+  uint8 sat2 = 0;
+
+  if (top1 > 0)
+    {
+      sat1 = 1;
+      result1 = mask;
+    }
+  else if (top1 < -1)
+    {
+      sat1 = 1;
+      result1 = ~mask;
+    }
+
+  if (top2 > 0)
+    {
+      sat2 = 1;
+      result2 = mask;
+    }
+  else if (top2 < -1)
+    {
+      sat2 = 1;
+      result2 = ~mask;
+    }
+
+  uint32 result = (uint32)(uint16)(result2);
+  result <<= 16;
+  result |= (uint32)(uint16)(result1);
+
+  write_register_bank(RB, inst.rd, result);
+
+  if (sat1 | sat2)
+  write_register(Q, 1);
+
+}
+execute(thumb2_uxtb16t1)
+{
+  uint8 rotation = inst.rotate << 3;
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 rotated = ROR(m, rotation);
+  
+  uint32 result = (uint32)(uint16)(uint8)(rotated >> 16);
+  result <<= 16;
+  result |= (uint32)(uint16)(uint8)rotated;
+  
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_uxtaht1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint8 rotation = inst.rotate << 3;
+  uint32 rotated = ROR(m, rotation);
+  write_register_bank(RB, inst.rd, n + (uint32)(uint16)rotated);
+}
+
+execute(thumb2_uxtabt1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint8 rotation = inst.rotate << 3;
+  uint32 rotated = ROR(m, rotation);
+  write_register_bank(RB, inst.rd, n + (uint32)(uint16)(uint8)rotated);
+}
+
+execute(thumb2_uxtab16t1)
+{
+  uint8 rotation = inst.rotate << 3;
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint32 rotated = ROR(m, rotation);
+  
+  uint32 result = (uint16)((uint32)(uint16)(n >> 16) + (uint32)(uint16)(uint8)(rotated >> 16));
+  result <<= 16;
+  result |= (uint32)(uint16)n + (uint32)(uint16)(uint8)rotated;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_usub8t1)
+{
+  uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+  uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+  uint32 sum1 = (n & 0xff) - (m & 0xff);
+  uint32 sum2 = ((n >> 8) & 0xff) - ((m >> 8) & 0xff);
+  uint32 sum3 = ((n >> 16) & 0xff) - ((m >> 16) & 0xff);
+  uint32 sum4 = ((n >> 24) & 0xff) - ((m >> 24) & 0xff);
+  
+  uint32 output = (((sum4) << 24) & 0xff000000) | (((sum3) << 16) & 0xff0000) | (((sum2) << 8) & 0xff00) | (sum1 & 0xff);  
+  
+  write_register_bank(RB, inst.rd, output);
+  
+  if (sum1 >= (sint16)0)
+    {
+      write_register(GE0, 1);
+    }
+  else
+    {
+      write_register(GE0, 0);
+    }
+  
+  if (sum2 >= (sint16)0)
+    {
+      write_register(GE1, 1);
+    }
+  else
+    {
+      write_register(GE1, 0);
+    }
+  
+  if (sum3 >= (sint16)0)
+    {
+      write_register(GE2, 1);
+    }
+  else
+    {
+      write_register(GE2, 0);
+    }
+  
+  if (sum4 >= (sint16)0)
+    {
+      write_register(GE3, 1);
+    }
+  else
+    {
+      write_register(GE3, 0);
+    }
+}
+
+execute(thumb2_usub16t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+
+  uint32 diff1 = (uint32)(uint16)n - (uint32)(uint16)m;
+  uint32 diff2 = (uint32)(uint16)(n >> 16) - (uint32)(uint16)(m >> 16);
+  
+  uint32 result = (uint32)(uint16)diff2;
+  result <<= 16;
+  result |= (uint32)(uint16)diff1;
+
+  write_register_bank(RB, inst.rd, result);
+
+  if (diff1 >= (sint32)0)
+    {
+      write_register(GE0, 1);
+      write_register(GE1, 1);
+    }
+  else
+    {
+      write_register(GE0, 0);
+      write_register(GE1, 0);
+    }
+
+  if (diff2 >= (sint32)0)
+    {
+      write_register(GE2, 1);
+      write_register(GE3, 1);
+    }
+  else
+    {
+      write_register(GE2, 0);
+      write_register(GE3, 0);
+    }
+}
+
+execute(thumb2_usaxt1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint32 sum = (uint32)(uint16)n + (uint32)(uint16)(m >> 16);
+  uint32 diff = (uint32)(uint16)(n >> 16) - (uint32)(uint16)m;
+  
+  uint32 result = (uint32)(uint16)diff;
+  result <<= 16;
+  result |= (uint32)(uint16)sum;
+
+  write_register_bank(RB, inst.rd, result);
+
+  if (sum >= 0x10000)
+    {
+      write_register(GE0, 1);
+      write_register(GE1, 1);
+    }
+  else
+    {
+      write_register(GE0, 0);
+      write_register(GE1, 0);
+    }
+
+  if ((sint32)diff >= (sint32)0)
+    {
+      write_register(GE2, 1);
+      write_register(GE3, 1);
+    }
+  else
+    {
+      write_register(GE2, 0);
+      write_register(GE3, 0);
+    }
+}
+
+execute(thumb2_usatt1)
+{
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint8 saturate_to = inst.widthm1;
+  uint8 shift_t;
+  uint8 shift_n;
+
+  DecodeImmShift(inst.sh << 1, (uint8)inst.imm3 << 2 | inst.imm2, shift_t, shift_n); 
+
+  uint32 operand = Shift(n, shift_t, shift_n, read_register(C));
+  uint32 result = operand;
+  uint8 sat = 0;
+
+  uint32 max = ((uint32)1 << saturate_to) - 1;
+
+  if ((sint32)operand > (sint32)max)
+    {
+      result = max;
+      sat = 1;
+    }
+  else if ((sint32)(uint32)operand < (sint32)0)
+    {
+      result = 0;
+      sat = 1;
+    }
+
+  write_register_bank(RB, inst.rd, (uint32)result);
+  if (sat)
+    write_register(Q, 1);
+}
+
+execute(thumb2_usat16t1)
+{
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint32 saturate_to = (uint32)(uint8)inst.rm;
+  
+  uint32 max = ((uint32)1 << saturate_to) - 1;
+
+  uint32 result1;
+  uint32 result2;
+  uint8 sat1;
+  uint8 sat2;
+
+  if ((sint16)(uint16)n > max)
+    {
+      result1 = max;
+      sat1 = 1;
+    }
+  else if ((sint16)(uint16)n < 0)
+    {
+      result1 = 0;
+      sat1 = 1;
+    }
+  else
+    {
+      result1 = (uint32)(uint16)n;
+      sat1 = 0;
+    }
+
+  if ((sint16)(uint16)(n>>16) > max)
+    {
+      result2 = max;
+      sat2 = 1;
+    }
+  else if ((sint16)(uint16)(n>>16) < 0)
+    {
+      result2 = 0;
+      sat2 = 1;
+    }
+  else
+    {
+      result2 = (uint32)(uint16)(n>>16);
+      sat2 = 0;
+    }
+
+  uint32 result = (uint32)(uint16)(result2);
+  result <<= 16;
+  result |= (uint32)(uint16)result1;
+  write_register_bank(RB, inst.rd, result);
+
+  if (sat1 | sat2)
+    write_register(Q, 1);
+}
+
+execute(thumb2_usada8t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint32 a = read_register_bank(RB, inst.ra);
+
+  uint8 m1 = (uint8)m;
+  uint8 n1 = (uint8)n;
+
+  uint8 m2 = (uint8)(m >> 8);
+  uint8 n2 = (uint8)(n >> 8);
+  
+  uint8 m3 = (uint8)(m >> 16);
+  uint8 n3 = (uint8)(n >> 16);
+  
+  uint8 m4 = (uint8)(m >> 24);
+  uint8 n4 = (uint8)(n >> 24);
+
+  uint8 absdiff1;
+  uint8 absdiff2;
+  uint8 absdiff3;
+  uint8 absdiff4;
+
+  if (m1 > n1)
+    absdiff1 = m1 - n1;
+  else
+    absdiff1 = n1 - m1;
+
+  if (m2 > n2)
+    absdiff2 = m2 - n2;
+  else
+    absdiff2 = n2 - m2;
+
+  if (m3 > n3)
+    absdiff3 = m3 - n3;
+  else
+    absdiff3 = n3 - m3;
+
+  if (m4 > n4)
+    absdiff4 = m4 - n4;
+  else
+    absdiff4 = n4 - m4;
+
+  uint32 result = a + (uint32)absdiff1 + (uint32)absdiff2 + (uint32)absdiff3 + (uint32)absdiff4;
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_usad8t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint8 m1 = (uint8)m;
+  uint8 n1 = (uint8)n;
+
+  uint8 m2 = (uint8)(m >> 8);
+  uint8 n2 = (uint8)(n >> 8);
+  
+  uint8 m3 = (uint8)(m >> 16);
+  uint8 n3 = (uint8)(n >> 16);
+  
+  uint8 m4 = (uint8)(m >> 24);
+  uint8 n4 = (uint8)(n >> 24);
+
+  uint8 absdiff1;
+  uint8 absdiff2;
+  uint8 absdiff3;
+  uint8 absdiff4;
+
+  if (m1 > n1)
+    absdiff1 = m1 - n1;
+  else
+    absdiff1 = n1 - m1;
+
+  if (m2 > n2)
+    absdiff2 = m2 - n2;
+  else
+    absdiff2 = n2 - m2;
+
+  if (m3 > n3)
+    absdiff3 = m3 - n3;
+  else
+    absdiff3 = n3 - m3;
+
+  if (m4 > n4)
+    absdiff4 = m4 - n4;
+  else
+    absdiff4 = n4 - m4;
+
+  uint32 result = (uint32)absdiff1 + (uint32)absdiff2 + (uint32)absdiff3 + (uint32)absdiff4;
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_uqsub16t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint32 diff1 = (uint32)(uint16)n - (uint32)(uint16)m;
+  uint32 diff2 = (uint32)(uint16)(n >> 16) - (uint32)(uint16)(m >> 16);
+  
+  if (diff1 < (sint16)0)
+    diff1 = 0;
+
+  if (diff2 < (sint16)0)
+    diff2 = 0;
+
+  uint32 result = (uint32)(uint16)diff2;
+  result <<= 16;
+  result |= (uint32)(uint16)diff1;
+  
+  write_register_bank(RB, inst.rd, result);
+}
+
+// This is kind of a nightmare but seems to work
+execute(thumb2_uqsub8t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint16 sum1 = (uint32)(uint8)n - (uint32)(uint8)m;
+  uint16 sum2 = (uint32)(uint8)(n >> 8) - (uint32)(uint8)(m >> 8);
+  uint16 sum3 = (uint32)(uint8)(n >> 16) - (uint32)(uint8)(m >> 16);
+  uint16 sum4 = (uint32)(uint8)(n >> 24) - (uint32)(uint8)(m >> 24);
+
+  if (sum1 < (sint8)0)
+    sum1 = 0;
+
+  if (sum2 < (sint8)0)
+    sum2 = 0;
+
+  if (sum3 < (sint8)0)
+    sum3 = 0;
+  
+  if (sum4 < (sint8)0)
+    sum4 = 0;
+
+  uint32 sum = (uint32)sum4;
+  sum <<= 8;
+  sum |= (uint32)sum3;
+  sum <<= 8;
+  sum |= (uint32)sum2;
+  sum <<= 8;
+  sum |= (uint32)sum1;
+
+  write_register_bank(RB, inst.rd, sum);
+}
+
+execute(thumb2_uqsaxt1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+
+  uint32 sum = (uint32)(uint16)n + (uint32)(uint16)(m >> 16);
+  uint32 diff = (uint32)(uint16)(n >> 16) - (uint32)(uint16)m;
+  
+  if (diff < (sint16)0)
+    diff = 0;
+
+  if (sum >= 0xffff)
+    sum = 0xffff;
+
+  uint32 result = (uint32)(uint16)diff;
+  result <<= 16;
+  result |= (uint32)(uint16)sum;
+  
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_uqasxt1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint32 diff = (uint32)(uint16)n - (uint32)(uint16)(m >> 16);
+  uint32 sum = (uint32)(uint16)(n >> 16) + (uint32)(uint16)m;
+  
+  if (diff < (sint16)0)
+    diff = 0;
+
+  if (sum >= 0xffff)
+    sum = 0xffff;
+
+  uint32 result = (uint32)(uint16)sum;
+  result <<= 16;
+  result |= (uint32)(uint16)diff;
+  
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_uqadd8t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint16 sum1 = (uint32)(uint8)n + (uint32)(uint8)m;
+  uint16 sum2 = (uint32)(uint8)(n >> 8) + (uint32)(uint8)(m >> 8);
+  uint16 sum3 = (uint32)(uint8)(n >> 16) + (uint32)(uint8)(m >> 16);
+  uint16 sum4 = (uint32)(uint8)(n >> 24) + (uint32)(uint8)(m >> 24);
+
+  if (sum1 >= 0xff)
+    sum1 = 0xff;
+
+  if (sum2 >= 0xff)
+    sum2 = 0xff;
+
+  if (sum3 >= 0xff)
+    sum3 = 0xff;
+  
+  if (sum4 >= 0xff)
+    sum4 = 0xff;
+
+  uint32 sum = (uint32)sum4;
+  sum <<= 8;
+  sum |= (uint32)sum3;
+  sum <<= 8;
+  sum |= (uint32)sum2;
+  sum <<= 8;
+  sum |= (uint32)sum1;
+
+  write_register_bank(RB, inst.rd, sum);
+}
+
+execute(thumb2_uqadd16t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+  
+  uint32 n_lo = (uint32)(uint16)n;
+  uint32 m_lo = (uint32)(uint16)m;
+  
+  uint32 n_hi = (uint32)(uint16)(n >> 16);
+  uint32 m_hi = (uint32)(uint16)(m >> 16);
+  
+  uint32 sum1 = n_lo + m_lo;
+  uint32 sum2 = n_hi + m_hi;
+  
+  if (sum1 >= 0xffff)
+    sum1 = 0xffff;
+  
+  if (sum2 >= 0xffff)
+    sum2 = 0xffff;
+
+  uint32 sum;
+  
+  sum = sum2;
+  sum <<= 16;
+  sum |= (uint32)((uint16)sum1);
+  
+  
+  write_register_bank(RB, inst.rd, sum);
+}
+
+execute(thumb2_umlalt1)
+{
+  uint32 dLo = read_register_bank(RB, inst.rdlo);
+  uint32 dHi = read_register_bank(RB, inst.rdhi);
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint32 m = read_register_bank(RB, inst.rm);
+
+  uint64 result = (uint64)n * (uint64)m + ((((uint64)dHi) << 32) | (uint64)dLo);
+  write_register_bank(RB, inst.rdhi, (uint32)(result >> 32));
+  write_register_bank(RB, inst.rdlo, (uint32)(result));
+}
+
+execute(thumb2_umaalt1)
+{
+  uint32 dLo = read_register_bank(RB, inst.rdlo);
+  uint32 dHi = read_register_bank(RB, inst.rdhi);
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint32 m = read_register_bank(RB, inst.rm);
+
+  uint64 result = (uint64)n * (uint64)m + (uint64)dHi + (uint64)dLo;
+  write_register_bank(RB, inst.rdhi, (uint32)(result >> 32));
+  write_register_bank(RB, inst.rdlo, (uint32)result);
+}
+
+execute(thumb2_uhsub8t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint16 diff1 = (uint16)(uint8)n - (uint16)(uint8)m;
+  uint16 diff2 = (uint16)(uint8)(n >> 8) - (uint16)(uint8)(m >> 8);
+  uint16 diff3 = (uint16)(uint8)(n >> 16) - (uint16)(uint8)(m >> 16);
+  uint16 diff4 = (uint16)(uint8)(n >> 24) - (uint16)(uint8)(m >> 24);
+
+  diff1 >>= 1;
+  diff2 >>= 1;
+  diff3 >>= 1;
+  diff4 >>= 1;
+
+  uint32 result = (uint32)(uint8)diff4;
+  result <<= 8;
+  result |= (uint32)(uint8)diff3;
+  result <<= 8;
+  result |= (uint32)(uint8)diff2;
+  result <<= 8;
+  result |= (uint32)(uint8)diff1;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_uhsub16t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint32 diff1 = (uint32)(uint16)n - (uint32)(uint16)m;
+  uint32 diff2 = (uint32)(uint16)(n >> 16) - (uint32)(uint16)(m >> 16);
+
+  diff1 >>= 1;
+  diff2 >>= 1;
+
+  uint32 result = (uint32)(uint16)diff2;
+  result <<= 16;
+  result |= (uint32)(uint16)diff1;
+  
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_uhsaxt1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+
+  uint32 sum = (uint32)(uint16)n + (uint32)(uint16)(m >> 16);
+  uint32 diff = (uint32)(uint16)(n >> 16) - (uint32)(uint16)m;
+
+  sum >>= 1;
+  diff >>= 1;
+
+  uint32 result = (uint32)(uint16)diff;
+  result <<= 16;
+  result |= (uint32)(uint16)sum;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_uhasxt1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint32 diff = (uint32)(uint16)n - (uint32)(uint16)(m >> 16);
+  uint32 sum = (uint32)(uint16)(n >> 16) + (uint32)(uint16)m;
+
+  diff >>= 1;
+  sum >>= 1;
+  
+  uint32 result = (uint32)(uint16)sum;
+  result <<= 16;
+  result |= (uint32)(uint16)diff;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_uhadd8t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint16 sum1 = (uint16)(uint8)m + (uint16)(uint8)n;
+  uint16 sum2 = (uint16)(uint8)(m >> 8) + (uint16)(uint8)(n >> 8);
+  uint16 sum3 = (uint16)(uint8)(m >> 16) + (uint16)(uint8)(n >> 16);
+  uint16 sum4 = (uint16)(uint8)(m >> 24) + (uint16)(uint8)(n >> 24);
+
+  sum1 >>= 1;
+  sum2 >>= 1;
+  sum3 >>= 1;
+  sum4 >>= 1;
+
+  uint32 result = (uint32)(uint8)sum4;
+  result <<= 8;
+  result |= (uint32)(uint8)sum3;
+  result <<= 8;
+  result |= (uint32)(uint8)sum2;
+  result <<= 8;
+  result |= (uint32)(uint8)sum1;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_uhadd16t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint32 sum1 = (uint32)(uint16)n + (uint32)(uint16)m;
+  uint32 sum2 = (uint32)(uint16)(n >> 16) + (uint32)(uint16)(m >> 16);
+
+  sum1 >>= 1;
+  sum2 >>= 1;
+
+  uint32 result = (uint32)(uint16)sum2;
+  result <<= 16;
+  result |= (uint32)(uint16)sum1;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_uasxt1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint32 diff = (uint32)(uint16)n - (uint32)(uint16)(m >> 16);
+  uint32 sum = (uint32)(uint16)(n >> 16) + (uint32)(uint16)m;
+
+  uint32 result = sum;
+  result <<= 16;
+  result |= (uint32)(uint16)diff;
+  
+  write_register_bank(RB, inst.rd, result);
+
+  
+  if (diff >= (sint32)0)
+    {
+      write_register(GE0, 1);
+      write_register(GE1, 1);
+    }
+  else
+    {
+      write_register(GE0, 0);
+      write_register(GE1, 0);
+    }
+
+  if (sum >= (uint32)0x10000)
+    {
+      write_register(GE2, 1);
+      write_register(GE3, 1);
+    }
+  else
+    {
+      write_register(GE2, 0);
+      write_register(GE3, 0);
+    }
+}
+
+execute(thumb2_teqit2)
+{
+  uint8 shift_t;
+  uint8 shift_n;
+  
+  uint32 m = read_register_bank(RB, inst.rm); 
+  uint32 n = read_register_bank(RB, inst.rn);
+  DecodeImmShift(inst.type, (uint8)inst.imm3 << 2 | inst.imm2, shift_t, shift_n);  
+
+  uint8 carry;
+  uint32 shifted =  Shift_C(m, shift_t, shift_n, read_register(C), carry); 
+
+  uint32 result = n ^ shifted;
+
+  write_register(N, bitsel(result, 31));
+  write_register(Z, result == 0);
+  write_register(C, carry);
+}
+
+execute(thumb2_sxtht1)
+{
+  uint32 m = (uint32)(sint32)(sint16)(uint16)read_register_bank(RB, inst.rm);
+  write_register_bank(RB, inst.rd, m);
+}
+
+execute(thumb2_sxtht2)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint8 rotate = inst.rotate << 3;
+
+  uint32 rotated = ROR(m, rotate);
+  uint32 result = (uint32)(sint32)(sint16)(uint16)rotated;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_sxtbt1)
+{
+  uint8 rotate = inst.rotate << 3;
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 rotated = ROR(m, rotate);
+  uint32 result = (uint32)(sint32)(sint16)(sint8)rotated;
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_sxtbt2)
+{
+  uint8 rotate = inst.rotate << 3;
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 rotated = ROR(m, rotate);
+  uint32 result = (uint32)(sint32)(sint16)(sint8)rotated;
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_sxtb16t1)
+{
+  uint8 rotate = inst.rotate << 3;
+
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 rotated = ROR(m, rotate);
+
+  uint32 result_lo = (uint32)(uint16)(sint16)(sint8)rotated;
+  uint32 result_hi = (uint32)(uint16)(sint16)(sint8)(rotated >> 16);
+
+  uint32 result = result_hi;
+  result <<= 16;
+  result |= result_lo;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_sxtabt1)
+{
+  uint8 rotate = inst.rotate << 3;
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint32 rotated = ROR(m, rotate);
+  uint32 result = n + (sint32)(sint16)(sint8)rotated;
+  
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_sxtab16t1)
+{
+  uint8 rotate = inst.rotate << 3;
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  uint32 rotated = ROR(m, rotate);
+  sint32 sum1 = (sint32)(sint16)(uint16)n + (sint32)(sint16)(sint8)(rotated & 0xff);
+  sint32 sum2 = (sint32)(sint16)(uint16)(n >> 16) + (sint32)(sint16)(sint8)(uint8)(rotated >> 16);
+
+  uint32 result = (uint32)(uint16)sum2;
+  result <<= 16;
+  result |= (uint32)(uint16)sum1;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_ssub8t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  sint16 diff1 = (sint16)(sint8)(uint8)n -(sint16)(sint8)(uint8)m;
+  sint16 diff2 = (sint16)(sint8)(uint8)(n >> 8) - (sint16)(sint8)(uint8)(m >> 8);
+  sint16 diff3 = (sint16)(sint8)(uint8)(n >> 16) - (sint16)(sint8)(uint8)(m >> 16);
+  sint16 diff4 = (sint16)(sint8)(uint8)(n >> 24) - (sint16)(sint8)(uint8)(m >> 24);
+
+  uint32 result = (uint8) diff4;
+  result <<= 8;
+  result |= (uint32)(uint8) diff3;
+  result <<= 8;
+  result |= (uint32)(uint8) diff2;
+  result <<= 8;
+  result |= (uint32)(uint8) diff1;
+  
+  write_register_bank(RB, inst.rd, result);
+
+  if (diff1 >= (sint16)0)
+    write_register(GE0, 1);
+  else 
+      write_register(GE0, 0);
+
+  if (diff2 >= (sint16)0)
+      write_register(GE1, 1);
+  else 
+      write_register(GE1, 0);
+
+  if (diff3 >= (sint16)0)
+      write_register(GE2, 1);
+  else
+      write_register(GE2, 0);
+
+  if (diff4 >= (sint16)0)
+      write_register(GE3, 1);
+  else 
+      write_register(GE3, 0);
+}
+
+execute(thumb2_ssub16t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  sint32 diff1 = (sint32)(sint16)(uint16)n - (sint32)(sint16)(uint16)m;
+  sint32 diff2 = (sint32)(sint16)(uint16)(n >> 16) - (sint32)(sint16)(uint16)(m >> 16);
+  
+  uint32 result = (uint16) diff2;
+  result <<= 16;
+  result |= (uint32)(uint16) diff1;
+  
+  write_register_bank(RB, inst.rd, result);
+
+  if (diff1 >= 0)
+    {
+      write_register(GE0, 1);
+      write_register(GE1, 1);
+    }
+  else 
+    {
+      write_register(GE0, 0);
+      write_register(GE1, 0);
+    }
+
+  if (diff2 >= 0)
+    {
+      write_register(GE2, 1);
+      write_register(GE3, 1);
+    }
+  else 
+    {
+      write_register(GE2, 0);
+      write_register(GE3, 0);
+    }
+}
+
+execute(thumb2_ssaxt1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+  
+  sint32 sum = (sint32)(sint16)(uint16)n + (sint32)(sint16)(uint16)(m >> 16);
+  sint32 diff = (sint32)(sint16)(uint16)(n >> 16) - (sint32)(sint16)(uint16)m;
+  
+  uint32 result = (uint16) diff;
+  result <<= 16;
+  result |= (uint32)(uint16) sum;
+  
+  write_register_bank(RB, inst.rd, result);
+
+  if (sum >= 0)
+    {
+      write_register(GE0, 1);
+      write_register(GE1, 1);
+    }
+  else 
+    {
+      write_register(GE0, 0);
+      write_register(GE1, 0);
+    }
+
+  if (diff >= 0)
+    {
+      write_register(GE2, 1);
+      write_register(GE3, 1);
+    }
+  else 
+    {
+      write_register(GE2, 0);
+      write_register(GE3, 0);
+    }
+}
+
+execute(thumb2_smusdt1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 n = read_register_bank(RB, inst.rn);
+
+  if (inst.m)
+    m = ROR(m, 16);
+  
+  sint32 product1 = (sint32)(sint16)(uint16)n * (sint32)(sint16)(uint16)m;
+  sint32 product2 = (sint32)(sint16)(uint16)(n >> 16) * (sint32)(sint16)(uint16)(m >> 16);
+
+  sint32 result = product1 - product2;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_smulwt1)
+{
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint32 m = read_register_bank(RB, inst.rm);
+  
+  uint32 op2;
+  if (inst.m)
+    op2 = (uint32)(sint32)(sint16)(uint16)(m >> 16);
+  else
+    op2 = (uint32)(sint32)(sint16)(uint16)m;
+
+  sint64 product = (sint64)(sint32)n * (sint64)(sint32)op2;
+  
+  write_register_bank(RB, inst.rd, (uint32) ((uint64)product >> (uint64)16));
+}
+
+execute(thumb2_smullt1)
+{
+  sint64 n = (sint32)read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+  sint64 m = (sint32)read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+
+  sint64 result = n * m;
+      
+  sint64 w_dLo = (result);
+  sint64 w_dHi = (result >> 32);
+
+  write_register_bank(RB, inst.ra, (uint32)w_dLo);
+  write_register_bank(RB, inst.rd, (uint32)w_dHi);
+
+}
+
+execute(thumb2_smult1)
+{
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint32 m = read_register_bank(RB, inst.rm);
+
+  sint32 operand1;
+  sint32 operand2;
+
+  if (inst.n)
+    operand1 = (sint32)(sint16)((n >> 16) & 0xffff);
+  else
+    operand1 = (sint32)(sint16)(n & 0xffff);
+  
+  if (inst.m)
+    operand2 = (sint32)(sint16)((m >> 16) & 0xffff);
+  else
+    operand2 = (sint32)(sint16)(m & 0xffff);
+  
+  sint32 result = operand1 * operand2;
+  write_register_bank(RB, inst.rd, result);
+
+}
+
+execute(thumb2_smuadt1)
+{
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint32 rm = read_register_bank(RB, inst.rm);
+
+  sint32 operand2;
+  
+  if (inst.m)
+    operand2 = ROR(rm, 16);
+  else
+    operand2 = rm;
+  
+  sint32 n_lo = (sint32)(sint16) (n & 0xffff);
+  sint32 n_hi = (sint32)(sint16) ((n >> 16) & 0xffff);
+  sint32 op2_lo = (sint32)(sint16)(operand2 & 0xffff);
+  sint32 op2_hi = (sint32)(sint16)((operand2 >> 16) & 0xffff);  
+
+  sint32 product1 = n_lo * op2_lo;
+  sint32 product2 = n_hi * op2_hi;
+
+  sint32 result = product1 + product2;
+  sint64 result_64 = (sint64) product1 + (sint64) product2;
+  write_register_bank(RB, inst.rd, result);
+
+  if (result != result_64)
+    write_register(Q, 1);
+}
+
+execute(thumb2_smmlst1)
+{
+  if (inst.ra != 0xf)
+    {
+      sint32 d = read_register_bank(RB, inst.rd);
+      sint32 n = read_register_bank(RB, inst.rn);
+      sint32 rm = read_register_bank(RB, inst.rm);
+      sint32 a = read_register_bank(RB, inst.ra);
+
+      uint64 result = (uint64)((sint64)a << 32) - (sint64)n * (sint64)rm;
+
+      if (inst.m == 1)
+	result += 0x80000000;
+
+      write_register_bank(RB, inst.rd, (uint32)(result >> 32));
+    }
+  else
+    {
+      trap();
+    }
+}
+
+execute(thumb2_smmlat1)
+{
+  if (inst.ra != 0xf)
+    {
+      sint32 d = read_register_bank(RB, inst.rd);
+      sint32 n = read_register_bank(RB, inst.rn);
+      sint32 rm = read_register_bank(RB, inst.rm);
+      sint32 a = read_register_bank(RB, inst.ra);
+
+      uint64 result = (uint64)((sint64)a << 32) + (sint64)n * (sint64)rm;
+
+      if (inst.m == 1)
+	result += 0x80000000;
+
+      write_register_bank(RB, inst.rd, (uint32)(result >> 32));
+    }
+  else
+    {
+      trap();
+    }
+}
+
+execute(thumb2_smlsldt1)
+{
+  sint64 dLo = (sint64)(uint64)read_register_bank(RB, inst.ra) + pc_check(inst.ra);
+  sint64 dHi = ((sint64)(read_register_bank(RB, inst.rd) + pc_check(inst.rd)) << 32);
+  sint32 n = (sint32)read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+  uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+  uint8 m_swap = inst.m == 1;
+
+  sint64 d = dHi | dLo;
+
+  sint32 operand2;
+
+  if (m_swap)
+    operand2 = ROR(m, 16);
+  else
+    operand2 = m;
+
+  sint32 n_lo = (sint32)(sint16) (n & 0xffff);
+  sint32 n_hi = (sint32)(sint16) ((n >> 16) & 0xffff);
+  sint32 op2_lo = (sint32)(sint16)(operand2 & 0xffff);
+  sint32 op2_hi = (sint32)(sint16)((operand2 >> 16) & 0xffff);  
+
+  sint32 product1 = n_lo * op2_lo;
+  sint32 product2 = n_hi * op2_hi;
+
+  sint64 result = (sint64)product1 - (sint64)product2 + (sint64)d;
+      
+  sint64 w_dLo = (result);
+  sint64 w_dHi = (result >> 32);
+
+  write_register_bank(RB, inst.ra, (uint32)w_dLo);
+  write_register_bank(RB, inst.rd, (uint32)w_dHi);
+}
+
+execute(thumb2_smlsdt1)
+{
+  if (inst.ra != 0xf)
+    {
+      uint32 m = read_register_bank(RB, inst.rm);
+      uint32 n = read_register_bank(RB, inst.rn);
+      sint32 a = read_register_bank(RB, inst.ra);
+
+      uint8 m_swap = inst.m == 1;
+
+      sint32 operand2;
+      if (m_swap)
+	operand2 = ROR(m, 16);
+      else
+	operand2 = m;
+      
+      sint32 n_lo = (sint32)(sint16) (n & 0xffff);
+      sint32 n_hi = (sint32)(sint16) ((n >> 16) & 0xffff);
+      sint32 op2_lo = (sint32)(sint16)(operand2 & 0xffff);
+      sint32 op2_hi = (sint32)(sint16)((operand2 >> 16) & 0xffff);
+
+      sint32 product1 = n_lo * op2_lo;
+      sint32 product2 = n_hi * op2_hi;
+
+      sint32 result = product1 - product2 + a;
+      sint64 result_64 = (sint64)product1 - (sint64)product2 + (sint64)a;
+
+      write_register_bank(RB, inst.rd, result);
+
+      if (result != result_64) // Signed overflow
+	write_register(Q, 1);
+    }
+  else
+    {
+      trap();
+    }
+}
+
+execute(thumb2_smlaldt1)
+{
+  sint64 dLo = (sint64)(uint64)read_register_bank(RB, inst.ra) + pc_check(inst.ra);
+  sint64 dHi = ((sint64)(read_register_bank(RB, inst.rd) + pc_check(inst.rd)) << 32);
+  uint32 n = (sint32)read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+  uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+  uint8 m_swap = inst.m == 1;
+
+  sint64 d = dHi | dLo;
+
+  uint32 operand2;
+
+  if (m_swap)
+    operand2 = ROR(m, 16);
+  else
+    operand2 = m;
+
+  sint32 n_lo = (sint32)(sint16) (n);
+  sint32 n_hi = (sint32)(sint16) ((n >> 16));
+  sint32 op2_lo = (sint32)(sint16)(operand2);
+  sint32 op2_hi = (sint32)(sint16)((operand2 >> 16));  
+
+  sint32 product1 = n_lo * op2_lo;
+  sint32 product2 = n_hi * op2_hi;
+
+  sint64 result = (sint64)product1 + (sint64)product2 + (sint64)d;
+      
+  sint64 w_dLo = (result);
+  sint64 w_dHi = (result >> 32);
+
+  write_register_bank(RB, inst.ra, (uint32)w_dLo);
+  write_register_bank(RB, inst.rd, (uint32)w_dHi);
+}
+
+execute(thumb2_smlalt1)
+{
+  sint64 dLo = (sint64)(uint64)read_register_bank(RB, inst.ra) + pc_check(inst.ra);
+  sint64 dHi = ((sint64)(read_register_bank(RB, inst.rd) + pc_check(inst.rd)) << 32);
+  sint64 n = (sint32)read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+  sint64 m = (sint32)read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+
+  sint64 d = dHi | dLo;
+  sint64 product = n * m;
+  sint64 result = product + d;
+
+  sint64 w_dLo = (result);
+  sint64 w_dHi = (result >> 32);
+
+  write_register_bank(RB, inst.ra, (uint32)w_dLo);
+  write_register_bank(RB, inst.rd, (uint32)w_dHi);
+}
+
+execute(thumb2_smladt1)
+{
+  if (inst.ra != 0xf)
+    {
+      uint32 m = read_register_bank(RB, inst.rm);
+      uint32 n = read_register_bank(RB, inst.rn);
+      sint32 a = read_register_bank(RB, inst.ra);
+
+      uint8 m_swap = inst.m == 1;
+
+      sint32 operand2;
+      if (m_swap)
+	operand2 = ROR(m, 16);
+      else
+	operand2 = m;
+      
+      sint32 n_lo = (sint32)(sint16) (n & 0xffff);
+      sint32 n_hi = (sint32)(sint16) ((n >> 16) & 0xffff);
+      sint32 op2_lo = (sint32)(sint16)(operand2 & 0xffff);
+      sint32 op2_hi = (sint32)(sint16)((operand2 >> 16) & 0xffff);
+
+      sint32 product1 = n_lo * op2_lo;
+      sint32 product2 = n_hi * op2_hi;
+
+      sint32 result = product1 + product2 + a;
+      sint64 result_64 = (sint64)product1 + (sint64)product2 + (sint64)a;
+
+      write_register_bank(RB, inst.rd, result);
+
+      if (result != result_64) // Signed overflow
+	write_register(Q, 1);
+    }
+  else
+    {
+      trap();
+    }
+}
+
+execute(thumb2_smlat1)
+{
+  if (inst.ra != 0xf)
+    {
+      
+      uint32 n = read_register_bank(RB, inst.rn);
+      uint32 m = read_register_bank(RB, inst.rm);
+      sint32 a = read_register_bank(RB, inst.ra);
+
+      uint8 n_hi = inst.n == 1;
+      uint8 m_hi = inst.m == 1;
+
+      sint32 operand1;
+      sint32 operand2;
+
+      if (n_hi)
+	operand1 = (sint32)(sint16)((n >> 16) & 0xffff);
+      else
+	operand1 = (sint32)(sint16)(n & 0xffff);
+      
+      if (m_hi)
+	operand2 = (sint32)(sint16)((m >> 16) & 0xffff);
+      else
+	operand2 = (sint32)(sint16)(m & 0xffff);
+      
+      sint32 result = operand1 * operand2 + a;
+      sint64 result_64 = (sint64)operand1 * (sint64)operand2 + (sint64)a;
+      write_register_bank(RB, inst.rd, result);
+
+      if (result != result_64) // Signed overflow
+	write_register(Q, 1);
+      
+    }
+  else
+    {
+      trap();
+    }
+
+}
+
+execute(thumb2_shsub16t1)
+{
+  sint32 n = read_register_bank(RB, inst.rn);
+  sint32 m = read_register_bank(RB, inst.rm);
+
+  sint32 sum1 = ((sint32)(sint16)(n & 0xffff)) - ((sint32)(sint16)(m & 0xffff));
+  sint32 sum2 = ((sint32)(sint16)((n & 0xffff0000) >> 16)) - ((sint32)(sint16)((m & 0xffff0000) >> 16)); 
+
+  uint16 sum1_h = sum1 >> 1;
+  uint16 sum2_h = sum2 >> 1;
+  
+  uint32 result = ((uint32)((uint16)sum1_h)) | (((uint32) ((uint16)sum2_h)) << 16);
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_shsub8t1)
+{
+  sint32 n = read_register_bank(RB, inst.rn);
+  sint32 m = read_register_bank(RB, inst.rm);
+
+  sint16 sum1 = ((sint16)(sint8)(n & 0xff)) - ((sint16)(sint8)(m & 0xff));
+  sint16 sum2 = ((sint16)(sint8)((n & 0xff00) >> 8)) - ((sint16)(sint8)((m & 0xff00) >> 8)); 
+  sint16 sum3 = ((sint16)(sint8)((n & 0xff0000) >> 16)) - ((sint16)(sint8)((m & 0xff0000) >> 16)); 
+  sint16 sum4 = ((sint16)(sint8)((n & 0xff000000) >> 24)) - ((sint16)(sint8)((m & 0xff000000) >> 24));
+  
+  sum1 >>= 1;
+  sum2 >>= 1;
+  sum3 >>= 1;
+  sum4 >>= 1;
+
+  uint32 result = ((uint32) (uint8)sum1) + (((uint32) ((uint8)sum2)) << 8) + (((uint32) ((uint8)sum3)) << 16) + (((uint32) ((uint8)sum4)) << 24);
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_shsaxt1)
+{
+  uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+  uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+  
+  sint16 n_lo = n & 0xffff;
+  sint16 n_hi = (n & 0xffff0000) >> 16;
+  
+  sint16 m_lo = m & 0xffff;
+  sint16 m_hi = (m & 0xffff0000) >> 16;
+  
+  sint16 op_mlo = 0-m_lo;
+  sint32 diff = (sint32)n_hi + (sint32)op_mlo;
+  sint32 sum = (sint32)n_lo + (sint32)m_hi;
+
+  diff >>= 1;
+  sum >>= 1;
+
+
+  uint32 result;
+  result = diff;
+  result <<= 16;
+  result |= (uint32)((uint16)sum);
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_shasxt1)
+{
+  uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+  uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+  
+  sint16 n_lo = n & 0xffff;
+  sint16 n_hi = (n & 0xffff0000) >> 16;
+  
+  sint16 m_lo = m & 0xffff;
+  sint16 m_hi = (m & 0xffff0000) >> 16;
+  
+  sint16 op_mhi = 0-m_hi;
+  sint32 diff = (sint32)n_lo + (sint32)op_mhi;
+  sint32 sum = (sint32)n_hi + (sint32)m_lo;
+
+  diff >>= 1;
+  sum >>= 1;
+
+
+  uint32 result;
+  result = sum;
+  result <<= 16;
+  result |= (uint32)((uint16)diff);
+
+  write_register_bank(RB, inst.rd, result); 
+}
+
+execute(thumb2_shadd16t1)
+{
+  sint32 n = read_register_bank(RB, inst.rn);
+  sint32 m = read_register_bank(RB, inst.rm);
+
+  sint32 sum1 = ((sint32)(sint16)(n & 0xffff)) + ((sint32)(sint16)(m & 0xffff));
+  sint32 sum2 = ((sint32)(sint16)((n & 0xffff0000) >> 16)) + ((sint32)(sint16)((m & 0xffff0000) >> 16)); 
+
+  uint16 sum1_h = sum1 >> 1;
+  uint16 sum2_h = sum2 >> 1;
+  
+  uint32 result = ((uint32)((uint16)sum1_h)) | (((uint32) ((uint16)sum2_h)) << 16);
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_shadd8t1)
+{
+  sint32 n = read_register_bank(RB, inst.rn);
+  sint32 m = read_register_bank(RB, inst.rm);
+
+  sint16 sum1 = ((sint16)(sint8)(n & 0xff)) + ((sint16)(sint8)(m & 0xff));
+  sint16 sum2 = ((sint16)(sint8)((n & 0xff00) >> 8)) + ((sint16)(sint8)((m & 0xff00) >> 8)); 
+  sint16 sum3 = ((sint16)(sint8)((n & 0xff0000) >> 16)) + ((sint16)(sint8)((m & 0xff0000) >> 16)); 
+  sint16 sum4 = ((sint16)(sint8)((n & 0xff000000) >> 24)) + ((sint16)(sint8)((m & 0xff000000) >> 24));
+  
+  sum1 >>= 1;
+  sum2 >>= 1;
+  sum3 >>= 1;
+  sum4 >>= 1;
+
+  uint32 result = ((uint32) (uint8)sum1) + (((uint32) ((uint8)sum2)) << 8) + (((uint32) ((uint8)sum3)) << 16) + (((uint32) ((uint8)sum4)) << 24);
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_sasxt1)
+{
+  sint32 n = read_register_bank(RB, inst.rn);
+  sint32 m = read_register_bank(RB, inst.rm);
+
+  sint32 diff = (sint32)(sint16)(uint16)n - (sint32)(sint16)(uint16)(m >> 16);
+  sint32 sum = (sint32)(sint16)(uint16)(n >> 16) + (sint32)(sint16)(uint16)m;
+
+  uint32 result = ((uint32)((uint16)diff)) + (((uint32) ((uint16)sum)) << 16);
+  write_register_bank(RB, inst.rd, result);
+  
+  if (diff >= (sint32)0)
+    {
+      write_register(GE0, 1);
+      write_register(GE1, 1);
+    }
+  else
+    {
+      write_register(GE0, 0);
+      write_register(GE1, 0);
+    }
+
+  if (sum >= (sint32)0)
+    {
+      write_register(GE2, 1);
+      write_register(GE3, 1);
+    }
+  else
+    {
+      write_register(GE2, 0);
+      write_register(GE3, 0);
+    }
+}
+
+execute(thumb2_sadd16t1)
+{
+  sint32 n = read_register_bank(RB, inst.rn);
+  sint32 m = read_register_bank(RB, inst.rm);
+
+  sint32 sum1 = (sint32)(sint16)(uint16)n + (sint32)(sint16)(uint16)m;
+  sint32 sum2 = (sint32)(sint16)(uint16)(n  >> 16) + (sint32)(sint16)(uint16)(m >> 16); 
+
+  uint32 result = (uint32)(uint16)sum1 | (((uint32)sum2) << 16);
+  write_register_bank(RB, inst.rd, result);
+ 
+  if (sum1 >= (sint32)0)
+    {
+      write_register(GE0, 1);
+      write_register(GE1, 1);
+    }
+  else
+    {
+      write_register(GE0, 0);
+      write_register(GE1, 0);
+    }
+
+  if (sum2 >= (sint32)0)
+    {
+      write_register(GE2, 1);
+      write_register(GE3, 1);
+    }
+  else
+    {
+      write_register(GE2, 0);
+      write_register(GE3, 0);
+    }
+}
+
+execute(thumb2_sadd8t1)
+{
+
+  sint32 n = read_register_bank(RB, inst.rn);
+  sint32 m = read_register_bank(RB, inst.rm);
+
+  sint16 sum1 = ((sint16)(sint8)(n & 0xff)) + ((sint16)(sint8)(m & 0xff));
+  sint16 sum2 = ((sint16)(sint8)((n & 0xff00) >> 8)) + ((sint16)(sint8)((m & 0xff00) >> 8)); 
+  sint16 sum3 = ((sint16)(sint8)((n & 0xff0000) >> 16)) + ((sint16)(sint8)((m & 0xff0000) >> 16)); 
+  sint16 sum4 = ((sint16)(sint8)((n & 0xff000000) >> 24)) + ((sint16)(sint8)((m & 0xff000000) >> 24));
+  
+  uint32 result = ((uint32) (uint8)sum1) + (((uint32) ((uint8)sum2)) << 8) + (((uint32) ((uint8)sum3)) << 16) + (((uint32) ((uint8)sum4)) << 24);
+  write_register_bank(RB, inst.rd, result);
+
+  if (sum1 >= (sint16)0)
+      write_register(GE0, 1);
+  else
+      write_register(GE0, 0);
+
+  if (sum2 >= (sint16)0)
+      write_register(GE1, 1);
+  else
+      write_register(GE1, 0);
+
+  if (sum3 >= (sint16)0)
+      write_register(GE2, 1);
+  else
+      write_register(GE2, 0);
+
+  if (sum4 >= (sint16)0)
+      write_register(GE3, 1);
+  else
+      write_register(GE3, 0);
+}
+
+execute(thumb2_rbitt1)
+{
+  
+  uint32 x = read_register_bank(RB, inst.rm);
+   x = (((x & 0xaaaaaaaa) >> 1) | ((x & 0x55555555) << 1));
+    x = (((x & 0xcccccccc) >> 2) | ((x & 0x33333333) << 2));
+    x = (((x & 0xf0f0f0f0) >> 4) | ((x & 0x0f0f0f0f) << 4));
+    x = (((x & 0xff00ff00) >> 8) | ((x & 0x00ff00ff) << 8));
+    write_register_bank(RB, inst.rd, ((x >> 16) | (x << 16)));
+}
+
+execute(thumb2_rev16t1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 result = 0;
+  result |= (m & 0x00ff0000) << 8;
+  result |= (m & 0xff000000) >> 8;
+  result |= (m & 0x000000ff) << 8;
+  result |= (m & 0x0000ff00) >> 8;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_rev16t2)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 result = 0;
+  result |= (m & 0x00ff0000) << 8;
+  result |= (m & 0xff000000) >> 8;
+  result |= (m & 0x000000ff) << 8;
+  result |= (m & 0x0000ff00) >> 8;
+
+  write_register_bank(RB, inst.rd, result);
+}
+
+helper uint32 thumb_TPIDR_read(uint8 opc2)
+{
+	switch(opc2) {
+	case 2: {
+		return read_register(TPIDRURW);
+	}
+	case 3: {
+		return read_register(TPIDRURO);
+	}
+	case 4: {
+		return read_register(TPIDRPRW);
+	}
+	default: {
+		trap();
+	}
+	}
+	
+	return 0;
+}
+execute(thumb2_mrct1)
+{
+	uint32 data = 0;
+	if(inst.coproc == 15 && inst.crn == 13 && inst.crm == 0 && inst.opc1 == 0) {
+		data = thumb_TPIDR_read(inst.opc2);
+	} else {
+		trap();
+	}
+	
+	write_register_bank(RB, inst.rt, data);
+}
+
+execute(thumb2_addspt3)
+{
+	if (!(inst.rd == 0xf && inst.s == 1))
+	{
+		uint8 shift_t;
+		uint8 shift_n;
+		
+		uint32 m = read_register_bank(RB, inst.rm);
+		uint32 sp = read_register_bank(RB, 13);
+
+		DecodeImmShift(inst.type, (uint8)inst.imm3 << 2 | inst.imm2, shift_t, shift_n);
+
+		uint32 shifted = Shift(m, shift_t, shift_n, read_register(C));
+
+		uint32 result;
+		uint8 carry;
+		uint8 overflow;
+
+		result = AddWithCarry(sp, shifted, 0, carry, overflow);
+
+		if (inst.rd == 15)
+		{
+			if ((result & 0x3) == 0)
+			{
+				LoadWritePC(result);
+			}
+		}
+		else
+		{
+			write_register_bank(RB, inst.rd, result);
+			if (inst.s)
+			{
+				write_register(N, bitsel(result, 31));
+				write_register(Z, result == 0);
+				write_register(C, carry);
+				write_register(V, overflow);
+			}
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+execute(thumb2_addispt4)
+{
+	uint32 sp = read_register_bank(RB, 13);
+	uint32 imm32 = ((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32) inst.imm8;
+	
+	uint32 result;
+	uint8 carry;
+	uint8 overflow;
+	
+	result = AddWithCarry(sp, imm32, 0, carry, overflow);
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_addit4)
+{
+	if (!(inst.rn == 0xf) && !(inst.rn == 0xd))
+	{
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint32 imm32 = ((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32) inst.imm8;
+		uint32 result;
+		uint8 carry;
+		uint8 overflow;
+
+		result = AddWithCarry(n, imm32, 0, carry, overflow);
+		write_register_bank(RB, inst.rd, result);
+	} 
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_adcit1)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 imm32 = ThumbExpandImm(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8); 
+	uint32 result;
+	uint8 carry;
+	uint8 overflow;
+	
+	result = AddWithCarry(n, imm32, read_register(C), carry, overflow);
+
+	write_register_bank(RB, inst.rd, result);
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+                write_register(Z, result == 0);
+                write_register(C, carry);
+                write_register(V, overflow);
+	}
+}
+
+execute(thumb2_adct2)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+
+	uint8 shift_t;
+	uint8 shift_n;
+	
+	DecodeImmShift(inst.type, (uint8)(inst.imm3 << 2) | (uint8)inst.imm2, shift_t, shift_n);
+	
+	uint32 shifted;
+
+	shifted = Shift(m, shift_t, shift_n, read_register(C));
+	
+	uint32 result;
+	uint8 overflow; 
+	uint8 carry;
+
+	result = AddWithCarry(n, shifted, read_register(C), carry, overflow);
+	
+	write_register_bank(RB, inst.rd, result);
+
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+		write_register(V, overflow);
+	}
+}
+
+execute(thumb2_selt1)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 d;
+
+	if (read_register(GE0))
+	{
+		d = n & 0x000000ff;
+	}
+	else
+	{
+		d = m & 0x000000ff;
+	}
+
+	if (read_register(GE1))
+	{
+		d |= n & 0x0000ff00;
+	}
+	else
+	{
+		d |= m & 0x0000ff00;
+	}
+
+	if (read_register(GE2))
+	{
+		d |= n & 0x00ff0000;
+	}
+	else
+	{
+		d |= m & 0x00ff0000;
+	}
+
+	if (read_register(GE3))
+	{
+		d |= n & 0xff000000;
+	}
+	else
+	{
+		d |= m & 0xff000000;
+	}
+
+	write_register_bank(RB, inst.rd, d);
+}
+
+execute(thumb2_clzt1)
+{
+	uint32 reg = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	if(reg == 0) 
+	{
+		write_register_bank(RB, inst.rd, 32);
+	}
+	else 
+	{
+		uint32 val = __builtin_clz(read_register_bank(RB, inst.rm) + pc_check(inst.rm));
+		write_register_bank(RB, inst.rd, val);
+	}
+}
+
+execute(thumb2_revt1)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 result;
+
+	result = ((m & 0xff) << 24) | ((m & 0xff00) << 8) | ((m & 0xff0000) >> 8) | ((m & 0xff000000) >> 24);
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_revt2)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 result;
+
+	result = ((m & 0xff) << 24) | ((m & 0xff00) << 8) | ((m & 0xff0000) >> 8) | ((m & 0xff000000) >> 24);
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_revsht1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 result = 0;
+  result |= (((sint32) (m & 0xff) << 24) >> 16);
+  result |= (m & 0xff00) >> 8;
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_revsht2)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint32 result = 0;
+  result |= (((sint32) (m & 0xff) << 24) >> 16);
+  result |= (m & 0xff00) >> 8;
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_rrxt1)
+{
+  uint32 m = read_register_bank(RB, inst.rm);
+  uint8 carry_in = read_register(C);
+  uint8 carry_out = 0;
+  uint32 result = Shift_C(m, 4, 1, carry_in, carry_out); 
+
+  write_register_bank(RB, inst.rd, result);
+
+  if (inst.s)
+    {
+      write_register(N, bitsel(result, 31));
+      write_register(Z, result == 0);
+      write_register(C, carry_out);
+    }
+}
+
+execute(thumb2_mult2)
+{
+	sint32 operand1 = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	sint32 operand2 = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	sint32 result = operand1 * operand2;
+	write_register_bank(RB, inst.rd, (uint32)result);
+}
+
+execute(thumb2_orrit1)
+{
+	if (inst.rn != 0xf)
+	{
+		uint8 carry;
+		uint32 imm32 = ThumbExpandImm_C(((uint32)inst.i << 11) | ((uint32)(inst.imm3) << 8) | ((uint32)inst.imm8), read_register(C), carry);
+
+		uint32 result = (read_register_bank(RB, inst.rn) + pc_check(inst.rn)) | imm32;
+	
+		write_register_bank(RB, inst.rd, result);
+
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_strbit2)
+{
+	if (inst.rn != 0xf)
+	{
+		uint32 imm32 = (uint32)inst.imm12;
+
+		uint32 address = read_register_bank(RB, inst.rn) + pc_check(inst.rn) + imm32;
+		uint32 data;
+
+		data = read_register_bank(RB, inst.rt);
+
+		uint8 val = memory_write_8(address, data & 0xff);
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_strhit2)
+{
+	if (inst.rn != 0xf)
+	{
+		uint32 imm32 = (uint32)inst.imm12;
+
+		uint32 address = read_register_bank(RB, inst.rn) + pc_check(inst.rn) + imm32;
+		uint32 data;
+
+		data = read_register_bank(RB, inst.rt);
+
+		uint8 val = memory_write_16(address, data & 0xffff);
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_strit3)
+{
+	if (inst.rn != 0xf)
+	{
+		uint32 imm32 = (uint32)inst.imm12;
+
+		uint32 address = read_register_bank(RB, inst.rn) + pc_check(inst.rn) + imm32;
+		uint32 data;
+
+		data = read_register_bank(RB, inst.rt) + pc_check(inst.rt);
+		
+		uint8 val = memory_write_32(address,data);
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_cmnit1)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn); 
+	uint32 imm32 = ThumbExpandImm(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8);
+	
+	uint32 result;
+	uint8 carry;
+	uint8 overflow;
+	result = AddWithCarry(n, imm32, 0, carry, overflow);
+
+	write_register(N, bitsel(result,31));
+	write_register(Z, result == 0);
+	write_register(C, carry);
+	write_register(V, overflow);
+}
+
+execute(thumb2_cmnt2)
+{
+	uint32 m = read_register_bank(RB, inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn);
+
+	uint8 shift_t;
+	uint8 shift_n;
+	
+	DecodeImmShift(inst.type, (uint8)inst.imm3 << 2 | (uint8)inst.imm2, shift_t, shift_n);
+
+	uint32 shifted = Shift(m, shift_t, shift_n, read_register(C));
+
+	uint8 carry;
+	uint8 overflow;
+
+	uint32 result = AddWithCarry(n, shifted, 0, carry, overflow);
+
+	write_register(N, bitsel(result, 31));
+	write_register(Z, result == 0);
+	write_register(C, carry);
+	write_register(V, overflow);
+}
+
+execute(thumb2_eorit1)
+{
+	if (!(inst.rd == 0xf && inst.s == 1))
+	{
+		uint32 n = read_register_bank(RB, inst.rn);
+		uint32 imm32;
+		uint8 carry;
+
+		imm32 = ThumbExpandImm_C(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | inst.imm8, read_register(C), carry);
+
+		uint32 result = n ^ imm32;
+
+		write_register_bank(RB, inst.rd, result);
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_teqit1)
+{
+	uint32 n = read_register_bank(RB, inst.rn);
+	uint32 imm32;
+	uint8 carry;
+
+	imm32 = ThumbExpandImm_C(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | inst.imm8, read_register(C), carry);
+
+	uint32 result = n ^ imm32;
+
+	
+	write_register(N, bitsel(result, 31));
+	write_register(Z, result == 0);
+	write_register(C, carry);
+}
+
+execute(thumb2_eort2)
+{
+	if (!(inst.rd == 0xf && inst.s == 1))
+	{
+		uint32 m = read_register_bank(RB, inst.rm);
+		uint32 n = read_register_bank(RB, inst.rn);
+		
+		uint8 shift_t;
+		uint8 shift_n;
+		DecodeImmShift(inst.type, (uint8)inst.imm3 << 2 | (uint8)inst.imm2, shift_t, shift_n);
+		
+		uint8 carry;
+		uint32 shifted;
+
+		shifted = Shift_C(m, shift_t, shift_n, read_register(C), carry);
+
+		uint32 result = n ^ shifted;
+		
+		write_register_bank(RB, inst.rd, result);
+		
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_mlat1)
+{
+	if (!(inst.ra == 0xf))
+	{
+		sint32 operand1 = read_register_bank(RB, inst.rn);
+		sint32 operand2 = read_register_bank(RB, inst.rm);
+		sint32 addend = read_register_bank(RB, inst.ra);
+		
+		sint32 result = operand1 * operand2 + addend;
+
+		write_register_bank(RB, inst.rd, (uint32)result);
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_mlst1)
+{
+	if (!(inst.ra == 0xf))
+	{
+		sint32 operand1 = read_register_bank(RB, inst.rn);
+		sint32 operand2 = read_register_bank(RB, inst.rm);
+		sint32 addend = read_register_bank(RB, inst.ra);
+		
+		sint32 result = addend - operand1 * operand2;
+
+		write_register_bank(RB, inst.rd, (uint32)result);
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_movt3)
+{
+	uint32 result = read_register_bank(RB, inst.rm);
+	write_register_bank(RB, inst.rd, result);
+	
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		}
+}
+
+execute(thumb2_lsrit2)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint8 shift_t;
+	uint8 shift_n;
+	DecodeImmShift(1, (uint8)inst.imm3 << 2 | (uint8)inst.imm2, shift_t, shift_n);
+	
+	uint32 result;
+	uint8 carry;
+
+	result = Shift_C(m, 1, shift_n, read_register(C), carry);
+	
+	write_register_bank(RB, inst.rd, result);
+
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+	}
+}
+
+execute(thumb2_lslit2)
+{
+	if (!(inst.imm3 == 0 && inst.imm2 == 0))
+	{
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+		uint8 shift_t;
+		uint8 shift_n;
+		DecodeImmShift(inst.type, (uint8)inst.imm3 << 2 | (uint8)inst.imm2, shift_t, shift_n);
+
+		uint32 result;
+		uint8 carry;
+		result = Shift_C(m, 0, shift_n, read_register(C), carry);
+		write_register_bank(RB, inst.rd, result);
+
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_lsrt2)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	
+	uint8 shift_n = (uint8) (m & 0xff);
+	uint8 carry;
+	uint32 result = Shift_C(n, 1, shift_n, read_register(C), carry);
+	write_register_bank(RB, inst.rd, result);
+	
+	if (inst.s) 
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+	}
+}
+
+execute(thumb2_lslt2)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+
+	uint8 shift_n = (uint8) (m & 0xff);
+	uint8 carry = 0;
+//	uint32 result = (n << shift_n) & 0xffffffff;
+	uint32 result = Shift_C(n, 0, shift_n, read_register(C), carry);
+	write_register_bank(RB, inst.rd, result);
+
+	if (inst.s) 
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+	}
+}
+
+execute(thumb2_orrt2)
+{
+
+//if Rn == '1111' then SEE "Related encodings";
+	if (inst.rn != 0xf)
+	{
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint8 shift_t;
+		uint8 shift_n;
+		
+
+		DecodeImmShift((uint8)inst.type, ((uint8)inst.imm3 << 2) | (uint8)inst.imm2, shift_t, shift_n);
+
+		uint8 carry;
+		uint32 shifted = Shift_C(m, shift_t, shift_n, read_register(C), carry);
+		uint32 result = n | shifted;
+	
+		write_register_bank(RB, inst.rd, result);
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+		}
+	}
+	else
+	{
+		trap();
+	}
+
+}
+
+execute(thumb2_sbct2)
+{
+
+//if Rn == '1111' then SEE "Related encodings";
+	if (inst.rn != 0xf)
+	{
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint8 shift_t;
+		uint8 shift_n;
+		
+
+		DecodeImmShift((uint8)inst.type, ((uint8)inst.imm3 << 2) | (uint8)inst.imm2, shift_t, shift_n);
+
+		uint8 carry;
+		uint8 overflow;
+		uint32 shifted = Shift(m, shift_t, shift_n, read_register(C));
+		uint32 result = AddWithCarry(n, ~shifted, read_register(C), carry, overflow);
+		
+		write_register_bank(RB, inst.rd, result);
+		
+		if(inst.s) {
+			write_register(C, carry);
+			write_register(V, overflow);
+			write_register(Z, result == 0);
+			write_register(N, bitsel(result, 31));
+		}
+		
+		
+	}
+	else
+	{
+		trap();
+	}
+
+}
+
+execute(thumb2_ldrsbt1)
+{
+	uint32 offset_addr = read_register_bank(RB, inst.rn) + inst.imm12;
+	uint8 val;
+	mem_read_8(offset_addr, val);
+	sint8 sval = val;
+	sint32 sxval = (sint32)sval;
+	write_register_bank(RB, inst.rt, sxval);
+}
+
+execute(thumb2_ldrshit1)
+{
+	uint32 offset_addr = read_register_bank(RB, inst.rn) + inst.imm12;
+	uint16 val;
+	mem_read_16(offset_addr, val);
+	sint16 sval = val;
+	sint32 sxval = (sint32)sval;
+	write_register_bank(RB, inst.rt, sxval);
+}
+
+execute(thumb2_ldrbit3)
+{
+	if (!(inst.rt==0xf && inst.p == 1 && inst.u == 0 && inst.w == 0) && !(inst.rn == 0xf) && !(inst.p == 1 && inst.u == 1 && inst.w == 0))
+	{
+		uint32 t = read_register_bank(RB, inst.rt) + pc_check(inst.rt);
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint32 imm32 = (uint32)inst.imm8;
+
+		uint32 offset_addr;
+		if (inst.u)
+		{
+			offset_addr = n + imm32;
+		}
+		else
+		{
+			offset_addr = n - imm32;
+		}
+		
+		uint32 address;
+		if (inst.p) 
+		{
+			address = offset_addr;
+		}
+		else
+		{
+			address = n;
+		}
+		
+		uint32 data;
+		memory_read_8(address, data);
+		write_register_bank(RB, inst.rt, data);
+
+		if (inst.w)
+		{
+			write_register_bank(RB, inst.rn, offset_addr);
+		}
+	}
+	else
+	{
+		trap();
+	} 
+}
+
+execute(thumb2_strit4)
+{
+	if (!(inst.p == 1 && inst.u == 1 && inst.w == 0))
+	{
+		uint32 t = read_register_bank(RB, inst.rt) + pc_check(inst.rt);
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint32 imm32 = (uint32)inst.imm8;
+
+		uint32 offset_addr;
+		if (inst.u)
+		{
+			offset_addr = n + imm32;
+		}
+		else
+		{
+			offset_addr = n - imm32;
+		}
+
+		uint32 address;
+		if (inst.p)
+		{
+			address = offset_addr;
+		}
+		else
+		{
+			address = n;
+		}
+		
+		memory_write_32(address, t);
+		
+		if (inst.w) 
+		{
+			write_register_bank(RB, inst.rn, offset_addr);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_ldmiat2)
+{
+	uint32 address = read_register_bank(RB, inst.rn) + pc_check(inst.rn); 
+	uint16 registers = ((uint16)inst.p << 15) | ((uint16)inst.m << 14) | (uint16) inst.immval;
+	uint32 v;
+	
+	for (uint32 i = 0; i < 15; i += (uint32)1) {
+		if (registers & (1 << i)) {
+			if (memory_read_32(address, v)) {
+				write_register_bank(RB, i, v);
+			}
+			address += 4;
+		}
+	}
+	
+	if (inst.p) {
+		if (memory_read_32(address, v)) {
+			//set_cpu_mode((uint8)(v & 1));
+			if (v & 0x1)
+			{
+				write_register_bank(RB, 15, v & ~0x1);
+			}
+			else if (!(v & 0x2))
+			{
+			  write_register(T, 0);
+			  set_cpu_mode((uint8)0);
+				write_register_bank(RB, 15, v);
+			}
+		}
+		address += 4;
+	}
+		
+	if (inst.w && !(registers & (1 << inst.rn)))
+	{
+		write_register_bank(RB, inst.rn, address);
+	}
+}
+
+execute(thumb2_ldmdbt2)
+{
+	uint32 base_address = read_register_bank(RB, inst.rn) + pc_check(inst.rn); 
+	uint16 registers = ((uint16)inst.p << 15) | ((uint16)inst.m << 14) | (uint16) inst.immval;
+	uint32 v;
+	
+	base_address -= __builtin_popcount(registers) * 4;
+	uint32 address = base_address;
+	
+	for (uint32 i = 0; i < 15; i += (uint32)1) {
+		if (registers & (1 << i)) {
+		  uint8 access = memory_read_32(address, v);
+			if (access) {
+				write_register_bank(RB, i, v);
+			}
+			address += 4;
+		}
+	}
+	
+	if (inst.p) {
+	  uint8 access2 = memory_read_32(address, v);
+		if (access2) {
+			//set_cpu_mode((uint8)(v & 1));
+			if (v & 0x1)
+			{
+				write_register_bank(RB, 15, v & ~0x1);
+			}
+			else if (!(v & 0x2))
+			{
+				set_cpu_mode((uint8)0);
+				write_register(T, 0);
+				write_register_bank(RB, 15, v);
+			}
+		}
+		address += 4;
+	}
+		
+	if (inst.w && !(registers & (1 << inst.rn)))
+	{
+		write_register_bank(RB, inst.rn, base_address);
+	}
+}
+
+execute(thumb2_popt2)
+{
+	uint16 registers = ((uint16)inst.m << 14) | (uint16) inst.immval;
+
+	uint32 sp = read_register_bank(RB, 13);
+	uint32 v;
+	
+	for (uint32 i = 0; i < 15; i += (uint32)1) {
+		if (registers & (1 << i)) {
+			if (memory_read_32(sp, v)) {
+				write_register_bank(RB, i, v);
+			}
+			sp += 4;
+		}
+	}
+	
+	if (inst.p) {
+		if (memory_read_32(sp, v)) {
+			LoadWritePC(v);
+		}
+		sp += 4;
+	}
+
+	write_register_bank(RB, 13, sp); 
+}
+
+execute(thumb2_itt1)
+{
+	write_register(ITSTATE, (inst.opA << 4) | inst.opB);
+}
+
+execute(thumb2_yieldt1)
+{
+
+}
+
+execute(thumb2_wfet1)
+{
+
+}
+
+execute(thumb2_wfit1)
+{
+
+}
+
+execute(thumb2_sevt1)
+{
+
+}
+
+execute(thumb2_bl)
+{
+  uint32 i1 = !(inst.j1 ^ inst.s);
+  uint32 i2 = !(inst.j2 ^ inst.s);
+  
+  sint32 s = ((sint32)inst.s << 24);
+  i1 = (i1 << 23);
+  i2 = (i2 << 22);
+  sint32 imm10H = ((sint32)inst.imm10 << 12);
+  sint32 imm11 = ((sint32)inst.imm11 << 1);
+
+  sint32 sign_extend_base = s | i1 | i2 | imm10H | imm11;
+
+  uint32 sign_extend = (sign_extend_base << 8) >> 8;
+  
+  sint32 pc_var = read_pc();
+  uint32 dest = (pc_var + 4 + sign_extend);
+	
+  write_register_bank(RB, 14, (pc_var + 4) | 1);
+  write_register_bank(RB, 15, dest);
+}
+
+execute(thumb2_blx) {
+  uint32 i1 = !(inst.j1 ^ inst.s);
+  uint32 i2 = !(inst.j2 ^ inst.s);
+  
+  sint32 sign_extend_base = ((sint32)inst.s << 24) | 
+                            (i1 << 23) | 
+                            (i2 << 22) |
+    ((sint32)inst.imm10H << 12) |
+    ((sint32)inst.imm10L << 2);
+
+  uint32 sign_extend = (sign_extend_base << 8) >> 8;
+  
+  uint32 pc_var = read_pc();
+  write_register_bank(RB, 14, (pc_var + 4) | 1);
+
+  pc_var &= 0xfffffffc;
+  uint32 dest = pc_var + 4 + sign_extend;
+
+  set_cpu_mode((uint8)0);
+  write_register(T, 0);
+  write_register_bank(RB, 15, dest);
+}
+
+execute(thumb2_bt4)
+{
+	uint32 i1 = !(inst.j1 ^ inst.s);
+	uint32 i2 = !(inst.j2 ^ inst.s);
+  
+	sint32 s = ((sint32)inst.s << 24);
+	i1 = (i1 << 23);
+	i2 = (i2 << 22);
+	sint32 imm10H = ((sint32)inst.imm10 << 12);
+	sint32 imm11 = ((sint32)inst.imm11 << 1);
+	
+	sint32 sign_extend_base = s | i1 | i2 | imm10H | imm11;
+	
+	uint32 sign_extend = (sign_extend_base << 8) >> 8;
+
+	sint32 pc_var = read_pc();
+	uint32 dest = (pc_var + 4 + sign_extend);
+	
+	write_register_bank(RB, 15, dest);
+}
+
+execute(thumb2_pldt1)
+{
+
+}
+
+execute(thumb2_pldt1_2)
+{
+
+}
+
+execute(thumb2_tstit1)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint8 carry;
+	uint32 imm32 = ThumbExpandImm_C(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | inst.imm8, read_register(C), carry);
+		
+	uint32 result = n & imm32;
+	write_register(N, bitsel(result, 31));
+	write_register(Z, result == 0);
+	write_register(C,carry);
+}
+
+execute(thumb2_adrt2)
+{
+	uint32 imm32 = ((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8;
+	
+	uint32 pc_var = read_pc() + 4;
+	pc_var &= 0xFFFFFFFC;
+
+	uint32 result = pc_var - imm32;	
+
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_adrt3)
+{
+	uint32 imm32 = ((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8;
+	
+	uint32 pc_var = read_pc() + 4;
+	pc_var &= 0xFFFFFFFC;
+
+	uint32 result = pc_var + imm32;	
+
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_addit3)
+{
+	if(!(inst.rd == 0xf && inst.s==1) && !(inst.rn == 0xd))
+	{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 imm32 = ThumbExpandImm(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8);
+	
+	uint8 carry;
+	uint8 overflow;
+
+	uint32 result = AddWithCarry(n, imm32, 0, carry, overflow);
+	
+	write_register_bank(RB, inst.rd, result);
+	
+	if (inst.s) 
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+		write_register(V, overflow);
+	}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_movit2)
+{
+	uint8 carry;
+	uint32 imm32;
+	imm32 = ThumbExpandImm_C(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | ((uint32)inst.imm8), read_register(C), carry);
+	
+	uint32 result = imm32;
+
+	write_register_bank(RB, inst.rd, result);
+
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+	}
+}
+
+execute(thumb2_nop16)
+{
+}
+
+execute(thumb2_nop32)
+{
+}
+
+execute(thumb2_cmpw)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint8 imm5 = (uint8)(inst.imm3 << 2) | (uint8)(inst.imm2);
+
+        uint8 c;
+//      uint32 imm32 = decode_imm((inst.type), imm5, read_register_bank(RB, inst.rm) + pc_check(inst.rm), read_register(C), c);
+
+	uint8 shift_t;
+	uint8 shift_n;
+	DecodeImmShift(inst.type, imm5, shift_t, shift_n);
+	
+	uint32 shifted = Shift(m, shift_t, shift_n, read_register(C));
+
+	uint8 carry_out;
+	uint8 overflow;
+
+	uint32 result = AddWithCarry(n, ~shifted, 1, carry_out, overflow); 
+
+	write_register(N, bitsel(result, 31));
+	write_register(Z, result == 0);
+	write_register(C, carry_out);
+	write_register(V, overflow);
+}
+
+execute(thumb2_subrt2)
+{
+	if (!(inst.rd == 0xf && inst.s == 1))
+	{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rm);
+	uint8 imm5 = ((uint8)inst.imm3 << 2) | (uint8)inst.imm2;
+	uint8 shift_t;
+	uint8 shift_n;
+	DecodeImmShift(inst.type, imm5, shift_t, shift_n);
+	
+	uint32 shifted = Shift(m, shift_t, shift_n, read_register(C));
+
+	uint8 carry;
+	uint8 overflow;
+	uint32 result = AddWithCarry(n, ~shifted, 1, carry, overflow);
+
+	write_register_bank(RB, inst.rd, result);
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+		write_register(V, overflow);
+	}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_tstt2)
+{
+	uint8 shift_t;
+	uint8 shift_n;
+	uint32 m = read_register_bank(RB, inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn);
+
+	uint8 imm5 = ((uint8)inst.imm3 << 2) | (uint8)inst.imm2;
+
+	DecodeImmShift(inst.type, imm5, shift_t, shift_n);
+
+	uint8 carry;
+	uint32 shifted = Shift_C(m, shift_t, shift_n, read_register(C), carry);
+	
+	uint32 result = n & shifted;
+
+	write_register(N, bitsel(result, 31));
+	write_register(Z, result == 0);
+	write_register(C, carry);
+}
+
+execute(thumb2_rsbt1)
+{
+	uint32 m = read_register_bank(RB, inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn);
+	uint8 shift_t;
+	uint8 shift_n;
+	
+	DecodeImmShift(inst.type, ((uint8)inst.imm3 << 2) | ((uint8)inst.imm2), shift_t, shift_n);
+
+	uint32 shifted = Shift(m, shift_t, shift_n, read_register(C));
+	
+	uint32 result;
+	uint8 carry;
+	uint8 overflow;
+
+	result = AddWithCarry(~n, shifted, 1, carry, overflow);
+
+	write_register_bank(RB, inst.rd, result);
+	
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+		write_register(V, overflow);
+	}
+}
+
+execute(thumb2_rsbit2)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 imm32 = ThumbExpandImm(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8);
+
+	uint8 carry;
+	uint8 overflow;
+	uint32 result = AddWithCarry(~n, imm32, 1, carry, overflow);
+
+	write_register_bank(RB, inst.rd, result);
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+		write_register(V, overflow);
+	}
+}
+
+execute(thumb2_strdt1)
+{
+	if (!(inst.p == 0 && inst.w == 0))
+	{
+		uint32 n = read_register_bank(RB, inst.rn);
+		uint32 t = read_register_bank(RB, inst.rt);
+		uint32 t2 = read_register_bank(RB, inst.rt2);
+		uint32 imm32 = ((uint32)inst.imm8) << 2;
+		uint32 offset_addr;
+
+		if (inst.u)
+		{
+			offset_addr = n + imm32;
+		}
+		else
+		{
+			offset_addr = n - imm32;
+		}
+		
+		uint32 address;
+		if (inst.p)
+		{
+			address = offset_addr;
+		}
+		else
+		{
+			address = n;
+		}
+
+		memory_write_32(address, t);
+		memory_write_32(address + 4, t2);
+
+		if (inst.w)
+		{
+			write_register_bank(RB, inst.rn, offset_addr);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_addispt3)
+{
+	if (!(inst.rd == 0xf && inst.s == 1))
+	{
+		uint32 sp = read_register_bank(RB, 13);
+		uint32 imm32 = ThumbExpandImm(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8);	
+		uint32 result;
+		uint8 carry;
+		uint8 overflow;
+
+		result = AddWithCarry(sp, imm32, 0, carry, overflow);
+		
+		write_register_bank(RB, inst.rd, result);
+		
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry); 
+			write_register(V, overflow);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_rsbit1)
+{
+
+	uint32 n = read_register_bank(RB, inst.rs) + pc_check(inst.rs);
+	uint32 imm32 = 0;
+
+	uint32 result;
+	uint8 carry;
+	uint8 overflow;
+
+	result = AddWithCarry(~n, imm32, 1, carry, overflow);
+
+	write_register_bank(RB, inst.rd, result);
+	
+	if (!inst.IsPredicated)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+		write_register(V, overflow);
+	}
+}
+
+execute(thumb2_cmpwi)
+{
+	uint8 carry_out;
+	uint8 overflow; 
+
+	uint32 imm32 = ThumbExpandImm(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8);	
+	uint32 rn = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 result = AddWithCarry(rn, ~imm32, 1, carry_out, overflow);
+
+	write_register(N, bitsel(result, 31));
+	write_register(Z, result == 0);
+	write_register(C, carry_out);
+	write_register(V, overflow);
+}
+
+execute(thumb2_ldrit4)
+{
+	if (!(inst.rn == 0xf) && !(inst.p == 1 && inst.u == 1 && inst.w == 0))
+	{
+		uint32 imm32 = (uint32)inst.imm8; 
+		uint8 wback = inst.w == 1;
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+
+		uint32 offset_addr;
+		if (inst.u) 
+		{
+			offset_addr = n + imm32;
+		}
+			else 
+		{
+			offset_addr = n - imm32; 
+		}
+
+		uint32 address;
+		
+		if (inst.p) 
+		{
+			address = offset_addr;
+		}
+		else 
+		{
+			address = n;
+		}
+
+		uint32 data;
+		uint8 val = memory_read_32(address, data);
+		
+		if (inst.w) 
+			write_register_bank(RB, inst.rn, offset_addr);
+
+		if (inst.rt == 15)
+		{
+			if ((address & 0x3) == 0) 
+			{
+				LoadWritePC(data);
+			}
+		}
+		else
+		{
+			write_register_bank(RB, inst.rt, data);
+		}
+	} else {
+	  trap();
+	}
+}
+
+execute(thumb2_sbfxt1)
+{
+	uint32 lsbit = ((uint32)inst.imm3 << 2) | (uint32)inst.imm2;
+	
+	uint32 msbit = lsbit + inst.widthm1;
+	if (msbit <= 31) 
+	{
+		sint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		n = (n << (31 - msbit)) >> ((31 - msbit) + lsbit);
+		write_register_bank(RB, inst.rd, n);
+	}
+}
+
+execute(thumb2_ubfxt1)
+{
+	uint32 lsbit = ((uint32)inst.imm3 << 2) | (uint32)inst.imm2;
+	
+	uint32 msbit = lsbit + inst.widthm1;
+	if (msbit <= 31) 
+	{
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		n = (n << (31 - msbit)) >> ((31 - msbit) + lsbit);
+		write_register_bank(RB, inst.rd, n);
+	}
+}
+
+execute(thumb2_bfct1)
+{
+	uint8 lsbit = (uint8)inst.imm3 << 2 | inst.imm2;
+	uint32 mask = (((uint32)1 << (inst.widthm1 - lsbit + 1)) - 1) << lsbit;
+	uint32 source = read_register_bank(RB, inst.rd);
+	source &= ~mask;
+	write_register_bank(RB, inst.rd, source);
+}
+
+execute(thumb2_bfit1)
+{
+	if (inst.rn != 0xf)
+	{
+		uint8 lsbit = (uint8)inst.imm3 << 2 | inst.imm2;
+		uint32 mask = (((uint32)1 << (inst.widthm1 - lsbit + 1)) - 1);
+		uint32 data = read_register_bank(RB, inst.rn);
+		uint32 dest = read_register_bank(RB, inst.rd);
+	
+		dest &= ~(mask << lsbit);
+		data &= mask;
+		dest |= (data << lsbit);
+	
+		write_register_bank(RB, inst.rd, dest);
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_bicrt2)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint8 shift_t;
+	uint8 shift_n;
+
+	DecodeImmShift(inst.type, ((uint8)inst.imm3 << 2) | ((uint8)inst.imm2), shift_t, shift_n);
+
+	uint8 carry;
+
+	uint32 shifted = Shift_C(m, shift_t, shift_n, read_register(C), carry);
+
+	uint32 result = n & ~shifted;
+
+	write_register_bank(RB, inst.rd, result);
+	
+	if(inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+	}
+}
+
+execute(thumb2_uadd16t1)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 sum1 = (n & 0xffff) + (m & 0xffff);
+	uint32 sum2 = ((n >> 16) & 0xffff) + ((m >> 16) & 0xffff);
+	
+	uint32 output = (((sum2) << 16) & 0xffff0000) | (sum1 & 0xffff);  
+
+	write_register_bank(RB, inst.rd, output);
+	
+	if (sum1 >= 0x10000)
+	{
+		write_register(GE0, 1);
+		write_register(GE1, 1);
+	}
+	else
+	{
+		write_register(GE0, 0);
+		write_register(GE1, 0);
+	}
+
+	if (sum2 >= 0x10000)
+	{
+		write_register(GE2, 1);
+		write_register(GE3, 1);
+	}
+	else
+	{
+		write_register(GE2, 0);
+		write_register(GE3, 0);
+	}
+}
+
+helper uint32 thumb_saturate_unsigned(sint32 value, uint32 min, uint32 max)
+{
+	if(value < min) value = min;
+	if(value > max) value = max;
+	
+	return value;
+}
+/*
+execute(thumb2_uqsub8t1)
+{
+	uint32 rn = read_register_bank(RB, inst.rn);
+	uint32 rm = read_register_bank(RB, inst.rm);
+	
+	uint8 rn1 = rn & 0xff;
+	uint8 rn2 = (rn >> 8) & 0xff;
+	uint8 rn3 = (rn >> 16) & 0xff;
+	uint8 rn4 = (rn >> 24) & 0xff;
+	
+	uint8 rm1 = rm & 0xff;
+	uint8 rm2 = (rm >> 8) & 0xff;
+	uint8 rm3 = (rm >> 16) & 0xff;
+	uint8 rm4 = (rm >> 24) & 0xff;
+	
+	sint32 res1 = (sint32)rn1 - (sint32)rm1;
+	sint32 res2 = (sint32)rn2 - (sint32)rm2;
+	sint32 res3 = (sint32)rn3 - (sint32)rm3;
+	sint32 res4 = (sint32)rn4 - (sint32)rm4;
+	
+	res1 = thumb_saturate_unsigned(res1, 0, 255);
+	res2 = thumb_saturate_unsigned(res2, 0, 255);
+	res3 = thumb_saturate_unsigned(res3, 0, 255);
+	res4 = thumb_saturate_unsigned(res4, 0, 255);
+	
+	uint32 data = 0;
+	data = res1 | (res2 << 8) | (res3 << 16) | (res4 << 24);
+	
+	write_register_bank(RB, inst.rd, data);
+}
+*/
+execute(thumb2_uadd8t1)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 sum1 = (n & 0xff) + (m & 0xff);
+	uint32 sum2 = ((n >> 8) & 0xff) + ((m >> 8) & 0xff);
+	uint32 sum3 = ((n >> 16) & 0xff) + ((m >> 16) & 0xff);
+	uint32 sum4 = ((n >> 24) & 0xff) + ((m >> 24) & 0xff);
+
+	uint32 output = (((sum4) << 24) & 0xff000000) | (((sum3) << 16) & 0xff0000) | (((sum2) << 8) & 0xff00) | (sum1 & 0xff);  
+
+	write_register_bank(RB, inst.rd, output);
+	
+	if (sum1 >= 0x100)
+	{
+		write_register(GE0, 1);
+	}
+	else
+	{
+		write_register(GE0, 0);
+	}
+
+	if (sum2 >= 0x100)
+	{
+		write_register(GE1, 1);
+	}
+	else
+	{
+		write_register(GE1, 0);
+	}
+
+	if (sum3 >= 0x100)
+	{
+		write_register(GE2, 1);
+	}
+	else
+	{
+		write_register(GE2, 0);
+	}
+
+	if (sum4 >= 0x100)
+	{
+		write_register(GE3, 1);
+	}
+	else
+	{
+		write_register(GE3, 0);
+	}
+}
+
+execute(thumb2_ornrt1)
+{
+	if (inst.rn != 0xf)
+	{
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint8 shift_t;
+		uint8 shift_n;
+		uint8 carry;
+
+		DecodeImmShift(inst.type, ((uint8)inst.imm3 << 2) | ((uint8)inst.imm2), shift_t, shift_n);
+
+		uint32 shifted = Shift_C(m, shift_t, shift_n, read_register(C), carry);
+		uint32 result = n | ~shifted;
+
+		write_register_bank(RB, inst.rd, result);
+
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_qdaddt1)
+{
+	sint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	sint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+
+	sint32 doubled; 
+
+	if (n > (sint32)1073741823)
+	{
+		doubled = 2147483647;
+		write_register(Q, 1);
+	}
+	else if (n < (sint32)-1073741824)
+	{
+		doubled = -2147483648;
+		write_register(Q, 1);
+	}
+	else
+	{
+		doubled = 2 * n;
+	}
+	
+	write_register_bank(RB, inst.rd, doubled);
+
+	sint32 sum = m + doubled;
+
+	if (m < 0 && doubled < 0 && sum > 0)
+	{
+		write_register_bank(RB, inst.rd, -2147483648);
+		write_register(Q, 1);
+	}
+	else if (m > 0 && doubled > 0 && sum < 0)
+	{
+		write_register_bank(RB, inst.rd, 2147483647);
+		write_register(Q, 1);
+	}
+	else
+	{
+		write_register_bank(RB, inst.rd, sum);
+	}
+}
+
+execute(thumb2_qdsubt1)
+{
+	sint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	sint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+
+	sint32 doubled; 
+
+	if (n > (sint32)1073741823)
+	{
+		doubled = 2147483647;
+		write_register(Q, 1);
+	}
+	else if (n < (sint32)-1073741824)
+	{
+		doubled = -2147483648;
+		write_register(Q, 1);
+	}
+	else
+	{
+		doubled = 2 * n;
+	}
+	
+//	write_register_bank(RB, inst.rd, doubled);
+
+	sint32 sum = m - doubled;
+
+	if (m > doubled && sum < 0)
+	{
+		write_register_bank(RB, inst.rd, 2147483647);
+		write_register(Q, 1);
+	}
+	else if (m < doubled && sum > 0)
+	{
+		write_register_bank(RB, inst.rd, -2147483648);
+		write_register(Q, 1);
+	}
+	else
+	{
+		write_register_bank(RB, inst.rd, sum);
+	}
+}
+
+execute(thumb2_rort2)
+{
+	uint32 m = read_register_bank(RB, inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn);
+
+	uint8 shift_n = m & 0xff;
+	
+	uint32 result;
+	uint8 carry;
+	
+	result = Shift_C(n, 3, shift_n, read_register(C), carry);
+	
+	write_register_bank(RB, inst.rd, result);
+	
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+	}
+}
+
+execute(thumb2_rorit1)
+{
+	if (!(inst.imm3 == 0 && inst.imm2 == 0))
+	{
+		uint32 m = read_register_bank(RB, inst.rm);
+
+		uint8 shift_t;
+		uint8 shift_n;
+
+		DecodeImmShift(0x3, ((uint8)inst.imm3 << 2) | ((uint8)inst.imm2), shift_t, shift_n);
+
+		uint32 result;
+		uint8 carry;
+		
+		result = Shift_C(m, 3, shift_n, read_register(C), carry); 
+
+		write_register_bank(RB, inst.rd, result);
+
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_qaddt1)
+{
+	sint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	sint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	
+	sint64 result = (sint64)m + (sint64)n;
+	
+	if(result > 2147483647) {
+		result = 2147483647;
+		write_register(Q, 1);
+	} else if(result < -2147483648) {
+		result = -2147483648;
+		write_register(Q, 1);
+	}
+	
+	write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_qsubt1)
+{
+	sint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	sint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+       
+	sint32 result = m - n;
+
+	if (m > 0 && n < 0 && result < 0)
+	{
+		write_register_bank(RB, inst.rd, 2147483647);
+		write_register(Q, 1);
+	}
+	else if (m < 0 && n > 0 && result > 0)
+	{
+		write_register_bank(RB, inst.rd, -2147483648);
+		write_register(Q, 1);
+	}
+	else
+	{
+		write_register_bank(RB, inst.rd, (uint32)result);
+	}
+}
+
+execute(thumb2_qadd16t1)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	
+	sint16 n_lo = n & 0xffff;
+	sint16 m_lo = m & 0xffff;
+
+	sint16 n_hi = (n & 0xffff0000) >> 16;
+	sint16 m_hi = (m & 0xffff0000) >> 16;
+
+	sint16 sum_lo = n_lo + m_lo;
+	sint16 sum_hi = n_hi + m_hi;
+
+	if (m_lo > 0 && n_lo > 0 && sum_lo < 0)
+	{
+		sum_lo = 32767;
+	}
+	else if (m_lo < 0 && n_lo < 0 && sum_lo > 0)
+	{
+		sum_lo = -32768;
+	}
+	
+	sint16 zero = 0;
+
+	if (m_hi > zero && n_hi > zero && sum_hi < zero)
+	{
+		sum_hi = 32767;
+	}
+	else if (m_hi < 0 && n_hi < 0 && sum_hi > 0)
+	{
+		sum_hi = -32768;
+	}
+
+	uint32 sum;
+
+	sum = sum_hi;
+	sum <<= 16;
+	sum |= (uint32)((uint16)sum_lo);
+
+	
+	write_register_bank(RB, inst.rd, sum);
+}
+
+execute(thumb2_qsub16t1)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	
+	sint16 n_lo = n & 0xffff;
+	sint16 m_lo = m & 0xffff;
+
+	sint16 n_hi = (n & 0xffff0000) >> 16;
+	sint16 m_hi = (m & 0xffff0000) >> 16;
+
+	sint16 sum_lo = n_lo - m_lo;
+	sint16 sum_hi = n_hi - m_hi;
+
+	if (m_lo < 0 && n_lo > 0 && sum_lo < 0)
+	{
+		sum_lo = 32767;
+	}
+	else if (m_lo > 0 && n_lo < 0 && sum_lo > 0)
+	{
+		sum_lo = -32768;
+	}
+	
+	sint16 zero = 0;
+
+	if (m_hi < zero && n_hi > zero && sum_hi < zero)
+	{
+		sum_hi = 32767;
+	}
+	else if (m_hi > 0 && n_hi < 0 && sum_hi > 0)
+	{
+		sum_hi = -32768;
+	}
+
+	uint32 sum;
+
+	sum = sum_hi;
+	sum <<= 16;
+	sum |= (uint32)((uint16)sum_lo);
+
+	
+	write_register_bank(RB, inst.rd, sum);
+}
+
+execute(thumb2_qadd8t1)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+
+	sint8 n_0 = n & 0xff;
+	sint8 m_0 = m & 0xff;
+	
+	sint8 n_1 = (n & 0xff00) >> 8;
+	sint8 m_1 = (m & 0xff00) >> 8;
+
+	sint8 n_2 = (n & 0xff0000) >> 16;
+	sint8 m_2 = (m & 0xff0000) >> 16;
+
+	sint8 n_3 = (n & 0xff000000) >> 24;
+	sint8 m_3 = (m & 0xff000000) >> 24;
+
+	sint8 sum_0 = n_0 + m_0;
+	sint8 sum_1 = n_1 + m_1;
+	sint8 sum_2 = n_2 + m_2;
+	sint8 sum_3 = n_3 + m_3;
+
+	if (m_0 > 0 && n_0 > 0 && sum_0 < 0)
+	{
+		sum_0 = 127;
+	}
+	else if (m_0 < 0 && n_0 < 0 && sum_0 > 0)
+	{
+		sum_0 = -128;
+	}	
+
+	if (m_1 > 0 && n_1 > 0 && sum_1 < 0)
+	{
+		sum_1 = 127;
+	}
+	else if (m_1 < 0 && n_1 < 0 && sum_1 > 0)
+	{
+		sum_1 = -128;
+	}	
+
+	if (m_2 > 0 && n_2 > 0 && sum_2 < 0)
+	{
+		sum_2 = 127;
+	}
+	else if (m_2 < 0 && n_2 < 0 && sum_2 > 0)
+	{
+		sum_2 = -128;
+	}	
+
+	if (m_3 > 0 && n_3 > 0 && sum_3 < 0)
+	{
+		sum_3 = 127;
+	}
+	else if (m_3 < 0 && n_3 < 0 && sum_3 > 0)
+	{
+		sum_3 = -128;
+	}	
+
+	uint32 sum;
+
+	sum = (uint32)((uint8)sum_3);
+	sum <<= 8;
+	sum |= (uint32)((uint8)sum_2);
+	sum <<= 8;
+	sum |= (uint32)((uint8)sum_1);
+	sum <<= 8;
+	sum |= (uint32)((uint8)sum_0);
+
+	write_register_bank(RB, inst.rd, sum);
+}
+
+execute(thumb2_qsub8t1)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+
+	sint8 n_0 = n & 0xff;
+	sint8 m_0 = m & 0xff;
+	
+	sint8 n_1 = (n & 0xff00) >> 8;
+	sint8 m_1 = (m & 0xff00) >> 8;
+
+	sint8 n_2 = (n & 0xff0000) >> 16;
+	sint8 m_2 = (m & 0xff0000) >> 16;
+
+	sint8 n_3 = (n & 0xff000000) >> 24;
+	sint8 m_3 = (m & 0xff000000) >> 24;
+
+	m_0 = m_0;
+	m_1 = m_1;
+	m_2 = m_2;
+	m_3 = m_3;
+	
+	sint8 sum_0 = n_0 - m_0;
+	sint8 sum_1 = n_1 - m_1;
+	sint8 sum_2 = n_2 - m_2;
+	sint8 sum_3 = n_3 - m_3;
+
+	if (m_0 < 0 && n_0 > 0 && sum_0 < 0)
+	{
+		sum_0 = 127;
+	}
+	else if (m_0 > 0 && n_0 < 0 && sum_0 > 0)
+	{
+		sum_0 = -128;
+	}	
+
+	if (m_1 < 0 && n_1 > 0 && sum_1 < 0)
+	{
+		sum_1 = 127;
+	}
+	else if (m_1 > 0 && n_1 < 0 && sum_1 > 0)
+	{
+		sum_1 = -128;
+	}	
+
+	if (m_2 < 0 && n_2 > 0 && sum_2 < 0)
+	{
+		sum_2 = 127;
+	}
+	else if (m_2 > 0 && n_2 < 0 && sum_2 > 0)
+	{
+		sum_2 = -128;
+	}	
+
+	if (m_3 < 0 && n_3 > 0 && sum_3 < 0)
+	{
+		sum_3 = 127;
+	}
+	else if (m_3 > 0 && n_3 < 0 && sum_3 > 0)
+	{
+		sum_3 = -128;
+	}	
+
+	uint32 sum;
+
+	sum = (uint32)((uint8)sum_3);
+	sum <<= 8;
+	sum |= (uint32)((uint8)sum_2);
+	sum <<= 8;
+	sum |= (uint32)((uint8)sum_1);
+	sum <<= 8;
+	sum |= (uint32)((uint8)sum_0);
+	
+	write_register_bank(RB, inst.rd, sum);
+}
+
+execute(thumb2_qasxt1)
+{
+	uint32 n = read_register_bank(RB, inst.rn);
+	uint32 m = read_register_bank(RB, inst.rm);
+
+	sint16 n_lo = n & 0xffff;
+	sint16 n_hi = (n & 0xffff0000) >> 16;
+
+	sint16 m_lo = m & 0xffff;
+	sint16 m_hi = (m & 0xffff0000) >> 16;
+
+	sint16 op_mhi = 0-m_hi;
+	sint16 diff = n_lo + op_mhi;
+	sint16 sum = n_hi + m_lo;
+
+	if (n_lo > 0 && op_mhi > 0 && diff < 0)
+	{
+		diff = 32767;
+	}
+	else if (n_lo < 0 && op_mhi < 0 && diff > 0)
+	{
+		diff = -32768;
+	}
+
+	if (m_lo > 0 && n_hi > 0 && sum < 0)
+	{
+		sum = 32767;
+	}
+	else if (m_lo < 0 && n_hi < 0 && sum > 0)
+	{
+		sum = -32768;
+	}
+
+	uint32 result;
+
+	result = sum;
+	result <<= 16;
+	result |= (uint32)((uint16)diff);
+
+	write_register_bank(RB, inst.rd, result); 
+}
+
+execute(thumb2_qsaxt1)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+
+	sint16 n_lo = n & 0xffff;
+	sint16 n_hi = (n & 0xffff0000) >> 16;
+
+	sint16 m_lo = m & 0xffff;
+	sint16 m_hi = (m & 0xffff0000) >> 16;
+
+	sint16 op_mlo = 0-m_lo;
+	sint16 diff = n_hi + op_mlo;
+	sint16 sum = n_lo + m_hi;
+
+	if (n_lo > 0 && m_hi > 0 && sum < 0)
+	{
+		sum = 32767;
+	}
+	else if (n_lo < 0 && m_hi < 0 && sum > 0)
+	{
+		sum = -32768;
+	}
+
+	if (op_mlo > 0 && n_hi > 0 && diff < 0)
+	{
+		diff = 32767;
+	}
+	else if (op_mlo < 0 && n_hi < 0 && diff > 0)
+	{
+		diff = -32768;
+	}
+
+	uint32 result;
+
+	result = diff;
+	result <<= 16;
+	result |= (uint32)((uint16)sum);
+
+	write_register_bank(RB, inst.rd, result); 
+}
+
+execute(thumb2_pkht1)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint8 shift_t;
+	uint8 shift_n;
+
+	DecodeImmShift((uint8)inst.tb << 1 , ((uint8)inst.imm3 << 2) | ((uint8)inst.imm2), shift_t, shift_n);
+
+	uint32 operand2 = Shift(m, shift_t, shift_n, read_register(C));
+
+	uint32 d;
+
+	if (inst.tb)
+	{
+		d = operand2 & 0xffff;
+		d |= n & 0xffff0000;
+	}
+	else
+	{
+		d = n & 0xffff;
+		d |= operand2 & 0xffff0000;
+	}
+
+	write_register_bank(RB, inst.rd, d);
+}
+
+execute(thumb2_umullt1)
+{
+	uint32 rn = read_register_bank(RB, inst.rn);
+	uint32 rm = read_register_bank(RB, inst.rm);
+	
+	uint64 result = (uint64)rn * (uint64)rm;
+	
+	uint32 resultlo = result & 0xffffffff;
+	uint32 resulthi = result >> 32;
+	
+	write_register_bank(RB, inst.rdlo, resultlo);
+	write_register_bank(RB, inst.rdhi, resulthi);
+}
+
+execute(thumb2_sbcit1)
+{
+// NEEDS TESTING!
+	if (inst.rn != 15)
+	{
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint8 carry;
+		uint8 overflow;
+		uint32 imm32 = ThumbExpandImm(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8); 
+		
+		uint32 result = AddWithCarry(n, ~imm32, read_register(C), carry, overflow);
+		write_register_bank(RB, inst.rd, result);
+		
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+			write_register(V, overflow);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_ornit1)
+{
+	if (inst.rn != 15)
+	{
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint8 carry;
+		uint32 imm32 = ThumbExpandImm_C(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8, read_register(C), carry); 
+		uint32 result = n | ~imm32;
+		write_register_bank(RB, inst.rd, result);
+		
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_uxtht1)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 rotated = ROR(m, 0);
+	write_register_bank(RB, inst.rd, rotated & 0x0000ffff);
+}
+
+execute(thumb2_uxtht2)
+{
+	uint8 rotation = (uint8)inst.rotate << 3;
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 rotated = ROR(m, rotation);
+	write_register_bank(RB, inst.rd, rotated & 0x0000ffff);
+}
+
+execute(thumb2_uxtbt1)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 rotated = ROR(m, 0);
+	write_register_bank(RB, inst.rd, rotated & 0x000000ff);
+}
+
+execute(thumb2_uxtbt2)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint8 rotation = (uint8)inst.rotate << 3;
+
+	uint32 rotated = ROR(m, rotation);
+	write_register_bank(RB, inst.rd, rotated & 0x000000ff);
+}
+
+execute(thumb2_mvnit1)
+{
+	uint8 carry;
+	uint32 imm32 = ThumbExpandImm_C(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8, read_register(C), carry);
+	
+	uint32 result = ~imm32;
+	write_register_bank(RB, inst.rd, result);
+
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+	}
+}
+
+execute(thumb2_mvnt2)
+{
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint8 shift_t;
+	uint8 shift_n;
+
+	DecodeImmShift(inst.type, (uint8)inst.imm3 << 2 | (uint8) inst.imm2, shift_t, shift_n);
+
+	uint8 carry;
+
+	uint32 shifted = Shift_C(m, shift_t, shift_n, read_register(C), carry);
+
+	uint32 result = ~shifted;
+	
+	write_register_bank(RB, inst.rd, result);
+
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+	}
+}
+
+execute(thumb2_ldrext1)
+{
+	uint32 address = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	address += (uint32)inst.imm8 << 2;
+	
+	uint32 data = 0;
+	mem_read_32(address, data);
+	
+	write_register_bank(RB, inst.rt, data);
+	
+	write_register(XState, 1);
+	write_register(XAddr, address);
+}
+
+execute(thumb2_strext1)
+{
+	uint32 address = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	address += (uint32)inst.imm8 << 2;
+	
+	if(read_register(XState) && read_register(XAddr) == address) {
+		uint32 data = read_register_bank(RB, inst.rt);
+		mem_write_32(address, data);
+		
+		write_register_bank(RB, inst.rt2, 0);
+	} else {
+		write_register_bank(RB, inst.rt2, 1);
+	}
+	
+	write_register(XState, 0);
+}
+
+execute(thumb2_ldrexdt1)
+{
+	uint32 addr = read_register_bank(RB, inst.rn);
+	uint32 data;
+	uint32 data2;
+	// TODO: implement mem_read_64(addr, data);
+	mem_read_32(addr, data);
+	mem_read_32(addr+4, data2);
+	
+	write_register_bank(RB, inst.rt, data);
+	write_register_bank(RB, inst.rt2, data2);
+	
+	write_register(XState, 1);
+	write_register(XAddr, addr);
+}
+
+execute(thumb2_strexdt1)
+{
+	uint32 addr = read_register_bank(RB, inst.rn);
+
+	if(read_register(XState) && read_register(XAddr) == addr) {
+		mem_write_32(addr, read_register_bank(RB, inst.rt));
+		mem_write_32(addr+4, read_register_bank(RB, inst.rt2));
+	
+		write_register_bank(RB, inst.imm8, 0);
+	} else {
+		write_register_bank(RB, inst.imm8, 1);
+	}
+	
+	write_register(XState, 0);
+}
+
+execute(thumb2_ldrdit2)
+{
+//if P == '0' && W == '0' then SEE "Related encodings";
+//if Rn == '1111' then SEE LDRD (literal);
+	if (!(inst.p == 0 && inst.w == 0) && !(inst.rn == 0xf))
+	{
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 imm32 = ((uint32)inst.imm8) << 2;
+	uint32 offset_addr;
+	if (inst.u)
+	{
+		offset_addr = n + imm32;
+	}
+	else
+	{
+		offset_addr = n - imm32;
+	}
+	
+	uint32 address;
+	if (inst.p)
+	{
+		address = offset_addr;
+	}
+	else
+	{
+		address = n;
+	}
+	
+	uint32 val1;
+	uint32 val2;
+	
+	memory_read_32(address, val1);
+	memory_read_32(address + 4, val2);
+	
+	write_register_bank(RB, inst.rt, val1);
+	write_register_bank(RB, inst.rt2, val2);
+
+	if (inst.w) 
+	{
+		write_register_bank(RB, inst.rn, offset_addr);
+	}
+	}
+	else
+	{
+		trap();
+	} 
+}
+
+helper uint32 ThumbExpandImm(uint32 imm12)
+{
+	uint8 dummy_carry;
+	uint32 imm32 = ThumbExpandImm_C(imm12, read_register(C), dummy_carry);
+	return imm32;
+}
+
+helper uint32 ThumbExpandImm_C(uint32 imm12, uint8 carry_in, uint8 &carry_out)
+{
+	uint32 imm32 = 0;
+	uint8 imm12_9_8 = ((uint8)bitsel(imm12, 9) << 1) | ((uint8) bitsel(imm12, 8));
+	uint32 imm12_8_0 = imm12 & 0xFF;
+
+	if (bitsel(imm12, 11) == 0 && bitsel(imm12, 10) == 0)
+	{
+
+		if (imm12_9_8 == 0)
+		{
+			imm32 = imm12_8_0;
+		}
+		else if (imm12_9_8 == 1)
+		{
+			imm32 = (uint32)0 | (imm12_8_0 << 16) | imm12_8_0;
+		}
+		else if (imm12_9_8 == 2)
+		{
+			imm32 = (uint32)0 | (imm12_8_0 << 24) | (imm12_8_0 << 8);
+		}
+		else if (imm12_9_8 == 3)
+		{
+			imm32 = (imm12_8_0 << 24) | (imm12_8_0 << 16) | (imm12_8_0 << 8) | imm12_8_0;
+		}
+		
+		carry_out = carry_in;
+	}
+	else
+	{
+		uint32 unrotated_val = (imm12 & 0x7F) | 0x80;
+		uint8 shift = (imm12 & 0xFFF) >> 7;
+		imm32 = ROR_C(unrotated_val, shift, carry_out);
+	}
+
+	return imm32;
+}
+
+helper uint32 ROR(uint32 x, uint8 shift)
+{
+	uint8 dummy_carry;
+	uint32 result;
+
+	if (shift == 0)
+	{
+		result = x;
+	}
+	else
+	{
+		result = ROR_C(x, shift, dummy_carry);
+	}
+	
+	return result;
+}
+
+helper uint32 ROR_C(uint32 x, uint8 shift, uint8 &carry_out)
+{
+	//assert shift != 0;
+	uint32 m = shift % 32;
+	uint32 result = LSR(x,m) | LSL(x,32-m);
+	carry_out = bitsel(result, 31);
+	return result;
+}
+
+helper uint32 LSR(uint32 x, uint32 shift)
+{
+	//assert shift >= 0;
+	uint32 result;
+	uint8 dummy_carry_out;
+
+	if (shift == 0)
+		result = x;
+	else
+		result = LSR_C(x, shift, dummy_carry_out);
+	
+	return result;
+}
+
+helper uint32 LSR_C(uint32 bits, uint32 shift, uint8 &carry_out)
+{
+	if (shift == 0)
+	{
+		carry_out = 0;
+		return bits;
+	}
+	else if(shift < 32)
+	{
+		carry_out = (bits >> ((shift) - 1)) & 1;
+		return bits >> (shift);
+	}
+	else if(shift == 32)
+	{
+		carry_out = bits >> (uint32)31;
+		return 0;
+	}
+	else
+	{
+		carry_out = 0;
+		return 0;
+	}
+}
+
+helper uint32 LSL(uint32 x, uint32 shift)
+{
+	uint32 result;
+	uint8 dummy_carry_out;
+	//assert shift >= 0;
+	if (shift == 0) 
+		result = x;
+	else
+		result = LSL_C(x, shift, dummy_carry_out);
+
+	return result;
+}
+
+helper uint32 LSL_C(uint32 bits, uint32 shift, uint8 &carry_out)
+{
+	// assert shift > 0;
+	if((shift) == 0) 
+	{
+		carry_out = 0;
+		return bits;
+	}
+	else if(shift < 32)
+	{
+		carry_out = bitsel(bits, (32- (shift)));
+		return (uint32) bits << (shift);
+	}
+	else if ((shift) == 32)
+	{
+		carry_out = bits & 1;
+		return 0;
+	}
+	else
+	{
+		carry_out = 0;
+		return 0;
+	}
+}
+
+helper uint32 ASR(uint32 x, uint32 shift)
+{
+	uint32 result;
+
+	if (shift == 0)
+	{
+		result = x;
+	}
+	else
+	{
+		uint8 dummy_carry;
+		result = ASR_C(x, shift, dummy_carry);
+	}
+	return result;
+}
+/*
+helper  uint32 ASR_C(uint32 bits,  uint8 shift,  uint8 &carry_out)
+{
+
+	carry_out = 0;
+
+	if((shift) == 0)
+	{
+		return bits;
+	}
+	else if((shift) >= 32)
+	{
+		carry_out = ((sint32) bits >> 31) & 1;
+		if(bits & 0x80000000) return 0xffffffff;
+		else return 0x00000000;
+	}
+	else
+	{
+		carry_out = ((sint32)(bits) >> ((shift) - 1)) & 1;
+		return ((sint32) bits) >> (shift);
+	}
+	}*/
+
+helper uint32 ASR_C(uint32 x, uint32 shift, uint8 &carry_out)
+{
+	// TODO: Check this sign extension stuff
+/*	uint64 extended_x = ((sint64)x << (shift+32)) >> (shift+32);
+	uint32 result = (uint32) extended_x;
+	carry_out = bitsel(result, shift - 1);
+	return result;
+*/
+	carry_out = 0;
+
+	if (shift == 0)
+	{
+		return x;
+	}
+	else if (shift >= 32)
+	{
+		carry_out = ((sint32) x >> 31) & 1;
+		if (x & 0x80000000) return 0xffffffff;
+		else return 0x0;
+	}
+	else
+	{
+		carry_out = ((sint32)(x) >> ((shift) - 1)) & 1;
+		return ((sint32) x) >> shift;
+	}
+
+}
+
+helper uint32 RRX_C(uint32 x, uint8 carry_in, uint8 &carry_out)
+{
+	uint32 result = ((uint32)carry_in << 31) | (x >> 1);
+	carry_out = bitsel(x, 0);
+	return result;
+}
+
+/* Thumb-2 Instructions */
+
+execute(thumb2_movit3)
+{
+  uint32 result;
+  result = zero_extend(inst.imm4, inst.i, inst.imm3, inst.imm8);
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_movtt1)
+{
+  uint32 result;
+  uint32 current_val;
+  uint32 imm;
+
+  imm = zero_extend(inst.imm4, inst.i, inst.imm3, inst.imm8);
+  imm = imm << 16;
+  current_val = read_register_bank(RB, inst.rd) + pc_check(inst.rd);
+  current_val &= 0x0000FFFF;
+  result = imm | current_val;
+  write_register_bank(RB, inst.rd, result);
+}
+
+execute(thumb2_ldr_lit)
+{
+	uint32 imm32 = (uint32) inst.imm12;
+	uint8 add = inst.u == 1;
+	uint32 base = read_pc() + 4;
+	base &= 0xFFFFFFFC;
+	uint32 address;
+	uint32 val;
+	if (add)
+	{
+		address = base + imm32;
+	}
+	else
+	{
+		address = base - imm32;
+	}
+
+	uint8 mem = memory_read_32(address, val);
+	
+	if (inst.rt == 15)
+	{
+		if ((address & 0x3) == 0)
+		{
+			if (address & 1)
+			{
+				set_cpu_mode((uint8)1);
+				write_register(T, 1);
+				address = address & 0;
+				write_register_bank(RB, 15, val);
+			}
+			else if ((address & 0x2) == 0)
+			{
+				set_cpu_mode((uint8)0);
+				write_register(T, 0);
+				write_register_bank(RB, 15, val);
+			}
+		}
+	}
+	else  
+	{
+		write_register_bank(RB, inst.rt, val);
+	}
+
+// UnalignedSupport always true for armv7
+// elsif UnalignedSupport() || address<1:0> == '00' then
+
+}
+
+execute(thumb2_ldrt2)
+{
+	if (inst.rn != 0xf)
+	{
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	        uint8 shift_t = 0;
+		uint8 shift_n = (uint8)inst.imm2;
+		uint32 offset = Shift(m, shift_t, shift_n, read_register(C));
+		uint32 address = (n + offset);
+		uint32 data;
+		memory_read_32(address, data);
+		if (inst.rt == 15)
+		{
+			LoadWritePC(data);
+		}
+		else
+		{
+			write_register_bank(RB, inst.rt, data);
+		}
+	}
+	else
+	{
+		trap();
+	} 
+}
+
+execute(thumb2_ldrbrt2)
+{
+	if (inst.rn != 0xf)
+	{
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	        uint8 shift_t = 0;
+		uint8 shift_n = (uint8)inst.imm2;
+		uint32 offset = Shift(m, shift_t, shift_n, read_register(C));
+		uint32 address = (n + offset);
+		uint32 data;
+		memory_read_8(address, data);
+		if (inst.rt == 15)
+		{
+			LoadWritePC(data);
+		}
+		else
+		{
+			write_register_bank(RB, inst.rt, data);
+		}
+	}
+	else
+	{
+		trap();
+	} 
+}
+
+execute(thumb2_ldrsbrt2)
+{
+	if (inst.rn != 0xf)
+	{
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	        uint8 shift_t = 0;
+		uint8 shift_n = (uint8)inst.imm2;
+		uint32 offset = Shift(m, shift_t, shift_n, read_register(C));
+		uint32 address = (n + offset);
+		uint32 data;
+		memory_read_8(address, data);
+		sint8 sdata = data;
+		sint32 sxdata = sdata;
+		if (inst.rt == 15)
+		{
+			LoadWritePC(sxdata);
+		}
+		else
+		{
+			write_register_bank(RB, inst.rt, sxdata);
+		}
+	}
+	else
+	{
+		trap();
+	} 
+}
+
+execute(thumb2_ldrhrt2)
+{
+	if (inst.rn != 0xf)
+	{
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	        uint8 shift_t = 0;
+		uint8 shift_n = (uint8)inst.imm2;
+		uint32 offset = Shift(m, shift_t, shift_n, read_register(C));
+		uint32 address = (n + offset);
+		uint32 data;
+		memory_read_16(address, data);
+		if (inst.rt == 15)
+		{
+			LoadWritePC(data);
+		}
+		else
+		{
+			write_register_bank(RB, inst.rt, data);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_ldrshrt2)
+{
+	if (inst.rn != 0xf)
+	{
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	        uint8 shift_t = 0;
+		uint8 shift_n = (uint8)inst.imm2;
+		uint32 offset = Shift(m, shift_t, shift_n, read_register(C));
+		uint32 address = (n + offset);
+		uint32 data;
+		memory_read_16(address, data);
+		sint16 sdata = data;
+		sint32 sxdata = sdata;
+		if (inst.rt == 15)
+		{
+			LoadWritePC(sxdata);
+		}
+		else
+		{
+			write_register_bank(RB, inst.rt, sxdata);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+
+
+execute(thumb2_strt2)
+{
+	if(inst.rn != 0xf)
+	{
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+
+		uint8 shift_t = 0;
+		uint8 shift_n = (uint8) inst.imm2;
+		uint32 offset = Shift(m, shift_t, shift_n, read_register(C));
+		uint32 addr = n + offset;
+
+		uint32 data = read_register_bank(RB, inst.rt) + pc_check(inst.rt);
+		memory_write_32(addr, data);
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_strhrt2)
+{
+	if(inst.rn != 0xf)
+	{
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+
+		uint8 shift_t = 0;
+		uint8 shift_n = (uint8) inst.imm2;
+		uint32 offset = Shift(m, shift_t, shift_n, read_register(C));
+		uint32 addr = n + offset;
+
+		uint32 data = read_register_bank(RB, inst.rt) + pc_check(inst.rt);
+		memory_write_16(addr, data);
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_tbb)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+	uint32 halfwords;
+
+	if (inst.h)
+	{
+		memory_read_16(n+LSL(m,1), halfwords);
+	}
+	else
+	{
+		memory_read_8(n+m, halfwords);
+	}
+	
+	uint32 pc_var = read_pc() + 4;
+	uint32 new_pc = pc_var + 2*(uint32)halfwords;
+	write_register_bank(RB, 15, new_pc & ~1);
+}
+
+execute(thumb2_ldrbit2)
+{
+	if (!(inst.rt == 0xf || inst.rn == 0xf))
+	{
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint32 imm32 = (uint32) inst.imm12;
+
+		uint32 address = n + imm32;
+		uint32 value;
+		memory_read_8(address, value);
+
+		write_register_bank(RB, inst.rt, value);
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_andit1)
+{
+	if (!(inst.rd==0xf && inst.s==1))
+	{
+		uint8 carry;
+		uint32 imm32 = ThumbExpandImm_C(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | ((uint32)inst.imm8), read_register(C), carry);
+		
+		uint32 result = ((uint32)read_register_bank(RB, inst.rn) + pc_check(inst.rn))& imm32;
+		
+		write_register_bank(RB, inst.rd, result);
+		
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+	
+execute(thumb2_bicit1)
+{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn); 
+       
+	uint8 carry_in = read_register(C);
+	uint8 carry_out;
+
+	uint32 imm12 = ((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8; 
+	uint32 imm32 = ThumbExpandImm_C(imm12, carry_in, carry_out);
+	
+	uint32 result = n & ~imm32;
+	write_register_bank(RB, inst.rd, result);
+	
+	uint8 isZeroBit = result == 0;
+
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, isZeroBit);
+		write_register(C, carry_out);	    
+	}
+}
+
+execute(thumb2_cbnz)
+{
+	uint32 rn = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 pc_var;
+	uint32 imm32;
+	pc_var = read_pc();
+	pc_var += 4;
+	if (rn != 0)
+	{
+		imm32 = (uint32)inst.i << 6 | ((uint32)inst.imm5 << 1);
+		write_register_bank(RB, 15, pc_var + imm32);
+	}
+	else
+	{
+		write_register_bank(RB, 15, read_pc() + 2);
+	}
+
+}
+
+execute(thumb2_bt3)
+{
+	if ((inst.cond & 0xe) != 0xe)
+	{
+	uint32 result = 1;
+	
+	switch(inst.cond)
+	{
+		case 0: // BEQ
+		{
+			result = read_register(Z);
+			break;
+		}
+		case 1: // BNE
+		{
+			result = !read_register(Z);
+			break;
+		}
+		case 2: //BCS
+		{
+			result = read_register(C);
+			break;
+		}
+		case 3: //BCC
+		{
+			result = !read_register(C);
+			break;
+		}
+		case 4: //BMI
+		{
+			result = read_register(N);
+			break;
+		}
+		case 5: //BPL
+		{
+			result = !read_register(N);
+			break;
+		}
+		case 6: //BVS
+		{
+			result = read_register(V);
+			break;
+		}
+		case 7:// BVC
+		{
+			result = !read_register(V);
+			break;
+		}
+		case 8: // BHI
+		{
+			result = read_register(C) & !read_register(Z);
+			break;
+		}
+		case 9: //BLS
+		{
+			result = !read_register(C) | read_register(Z);
+			break;
+		}
+		case 10: //BGE
+		{
+			result = read_register(N) == read_register(V);
+			break;
+		}
+		case 11: //BLT
+		{
+			result = read_register(N) != read_register(V);
+			break;
+		}
+		case 12: //BGT
+		{
+			result = !read_register(Z) & (read_register(N) == read_register(V));
+			break;
+		}
+		case 13: //BLE
+		{
+			result = read_register(Z) | (read_register(N) != read_register(V));
+			break;
+		}
+	}
+
+	uint32 pc_var = read_pc() + 4;
+
+	if (result)
+	{
+		uint32 imm32 = (((sint32)(((uint32)inst.s << 20) | ((uint32)inst.j2 << 19)| ((uint32)inst.j1 << 18)| ((uint32)inst.imm6 << 12) | ((uint32)inst.imm11 << 1))) << 12) >> 12;
+		pc_var += imm32;
+	}
+
+	write_register_bank(RB, 15, pc_var);
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_msr)
+{
+	uint32 op = read_register_bank(RB, inst.rn);
+	
+	uint32 mask = 0;
+	if(inst.mask & 0x8) mask |= 0xff000000;
+	if(inst.mask & 0x4) mask |= 0xff0000;
+	if(inst.mask & 0x2) mask |= 0xff00;
+	if(inst.mask & 0x1) mask |= 0xff;
+	
+	if(mask & 0xffff) trap();
+	
+	//limited msr in thumb mode
+	if(inst.mask & 0x8) {
+		uint32 n = op >> 31;
+		uint32 z = (op >> 30) & 1;
+		uint32 c = (op >> 29) & 1;
+		uint32 v = (op >> 28) & 1;
+		uint32 q = (op >> 27) & 1;
+		
+		write_register(N,n);
+		write_register(Z,z);
+		write_register(C,c);
+		write_register(V,v);
+		write_register(Q,q);
+	}
+	
+	if(inst.mask & 0x1) {
+		uint32 ge3 = (op >> 19) & 1;
+		uint32 ge2 = (op >> 18) & 1;
+		uint32 ge1 = (op >> 17) & 1;
+		uint32 ge0 = (op >> 16) & 1;
+		
+		write_register(GE0, ge0);
+		write_register(GE1, ge1);
+		write_register(GE2, ge2);
+		write_register(GE3, ge3);
+	}
+	
+}
+
+execute(thumb2_ldrhit3)
+{
+	if (!(inst.rn == 0xf) && !(inst.p == 1 && inst.u == 1 && inst.w == 0))
+	{
+		uint32 imm32 = (uint32)inst.imm8; 
+		uint8 wback = inst.w == 1;
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+
+		uint32 offset_addr;
+		if (inst.u) 
+		{
+			offset_addr = n + imm32;
+		}
+			else 
+		{
+			offset_addr = n - imm32; 
+		}
+
+		uint32 address;
+		
+		if (inst.p) 
+		{
+			address = offset_addr;
+		}
+		else 
+		{
+			address = n;
+		}
+
+		uint32 data;
+		uint8 val = memory_read_16(address, data);
+		
+		if (inst.w) 
+			write_register_bank(RB, inst.rn, offset_addr);
+
+		if (inst.rt == 15)
+		{
+			if ((address & 0x3) == 0) 
+			{
+				LoadWritePC(data);
+			}
+		}
+		else
+		{
+			write_register_bank(RB, inst.rt, data);
+		}
+	} else {
+	  trap();
+	}
+}
+
+
+execute(thumb2_ldrshit2)
+{
+	if (!(inst.rn == 0xf) && !(inst.p == 1 && inst.u == 1 && inst.w == 0))
+	{
+		uint32 imm32 = (uint32)inst.imm8; 
+		uint8 wback = inst.w == 1;
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+
+		uint32 offset_addr;
+		if (inst.u) 
+		{
+			offset_addr = n + imm32;
+		}
+			else 
+		{
+			offset_addr = n - imm32; 
+		}
+
+		uint32 address;
+		
+		if (inst.p) 
+		{
+			address = offset_addr;
+		}
+		else 
+		{
+			address = n;
+		}
+
+		uint32 data;
+		uint8 val = memory_read_16(address, data);
+		sint16 sdata = data;
+		sint32 sxdata = sdata;
+		
+		if (inst.w) 
+			write_register_bank(RB, inst.rn, offset_addr);
+
+		if (inst.rt == 15)
+		{
+			if ((address & 0x3) == 0) 
+			{
+				LoadWritePC(sxdata);
+			}
+		}
+		else
+		{
+			write_register_bank(RB, inst.rt, sxdata);
+		}
+	} else {
+	  trap();
+	}
+}
+
+
+execute(thumb2_ldrsbit2)
+{
+	if (!(inst.rn == 0xf) && !(inst.p == 1 && inst.u == 1 && inst.w == 0))
+	{
+		uint32 imm32 = (uint32)inst.imm8; 
+		uint8 wback = inst.w == 1;
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+
+		uint32 offset_addr;
+		if (inst.u) 
+		{
+			offset_addr = n + imm32;
+		}
+			else 
+		{
+			offset_addr = n - imm32; 
+		}
+
+		uint32 address;
+		
+		if (inst.p) 
+		{
+			address = offset_addr;
+		}
+		else 
+		{
+			address = n;
+		}
+
+		uint32 data;
+		uint8 val = memory_read_8(address, data);
+		sint8 sdata = data;
+		sint32 sxdata = sdata;
+		
+		if (inst.w) 
+			write_register_bank(RB, inst.rn, offset_addr);
+
+		if (inst.rt == 15)
+		{
+			if ((address & 0x3) == 0) 
+			{
+				LoadWritePC(sxdata);
+			}
+		}
+		else
+		{
+			write_register_bank(RB, inst.rt, sxdata);
+		}
+	} else {
+	  trap();
+	}
+}
+
+execute(thumb2_ldrit3)
+{
+	if (inst.rn != 0xf)
+	{
+		uint32 imm32 = (uint32)inst.imm12;
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		
+		uint32 address = n + imm32;
+		uint32 data;
+		
+		// Hack 
+		//address &= ~0x3;
+		
+		uint8 val = memory_read_32(address, data);
+		
+		if (inst.rt == 15)
+		{
+			if ((address & 0x3) == 0) 
+			{
+				LoadWritePC(data);
+			}
+			else
+			  {
+			    trap();
+			  }
+		}
+		else
+		{
+			write_register_bank(RB, inst.rt, data);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_ldrhit2)
+{
+	if (inst.rn != 0xf)
+	{
+		uint32 imm32 = (uint32)inst.imm12;
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		
+		uint32 address = n + imm32;
+		uint32 data;
+		
+		// Hack 
+		//address &= ~0x3;
+		
+		uint8 val = memory_read_16(address, data);
+		
+		if (inst.rt == 15)
+		{
+			if ((address & 0x3) == 0) 
+			{
+				LoadWritePC(data);
+			}
+			else
+			  {
+			    trap();
+			  }
+		}
+		else
+		{
+			write_register_bank(RB, inst.rt, data);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+helper void LoadWritePC(uint32 address)
+{
+	if (bitsel(address,0) == 1)
+	{
+		set_cpu_mode(1);
+		write_register(T, 1);
+		write_register_bank(RB, 15, address & ~1);
+	}
+	else if (bitsel(address,1) == 0)
+	{
+		set_cpu_mode(0);
+		write_register(T, 0);
+		write_register_bank(RB, 15, address);
+	}
+	else
+	{
+		trap();
+	}
+	return;
+}
+
+execute(thumb2_asrt2)
+{
+	uint32 m = read_register_bank(RB, inst.rm);
+	uint32 n = read_register_bank(RB, inst.rn);
+
+	uint8 shift_n = (uint8) m & 0xff;
+	
+	uint32 result;
+	uint8 carry;
+	result = Shift_C(n, 2, shift_n, read_register(C), carry);
+
+	write_register_bank(RB, inst.rd, result);
+
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry);
+	}
+}
+
+execute(thumb2_asrit2)
+{
+	if (!(inst.rd == 0xf && inst.s == 1))
+	{
+		uint32 m = read_register_bank(RB, inst.rm);
+		
+		uint8 shift_t;
+		uint8 shift_n;
+		
+		DecodeImmShift(0x2, (uint8)inst.imm3 << 2 | (uint8)inst.imm2, shift_t, shift_n);
+
+		uint32 result;
+		uint8 carry;
+		
+		result = Shift_C(m, shift_t, shift_n, read_register(C), carry);
+
+		write_register_bank(RB, inst.rd, result);
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_andt2)
+{
+	if (inst.rd != 0xf)
+	{
+		uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rm);
+		uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+		uint8 shift_t;
+		uint8 shift_n;
+
+		DecodeImmShift(inst.type, (uint8)inst.imm3 << 2 | (uint8) inst.imm2, shift_t, shift_n);
+		
+		uint32 shifted;
+		uint8 carry;
+		
+		shifted = Shift_C(m, shift_t, shift_n, read_register(C), carry);
+		uint32 result = n & shifted;
+		
+		write_register_bank(RB, inst.rd, result);
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+		}
+		
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_cbz)
+{
+	uint32 rn = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 pc_var;
+	uint32 imm32;
+	pc_var = read_pc();
+	pc_var += 4;
+	if (rn == 0)
+	{
+		imm32 = (uint32)inst.i << 6 | ((uint32)inst.imm5 << 1);
+		write_register_bank(RB, 15, pc_var + imm32);
+	}
+	else
+	{
+		write_register_bank(RB, 15, read_pc() + 2);
+	}
+}
+
+execute(thumb2_addt3)
+{
+	if (!(inst.rd == 0xf && inst.s == 1) && !(inst.rn == 0xd))
+	{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 m = read_register_bank(RB, inst.rm) + pc_check(inst.rn);
+
+	uint8 imm5 = (uint8)(inst.imm3 << 2) | (uint8)(inst.imm2);
+
+	uint8 shift_t;
+	uint8 shift_n;
+
+	DecodeImmShift(inst.type, imm5, shift_t, shift_n);
+
+	uint32 t;
+	uint8 carry;
+	uint8 overflow; 
+
+	uint32 shifted = Shift(m, shift_t, shift_n, read_register(C));
+	uint32 result = AddWithCarry(n, shifted, 0, carry, overflow);
+
+	if (inst.rd == 15)
+	{
+		if (bitsel(result, 0) == 1)
+		{
+			write_register_bank(RB, 15, result & ~1); // setflags is always FALSE here
+		}
+		else if (bitsel(result, 1) == 0)
+		{
+			set_cpu_mode(0);
+			write_register(T, 0);
+			write_register_bank(RB, 15, result);
+		}
+	}
+	else
+	{
+		write_register_bank(RB, inst.rd, result);
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+			write_register(V, overflow);
+		}
+	}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_stm)
+{
+
+  /*
+     NEEDS TESTING!
+  */
+  
+	uint32 addr = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 u = 1;
+	uint32 p = 0;
+	sint32 addr_delta = u ? (sint32)4 : (sint32)-4;
+	sint32 pos_delta = u ? (sint32)1 : (sint32)-1;
+	uint32 pos = u ? 0 : 15;
+	sint32 pos_max = u ? (sint32)16 : (sint32)-1;
+	uint32 bit;
+	uint32 val;
+	
+	uint32 regs = inst.immval | (inst.m << 14);
+	
+	if(stm_loop(addr, addr_delta, pos_delta, pos, pos_max, inst.immval, p))
+	{
+		if(inst.w) write_register_bank(RB, inst.rn, addr);
+	}
+}
+
+execute(thumb2_stmdb)
+{
+	if (!(inst.w == 1 && inst.rn == 0xd))
+	{
+	uint32 addr = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 u = inst.op & 1;
+	uint32 p = inst.op & 2;
+	sint32 addr_delta = u ? (sint32)4 : (sint32)-4;
+	sint32 pos_delta = u ? (sint32)1 : (sint32)-1;
+	uint32 pos = u ? 0 : 15;
+	sint32 pos_max = u ? (sint32)16 : (sint32)-1;
+	uint32 bit;
+	uint32 val;
+	
+	if(stm_loop(addr, addr_delta, pos_delta, pos, pos_max, inst.immval, p))
+	{
+		if(inst.w) write_register_bank(RB, inst.rn, addr);
+	}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_pusht2)
+{
+	uint16 regs = ((uint16)inst.m << 14) | (uint16) inst.immval;
+		uint32 sp = read_register_bank(RB, 13);
+
+		for (uint32 i = 16; i > 0; i -= (uint32)1) {
+			uint32 f = i - 1;
+			if (regs & (1 << f)) {
+				sp -= 4;
+				memory_write_32(sp, read_register_bank(RB, (uint8)f));
+			}
+		}
+		write_register_bank(RB, 13, sp);
+}
+
+execute(thumb2_subwi)
+{
+	if (!(inst.rn == 0xf))
+	{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn);
+	uint32 imm32 = ((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8;
+
+	uint8 carry_out; 
+	uint8 overflow;
+
+	uint32 result = AddWithCarry(n, ~imm32, 1, carry_out, overflow);
+	write_register_bank(RB, inst.rd, result);
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_subspt2)
+{
+	if (!(inst.rd == 0xf && inst.s == 1))
+	{
+		uint32 sp = read_register_bank(RB, 13);
+		uint32 imm32 = ThumbExpandImm(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8);
+		uint8 carry;
+		uint8 overflow;
+
+		uint32 result = AddWithCarry(sp, ~imm32, 1, carry, overflow);
+		write_register_bank(RB, inst.rd, result);
+		
+		if (inst.s)
+		{
+			write_register(N, bitsel(result, 31));
+			write_register(Z, result == 0);
+			write_register(C, carry);
+			write_register(V, overflow);
+		}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_subt3)
+{
+	if (!(inst.rd == 0xf && inst.s == 1) && !(inst.rn == 0xd))
+	{
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn); 
+	uint32 imm32 = ThumbExpandImm(((uint32)inst.i << 11) | ((uint32)inst.imm3 << 8) | (uint32)inst.imm8);
+
+	uint8 carry_out; 
+	uint8 overflow;
+
+	uint32 result = AddWithCarry(n, ~imm32, 1, carry_out, overflow);
+	write_register_bank(RB, inst.rd, result);
+	
+	if (inst.s)
+	{
+		write_register(N, bitsel(result, 31));
+		write_register(Z, result == 0);
+		write_register(C, carry_out);
+		write_register(V, overflow);
+	}
+	}
+	else
+	{
+		trap();
+	}
+}
+
+execute(thumb2_strbt3)
+{
+	if (!(inst.p == 1 && inst.u == 1 && inst.w == 0))
+	{
+	uint32 t = read_register_bank(RB, inst.rt) + pc_check(inst.rt); 
+	uint32 n = read_register_bank(RB, inst.rn) + pc_check(inst.rn); 
+	uint32 imm32 = inst.imm8;
+	uint8 index = inst.p == 1; 
+	uint8 add = inst.u == 1; 
+	uint8 wback = inst.w == 1;
+
+	uint32 offset_addr;
+	if (add) 
+	{
+		offset_addr = n + imm32;
+	}
+	else 
+	{
+		offset_addr = n - imm32;
+	}
+
+	uint32 address;
+	
+	if (index) 
+	{
+		address = offset_addr;
+	}
+	else 
+	{
+		address = n;
+	}
+	
+	memory_write_8(address, (t & 0x000000ff));
+
+	 if (wback) 
+		 write_register_bank(RB, inst.rn, offset_addr);
+	}
+ }
+
+execute(thumb2_ldct2)
+{
+  take_exception(11, address_of_next_instruction());
+  /*if (inst.rn == 0xf) trap();
+  if (inst.p == 0 && inst.u == 0 && inst.d == 0 && inst.w == 0) trap();
+  if (inst.p == 0 && inst.u == 0 && inst.d == 1 && inst.w == 0) trap();
+  uint32 n = read_register_bank(RB, inst.rn);
+  uint32 c = inst.coproc;
+  uint32 imm32 = ((uint32)inst.imm8) << 2;
+  uint8 index = inst.p;
+  uint8 add = inst.u;
+  uint8 wback = inst.w;
+
+  uint32 offset_addr;
+
+  if (add)
+    offset_addr = n + imm32;
+  else
+  offset_addr = n - imm32; */
+}
+
+ helper uint8 stm_loop(uint32 &addr, sint32 addr_delta, sint32 pos_delta, uint32 pos, sint32 pos_max, uint32 mask, uint32 p)
+ {
+	 uint32 bit = 0;
+	 uint32 val = 0;
+	 for(pos ; pos != pos_max; pos += pos_delta) //initial pos is dummy statement to shut the parser up
+	 {
+		 bit = 1 << pos;
+		 if((mask & bit))
+		 {
+			 if(p) addr += addr_delta;
+
+			 if (pos == 15)	
+			 {
+				 val = read_pc() + 4;
+				 if(!memory_write_32(addr, val+8)) return 0;
+			 }
+			 else
+			 {
+	                        val = read_register_bank(RB, pos);
+				if(!memory_write_32(addr, val)) return 0;
+			}
+			if (!p) addr += addr_delta;
+		}
+	}
+	return 1;
+}
+
+execute(thumb2_clrext1)
+{
+	write_register(XState, 0);
+}
+
+execute(thumb2_dsbt1)
+{
+
+}
+execute(thumb2_dmbt1)
+{
+
+}
+
+helper  uint8 pc_check(uint32 reg)
+{
+	return reg == 15 ? 4 : 0;
+}
+
+helper void DecodeImmShift(uint8 type, uint8 imm5, uint8 &shift_t, uint8 &shift_n)
+{
+	if (type == 0)
+	{
+		shift_t = 0; shift_n = imm5;
+	}
+	else if (type == 1)
+	{
+		shift_t = 1;
+		if (imm5 == 0)
+			shift_n = 32;
+		else
+			shift_n = imm5;
+	}
+	else if (type == 2)
+	{
+		shift_t = 2;
+		if (imm5 == 0)
+			shift_n = 32;
+		else
+			shift_n = imm5;
+	}
+	else if (type == 3)
+	{
+		if (imm5 == 0)
+		{
+			shift_t = 4; 
+			shift_n = 1;
+		}
+		else
+		{
+			shift_t = 3; 
+			shift_n = imm5;
+		}
+	}
+	else
+	{
+		shift_t = 0;
+		shift_n = 0;
+	}
+	return;
+}
+
+helper uint32 Shift(uint32 value, uint8 type, uint32 amount, uint8 carry_in)
+{
+	uint8 carry_out;
+	uint32 result = Shift_C(value, type, amount, carry_in, carry_out);
+	return result;
+}
+
+helper uint32 Shift_C(uint32 value, uint8 type, uint32 amount, uint8 carry_in, uint8 &carry_out)
+{
+	uint32 result; 
+
+	if (amount == 0)
+	{
+		result = value;
+		carry_out = carry_in;
+		return result;
+	}
+	else
+	{
+		switch(type)
+		{
+		case 0:
+		{
+			result = LSL_C(value, amount, carry_out);
+			return result;
+		}
+		case 1:
+		{
+			result = LSR_C(value, amount, carry_out);
+			return result;
+		}
+		case 2:
+		{
+			result = ASR_C(value, amount, carry_out);
+			return result;
+		}
+		case 3:
+		{
+			result = ROR_C(value, amount, carry_out);
+			return result;
+		}
+		case 4:
+		{
+			result = RRX_C(value, carry_in, carry_out);
+			return result;
+		}
+		default: 
+		{
+			result = 0;
+			carry_out = 0;
+			return result;
+		}
+		}
+	}
+}
+
+helper uint32 decode_imm(uint32 type, uint32 shift, uint32 bits, uint8 carry_in, uint8 &carry_out)
+{
+	uint32 val;
+	uint8 c = carry_in;
+	
+	
+	uint8 shift_p = shift == 0 & (type == 1 | type == 2);
+	//if(shift_p) shift = 32;
+	
+	shift = shift_p ? (uint32)32 : (uint32)shift;
+	
+	switch(type)
+	{
+		case 0:
+		{
+			val = lsli(bits, shift, c);
+			break;
+		}
+		case 1:
+		{
+			val = lsri(bits, shift, c);
+			break;
+		}
+		case 2:
+		{
+			val = asri(bits, (uint8)shift, c);
+			break;
+		}
+		case 3:
+		{
+			if(shift == 0)
+			{
+				val = rrxi(bits, carry_in, c);
+			}
+			else
+			{
+				val = rori(bits, shift, c);
+			}
+			break;
+		}
+		default:
+		{
+			val = 0;
+			trap();
+		}
+	}
+	
+	carry_out = c;
+	return val;
+}
+
+helper uint32 lsli(uint32 bits, uint32 shift, uint8 &carry_out)
+{
+	uint8 carry_bit = bitsel(bits, (32-shift));
+	
+	carry_out = shift == 0 ? (uint8)carry_out : (uint8)carry_bit;
+	
+	
+	return (uint32) bits << shift;
+}
+
+
+helper uint32 lsri(uint32 bits,  uint32 shift,  uint8 &carry_out)
+{
+	uint8 carry_shift = shift - 1;
+	
+	//carry_out = shift ? (uint8)((bits >> carry_shift) & 1) : (uint8)(carry_out);
+	if(shift) carry_out = (uint8)((bits >> carry_shift) & 1);
+	
+	uint32 rval = 0;
+	if(shift != 32) rval = bits >> shift;
+	
+	return rval;
+}
+
+helper  uint32 asri(uint32 bits,  uint8 shift,  uint8 &carry_out)
+{
+	carry_out = ((sint32)(bits) >> (shift - 1)) & 1;
+	
+	// If we shift by 32, the shift semantics are as though we have shifted by 31 but the carry semantics are as though we shift by 32
+	//if(shift == 32) shift = 31;
+	shift = shift == 32 ? (uint8)31 : shift; 
+	
+	return ((sint32) bits) >> shift;
+}
+
+helper  uint32 rrxi(uint32 bits,  uint8 carry_in, uint8 &carry_out)
+{
+	carry_out = (bits & 1);
+	bits >>= 1;
+	bits |= carry_in << (uint32)31;
+	return bits;
+}
+
+helper  uint32 rori(uint32 bits, uint32 shift, uint8 &carry_out)
+{
+	shift %= 32;
+	uint32 res = (bits >> shift) | (bits << (32 - shift));
+	carry_out = ((res & 0x80000000) != 0);
+	return res;
+}
+
+helper uint32 decode_reg(uint32 type, uint32 shift, uint32 bits, uint8 carry_in, uint8 &carry_out)
+{
+	uint8 c = carry_in;
+	
+	uint32 val = bits;
+	if(type != 0 || shift != 0)
+	{
+		switch(type)
+		{
+			case 0:
+			{
+				val = lslr(bits, (uint8)shift, carry_in, c);
+				break;
+			}
+			case 1:
+			{
+				val = lsrr(bits, (uint8)shift, carry_in, c);
+				break;
+			}
+			case 2:
+			{
+				val = asrr(bits, (uint8)shift, carry_in, c);
+				break;
+			}
+			case 3:
+			{
+				val = rorr(bits, (uint8)shift, carry_in, c);
+				break;
+			}
+		}
+	}
+	
+	carry_out = c;
+	return val;
+}
+
+helper uint32 lslr(uint32 bits, uint8 shift, uint8 carry_in, uint8 &carry_out)
+{
+	if((shift) == 0) 
+	{
+		return bits;
+	}
+	else if(shift < 32)
+	{
+		carry_out = bitsel(bits, (32- (shift)));
+		return (uint32) bits << (shift);
+	}
+	else if ((shift) == 32)
+	{
+		carry_out = bits & 1;
+		return 0;
+	}
+	else
+	{
+		carry_out = 0;
+		return 0;
+	}
+	
+}
+
+helper uint32 lsrr(uint32 bits, uint8 shift, uint8 carry_in, uint8 &carry_out)
+{
+	if (shift == 0)
+	{
+		return bits;
+	}
+	else if(shift < 32)
+	{
+		carry_out = (bits >> ((shift) - 1)) & 1;
+		return bits >> (shift);
+	}
+	else if(shift == 32)
+	{
+		carry_out = bits >> (uint32)31;
+		return 0;
+	}
+	else
+	{
+		carry_out = 0;
+		return 0;
+	}
+	
+}
+
+helper uint32 asrr(uint32 bits, uint8 shift, uint8 carry_in, uint8 &carry_out)
+{
+	if((shift) == 0)
+	{
+		return bits;
+	}
+	else if((shift) >= 32)
+	{
+		carry_out = ((sint32) bits >> 31) & 1;
+		if(bits & 0x80000000) return 0xffffffff;
+		else return 0x00000000;
+	}
+	else
+	{
+		carry_out = ((sint32)(bits) >> ((shift) - 1)) & 1;
+		return ((sint32) bits) >> (shift);
+	}
+}
+
+helper uint32 rorr(uint32 bits, uint32 shift, uint8 carry_in, uint8 &carry_out)
+{
+	if((shift) == 0)
+	{
+		return bits;
+	}
+	else
+	{
+		shift &= 0x1f;
+		uint32 res = (bits >> (shift)) | (bits << (32 - (shift)));	
+		carry_out = (bits >> ((shift) - 1)) & 1;
+		return res;
+	}
+}
+
+/*** End of shift decoding operations ***/
+
+/*** Start of shift operations ***/
+
+helper uint32 rotate_imm(uint8 imm8, uint8 rot, uint8 carry_in, uint8 &carry_out)
+{
+	uint32 shift = (rot * 2) % 32;
+	uint32 imm32 = 0;
+	if(shift == 0) imm32 = imm8;
+	else imm32 = (imm8 >> shift) | (imm8 << (32 - shift));
+
+	if(rot == 0) carry_out = carry_in;
+	else carry_out = (uint8)((imm32 >> 31) & 1);
+	
+	return imm32;
+}
+
+/*** End of shift operations ***/
+
+/*helper  uint32 add_with_carry(uint32 op1,  uint32 op2,  uint8 flags,  uint8 is_addition,  uint8 carry_in)
+{
+	uint32 result;
+	uint64 unsigned_sum = (uint64)op1 + (uint64)op2 + (uint64)carry_in;
+	sint64 signed_sum = (sint64) ((sint32) op1) + (sint64) ((sint32) op2) + (sint64) carry_in;
+
+	result = unsigned_sum & 0xFFFFFFFF;
+	
+	if(flags)
+	{
+		uint8 c = (unsigned_sum >> 32) != 0;
+		uint8 v = (sint64) ((sint32) result) != signed_sum;
+		uint8 n = (result & 0x80000000) != 0;
+		uint8 z = result == 0;
+	
+		write_register(C, c);
+		write_register(V, v);
+		write_register(Z, z);
+		write_register(N, n);
+	}
+	
+	return result;
+}
+*/
+
+/*helper uint32 AddWithCarry(uint32 op1, uint32 op2, uint8 carry_in, uint8 &carry_out, uint8 &overflow)
+{
+	uint32 result;
+	uint64 unsigned_sum = (uint64)op1 + (uint64)op2 + (uint64)carry_in;
+	sint32 signed_sum = (sint32) op1 + (sint32) op2 + (uint32) carry_in;
+	
+	result = unsigned_sum & 0xFFFFFFFF;
+	carry_out = (uint64)result != unsigned_sum;
+	overflow = (sint64)result != signed_sum;
+
+	return result;
+	}*/
+
+helper uint32 AddWithCarry(uint32 op1,  uint32 op2, uint8 carry_in, uint8 &carry_out, uint8 &overflow)
+{
+	uint32 result;
+	uint64 unsigned_sum = (uint64)op1 + (uint64)op2 + (uint64)carry_in;
+	sint64 signed_sum = (sint64) ((sint32) op1) + (sint64) ((sint32) op2) + (sint64) carry_in;
+
+	result = unsigned_sum & 0xFFFFFFFF;
+
+	carry_out = (unsigned_sum >> 32) != 0;
+	overflow = (sint64) ((sint32) result) != signed_sum;
+
+	return result;
+}
+
+helper uint32 bitsel(uint32 val, uint8 bit)
+{
+	return (val >> bit) & 1;
+}
+
+helper uint64 bitsel64(uint64 val, uint8 bit)
+{
+	return (val >> bit) & 1;
+}
+
+helper void not_implemented()
+{
+	return;
+}
+
+helper void update_c_flag(uint32 a, uint32 b, uint32 c)
+{
+	uint64 sum_u = (uint64)a + (uint64)b + (uint64)c;
+	write_register(C, (uint64)(sum_u >> 32) != (uint64)0);
+
+	uint8 check = (a & 0x80000000) == ((b + c) & 0x80000000);
+	uint8 v = (((a + (b + c)) & 0x80000000) != (a & 0x80000000));
+
+	v = check ? v : (uint8)0;
+	write_register(V, v);
+
+	return;
+}
+
+helper void update_cv_flags_add(uint32 a, uint32 b) {
+	update_c_flag(a, b, 0);
+	return;
+}
+
+helper void update_cv_flags_adc(uint32 a, uint32 b, uint32 c) {
+	update_c_flag(a, b, c);
+	return;
+}
+
+helper void update_cv_flags_sub(uint32 a, uint32 b) {
+	update_c_flag(a, ~b, 1);
+	return;
+}
+
+helper void update_cv_flags_sbc(uint32 a, uint32 b, uint32 c) {
+	update_c_flag(a, ~b, c);
+	return;
+}
+
+helper void update_zn_flags(uint32 val) {
+	write_register(Z, val == 0);
+	write_register(N, (val & 0x80000000) == 0x80000000);
+	return;
+}
+
+helper uint8 instruction_predicate(Instruction inst) 
+{
+	if(!inst.IsPredicated) {
+		return 1;
+	}
+	
+	uint32 pred = inst.PredicateInfo >> 4;
+    
+	uint8 cond = pred >> 1;
+	uint8 invert = pred & 1;
+	
+	uint8 result;
+	
+	switch (cond)
+	{ // first 3 bits of the base condition are used
+	case 0: {
+		result = read_register(Z);
+		break; //EQ or NE
+	}
+	case 1: {
+		result = read_register(C);
+		break; //CS or CC
+	}
+	case 2: {
+		result = read_register(N);
+		break; //MI or PL
+	}
+	case 3: {
+		result = read_register(V);
+		break; //VS or VC
+	}
+	case 4: {
+		result = (read_register(C) & !read_register(Z));
+		break; //HI or LS
+	}
+	case 5: {
+		result = (read_register(N) == read_register(V));
+		break; //GE or LT
+	}
+	case 6: {
+		result = ((read_register(N) == read_register(V)) & !read_register(Z));
+		break; //GT LE
+	}
+	case 7: {
+		result = 1;
+		break; //AL
+	}
+	default: {
+		result = 1;
+		break;
+	}
+	}
+	result = result ^ invert; // if invert is set, flip result
+	return result;
+}
+
+/*helper void raise_mem_fault(uint32 code, uint32 addr, uint8 is_write)
+{
+	take_exception(7, read_pc()+8);
+	return;	
+}*/
+
+helper uint32 zero_extend(uint32 imm4, uint32 i, uint32 imm3, uint32 imm8)
+{
+  uint32 result = 0;
+  imm4 = imm4 << 12;
+  i = i << 11;
+  imm3 = imm3 << 8;
+  result = imm4 | i | imm3 | imm8;
+  return result;
+}
+
+/* 
+   Attempts a 32 bit memory read and sets up the cpu for an exception if the access fails.
+   Returns TRUE on SUCCESS
+   Returns FALSE and causes an EXCEPTION on FAILURE
+*/ 
+helper uint8 memory_read_32(uint32 addr, uint32 &data)
+{
+	uint32 data_out;
+	mem_read_32(addr, data);
+	/*if(access) {
+	  //raise_mem_fault(access, addr, 0);
+		return 0;
+		}*/
+	return 1;
+}
+
+helper uint8 memory_read_16(uint32 addr, uint32 &data)
+{
+	uint16 inner_data;
+	mem_read_16(addr, inner_data);
+	data = inner_data;
+	/*if(access) {
+	  //raise_mem_fault(access, addr, 0);
+		return 0; 
+		}*/
+	return 1;
+}
+
+helper uint8 memory_read_8(uint32 addr, uint32 &data)
+{
+	uint8 inner_data;
+	mem_read_8(addr, inner_data);
+	data = inner_data;
+	/*if(access) {
+	  raise_mem_fault(access, addr, 0);
+		return 0;
+		}*/
+	return 1;
+}
+
+/* 
+   Attempts a 32 bit memory write and sets up the cpu for an exception if the access fails.
+   Returns TRUE on SUCCESS
+   Returns FALSE and causes an EXCEPTION on FAILURE
+*/ 
+helper uint8 memory_write_32(uint32 addr, uint32 data)
+{
+	mem_write_32(addr, data);
+	/*if(access) {
+	  //raise_mem_fault(access, addr, 1);
+		return 0;
+		}*/
+	return 1;
+}
+
+helper uint8 memory_write_16(uint32 addr, uint32 data)
+{
+	mem_write_16(addr, data);
+	/*if(access) {
+	  //	raise_mem_fault(access, addr, 1);
+		return 0;
+		}*/
+	return 1;
+}
+
+helper uint8 memory_write_8(uint32 addr, uint32 data)
+{
+	mem_write_8(addr, data);
+	/*if(access) {
+	  //	raise_mem_fault(access, addr, 1);
+		return 0;
+		}*/
+	return 1;
+}
+
+helper uint32 address_of_next_instruction()
+{
+	return read_register_bank(RB, 15) + 4;
+}

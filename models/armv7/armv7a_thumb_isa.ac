@@ -1,0 +1,1201 @@
+/*
+	Tom Spink
+	PASTA2 			2013
+
+	Kuba Kaszyk
+*/
+AC_ISA(thumb) {
+
+	include("armv5e_thumb_isa.ac");
+	include("thumb_vfp.ac");
+	
+	ac_fetchsize 16;
+
+	/* Thumb-2 Formats */
+	ac_format THUMB2_MV_PL_IMM16 = "0x1E:5 %i:1 0x2:2 %op:1 0x1:1 %op2:2 %imm4:4 0x0:1 %imm3:3 %rd:4 %imm8:8";
+	ac_format THUMB2_B = "0x1E:5 %s:1 %imm10:10 %link:2 %j1:1 0x1:1 %j2:1 %imm11:11";
+	ac_format THUMB2_BLX = "0x1E:5 %s:1 %imm10H:10 0x3:2 %j1:1 0x0:1 %j2:1 %imm10L:10 %H:1";
+	ac_format THUMB2_ITH = "0xBF:8 %opA:4 %opB:4";
+	ac_format THUMB2_NOP32 = "0xF3AF8000:32";
+	ac_format THUMB2_DATA_PROC_SHR = "0x7:3 %op2:4 %op:4 %s:1 %rn:4 0x0:1 %imm3:3 %rd:4 %imm2:2 %type:2 %rm:4";
+	ac_format THUMB2_DATA_PROC_SHFT = "0x7:3 %op0:2 0x2:3 %x:1 %op:2 %s:1 %rn:4 %op3:4 %rd:4 %op2:4 %rm:4";
+	ac_format THUMB2_DATA_PROC_IMM = "0x1E:5 %i:1 %m:1 %op:4 %s:1 %rn:4 0x0:1 %imm3:3 %rd:4 %imm8:8";
+//	ac_format THUMB2_DATA_PROC_IMM2 = "0x1D:5 %i:1 %m:1 %op:4 %s:1 %rn:4 0x0:1 %imm3:3 %rd:4 %imm8:8";
+	ac_format THUMB2_DATA_PROC_REG = "0x1F:5 0x2:3 %op:4 %rn:4 0xf:4 %rd:4 0x2:2 %rotate:2 %rm:4";
+	ac_format THUMB2_MEM_IMM12 = "0x1F:5 0x0:2 %u2:1 %u:1 %op:2 %load:1 %rn:4 %rt:4 %imm12:12";
+	ac_format THUMB2_LSM = "0x1D:5 0x0:2 %op:2 %r:1 %w:1 %l:1 %rn:4 %p:1 %m:1 0x0:1 %immval:13";
+	ac_format THUMB2_LSI = "0x1F:5 0x0:2 %u2:1 %op:3 %load:1 %rn:4 %rt:4 0x1:1 %p:1 %u:1 %w:1 %imm8:8";
+	ac_format THUMB2_LDR_IMM = "0x7c:7 %op:2 0x2:2 0x1:1 %rn:4 %rt:4 0x1:1 %p:1 %u:1 %w:1 %imm8:8";
+	ac_format THUMB2_BFX = "0x79:7 %op:3 %sh:1 %sh2:1 %rn:4 0x0:1 %imm3:3 %rd:4 %imm2:2 0x0:1 %widthm1:5";
+	ac_format THUMB2_BT3 = "0x1E:5 %s:1 %cond:4 %imm6:6 0x2:2 %j1:1 0x0:1 %j2:1 %imm11:11";
+	ac_format THUMB2_MSR = "0x1e:5 0x0:1 0xe:4 0x0:1 %r:1 %rn:4 0x2:2 0x0:1 0x0:1 %mask:4 0x0:8";
+	ac_format THUMB2_LSTB = "0x1D:5 0x0:2 0x3:3 0x0:1 0x1:1 %rn:4 0xf:4 0x0:4 0x0:3 %h:1 %rm:4";
+	ac_format THUMB2_MEM_REG = "0x1F:5 0x0:2 %op1:2 %size:2 %load:1 %rn:4 %rt:4 %op2:6 %imm2:2 %rm:4";
+	ac_format THUMB2_MISC32 = "0x1F:5 %op1:3 %op2:4 %rn:4 %ra:4 %rd:4 %op3:2 %n:1 %m:1 %rm:4";
+	ac_format THUMB2_LDRD = "0x1D:5 0x0:2 %p:1 %u:1 0x1:1 %w:1 %load:1 %rn:4 %rt:4 %rt2:4 %imm8:8";
+	ac_format THUMB2_LDRD2 = "0x1D:5 0x0:2 %op1:2 0x1:1 %op2:2 %rn:4 %rt:4 %rt2:4 %op3:4 %imm8:4";
+	ac_format THUMB2_PKH = "0x1D:5 0x1:2 0x6:4 %s:1 %rn:4 0x0:1 %imm3:3 %rd:4 %imm2:2 %tb:1 %t:1 %rm:4";
+
+	ac_format THUMB2_MULTIPLY = "0x1f:5 0x7:4 %op:3 %rn:4 %rdlo:4 %rdhi:4 %op2:4 %rm:4";
+
+	ac_format THUMB2_CB = "0xB:4 %op:1 0x0:1 %i:1 0x1:1 %imm5:5 %rn:3";
+	ac_format THUMB2_MISC = "0xB:4 %op1:4 %op2:2 %rm:3 %rd:3";
+	ac_format THUMB2_MISC_CTRL = "0xf:4 0x3:4 0xb:4 %op1:4 0x2:2 %op2:1 0x0:1 %op3:4 %op4:4 %op5:4";
+	
+	ac_format THUMB2_COPROC = "0x7:3 %encoding!:1 0xe:4 %opc1:3 0x1:1 %crn:4 %rt:4 %coproc:4 %opc2:3 0x1:1 %crm:4";
+	ac_format THUMB2_COPROC2 = "0x7e:7 %p:1 %u:1 %d:1 %w:1 0x1:1 %rn:4 %crd:4 %coproc:4 %imm8:8";
+
+//	ac_format THUMB2_DATA_PROC_PL_IMM = "0x1E:5 %i:1 0x1:1 %op:4 %s:1 %rn:4 0x0:1 %imm3:3 %rd:4 %imm8:8";
+	
+	
+	/* Thumb-2 Instructions */
+	ac_instr<ALU_OP_INS>	rsbit1;
+	
+	ac_instr<THUMB2_MV_PL_IMM16> movit3, movtt1;
+	ac_instr<THUMB2_B> bl, bt4;
+	ac_instr<THUMB2_BLX> blx;
+	ac_instr<THUMB2_ITH> nop16, it, yield, wfe, wfi, sev;
+	ac_instr<THUMB2_NOP32> nop32;
+	ac_instr<THUMB2_DATA_PROC_SHR> cmpw, addt3, subrt2, orrt2, lslit2, lsrit2, ornrt1, adct2, addspt3, andt2, asrit2, bicrt2, cmnt2, eort2, mvnt2, rorit1, rsbt1, tstt2, sbct2, rrxt1, teqit2, usat16t1, ssat16t1;
+	ac_instr<THUMB2_DATA_PROC_IMM> cmpwi, subwi, subt3, bicit1, adrt2, addit3, movit2, rsbit2, andit1, orrit1, cmnit1, mvnit1, tstit1, subspt2, addispt3, adcit1, addit4, addispt4, adrt3, eorit1, teqit1, ornit1, sbcit1;
+//	ac_instr<THUMB2_DATA_PROC_IMM2> ornit1;
+	ac_instr<THUMB2_MEM_IMM12> ldr_lit, ldrit3, ldrhit2, ldrshit1, ldrbit2, strhit2, strbit2, strit3, pldt1, pldt1_2, ldrsbt1;
+	ac_instr<THUMB2_LSM> stm, stmdb, pusht2, ldmiat2, ldmdbt2, popt2;
+	ac_instr<THUMB2_LSI> strbt3, strit4, ldrbit3, ldrsbit2, ldrhit3, ldrshit2;
+	ac_instr<THUMB2_CB> cbz, cbnz;
+	ac_instr<THUMB2_LDR_IMM> ldrit4;
+	ac_instr<THUMB2_BFX> ubfxt1, sbfxt1, bfct1, bfit1, usatt1, ssatt1;
+	ac_instr<THUMB2_BT3> bt3;
+	ac_instr<THUMB2_MSR> thumb2_msr;
+	ac_instr<THUMB2_DATA_PROC_REG> uxtbt2, uxtht2, sxtab16t1, sxtabt1, sxtb16t1, sxtbt2, sxtht2, uxtab16t1, uxtabt1, uxtaht1, uxtb16t1;
+	ac_instr<THUMB2_LSTB> tbb;
+	ac_instr<THUMB2_MEM_REG> ldrt2, strt2, ldrhrt2, ldrshrt2, strhrt2, ldrbrt2, ldrsbrt2;
+	ac_instr<THUMB2_DATA_PROC_SHFT> lslt2, lsrt2, uadd8t1, uqsub8t1, uadd16t1, asrt2, movt3, qaddt1, qadd16t1, qadd8t1, qasxt1, qsaxt1, qdaddt1, qdsubt1, rort2, qsubt1, qsub16t1, qsub8t1, rbitt1, rev16t2, revt2, revsht2, sadd16t1, sadd8t1, sasxt1, shadd16t1, shadd8t1, shasxt1, shsaxt1, shsub16t1, shsub8t1;
+	ac_instr<THUMB2_MISC32> mult2, selt1, clzt1, mlat1, mlst1, smlat1, smladt1, smlalt1, smlaldt1, smlsdt1, smlsldt1, smmlat1, smmlst1, smuadt1, smult1, smullt1, smulwt1, smusdt1, ssaxt1, ssub16t1, ssub8t1, uasxt1, uhadd16t1, uhadd8t1, uhasxt1, uhsaxt1, uhsub16t1, uhsub8t1, uqadd16t1, uqadd8t1, uqasxt1, uqsaxt1, uqsub16t1, usad8t1, usada8t1, usaxt1, usub16t1, usub8t1;
+	ac_instr<THUMB2_MISC> uxtbt1, uxtht1, revt1, rev16t1, revsht1, sxtbt1, sxtht1;
+	ac_instr<THUMB2_LDRD> ldrdit2, strdt1, ldrext1, strext1;
+	ac_instr<THUMB2_LDRD2> ldrexdt1, strexdt1;
+	ac_instr<THUMB2_PKH> pkht1;
+	ac_instr<THUMB2_MULTIPLY> umullt1, umaalt1, umlalt1;
+	
+	ac_instr<THUMB2_COPROC> mrct1;
+	ac_instr<THUMB2_COPROC2> ldct2;
+	ac_instr<THUMB2_MISC_CTRL> clrext1, dsbt1, dmbt1;
+
+	ac_field<uint8> cond2;
+	ac_field<uint8> in_it_block;
+
+	ac_asm_map reg 
+	{
+		"r"[0..15] = [0..15];
+		"fp" = 11;
+		"ip" = 12;
+		"sp" = 13;
+		"lr" = 14;
+		"pc" = 15;
+	}
+
+	ac_asm_map memmultp
+	{
+		"a" = 0;
+		"b" = 1;
+	}
+	
+	ac_asm_map memmultu
+	{
+		"d" = 0;
+		"i" = 1;
+	}
+	
+	ac_asm_map s
+	{
+		"s"=1;
+		""=0;
+	}
+
+	/* Thumb-2 Behaviours */
+	
+	ac_behaviour thumb2_movit3;
+	ac_behaviour thumb2_movtt1;
+	ac_behaviour thumb2_bl;
+	ac_behaviour thumb2_blx;
+	ac_behaviour thumb2_nop16;
+	ac_behaviour thumb2_nop32;
+	ac_behaviour thumb2_cmpw;
+	ac_behaviour thumb2_cmpwi;
+	ac_behaviour thumb2_ldr_lit;
+	ac_behaviour thumb2_ldrsbt1;
+	ac_behaviour thumb2_stm;
+	ac_behaviour thumb2_stmdb;
+	ac_behaviour thumb2_strbt3;
+	ac_behaviour thumb2_subwi;
+	ac_behaviour thumb2_bicit1;
+	ac_behaviour thumb2_cbz;
+	ac_behaviour thumb2_cbnz;
+	ac_behaviour thumb2_addt3;
+	ac_behaviour thumb2_subt3;
+	ac_behaviour thumb2_adrt2;
+	ac_behaviour thumb2_addit3;
+	ac_behaviour thumb2_movit2;
+	ac_behaviour thumb2_ldrit4;
+	ac_behaviour thumb2_ubfxt1;
+	ac_behaviour thumb2_sbfxt1;
+	ac_behaviour thumb2_itt1;
+	ac_behaviour thumb2_yieldt1;
+	ac_behaviour thumb2_wfet1;
+	ac_behaviour thumb2_wfit1;
+	ac_behaviour thumb2_sevt1;
+	ac_behaviour thumb2_bt3;
+	ac_behaviour thumb2_msr;
+	ac_behaviour thumb2_ldrit3;
+	ac_behaviour thumb2_ldrhit2;
+	ac_behaviour thumb2_ldrshit1;
+
+	ac_behaviour thumb2_pusht2;
+	ac_behaviour thumb2_subrt2;
+	ac_behaviour thumb2_rsbit2;
+	ac_behaviour thumb2_uxtbt2;
+	ac_behaviour thumb2_andit1;
+	ac_behaviour thumb2_tbb;
+	ac_behaviour thumb2_ldrt2;
+	ac_behaviour thumb2_strt2;
+	ac_behaviour thumb2_ldrhrt2;
+	ac_behaviour thumb2_ldrshrt2;
+	ac_behaviour thumb2_strhrt2;
+	ac_behaviour thumb2_ldrbrt2;
+	ac_behaviour thumb2_ldrsbrt2;
+	ac_behaviour thumb2_ldrbit2;
+	ac_behaviour thumb2_strhit2;
+	ac_behaviour thumb2_orrit1;
+	ac_behaviour thumb2_strbit2;
+	ac_behaviour thumb2_strit3;
+	ac_behaviour thumb2_ldmiat2;
+	ac_behaviour thumb2_ldmdbt2;
+	ac_behaviour thumb2_cmnit1;
+	ac_behaviour thumb2_strit4;
+	ac_behaviour thumb2_ldrbit3;
+	ac_behaviour thumb2_ldrhit3;
+	ac_behaviour thumb2_ldrshit2;
+	ac_behaviour thumb2_ldrsbit2;
+	ac_behaviour thumb2_lsrt2;
+	ac_behaviour thumb2_lsrit2;
+	ac_behaviour thumb2_lslt2;
+	ac_behaviour thumb2_lslit2;
+	ac_behaviour thumb2_orrt2;
+	ac_behaviour thumb2_sbct2;
+	ac_behaviour thumb2_popt2;
+	ac_behaviour thumb2_mult2;
+	ac_behaviour thumb2_uxtbt1;
+	ac_behaviour thumb2_uxtht1;
+	ac_behaviour thumb2_mvnit1;
+	ac_behaviour thumb2_ldrdit2;
+	ac_behaviour thumb2_ldrext1;
+	ac_behaviour thumb2_strext1;
+	ac_behaviour thumb2_ldrexdt1;
+	ac_behaviour thumb2_strexdt1;
+	ac_behaviour thumb2_sbcit1;
+	ac_behaviour thumb2_ornit1;
+	ac_behaviour thumb2_uadd8t1;
+	ac_behaviour thumb2_uqsub8t1;
+	ac_behaviour thumb2_uadd16t1;
+	ac_behaviour thumb2_selt1;
+	ac_behaviour thumb2_revt1;
+	ac_behaviour thumb2_clzt1;
+	ac_behaviour thumb2_bt4;
+	ac_behaviour thumb2_pldt1;
+	ac_behaviour thumb2_pldt1_2;
+	ac_behaviour thumb2_tstit1;
+	ac_behaviour thumb2_subspt2;
+	ac_behaviour thumb2_addispt3;
+	ac_behaviour thumb2_strdt1;
+	ac_behaviour thumb2_ornrt1;
+	ac_behaviour thumb2_adcit1;
+	ac_behaviour thumb2_adct2;
+	ac_behaviour thumb2_addit4;
+	ac_behaviour thumb2_addispt4;
+	ac_behaviour thumb2_addspt3;
+	ac_behaviour thumb2_adrt3;
+	ac_behaviour thumb2_andt2;
+	ac_behaviour thumb2_asrit2;
+	ac_behaviour thumb2_asrt2;
+	ac_behaviour thumb2_bfct1;
+	ac_behaviour thumb2_bfit1;
+	ac_behaviour thumb2_bicrt2;
+	ac_behaviour thumb2_cmnt2;
+	ac_behaviour thumb2_eorit1;
+	ac_behaviour thumb2_eort2;
+	ac_behaviour thumb2_mlat1;
+	ac_behaviour thumb2_mlst1;
+	ac_behaviour thumb2_movt3;
+	ac_behaviour thumb2_mvnt2;
+	ac_behaviour thumb2_pkht1;
+	ac_behaviour thumb2_umullt1;
+	ac_behaviour thumb2_mrct1;
+	ac_behaviour thumb2_clrext1;
+	ac_behaviour thumb2_dsbt1;
+	ac_behaviour thumb2_dmbt1;
+	ac_behaviour thumb2_qaddt1;
+	ac_behaviour thumb2_qadd8t1;
+	ac_behaviour thumb2_qasxt1;
+	ac_behaviour thumb2_qdaddt1;
+	ac_behaviour thumb2_qdsubt1;
+	ac_behaviour thumb2_rorit1;
+	ac_behaviour thumb2_rort2;
+	ac_behaviour thumb2_rsbit1;
+	ac_behaviour thumb2_rsbt1;
+	ac_behaviour thumb2_tstt2;
+	ac_behaviour thumb2_qadd16t1;		
+	ac_behaviour thumb2_qsaxt1;
+	ac_behaviour thumb2_qsubt1;
+	ac_behaviour thumb2_qsub16t1;
+	ac_behaviour thumb2_qsub8t1;
+	ac_behaviour thumb2_uxtht2;
+	ac_behaviour thumb2_rbitt1;
+	ac_behaviour thumb2_rev16t2;
+	ac_behaviour thumb2_rev16t1;
+	ac_behaviour thumb2_revt2;
+	ac_behaviour thumb2_revsht1;
+	ac_behaviour thumb2_revsht2;
+	ac_behaviour thumb2_rrxt1;
+	ac_behaviour thumb2_sadd16t1;
+	ac_behaviour thumb2_sadd8t1;
+	ac_behaviour thumb2_sasxt1;
+	ac_behaviour thumb2_shadd16t1;
+	ac_behaviour thumb2_shadd8t1;
+	ac_behaviour thumb2_shasxt1;
+	ac_behaviour thumb2_shsaxt1;
+	ac_behaviour thumb2_shsub16t1;
+	ac_behaviour thumb2_shsub8t1;
+	ac_behaviour thumb2_smlat1;
+	ac_behaviour thumb2_smladt1;
+	ac_behaviour thumb2_smlalt1;
+	ac_behaviour thumb2_smlaldt1;
+	ac_behaviour thumb2_smlsdt1;
+	ac_behaviour thumb2_smlsldt1;
+	ac_behaviour thumb2_smmlat1;
+	ac_behaviour thumb2_smmlst1;
+	ac_behaviour thumb2_smuadt1;
+	ac_behaviour thumb2_smult1;
+	ac_behaviour thumb2_smullt1;
+	ac_behaviour thumb2_smulwt1;
+	ac_behaviour thumb2_smusdt1;
+	ac_behaviour thumb2_ssaxt1;
+	ac_behaviour thumb2_ssub8t1;
+	ac_behaviour thumb2_ssub16t1;
+	ac_behaviour thumb2_sxtab16t1;
+	ac_behaviour thumb2_sxtabt1;
+	ac_behaviour thumb2_sxtb16t1;
+	ac_behaviour thumb2_sxtbt2;
+	ac_behaviour thumb2_sxtbt1;
+	ac_behaviour thumb2_sxtht1;
+	ac_behaviour thumb2_sxtht2;
+	ac_behaviour thumb2_teqit1;
+	ac_behaviour thumb2_teqit2;
+	ac_behaviour thumb2_uasxt1;
+	ac_behaviour thumb2_uhadd16t1;
+	ac_behaviour thumb2_uhadd8t1;
+	ac_behaviour thumb2_uhasxt1;
+	ac_behaviour thumb2_uhsaxt1;
+	ac_behaviour thumb2_uhsub16t1;
+	ac_behaviour thumb2_uhsub8t1;
+	ac_behaviour thumb2_umaalt1;
+	ac_behaviour thumb2_umlalt1;
+	ac_behaviour thumb2_uqadd16t1;
+	ac_behaviour thumb2_uqadd8t1;
+	ac_behaviour thumb2_uqasxt1;
+	ac_behaviour thumb2_uqsaxt1;
+	ac_behaviour thumb2_uqsub16t1;
+	ac_behaviour thumb2_usad8t1;
+	ac_behaviour thumb2_usada8t1;
+	ac_behaviour thumb2_usat16t1;
+	ac_behaviour thumb2_usatt1;
+	ac_behaviour thumb2_usaxt1;
+	ac_behaviour thumb2_usub16t1;
+	ac_behaviour thumb2_usub8t1;
+	ac_behaviour thumb2_uxtab16t1;
+	ac_behaviour thumb2_uxtabt1;
+	ac_behaviour thumb2_uxtaht1;
+	ac_behaviour thumb2_uxtb16t1;
+	ac_behaviour thumb2_ssat16t1;
+	ac_behaviour thumb2_ssatt1;
+	ac_behaviour thumb2_ldct2;
+
+	ISA_CTOR(thumb) {
+		ac_behaviours("behaviours.thumb2");
+		ac_execute("execute.thumb2");
+		
+		/* Thumb-2 Instructions */
+
+		movit3.set_decoder(op=0x0, op2=0x0);
+		movit3.set_asm("movw r%reg,fix:#%imm", rd, imm8);
+		movit3.set_behaviour(thumb2_movit3);
+//		movit3.set_end_of_block(rd=15);
+
+		movtt1.set_decoder(op=0x1, op2=0x0);
+		movtt1.set_asm("movt r%reg, fix:#%imm", rd, imm8);
+		movtt1.set_behaviour(thumb2_movtt1);
+
+		bl.set_decoder(link=0x3);
+		bl.set_behaviour(thumb2_bl);
+		bl.set_asm("bl %reladdr", immu32);
+		bl.set_end_of_block();
+		bl.set_fixed_jump(immu32, FIXED, 0);		
+
+		blx.set_decoder();
+		blx.set_behaviour(thumb2_blx);
+		blx.set_asm("blx %reladdr", immu32);
+		blx.set_end_of_block();
+		blx.set_fixed_jump(immu32, FIXED, 0);
+		
+		nop16.set_decoder(opA=0x0, opB=0x0);
+		nop16.set_behaviour(thumb2_nop16);
+		nop16.set_asm("nop");
+
+		nop32.set_behaviour(thumb2_nop32);
+		nop32.set_asm("nop");
+		nop32.set_decoder();
+
+		cmpw.set_decoder(op2=0x5, op=0xd, s=0x1, rd=0xf);
+		cmpw.set_asm("cmp.w %reg, %imm fix:shift", rn, rm);
+		cmpw.set_behaviour(thumb2_cmpw);
+
+		/* Equivalent to ARMv7 cmp3 */
+		cmpwi.set_decoder(op=0xd, m=0x0, rd=0xf, s=1);
+		cmpwi.set_asm("cmp.w %reg fix:%imm", rn, imm8);
+		cmpwi.set_behaviour(thumb2_cmpwi);
+
+		ldr_lit.set_decoder(rn=0xf, op=0x2, load=0x1, u=0x0, u2=0);
+		ldr_lit.set_decoder(rn=0xf, op=0x2, load=0x1, u=0x1, u2=0);
+		ldr_lit.set_asm("ldr.w %reg [PC, #%imm]", rt, imm12);
+		ldr_lit.set_behaviour(thumb2_ldr_lit);
+		ldr_lit.set_end_of_block(rt=15);
+		//ldr_set_fixed_jump(,FIXED, 0);
+		//ldr_lit.set_variable_jump();
+
+
+		stm.set_decoder(op=0x1, l=0x0, p=0x0);
+		//stm.set_asm("push%cond {%reg...}", cond, immval, r=0, w=1, rn=13);
+		
+		stm.set_asm("stm.w %reg, {%reg...}", rn, immval, r=0);
+		stm.set_reads_pc(immval & 32768);
+		stm.set_behaviour(thumb2_stm);
+//		stm.set_asm("stm%memmultu%memmultp%cond %reg!, {%reg...}", u, p, cond, rn, immval, r=0, w=1);
+//		stm.set_asm("stm%memmultu%memmultp%cond %reg, {%reg...}^", u, p, cond, rn, immval, r=1, w=0);
+//		stm.set_asm("stm%memmultu%memmultp%cond %reg!, {%reg...}^", u, p, cond, rn, immval, r=1, w=1);
+
+		stmdb.set_decoder(op=0x2, r=0x0, l=0x0, p=0);
+		stmdb.set_asm("stmdb {%reg...}", rn, immval);
+		stmdb.set_behaviour(thumb2_stmdb);
+		stmdb.set_reads_pc(immval & 32768);
+
+		strbt3.set_decoder(op=0x0, load=0x0, u2=0);
+		strbt3.set_asm("strb r%reg, [r%reg #%imm]", rt, rn, imm8);
+		strbt3.set_behaviour(thumb2_strbt3);
+
+		subwi.set_decoder(op=0x5, s=0, m=1);
+		subwi.set_asm("subw r%reg, r%reg #fix:%imm", rd, rn, imm8);
+		subwi.set_behaviour(thumb2_subwi);
+
+		bicit1.set_decoder(op=0x1, m=0x0);
+		bicit1.set_asm("bic %reg, %reg, #fix%imm", rd, rn, imm8);
+		bicit1.set_behaviour(thumb2_bicit1);
+
+		cbnz.set_decoder(op=0x1);
+		cbnz.set_asm("cbnz fix:#%imm", imm5);
+		cbnz.set_behaviour(thumb2_cbnz);
+		cbnz.set_reads_pc();
+		cbnz.set_end_of_block();
+		
+		cbz.set_decoder(op=0x0);
+		cbz.set_asm("cbz fix:#%imm", imm5);
+		cbz.set_behaviour(thumb2_cbz);
+		cbz.set_reads_pc();
+		cbz.set_end_of_block();
+
+		addt3.set_decoder(op2=0x5, op=0x8);
+		addt3.set_asm("add{s}<c>.w %reg, %reg, fix:shift", rn, rm);
+		addt3.set_behaviour(thumb2_addt3);
+		addt3.set_end_of_block(rd=15);
+
+		subt3.set_decoder(m=0x0, op=0xd);
+		subt3.set_asm("sub fixs w %reg, %reg, fix:%imm", rd, rn, imm8); 
+		subt3.set_behaviour(thumb2_subt3);
+
+		adrt2.set_decoder(m=0x1, op=0x5, s=0x0, rn=0xf);
+		adrt2.set_asm("adr.w %reg, fix:%imm", rd, imm8);
+		adrt2.set_behaviour(thumb2_adrt2);
+
+		addit3.set_decoder(m=0x0, op=0x8);
+		addit3.set_asm("add fix:s .w %reg %reg fix:%imm", rd, rn, imm8);
+		addit3.set_behaviour(thumb2_addit3);
+
+		movit2.set_decoder(m=0x0, op=0x2, rn=0xf);
+		movit2.set_asm("mov fix:s %reg, fix:%imm", rd, imm8);
+		movit2.set_behaviour(thumb2_movit2);
+
+		ldrit4.set_decoder(op=0x0);
+		ldrit4.set_asm("ldr w %reg, [%reg #+/-%imm] fix", rt, rn, imm8);
+		ldrit4.set_behaviour(thumb2_ldrit4);
+		ldrit4.set_end_of_block(rt=15);
+		ldrit4.set_variable_jump();
+
+		ubfxt1.set_decoder(op=0x7, sh=0, sh2=0);
+		ubfxt1.set_asm("ubfx %reg, %reg, fix:#<lsb>, #%imm", rd, rn, widthm1);
+		ubfxt1.set_behaviour(thumb2_ubfxt1);
+
+		sbfxt1.set_decoder(op=0x5, sh=0, sh2=0);
+		sbfxt1.set_asm("sbfx %reg, %reg, fix:#<lsb>, #%imm", rd, rn, widthm1);
+		sbfxt1.set_behaviour(thumb2_sbfxt1);
+
+		it.set_decoder();
+		it.set_asm("it");
+		it.set_behaviour(thumb2_itt1);
+		it.set_block_cond();
+
+		yield.set_decoder(opA=0x1, opB=0x0);
+		yield.set_asm("yield");
+		yield.set_behaviour(thumb2_yieldt1);
+
+		wfe.set_decoder(opA=0x2, opB=0x0);
+		wfe.set_asm("wfe");
+		wfe.set_behaviour(thumb2_wfet1);
+
+		wfi.set_decoder(opA=0x3, opB=0x0);
+		wfi.set_asm("wfi");
+		wfi.set_behaviour(thumb2_wfit1);
+		
+		sev.set_decoder(opA=0x4, opB=0x0);
+		sev.set_asm("sev");
+		sev.set_behaviour(thumb2_sevt1);
+		
+		bt3.set_decoder();
+		bt3.set_asm("bt3");
+		bt3.set_behaviour(thumb2_bt3);
+		bt3.set_end_of_block();
+		// 'variable' jump due to hidden predication
+		bt3.set_variable_jump();
+
+		thumb2_msr.set_decoder();
+		thumb2_msr.set_asm("msr CPSR, %reg", rn, r=0);
+		thumb2_msr.set_asm("msr SPSR, %reg", rn, r=1);
+		thumb2_msr.set_behaviour(thumb2_msr);
+
+		ldrit3.set_decoder(u=0x1, op=0x2, load=0x1, u2=0);
+//		ldrit3.set_asm("ldr<c>.w %reg, [PC, #-0]", rt, rn=0xf);
+		ldrit3.set_asm("ldr<c>.w %reg, [%reg {, #%imm}]", rt, rn, imm12);
+		ldrit3.set_behaviour(thumb2_ldrit3);
+		ldrit3.set_end_of_block(rt=15);
+
+		ldrhit2.set_decoder(u=0x1, op=0x1, load=0x1, u2=0);
+		ldrhit2.set_asm("ldr<c>.w %reg, [%reg {, #%imm}]", rt, rn, imm12);
+		ldrhit2.set_behaviour(thumb2_ldrhit2);
+
+		ldrsbt1.set_decoder(u=1, u2=1, load=1, op=0);
+		ldrsbt1.set_asm("ldrsb.w %reg, [%reg, %imm]", rt, rn, imm12);
+		ldrsbt1.set_behaviour(thumb2_ldrsbt1);
+
+		ldrshit1.set_decoder(u=0x1, op=0x1, load=0x1, u2=1);
+		ldrshit1.set_asm("ldrsh.w %reg, [%reg {, #%imm}]", rt, rn, imm12);
+		ldrshit1.set_behaviour(thumb2_ldrshit1);
+
+		pusht2.set_decoder(op=0x2,l=0x0, w=0x1, r=0x0, rn=0xd, p=0x0);
+		pusht2.set_asm("push<c>.w {%reg...}", rn, immval);
+		pusht2.set_behaviour(thumb2_pusht2);
+	      
+		subrt2.set_decoder(op2=0x5, op=0xd);
+		subrt2.set_asm("sub{s}<c>.w %reg, %reg, %reg{, <shift>}", rd, rn, rm);
+		subrt2.set_behaviour(thumb2_subrt2);
+
+		rsbit2.set_decoder(m=0x0, op=0xe);
+		rsbit2.set_asm("rsb{s}<c>.w %reg, %reg, #<const>", rd, rn);
+		rsbit2.set_behaviour(thumb2_rsbit2);
+
+		uxtbt2.set_decoder(op=0x5, rn=0xf);
+		uxtbt2.set_asm("uxtb<c>.w %reg, %reg{, <rotation>}", rd, rm);
+		uxtbt2.set_behaviour(thumb2_uxtbt2);
+
+		andit1.set_decoder(m=0x0, op=0x0);
+		andit1.set_asm("and{s}<c> %reg, %reg, #<const>", rd, rn);
+		andit1.set_behaviour(thumb2_andit1);
+
+		tbb.set_asm("tbb<c> [%reg %reg]", rn, rm, h=0);
+		tbb.set_asm("tbh<c> [%reg %reg]", rn, rm, h=1);
+		tbb.set_behaviour(thumb2_tbb);
+		tbb.set_decoder();
+		tbb.set_end_of_block();
+
+		ldrt2.set_decoder(op1=0x0, load=0x1, op2=0x0, size=2);
+		ldrt2.set_asm("ldr<c>.w %reg, [%reg, %reg{, LSL #%imm}]", rt, rn, rm, imm2);
+		ldrt2.set_behaviour(thumb2_ldrt2);
+		ldrt2.set_end_of_block(rt=15);
+
+		strt2.set_decoder(op1=0x0, load=0x0, op2=0x0, size=2);
+		strt2.set_asm("str<c>.w %reg, [%reg, %reg{, LSL #%imm}]", rt, rn, rm, imm2);
+		strt2.set_behaviour(thumb2_strt2);
+
+		ldrhrt2.set_decoder(op1=0x0, load=0x1, op2=0x0, size=1);
+		ldrhrt2.set_asm("ldrh<c>.w %reg, [%reg, %reg{, LSL #%imm}]", rt, rn, rm, imm2);
+		ldrhrt2.set_behaviour(thumb2_ldrhrt2);
+		ldrhrt2.set_end_of_block(rt=15);
+
+		ldrshrt2.set_decoder(op1=0x2, load=0x1, op2=0x0, size=1);
+		ldrshrt2.set_asm("ldrsh<c>.w %reg, [%reg, %reg{, LSL #%imm}]", rt, rn, rm, imm2);
+		ldrshrt2.set_behaviour(thumb2_ldrshrt2);
+		ldrshrt2.set_end_of_block(rt=15);
+
+		strhrt2.set_decoder(op1=0x0, load=0x0, op2=0x0, size=1);
+		strhrt2.set_asm("strh<c>.w %reg, [%reg, %reg{, LSL #%imm}]", rt, rn, rm, imm2);
+		strhrt2.set_behaviour(thumb2_strhrt2);
+
+		ldrbrt2.set_decoder(op1=0x0, load=0x1, op2=0x0, size=0);
+		ldrbrt2.set_asm("ldrb.w %reg, [%reg, %reg{, LSL #%imm}]", rt, rn, rm, imm2);
+		ldrbrt2.set_behaviour(thumb2_ldrbrt2);
+
+		ldrsbrt2.set_decoder(op1=0x2, load=0x1, op2=0x0, size=0);
+		ldrsbrt2.set_asm("ldrsb.w %reg, [%reg, %reg{, LSL #%imm}]", rt, rn, rm, imm2);
+		ldrsbrt2.set_behaviour(thumb2_ldrsbrt2);
+
+		ldrbit2.set_decoder(u=0x1, op=0x0, load=0x1, u2=0);
+		ldrbit2.set_asm("ldrb<c>.w %reg, [%reg{, #%imm}]", rt, rn, imm12);
+		ldrbit2.set_behaviour(thumb2_ldrbit2);
+
+		strhit2.set_decoder(u=0x1, op=0x1, load=0x0, u2=0);
+		strhit2.set_asm("strh<c>.w %reg, [%reg{, #%imm}]", rt, rn, imm12);
+		strhit2.set_behaviour(thumb2_strhit2);
+
+		orrit1.set_decoder(m=0x0, op=0x2);
+		orrit1.set_asm("orr{s}<c> %reg, %reg, #<const>", rd, rn);
+		orrit1.set_behaviour(thumb2_orrit1);
+
+		strbit2.set_decoder(u=0x1, op=0x0, load=0x0, u2=0);
+		strbit2.set_asm("strb<c>.w %reg, [%reg, #%imm]", rt, rn, imm12);
+		strbit2.set_behaviour(thumb2_strbit2);
+		
+		strit3.set_decoder(u=0x1, op=0x2, load=0x0, u2=0);
+		strit3.set_asm("str<c>.w %reg, [%reg, #%imm]", rt, rn, imm12);
+		strit3.set_behaviour(thumb2_strit3);
+
+		ldmiat2.set_decoder(r=0x0, l=0x1, op=1);
+		ldmiat2.set_asm("ldmia<c>.w %reg, {%reg...}", rn, immval, w=0);
+		ldmiat2.set_asm("ldmia<c>.w %reg!, {%reg...}", rn, immval, w=1);
+		ldmiat2.set_end_of_block(p=1);
+		ldmiat2.set_behaviour(thumb2_ldmiat2);
+		
+		ldmdbt2.set_decoder(r=0x0, l=0x1, op=2);
+		ldmdbt2.set_asm("ldmdb<c>.w %reg, {%reg...}", rn, immval, w=0);
+		ldmdbt2.set_asm("ldmdb<c>.w %reg!, {%reg...}", rn, immval, w=1);
+		ldmdbt2.set_end_of_block(p=1);
+		ldmdbt2.set_behaviour(thumb2_ldmdbt2);
+
+		cmnit1.set_decoder(m=0x0, op=0x8, s=0x1, rd=0xf);
+		cmnit1.set_asm("cmn<c> %reg, #<const>", rn);
+		cmnit1.set_behaviour(thumb2_cmnit1);
+
+		strit4.set_decoder(op=0x2, load=0x0);
+		strit4.set_asm("str<c> %reg, [%reg], #+/-<%imm>", rt, rn, imm8);
+		strit4.set_behaviour(thumb2_strit4);
+
+		ldrbit3.set_decoder(op=0x0, load=0x1, u2=0);
+		ldrbit3.set_asm("ldrb<c> %reg, [%reg], #+/-%imm", rt, rn, imm8);
+		ldrbit3.set_behaviour(thumb2_ldrbit3);
+
+		ldrsbit2.set_decoder(op=0x0, u2=1, load=0x1);
+		ldrsbit2.set_asm("ldrsb<c> %reg, [%reg], #+/-%imm", rt, rn, imm8);
+		ldrsbit2.set_behaviour(thumb2_ldrsbit2);
+
+		ldrhit3.set_decoder(op=0x1, load=0x1, u2=0);
+		ldrhit3.set_asm("ldrh<c> %reg, [%reg], #+/-%imm", rt, rn, imm8);
+		ldrhit3.set_behaviour(thumb2_ldrhit3);
+
+		ldrshit2.set_decoder(op=0x1, u2=1, load=0x1);
+		ldrshit2.set_asm("ldrsh<c> %reg, [%reg], #+/-%imm", rt, rn, imm8);
+		ldrshit2.set_behaviour(thumb2_ldrshit2);
+
+		lsrit2.set_decoder(op2=0x5, op=0x2, rn=0xf, type=0x1);
+		lsrit2.set_asm("lsr{s}<c>.w %reg, %reg, #<imm5>", rd, rm);
+		lsrit2.set_behaviour(thumb2_lsrit2);
+
+		lsrt2.set_decoder(op0=0x3, x=0x0, op=0x1, op2=0x0, op3=0xf);
+		lsrt2.set_asm("lsr{s}<c>.w %reg, %reg, %reg", rd, rn, rm);
+		lsrt2.set_behaviour(thumb2_lsrt2);
+
+		lslit2.set_decoder(op2=0x5, op=0x2, rn=0xf, type=0x0);
+		lslit2.set_asm("lsl{s}<c>.w %reg, %reg, #<imm5>", rd, rm);
+		lslit2.set_behaviour(thumb2_lslit2);
+		
+		lslt2.set_decoder(op0=0x3, x=0x0, op=0x0, op2=0x0, op3=0xf);
+		lslt2.set_asm("lsl{s}<c>.w %reg, %reg, %reg", rd, rn, rm);
+		lslt2.set_behaviour(thumb2_lslt2);
+
+		orrt2.set_decoder(op2=0x5, op=0x2);
+		orrt2.set_asm("orr{s}<c>.w %reg, %reg, %reg{, <shift>}",rd, rn, rm);
+		orrt2.set_behaviour(thumb2_orrt2);
+
+		sbct2.set_decoder(op2=0x5, op=0xb);
+		sbct2.set_asm("sbc{s}<c>.w %reg, %reg, %reg{, <shift>}",rd, rn, rm);
+		sbct2.set_behaviour(thumb2_sbct2);
+
+		popt2.set_decoder(r=0x0, l=0x1, rn=0xd, w=1);
+		popt2.set_asm("pop<c>.w fix: {%reg...}", immval);
+		popt2.set_asm("pop<c>.w fix: {%reg..., lr}", p=0, m=1, immval);
+		popt2.set_asm("pop<c>.w fix: {%reg..., pc}", p=1, m=0, immval);
+		popt2.set_asm("pop<c>.w fix: {%reg..., lr, pc}", p=1, m=1, immval);
+		popt2.set_behaviour(thumb2_popt2);
+		popt2.set_end_of_block(p=1);
+
+		mult2.set_decoder(op1=0x3, op2=0x0, op3=0x0, n=0, m=0, ra=0xf);
+		mult2.set_asm("mul<c> %reg, %reg, %reg", rd, rn, rm);
+		mult2.set_behaviour(thumb2_mult2);
+
+		uxtbt1.set_decoder(op1=0x2, op2=0x3);
+		uxtbt1.set_asm("uxtb<c> %reg, %reg", rd, rm);
+		uxtbt1.set_behaviour(thumb2_uxtbt1);
+
+		uxtht1.set_decoder(op1=0x2, op2=0x2);
+		uxtht1.set_asm("uxth<c> %reg, %reg", rd, rm);
+		uxtht1.set_behaviour(thumb2_uxtht1);
+
+		mvnit1.set_decoder(m=0x0, op=0x3, rn=0xf);
+		mvnit1.set_asm("mvn{s}<c> %reg, #<const>", rd);
+		mvnit1.set_behaviour(thumb2_mvnit1);
+
+		// THUMB2_LDRD
+
+		ldrdit2.set_decoder(load=0x1);
+		ldrdit2.set_asm("ldrd<c> %reg, %reg, [%reg{, #+/-%imm}]", rt, rt2, rn, imm8);
+		ldrdit2.set_behaviour(thumb2_ldrdit2);
+
+		strdt1.set_decoder(load=0x0, p=0, u=0, w=1);
+		strdt1.set_decoder(load=0x0, p=0, u=1, w=1);
+		strdt1.set_decoder(load=0x0, p=1, u=0, w=0);
+		strdt1.set_decoder(load=0x0, p=1, u=1, w=0);
+		strdt1.set_decoder(load=0x0, p=1, u=0, w=1);
+		strdt1.set_decoder(load=0x0, p=1, u=1, w=1);
+		strdt1.set_asm("strd<c> %reg, %reg, [%reg {, #+/-%imm}]", rt, rt2, rn, imm8);
+		strdt1.set_behaviour(thumb2_strdt1);
+
+		ldrext1.set_decoder(load=0x1, rt2=0xf);
+		ldrext1.set_asm("ldrex %reg, [%reg, #%imm]", rt, rn, imm8);
+		ldrext1.set_behaviour(thumb2_ldrext1);
+		
+		strext1.set_decoder(load=0x0, p=0x0, u=0x0, w=0x0);
+		strext1.set_asm("strex %reg, %reg, [%reg, #%imm]", rt, rt2, rn, imm8);
+		strext1.set_behaviour(thumb2_strext1);
+
+		// THUMB2_LDRD2
+		
+		ldrexdt1.set_decoder(op1=1, op2=1, op3=7);
+		ldrexdt1.set_asm("ldrexd %reg, %reg, [%reg]", rt, rt2, rn);
+		ldrexdt1.set_behaviour(thumb2_ldrexdt1);
+		
+		strexdt1.set_decoder(op1=1, op2=0, op3=7);
+		strexdt1.set_asm("strexd %reg, %reg, [%reg]", rt, rt2, rn);
+		strexdt1.set_behaviour(thumb2_strexdt1);
+
+		sbcit1.set_decoder(m=0, op=0xb);
+		sbcit1.set_asm("sbc{s}<c> %reg, %reg, #<const>", rd, rn);
+		sbcit1.set_behaviour(thumb2_sbcit1);
+
+		ornit1.set_decoder(m=0x0, op=0x3);
+		ornit1.set_asm("orn{s}<c> %reg, %reg, #<const>", rd, rn);
+		ornit1.set_behaviour(thumb2_ornit1);
+
+		uadd8t1.set_decoder(op0=0x3, x=0x1, op=0x0, op2=0x4, op3=0xf, s=0);
+		uadd8t1.set_asm("uadd8<c> %reg, %reg, %reg", rd, rn, rm);
+		uadd8t1.set_behaviour(thumb2_uadd8t1);
+
+		uqsub8t1.set_decoder(op0=0x3, x=0x1, op=0x2, op2=0x5, op3=0xf, s=0);
+		uqsub8t1.set_asm("uqsub8<c> %reg, %reg, %reg", rd, rn, rm);
+		uqsub8t1.set_behaviour(thumb2_uqsub8t1);
+
+		uadd16t1.set_decoder(op0=0x3, x=0x1, op=0x0, op2=0x4, op3=0xf, s=1);
+		uadd16t1.set_asm("uadd16<c> %reg, %reg, %reg", rd, rn, rm);
+		uadd16t1.set_behaviour(thumb2_uadd16t1);
+
+		selt1.set_decoder(op1=0x2, op2=0xa, op3=0x2, n=0, m=0, ra=0xf);
+		selt1.set_asm("sel<c> %reg, %reg, %reg", rd, rn, rm);
+		selt1.set_behaviour(thumb2_selt1);
+
+		revt1.set_decoder(op1=0xa, op2=0x0);
+		revt1.set_asm("rev<c> %reg, %reg", rd, rm);
+		revt1.set_behaviour(thumb2_revt1);		
+
+		clzt1.set_decoder(op1=0x2, op2=0xb, op3=0x2, n=0, m=0, ra=0xf);
+		clzt1.set_asm("clz<c> %reg, %reg", rd, rm);
+		clzt1.set_behaviour(thumb2_clzt1);
+
+		bt4.set_decoder(link=0x2);
+		bt4.set_asm("b<c>.w <label>");
+		bt4.set_behaviour(thumb2_bt4);
+		bt4.set_end_of_block();
+		bt4.set_reads_pc();
+
+		pldt1.set_decoder(u=0x1, op=0x0, rt=0xf, load=0x1, u2=0);
+		pldt1.set_asm("pld<c> [%reg, #%imm]", rn, imm12);
+		pldt1.set_behaviour(thumb2_pldt1);
+		
+		pldt1_2.set_decoder(u=0x1, op=0x1, rt=0xf, load=0x1, u2=0);
+		pldt1_2.set_asm("pld<c> [%reg, #%imm]", rn, imm12);
+		pldt1_2.set_behaviour(thumb2_pldt1_2);
+
+		tstit1.set_decoder(m=0x0, op=0x0, rd=0xf);
+		tstit1.set_asm("tst<c> %reg, #<const>", rn);
+		tstit1.set_behaviour(thumb2_tstit1);
+
+		subspt2.set_decoder(m=0x0, op=0xd, rn=0xd);
+		subspt2.set_asm("sub{s}<c>.w %reg, sp, #<const>", rd);
+		subspt2.set_behaviour(thumb2_subspt2);
+
+		addispt3.set_decoder(m=0x0, op=0x8, rn=0xd);
+		addispt3.set_asm("add{s}<c>.w %reg, sp, #<const>", rd);
+		addispt3.set_behaviour(thumb2_addispt3);
+
+		ornrt1.set_decoder(op2=0x5, op=0x3);
+		ornrt1.set_asm("orn{s}<c> %reg, %reg, %reg{, <shift>}", rd, rn, rm);
+		ornrt1.set_behaviour(thumb2_ornrt1);
+
+		adcit1.set_decoder(m=0x0, op=0xa);
+		adcit1.set_asm("adc{S}<c> %reg, %reg, #<const>", rd, rn);
+		adcit1.set_behaviour(thumb2_adcit1);
+
+		adct2.set_decoder(op2=0x5, op=0xa);
+		adct2.set_asm("adc{s}<c>.w %reg, %reg, %reg{, <shift>}", rd, rn, rm);
+		adct2.set_behaviour(thumb2_adct2);
+
+		addit4.set_decoder(m=0x1, op=0x0, s=0x0);
+		addit4.set_asm("addw<c> %reg, %reg, #imm12", rd, rn, imm12);
+		addit4.set_behaviour(thumb2_addit4);
+
+		addispt4.set_decoder(m=0x1, op=0x0, s=0x0, rn=0xd);
+		addispt4.set_asm("addw<c> %reg, sp, #imm12", rd);
+		addispt4.set_behaviour(thumb2_addispt4);
+
+		addspt3.set_decoder(op2=0x5, op=0x8, rn=0xd);
+		addspt3.set_asm("add{s}<c>.w %reg, sp, %reg{, shift}", rd, rm);
+		addspt3.set_behaviour(thumb2_addspt3);
+		addspt3.set_end_of_block(rd=15);
+
+		adrt3.set_decoder(m=0x1, op=0x0, s=0x0, rn=0xf);
+		adrt3.set_asm("adr<c>.w %reg label", rd);
+		adrt3.set_behaviour(thumb2_adrt3);
+
+		andt2.set_decoder(op2=0x5, op=0x0);
+		andt2.set_asm("and{s}.w %reg, %reg, %reg{, shift}", rd, rn, rm);
+		andt2.set_behaviour(thumb2_andt2);
+
+		asrit2.set_decoder(op2=0x5, op=0x2, rn=0xf, type=0x2);
+		asrit2.set_asm("asr{s}<c>.w %reg, %reg, #<imm>", rd, rm);
+		asrit2.set_behaviour(thumb2_asrit2);
+
+		asrt2.set_decoder(op0=0x3, x=0x0, op=0x2, op2=0x0, op3=0xf);
+		asrt2.set_asm("asr{s}<c>.w %reg, %reg, %reg", rd, rn, rm);
+		asrt2.set_behaviour(thumb2_asrt2);
+
+		bfct1.set_decoder(op=0x5, sh=1, sh2=0, rn=0xf);
+		bfct1.set_asm("bfc<c> %reg, #<lsb>, #<width>", rd);
+		bfct1.set_behaviour(thumb2_bfct1);
+
+		bfit1.set_decoder(op=0x5, sh=1, sh2=0);
+		bfit1.set_asm("bfi<c> %reg, %reg, #<lsb>, #<width>", rd, rn);
+		bfit1.set_behaviour(thumb2_bfit1);
+
+		bicrt2.set_decoder(op2=0x5, op=0x1);
+		bicrt2.set_asm("bic{s}<c>.w %reg, %reg, %reg{, <shift>}", rd, rn, rm);
+		bicrt2.set_behaviour(thumb2_bicrt2);
+
+		cmnt2.set_decoder(op2=0x5, op=0x8, rd=0xf);
+		cmnt2.set_asm("cmn<c>.w %reg, %reg{, <shift>}", rn, rm);
+		cmnt2.set_behaviour(thumb2_cmnt2);
+
+		eorit1.set_decoder(m=0x0, op=0x4);
+		eorit1.set_asm("eor{s}<c> %reg, %reg, #<const>", rd, rn);
+		eorit1.set_behaviour(thumb2_eorit1);
+
+		teqit1.set_decoder(m=0x0, op=0x4, rd=0xf,s=1);
+		teqit1.set_asm("teq<c> %reg, #%imm", rn, imm8);
+		teqit1.set_behaviour(thumb2_teqit1);
+
+		eort2.set_decoder(op2=0x5, op=0x4);
+		eort2.set_asm("eor{s}<c>.w %reg, %reg, %reg{, <shift>}", rd, rn, rm);
+		eort2.set_behaviour(thumb2_eort2);
+
+		mlat1.set_decoder(op1=0x3, op2=0x0, op3=0x0, n=0, m=0);
+		mlat1.set_asm("mla<c> %reg, %reg, %reg, %reg", rd, rn, rm, ra);
+		mlat1.set_behaviour(thumb2_mlat1);
+
+		mlst1.set_decoder(op1=0x3, op2=0x0, op3=0x0, n=0, m=1);
+		mlst1.set_asm("mls<c> %reg, %reg, %reg, %reg", rd, rn, rm, ra);
+		mlst1.set_behaviour(thumb2_mlst1);
+
+		movt3.set_decoder(op2=0x0, op3=0x0, rn=0xf, op=0x2, x=0x0, op0=0x1);
+		movt3.set_asm("mov{s}<c>.w %reg, %reg", rd, rm);
+		movt3.set_behaviour(thumb2_movt3);
+
+		mvnt2.set_decoder(op2=0x5, op=0x3, rn=0xf);
+		mvnt2.set_asm("mvn{s}<c>.w %reg, %reg{, <shift>}", rd, rm);
+		mvnt2.set_behaviour(thumb2_mvnt2);
+
+		pkht1.set_decoder();
+		pkht1.set_asm("pkhbt<c> %reg, %reg, %reg{, LSL #<imm>}", rd, rn, rm, tb=0);
+		pkht1.set_asm("pkhtb<c> %reg, %reg, %reg{, ASR #<imm>}", rd, rn, rm, tb=1);
+		pkht1.set_behaviour(thumb2_pkht1);
+
+		umullt1.set_decoder(op=0x2, op2=0x0);
+		umullt1.set_asm("umull %reg, %reg, %reg, %reg", rdlo, rdhi, rn, rm);
+		umullt1.set_behaviour(thumb2_umullt1);
+
+		mrct1.set_decoder();
+		mrct1.set_asm("mrc %imm, %reg, c%imm, c%imm, %imm", coproc, opc1, rt, crn, crm, opc2);
+		mrct1.set_behaviour(thumb2_mrct1);
+
+		clrext1.set_decoder(op4=0x2);
+		clrext1.set_asm("clrex");
+		clrext1.set_behaviour(thumb2_clrext1);
+		
+		dsbt1.set_decoder(op4=0x4);
+		dsbt1.set_asm("dsb");
+		dsbt1.set_behaviour(thumb2_dsbt1);
+		
+		dmbt1.set_decoder(op4=0x5);
+		dmbt1.set_asm("dmb");
+		dmbt1.set_behaviour(thumb2_dmbt1);
+
+		qaddt1.set_decoder(op0=0x3, x=0x1, op=0x0, s=0x0, op3=0xf, op2=0x8);
+		qaddt1.set_asm("qadd<c> %reg, %reg, %reg", rd, rm, rn);
+		qaddt1.set_behaviour(thumb2_qaddt1);
+
+		qadd16t1.set_decoder(op0=0x3, x=0x1, op=0x0, s=0x1, op3=0xf, op2=0x1);
+		qadd16t1.set_asm("qadd16<c> %reg, %reg, %reg", rd, rn, rm);
+		qadd16t1.set_behaviour(thumb2_qadd16t1);
+
+		qadd8t1.set_decoder(op0=0x3, x=0x1, op=0x0, s=0x0, op3=0xf, op2=0x1);
+		qadd8t1.set_asm("qadd8<c> %reg, %reg, %reg", rd, rn, rm);
+		qadd8t1.set_behaviour(thumb2_qadd8t1);
+
+		qasxt1.set_decoder(op0=0x3, x=0x1, op=0x1, s=0x0, op3=0xf, op2=0x1);
+		qasxt1.set_asm("qasx<c> %reg, %reg, %reg", rd, rn, rm);
+		qasxt1.set_behaviour(thumb2_qasxt1);
+
+		qsaxt1.set_decoder(op0=0x3, x=0x1, op=0x3, s=0x0, op3=0xf, op2=0x1);
+		qsaxt1.set_asm("qsax<c> %reg, %reg, %reg", rd, rn, rm);
+		qsaxt1.set_behaviour(thumb2_qsaxt1);
+
+		qdaddt1.set_decoder(op0=0x3, x=0x1, op=0x0, s=0x0, op3=0xf, op2=0x9);
+		qdaddt1.set_asm("qdadd<c> %reg, %reg, %reg", rd, rm, rn);
+		qdaddt1.set_behaviour(thumb2_qdaddt1);
+
+		qdsubt1.set_decoder(op0=0x3, x=0x1, op=0x0, s=0x0, op3=0xf, op2=0xb);
+		qdsubt1.set_asm("qdsub<c> %reg, %reg, %reg", rd, rm, rn);
+		qdsubt1.set_behaviour(thumb2_qdsubt1);
+
+		rorit1.set_decoder(op2=0x5, op=0x2, rn=0xf, type=0x3);
+		rorit1.set_asm("ror{s}<c> %reg, %reg, #<imm>", rd, rm);
+		rorit1.set_behaviour(thumb2_rorit1);
+
+		rort2.set_decoder(op0=0x3, x=0x0, op=0x3, op3=0xf, op2=0x0);
+		rort2.set_asm("ror{s}<c>.w %reg, %reg, %reg", rd, rn, rm);
+		rort2.set_behaviour(thumb2_rort2);
+		
+		rsbit1.set_decoder(op=0x9);
+		rsbit1.set_asm("rsb{s}<c> %reg, %reg, #0", rs, rd);
+		rsbit1.set_behaviour(thumb2_rsbit1);
+
+		rsbt1.set_decoder(op2=0x5, op=0xe);
+		rsbt1.set_asm("rsb{s}<c> %reg, %reg, %reg{, <shift>}", rd, rn, rm);
+		rsbt1.set_behaviour(thumb2_rsbt1);
+
+		tstt2.set_decoder(op2=0x5, rd=0xf, s=0x1, op=0x0);
+		tstt2.set_asm("tst<c>.w %reg, %reg{, <shift>}", rn, rm);
+		tstt2.set_behaviour(thumb2_tstt2);
+
+		qsubt1.set_decoder(op0=0x3, x=0x1, op=0x0, s=0x0, op3=0xf, op2=0xa);
+		qsubt1.set_asm("qsub<c> %reg, %reg, %reg", rd, rm, rn);
+		qsubt1.set_behaviour(thumb2_qsubt1);
+
+		qsub16t1.set_decoder(op0=0x3, x=0x1, op=0x2, s=0x1, op3=0xf, op2=0x1);
+		qsub16t1.set_asm("qsub16<c> %reg, %reg, %reg", rd, rn, rm);
+		qsub16t1.set_behaviour(thumb2_qsub16t1);
+
+		qsub8t1.set_decoder(op0=0x3, x=0x1, op=0x2, s=0x0, op3=0xf, op2=0x1);
+		qsub8t1.set_asm("qsub8<c> %reg, %reg, %reg", rd, rn, rm);
+		qsub8t1.set_behaviour(thumb2_qsub8t1);
+
+		uxtht2.set_decoder(op=0x1, rn=0xf);
+		uxtht2.set_asm("uxth<c>.w %reg, %reg{, <rotation>}", rd, rm);
+		uxtht2.set_behaviour(thumb2_uxtht2);
+
+		rbitt1.set_decoder(op0=0x3, x=1, op=0x0, op3=0xf, op2=0xa);
+		rbitt1.set_asm("rbit<c>, %reg, %reg", rn, rm);
+		rbitt1.set_behaviour(thumb2_rbitt1);
+
+		rev16t2.set_decoder(op0=0x3, x=1, op=0x0, op3=0xf, op2=0x9);
+		rev16t2.set_asm("rev16<c> %reg, %reg", rd, rm);
+		rev16t2.set_behaviour(thumb2_rev16t2);
+
+		rev16t1.set_decoder(op1=0xa, op2=0x1);
+		rev16t1.set_asm("rev16<c> %reg, %reg", rd, rm);
+		rev16t1.set_behaviour(thumb2_rev16t1);
+
+		revt2.set_decoder(op0=0x3, x=1, op=0, s=1, op3=0xf, op2=8);
+		revt2.set_asm("rev<c>.W %reg, %reg", rd, rm);
+		revt2.set_behaviour(thumb2_revt2);
+
+		revsht1.set_decoder(op1=0xa, op2=0x3);
+		revsht1.set_asm("revsh<c> %reg, %reg", rd, rm);
+		revsht1.set_behaviour(thumb2_revsht1);
+
+		revsht2.set_decoder(op0=0x3, x=1, op=0, s=1, op3=0xf, op2=0xb);
+		revsht2.set_asm("revsh<c>.W %reg, %reg", rd, rm);
+		revsht2.set_behaviour(thumb2_revsht2);
+
+		rrxt1.set_decoder(op2=0x5, op=0x2, rn=0xf,imm3=0x0, imm2=0x0, type=0x3);
+		rrxt1.set_asm("rrx{S}<c> %reg, %reg", rd, rm);
+		rrxt1.set_behaviour(thumb2_rrxt1);
+
+		sadd16t1.set_decoder(op0=0x3, x=0x1, op=0x0, s=0x1, op3=0xf, op2=0x0);
+		sadd16t1.set_asm("sadd16<c>, %reg, %reg, %reg", rd, rn, rm);
+		sadd16t1.set_behaviour(thumb2_sadd16t1);
+
+		sadd8t1.set_decoder(op0=0x3, x=0x1, op=0x0, s=0x0, op3=0xf, op2=0x0);
+		sadd8t1.set_asm("sadd16<c>, %reg, %reg, %reg", rd, rn, rm);
+		sadd8t1.set_behaviour(thumb2_sadd8t1);
+
+		sasxt1.set_decoder(op0=0x3, x=0x1, op=0x1, s=0x0, op3=0xf, op2=0x0);
+		sasxt1.set_asm("sasx<c> %reg, %reg, %reg", rd, rn, rm);
+		sasxt1.set_behaviour(thumb2_sasxt1);
+
+		shadd16t1.set_decoder(op0=0x3, x=0x1, op=0x0, s=0x1, op3=0xf, op2=0x2);
+		shadd16t1.set_asm("shadd16<c> %reg, %reg, %reg", rd, rn, rm);
+		shadd16t1.set_behaviour(thumb2_shadd16t1);
+		
+		shadd8t1.set_decoder(op0=3, x=1, op=0, s=0, op3=0xf, op2=2);
+		shadd8t1.set_asm("shadd8<c> %reg, %reg, %reg", rd, rn, rm);
+		shadd8t1.set_behaviour(thumb2_shadd8t1);
+
+		shasxt1.set_decoder(op0=0x3, x=1, op=1, s=0, op3=0xf, op2=2);
+		shasxt1.set_asm("shasx<c> %reg, %reg, %reg", rd, rn, rm);
+		shasxt1.set_behaviour(thumb2_shasxt1);
+
+		shsaxt1.set_decoder(op0=0x3, x=1, op=0x3, s=0, op3=0xf, op2=2);
+		shsaxt1.set_asm("shsax<c> %reg, %reg, %reg", rd, rn, rm);
+		shsaxt1.set_behaviour(thumb2_shsaxt1);
+
+		shsub16t1.set_decoder(op0=0x3, x=1, op=2, s=1, op3=0xf, op2=0x2);
+		shsub16t1.set_asm("shsub16<c> %reg, %reg, %reg", rd, rn, rm);
+		shsub16t1.set_behaviour(thumb2_shsub16t1);
+
+		shsub8t1.set_decoder(op0=0x3, x=1, op=2, s=0, op3=0xf, op2=2);
+		shsub8t1.set_asm("shsub8<c> %reg, %reg, %reg", rd, rn, rm);
+		shsub8t1.set_behaviour(thumb2_shsub8t1);
+		
+		smlat1.set_decoder(op1=0x3, op2=1, op3=0);
+		smlat1.set_asm("smla <x><y><c> %reg, %reg, %reg, %reg", rd, rn, rm, ra);
+		smlat1.set_behaviour(thumb2_smlat1);
+
+		smladt1.set_decoder(op1=0x3, op2=2, op3=0x0, n=0);
+		smladt1.set_asm("smlad{X}<c> %reg, %reg, %reg, %reg", rd, rn, rm, ra);
+		smladt1.set_behaviour(thumb2_smladt1);
+
+		smlalt1.set_decoder(op1=0x3, op2=0xc, op3=0, n=0, m=0);
+		smlalt1.set_asm("smlal<c> %reg, %reg, %reg, %reg", rd, rd, rn, rm);
+		smlalt1.set_behaviour(thumb2_smlalt1);
+
+		smlaldt1.set_decoder(op1=0x3, op2=0xc, op3=0x3, n=0);
+		smlaldt1.set_asm("smlald{X}<c> %reg, %reg, %reg, %reg", ra, rd, rn, rm);
+		smlaldt1.set_behaviour(thumb2_smlaldt1);
+
+		smlsdt1.set_decoder(op1=0x3, op2=0x4, op3=0x0, n=0x0);
+		smlsdt1.set_asm("smlsd{X}<c> %reg, %reg, %reg, %reg", rd, rn, rm, ra);
+		smlsdt1.set_behaviour(thumb2_smlsdt1);
+
+		smlsldt1.set_decoder(op1=0x3, op2=0xd, op3=0x3, n=0);
+		smlsldt1.set_asm("smlsld{X}<c> %reg, %reg, %reg, %reg", ra, rd, rn, rm);
+		smlsldt1.set_behaviour(thumb2_smlsldt1);
+
+		smmlat1.set_decoder(op1=0x3, op2=0x5, op3=0x0, n=0);
+		smmlat1.set_asm("smmla{R}<c> %reg, %reg, %reg, %reg", rd, rn, rm, ra);
+		smmlat1.set_behaviour(thumb2_smmlat1);
+
+		smmlst1.set_decoder(op1=0x3, op2=0x6, op3=0, n=0);
+		smmlst1.set_asm("smmls{R}<c> %reg, %reg, %reg, %reg", rd, rn, rm, ra);
+		smmlst1.set_behaviour(thumb2_smmlst1);
+		
+		smuadt1.set_decoder(op1=0x3, op2=0x2, ra=0xf, op3=0x0, n=0);
+		smuadt1.set_asm("smuadt1{X}<c> %reg, %reg, %reg", rd, rn, rm);
+		smuadt1.set_behaviour(thumb2_smuadt1);
+		
+		smult1.set_decoder(op1=0x3, op2=1, ra=0xf, op3=0);
+		smult1.set_asm("smul<x><y><c> %reg, %reg, %reg", rd, rn, rm);
+		smult1.set_behaviour(thumb2_smult1);
+
+		smullt1.set_decoder(op1=0x3, op2=0x8, op3=0, n=0, m=0);
+		smullt1.set_asm("smull<c> %reg, %reg, %reg, %reg", ra, rd, rn, rm);
+		smullt1.set_behaviour(thumb2_smullt1);
+
+		smulwt1.set_decoder(op1=0x3, op2=0x3, ra=0xf, op3=0x0, n=0);
+		smulwt1.set_asm("smulw<y><c> %reg, %reg, %reg", rd, rn, rm);
+		smulwt1.set_behaviour(thumb2_smulwt1);
+
+		smusdt1.set_decoder(op1=0x3, op2=4, ra = 0xf, op3=0, n=0);
+		smusdt1.set_asm("smusd{X}<c> %reg, %reg, %reg", rd, rn, rm);
+		smusdt1.set_behaviour(thumb2_smusdt1);
+
+		ssaxt1.set_decoder(op1=0x2, op2=0xe, ra=0xf, op3=0x0, n=0, m=0);
+		ssaxt1.set_asm("ssax<c> %reg, %reg, %reg", rd, rn, rm);
+		ssaxt1.set_behaviour(thumb2_ssaxt1);
+
+		ssub16t1.set_decoder(op1=0x2, op2=0xd, ra=0xf, op3=0, n=0, m=0);
+		ssub16t1.set_asm("ssub16<c> %reg, %reg, %reg", rd, rn, rm);
+		ssub16t1.set_behaviour(thumb2_ssub16t1);
+
+		ssub8t1.set_decoder(op1=0x2, op2=0xc, ra=0xf, op3=0, n=0, m=0);
+		ssub8t1.set_asm("ssub8<c> %reg, %reg, %reg", rd, rn, rm);
+		ssub8t1.set_behaviour(thumb2_ssub8t1);
+
+		sxtab16t1.set_decoder(op=0x2);
+		sxtab16t1.set_asm("sxtab16<c> %reg, %reg, %reg {<rotation>}", rd, rn, rm);
+		sxtab16t1.set_behaviour(thumb2_sxtab16t1);
+
+		sxtabt1.set_decoder(op=0x4);
+		sxtabt1.set_asm("sxtab<c> %reg, %reg, %reg {<rotation>}", rd, rn, rm);
+		sxtabt1.set_behaviour(thumb2_sxtabt1);
+
+		sxtb16t1.set_decoder(op=0x2, rn=0xf);
+		sxtb16t1.set_asm("sxtb16<c> %reg, %reg {<rotation>}", rd, rm);
+		sxtb16t1.set_behaviour(thumb2_sxtb16t1);
+
+		sxtbt2.set_decoder(op=0x4, rn=0xf);
+		sxtbt2.set_asm("sxtb<c>.W %reg, %reg {, <rotation>}", rd, rm);
+		sxtbt2.set_behaviour(thumb2_sxtbt2);
+
+		sxtbt1.set_decoder(op1=0x2, op2=0x1);
+		sxtbt1.set_asm("sxtb<c> %reg, %reg {, <rotation>}", rd, rm);
+		sxtbt1.set_behaviour(thumb2_sxtbt1);
+
+		sxtht1.set_decoder(op1=0x2, op2=0);
+		sxtht1.set_asm("sxth<c> %reg, %reg", rd, rm);
+		sxtht1.set_behaviour(thumb2_sxtht1);
+		
+		sxtht2.set_decoder(op=0x0, rn=0xf);
+		sxtht2.set_asm("sxth<c>.W %reg, %reg{, <rotation>}", rd, rm);
+		sxtht2.set_behaviour(thumb2_sxtht2);
+
+		teqit2.set_decoder(op2=0x5, op=0x4, s=1, rd=0xf);
+		teqit2.set_asm("teq<c> %reg, %reg{, <shift>}", rn, rm);
+		teqit2.set_behaviour(thumb2_teqit2);
+
+		uasxt1.set_decoder(op1=0x2, op2=0xa, ra=0xf, op3=1, n=0, m=0);
+		uasxt1.set_asm("uasx<c> %reg, %reg, %reg", rd, rn, rm);
+		uasxt1.set_behaviour(thumb2_uasxt1);
+
+		uhadd16t1.set_decoder(op1=0x2, op2=0x9, ra=0xf, op3=1, n=1, m=0);
+		uhadd16t1.set_asm("uhadd16<c> %reg, %reg, %reg", rd, rn, rm);
+		uhadd16t1.set_behaviour(thumb2_uhadd16t1);
+
+		uhadd8t1.set_decoder(op1=0x2, op2=0x8, ra=0xf, op3=1, n=1, m=0);
+		uhadd8t1.set_asm("uhadd8<c> %reg, %reg, %reg", rd, rn, rm);
+		uhadd8t1.set_behaviour(thumb2_uhadd8t1);
+
+		uhasxt1.set_decoder(op1=0x2, op2=0xa, ra=0xf, op3=0x1, n=1, m=0);
+		uhasxt1.set_asm("uhasx<c> %reg, %reg, %reg", rd, rn, rm);
+		uhasxt1.set_behaviour(thumb2_uhasxt1);
+
+		uhsaxt1.set_decoder(op1=0x2, op2=0xe, ra=0xf, op3=0x1, n=1, m=0);
+		uhsaxt1.set_asm("uhsax<c> %reg, %reg, %reg", rd, rn, rm);
+		uhsaxt1.set_behaviour(thumb2_uhsaxt1);
+
+		uhsub16t1.set_decoder(op1=0x2, op2=0xd, ra=0xf, op3=0x1, n=1, m=0);
+		uhsub16t1.set_asm("uhsub16<c> %reg, %reg, %reg", rd, rn, rm);
+		uhsub16t1.set_behaviour(thumb2_uhsub16t1);
+
+		uhsub8t1.set_decoder(op1=0x2, op2=0xc, ra=0xf, op3=0x1, n=1, m=0);
+		uhsub8t1.set_asm("uhsub8<c> %reg, %reg, %reg", rd, rn, rm);
+		uhsub8t1.set_behaviour(thumb2_uhsub8t1);
+
+		umaalt1.set_decoder(op=0x6, op2=0x6);
+		umaalt1.set_asm("umaal<c> %reg, %reg, %reg, %reg", rdlo, rdhi, rn, rm);
+		umaalt1.set_behaviour(thumb2_umaalt1);
+
+		umlalt1.set_decoder(op=0x6, op2=0x0);
+		umlalt1.set_asm("umlal<c> %reg, %reg, %reg, %reg", rdlo, rdhi, rn, rm);
+		umlalt1.set_behaviour(thumb2_umlalt1);
+
+		uqadd16t1.set_decoder(op1=2, op2=9, ra=0xf, op3=1, n=0, m=1);
+		uqadd16t1.set_asm("uqadd16<c> %reg, %reg, %reg", rd, rn, rm);
+		uqadd16t1.set_behaviour(thumb2_uqadd16t1);
+
+		uqadd8t1.set_decoder(op1=2, op2=8, ra=0xf, op3=1, n=0, m=1);
+		uqadd8t1.set_asm("uqadd8<c> %reg, %reg, %reg", rd, rn, rm);
+		uqadd8t1.set_behaviour(thumb2_uqadd8t1);
+
+		uqasxt1.set_decoder(op1=2, op2=0xa, ra=0xf, op3=1, n=0, m=1);
+		uqasxt1.set_asm("uqasx<c> %reg, %reg, %reg", rd, rn, rm);
+		uqasxt1.set_behaviour(thumb2_uqasxt1);
+
+		uqsaxt1.set_decoder(op1=0x2, op2=0xe, ra=0xf, op3=0x1, n=0, m=1);
+		uqsaxt1.set_asm("uqsax<c> %reg, %reg, %reg", rd, rn, rm);
+		uqsaxt1.set_behaviour(thumb2_uqsaxt1);
+		
+		uqsub16t1.set_decoder(op1=0x2, op2=0xd, ra=0xf, op3=1, n=0, m=1);
+		uqsub16t1.set_asm("uqsub16<c> %reg, %reg, %reg", rd, rn, rm);
+		uqsub16t1.set_behaviour(thumb2_uqsub16t1);
+
+		usad8t1.set_decoder(op1=0x3, op2=0x7, ra=0xf, op3=0, n=0, m=0);
+		usad8t1.set_asm("usad8<c> %reg, %reg, %reg", rd, rn, rm);
+		usad8t1.set_behaviour(thumb2_usad8t1);
+		
+		usada8t1.set_decoder(op1=0x3, op2=0x7, op3=0x0, n=0, m=0);
+		usada8t1.set_asm("uada8<c> %reg, %reg, %reg, %reg", rd, rn, rm, ra);
+		usada8t1.set_behaviour(thumb2_usada8t1);
+		
+		usat16t1.set_decoder(op2=0x9, op=0xd, s=0, imm3=0, imm2=0, type=0);
+		usat16t1.set_asm("usat16<c> %reg, #%imm, %reg", rd, rm, rn);
+		usat16t1.set_behaviour(thumb2_usat16t1);
+ 
+		usatt1.set_decoder(op=0x6, sh2=0);
+		usatt1.set_asm("usat<c> %reg, #imm, %reg {<shift>}", rd, rn);
+		usatt1.set_behaviour(thumb2_usatt1);
+		
+		usaxt1.set_decoder(op1=0x2, op2=0xe, ra=0xf, op3=1, n=0, m=0);
+		usaxt1.set_asm("usax<c> %reg, %reg, %reg", rd, rn, rm);
+		usaxt1.set_behaviour(thumb2_usaxt1);
+		
+		usub16t1.set_decoder(op1=0x2, op2=0xd, ra=0xf, op3=1, n=0, m=0);
+		usub16t1.set_asm("usub16<c> %reg, %reg, %reg", rd, rn, rm);
+		usub16t1.set_behaviour(thumb2_usub16t1);
+
+		usub8t1.set_decoder(op1=0x2, op2=0xc, ra=0xf, op3=1, n=0, m=0);
+		usub8t1.set_asm("usub8<c> %reg, %reg, %reg", rd, rn, rm);
+		usub8t1.set_behaviour(thumb2_usub8t1);
+
+		uxtab16t1.set_decoder(op=3);
+		uxtab16t1.set_asm("uxtab16<c> %reg, %reg, %reg {rotation}", rd, rn, rm);
+		uxtab16t1.set_behaviour(thumb2_uxtab16t1);
+
+		uxtabt1.set_decoder(op=0x5);
+		uxtabt1.set_asm("uxtab<c> %reg, %reg, %reg {<rotation>}", rd, rn, rm);
+		uxtabt1.set_behaviour(thumb2_uxtabt1);
+		
+		uxtaht1.set_decoder(op=0x1);
+		uxtaht1.set_asm("uxtah<c> %reg, %reg, %reg {rotation}", rd, rn, rm);
+		uxtaht1.set_behaviour(thumb2_uxtaht1);
+
+		uxtb16t1.set_decoder(op=0x3, rn=0xf);
+		uxtb16t1.set_asm("uxtb16<c> %reg, %reg <rotation>", rd, rm);
+		uxtb16t1.set_behaviour(thumb2_uxtb16t1);
+		
+		//"0x7:3 %op2:4 %op:4 %s:1 %rn:4 0x0:1 %imm3:3 %rd:4 %imm2:2 %type:2 %rm:4";
+		ssat16t1.set_decoder(op2=9, op=9, s=0, imm3=0, imm2=0, type=0);
+		ssat16t1.set_asm("ssat16<c> %reg, #imm, %reg", rd, rn);
+		ssat16t1.set_behaviour(thumb2_ssat16t1);
+
+		// "0x79:7 %op:3 %sh:1 %sh2:1 %rn:4 0x0:1 %imm3:3 %rd:4 %imm2:2 0x0:1 %widthm1:5";
+		ssatt1.set_decoder(op=4, sh2=0);
+		ssatt1.set_asm("ssat<c> %reg, #imm, %reg <shift>", rd, rn);
+		ssatt1.set_behaviour(thumb2_ssatt1);
+
+		ldct2.set_decoder();
+		ldct2.set_asm("ldc{L}<c> <coproc> %reg %reg #%imm", crd, rn, imm8);
+		ldct2.set_behaviour(thumb2_ldct2);
+	};
+};

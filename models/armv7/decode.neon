@@ -1,0 +1,74 @@
+
+decode(neon_1reg_imm)
+{
+	vd = vd | (D << 4);
+}
+
+decode(neon_3reg)
+{
+	vd = vd | (D << 4);
+	vn = vn | (N << 4);
+	vm = vm | (M << 4);
+}
+
+decode(neon_vext)
+{
+	vd = vd | (D << 4);
+	vn = vn | (N << 4);
+	vm = vm | (M << 4);
+}
+
+decode(neon_scalar_arm)
+{
+	imm8 = 0;
+	if(opc1 & 0x2) imm8 = (opc1 & 1) << 2 | opc2;
+	else if(opc2 & 0x1) imm8 = (opc1 & 1) | (opc2 >> 1);
+	else imm8 = opc1 & 1;
+	
+	vn = (N << 4) | vn;
+}
+
+decode(neon_memory_mul)
+{
+	vd = (D << 4) | vd;
+}
+
+decode(neon_memory_sal)
+{
+	vd = (D << 4) | vd;
+}
+
+decode(neon_memory_sol)
+{
+	vd = (D << 4) | vd;
+}
+
+decode(neon_vdup_core)
+{
+	vd = (D << 4) | vd;
+}
+
+decode(neon_2reg_misc)
+{
+	vd = (D << 4) | vd;
+	vm = (M << 4) | vm;
+}
+
+decode(neon_2reg_shift)
+{
+	vd = (D << 4) | vd;
+	vm = (M << 4) | vm;
+}
+
+decode(neon_2reg_scalar)
+{
+	vd = (Q << 4) | vd;
+	vn = (N << 4) | vn;
+}
+
+decode(neon_vdup_scalar)
+{
+	vd = (D << 4) | vd;
+	vm = (M << 4) | vm;
+	
+}

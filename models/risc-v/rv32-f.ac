@@ -1,0 +1,24 @@
+AC_ISA(riscv) 
+{
+	ac_format Type_FI = "%imm:12 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+	ac_format Type_FS = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %imm1:5 %opcode:7";
+	
+	ac_instr<Type_FI> flw;
+	ac_instr<Type_FS> fsw; 
+
+	ac_behaviour flw;
+	ac_behaviour fsw;
+
+	ISA_CTOR(riscv)
+	{
+		ac_execute("execute.rv32-f");
+	
+		flw.set_decoder(funct3=0x2, opcode=0x07);
+		flw.set_asm("flw %reg, %reg, %imm", rd, rs1, imm);
+		flw.set_behaviour(flw);
+
+		fsw.set_decoder(funct3=0x2, opcode=0x27);
+		fsw.set_asm("fsw %reg, %reg, %imm, %imm", rs1, rs2, imm2, imm1);
+		fsw.set_behaviour(fsw);
+	};
+};

@@ -1,0 +1,11 @@
+------------------------------------------------------------------------
+1.0 Optimisation Passes
+------------------------------------------------------------------------
+
+Optimisation passes should leave the SSA in a consistent state. This
+means that:
+ - There should be no empty blocks
+ - Each block should have exactly one control flow statement, at the end
+ - Statements should not refer to statements in other blocks (except
+   for Phi statements)
+

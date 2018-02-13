@@ -1,0 +1,23 @@
+------------------------------------------------------------------------
+1.0 The Gensim Compiler
+------------------------------------------------------------------------
+
+The Gensim Compiler reads in Gensim ADL models, performs some 
+processing, and outputs (generally) C++ source code. 
+
+A Gensim model consists of several main components:
+1. The System description, which contains information on register banks,
+   features, etc.
+2. The Syntactic description, which specifies how instructions are
+   encoded
+3. The Semantic description, which specifies how instructions are 
+   executed.
+
+Each of these components is processed by a different part of the 
+toolchain. The most complex processing is performed on the Semantic
+component (which is also usually the largest component).
+
+
+If you are interested in writing a model or using gensim, you should
+read the documentation in the models directory. The documentation in
+this directory is more intended for developers.

@@ -1,0 +1,50 @@
+/*
+ * ISADescriptionParser.h
+ *
+ *  Created on: 20 May 2015
+ *      Author: harry
+ */
+
+#ifndef INC_ISA_ISADESCRIPTIONPARSER_H_
+#define INC_ISA_ISADESCRIPTIONPARSER_H_
+
+#include "isa/ISADescription.h"
+#include "DiagnosticContext.h"
+
+namespace gensim
+{
+	namespace isa
+	{
+
+		class ISADescriptionParser
+		{
+		public:
+			ISADescriptionParser(DiagnosticContext &diag, uint8_t isa_size);
+
+			bool ParseFile(std::string filename);
+
+			ISADescription *Get();
+		private:
+			DiagnosticContext &diag;
+
+			ISADescription *isa;
+
+			// load high-level ISA information from the given ARCH_CTOR node
+			bool load_from_node(pANTLR3_BASE_TREE node, std::string filename);
+
+			// load arch decode and disassembly info from given ISA_CTOR node
+			bool load_isa_from_node(pANTLR3_BASE_TREE node, std::string filename);
+
+			bool load_behaviours();
+			bool load_behaviour_file(std::string filename);
+
+			std::set<std::string> parsed_files;
+			std::set<std::string> loaded_files;
+		};
+
+	}
+}
+
+
+
+#endif /* INC_ISA_ISADESCRIPTIONPARSER_H_ */

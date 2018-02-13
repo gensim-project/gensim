@@ -1,0 +1,196 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+#include <yaml-cpp/yaml.h>
+
+#include "genC/ssa/testing/SSAActionGenerator.h"
+#include "genC/ssa/testing/SSAInterpreter.h"
+#include "genC/ssa/validation/SSAActionValidator.h"
+#include "arch/ArchDescription.h"
+#include "arch/ArchDescriptionParser.h"
+#include "arch/testing/TestArch.h"
+#include "genC/ssa/SSAFormAction.h"
+#include "genC/ssa/SSAContext.h"
+#include "genC/ssa/passes/SSAPass.h"
+#include "genC/ssa/printers/SSAActionPrinter.h"
+#include "genC/ssa/io/Assembler.h"
+#include "genC/ssa/io/AssemblyReader.h"
+#include "genC/ssa/io/Disassemblers.h"
+#include "genC/InstStructBuilder.h"
+#include "genC/ir/IRConstant.h"
+
+#include "isa/ISADescription.h"
+
+using namespace gensim;
+typedef gensim::genc::ssa::testing::MachineState<gensim::genc::ssa::testing::BasicRegisterFileState, gensim::genc::ssa::testing::MemoryState> machine_state_t;
+
+#define DEBUG std::cout
+
+void ExecuteWrite(machine_state_t &ms, YAML::Node &node) {
+	
+}
+
+void LoadInputRegSlot(arch::ArchDescription &arch, isa::ISADescription &isa, YAML::Node node, machine_state_t &output) {
+	assert(node.Tag() == "write");
+	
+	std::string slotname = node["target"].as<std::string>();
+	auto slot_desc = arch.GetRegFile().GetSlot(slotname);
+	
+	uint32_t offset = slot_desc.GetRegFileOffset();
+	std::vector<unsigned char> data;
+	for(auto i : node) {
+		data.push_back(i.as<unsigned char>());
+	}
+	GASSERT(data.size() == slot_desc.GetWidth());
+	
+	output.RegisterFile().Write(offset, data.size(), data.data());
+	DEBUG << "Read value for R[" << slotname << "]" << std::endl;
+}
+
+void LoadInputRegBank(arch::ArchDescription &arch, isa::ISADescription &isa, YAML::Node node, machine_state_t &output) {
+	assert(node.Tag() == "write");
+	
+	std::string bankname = node.as<std::string>();
+	auto bank_desc = arch.GetRegFile().GetBank(bankname);
+	
+	uint32_t base_offset = bank_desc.GetRegFileOffset();
+	
+	for(auto i : node) {
+		// node will have the reg index as tag
+		int index = i.as<int>();
+		
+		std::vector<unsigned char> data;
+		for(auto j : i) {
+			data.push_back(j.as<unsigned char>());
+		}
+		
+		GASSERT(data.size() == bank_desc.GetRegisterWidth());
+		output.RegisterFile().Write(base_offset + (index * bank_desc.GetRegisterWidth()), data.size(), data.data());
+	}
+}
+
+void LoadInputRegisters(arch::ArchDescription &arch, isa::ISADescription &isa, YAML::Node node, machine_state_t &output) {
+	// node essentially contains a list of register writes, to be executed sequentially
+	assert(node.IsSequence());
+	for(auto write : node) {
+		assert(write["target"]);
+		assert(write["data"]);
+		std::string viewname = write["target"].as<std::string>();
+		if(arch.GetRegFile().HasRegSlot(viewname)) {
+			LoadInputRegSlot(arch, isa, write, output);
+		} else if(arch.GetRegFile().HasRegBank(viewname)) {
+			LoadInputRegBank(arch, isa, write, output);
+		}
+	}
+}
+
+machine_state_t LoadInputState(arch::ArchDescription &arch, isa::ISADescription &isa, YAML::Node &node) {
+	machine_state_t ms;
+	LoadInputRegisters(arch, isa, node["registers"], ms);
+	return ms;
+}
+
+gensim::arch::ArchDescription *ParseArch(gensim::DiagnosticContext &diag, const std::string &filename)
+{
+	gensim::arch::ArchDescriptionParser parser(diag);
+	if (!parser.ParseFile(filename)) {
+		return nullptr;
+	}
+
+	gensim::arch::ArchDescription *description = parser.Get();
+	return description;
+}
+
+/*
+ *
+ */
+int main(int argc, char** argv)
+{
+	if(argc < 3) {
+		fprintf(stderr, "Usage: %s [arch_description] [isa name] [input file] [input script]\n", argv[0]);
+		return 1;
+	}
+
+	const char *arch_description = argv[1];
+	const char *isa_name = argv[2];
+	const char *input_file = argv[3];
+	const char *script_file = argv[4];
+
+	gensim::DiagnosticSource root_source("GenSim");
+	gensim::DiagnosticContext root_context(root_source);
+
+	auto arch = ParseArch(root_context, arch_description);
+	if(arch == nullptr) {
+		std::cerr << "Failed to parse Arch" << std::endl << root_context;
+		return 1;
+	}
+	
+	gensim::isa::ISADescription *isa = arch->GetIsaByName(isa_name);
+	if(isa == nullptr) {
+		fprintf(stderr, "Could not find isa %s\n", isa_name);
+		return 1;
+	}
+	
+	gensim::genc::ssa::SSAContext *ctx = new gensim::genc::ssa::SSAContext(*isa, *arch);
+
+	gensim::genc::ssa::io::AssemblyReader ar;
+	gensim::genc::ssa::io::AssemblyFileContext *afc = nullptr;
+	if(!ar.Parse(input_file, root_context, afc)) {
+		std::cerr << root_context;
+		fprintf(stderr, "Failed to parse assembly file\n");
+		return 1;
+	}
+
+	gensim::genc::InstStructBuilder isb;
+	ctx->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa));
+
+	gensim::genc::ssa::io::ContextAssembler assembler;
+	assembler.SetTarget(ctx);
+	
+	if(!assembler.Assemble(*afc)) {
+		fprintf(stderr, "Failed to parse assembly tree\n");
+		std::cerr << root_context;
+		return 1;
+	}
+	
+	if(!ctx->Validate(root_context)) {
+		fprintf(stderr, "SSA failed validation\n");
+		std::cerr << root_context;
+		return 1;
+	}
+	
+	if(!ctx->Resolve(root_context)) {
+		fprintf(stderr, "Failed to resolve SSA\n");
+		return 1;
+	}
+	
+	// Load script file
+	
+	YAML::Node script = YAML::LoadFile(script_file);
+	
+	for(auto testnode : script) {	
+		if(testnode.first.as<std::string>() == "test") {
+			DEBUG << "Loading test" << std::endl;
+			auto input = testnode.second["input"];
+			auto call = testnode.second["call"];
+			
+			if(!input) {
+				DEBUG << "Could not find input node" << std::endl;
+				continue;
+			}
+			if(!call) {
+				DEBUG << "Could not find call node" << std::endl;
+				continue;
+			}
+
+			auto input_state = LoadInputState(*arch, *isa, input);
+		} else {
+			DEBUG << "Skipped node " << testnode.first.as<std::string>() << std::endl;
+		}
+	
+	}
+	return 0;
+}

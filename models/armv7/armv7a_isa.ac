@@ -1,0 +1,1716 @@
+/*
+	Matthew Calder 		s0935238
+	Paul-Jules Micolet	s0939834
+	Gerald Chau 		s0903611 
+	PASTA2 			2012
+*/
+
+AC_ISA(arm) 
+{
+	ac_fetchsize 32;
+
+	include("vfpv4.ac");
+	include("neon.ac");
+
+////////////////////////////////////////////////////////
+////  ac_format
+////////////////////////////////////////////////////////
+
+	/* Instructions for processing data - ALU */
+	ac_format Type_DPI1 = "%cond:4 %op!:3 %func1!:4 %s:1 %rn:4 %rd:4 %shift_amt:5 %shift_type:2 %subop1!:1 %rm:4";
+	ac_format Type_DPI2 = "%cond:4 %op!:3 %func1!:4 %s:1 %rn:4 %rd:4 %rs:4 %subop2!:1 %shift_type:2 %subop1!:1 %rm:4";
+	ac_format Type_DPI3 = "%cond:4 %op!:3 %func1!:4 %s:1 %rn:4 %rd:4 %rotate:4 %imm32:8"; 
+
+	/* Instructions for branch - BBLT needs cond = 1111 - bx and blx2 are of type MISC1 */
+	ac_format Type_BBL = "%cond:4 %op!:3 %h:1 %imm32:24";
+	ac_format Type_BBLT = "%cond:4 %op!:3 %h:1 %imm32:24";
+	ac_format Type_BXJ = "%cond:4 0x12:8 0xfff:12 0x2:4 %rm:4";
+	ac_format Type_MBXBLX = "%cond:4 %op!:3 %func1!:4 %s:1 0xfff:12 %subop2!:1 %func2!:2 %subop1!:1 %rm:4";
+
+	/* Instructions for swap and multiplication */
+	ac_format Type_MULT1 = "%cond:4 %op!:3 %func1!:4 %s:1 %rn:4 %rd:4 %rs:4 %subop2!:1 %func2!:2 %subop1!:1 %rm:4";
+	ac_format Type_MULT2 = "%cond:4 %op!:3 %func1!:4 %s:1 %rd:4 %rn:4 %rs:4 %subop2!:1 %func2!:2 %subop1!:1 %rm:4";
+
+	ac_format Type_SMUL = "%cond:4 0x16:8 %rd:4 0x0:4 %rs:4 0x1:1 %y:1 %x:1 0x0:1 %rm:4";
+
+	ac_format Type_DIV  = "%cond:4 0xe:5 0x0:1 %U:1 0x1:1 %rd:4 0xf:4 %rm:4 0x0:3 0x1:1 %rn:4";
+
+	/* Instructions for load and store */
+	ac_format Type_LSI = "%cond:4 %op!:3 %p:1 %u:1 %b!:1 %w:1 %l!:1 %rn:4 %rd:4 %imm32:12";
+	ac_format Type_LSR = "%cond:4 %op!:3 %p:1 %u:1 %b!:1 %w:1 %l!:1 %rn:4 %rd:4 %shift_amt:5 %shift_type:2 %subop1!:1 %rm:4";
+	ac_format Type_LSE = "%cond:4 %op!:3 %p:1 %u:1 %i:1 %w:1 %l!:1 %rn:4 %rd:4 %addr1:4 %subop2!:1 %ss!:1 %hh!:1 %subop1!:1 %addr2:4";
+	ac_format Type_LSM = "%cond:4 %op!:3 %p:1 %u:1 %r:1 %w:1 %l!:1 %rn:4 %imm32:16";
+
+	/* Coprocessor instructions*/
+	ac_format Type_CDP = "%cond:4 %op!:3 %subop3!:1 %funcc1!:4 %crn!:4 %crd!:4 %cp_num!:4 %funcc3!:3 %subop1!:1 %crm!:4";
+	ac_format Type_CRT = "%cond:4 %op!:3 %subop3!:1 %funcc2:3 %l!:1 %crn:4 %rd:4 %cp_num:4 %funcc3:3 %subop1!:1 %crm:4";
+	ac_format Type_CLS = "%cond:4 %op!:3 %p:1 %u:1 %n!:1 %w:1 %l!:1 %rn:4 %crd:4 %cp_num:4 %imm8!:8";
+	@notpred
+	ac_format Type_CPS = "0xf:4 0x10:8 %imod:2 %nmod:1 0x0:1 0x0:7 %a:1 %i:1 %f:1 0x0:1 %mode:5";	
+	/* Special instructions */
+	ac_format Type_MBKPT = "%cond:4 %op!:3 %func1!:4 %s:1 %imm32:12 %subop2!:1 %func2!:2 %subop1!:1 %rm:4";
+	ac_format Type_MSWI = "%cond:4 %op!:3 %subop3!:1 %imm32:24";
+	ac_format Type_MCLZ = "%cond:4 %op!:3 %func1!:4 %s:1 0xf:4 %rd:4 0xf:4 %subop2!:1 %func2!:2 %subop1!:1 %rm:4";
+	ac_format Type_MMSR1 = "%cond:4 %op!:3 %func11!:2 %r:1 %func12!:2 %fieldmask:4 %rd:4 0x0:4 %subop2!:1 %func2!:2 %subop1!:1 %rm:4";
+	ac_format Type_MMSR2 = "%cond:4 %op!:3 %func11!:2 %r:1 %func12!:2 %fieldmask:4 0xf:4 %rotate:4 %imm8:8";
+	/*ac_format Type_WFI = "%cond:4 0x32:8 0x0:4 %sbo!:4 %sbz!:4 0x03:8";*/
+
+	@notpred
+	ac_format Type_PLD = "0xf:4 0x1:2 %i:1 0x1:1 %u:1 0x5:3 %rn:4, 0xf:4 %addr:12";
+
+	ac_format Type_SMLA = "%cond:4 0x10:8 %rd:4 %rn:4 %rs:4 0x1:1 %y:1 %x:1 0x0:1 %rm:4";
+
+	ac_format Type_XTA = "%cond:4 0x6:4 0x1:1 %u:1 %val:2 %rn:4 %rd:4 %rot:2 0x0:2 0x7:4 %rm:4";
+
+	ac_format Type_UDF = "%cond:4 0x7:4 0xf:4 %imm12:12 0xf:4 %imm4:4";
+
+	/* armv7-fss */ 
+	ac_format Type_MOVW = "%cond:4 %op:4 %subop:4 %rn:4 %rd:4 %imm32:12";
+	ac_format Type_BIT  = "%cond:4 %op:5 %subop1:1 %subop2:1 %msb:5 %rd:4 %lsb:5 %subop3:3 %rn:4";
+	ac_format Type_PUSR = "%cond:4 0x6:4 0x1:1 %op1:3 %rn:4 %rd:4 %imm8:4 %op2:3 0x1:1 %rm:4";
+	ac_format Type_PUSR_PK = "%cond:4 0x6:4 0x1:1 %op1:3 %rn:4 %rd:4 %imm5:5 %tb:1 0x0:1 0x1:1 %rm:4";
+	ac_format Type_REV = "%cond:4 0x0d:5 %op1:3 %A:4 %rd:4 0xf:4 %op2:3 0x1:1 %rm:4";
+	ac_format Type_MLS = "%cond:4 0x06:8 %rd:4 %ra:4 %rm:4 0x9:4 %rn:4";
+
+	ac_format Type_SAT = "%cond:4 0x19:6 %op1:2 %rn:4 %rd:4 0xf:4 %op:4 %rm:4";
+
+	ac_format Type_MISCHINT = "0xf:4 0x0:1 %op1:7 %rn:4 %rt:4 %rt2:4 %op2:4 %rd:4";
+
+	@notpred
+	ac_format ISB_INS = "0xf57ff06f:32";
+
+	@notpred
+	ac_format DSB_INS = "0xf57ff04:28 %option:4";
+
+	@notpred
+	ac_format DMB_INS = "0xf57ff05:28 %option:4";
+
+	/* DSP multiplication instructions */
+	//ac_format Type_DSPSM = "%cond:4 %sm:8 %drd:4 %drn:4 %rs:4 %subop2!:1 %yy!:1 %xx!:1 %subop1!:1 %rm:4";
+		
+////////////////////////////////////////////////////////
+////  ac_instr
+////////////////////////////////////////////////////////
+	
+	// Instructions for processing data - ALU 
+	ac_instr<Type_DPI1> and1, eor1, sub1, rsb1, add1, adc1, sbc1, rsc1, tst1, teq1, cmp1, cmn1, orr1, mov1, bic1, mvn1;
+	ac_instr<Type_DPI2> and2, eor2, sub2, rsb2, add2, adc2, sbc2, rsc2, tst2, teq2, cmp2, cmn2, orr2, mov2, bic2, mvn2;
+	ac_instr<Type_DPI3> and3, eor3, sub3, rsb3, add3, adc3, sbc3, rsc3, tst3, teq3, cmp3, cmn3, orr3, mov3, bic3, mvn3;
+
+	// Instructions for branch - BBLT needs cond = 1111 - bx and blx2 are of type MISC1
+	ac_instr<Type_BBLT> blx1;
+	ac_instr<Type_BBL> b, bl;
+	ac_instr<Type_MBXBLX> bx, blx2, bxj;
+
+	// Instructions for swap and multiplication
+	ac_instr<Type_MULT1> swp, swpb, mla, mul;
+	ac_instr<Type_MULT2> smlal, smull, umlal, umull;
+	ac_instr<Type_DIV> udiv, sdiv;
+	ac_instr<Type_SMUL> smulxy;
+	
+	// Instructions for load and store
+	ac_instr<Type_LSI> ldrt1, ldrbt1, ldr1, ldr1_pc, ldrb1, strt1, strbt1, str1, strb1;
+	ac_instr<Type_LSR> ldrt2, ldrbt2, ldr2, ldrb2, strt2, strbt2, str2, strb2;
+	ac_instr<Type_LSE> ldrh, ldrsb, ldrsh, strh, ldrd, strd, ldrex, strex, ldrexd, strexd;
+	ac_instr<Type_LSM> ldm, stm, ldm_usr, stm_usr;
+
+	// Coprocessor instructions 
+	ac_instr<Type_CDP> cdp, cdp2;
+	ac_instr<Type_CRT> mcr, mrc;
+	ac_instr<Type_CRT> mcr_fpu, mrc_fpu;
+	ac_instr<Type_CRT> wfi, cf1, cf2;
+	ac_instr<Type_CLS> ldc, stc;
+	
+	// Special instructions
+	ac_instr<Type_MBKPT> bkpt;
+	ac_instr<Type_MSWI> swi;
+	ac_instr<Type_MCLZ> clz;
+	ac_instr<Type_MMSR1> mrs, msr1;
+	ac_instr<Type_MMSR2> msr2;
+
+	//  DSP multiplication instructions 
+	// The type of LSE Load / Store has DSP instructions (LDRD and strd)
+	//ac_instr<Type_DSPSM> dsmla, dsmlal, dsmul, dsmlaw, dsmulw;
+	
+	ac_instr<Type_PLD> pld;
+	
+	ac_instr<Type_SMLA> smlaxy;
+
+	/* armv7 fss */ 
+	ac_instr<Type_MOVW> movt, movw;
+	ac_instr<Type_BIT>  ubfx, sbfx, bfc, bfi;
+	ac_instr<Type_PUSR> sxth, uxth, uxtb, uxtb16, uxtab16, sxtb, sxtb16, sxtab16, sel; 
+	ac_instr<Type_PUSR_PK> pkhbt, pkhtb;
+	ac_instr<ISB_INS> isb;
+	ac_instr<DSB_INS> dsb;
+	ac_instr<DMB_INS> dmb;
+
+	ac_instr<Type_CPS> cps;
+	ac_instr<Type_XTA> uxtah, sxtah, sxtab, uxtab;
+	ac_instr<Type_REV> rev, rev16, rbit;
+	ac_instr<Type_MLS> mls;
+	ac_instr<Type_MISCHINT> clrex;
+	
+	ac_instr<Type_SAT> uqsub8, uqadd8, usub8, uadd8;
+	ac_instr<Type_UDF> udf;
+
+////////////////////////////////////////////////////////
+////  ac_asm_map
+////////////////////////////////////////////////////////
+
+	ac_asm_map reg 
+	{
+		"r"[0..15] = [0..15];
+		//"a"[1..4] = [0..3];
+		//"v"[1..8] = [4..11];
+		//"wr" = 7;
+		//"sb" = 9;
+		"sl" = 10;
+		"fp" = 11;
+		"ip" = 12;
+		"sp" = 13;
+		"lr" = 14;
+		"pc" = 15;
+	}
+
+	ac_asm_map cond 
+	{
+		"eq" = 0;
+		"ne" = 1;
+		"cs"= 2;
+		"cc" = 3;
+		"mi" = 4; 
+		"pl" = 5;
+		"vs" = 6;
+		"vc" = 7;
+		"hi" = 8;
+		"ls" = 9;
+		"ge" = 10;
+		"lt" = 11;
+		"gt" = 12;
+		"le" = 13;
+		""   = 14;
+	}
+
+	ac_asm_map sf 
+	{
+		"" = 0;
+		"s" = 1;    
+	}
+
+	ac_asm_map SHIFTTYPE
+	{
+		"lsl" = 0;
+		"lsr" = 1;
+		"asr" = 2;
+		"ror" = 3;
+	}
+	
+	ac_asm_map msrfieldmask
+	{
+		"" = 0;
+		"c" =1 ;
+		"x" = 2;
+		"cx" = 3;
+		"s" = 4;
+		"sc" = 5;
+		"sx" = 6;
+		"scx" = 7;
+		"f" = 8;
+		"fc" = 9;
+		"fx" = 10;
+		"fcx" = 11;
+		"fs" = 12;
+		"fsc" = 13;
+		"fsx" = 14;
+		"fscx" = 15;
+	}
+	
+	ac_asm_map memmultp
+	{
+		"a" = 0;
+		"b" = 1;
+	}
+	
+	ac_asm_map memmultu
+	{
+		"d" = 0;
+		"i" = 1;
+	}
+	
+	/*** Start of inst variables ***/	
+	
+
+	/*** End of inst variables ***/
+	
+////////////////////////////////////////////////////////
+////  ac_behaviour
+////////////////////////////////////////////////////////
+	
+	/*** Start of ac_behaviour declarations ***/
+	
+	ac_behaviour pld;
+	ac_behaviour bxj;
+	ac_behaviour ldrt1;
+	ac_behaviour ldm_usr;
+	ac_behaviour stm_usr;
+	ac_behaviour mcr_fpu;
+	ac_behaviour mrc_fpu;
+	ac_behaviour flush_itlb_entry;
+	ac_behaviour flush_dtlb_entry;
+	ac_behaviour smlaxy;
+	
+	/** DPI1 ***/
+	
+	ac_behaviour and1;
+	ac_behaviour eor1;
+	ac_behaviour sub1;
+	ac_behaviour rsb1;
+	ac_behaviour add1;
+	ac_behaviour adc1;
+	ac_behaviour sbc1;
+	ac_behaviour rsc1;
+	ac_behaviour tst1;
+	ac_behaviour teq1;
+	ac_behaviour cmp1;
+	ac_behaviour cmn1;
+	ac_behaviour orr1;
+	ac_behaviour mov1;
+	ac_behaviour bic1;
+	ac_behaviour mvn1;
+	
+	/*** DPI2 ***/
+	
+	ac_behaviour and2;
+	ac_behaviour eor2;
+	ac_behaviour sub2;
+	ac_behaviour rsb2;
+	ac_behaviour add2;
+	ac_behaviour adc2;
+	ac_behaviour sbc2;
+	ac_behaviour rsc2;
+	ac_behaviour tst2;
+	ac_behaviour teq2;
+	ac_behaviour cmp2;
+	ac_behaviour cmn2;
+	ac_behaviour orr2;
+	ac_behaviour mov2;
+	ac_behaviour bic2;
+	ac_behaviour mvn2;
+	
+	/*** DPI3 ***/
+	
+	ac_behaviour and3;
+	ac_behaviour eor3;
+	ac_behaviour sub3;
+	ac_behaviour rsb3;
+	ac_behaviour add3;
+	ac_behaviour adc3;
+	ac_behaviour sbc3;
+	ac_behaviour rsc3;
+	ac_behaviour tst3;
+	ac_behaviour teq3;
+	ac_behaviour cmp3;
+	ac_behaviour cmn3;
+	ac_behaviour orr3;
+	ac_behaviour mov3;
+	ac_behaviour bic3;
+	ac_behaviour mvn3;
+	
+	/*** Branch ***/
+	
+	ac_behaviour blx1;
+	ac_behaviour b;
+	ac_behaviour bl;
+	ac_behaviour bx;
+	ac_behaviour blx2;
+
+	/*** Multiplication & Swap ***/
+
+	ac_behaviour swp;
+	ac_behaviour swpb;
+	ac_behaviour mla; 
+	ac_behaviour mul;
+	ac_behaviour smlal;
+	ac_behaviour smull;
+	ac_behaviour umlal;
+	ac_behaviour umull;
+	ac_behaviour smulxy;
+
+	// Division
+	ac_behaviour sdiv;
+	ac_behaviour udiv;
+
+	/*** Load & Store ***/
+	ac_behaviour ldrt1l;
+	ac_behaviour ldrbt1;
+	ac_behaviour ldr1;
+	ac_behaviour ldr1_up;
+	ac_behaviour ldr1_upw;
+	ac_behaviour ldr1_pc;
+	ac_behaviour ldrb1;
+	ac_behaviour strt1;
+	ac_behaviour strbt1;
+	ac_behaviour str1;
+	ac_behaviour strb1;
+	ac_behaviour ldrt2;
+	ac_behaviour ldrbt2;
+	ac_behaviour ldr2;
+	ac_behaviour ldrb2;
+	ac_behaviour strt2;
+	ac_behaviour strbt2;
+	ac_behaviour str2;
+	ac_behaviour strb2;
+	ac_behaviour ldrh;
+	ac_behaviour ldrsb;
+	ac_behaviour ldrsh;
+	ac_behaviour strh;
+	ac_behaviour ldrd;
+	ac_behaviour strd; 
+	ac_behaviour ldm;
+	ac_behaviour stm;
+
+	/*** Coprocessor instructions ***/
+	ac_behaviour cdp;
+	ac_behaviour cdp2;
+	ac_behaviour mcr;
+	ac_behaviour mrc;
+	ac_behaviour ldc;
+	ac_behaviour stc;
+
+	/*** Special instructions ***/
+	ac_behaviour bkpt;
+	ac_behaviour swi;
+	ac_behaviour clz;
+	ac_behaviour mrs;
+	ac_behaviour msr1;
+	ac_behaviour msr2;
+	ac_behaviour wfi;
+
+	/*** DSP multiplication instructions ***/ 
+//	ac_behaviour dsmla;
+//	ac_behaviour dsmlal;
+//	ac_behaviour dsmul;
+//	ac_behaviour dsmlaw;
+//	ac_behaviour dsmulw;
+
+	/* armv7 fss */ 
+	ac_behaviour movt;
+	ac_behaviour movw;
+	ac_behaviour ubfx;
+	ac_behaviour sbfx;
+	ac_behaviour bfc;
+	ac_behaviour bfi;
+	ac_behaviour sxth;
+	ac_behaviour uxth;
+	ac_behaviour uxtb;
+	ac_behaviour uxtb16;
+	ac_behaviour uxtab16;
+	ac_behaviour sxtb;
+	ac_behaviour sxtb16;
+	ac_behaviour sxtab16;
+	ac_behaviour sel;
+	ac_behaviour pkhbt, pkhtb;
+	ac_behaviour isb;
+	ac_behaviour dsb;
+	ac_behaviour dmb;
+	ac_behaviour cps;
+	ac_behaviour uxtah;
+	ac_behaviour sxtah;
+	ac_behaviour sxtab;
+	ac_behaviour uxtab;
+	ac_behaviour ldrex;
+	ac_behaviour strex;
+	ac_behaviour ldrexd;
+	ac_behaviour strexd;
+	ac_behaviour rev;
+	ac_behaviour rev16;
+	ac_behaviour rbit;
+	ac_behaviour mls;
+	ac_behaviour clrex;
+
+	ac_behaviour uqsub8;
+	ac_behaviour uqadd8;
+	ac_behaviour usub8;
+	ac_behaviour uadd8;
+	
+	ac_behaviour udf;
+
+	/*** End of ac_behaviour declarations***/
+	
+	ISA_CTOR(armv5e) 
+	{
+
+		/* Defining assembler-specific constraints */
+
+		ac_behaviours("behaviours.arm");
+		ac_execute("execute.arm");
+
+		pld.set_asm("pld");
+		pld.set_behaviour(pld);
+		pld.set_decoder();
+
+		/**************************************/
+		/* Data processing instructions - ALU */
+		/**************************************/
+		
+
+		/**************************************/
+		/*        DPI1 Instructions           */
+		/**************************************/
+
+		mov1.set_decoder(op=0x00, subop1=0x00, func1=0x0D, rn=0);
+		mov1.set_asm("mov%[cond]%sf %reg, %reg", cond, s, rd, rm, rn=0, shift_amt=0, shift_type=0);
+		
+		//mov1.set_asm("mov%[cond]%sf %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rm, shift_type, shift_amt, rn=0);
+		mov1.set_asm("%SHIFTTYPE%[cond]%sf %reg, %reg, #%imm", shift_type, cond, s, rd, rm, shift_amt, rn=0);
+		
+		mov1.set_asm("mov%[cond]%sf %reg, %reg, rrx", cond, s, rd, rm, shift_type=3, shift_amt=0, rn=0);
+		mov1.set_behaviour(mov1);
+		mov1.set_end_of_block(rd=15);
+		mov1.set_variable_jump();
+		mov1.set_reads_pc(rm=15);
+		
+   		add1.set_decoder(op=0x00, subop1=0x00, func1=0x04);
+ 		add1.set_asm("add%[cond]%sf %reg, %reg, %reg", cond, s, rd, rn, rm, shift_amt=0, shift_type=0); 
+    	add1.set_asm("add%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rn, rm, shift_type, shift_amt);
+    	add1.set_asm("add%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
+		add1.set_behaviour(add1);
+		add1.set_end_of_block(rd=15);
+		add1.set_variable_jump();
+
+		and1.set_decoder(op=0x00, subop1=0x00, func1=0x00);
+		and1.set_asm("and%[cond]%sf %reg, %reg, %reg", cond, s, rd, rn, rm, shift_amt=0, shift_type=0); 
+  		and1.set_asm("and%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rn, rm, shift_type, shift_amt);
+		and1.set_asm("and%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
+		and1.set_behaviour(and1);
+
+		eor1.set_decoder(op=0x00, subop1=0x00, func1=0x01);
+   		eor1.set_asm("eor%[cond]%sf %reg, %reg, %reg", cond, s, rd, rn, rm, shift_amt=0, shift_type=0); 
+		eor1.set_asm("eor%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rn, rm, shift_type, shift_amt);
+		eor1.set_asm("eor%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
+		eor1.set_behaviour(eor1);
+
+		sub1.set_decoder(op=0x00, subop1=0x00, func1=0x02);
+		sub1.set_asm("sub%[cond]%sf %reg, %reg, %reg", cond, s, rd, rn, rm, shift_amt=0, shift_type=0); 
+		sub1.set_asm("sub%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rn, rm, shift_type, shift_amt);
+		sub1.set_asm("sub%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
+		sub1.set_behaviour(sub1);
+		sub1.set_end_of_block(rd=15);
+		sub1.set_variable_jump();
+
+		rsb1.set_decoder(op=0x00, subop1=0x00, func1=0x03);
+		rsb1.set_asm("rsb%[cond]%sf %reg, %reg, %reg", cond, s, rd, rn, rm, shift_amt=0, shift_type=0); 
+		rsb1.set_asm("rsb%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rn, rm, shift_type, shift_amt);
+   		rsb1.set_asm("rsb%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
+  		rsb1.set_behaviour(rsb1);
+
+		adc1.set_decoder(op=0x00, subop1=0x00, func1=0x05);
+		adc1.set_asm("adc%[cond]%sf %reg, %reg, %reg", cond, s, rd, rn, rm, shift_amt=0, shift_type=0); 
+		adc1.set_asm("adc%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rn, rm, shift_type, shift_amt);
+		adc1.set_asm("adc%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
+		adc1.set_behaviour(adc1);
+		adc1.set_end_of_block(rd=15);
+		
+		sbc1.set_decoder(op=0x00, subop1=0x00, func1=0x06);
+		sbc1.set_asm("sbc%[cond]%sf %reg, %reg, %reg", cond, s, rd, rn, rm, shift_amt=0, shift_type=0); 
+		sbc1.set_asm("sbc%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rn, rm, shift_type, shift_amt);
+		sbc1.set_asm("sbc%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
+		sbc1.set_behaviour(sbc1);
+
+		rsc1.set_decoder(op=0x00, subop1=0x00, func1=0x07);
+		rsc1.set_asm("rsc%[cond]%sf %reg, %reg, %reg", cond, s, rd, rn, rm, shift_amt=0, shift_type=0); 
+		rsc1.set_asm("rsc%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rn, rm, shift_type, shift_amt);
+		rsc1.set_asm("rsc%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
+		rsc1.set_behaviour(rsc1);
+
+		tst1.set_decoder(op=0x00, subop1=0x00, func1=0x08, s=0x01, rd=0, rn != 15);    		
+		tst1.set_asm("tst%[cond] %reg, %reg", cond, rn, rm, rd=0, shift_amt=0, shift_type=0);
+		tst1.set_asm("tst%[cond] %reg, %reg, %SHIFTTYPE #%imm", cond, rn, rm, shift_type, shift_amt, rd=0);
+		tst1.set_asm("tst%[cond] %reg, %reg, rrx", cond, rn, rm, shift_type=3, shift_amt=0, rd=0);
+		tst1.set_behaviour(tst1);
+
+		teq1.set_decoder(op=0x00, subop1=0x00, func1=0x09, s=0x01, rd=0, rn != 15);
+		teq1.set_asm("teq%[cond] %reg, %reg", cond, rn, rm, rd=0, shift_amt=0, shift_type=0);
+		teq1.set_asm("teq%[cond] %reg, %reg, %SHIFTTYPE #%imm", cond, rn, rm, shift_type, shift_amt, rd=0);
+		teq1.set_asm("teq%[cond] %reg, %reg, rrx", cond, rn, rm, shift_type=3, shift_amt=0, rd=0);
+		teq1.set_behaviour(teq1);
+
+		cmp1.set_decoder(op=0x00, subop1=0x00, func1=0x0A, s=0x01, rd=0, rn != 15);	
+		cmp1.set_asm("cmp%[cond] %reg, %reg", cond, rn, rm, rd=0, shift_amt=0, shift_type=0);
+		cmp1.set_asm("cmp%[cond] %reg, %reg, %SHIFTTYPE #%imm", cond, rn, rm, shift_type, shift_amt, rd=0);
+		cmp1.set_asm("cmp%[cond] %reg, %reg, rrx", cond, rn, rm, shift_type=3, shift_amt=0, rd=0);
+		cmp1.set_behaviour(cmp1);
+
+		cmn1.set_decoder(op=0x00, subop1=0x00, func1=0x0B, s=0x01, rd=0, rn != 15);
+		cmn1.set_asm("cmn%[cond] %reg, %reg", cond, rn, rm, rd=0, shift_amt=0, shift_type=0);
+		cmn1.set_asm("cmn%[cond] %reg, %reg, %SHIFTTYPE #%imm", cond, rn, rm, shift_type, shift_amt, rd=0);
+		cmn1.set_asm("cmn%[cond] %reg, %reg, rrx", cond, rn, rm, shift_type=3, shift_amt=0, rd=0);
+		cmn1.set_behaviour(cmn1);
+
+	 	orr1.set_decoder(op=0x00, subop1=0x00, func1=0x0C);
+  		orr1.set_asm("orr%[cond]%sf %reg, %reg, %reg", cond, s, rd, rn, rm, shift_amt=0, shift_type=0); 
+		orr1.set_asm("orr%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rn, rm, shift_type, shift_amt);
+		orr1.set_asm("orr%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
+   		orr1.set_behaviour(orr1);
+
+		bic1.set_decoder(op=0x00, subop1=0x00, func1=0x0E);
+		bic1.set_asm("bic%[cond]%sf %reg, %reg, %reg", cond, s, rd, rn, rm, shift_amt=0, shift_type=0); 
+		bic1.set_asm("bic%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rn, rm, shift_type, shift_amt);
+		bic1.set_asm("bic%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
+		bic1.set_behaviour(bic1);
+
+		mvn1.set_decoder(op=0x00, subop1=0x00, func1=0x0F, rn=0);
+		mvn1.set_asm("mvn%[cond]%sf %reg, %reg", cond, s, rd, rm, rn=0, shift_amt=0, shift_type=0);
+		mvn1.set_asm("mvn%[cond]%sf %reg, %reg, %SHIFTTYPE #%imm", cond, s, rd, rm, shift_type, shift_amt, rn=0);
+		mvn1.set_asm("mvn%[cond]%sf %reg, %reg, rrx", cond, s, rd, rm, shift_type=3, shift_amt=0, rn=0);
+		mvn1.set_behaviour(mvn1);
+
+
+		/**************************************/
+		/*        DPI2 Instructions          */
+		/**************************************/
+		
+
+		and2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x00);
+   		and2.set_asm("and%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rn, rm, shift_type, rs);     	
+		and2.set_behaviour(and2);
+
+		eor2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x01);		
+		eor2.set_asm("eor%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rn, rm, shift_type, rs); 
+ 		eor2.set_behaviour(eor2);
+		
+		sub2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x02);
+		sub2.set_asm("sub%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rn, rm, shift_type, rs); 
+		sub2.set_behaviour(sub2);
+		sub2.set_end_of_block(rd=15);
+		sub2.set_variable_jump();
+
+		rsb2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x03);
+		rsb2.set_asm("rsb%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rn, rm, shift_type, rs); 
+    		rsb2.set_behaviour(rsb2);
+
+		add2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x04);
+		add2.set_asm("add%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rn, rm, shift_type, rs); 
+    		add2.set_behaviour(add2);
+
+		adc2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x05);
+		adc2.set_asm("adc%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rn, rm, shift_type, rs); 
+    		adc2.set_behaviour(adc2);
+		adc2.set_end_of_block(rd=15);
+
+		sbc2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x06);
+		sbc2.set_asm("sbc%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rn, rm, shift_type, rs); 
+   		sbc2.set_behaviour(sbc2);
+
+		rsc2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x07);
+		rsc2.set_asm("rsc%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rn, rm, shift_type, rs); 
+   		rsc2.set_behaviour(rsc2);
+
+		tst2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x08, s=0x01,rd=0, rn != 15);
+		tst2.set_asm("tst%[cond] %reg, %reg, %SHIFTTYPE %reg", cond, rn, rm, shift_type, rs, rd=0);
+		tst2.set_behaviour(tst2);
+
+		teq2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x09, s=0x01,rd=0, rn != 15);
+		teq2.set_asm("teq%[cond] %reg, %reg, %SHIFTTYPE %reg", cond, rn, rm, shift_type, rs, rd=0);
+    		teq2.set_behaviour(teq2);
+
+		cmp2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x0A, s=0x01,rd=0, rn != 15);
+		cmp2.set_asm("cmp%[cond] %reg, %reg, %SHIFTTYPE %reg", cond, rn, rm, shift_type, rs, rd=0);
+		cmp2.set_behaviour(cmp2);
+
+		cmn2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x0B, s=0x01,rd=0, rn != 15);
+		cmn2.set_asm("cmn%[cond] %reg, %reg, %SHIFTTYPE %reg", cond, rn, rm, shift_type, rs, rd=0);
+		cmn2.set_behaviour(cmn2);
+
+		orr2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x0C);
+		orr2.set_asm("orr%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rn, rm, shift_type, rs); 
+		orr2.set_behaviour(orr2);
+
+		mov2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x0D, rn=0);
+  		mov2.set_asm("mov%[cond]%sf %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rm, shift_type, rs, rn=0);
+		mov2.set_behaviour(mov2);
+
+		bic2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x0E);
+		bic2.set_asm("bic%[cond]%sf %reg, %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rn, rm, shift_type, rs); 
+		bic2.set_behaviour(bic2);
+
+		mvn2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x0F, rn=0);  
+  		mvn2.set_asm("mvn%[cond]%sf %reg, %reg, %SHIFTTYPE %reg", cond, s, rd, rm, shift_type, rs, rn=0);
+  		mvn2.set_behaviour(mvn2);
+
+
+		/**************************************/
+		/*        DPI3 Instructions           */
+		/**************************************/
+
+		
+    		and3.set_decoder(op=0x01, func1=0x00);
+		and3.set_asm("and%[cond]%sf %reg, %reg, #%imm", cond, s, rd, rn, imm32);
+		and3.set_behaviour(and3);
+
+		eor3.set_decoder(op=0x01, func1=0x01);
+		eor3.set_asm("eor%[cond]%sf %reg, %reg, #%imm", cond, s, rd, rn, imm32);
+		eor3.set_behaviour(eor3);
+
+		sub3.set_decoder(op=0x01, func1=0x02);
+		sub3.set_asm("sub%[cond]%sf %reg, %reg, #%imm", cond, s, rd, rn, imm32);
+		sub3.set_behaviour(sub3);
+		sub3.set_end_of_block(rd=15);
+		sub3.set_variable_jump();
+
+		rsb3.set_decoder(op=0x01, func1=0x03);
+		rsb3.set_asm("rsb%[cond]%sf %reg, %reg, #%imm", cond, s, rd, rn, imm32);
+		rsb3.set_behaviour(rsb3);
+
+    		add3.set_decoder(op=0x01, func1=0x04);
+		add3.set_asm("add%[cond]%sf %reg, %reg, #%imm", cond, s, rd, rn, imm32);
+		add3.set_behaviour(add3);   
+			add3.set_reads_pc(rn=15);
+			add3.set_end_of_block(rd=15);
+			add3.set_variable_jump();
+
+		adc3.set_decoder(op=0x01, func1=0x05);
+		adc3.set_asm("adc%[cond]%sf %reg, %reg, #%imm", cond, s, rd, rn, imm32);
+		adc3.set_behaviour(adc3);
+		adc3.set_end_of_block(rd=15);
+
+		sbc3.set_decoder(op=0x01, func1=0x06);   	
+		sbc3.set_asm("sbc%[cond]%sf %reg, %reg, #%imm", cond, s, rd, rn, imm32);
+    		sbc3.set_behaviour(sbc3);
+
+		rsc3.set_decoder(op=0x01, func1=0x07);
+		rsc3.set_asm("rsc%[cond]%sf %reg, %reg, #%imm", cond, s, rd, rn, imm32);
+		rsc3.set_behaviour(rsc3);
+
+		teq3.set_decoder(op=0x01, func1=0x09, s=0x01, rn != 15);
+		teq3.set_asm("teq%[cond] %reg, #%imm", cond, rn, imm32, rd=0);
+		teq3.set_behaviour(teq3);
+
+		cmp3.set_decoder(op=0x01, func1=0x0A, s=0x01, rn != 15);
+		cmp3.set_asm("cmp%[cond] %reg, #%imm", cond, rn, imm32, rd=0);
+		cmp3.set_behaviour(cmp3);
+
+		cmn3.set_decoder(op=0x01, func1=0x0B, s=0x01, rn != 15);
+		cmn3.set_asm("cmn%[cond] %reg, #%imm", cond, rn, imm32, rd=0);
+		cmn3.set_behaviour(cmn3);
+
+		orr3.set_decoder(op=0x01, func1=0x0C);
+		orr3.set_asm("orr%[cond]%sf %reg, %reg, #%imm", cond, s, rd, rn, imm32);
+		orr3.set_behaviour(orr3);
+		orr3.set_end_of_block(rd=15);
+		orr3.set_variable_jump();
+
+		mov3.set_decoder(op=0x01, func1=0x0D, rn=0);
+		mov3.set_asm("mov%[cond]%sf %reg, #%imm", cond, s, rd, imm32, rn=0);
+		mov3.set_behaviour(mov3);
+
+		bic3.set_decoder(op=0x01, func1=0x0E);
+		bic3.set_asm("bic%[cond]%sf %reg, %reg, #%imm", cond, s, rd, rn, imm32);
+		bic3.set_behaviour(bic3);
+
+		mvn3.set_decoder(op=0x01, func1=0x0F);
+		mvn3.set_asm("mvn%[cond]%sf %reg, #%imm", cond, s, rd, imm32);
+		mvn3.set_behaviour(mvn3);
+
+		tst3.set_decoder(op=0x01, func1=0x08, s=0x01, rn != 15);
+		tst3.set_asm("tst%[cond] %reg, #%imm", cond, rn, imm32);
+		tst3.set_behaviour(tst3);
+
+		/**************************************/
+		/*   Instructions for branches        */
+		/**************************************/
+
+		/**************************************/
+		/*        BBLT Instructions          */
+		/**************************************/
+
+
+		blx1.set_decoder(op=0x05, cond=0x0F);
+		blx1.set_asm("blx1 %reladdr", imm32);
+		blx1.set_behaviour(blx1);
+		blx1.set_end_of_block();
+		blx1.set_fixed_jump(imm32, RELATIVE, 0);
+
+		/**************************************/
+		/*        BBL Instructions            */
+		/**************************************/
+
+
+		b.set_decoder(op=0x05, h=0);
+		b.set_asm("b%[cond] %reladdr", cond, imm32);
+		b.set_behaviour(b);
+		b.set_end_of_block();
+//		b.set_variable_jump();
+		b.set_fixed_jump(imm32, RELATIVE, 0);
+		
+		bl.set_decoder(op=0x05, h=1);
+		bl.set_asm("bl%[cond] %reladdr", cond, imm32);
+		bl.set_behaviour(bl);
+		bl.set_end_of_block();
+//		bl.set_variable_jump();
+		bl.set_fixed_jump(imm32, RELATIVE, 0);
+
+		/**************************************/
+		/*        MBXLBLX Instructions        */
+		/**************************************/
+
+
+		bx.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x09, s=0x00, func2=0x00);
+		bx.set_asm("bx%[cond] %reg", cond, rm);
+		bx.set_behaviour(bx);
+		bx.set_end_of_block();
+		bx.set_variable_jump();
+
+		blx2.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x09, s=0x00, func2=0x01);
+		blx2.set_asm("blx%[cond] %reg", cond, rm);
+		blx2.set_behaviour(blx2);
+		blx2.set_end_of_block();
+		blx2.set_variable_jump();
+		
+		bxj.set_decoder();
+		bxj.set_asm("bxj%[cond] %reg", cond, rm);
+		bxj.set_behaviour(bxj);
+		bxj.set_end_of_block();
+		bxj.set_variable_jump();
+
+
+		/*********************************************/
+		/* Instructions for swaps and multiplication */
+		/*************************************** *****/
+
+		/**************************************/
+		/*        MULT1 Instructions          */
+		/**************************************/
+
+		
+		swp.set_decoder(op=0x00, subop1=0x01, subop2=0x01, func1=0x08, func2=0x00, s=0x00);
+		swp.set_asm("swp%[cond] %reg, %reg, [%reg]", cond, rd, rm, rn, rs=0x00);
+		swp.set_behaviour(swp);
+
+		swpb.set_decoder(op=0x00, subop1=0x01, subop2=0x01, func1=0x0A, func2=0x00, s=0x00);
+		swpb.set_asm("swp%[cond]b %reg, %reg, [%reg]", cond, rd, rm, rn, rs=0x00);
+		swpb.set_behaviour(swpb);
+    
+		mul.set_decoder(op=0x00, subop1=0x01, subop2=0x01, func1=0x00, func2=0x00, rn != 15);
+		mul.set_asm("mul%[cond]%sf %reg, %reg, %reg", cond, s, rn, rm ,rs, rd=0x00);
+		mul.set_behaviour(mul);
+    
+		mla.set_decoder(op=0x00, subop1=0x01, subop2=0x01, func1=0x01, func2=0x00, rn != 15, rm  != 15);
+		mla.set_asm("mla%[cond]%sf %reg, %reg, %reg, %reg", cond, s, rn, rm, rs, rd);
+		mla.set_behaviour(mla);
+
+
+		/**************************************/
+		/*        MULT2 Instructions          */
+		/**************************************/
+		// "%cond:4 %op!:3 %func1!:4 %s:1 %rd:4 %rn:4 %rs:4 %subop2!:1 %func2!:2 %subop1!:1 %rm:4";
+
+		smlal.set_decoder(op=0x00, subop1=0x01, subop2=0x01, func1=0x07, func2=0x00, rn != 15, rd != 15);
+    		smlal.set_asm("smlal%[cond]%sf %reg, %reg, %reg, %reg", cond, s, rn, rd, rm, rs);
+		smlal.set_behaviour(smlal);    
+    
+		smull.set_decoder(op=0x00, subop1=0x01, subop2=0x01, func1=0x06, func2=0x00, rn != 15, rd != 15);
+    		smull.set_asm("smull%[cond]%sf %reg, %reg, %reg, %reg", cond, s, rn, rd, rm, rs);
+		smull.set_behaviour(smull);
+    		
+		umlal.set_decoder(op=0x00, subop1=0x01, subop2=0x01, func1=0x05, func2=0x00, rn != 15, rd != 15);
+    		umlal.set_asm("umlal%[cond]%sf %reg, %reg, %reg, %reg", cond, s, rn, rd, rm ,rs);
+		umlal.set_behaviour(umlal);
+    		
+		umull.set_decoder(op=0x00, subop1=0x01, subop2=0x01, func1=0x04, func2=0x00, rn != 15, rd != 15);
+    		umull.set_asm("umull%[cond]%sf %reg, %reg, %reg, %reg", cond, s, rn, rd, rm, rs);
+		umull.set_behaviour(umull);    		
+
+		smulxy.set_decoder();
+		smulxy.set_asm("smulxy");
+		smulxy.set_behaviour(smulxy);
+
+		// Division
+		sdiv.set_decoder(U=0);
+		sdiv.set_asm("sdiv");
+		sdiv.set_behaviour(sdiv);
+		
+		udiv.set_decoder(U=1);
+		udiv.set_asm("udiv");
+		udiv.set_behaviour(udiv);
+
+		/**************************************/
+		/* Instructions for load and stores   */
+		/**************************************/
+
+		/**************************************/
+		/*          LSI Instructions          */
+		/**************************************/
+
+
+		ldrt1.set_decoder(op=0x02, p=0x00, b=0x00, w=0x01, l=0x01);
+		ldrt1.set_asm("ldr%[cond]t %reg, [%reg]", cond, rd, rn, imm32=0x00, u=0x01);
+    		ldrt1.set_asm("ldr%[cond]t %reg, [%reg], #+%imm", cond, rd, rn, imm32, u=0x01); 
+    		ldrt1.set_asm("ldr%[cond]t %reg, [%reg], #-%imm", cond, rd, rn, imm32, u=0x00); 
+    		ldrt1.set_asm("ldr%[cond]t %reg, [%reg], #%imm", cond, rd, rn, imm32, u=0x01); 
+    		ldrt1.set_behaviour(ldrt1);
+		//	ldrt1.set_reads_pc(rn = 15);
+
+		ldrbt1.set_decoder(op=0x02, p=0x00, b=0x01, w=0x01, l=0x01);
+		ldrbt1.set_asm("ldr%[cond]bt %reg, [%reg]", cond, rd, rn, imm32=0x00, u=0x01);
+    		ldrbt1.set_asm("ldr%[cond]bt %reg, [%reg], #+%imm", cond, rd, rn, imm32, u=0x01); 
+    		ldrbt1.set_asm("ldr%[cond]bt %reg, [%reg], #-%imm", cond, rd, rn, imm32, u=0x00); 
+    		ldrbt1.set_asm("ldr%[cond]bt %reg, [%reg], #%imm", cond, rd, rn, imm32, u=0x01); 
+		ldrbt1.set_behaviour(ldrbt1);
+		//	ldrbt1.set_reads_pc(rn = 15);
+
+		ldr1.set_decoder(op=0x02, b=0x00, l=0x01);
+		ldr1.set_asm("pop%[cond] {%reg}", cond, rd, rn=13, imm32=4, u=1,p=0,w=0);
+		ldr1.set_asm("ldr%[cond] %reg, [%reg]", cond, rd, rn, imm32=0, p=1, u=1, w=0);
+		ldr1.set_asm("ldr%[cond] %reg, [%reg, #0]", cond, rd, rn, rn=15, imm32=0, p=1, u=1, w=0);
+		
+		
+		ldr1.set_asm("ldr%[cond] %reg, [%reg, #-%imm]", cond, rd, rn, imm32, p=1, u=0, w=0);
+		ldr1.set_asm("ldr%[cond] %reg, [%reg, #%imm]", cond, rd, rn, imm32, p=1, u=1, w=0);
+		ldr1.set_asm("ldr%[cond] %reg, [%reg, #%imm]!", cond, rd, rn, imm32, p=1, u=1, w=1);
+		ldr1.set_asm("ldr%[cond] %reg, [%reg, #-%imm]!", cond, rd, rn, imm32, p=1, u=0, w=1);
+		ldr1.set_asm("ldr%[cond] %reg, [%reg], #-%imm", cond, rd, rn, imm32, u=0x00, p=0x00, w=0x00); 
+		ldr1.set_asm("ldr%[cond] %reg, [%reg], #%imm", cond, rd, rn, imm32, u=0x01, p=0x00, w=0x00); 
+		ldr1.set_behaviour(ldr1);
+		
+		//ldr1_rpc.set_decoder(op=0x02, b=0x00, l=0x01, rn=15);
+		//ldr1_rpc.set_asm("ldr%[cond] %reg, [%reg, #-%imm]", cond, rd, rn, imm32, p=1, u=0, w=0);
+		//ldr1_rpc.set_asm("ldr%[cond] %reg, [%reg, #%imm]", cond, rd, rn, imm32, p=1, u=1, w=0);
+		//ldr1_rpc.set_asm("ldr%[cond] %reg, [%reg, #-%imm]!", cond, rd, rn, imm32, p=1, u=0, w=1);
+		//ldr1_rpc.set_asm("ldr%[cond] %reg, [%reg], #+%imm", cond, rd, rn, imm32, u=0x01, p=0x00, w=0x00); 
+		//ldr1_rpc.set_asm("ldr%[cond] %reg, [%reg], #-%imm", cond, rd, rn, imm32, u=0x00, p=0x00, w=0x00); 
+		//ldr1_rpc.set_asm("ldr%[cond] %reg, [%reg], #%imm", cond, rd, rn, imm32, u=0x01, p=0x00, w=0x00); 
+		//ldr1_rpc.set_behaviour(ldr1_rpc);
+		
+		ldr1_pc.set_decoder(op=0x02, b=0x00, l=0x01, rd=15);
+		ldr1_pc.set_asm("ldr%[cond] %reg, [%reg]", cond, rd, rn, imm32=0x00, p=1, u=1, w=0);
+		ldr1_pc.set_asm("ldr%[cond] %reg, [%reg, #+%imm]", cond, rd, rn, imm32, p=1, u=1, w=0);
+		ldr1_pc.set_asm("ldr%[cond] %reg, [%reg, #-%imm]", cond, rd, rn, imm32, p=1, u=0, w=0);
+		ldr1_pc.set_asm("ldr%[cond] %reg, [%reg, #%imm]", cond, rd, rn, imm32, p=1, u=1, w=0);
+		ldr1_pc.set_asm("ldr%[cond] %reg, [%reg, #+%imm]!", cond, rd, rn, imm32, p=1, u=1, w=1);
+		ldr1_pc.set_asm("ldr%[cond] %reg, [%reg, #-%imm]!", cond, rd, rn, imm32, p=1, u=0, w=1);
+		ldr1_pc.set_asm("ldr%[cond] %reg, [%reg, #%imm]!", cond, rd, rn, imm32, p=1, u=1, w=1);   
+		ldr1_pc.set_asm("ldr%[cond] %reg, [%reg], #+%imm", cond, rd, rn, imm32, u=0x01, p=0x00, w=0x00); 
+		ldr1_pc.set_asm("ldr%[cond] %reg, [%reg], #-%imm", cond, rd, rn, imm32, u=0x00, p=0x00, w=0x00); 
+		ldr1_pc.set_asm("ldr%[cond] %reg, [%reg], #%imm", cond, rd, rn, imm32, u=0x01, p=0x00, w=0x00); 
+		ldr1_pc.set_behaviour(ldr1_pc);
+		ldr1_pc.set_end_of_block();
+		ldr1_pc.set_reads_pc(rn=15);
+		ldr1_pc.set_variable_jump();
+
+		ldrb1.set_decoder(op=0x02, b=0x01, l=0x01);
+		ldrb1.set_asm("ldr%[cond]b %reg, [%reg]", cond, rd, rn, imm32=0x0, p=1, u=1, w=0);
+    		ldrb1.set_asm("ldr%[cond]b %reg, [%reg, #+%imm]", cond, rd, rn, imm32, p=1, u=1, w=0);
+    		ldrb1.set_asm("ldr%[cond]b %reg, [%reg, #-%imm]", cond, rd, rn, imm32, p=1, u=0, w=0);
+    		ldrb1.set_asm("ldr%[cond]b %reg, [%reg, #%imm]", cond, rd, rn, imm32, p=1, u=1, w=0);    
+		ldrb1.set_asm("ldr%[cond]b %reg, [%reg, #+%imm]!", cond, rd, rn, imm32, p=1, u=1, w=1);
+    		ldrb1.set_asm("ldr%[cond]b %reg, [%reg, #-%imm]!", cond, rd, rn, imm32, p=1, u=0, w=1);
+    		ldrb1.set_asm("ldr%[cond]b %reg, [%reg, #%imm]!", cond, rd, rn, imm32, p=1, u=1, w=1);    
+		ldrb1.set_asm("ldr%[cond]b %reg, [%reg], #+%imm", cond, rd, rn, imm32, u=0x01, p=0x00, w=0x00); 
+    		ldrb1.set_asm("ldr%[cond]b %reg, [%reg], #-%imm", cond, rd, rn, imm32, u=0x00, p=0x00, w=0x00); 
+    		ldrb1.set_asm("ldr%[cond]b %reg, [%reg], #%imm", cond, rd, rn, imm32, u=0x01, p=0x00, w=0x00);
+		ldrb1.set_behaviour(ldrb1);
+		//	ldrb1.set_reads_pc(rn = 15);
+
+		str1.set_decoder(op=0x02, b=0x00, l=0x00);
+		str1.set_asm("push%cond {%reg}", cond, rd, rn=13, imm32=4, p=1, u=0, w=1);
+		
+		str1.set_asm("str%[cond] %reg, [%reg]", cond, rd, rn, imm32=0x0, p=1, u=1, w=0);
+    		str1.set_asm("str%[cond] %reg, [%reg, #+%imm]", cond, rd, rn, imm32, p=1, u=1, w=0);
+    		str1.set_asm("str%[cond] %reg, [%reg, #-%imm]", cond, rd, rn, imm32, p=1, u=0, w=0);
+    		str1.set_asm("str%[cond] %reg, [%reg, #%imm]", cond, rd, rn, imm32, p=1, u=1, w=0);
+    		//   Pre-indexed (p=1 w=1)
+    		str1.set_asm("str%[cond] %reg, [%reg, #+%imm]!", cond, rd, rn, imm32, p=1, u=1, w=1);
+    		str1.set_asm("str%[cond] %reg, [%reg, #-%imm]!", cond, rd, rn, imm32, p=1, u=0, w=1);
+    		str1.set_asm("str%[cond] %reg, [%reg, #%imm]!", cond, rd, rn, imm32, p=1, u=1, w=1);
+    		//   Post-indexed (p=0 w=0)
+    		str1.set_asm("str%[cond] %reg, [%reg], #+%imm", cond, rd, rn, imm32, u=0x01, p=0x00, w=0x00); 
+    		str1.set_asm("str%[cond] %reg, [%reg], #-%imm", cond, rd, rn, imm32, u=0x00, p=0x00, w=0x00); 
+    		str1.set_asm("str%[cond] %reg, [%reg], #%imm", cond, rd, rn, imm32, u=0x01, p=0x00, w=0x00);
+		str1.set_behaviour(str1);
+		//	str1.set_reads_pc(rn = 15);
+    		
+		strt1.set_decoder(op=0x02, p=0x00, b=0x00, w=0x01, l=0x00);
+		strt1.set_asm("str%[cond]t %reg, [%reg]", cond, rd, rn, imm32=0x00, u=0x01);
+    		strt1.set_asm("str%[cond]t %reg, [%reg], #+%imm", cond, rd, rn, imm32, u=0x01); 
+    		strt1.set_asm("str%[cond]t %reg, [%reg], #-%imm", cond, rd, rn, imm32, u=0x00); 
+    		strt1.set_asm("str%[cond]t %reg, [%reg], #%imm", cond, rd, rn, imm32, u=0x01); 
+		strt1.set_behaviour(strt1);
+		//	strt1.set_reads_pc(rn = 15);
+
+		strb1.set_decoder(op=0x02, b=0x01, l=0x00);	    
+		//   Normal base plus offset/Register indirect (p=1 w=0)
+    		strb1.set_asm("str%[cond]b %reg, [%reg]", cond, rd, rn, imm32=0x0, p=1, u=1, w=0);
+    		strb1.set_asm("str%[cond]b %reg, [%reg, #+%imm]", cond, rd, rn, imm32, p=1, u=1, w=0);
+    		strb1.set_asm("str%[cond]b %reg, [%reg, #-%imm]", cond, rd, rn, imm32, p=1, u=0, w=0);
+    		strb1.set_asm("str%[cond]b %reg, [%reg, #%imm]", cond, rd, rn, imm32, p=1, u=1, w=0);
+    		//   Pre-indexed (p=1 w=1)
+    		strb1.set_asm("str%[cond]b %reg, [%reg, #+%imm]!", cond, rd, rn, imm32, p=1, u=1, w=1);
+    		strb1.set_asm("str%[cond]b %reg, [%reg, #-%imm]!", cond, rd, rn, imm32, p=1, u=0, w=1);
+    		strb1.set_asm("str%[cond]b %reg, [%reg, #%imm]!", cond, rd, rn, imm32, p=1, u=1, w=1);
+    		//   Post-indexed (p=0 w=0)
+    		strb1.set_asm("str%[cond]b %reg, [%reg], #+%imm", cond, rd, rn, imm32, u=0x01, p=0x00, w=0x00); 
+    		strb1.set_asm("str%[cond]b %reg, [%reg], #-%imm", cond, rd, rn, imm32, u=0x00, p=0x00, w=0x00); 
+    		strb1.set_asm("str%[cond]b %reg, [%reg], #%imm", cond, rd, rn, imm32, u=0x01, p=0x00, w=0x00);
+		strb1.set_behaviour(strb1);			
+		//	strb1.set_reads_pc(rn = 15);
+
+		strbt1.set_decoder(op=0x02, p=0x00, b=0x01, w=0x01, l=0x00);    
+		strbt1.set_asm("str%[cond]bt %reg, [%reg]", cond, rd, rn, imm32=0x00, u=0x01);
+    		strbt1.set_asm("str%[cond]bt %reg, [%reg], #+%imm", cond, rd, rn, imm32, u=0x01); 
+    		strbt1.set_asm("str%[cond]bt %reg, [%reg], #-%imm", cond, rd, rn, imm32, u=0x00); 
+    		strbt1.set_asm("str%[cond]bt %reg, [%reg], #%imm", cond, rd, rn, imm32, u=0x01);
+		strbt1.set_behaviour(strbt1);
+		//	strbt1.set_reads_pc(rn = 15);
+    		
+		/**************************************/
+		/*          LSR Instructions          */
+		/**************************************/
+
+
+		ldrt2.set_decoder(op=0x03, subop1=0x00, p=0x00, b=0x00, w=0x01, l=0x01);
+		ldrt2.set_asm("ldr%[cond]t %reg, [%reg], +%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01); 
+    		ldrt2.set_asm("ldr%[cond]t %reg, [%reg], -%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x00); 
+    		ldrt2.set_asm("ldr%[cond]t %reg, [%reg], %reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01); 
+    		ldrt2.set_asm("ldr%[cond]t %reg, [%reg], +%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01);
+    		ldrt2.set_asm("ldr%[cond]t %reg, [%reg], -%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x00);
+    		ldrt2.set_asm("ldr%[cond]t %reg, [%reg], %reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01);
+    		ldrt2.set_asm("ldr%[cond]t %reg, [%reg], +%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01);
+    		ldrt2.set_asm("ldr%[cond]t %reg, [%reg], -%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x00);
+    		ldrt2.set_asm("ldr%[cond]t %reg, [%reg], %reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01);
+		ldrt2.set_behaviour(ldrt2);
+		//	ldrt2.set_reads_pc();
+    				
+		ldr2.set_decoder(op=0x03, subop1=0x00, b=0x00, l=0x01);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, +%reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=1);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, -%reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=0);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, %reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=1);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, +%reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=1);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, -%reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=0);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, %reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=1);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, +%reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=1);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, -%reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=0);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, %reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=1);
+		ldr2.set_asm("ldr%[cond] %reg, [%reg, +%reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=1);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, -%reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=0);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, %reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=1);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, +%reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=1);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, -%reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=0);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, %reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=1);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, +%reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=1);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, -%reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=0);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg, %reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=1);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg], +%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01, p=0x00, w=0x00); 
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg], -%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x00, p=0x00, w=0x00); 
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg], %reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01, p=0x00, w=0x00); 
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg], +%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01, p=0x00, w=0x00);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg], -%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x00, p=0x00, w=0x00);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg], %reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01, p=0x00, w=0x00);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg], +%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01, p=0x00, w=0x00);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg], -%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x00, p=0x00, w=0x00);
+    		ldr2.set_asm("ldr%[cond] %reg, [%reg], %reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01, p=0x00, w=0x00);
+		ldr2.set_behaviour(ldr2);
+			ldr2.set_reads_pc(rn=15);
+			ldr2.set_end_of_block(rd=15);
+			ldr2.set_variable_jump();
+
+		ldrb2.set_decoder(op=0x03, subop1=0x00, b=0x01, l=0x01);
+		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, +%reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=1);
+ 	    	ldrb2.set_asm("ldr%[cond]b %reg, [%reg, -%reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=0);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, %reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=1);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, +%reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=1);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, -%reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=0);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, %reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=1);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, +%reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=1);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, -%reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=0);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, %reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=1);
+		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, +%reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=1);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, -%reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=0);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, %reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=1);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, +%reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=1);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, -%reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=0);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, %reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=1);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, +%reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=1);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, -%reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=0);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg, %reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=1);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg], +%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01, p=0x00, w=0x00); 
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg], -%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x00, p=0x00, w=0x00); 
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg], %reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01, p=0x00, w=0x00); 
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg], +%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01, p=0x00, w=0x00);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg], -%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x00, p=0x00, w=0x00);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg], %reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01, p=0x00, w=0x00);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg], +%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01, p=0x00, w=0x00);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg], -%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x00, p=0x00, w=0x00);
+    		ldrb2.set_asm("ldr%[cond]b %reg, [%reg], %reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01, p=0x00, w=0x00);
+		ldrb2.set_behaviour(ldrb2);
+		//	ldrb2.set_reads_pc(rn = 15);
+
+		ldrbt2.set_decoder(op=0x03, subop1=0x00, p=0x00, b=0x01, w=0x01, l=0x01);
+    		ldrbt2.set_asm("ldr%[cond]bt %reg, [%reg], +%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01); 
+    		ldrbt2.set_asm("ldr%[cond]bt %reg, [%reg], -%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x00); 
+    		ldrbt2.set_asm("ldr%[cond]bt %reg, [%reg], %reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01); 
+    		ldrbt2.set_asm("ldr%[cond]bt %reg, [%reg], +%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01);
+    		ldrbt2.set_asm("ldr%[cond]bt %reg, [%reg], -%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x00);
+    		ldrbt2.set_asm("ldr%[cond]bt %reg, [%reg], %reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01);
+    		ldrbt2.set_asm("ldr%[cond]bt %reg, [%reg], +%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01);
+    		ldrbt2.set_asm("ldr%[cond]bt %reg, [%reg], -%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x00);
+    		ldrbt2.set_asm("ldr%[cond]bt %reg, [%reg], %reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01);
+		ldrbt2.set_behaviour(ldrbt2);
+		//	ldrbt2.set_reads_pc(rn = 15);
+
+		str2.set_decoder(op=0x03, subop1=0x00, b=0x00, l=0x00);
+		//   Normal base plus index addressing (p=1 w=0)
+    		str2.set_asm("str%[cond] %reg, [%reg, +%reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=1);
+    		str2.set_asm("str%[cond] %reg, [%reg, -%reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=0);
+    		str2.set_asm("str%[cond] %reg, [%reg, %reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=1);
+    		str2.set_asm("str%[cond] %reg, [%reg, +%reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=1);
+    		str2.set_asm("str%[cond] %reg, [%reg, -%reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=0);
+    		str2.set_asm("str%[cond] %reg, [%reg, %reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=1);
+    		str2.set_asm("str%[cond] %reg, [%reg, +%reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=1);
+    		str2.set_asm("str%[cond] %reg, [%reg, -%reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=0);
+    		str2.set_asm("str%[cond] %reg, [%reg, %reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=1);
+    		//   Pre-indexed (p=1 w=1)
+    		str2.set_asm("str%[cond] %reg, [%reg, +%reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=1);
+    		str2.set_asm("str%[cond] %reg, [%reg, -%reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=0);
+    		str2.set_asm("str%[cond] %reg, [%reg, %reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=1);
+   		str2.set_asm("str%[cond] %reg, [%reg, +%reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=1);
+    		str2.set_asm("str%[cond] %reg, [%reg, -%reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=0);
+    		str2.set_asm("str%[cond] %reg, [%reg, %reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=1);
+    		str2.set_asm("str%[cond] %reg, [%reg, +%reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=1);
+    		str2.set_asm("str%[cond] %reg, [%reg, -%reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=0);
+    		str2.set_asm("str%[cond] %reg, [%reg, %reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=1);
+    		//   Post-indexed (p=0 w=0)
+    		str2.set_asm("str%[cond] %reg, [%reg], +%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01, p=0x00, w=0x00); 
+    		str2.set_asm("str%[cond] %reg, [%reg], -%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x00, p=0x00, w=0x00); 
+    		str2.set_asm("str%[cond] %reg, [%reg], %reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01, p=0x00, w=0x00); 
+    		str2.set_asm("str%[cond] %reg, [%reg], +%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01, p=0x00, w=0x00);
+    		str2.set_asm("str%[cond] %reg, [%reg], -%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x00, p=0x00, w=0x00);
+    		str2.set_asm("str%[cond] %reg, [%reg], %reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01, p=0x00, w=0x00);
+    		str2.set_asm("str%[cond] %reg, [%reg], +%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01, p=0x00, w=0x00);
+    		str2.set_asm("str%[cond] %reg, [%reg], -%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x00, p=0x00, w=0x00);
+    		str2.set_asm("str%[cond] %reg, [%reg], %reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01, p=0x00, w=0x00);
+		str2.set_behaviour(str2);
+		//	str2.set_reads_pc(rn = 15);
+    		
+		strt2.set_decoder(op=0x03, subop1=0x00, p=0x00, b=0x00, w=0x01, l=0x00);
+    		strt2.set_asm("str%[cond]t %reg, [%reg], +%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01); 
+    		strt2.set_asm("str%[cond]t %reg, [%reg], -%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x00); 
+    		strt2.set_asm("str%[cond]t %reg, [%reg], %reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01); 
+    		strt2.set_asm("str%[cond]t %reg, [%reg], +%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01);
+    		strt2.set_asm("str%[cond]t %reg, [%reg], -%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x00);
+    		strt2.set_asm("str%[cond]t %reg, [%reg], %reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01);
+    		strt2.set_asm("str%[cond]t %reg, [%reg], +%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01);
+    		strt2.set_asm("str%[cond]t %reg, [%reg], -%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x00);
+    		strt2.set_asm("str%[cond]t %reg, [%reg], %reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01);
+		strt2.set_behaviour(strt2);
+		//	strt2.set_reads_pc(rn = 15);
+
+		strb2.set_decoder(op=0x03, subop1=0x00, b=0x01, l=0x00);
+		//   Normal base plus index addressing (p=1 w=0)
+    		strb2.set_asm("str%[cond]b %reg, [%reg, +%reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=1);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, -%reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=0);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, %reg]", cond, rd, rn, rm, p=1, w=0, shift_amt=0, shift_type=0, u=1);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, +%reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=1);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, -%reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=0);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, %reg, %SHIFTTYPE #%imm]", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=0, u=1);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, +%reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=1);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, -%reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=0);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, %reg, rrx]", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=0, u=1);
+    		//   Pre-indexed (p=1 w=1)
+    		strb2.set_asm("str%[cond]b %reg, [%reg, +%reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=1);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, -%reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=0);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, %reg]!", cond, rd, rn, rm, p=1, w=1, shift_amt=0, shift_type=0, u=1);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, +%reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=1);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, -%reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=0);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, %reg, %SHIFTTYPE #%imm]!", cond, rd, rn, rm, shift_type, shift_amt, p=1, w=1, u=1);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, +%reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=1);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, -%reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=0);
+    		strb2.set_asm("str%[cond]b %reg, [%reg, %reg, rrx]!", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, p=1, w=1, u=1);
+    		//   Post-indexed (p=0 w=0)
+    		strb2.set_asm("str%[cond]b %reg, [%reg], +%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01, p=0x00, w=0x00); 
+    		strb2.set_asm("str%[cond]b %reg, [%reg], -%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x00, p=0x00, w=0x00); 
+    		strb2.set_asm("str%[cond]b %reg, [%reg], %reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01, p=0x00, w=0x00); 
+    		strb2.set_asm("str%[cond]b %reg, [%reg], +%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01, p=0x00, w=0x00);
+    		strb2.set_asm("str%[cond]b %reg, [%reg], -%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x00, p=0x00, w=0x00);
+    		strb2.set_asm("str%[cond]b %reg, [%reg], %reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01, p=0x00, w=0x00);
+    		strb2.set_asm("str%[cond]b %reg, [%reg], +%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01, p=0x00, w=0x00);
+    		strb2.set_asm("str%[cond]b %reg, [%reg], -%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x00, p=0x00, w=0x00);
+    		strb2.set_asm("str%[cond]b %reg, [%reg], %reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01, p=0x00, w=0x00);
+		strb2.set_behaviour(strb2);
+		//	strb2.set_reads_pc(rn = 15);
+
+		strbt2.set_decoder(op=0x03, subop1=0x00, p=0x00, b=0x01, w=0x01, l=0x00);
+		strbt2.set_asm("str%[cond]bt %reg, [%reg], +%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01); 
+    		strbt2.set_asm("str%[cond]bt %reg, [%reg], -%reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x00); 
+    		strbt2.set_asm("str%[cond]bt %reg, [%reg], %reg", cond, rd, rn, rm, shift_amt=0x00, shift_type=0x00, u=0x01); 
+    		strbt2.set_asm("str%[cond]bt %reg, [%reg], +%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01);
+    		strbt2.set_asm("str%[cond]bt %reg, [%reg], -%reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x00);
+    		strbt2.set_asm("str%[cond]bt %reg, [%reg], %reg, %SHIFTTYPE #%imm", cond, rd, rn, rm, shift_type, shift_amt, u=0x01);
+    		strbt2.set_asm("str%[cond]bt %reg, [%reg], +%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01);
+    		strbt2.set_asm("str%[cond]bt %reg, [%reg], -%reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x00);
+    		strbt2.set_asm("str%[cond]bt %reg, [%reg], %reg, rrx", cond, rd, rn, rm, shift_type=0x03, shift_amt=0x00, u=0x01);
+		strbt2.set_behaviour(strbt2);
+    		//	strbt2.set_reads_pc(rn = 15);
+    
+
+		    
+		/**************************************/
+		/*          LSE Instructions          */
+		/**************************************/
+
+
+		ldrh.set_decoder(op=0x00, subop1=0x01, subop2=0x01, ss=0x00, hh=0x01, l=0x01);
+		ldrh.set_asm("ldr%[cond]h %reg, [%reg]", cond, rd, rn, addr1=0, addr2=0, u=1, p=1, w=0, i=1);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg, #+%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg, #-%imm]", cond, rd, rn, addr2, u=0, p=1, w=0, i=1);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg, #%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg, +%reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg, -%reg]", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=0, i=0);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg, %reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);
+		ldrh.set_asm("ldr%[cond]h %reg, [%reg, #+%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+	        ldrh.set_asm("ldr%[cond]h %reg, [%reg, #-%imm]!", cond, rd, rn, addr2, u=0, p=1, w=1, i=1);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg, #%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg, +%reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg, -%reg]!", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=1, i=0);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg, %reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg], #+%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg], #-%imm", cond, rd, rn, addr2, u=0, p=0, w=0, i=1);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg], #%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg], +%reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg], -%reg", cond, rd, rn, addr2, addr1=0x0, u=0, p=0, w=0, i=0);
+    		ldrh.set_asm("ldr%[cond]h %reg, [%reg], %reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+    		ldrh.set_behaviour(ldrh);
+		//	ldrh.set_reads_pc(rn = 15);
+
+		ldrsb.set_decoder(op=0x00, subop1=0x01, subop2=0x01, ss=0x01, hh=0x00, l=0x01);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg]", cond, rd, rn, addr1=0, addr2=0, u=1, p=1, w=0, i=1);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, #+%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, #-%imm]", cond, rd, rn, addr2, u=0, p=1, w=0, i=1);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, #%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, +%reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, -%reg]", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=0, i=0);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, %reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, #+%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, #-%imm]!", cond, rd, rn, addr2, u=0, p=1, w=1, i=1);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, #%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, +%reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, -%reg]!", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=1, i=0);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg, %reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg], #+%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg], #-%imm", cond, rd, rn, addr2, u=0, p=0, w=0, i=1);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg], #%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg], +%reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg], -%reg", cond, rd, rn, addr2, addr1=0x0, u=0, p=0, w=0, i=0);
+		ldrsb.set_asm("ldr%[cond]sb %reg, [%reg], %reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+		ldrsb.set_behaviour(ldrsb);
+		//	ldrsb.set_reads_pc(rn = 15);
+
+		ldrsh.set_decoder(op=0x00, subop1=0x01, subop2=0x01, ss=0x01, hh=0x01, l=0x01);
+		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg]", cond, rd, rn, addr1=0, addr2=0, u=1, p=1, w=0, i=1);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, #+%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, #-%imm]", cond, rd, rn, addr2, u=0, p=1, w=0, i=1);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, #%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, +%reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, -%reg]", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=0, i=0);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, %reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);    		
+		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, #+%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, #-%imm]!", cond, rd, rn, addr2, u=0, p=1, w=1, i=1);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, #%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, +%reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, -%reg]!", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=1, i=0);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg, %reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg], #+%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg], #-%imm", cond, rd, rn, addr2, u=0, p=0, w=0, i=1);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg], #%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg], +%reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg], -%reg", cond, rd, rn, addr2, addr1=0x0, u=0, p=0, w=0, i=0);
+    		ldrsh.set_asm("ldr%[cond]sh %reg, [%reg], %reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+		ldrsh.set_behaviour(ldrsh);
+		//	ldrsh.set_reads_pc(rn = 15);
+
+		strh.set_decoder(op=0x00, subop1=0x01, subop2=0x01, ss=0x00, hh=0x01, l=0x00);
+		//  Normal base plus offset or base plus index
+   	 	strh.set_asm("str%[cond]h %reg, [%reg]", cond, rd, rn, addr1=0, addr2=0, u=1, p=1, w=0, i=1);
+    		strh.set_asm("str%[cond]h %reg, [%reg, #+%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+    		strh.set_asm("str%[cond]h %reg, [%reg, #-%imm]", cond, rd, rn, addr2, u=0, p=1, w=0, i=1);
+   	 	strh.set_asm("str%[cond]h %reg, [%reg, #%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+    		strh.set_asm("str%[cond]h %reg, [%reg, +%reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);
+    		strh.set_asm("str%[cond]h %reg, [%reg, -%reg]", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=0, i=0);
+    		strh.set_asm("str%[cond]h %reg, [%reg, %reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);
+   		//  Pre-indexed (base plus offset/base plus index)
+   		strh.set_asm("str%[cond]h %reg, [%reg, #+%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+    		strh.set_asm("str%[cond]h %reg, [%reg, #-%imm]!", cond, rd, rn, addr2, u=0, p=1, w=1, i=1);
+    		strh.set_asm("str%[cond]h %reg, [%reg, #%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+    		strh.set_asm("str%[cond]h %reg, [%reg, +%reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+    		strh.set_asm("str%[cond]h %reg, [%reg, -%reg]!", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=1, i=0);
+    		strh.set_asm("str%[cond]h %reg, [%reg, %reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+    		//  Post-indexed (base plus offset/base plus index)
+    		strh.set_asm("str%[cond]h %reg, [%reg], #+%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+    		strh.set_asm("str%[cond]h %reg, [%reg], #-%imm", cond, rd, rn, addr2, u=0, p=0, w=0, i=1);
+    		strh.set_asm("str%[cond]h %reg, [%reg], #%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+    		strh.set_asm("str%[cond]h %reg, [%reg], +%reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+    		strh.set_asm("str%[cond]h %reg, [%reg], -%reg", cond, rd, rn, addr2, addr1=0x0, u=0, p=0, w=0, i=0);
+    		strh.set_asm("str%[cond]h %reg, [%reg], %reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+		strh.set_behaviour(strh);
+		//	strh.set_reads_pc(rn = 15);
+    		
+		ldrd.set_decoder(op=0x0, l=0, subop2=1, ss=1, hh=0, subop1=1);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg]", cond, rd, rn, addr1=0, addr2=0, u=1, p=1, w=0, i=1);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, #+%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, #-%imm]", cond, rd, rn, addr2, u=0, p=1, w=0, i=1);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, #%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, +%reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, -%reg]", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=0, i=0);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, %reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);
+		//  Pre-indexed (base plus offset/base plus index)
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, #+%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, #-%imm]!", cond, rd, rn, addr2, u=0, p=1, w=1, i=1);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, #%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, +%reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, -%reg]!", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=1, i=0);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg, %reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+		//  Post-indexed (base plus offset/base plus index)
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg], #+%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg], #-%imm", cond, rd, rn, addr2, u=0, p=0, w=0, i=1);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg], #%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg], +%reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg], -%reg", cond, rd, rn, addr2, addr1=0x0, u=0, p=0, w=0, i=0);
+		ldrd.set_asm("ldrd%[cond] %reg, [%reg], %reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+		ldrd.set_behaviour(ldrd);
+
+		strd.set_decoder(op=0x0, l=0, subop2=1, ss=1, hh=1, subop1=1);
+		strd.set_asm("strd%[cond] %reg, [%reg]", cond, rd, rn, addr1=0, addr2=0, u=1, p=1, w=0, i=1);
+		strd.set_asm("strd%[cond] %reg, [%reg, #+%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+		strd.set_asm("strd%[cond] %reg, [%reg, #-%imm]", cond, rd, rn, addr2, u=0, p=1, w=0, i=1);
+		strd.set_asm("strd%[cond] %reg, [%reg, #%imm]", cond, rd, rn, addr2, u=1, p=1, w=0, i=1);
+		strd.set_asm("strd%[cond] %reg, [%reg, +%reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);
+		strd.set_asm("strd%[cond] %reg, [%reg, -%reg]", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=0, i=0);
+		strd.set_asm("strd%[cond] %reg, [%reg, %reg]", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=0, i=0);
+		//  Pre-indexed (base plus offset/base plus index)
+		strd.set_asm("strd%[cond] %reg, [%reg, #+%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+		strd.set_asm("strd%[cond] %reg, [%reg, #-%imm]!", cond, rd, rn, addr2, u=0, p=1, w=1, i=1);
+		strd.set_asm("strd%[cond] %reg, [%reg, #%imm]!", cond, rd, rn, addr2, u=1, p=1, w=1, i=1);
+		strd.set_asm("strd%[cond] %reg, [%reg, +%reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+		strd.set_asm("strd%[cond] %reg, [%reg, -%reg]!", cond, rd, rn, addr2, addr1=0x0, u=0, p=1, w=1, i=0);
+		strd.set_asm("strd%[cond] %reg, [%reg, %reg]!", cond, rd, rn, addr2, addr1=0x0, u=1, p=1, w=1, i=0);
+		//  Post-indexed (base plus offset/base plus index)
+		strd.set_asm("strd%[cond] %reg, [%reg], #+%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+		strd.set_asm("strd%[cond] %reg, [%reg], #-%imm", cond, rd, rn, addr2, u=0, p=0, w=0, i=1);
+		strd.set_asm("strd%[cond] %reg, [%reg], #%imm", cond, rd, rn, addr2, u=1, p=0, w=0, i=1);
+		strd.set_asm("strd%[cond] %reg, [%reg], +%reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+		strd.set_asm("strd%[cond] %reg, [%reg], -%reg", cond, rd, rn, addr2, addr1=0x0, u=0, p=0, w=0, i=0);
+		strd.set_asm("strd%[cond] %reg, [%reg], %reg", cond, rd, rn, addr2, addr1=0x0, u=1, p=0, w=0, i=0);
+		strd.set_behaviour(strd);
+    		
+
+		/**************************************/
+		/*          LSM Instructions          */
+		/**************************************/
+
+		//"%cond:4 %op!:3 %p:1 %u:1 %r:1 %w:1 %l!:1 %rn:4 %imm32:16";
+
+		ldm.set_decoder(op=0x04, l=0x01, r=0);
+		
+		ldm.set_asm("pop%cond {%reg...}", cond, imm32, r=0, w=1, rn=13);
+		
+		ldm.set_asm("ldm%[cond] %reg, {%reg...}", cond, rn, imm32, r=0, w=0);    
+		ldm.set_asm("ldm%[cond] %reg!, {%reg...}", cond, rn, imm32, r=0, w=1);  
+		ldm.set_asm("ldm%[cond] %reg, {%reg...}^", cond, rn, imm32, r=1, w=0);  
+		ldm.set_asm("ldm%[cond] %reg!, {%reg...}^", cond, rn, imm32, r=1, w=1);
+		
+		ldm.set_behaviour(ldm);
+		ldm.set_end_of_block(imm32 & 32768);
+		ldm.set_variable_jump();
+		
+		ldm_usr.set_decoder(op=4, l=1, r=1);
+		ldm_usr.set_asm("ldm%[cond] %reg, {%reg...}^", cond, rn, imm32, w=0);
+		ldm_usr.set_asm("ldm%[cond] %reg!, {%reg...}^", cond, rn, imm32, w=1);
+		ldm_usr.set_behaviour(ldm_usr);
+		ldm_usr.set_end_of_block(imm32 & 32768);
+		ldm_usr.set_variable_jump();
+		
+		stm.set_decoder(op=0x04, l=0x00, r=0);
+		
+		stm.set_asm("push%cond {%reg...}", cond, imm32, r=0, w=1, rn=13);
+		
+		stm.set_asm("stm%memmultu%memmultp%cond %reg, {%reg...}", u, p, cond, rn, imm32, r=0, w=0);
+		stm.set_asm("stm%memmultu%memmultp%cond %reg!, {%reg...}", u, p, cond, rn, imm32, r=0, w=1);
+		stm.set_asm("stm%memmultu%memmultp%cond %reg, {%reg...}^", u, p, cond, rn, imm32, r=1, w=0);
+		stm.set_asm("stm%memmultu%memmultp%cond %reg!, {%reg...}^", u, p, cond, rn, imm32, r=1, w=1);
+				
+		stm.set_behaviour(stm);
+		stm.set_reads_pc(imm32 & 32768);
+		
+		stm_usr.set_decoder(op=0x04, l=0x00, r=1);
+		stm_usr.set_asm("stm%cond %reg, {%reg...}", cond, rn, imm32, r=0, w=0);
+		stm_usr.set_asm("stm%cond %reg!, {%reg...}", cond, rn, imm32, r=0, w=1);
+		stm_usr.set_asm("stm%cond %reg, {%reg...}^", cond, rn, imm32, r=1, w=0);
+		stm_usr.set_asm("stm%cond %reg!, {%reg...}^", cond, rn, imm32, r=1, w=1);
+		stm_usr.set_asm("stm%cond %reg, {%reg...}", cond, rn, imm32, r=0, w=0);
+		stm_usr.set_asm("stm%cond %reg!, {%reg...}", cond, rn, imm32, r=0, w=1);
+		stm_usr.set_asm("stm%cond %reg, {%reg...}^", cond, rn, imm32, r=1, w=0);
+		stm_usr.set_asm("stm%cond %reg!, {%reg...}^", cond, rn, imm32, r=1, w=1);
+		stm_usr.set_behaviour(stm_usr);		
+    		
+		/**************************************/
+		/*   Co-processor Instructions        */
+		/**************************************/
+
+		// Not implemented.
+		cdp.set_decoder(op=0x07, subop1=0x00, subop3=0x00);
+		cdp.set_asm("CDP");
+		cdp.set_behaviour(cdp);
+		
+		cdp2.set_decoder(cond=0xf,op=0x07, subop1=0x00, subop3=0x00);
+		cdp2.set_asm("CDP2");
+		cdp2.set_behaviour(cdp2);
+    
+		mcr.set_decoder(op=0x07, subop1=0x01, subop3=0x00, l=0x00); 
+		mcr.set_asm("MCR");
+		mcr.set_asm("mcr%cond p%imm, %imm, %reg, cr%imm, cr%imm, %imm", cond, cp_num, funcc2, rd, crn, crm, funcc3);
+		mcr.set_behaviour(mcr);  
+
+		mrc.set_decoder(op=0x07, subop1=0x01, subop3=0x00, l=0x01); 
+		mrc.set_asm("mrc%cond p%imm, %imm, %reg, cr%imm, cr%imm, %imm", cond, cp_num, funcc2, rd, crn, crm, funcc3);
+		mrc.set_asm("mrc%cond p%imm, %imm, APSR_nzcv, cr%imm, cr%imm, %imm", cond, cp_num, funcc2, crn, crm, funcc3, rd=15);
+		mrc.set_behaviour(mrc);
+		
+		mcr_fpu.set_decoder(op=0x07, cp_num=10, subop1=0x01, subop3=0x00, l=0x00); 
+		mcr_fpu.set_asm("mcr_fpu");
+		mcr_fpu.set_behaviour(mcr_fpu);
+
+		mrc_fpu.set_decoder(op=0x07, cp_num=10, subop1=0x01, subop3=0x00, l=0x01); 
+		mrc_fpu.set_asm("mrc_fpu");
+		mrc_fpu.set_behaviour(mrc_fpu);
+		
+		wfi.set_decoder(op=0x07, cp_num=15, funcc2=0, rd=0, crn=7, crm=0, funcc3=4, subop1=0x01, subop3=0x00, l=0);
+		wfi.set_asm("wfi%cond", cond);
+		wfi.set_behaviour(wfi);
+		
+		cf1.set_decoder(op=0x07, subop1=0x01, subop3=0x00, l=0x00, cp_num=15, funcc2=0, rd=0, crn=8, crm=5, funcc3=1);
+		cf1.set_behaviour(flush_itlb_entry);
+		
+		cf2.set_decoder(op=0x07, subop1=0x01, subop3=0x00, l=0x00, cp_num=15, funcc2=0, rd=0, crn=8, crm=6, funcc3=1);
+		cf2.set_behaviour(flush_dtlb_entry);
+		
+		ldc.set_decoder(op=0x06, l=0x01);
+		ldc.set_asm("LDC");
+		ldc.set_behaviour(ldc);
+  
+	        stc.set_decoder(op=0x06, l=0x00);
+		stc.set_asm("stc%cond %imm, %imm", cond, crd, imm8);
+		stc.set_behaviour(stc);
+
+		/**************************************/
+		/*        Special Instructions        */
+		/**************************************/
+
+		/**************************************/
+		/*          MBKPT Instructions        */
+		/**************************************/
+		
+
+    		bkpt.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x09, func2=0x03, s=0x00, cond=0x0E);    
+		bkpt.set_asm("bkpt %imm", imm32, cond=0xE);
+		bkpt.set_behaviour(bkpt);
+		//bkpt.set_end_of_block();
+
+
+		/**************************************/
+		/*         MSWI Instructions          */
+		/**************************************/
+		
+
+		swi.set_decoder(op=0x07, subop3=0x01);
+    		swi.set_asm("swi%[cond] %imm", cond, imm32);
+		swi.set_behaviour(swi);    		
+		//swi.set_end_of_block();
+		
+		/**************************************/
+		/*          MCLZ Instructions         */
+		/**************************************/
+
+
+		clz.set_decoder(op=0x00, subop1=0x01, subop2=0x00, func1=0x0B, func2=0x00, s=0x00);    
+    		clz.set_asm("clz%[cond] %reg, %reg", cond, rd, rm);
+		clz.set_behaviour(clz);
+
+
+		/**************************************/
+		/*        MSRS Instructions           */
+		/**************************************/    		
+		
+		
+		mrs.set_decoder(op=0x00, subop1=0x00, subop2=0x00, func11=0x02, func12=0x00, func2=0, rm=0x00, fieldmask=0xF); 
+		mrs.set_asm("mrs%cond %reg, cpsr", cond, rd, r=0);
+		mrs.set_asm("mrs%cond %reg, spsr", cond, rd, r=1);
+		mrs.set_behaviour(mrs);
+
+   		msr1.set_decoder(op=0x00, subop1=0x00, subop2=0x00, func11=0x02, func12=0x02, func2=0x00, rd=0xf);
+		msr1.set_asm("msr%cond cpsr_%msrfieldmask, %reg", cond, fieldmask, rm, r=0);
+		msr1.set_asm("msr%cond spsr_%msrfieldmask, %reg", cond, fieldmask, rm, r=1);
+		msr1.set_behaviour(msr1);
+		
+		/**************************************/
+		/*        MSRS2 Instructions          */
+		/**************************************/
+		
+		cps.set_decoder();
+		cps.set_asm("cpsie", imod=2,a=0,i=0,f=0);
+		cps.set_asm("cpsie a", imod=2,a=1,i=0,f=0);
+		cps.set_asm("cpsie i", imod=2,a=0,i=1,f=0);
+		cps.set_asm("cpsie f", imod=2,a=0,i=0,f=1);
+		cps.set_asm("cpsie ai", imod=2,a=1,i=1,f=0);
+		cps.set_asm("cpsie if", imod=2,a=0,i=1,f=1);
+		cps.set_asm("cpsie af", imod=2,a=1,i=0,f=1);
+		cps.set_asm("cpsie aif", imod=2,a=1,i=1,f=1);
+		cps.set_asm("cpsid", imod=3,a=0,i=0,f=0);
+		cps.set_asm("cpsid a", imod=3,a=1,i=0,f=0);
+		cps.set_asm("cpsid i", imod=3,a=0,i=1,f=0);
+		cps.set_asm("cpsid f", imod=3,a=0,i=0,f=1);
+		cps.set_asm("cpsid ai", imod=3,a=1,i=1,f=0);
+		cps.set_asm("cpsid if", imod=3,a=0,i=1,f=1);
+		cps.set_asm("cpsid af", imod=3,a=1,i=0,f=1);
+		cps.set_asm("cpsid aif", imod=3,a=1,i=1,f=1);
+		cps.set_behaviour(cps);
+		
+		msr2.set_decoder(op=0x01, func11=0x02, func12=0x02);
+		msr2.set_asm("msr%cond cpsr_%msrfieldmask, #%imm (%imm)", cond, fieldmask, imm8, rotate, r=0);
+		msr2.set_asm("msr%cond spsr_%msrfieldmask, #%imm (%imm)", cond, fieldmask, imm8, rotate, r=1);
+		msr2.set_behaviour(msr2);
+
+		smlaxy.set_decoder();
+		smlaxy.set_asm("smlaxy%cond %reg, %reg, %reg, %reg", cond, rd, rm, rs, rn);
+		smlaxy.set_behaviour(smlaxy);
+		
+
+		/**************************************/
+		/*        DSP Instructions          */
+		/**************************************/
+
+		/**************************************/
+		/*        DSPSM Instructions          */
+		/**************************************/		
+		/* DSP instructions will not be implemented in this model. */
+/*
+		//    ldrd.set_asm("");
+    		//ldrd.set_decoder(op=0x00, subop1=0x01, subop2=0x01, ss=0x01, hh=0x00, l=0x00);
+		//ldrd.set_asm("LDRD");
+		//ldrd.set_behaviour(ldrd);    
+	
+		//    strd.set_asm("");
+    		//strd.set_decoder(op=0x00, subop1=0x01, subop2=0x01, ss=0x01, hh=0x01, l=0x00);
+		//strd.set_asm("STRD");
+		//strd.set_behaviour(strd);
+
+		//    dsmla.set_asm("");
+    		dsmla.set_decoder(sm=0x10, subop2=1, subop1=0);
+		dsmla.set_asm("DSMLA");
+		dsmla.set_behaviour(dsmla);
+	
+		//    dsmlal.set_asm("");
+    		dsmlal.set_decoder(sm=0x14, subop2=1, subop1=0);
+		dsmlal.set_asm("DSMLAL");
+		dsmlal.set_behaviour(dsmlal);
+
+		//    dsmlaw.set_asm("");
+    		dsmlaw.set_decoder(sm=0x12, subop2=1, xx=0, subop1=0);
+		dsmlaw.set_asm("DSMLAW");
+		dsmlaw.set_behaviour(dsmlaw);
+
+		//    dsmul.set_asm("");
+    		dsmul.set_decoder(sm=0x16, subop2=1, subop1=0);
+		dsmul.set_asm("DSMUL");
+		dsmul.set_behaviour(dsmul);
+
+		//    dsmulw.set_asm("");
+    		dsmulw.set_decoder(sm=0x12, subop2=1, xx=1, subop1=0);
+		dsmulw.set_asm("DSMULW");
+		dsmulw.set_behaviour(dsmulw);	
+    */
+
+		/**************************************/
+		/*        ARMv7 FSS Instructions          */
+		/**************************************/
+		
+		/*** Data Motion ***/ 
+		movt.set_decoder(op = 0x3, subop = 0x4);
+		movt.set_asm("movt%cond %reg, #%imm", cond, rd, imm32);
+		movt.set_behaviour(movt);
+
+		movw.set_decoder(op = 0x3, subop = 0x0);
+		movw.set_asm("movw%cond %reg, #%imm", cond, rd, imm32);
+		movw.set_behaviour(movw);
+
+		ubfx.set_decoder(op=0xf, subop1=1, subop2=1, subop3=5);
+		ubfx.set_asm("ubfx%cond %reg, %reg, #%imm, #%imm", cond, rd, rn, lsb, msb);
+		ubfx.set_behaviour(ubfx);
+
+		sbfx.set_decoder(op=0xf, subop1=0, subop2=1, subop3=5);
+		sbfx.set_asm("sbfx%cond %reg, %reg, #%imm, #%imm", cond, rd, rn, lsb, msb);
+		sbfx.set_behaviour(sbfx);
+
+		bfc.set_decoder(op=0xf, subop1=1, subop2=0, subop3=1, rn=15);
+		bfc.set_asm("bfc");
+		bfc.set_behaviour(bfc);
+		
+		bfi.set_decoder(op=0xf, subop1=1, subop2=0, subop3=1);
+		bfi.set_asm("bfi%cond %reg, %reg, #%imm, #%imm", cond, rd, rn, lsb, msb);
+		bfi.set_behaviour(bfi);
+
+		// ac_format Type_PUSR = "%cond:4 0x6:4 0x1:1 %op1:3 %rn:4 %rd:4 %imm8:4 %op2:3 0x1:1 %rm:4";
+
+		sxth.set_decoder(op1=3, rn=0xf, op2=3);
+		sxth.set_asm("sxth%cond %reg, %reg, %imm", cond, rd, rm, imm8);
+		sxth.set_behaviour(sxth);
+
+		sxtb.set_decoder(op1=2, rn=0xf, op2=3);
+		sxtb.set_asm("sxtb%cond %reg, %reg, %imm", cond, rd, rm, imm8);
+		sxtb.set_behaviour(sxtb);
+
+		sxtb16.set_decoder(op1=0, rn=0xf, op2=3);
+		sxtb16.set_asm("sxtb16%cond %reg, %reg, %imm", cond, rd, rm, imm8);
+		sxtb16.set_behaviour(sxtb16);
+
+		sxtab16.set_decoder(op1=0, op2=3);
+		sxtab16.set_asm("sxtab16%cond %reg, %reg, %imm", cond, rd, rm, imm8);
+		sxtab16.set_behaviour(sxtab16);
+
+		uxth.set_decoder(op1=7, rn=0xf, op2=3);
+		uxth.set_asm("uxth%cond %reg, %reg, %imm", cond, rd, rm, imm8);
+		uxth.set_behaviour(uxth);
+
+		uxtb.set_decoder(op1=6, rn=0xf, op2=3);
+		uxtb.set_asm("uxtb%cond %reg, %reg, %imm", cond, rd, rm, imm8);
+		uxtb.set_behaviour(uxtb); 
+		
+		uxtb16.set_decoder(op1=4, rn=0xf, op2=3);
+		uxtb16.set_asm("uxtb16%cond %reg, %reg, %imm", cond, rd, rm, imm8);
+		uxtb16.set_behaviour(uxtb16); 
+
+		uxtab16.set_decoder(op1=4, op2=3);
+		uxtab16.set_asm("uxtab16%cond %reg, %reg, %imm", cond, rd, rm, imm8);
+		uxtab16.set_behaviour(uxtab16); 
+
+		sel.set_decoder(op1=0, op2=5);
+		sel.set_asm("sel%cond %reg, %reg, %reg", cond, rd, rm, rn);
+		sel.set_behaviour(sel);
+
+		pkhtb.set_decoder(op1=0, tb=1);
+		pkhtb.set_asm("pkhtb");
+		pkhtb.set_behaviour(pkhtb);
+
+		pkhbt.set_decoder(op1=0, tb=0);
+		pkhbt.set_asm("pkhbt");
+		pkhbt.set_behaviour(pkhbt);
+
+		isb.set_decoder();
+		isb.set_asm("isb sy");
+		isb.set_behaviour(isb);
+
+		dsb.set_decoder();
+		dsb.set_asm("dsb sy", option = 0xf);
+		dsb.set_asm("dsb st", option = 0xe);
+		dsb.set_asm("dsb ish", option = 0xb);
+		dsb.set_asm("dsb ishst", option = 0xa);
+		dsb.set_asm("dsb nsh", option = 0x7);
+		dsb.set_asm("dsb nshst", option = 0x6);
+		dsb.set_asm("dsb osh", option = 0x3);
+		dsb.set_asm("dsb oshst", option = 0x2);
+		dsb.set_behaviour(dsb);
+
+		dmb.set_decoder();
+		dmb.set_asm("dmb sy", option = 0xf);
+		dmb.set_asm("dmb st", option = 0xe);
+		dmb.set_asm("dmb ish", option = 0xb);
+		dmb.set_asm("dmb ishst", option = 0xa);
+		dmb.set_asm("dmb nsh", option = 0x7);
+		dmb.set_asm("dmb nshst", option = 0x6);
+		dmb.set_asm("dmb osh", option = 0x3);
+		dmb.set_asm("dmb oshst", option = 0x2);
+		dmb.set_behaviour(dmb);
+
+		// ac_format Type_XTA = "%cond:4 0x6:4 0x1:1 %u:1 %val:2 %rn:4 %rd:4 %rot:2 0x0:2 0x7:4 %rm:4";
+
+		sxtah.set_decoder(u=0, val=3);
+		sxtah.set_asm("sxtah%cond %reg, %reg, %reg", cond, rd, rn, rm, rot=0);
+		sxtah.set_asm("sxtah%cond %reg, %reg, %reg, %imm", cond, rd, rn, rm, rot);
+		sxtah.set_behaviour(sxtah);
+
+		sxtab.set_decoder(u=0, val=2);
+		sxtab.set_asm("sxtah%cond %reg, %reg, %reg", cond, rd, rn, rm, rot=0);
+		sxtab.set_asm("sxtah%cond %reg, %reg, %reg, %imm", cond, rd, rn, rm, rot);
+		sxtab.set_behaviour(sxtab);
+		
+		uxtah.set_decoder(u=1, val=3);
+		uxtah.set_asm("uxtah%cond %reg, %reg, %reg", cond, rd, rn, rm, rot=0);
+		uxtah.set_asm("uxtah%cond %reg, %reg, %reg, %imm", cond, rd, rn, rm, rot);
+		uxtah.set_behaviour(uxtah);
+		
+		uxtab.set_decoder(u=1, val=2);
+		uxtab.set_asm("uxtab%cond %reg, %reg, %reg", cond, rd, rn, rm, rot=0);
+		uxtab.set_asm("uxtab%cond %reg, %reg, %reg, %imm", cond, rd, rn, rm, rot);
+
+		ldrex.set_decoder(op=0, p=1, u=1, i=0, w=0, l=1, addr1=0xf, subop2=1, ss=0, hh=0, subop1=1, addr2=0xf);
+		ldrex.set_asm("ldrex%cond %reg, [%reg]", cond, rd, rn);
+		ldrex.set_behaviour(ldrex);
+
+		strex.set_decoder(op=0, p=1, u=1, i=0, w=0, l=0, addr1=0xf, subop2=1, ss=0, hh=0, subop1=1);
+		strex.set_asm("strex%cond %reg, %reg, [%reg]", cond, rd, addr2, rn);
+		strex.set_behaviour(strex);
+
+		ldrexd.set_decoder(op=0, p=1, u=1, i=0, w=1, l=1, addr1=0xf, subop2=1, ss=0, hh=0, subop1=1);
+		ldrexd.set_asm("ldrexd%cond %reg, [%reg]", cond, rd, rn, addr2);
+		ldrexd.set_behaviour(ldrexd);
+
+		strexd.set_decoder(op=0, p=1, u=1, i=0, w=1, l=0, addr1=0xf, subop2=1, ss=0, hh=0, subop1=1);
+		strexd.set_asm("strexd%cond %reg, [%reg]", cond, rd, rn, addr2);
+		strexd.set_behaviour(strexd);
+
+		rev.set_decoder(op1=0x3, op2=1);
+		rev.set_asm("rev%cond %reg, %reg", cond, rd, rm);
+		rev.set_behaviour(rev);
+
+		rev16.set_decoder(op1=3, op2=5);
+		rev16.set_asm("rev16%cond %reg, %reg", cond, rd, rm);
+		rev16.set_behaviour(rev16);
+
+		rbit.set_decoder(op1=7, op2=1);
+		rbit.set_asm("rbit%cond %reg, %reg", cond, rd, rm);
+		rbit.set_behaviour(rbit);
+
+
+		mls.set_decoder();
+		mls.set_asm("mls%cond %reg, %reg, %reg, %reg", cond, rd, rn, rm, ra);
+		mls.set_behaviour(mls);
+		
+		clrex.set_decoder(op1=0x57, op2=1);
+		clrex.set_asm("clrex");
+		clrex.set_behaviour(clrex);
+
+		//ac_format Type_SAT = "%cond:4 0x16:6 %op1:2 %rn:4 %rd:4 0xf:4 %op:4 %rm:4";
+
+		uqsub8.set_decoder(op1=2, op=0xf);
+		uqsub8.set_asm("uqsub8 %reg, %reg, %reg", rd, rn, rm);
+		uqsub8.set_behaviour(uqsub8);
+
+		uqadd8.set_decoder(op1=2, op=0x9);
+		uqadd8.set_asm("uqadd8 %reg, %reg, %reg", rd, rn, rm);
+		uqadd8.set_behaviour(uqadd8);
+
+		uadd8.set_decoder(op1=1, op=0x9);
+		uadd8.set_asm("uadd8 %reg, %reg, %reg", rd, rn, rm);
+		uadd8.set_behaviour(uadd8);
+
+		usub8.set_decoder(op1=1, op=0xf);
+		usub8.set_asm("usub8 %reg, %reg, %reg", rd, rn, rm);
+		usub8.set_behaviour(usub8);
+
+		udf.set_decoder();
+		udf.set_asm("udf");
+		udf.set_behaviour(udf);
+
+	};
+};
+

@@ -1,0 +1,40 @@
+#!/usr/bin/env groovy
+
+// Avoid parallel execution until it's properly supported in declarative 
+// pipelines
+
+pipeline {
+	agent any
+    
+    stages {
+        stage('Prepare Deps') {
+            agent any
+            steps {
+                echo "Fetching libtrace"
+                sh 'rm -rf libtrace ; hg clone ssh://hg@bitbucket.org/gensim/libtrace libtrace'
+                sh 'make -C libtrace'
+            }
+        }
+		stage('Build') {
+			agent any 
+			steps {
+				echo "Building Archsim"
+                sh 'rsync --update scripts/bare-archsim-config .config'
+				sh 'make NDEBUG=1 libtrace=`pwd`/libtrace/dist/ '
+			}
+		}
+		stage('Test') {
+			agent any
+			steps {
+				echo "Testing Archsim"
+                echo "(nothing to do!)"
+			}
+		}
+		stage('Archive') {
+			agent any
+			steps {
+				archiveArtifacts 'bin/archsim'
+			}
+		}
+    }
+}

@@ -1,0 +1,8 @@
+ArchSim is a fast instruction set simulator which can be driven by GenSim models
+
+TODO
+    Document general usage
+    Standard flags
+
+    Code structure
+    Multiple DBTs

@@ -1,0 +1,194 @@
+/*
+	Matthew Calder 		s0935238
+	Paul-Jules Micolet	s0939834
+	Gerald Chau 		s0903611 
+	PASTA2 			2012
+*/
+
+// Here we describe the behaviour of each instruction and any extra stuff that 
+// should be done when an instruction is decoded.
+
+////////////////////////////////////////////////////////
+////  Decode Info
+////////////////////////////////////////////////////////
+
+decode(Type_DPI1)
+{
+}
+
+decode(Type_DPI2)
+{
+}
+
+decode(Type_DPI3)
+{
+}
+
+decode(Type_BBL)
+{
+	imm32 = (SIGNED_BITS(imm32, 23, 0) << 2) + 8;
+}
+
+decode(Type_BBLT)
+{
+	imm32 = (SIGNED_BITS(imm32, 23, 0) << 2) + 8 + (h << 1);
+}
+
+decode(Type_LSI)
+{
+}
+
+decode(Type_LSR)
+{
+
+}
+
+decode(Type_LSE)
+{	
+}
+
+decode(Type_LSM)
+{	
+}
+
+decode(Type_MULT1)
+{
+}
+
+decode(Type_MULT2)
+{
+}
+
+decode(Type_MCLZ)
+{
+}
+
+decode(Type_MSWI)
+{
+
+}
+
+///////////////////////////////////////////////////////////
+////  Behaviour Info///
+////////////////////////////////////////////////////////
+
+behaviour(read_pc)
+{
+        return read_register_bank(RB,15);
+}
+
+behaviour(write_pc)
+{
+//        uint32 m_val = val & 0xfffffffe;
+        write_register_bank(RB,15,val);
+}
+
+behaviour(read_sp)
+{
+	return read_register_bank(RB,13);
+}
+
+behaviour(write_sp)
+{
+	write_register_bank(RB,13,val);
+}
+
+behaviour(get_status_string)
+{
+}
+
+behaviour(is_predicated)
+{
+	return (curr_interp_insn->GetIR() & 0xf0000000) != 0xe0000000;
+}
+
+behaviour(get_predicate_info)
+{
+	return inst.cond;
+}
+
+behaviour(instruction_predicate)
+{
+	uint8 cond = inst.GetPredicateInfo() >> 1;
+	uint8 invert = inst.GetPredicateInfo() & 1;
+	
+	uint8 result;
+	
+	switch (cond)
+	{ // first 3 bits of the base condition are used
+	case 0:
+		result = read_register(Z);
+		break; //EQ or NE
+	case 1:
+		result = read_register(C);
+		break; //CS or CC
+	case 2:
+		result = read_register(N);
+		break; //MI or PL
+	case 3:
+		result = read_register(V);
+		break; //VS or VC
+	case 4:
+		result = (read_register(C) & !read_register(Z));
+		break; //HI or LS
+	case 5:
+		result = (read_register(N) == read_register(V));
+		break; //GE or LT
+	case 6:
+		result = ((read_register(N) == read_register(V)) & !read_register(Z));
+		break; //GT LE
+	case 7:
+		result = 1;
+		break; //AL
+	default:
+		break;
+	}
+	result = result ^ invert; // if invert is set, flip result
+	return result;
+}
+
+behaviour(handle_exception)
+{
+	take_arm_exception(category, data);
+}
+
+behaviour(reset)
+{
+	take_arm_exception(0, 0);
+}
+
+behaviour(irq) 
+{
+	// FIQ : irq_line == 0
+	// IRQ : irq_line == 1
+	
+	if(irq_line)
+	{
+		if(!read_register(I))
+			take_arm_exception(2, address_of_next_instruction());
+	}
+	else
+	{
+		if(!read_register(F))
+			take_arm_exception(1, address_of_next_instruction());
+	}
+}
+
+behaviour(fetch_exception)
+{
+	uint32_t pre_pc = read_pc();
+	//IFSR and IFAR already set up by MMU
+	take_exception(6, pre_pc+4);	take_exception(6, pre_pc+4);
+}
+
+behaviour(undef)
+{
+	//halt_cpu();
+	take_exception(11, address_of_next_instruction());
+}
+
+behaviour(simulation_start) {}
+
+behaviour(simulation_suspend) {}
+behaviour(simulation_resume) {}
+behaviour(simulation_end) {}

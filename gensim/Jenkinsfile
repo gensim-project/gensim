@@ -1,0 +1,34 @@
+#!/usr/bin/env groovy
+
+// Avoid parallel execution until it's properly supported in declarative 
+// pipelines
+
+pipeline {
+	agent any
+    
+    stages {
+		stage('Build') {
+			agent any 
+			steps {
+				echo "Building GenSim"
+				sh './scripts/get-and-build-antlr.sh'
+				sh 'autoreconf && ./configure --with-antlr=`pwd`/antlr/runtime/install --with-antlrjar=`pwd`/antlr/jar/antlr-3.4-complete.jar'
+				sh 'make -j2 NDEBUG=1'
+			}
+		}
+		stage('Test') {
+			agent any
+			steps {
+				echo "Testing GenSim"
+				sh 'make tests'
+				junit 'tests/*.xml'
+			}
+		}
+		stage('Archive') {
+			agent any
+			steps {
+				archiveArtifacts 'dist/bin/gensim'
+			}
+		}
+    }
+}
