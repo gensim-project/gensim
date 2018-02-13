@@ -1,0 +1,42 @@
+AC_ARCH(test)
+{
+
+	// General Purpose Registers
+	ac_regspace(64) {
+		// bank NAME (TYPE, COUNT, ELEMENTSIZE, STRIDE, OFFSET)
+	
+		bank RB (uint32, 0, 16, 4, 1, 4, 4);
+		
+		slot PC (uint32, 4, 60) PC;
+		slot SP (uint32, 4, 52) SP;
+	}
+
+	ac_regspace(4) {
+		slot C (uint8, 1, 0);
+		slot Z (uint8, 1, 0);
+		slot N (uint8, 1, 0);
+		slot V (uint8, 1, 0);
+	}
+	
+	// Floating point registers
+	ac_regspace (256) {
+		bank FPSP (float,  0, 32, 8, 1, 4, 4);
+		bank FPDP (double, 0, 32, 8, 1, 8, 8);
+
+		bank VD (float, 0, 32, 8, 2, 4, 4);
+		bank VQ (float, 0, 16, 16, 4, 4, 4);
+
+		bank VU8  (uint8,  0, 32, 8, 8, 1, 1);
+		bank VU16 (uint16, 0, 32, 8, 4, 2, 2);
+		bank VU32 (uint32, 0, 32, 8, 2, 4, 4);
+		bank VU64 (uint64, 0, 32, 8, 1, 8, 8);
+	}
+
+	ac_wordsize 32;
+	
+	ARCH_CTOR(test) 
+	{
+		ac_isa("test_isa.ac");
+		set_endian("little");
+	};
+};

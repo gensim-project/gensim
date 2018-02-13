@@ -1,0 +1,113 @@
+------------------------------------------------------------------------
+0.0 The Gensim Toolset
+------------------------------------------------------------------------
+
+0.1 Get Started
+
+0.1.0 Install dependencies
+
+GenSim is developed primarily on Fedora 26, and tested mainly on Fedora 
+26, Debian 9.3 (Stretch) and Ubuntu 14.04. 
+
+For Fedora 26, the following dependencies must be installed (using dnf):
+	autoconf
+	automake
+	findutils
+	gcc-arm-linux-gnu
+	gcc-c++
+	java-1.8.0-openjdk
+	mercurial
+	make 
+	ncurses-devel
+	openssh-clients
+	wget
+	zlib-devel
+
+For Ubuntu, the following dependencies must be installed (using apt-get):
+	autoconf
+	gcc-arm-linux-gnueabi
+	g++
+	libncurses5-dev
+	make
+	mercurial
+	openjdk-7-jre
+	wget
+	zlib1g-dev
+
+0.1.1 Building the Toolset
+
+You probably just want to know how to get everything compiled! The 
+default configuration of Gensim and Archsim have very few dependencies, 
+so you should be able to install those dependencies, type 'make', press 
+return, and have everything compile.
+
+$ make
+... sometime later ...
+
+$ # all done!
+
+You might receive an error similar to:
+
+arm-linux-gnueabi-gcc: Command not found
+
+You'll need to check the arm cross compiler prefix in archsim/.config
+(ARM_CC_PREFIX) and set it correctly depending on which arm cross 
+compiler you have installed. For Fedora, this is arm-linux-gnu-, and for
+Ubuntu it should be arm-linux-gnueabi-.
+
+If you want to build the system with optimisation enabled (which is 
+recommended if you want to use it to perform simulations), then specify
+the 'OPT' flag:
+
+$ make OPT=1
+... some longer time later ...
+
+... etc ...
+
+
+0.1.2 Running a simulation
+
+A script is provided to easily run an ARMv7-A simulation:
+
+$ echo 'int main(int argc, char **argv) { printf("Hello world!\n"); return 0; }' > hello.c
+$ arm-unknown-linux-gnueabi-gcc hello.c -static -o hello-arm
+$ scripts/archsim-armv7a-user hello-arm
+Hello world!
+
+
+It is generally recommended to statically compile applications which you
+intend to simulate. Dynamically linked applications are supported but
+this requires more in-depth setup.
+
+
+0.2 Introduction
+
+Gensim is an ADL toolset designed around developing high performance
+simulation tools. Often, when developing a simulator, an ad-hoc approach
+is taken, meaning that developing a simulator requires deep knowledge
+of the architecture under simulation, and of simulation technologies in
+general. ADLs (Architecture Description Languages) such as Gensim can
+be used to remove this second requirement.
+
+The Gensim Toolset is structured as follows:
+ 1. The Gensim Compiler can be used to compile and analyse Models
+ 2. The Archsim Simulator can be used to simulate systems using those
+    models.
+ 3. Several Models are provided
+
+Documentation for each part of the Toolset can be found in the 
+corresponding directory.
+
+
+0.3 Developing a new model
+
+See models/docs
+
+0.4 Working on the Gensim compiler
+
+See gensim/docs
+
+0.5 Working on the Archsim simulator
+
+See archsim/docs
+

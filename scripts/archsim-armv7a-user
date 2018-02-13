@@ -1,0 +1,11 @@
+#!/bin/sh
+
+ROOTDIR=`dirname $0`/..
+ARCHSIM=$ROOTDIR/archsim/bin/archsim
+ARMMODEL=$ROOTDIR/models/armv7/output/armv7a.dll
+
+ELF=$1
+
+shift 1
+
+$ARCHSIM -m arm-user -p $ARMMODEL -s armv7a --mode interp -l contiguous -e $ELF -- $*

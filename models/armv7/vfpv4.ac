@@ -1,0 +1,396 @@
+
+AC_ISA(arm)
+{
+	// VFPv3 Instructions
+	ac_format Type_vfpv3_dpi = "%cond:4 0xe:4 %op1:1 %D:1 %op:2 %vn:4 %vd:4 0x5:3 %sz:1 %N:1 %p:1 %M:1 0x0:1 %vm:4";
+	ac_format Type_vfpv3_dpi_mov = "%cond:4 0xe:4 %op1:1 %D:1 %op:2 %vn:4 %vd:4 0x5:3 %sz:1 %N:1 %p:1 %M:1 0x0:1 %vm:4";
+	ac_format Type_vfpv3_cvt    = "%cond:4 0xe:4 0x1:1 %D:1 0x3:2 0x1:1 %opc2:3 %vd:4 0x5:3 %sz:1 %N:1 0x1:1 %M:1 0x0:1 %vm:4";
+	ac_format Type_vfpv3_cvt_fxp= "%cond:4 0xe:4 0x1:1 %D:1 0x3:2 0x1:1 %opc2:3 %vd:4 0x5:3 %sz:1 %N:1 0x1:1 %M:1 0x0:1 %vm:4";
+	
+	ac_format Type_vfpv3_mem    = "%cond:4 0x6:3 0x1:1 %U:1 %D:1 %dir:2 %rn:4 %vd:4 0x5:3 %sz:1 %imm8:8";
+	
+	ac_format Type_vfpv3_mult   = "%cond:4 0x6:3 %P:1 %U:1 %D:1 %W:1 %S:1 %rn:4 %vd:4 0x5:3 %sz:1 %imm8:8";
+	ac_format Type_vfpv3_64b_mov= "%cond:4 0xc:4 0x2:3 %op:1 %rt2:4 %rt:4 0x5:3 %c:1 0x0:2 %M:1 0x1:1 %vm:4";
+	ac_format Type_vfpv3_32b_mov= "%cond:4 0x60:7 %opc:1 %rt2:4 %rt:4 0xa:4 %N:1 0x0:2 0x1:1 0x0:4";
+		
+	ac_format Type_vfpv3_cvt_fp = "%cond:4 0xe:4 0x1:1 %D:1 0x3:2 0x7:4 %vd:4 0x5:3 %sz:1 0x3:2 %M:1 0x0:1 %vm:4";
+	
+	ac_format Type_vfpv3_mcr    = "%cond:4 0xe:4 %A:3 %L:1 %vn:4 %rt:4 0x5:3 %C:1 %p:1 %B:2 0x1:1 %rm:4";
+	
+	// VFPv3 instructions
+	
+	// Single Precision
+	ac_instr<Type_vfpv3_dpi> vmovr_sp, vabs_sp, vcmp_sp, vcmpz_sp, vmul_sp, vdiv_sp, vadd_sp, vsub_sp, vneg_sp, vnmla_sp, vnmul_sp, vmla_sp, vsqrt_sp, vabs_dp, vneg_dp, vnmla_dp, vmovr_dp, vsub_dp, vmul_dp, vnmul_dp, vdiv_dp, vadd_dp, vmla_dp, vcmpz_dp, vcmp_dp, vsqrt_dp;
+	ac_instr<Type_vfpv3_dpi_mov> vmovi_sp, vmovi_dp;
+	ac_instr<Type_vfpv3_cvt> vcvt_s32_f64, vcvt_s32_f32, vcvt_u32_f64, vcvt_u32_f32, vcvt_f32_s32, vcvt_f32_u32, vcvt_f64_u32, vcvt_f64_s32;
+	ac_instr<Type_vfpv3_cvt_fxp> vcvt_f64_s32_fxp,vcvt_f32_s32_fxp,vcvt_s32_f64_fxp,vcvt_s32_f32_fxp,vcvt_f32_u32_fxp;
+	ac_instr<Type_vfpv3_mem> vldr_sp, vstr_sp, vldr_dp, vstr_dp;
+	ac_instr<Type_vfpv3_mult> vldm_sp, vstm_sp, vldm_dp, vstm_dp;
+	ac_instr<Type_vfpv3_64b_mov> vmova_dsp, vmova_dp;
+	//ac_instr<Type_vfpv3_32b_mov> vmova_sp;
+
+	ac_instr<Type_vfpv3_cvt_fp> vcvt_fp;
+	
+	ac_instr<Type_vfpv3_mcr> vmov_a_sp, vmov_a_msr, vmov_sp_a, vmov_msr_a;
+	
+	
+	ac_asm_map sreg
+	{
+		"s"[0..64] = [0..64];
+	}
+	
+	ac_asm_map sreghi
+	{
+		"s"[16..32] = [0..16];
+	}
+	
+	ac_asm_map dreg
+	{
+		"d"[0..32] = [0..32];
+	}
+
+
+	/*** VFPv3 insns ***/
+	
+	ac_behaviour vmovi_sp;
+	ac_behaviour vmovi_dp;
+	ac_behaviour vabs_sp;
+	ac_behaviour vcmp_sp;
+	ac_behaviour vcmpz_sp;
+	ac_behaviour vmul_sp;
+	ac_behaviour vdiv_sp;
+	ac_behaviour vadd_sp;
+	ac_behaviour vsub_sp;
+	ac_behaviour vneg_sp;
+	ac_behaviour vmla_sp;
+	ac_behaviour vnmla_sp;
+	ac_behaviour vnmul_sp;
+	ac_behaviour vsqrt_sp;
+	ac_behaviour vmovr_sp;
+	//ac_behaviour vmova_sp;
+	
+	ac_behaviour vabs_dp;
+	ac_behaviour vnmla_dp;
+	ac_behaviour vnmul_dp;
+	ac_behaviour vmul_dp;
+	ac_behaviour vdiv_dp;
+	ac_behaviour vadd_dp;
+	ac_behaviour vmovr_dp;
+	ac_behaviour vsub_dp;
+	ac_behaviour vmla_dp;
+	ac_behaviour vcmpz_dp;
+	ac_behaviour vcmp_dp;
+	ac_behaviour vsqrt_dp;
+	ac_behaviour vneg_dp;
+	ac_behaviour vmova_dp;
+	
+	ac_behaviour vmova_dsp;
+	
+	ac_behaviour vcvt_s32_f64;
+	ac_behaviour vcvt_s32_f32;
+	ac_behaviour vcvt_u32_f64;
+	ac_behaviour vcvt_u32_f32;
+	ac_behaviour vcvt_f32_s32;
+	ac_behaviour vcvt_f32_u32;
+	ac_behaviour vcvt_f64_u32;
+	ac_behaviour vcvt_f64_s32;
+	ac_behaviour vcvt_f64_s32_fxp;
+	ac_behaviour vcvt_f32_s32_fxp;
+	ac_behaviour vcvt_s32_f64_fxp;
+	ac_behaviour vcvt_s32_f32_fxp;
+	ac_behaviour vcvt_f32_u32_fxp;
+	
+	ac_behaviour vldr_sp;
+	ac_behaviour vldr_dp;
+	ac_behaviour vstr_sp;
+	ac_behaviour vstr_dp;
+	ac_behaviour vldm_sp;
+	ac_behaviour vldm_dp;
+	ac_behaviour vstm_sp;
+	ac_behaviour vstm_dp;
+	ac_behaviour vcvt_fp;
+	ac_behaviour vmov_a_sp;
+	ac_behaviour vmov_a_msr;
+	ac_behaviour vmov_sp_a;
+	ac_behaviour vmov_msr_a;
+
+
+	ISA_CTOR(armv7a) 
+	{
+	
+		ac_behaviours("decode.vfpv4");
+		ac_execute("execute.vfpv4");
+	
+		/*
+		 *  VFPv3 Instructions
+		 */
+		 
+		// ac_format Type_vfpv3_dpi = "%cond:4 0xe:4 %op1:1 %D:1 %op:2 %vn:4 %vd:4 0x5:3 %sz:1 %N:1 %p:1 %M:1 0x0:1 %vm:4";
+		vmovi_sp.set_decoder(op1=1, op=3, sz=0, p=0, M=0, N=0);
+		vmovi_sp.set_asm("vmov%cond.f32 %sreg, #%imm", cond, vd, imm8);
+		vmovi_sp.set_behaviour(vmovi_sp);
+		
+		vmovi_dp.set_decoder(op1=1, op=3, sz=1, p=0, M=0, N=0);
+		vmovi_dp.set_asm("vmov%cond.f64 %dreg, #%imm", cond, vd, imm8);
+		vmovi_dp.set_behaviour(vmovi_dp);
+		 
+		// ac_format Type_vfpv3_dpi = "%cond:4 0xe:4 %op1:1 %D:1 %op:2 %vn:4 %vd:4 0x5:3 %sz:1 %N:1 %p:1 %M:1 0x0:1 %vm:4";
+		 
+		vmovr_sp.set_decoder(op1=1, op=0x3, p=0x1, vn=0x0, N=0, sz=0);
+		vmovr_sp.set_asm("vmov%cond.f32 %sreg, %sreg", cond, vd, vm);
+		vmovr_sp.set_behaviour(vmovr_sp);
+
+		vabs_sp.set_decoder(op1=1, op=0x3, p=0x1, vn=0x0, N=1, sz=0);
+		vabs_sp.set_asm("vabs%cond.f32 %sreg, %sreg", cond, vd, vm);
+		vabs_sp.set_behaviour(vabs_sp);
+
+		vcmp_sp.set_decoder(op1=1, op=3, p=1, vn=4, sz=0);
+		vcmp_sp.set_asm("vcmp%cond.f32 %sreg, %sreg", cond, vd, vm);	
+		vcmp_sp.set_behaviour(vcmp_sp);
+		
+		vcmpz_sp.set_decoder(op1=1, op=3, p=1, vn=5, sz=0, M=0, vm=0);
+		vcmpz_sp.set_asm("vcmp%cond.f32 %sreg, #0.0", cond, vd);
+		vcmpz_sp.set_behaviour(vcmpz_sp);
+		
+		vmul_sp.set_decoder(op1=0, op=2, p=0, sz=0);
+		vmul_sp.set_asm("vmul%cond.f32 %sreg, %sreg, %sreg", cond, vd, vn, vm);
+		vmul_sp.set_behaviour(vmul_sp);
+		
+		vdiv_sp.set_decoder(op1=1, op=0, p=0, sz=0);
+		vdiv_sp.set_asm("vdiv%cond.f32 %sreg, %sreg, %sreg", cond, vd, vn, vm);
+		vdiv_sp.set_behaviour(vdiv_sp);
+
+		vadd_sp.set_decoder(op1=0, op=3, sz=0, p=0);
+		vadd_sp.set_asm("vadd%cond.f32 %sreg, %sreg, %sreg", cond, vd, vn, vm);
+		vadd_sp.set_behaviour(vadd_sp);
+
+		vsub_sp.set_decoder(op1=0, op=3, sz=0, p=1);
+		vsub_sp.set_asm("vsub%cond.f32 %sreg, %sreg, %sreg", cond, vd, vn, vm);
+		vsub_sp.set_behaviour(vsub_sp);
+
+		vneg_sp.set_decoder(op1=1, op=3, vn=1, sz=0, p=1, N=0);
+		vneg_sp.set_asm("vneg%cond.f32 %sreg, %sreg", cond, vd, vm);
+		vneg_sp.set_behaviour(vneg_sp);
+		
+		vmla_sp.set_decoder(op1=0, op=0, sz=0);
+		vmla_sp.set_asm("vmla%cond.f32 %sreg, %sreg, %sreg", cond, vd, vn, vm, p=0);
+		vmla_sp.set_asm("vmls%cond.f32 %sreg, %sreg, %sreg", cond, vd, vn, vm, p=1);
+		vmla_sp.set_behaviour(vmla_sp);
+
+		vnmla_sp.set_decoder(op1=0, op=1, sz=0);
+		vnmla_sp.set_asm("vnmla%cond.f32 %sreg, %sreg, %sreg", cond, vd, vn, vm, p=1);
+		vnmla_sp.set_asm("vnmls%cond.f32 %sreg, %sreg, %sreg", cond, vd, vn, vm, p=0);
+		vnmla_sp.set_behaviour(vnmla_sp);
+
+		// ac_format Type_vfpv3_dpi = "%cond:4 0xe:4 %op1:1 %D:1 %op:2 %vn:4 %vd:4 0x5:3 %sz:1 %N:1 %p:1 %M:1 0x0:1 %vm:4";
+		vnmul_sp.set_decoder(op1=0, op=2, sz=0, p=1);
+		vnmul_sp.set_asm("vnmul%cond.f32 %sreg, %sreg, %sreg", cond, vd, vn, vm, p=0);
+		vnmul_sp.set_behaviour(vnmul_sp);
+
+		vsqrt_sp.set_decoder(op1=1, op=3, p=1, vn=1, sz=0, N=1);
+		vsqrt_sp.set_asm("vsqrt%cond.f32 %dreg, %dreg", cond, vd, vm);
+		vsqrt_sp.set_behaviour(vsqrt_sp);
+
+		vabs_dp.set_decoder(op1=1, op=0x3, p=0x1, vn=0x0, N=1, sz=1);
+		vabs_dp.set_asm("vabs%cond.f64 %sreg, %sreg", cond, vd, vm);
+		vabs_dp.set_behaviour(vabs_dp);
+
+		vnmla_dp.set_decoder(op1=0, op=1, sz=1);
+		vnmla_dp.set_asm("vnmla%cond.f64 %dreg, %dreg, %dreg", cond, vd, vn, vm, p=1);
+		vnmla_dp.set_asm("vnmls%cond.f64 %dreg, %dreg, %dreg", cond, vd, vn, vm, p=0);
+		vnmla_dp.set_behaviour(vnmla_dp);
+
+		vnmul_dp.set_decoder(op1=0, op=2, sz=1, p=1);
+		vnmul_dp.set_asm("vnmul%cond.f64 %dreg, %dreg, %dreg", cond, vd, vn, vm);
+		vnmul_dp.set_behaviour(vnmul_dp);
+
+		vmul_dp.set_decoder(op1=0,op=2,sz=1,p=0);
+		vmul_dp.set_asm("vmul%cond.f64 %dreg, %dreg, %dreg", cond, vd, vn, vm);
+		vmul_dp.set_behaviour(vmul_dp);
+		
+		vdiv_dp.set_decoder(op1=1,op=0,sz=1,p=0);
+		vdiv_dp.set_asm("vdiv%cond.f64 %dreg, %dreg, %dreg", cond, vd, vn, vm);
+		vdiv_dp.set_behaviour(vdiv_dp);
+		
+		vadd_dp.set_decoder(op1=0, op=3, sz=1, p=0);
+		vadd_dp.set_asm("vadd%cond.f64 %dreg, %dreg, %dreg", cond, vd, vn, vm);
+		vadd_dp.set_behaviour(vadd_dp);
+		
+		// ac_format Type_vfpv3_dpi = "%cond:4 0xe:4 %op1:1 %D:1 %op:2 %vn:4 %vd:4 0x5:3 %sz:1 %N:1 %p:1 %M:1 0x0:1 %vm:4";
+		
+		vmovr_dp.set_decoder(op1=1, op=3, sz=1, vn=0, N=0, p=1);
+		vmovr_dp.set_asm("vmov%cond.f64 %dreg, %dreg", cond, vd, vm);
+		vmovr_dp.set_behaviour(vmovr_dp);
+		
+		vsub_dp.set_decoder(op1=0,op=3,sz=1,p=1);
+		vsub_dp.set_asm("vsub%cond.f64 %dreg, %dreg, %dreg", cond, vd, vn, vm);
+		vsub_dp.set_behaviour(vsub_dp);
+		
+		vmla_dp.set_decoder(op1=0,op=0,sz=1);
+		vmla_dp.set_asm("vmla%cond.f64 %dreg, %dreg, %dreg", cond, vd, vn, vm, p=0);
+		vmla_dp.set_asm("vmls%cond.f64 %dreg, %dreg, %dreg", cond, vd, vn, vm, p=1);
+		vmla_dp.set_behaviour(vmla_dp);
+		
+		vcmpz_dp.set_decoder(op1=1, op=3, p=1, vn=5, sz=1, M=0, vm=0);
+		vcmpz_dp.set_asm("vcmp%cond.f64 %dreg, #0.0", cond, vd);
+		vcmpz_dp.set_behaviour(vcmpz_dp);
+		
+		vcmp_dp.set_decoder(op1=1, op=3, p=1, vn=4, sz=1);
+		vcmp_dp.set_asm("vcmp%cond.f64 %dreg, %dreg", cond, vd, vm);
+		vcmp_dp.set_behaviour(vcmp_dp);
+		
+		vsqrt_dp.set_decoder(op1=1, op=3, p=1, vn=1, sz=1, N=1);
+		vsqrt_dp.set_asm("vsqrt%cond.f64 %dreg, %dreg", cond, vd, vm);
+		vsqrt_dp.set_behaviour(vsqrt_dp);
+		
+		vneg_dp.set_decoder(op1=1, op=3, vn=1, sz=1, p=1, N=0);
+		vneg_dp.set_asm("vneg%cond.f64 %sreg, %sreg", cond, vd, vm);
+		vneg_dp.set_behaviour(vneg_dp);
+		
+		
+		// ac_format Type_vfpv3_cvt    = "%cond:4 0xe:4 0x1:1 %D:1 0x3:2 0x1:1 %opc2:3 %rd:4 0x5:3 %sz:1 %N:1 0x1:1 %M:1 0x0:1 %rm:4";
+		
+		vcvt_s32_f64.set_decoder(opc2=5, sz=1);
+		vcvt_s32_f64.set_asm("vcvt%cond.s32.f64 %sreg, %dreg", cond, vd, vm);
+		vcvt_s32_f64.set_behaviour(vcvt_s32_f64);
+		
+		vcvt_s32_f32.set_decoder(opc2=5, sz=0);
+		vcvt_s32_f32.set_asm("vcvt%cond.s32.f32 %sreg, %sreg", cond, vd, vm);
+		vcvt_s32_f32.set_behaviour(vcvt_s32_f32);
+		
+		vcvt_u32_f64.set_decoder(opc2=4, sz=1);
+		vcvt_u32_f64.set_asm("vcvt%cond.u32.f64 %sreg, %dreg", cond, vd, vm);
+		vcvt_u32_f64.set_behaviour(vcvt_u32_f64);
+		
+		vcvt_u32_f32.set_decoder(opc2=4, sz=0);
+		vcvt_u32_f32.set_asm("vcvt%cond.u32.f32 %sreg, %sreg", cond, vd, vm);
+		vcvt_u32_f32.set_behaviour(vcvt_u32_f32);
+		
+		vcvt_f32_s32.set_decoder(opc2=0, sz=0,N=1);
+		vcvt_f32_s32.set_asm("vcvt%cond.f32.s32 %sreg, %sreg", cond, vd, vm);
+		vcvt_f32_s32.set_behaviour(vcvt_f32_s32);
+		
+		vcvt_f32_u32.set_decoder(opc2=0, sz=0,N=0);
+		vcvt_f32_u32.set_asm("vcvt%cond.f32.u32 %sreg, %sreg", cond, vd, vm);
+		vcvt_f32_u32.set_behaviour(vcvt_f32_u32);
+		
+		vcvt_f64_s32.set_decoder(opc2=0, sz=1,N=1);
+		vcvt_f64_s32.set_asm("vcvt%cond.f64.s32 %dreg, %sreg", cond, vd, vm);
+		vcvt_f64_s32.set_behaviour(vcvt_f64_s32);
+		
+		vcvt_f64_u32.set_decoder(opc2=0, sz=1,N=0);
+		vcvt_f64_u32.set_asm("vcvt%cond.f64.u32 %dreg, %sreg", cond, vd, vm);
+		vcvt_f64_u32.set_behaviour(vcvt_f64_u32);
+		
+		// ac_format Type_vfpv3_cvt_fxp    = "%cond:4 0xe:4 0x1:1 %D:1 0x3:2 0x1:1 %opc2:3 %rd:4 0x5:3 %sz:1 %N:1 0x1:1 %M:1 0x0:1 %rm:4";
+		vcvt_f64_s32_fxp.set_decoder(opc2=2, sz=1,N=1);
+		vcvt_f64_s32_fxp.set_asm("vcvt%cond.f64.s32 %dreg, %dreg, #%imm", cond, vd, vd, vm);
+		vcvt_f64_s32_fxp.set_behaviour(vcvt_f64_s32_fxp);
+		
+		vcvt_f32_s32_fxp.set_decoder(opc2=2, sz=0, N=1);
+		vcvt_f32_s32_fxp.set_asm("vcvt%cond.f32.s32 %sreg, %sreg, %imm", cond, vd, vd, vm);
+		vcvt_f32_s32_fxp.set_behaviour(vcvt_f32_s32_fxp);
+		
+		vcvt_s32_f64_fxp.set_decoder(opc2=6, sz=1, N=1);
+		vcvt_s32_f64_fxp.set_asm("vcvt%cond.f32.s32 %sreg, %sreg, %imm", cond, vd, vd, vm);
+		vcvt_s32_f64_fxp.set_behaviour(vcvt_s32_f64_fxp);
+		
+		vcvt_s32_f32_fxp.set_decoder(opc2=6, sz=0, N=1);
+		vcvt_s32_f32_fxp.set_asm("vcvt%cond.f32.s32 %sreg, %sreg, %imm", cond, vd, vd, vm);
+		vcvt_s32_f32_fxp.set_behaviour(vcvt_s32_f32_fxp);
+		
+		vcvt_f32_u32_fxp.set_decoder(opc2=3, sz=0, N=1);
+		vcvt_f32_u32_fxp.set_asm("vcvt%cond.f32.u32 %sreg, %sreg, %imm", cond, vd, vd, vm);
+		vcvt_f32_u32_fxp.set_behaviour(vcvt_f32_u32_fxp);
+		
+		// ac_format Type_vfpv3_mem    = "%cond:4 0x6:3 0x1:1 %U:1 %D:1 %dir:2 %rn:4 %vd:4 0x5:3 %sz:1 %imm8:8";
+		// vldr_sp, vstr_sp, vldr_dp, vstr_dp
+		
+		vldr_sp.set_decoder(dir=0x1, sz=0);
+		vldr_sp.set_asm("vldr%cond %sreg, [%reg, #%imm]", cond, vd, rn, imm8);
+		vldr_sp.set_behaviour(vldr_sp);
+		
+		vldr_dp.set_decoder(dir=0x1, sz=1);
+		vldr_dp.set_asm("vldr%cond %dreg, [%reg, #%imm]", cond, vd, rn, imm8);
+		vldr_dp.set_behaviour(vldr_dp);
+		
+		vstr_sp.set_decoder(dir=0, sz=0);
+		vstr_sp.set_asm("vstr%cond %sreg, [%reg, #%imm]", cond, vd, rn, imm8);
+		vstr_sp.set_behaviour(vstr_sp);
+		
+		vstr_dp.set_decoder(dir=0, sz=1);
+		vstr_dp.set_asm("vstr%cond %dreg, [%reg, #%imm]", cond, vd, rn, imm8);
+		vstr_dp.set_behaviour(vstr_dp);
+		
+		// ac_format Type_vfpv3_mult   = "%cond:4 0x6:3 %P:1 %U:1 %D:1 %W:1 %S:1 %rn:4 %vd:4 0x5:3 %sz:1 %imm8:8";
+		
+		vldm_sp.set_decoder(S=0x1, sz=0);
+		vldm_sp.set_asm("vldm%cond %reg, %sreg", cond, rn, vd);
+		vldm_sp.set_behaviour(vldm_sp);
+		
+		vldm_dp.set_decoder(S=0x1, sz=1);
+		vldm_dp.set_asm("vldm%cond %reg, %dreg", cond, rn, vd);
+		vldm_dp.set_behaviour(vldm_dp);
+		
+		vstm_sp.set_decoder(S=0x0, sz=0);
+		vstm_sp.set_asm("vstm%cond %reg, %sreg", cond, rn, vd);
+		vstm_sp.set_behaviour(vstm_sp);
+		
+		vstm_dp.set_decoder(S=0x0, sz=1);
+		vstm_dp.set_asm("vstm%cond %reg, %dreg", cond, rn, vd);
+		vstm_dp.set_behaviour(vstm_dp);
+		
+		// ac_format Type_vfpv3_64b_mov= "%cond:4 0xc:4 0x2:3 %op:1 %rt2:4 %rt:4 0x5:3 %c:1 0x0:2 %M:1 0x1:1 %vm:4";
+		// ac_instr<Type_vfpv3_64b_mov> vmova_dsp, vmova_dp;
+		
+		//vmov_dsp
+		
+		vmova_dsp.set_decoder(c=0);
+		vmova_dsp.set_asm("vmov%cond %sreg, %sreg, %reg, %reg", cond, vm, vm, rt, rt2, op=0);
+		vmova_dsp.set_asm("vmov%cond %reg, %reg, %sreg, %sreg", cond, rt, rt2, vm, vm, op=1);
+		vmova_dsp.set_behaviour(vmova_dsp);
+		
+		//vmov_dp
+		
+		vmova_dp.set_decoder(c=1);
+		vmova_dp.set_asm("vmov%cond %dreg, %reg, %reg", cond, vm, rt, rt2, op=0);
+		vmova_dp.set_asm("vmov%cond %reg, %reg, %dreg", cond, rt, rt2, vm, op=1);
+		vmova_dp.set_behaviour(vmova_dp);
+		
+		//ac_format Type_vfpv3_32b_mov= "%cond:4 0x60:7 %opc:1 %rt2:4 %rt:4 0xa:4 %N:1 0x0:2 0x1:1 0x0:4";
+		//ac_instr<Type_vfpv3_32b_mov> vmova_sp;
+		
+		//vmov_sp
+		// XXX not implemented
+		
+		// vcvt_fp
+		// ac_format Type_vfpv3_cvt_fp = "%cond:4 0xe:4 0x1:1 %d:1 0x3:2 0x7:4 %vd:4 0x5:3 %sz:1 0x3:2 %M:1 0x0:1 %vm:4";
+		vcvt_fp.set_decoder();
+		vcvt_fp.set_asm("vcvt%cond.f64.f32 %dreg, %sreg", cond, vd, vm, sz=0);
+		vcvt_fp.set_asm("vcvt%cond.f32.f64 %sreg, %dreg", cond, vd, vm, sz=1);
+		vcvt_fp.set_behaviour(vcvt_fp);
+		
+		// Type_vfpv3_mcr
+		//ac_format Type_vfpv3_mcr    = "%cond:4 0xe:4 %A:3 %L:1 %vn:4 %rt:4 0x5:3 %C:1 %p:1 %B:2 0x1:1 %rm:4";
+		
+		vmov_a_sp.set_decoder(A=0, L=0, C=0, B=0, rm=0);
+		vmov_a_sp.set_asm("vmov%cond %sreg, %reg", cond, vn, rt);
+		vmov_a_sp.set_behaviour(vmov_a_sp);
+		
+		vmov_a_msr.set_decoder(A=7, L=0, C=0, B=0, rm=0, p=0);
+		vmov_a_msr.set_asm("vmsr%cond FPSCR, %reg", cond, rt, vn=1);
+		vmov_a_msr.set_asm("vmsr%cond ???, %reg", cond, rt);
+		vmov_a_msr.set_behaviour(vmov_a_msr);
+		
+		vmov_sp_a.set_decoder(A=0, L=1, C=0, B=0, rm=0);
+		vmov_sp_a.set_asm("vmov%cond %reg, %sreg", cond, rt, vn);
+		vmov_sp_a.set_behaviour(vmov_sp_a);
+		
+		vmov_msr_a.set_decoder(A=7, L=1, C=0, B=0, rm=0, p=0);
+		vmov_msr_a.set_asm("vmrs%cond %reg, FPSCR", cond, rt, vn=1);
+		vmov_msr_a.set_asm("vmrs%cond APSR_nzcv, FPSCR", cond, rt=15, vn=1);
+		vmov_msr_a.set_asm("vmrs%cond %reg, ???", cond, rt);
+		vmov_msr_a.set_behaviour(vmov_msr_a);
+		
+	};
+};

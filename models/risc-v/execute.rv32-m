@@ -1,0 +1,110 @@
+
+execute(mul)
+{
+	sint32 rs1 = read_gpr(inst.rs1);
+	sint32 rs2 = read_gpr(inst.rs2);
+
+	sint32 val = rs1 * rs2;	
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+execute(mulh)
+{
+	sint64 rs1 = read_gpr(inst.rs1);
+	sint64 rs2 = read_gpr(inst.rs2);
+
+	sint64 mul = rs1 * rs2;
+
+	sint32 val = mul >> 32;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+execute(mulhsu)
+{
+	sint64 rs1 = read_gpr(inst.rs1);
+	uint64 rs2 = read_gpr(inst.rs2);
+
+	sint64 mul = rs1 * rs2;
+
+	sint32 val = mul >> 32;
+
+	write_register_bank(GPR, inst.rd, val);
+}
+
+execute(mulhu)
+{
+	uint64 rs1 = read_gpr(inst.rs1);
+	uint64 rs2 = read_gpr(inst.rs2);
+
+	uint64 mul = rs1 * rs2;
+
+	uint32 val = mul >> 32;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+execute(div)
+{
+	sint32 rs1 = read_gpr(inst.rs1);
+	sint32 rs2 = read_gpr(inst.rs2);
+
+	sint32 val;
+
+	if (rs2 == 0) val = -1;
+	else if ((rs1 == (-2)^31) && (rs2 == -1)) val = ((-2)^31);
+	else val = rs1 / rs2;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+execute(divu)
+{
+	uint32 rs1 = read_gpr(inst.rs1);
+	uint32 rs2 = read_gpr(inst.rs2);
+
+	uint32 val;
+
+	if (rs2 == 0) val = (2)^32 - 1;
+	else val = rs1 / rs2;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+execute(rem)
+{
+	sint32 rs1 = read_gpr(inst.rs1);
+	sint32 rs2 = read_gpr(inst.rs2);
+
+	sint32 val;
+
+	if (rs2 == 0) val = rs1;
+	else if ((rs1 == (-2)^31) && (rs2 == -1)) val = 0;
+	else{
+		sint32 quotient = rs1/rs2;
+		val = rs1 - rs2 * quotient;
+	}
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+execute(remu)
+{
+	uint32 rs1 = read_gpr(inst.rs1);
+	uint32 rs2 = read_gpr(inst.rs2);
+
+	uint32 val;
+
+	if (rs2 == 0) val = rs1;
+	else val = rs1 % rs2;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}

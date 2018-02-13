@@ -1,0 +1,16 @@
+archsim_add_sources(
+	ConstantPropTransform.cpp
+	DeadBlockEliminationTransform.cpp
+	MergeBlocksTransform.cpp
+	Peephole2Transform.cpp
+	PeepholeTransform.cpp
+	PostAllocateDCE.cpp
+	PostAllocatePeephole.cpp
+	RegStoreEliminationTransform.cpp
+	RegValueReuseTransform.cpp
+	ReorderBlocksTransform.cpp
+	SortIRTransform.cpp
+	ThreadJumpsTransform.cpp
+	Transform.cpp
+	ValueRenumberingTransform.cpp
+)

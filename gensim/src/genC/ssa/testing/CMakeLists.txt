@@ -1,0 +1,9 @@
+TARGET_ADD_SOURCES(gensim-lib
+	BasicInterpreter.cpp
+	MachineState.cpp
+	SSAActionGenerator.cpp
+	SSABlockGenerator.cpp
+	SSAInterpreter.cpp
+	SSAInterpreterStatementVisitor.cpp
+	TestContext.cpp
+)

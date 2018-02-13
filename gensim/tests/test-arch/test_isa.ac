@@ -1,0 +1,30 @@
+AC_ISA(test) 
+{
+	ac_fetchsize 32;
+
+////////////////////////////////////////////////////////
+////  ac_format
+////////////////////////////////////////////////////////
+
+	/* Instructions for processing data - ALU */
+	ac_format Type_DPI1 = "%cond:4 %imm2:3 %imm3:4 %s:1 %rn:4 %rd:4 %shift_amt:5 %type:2 %subop1!:1 %rm:4";
+	ac_format Type_LSI = "%cond:4 %op!:3 %p:1 %u:1 %b!:1 %w:1 %l!:1 %rn:4 %rd:4 %imm32:12";
+	ac_format Type_LSI_Fix = "%imm32:32";
+	
+	ac_instr<Type_DPI1> test_insn;
+	ac_instr<Type_LSI> test_insn_2;
+	
+	ac_behaviour test_behaviour;
+	ac_behaviour test_behaviour_2;
+	
+	ISA_CTOR(armv5e) 
+	{
+		ac_execute("execute.test");
+	
+		test_insn.set_decoder(op=0x00, subop1=0x00, func1=0x00);
+		test_insn.set_behaviour(test_behaviour);
+		
+		test_insn_2.set_decoder();
+		test_insn_2.set_behaviour(test_behaviour_2);
+	};
+};

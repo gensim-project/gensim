@@ -1,0 +1,21 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any;
+
+    stages {
+        stage ('Build Image') {
+            steps {
+                sh 'cd scripts/dockerfiles/fedora-26; docker build -t gensim-fedora-26 . '
+            }
+        }
+
+        stage ('Build') {
+            steps {
+                sh '''
+                docker run --rm -v `pwd`:/workspace gensim-fedora-26 bash -c "cp -r /workspace ~/gensim-repo; cd ~/gensim-repo; cp ~/gensim-repo/scripts/dockerfiles/fedora-26/archsim-config ~/gensim-repo/archsim/.config; make"
+                '''
+            }
+        }
+    }
+}

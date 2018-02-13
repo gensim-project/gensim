@@ -1,0 +1,40 @@
+------------------------------------------------------------------------
+ GenSim
+------------------------------------------------------------------------
+
+For detailed documentation, see docs/README.
+
+Building GenSim:
+
+Note: The scripts/build-gensim.sh file can be used to set up a build 
+      environment and build gensim. If you use that script, you don't
+      need to follow the instructions here.
+
+ 1. Download and built ANTLR - this can be accomplished using the 
+    scripts/get-and-build-antlr.sh script, or performed manually. The
+    required ANTLR version is 3.4c. The ANTLR JAR file and C runtime
+    are required. The script will place the ANTLR JAR file in antlr/jar
+    and the compiled ANTLR C Runtime in antlr/runtime/install
+ 
+ 2. Use autoreconf to generate the configure script.
+ 3. Run the configure script, using --with-antlr and --with-antlrjar to
+    provide the paths to your ANTLR runtime installation and ANTLR JAR
+    file.
+    
+    e.g.:
+    $ ./configure --with-antlr=/path/to/antlr/install --with-antlrjar=/path/to/antlr7.jar
+    
+ 4. Run 'make' to build Gensim. The '-j' flag can be used to run a 
+    parallel build, e.g.
+    $ make -j4
+    Will run 4 concurrent compilation workers. Additionally, the OPT
+    flag can be provided to build with optimisations enabled:
+    $ make -j4 OPT=1
+
+
+Testing GenSim
+GenSim currently doesn't have many tests. If you want to run what tests
+there are you can run 'make tests' in the GenSim directory. The tests
+use google-test, which is checked out and built locally, in accordance
+with Google's guidelines. This means that you will need to have cmake 
+installed in order to build the tests.

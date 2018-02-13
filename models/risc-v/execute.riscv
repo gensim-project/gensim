@@ -1,0 +1,830 @@
+/*
+Risc-V execution
+*/
+
+helper uint32 read_gpr(uint32 gpr_idx)
+{
+	if(gpr_idx == 0) { 
+		return 0;
+	} else {
+		return read_register_bank(GPR, gpr_idx);
+	}
+}
+
+// 32-Base Instructions
+execute(addi)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+
+	
+	uint32 rs = read_gpr(inst.rs1);
+	//sint32 rs = read_gpr(inst.rs1);
+
+	rs += imm;
+
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+execute(slti)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+
+	sint32 rs = read_gpr(inst.rs1);
+	uint32 val;
+
+
+	if(rs < imm) val = 1;
+	else val = 0;
+
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+////////////////////////////////////////////////////////////////////
+execute(sltiu)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+
+	uint32 uimm = imm;
+
+	uint32 rs = read_gpr(inst.rs1);
+	uint32 val;
+
+	//if (rs < uimm) val=0x1;
+	//else val=0x0;
+
+	if(rs < uimm) val = 1;       
+        
+        else val = 0;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+execute(andi)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+	
+
+	uint32 rs = read_gpr(inst.rs1);
+	rs &= imm;
+
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+execute(ori)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+		
+
+	uint32 rs = read_gpr(inst.rs1);
+	rs |= imm;	
+
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+execute(xori)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+	
+
+	uint32 rs = read_gpr(inst.rs1);
+	rs ^= imm;
+
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+execute(slli)
+{
+	uint32 shamt = inst.shamt;
+	uint32 rs = read_gpr(inst.rs1);
+
+	rs = rs << shamt;
+	
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+
+execute(srli)
+{
+	uint32 shamt = inst.shamt;
+	uint32 rs = read_gpr(inst.rs1);
+
+	rs = rs >> shamt;
+
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+execute(srai)
+{
+	uint32 shamt = inst.shamt;
+
+	//uint32 rs = read_gpr(inst.rs1);
+	sint32 rs = read_gpr(inst.rs1);
+	rs >>= shamt;
+	
+	//if((rs >> 31) == 1) rs = (rs >> shamt) | (0xFFFFFFFF << (32 - shamt));
+	//else rs = rs >> shamt;
+
+	write_register_bank(GPR, inst.rd, rs);
+	
+}
+
+execute(lui)
+{
+	uint32 imm = inst.imm;
+
+	imm <<= 12;
+
+	write_register_bank(GPR, inst.rd, imm);
+
+}
+
+execute(auipc)
+{
+	uint32 imm = inst.imm;
+
+	imm <<= 12;
+
+	uint32 pc = read_pc();
+
+	pc += imm;
+
+	//write_register(PC, pc);
+
+	write_register_bank(GPR, inst.rd, pc); 
+
+}
+
+/////////////rs1, rs2 signed or unsigned//////////////
+execute(add)
+{
+	uint32 rs1 = read_gpr(inst.rs1);
+	uint32 rs2 = read_gpr(inst.rs2);
+
+	rs1 += rs2;
+
+	write_register_bank(GPR, inst.rd, rs1);
+
+}
+
+execute(sub)
+{
+	sint32 rs1 = read_gpr(inst.rs1);
+	sint32 rs2 = read_gpr(inst.rs2);
+	
+	sint32 val = rs1 - rs2;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+//////////////////////////////////////////////////////////
+execute(slt)
+{
+	sint32 rs1 = read_gpr(inst.rs1);
+	
+	
+	sint32 rs2 = read_gpr(inst.rs2);
+
+	uint32 val = (rs1 < rs2) ? 1 : 0;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+///////////////////////////////////////////////////////////
+execute(sltu)
+{
+	uint32 rs1 = read_gpr(inst.rs1);
+	uint32 rs2 = read_gpr(inst.rs2);
+
+	uint32 val;
+
+	val = (rs1 < rs2) ? 1 : 0;
+
+	write_register_bank(GPR, inst.rd, val); 	
+
+}
+
+execute(and)
+{
+        uint32 rs1 = read_gpr(inst.rs1);
+        uint32 rs2 = read_gpr(inst.rs2);
+
+	rs1 &= rs2;
+
+	write_register_bank(GPR, inst.rd, rs1);
+}
+
+execute(or)
+{
+        uint32 rs1 = read_gpr(inst.rs1);
+        uint32 rs2 = read_gpr(inst.rs2);
+        
+        rs1 |= rs2;
+        
+        write_register_bank(GPR, inst.rd, rs1);
+
+}
+
+execute(xor)
+{
+        uint32 rs1 = read_gpr(inst.rs1);
+        uint32 rs2 = read_gpr(inst.rs2);
+        
+        rs1 ^= rs2;
+        
+        write_register_bank(GPR, inst.rd, rs1);
+
+}
+
+execute(sll)
+{
+        uint32 rs1 = read_gpr(inst.rs1);
+        uint32 rs2 = read_gpr(inst.rs2);
+
+	rs2 = rs2 & 0x0000001f;
+       
+ 
+        rs1 <<= rs2;
+        
+        write_register_bank(GPR, inst.rd, rs1);
+
+}
+
+execute(srl)
+{
+	uint32 rs1 = read_gpr(inst.rs1);
+        uint32 rs2 = read_gpr(inst.rs2);
+       
+	rs2 = rs2 & 0x0000001f;
+
+        rs1  >>= rs2;
+        
+        write_register_bank(GPR, inst.rd, rs1);
+
+}
+
+execute(sra)
+{
+	sint32 rs1 = read_gpr(inst.rs1);
+	sint32 rs2 = read_gpr(inst.rs2);
+
+	rs2 = rs2 & 0x0000001f;
+	
+	uint32 val = rs1 >> rs2;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+//////////////////////////////////////////////////////////
+execute(jal)
+{
+	uint32 imm4 = inst.imm4;
+	uint32 imm3 = inst.imm3;
+	uint32 imm2 = inst.imm2;
+	uint32 imm1 = inst.imm1;
+
+	sint32 imm = (imm4<<19) | (imm3 << 11) | (imm2 << 10) | imm1;
+	imm <<= 12;
+	imm >>= 12;
+
+	uint32 addr = read_pc()+4;
+
+	write_register_bank(GPR, inst.rd, addr);
+
+	uint32 pc = read_pc();
+	pc += imm * 2;
+	write_register(PC, pc);
+
+	
+}
+
+execute(jalr)
+{
+	sint32 imm = inst.imm;
+
+        imm <<= 20;
+        imm >>= 20;
+
+	uint32 addr = read_pc()+4;
+	
+
+	write_register_bank(GPR, inst.rd, addr);
+
+
+	uint32 rs = read_gpr(inst.rs1);
+
+	rs += imm;
+	rs >>= 1;
+	rs <<= 1;
+
+	//rs = rs + (imm & ~1);	
+
+	write_register(PC, rs);
+
+
+}
+
+////////////////////////////////////////////////////////////////
+execute(beq)
+{
+	uint32 imm4 = inst.imm4;
+        uint32 imm3 = inst.imm3;
+        uint32 imm2 = inst.imm2;
+        uint32 imm1 = inst.imm1;
+        
+        sint32 imm = (imm4<<11) | (imm3 << 10) | (imm2 << 4) | imm1;
+        imm <<= 20;
+        imm >>= 20;
+
+	uint32 rs1 = read_gpr(inst.rs1);
+	uint32 rs2 = read_gpr(inst.rs2);
+	
+	uint32 pc = read_pc();
+
+	uint32 addr = pc + imm * 2 ;
+
+	pc = (rs1 == rs2) ? addr : (pc + 4);
+	
+	write_register(PC, pc);
+
+}
+
+execute(bne)
+{       
+        uint32 imm4 = inst.imm4;
+        uint32 imm3 = inst.imm3;
+        uint32 imm2 = inst.imm2;
+        uint32 imm1 = inst.imm1;
+        
+        sint32 imm = (imm4<<11) | (imm3 << 10) | (imm2 << 4) | imm1;
+        imm <<= 20;
+        imm >>= 20;
+        
+        uint32 rs1 = read_gpr(inst.rs1);
+        uint32 rs2 = read_gpr(inst.rs2);
+        
+        uint32 pc = read_pc();
+        
+        uint32 addr = pc + imm * 2;
+        
+        pc = (rs1 != rs2) ? addr : (pc + 4);
+        
+	write_register(PC, pc);
+
+}
+
+////////////////////////signed and unsigned///////////
+execute(blt)
+{
+        uint32 imm4 = inst.imm4;
+        uint32 imm3 = inst.imm3;
+        uint32 imm2 = inst.imm2;
+        uint32 imm1 = inst.imm1;
+
+        sint32 imm = (imm4<<11) | (imm3 << 10) | (imm2 << 4) | imm1;
+        imm <<= 20;
+        imm >>= 20;
+
+	sint32 rs1 = read_gpr(inst.rs1);
+	
+	
+	sint32 rs2 = read_gpr(inst.rs2);
+	
+	uint32 pc = read_pc();
+	uint32 addr = pc + imm * 2;
+
+
+	pc = (rs1 < rs2) ? addr : (pc + 4);
+
+	write_register(PC, pc);
+ 
+}
+
+execute(bltu)
+{
+        uint32 imm4 = inst.imm4;
+        uint32 imm3 = inst.imm3;
+        uint32 imm2 = inst.imm2;
+        uint32 imm1 = inst.imm1;
+        
+        sint32 imm = (imm4<<11) | (imm3 << 10) | (imm2 << 4) | imm1;
+        imm <<= 20;
+        imm >>= 20;
+        
+        uint32 rs1 = read_gpr(inst.rs1);
+        uint32 rs2 = read_gpr(inst.rs2);
+
+	uint32 pc = read_pc();
+	uint32 addr = pc + imm * 2;
+
+	pc = (rs1 < rs2) ? addr : (pc + 4);
+
+	write_register(PC, pc);
+
+}
+
+execute(bge)
+{
+        uint32 imm4 = inst.imm4;
+        uint32 imm3 = inst.imm3;
+        uint32 imm2 = inst.imm2;
+        uint32 imm1 = inst.imm1;
+        
+        sint32 imm = (imm4<<11) | (imm3 << 10) | (imm2 << 4) | imm1;
+        imm <<= 20;
+        imm >>= 20;
+        
+        sint32 rs1 = read_gpr(inst.rs1);
+	
+	
+        sint32 rs2 = read_gpr(inst.rs2);
+	
+	
+        
+        uint32 pc = read_pc();
+        uint32 addr = pc + imm * 2;
+
+        pc = (rs1 >= rs2) ? addr : (pc + 4);
+
+	write_register(PC, pc);
+
+}
+
+execute(bgeu)
+{
+        uint32 imm4 = inst.imm4;
+        uint32 imm3 = inst.imm3;
+        uint32 imm2 = inst.imm2;
+        uint32 imm1 = inst.imm1;
+        
+        sint32 imm = (imm4<<11) | (imm3 << 10) | (imm2 << 4) | imm1;
+        imm <<= 20;
+        imm >>= 20;
+        
+        uint32 rs1 = read_gpr(inst.rs1);
+        uint32 rs2 = read_gpr(inst.rs2);
+        
+        uint32 pc = read_pc();
+        uint32 addr = pc + imm * 2;
+
+        pc = (rs1 >= rs2) ? addr : (pc + 4);
+
+	write_register(PC, pc);
+
+}
+
+///////////lw is the same with addi?////////////////////
+execute(lw)
+{
+        sint32 imm = inst.imm;
+        imm <<= 20;
+        imm >>= 20; 
+        
+        uint32 rs1 = read_gpr(inst.rs1);
+        uint32 addr = rs1 +  imm;
+
+	uint32 val;
+        
+	mem_read_32(addr, val);
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+
+/////////////load 16-bits then sign_extended to 32-bits////////////////
+execute(lh)
+{
+        sint32 imm = inst.imm;
+        imm <<= 20;
+        imm >>= 20;
+
+        uint32 rs1 = read_gpr(inst.rs1);
+        uint32 addr = rs1 + imm;
+
+	uint16 val;	
+
+	mem_read_16(addr, val);
+
+	sint32 sval = val;
+
+	sval <<= 16;
+	sval >>= 16;
+
+	write_register_bank(GPR, inst.rd, sval);
+
+}
+
+//////////load 16-bits then zero_extended to 32-bits/////////////
+execute(lhu)
+{
+	sint32 imm = inst.imm;
+        imm <<= 20;
+        imm >>= 20;
+
+        uint32 rs1 = read_gpr(inst.rs1);
+        uint32 addr = rs1 + imm;
+
+	uint16 valh;
+
+	mem_read_16(addr, valh);
+
+	uint32 val = valh;
+
+        write_register_bank(GPR, inst.rd, val);
+
+} 
+
+//////////////////load 8-bits then sign_extended to 32-bits////////////////////
+execute(lb)
+{
+	sint32 imm = inst.imm;
+        imm <<= 20;
+        imm >>= 20;
+        
+        uint32 rs1 = read_gpr(inst.rs1);
+
+	uint32 addr = rs1 + imm;
+
+	uint8 valb;
+
+	mem_read_8(addr, valb);
+
+	sint32 val = valb;
+
+	val <<= 24;
+	val >>= 24;
+
+	write_register_bank(GPR, inst.rd, val); 
+
+}
+
+///////////////load 8-bits zero_extended to 32-bits//////////
+execute(lbu)
+{
+        sint32 imm = inst.imm;
+        imm <<= 20;
+        imm >>= 20;
+        
+        uint32 rs1 = read_gpr(inst.rs1);
+        
+        uint32 addr = rs1 + imm;
+        
+        uint8 valb;
+
+	mem_read_8(addr, valb);
+
+	uint32 val = valb;
+
+        write_register_bank(GPR, inst.rd, val);
+
+}       
+
+execute(sw)
+{
+	uint32 imm2 = inst.imm2;
+	uint32 imm1 = inst.imm1;
+	sint32 imm = (imm2 << 5) | imm1;
+
+	imm <<= 20;
+	imm >>= 20;
+
+	uint32 rs1 = read_gpr(inst.rs1);
+	
+	uint32 addr = rs1 + imm;
+
+	mem_write_32(addr, read_gpr(inst.rs2));
+}
+
+execute(sh)
+{
+        uint32 imm2 = inst.imm2;
+        uint32 imm1 = inst.imm1;
+        sint32 imm = (imm2 << 5) | imm1;
+        
+        imm <<= 20;
+        imm >>= 20; 
+        
+        uint32 rs1 = read_gpr(inst.rs1);
+
+        uint32 addr = rs1 + imm;
+
+	uint16 half = read_gpr(inst.rs2) & 0xFFFF;
+        
+        mem_write_16(addr, half);
+
+
+}
+
+execute(sb)
+{
+        uint32 imm2 = inst.imm2;
+        uint32 imm1 = inst.imm1;
+        sint32 imm = (imm2 << 5) | imm1;
+
+        imm <<= 20;
+        imm >>= 20;
+
+        uint32 rs1 = read_gpr(inst.rs1);
+
+        uint32 addr = rs1 + imm;
+
+	uint8 quarter = read_gpr(inst.rs2) & 0xFF;
+
+        mem_write_8(addr, quarter);
+
+}
+
+execute(fence)
+{
+
+
+}
+
+execute(fencei)
+{
+	take_exception(1024,0);
+}
+
+////////////swap csr and rs1//////////////////////////////
+execute(csrrw)
+{/*
+	uint32 rd = read_gpr(inst.rd);
+	
+	if (rd !=0){
+		uint32 csr = read_gpr(inst.csr); //Already zero-extended?
+
+		write_register_bank(GPR, inst.rd, csr);
+	}
+
+	uint32 rs1 = read_gpr(inst.rs1);
+
+	write_register_bank(GPR, inst.csr, rs1);
+*/
+}
+
+execute(csrrs)
+{/*
+	uint32 csr = read_gpr(inst.csr);
+
+	write_register_bank(GPR, inst.rd, csr);
+
+	uint32 rs1 = read_gpr(inst.rs1);
+
+	if (rs1 != 0) csr |= rs1;
+
+	write_register_bank(GPR, inst.csr, csr);
+*/
+}
+
+execute(csrrc)
+{/*
+	uint32 csr = read_gpr(inst.csr);
+
+	write_register_bank(GPR, inst.rd, csr);
+
+	uint32 rs1 = read_gpr(inst.rs1);
+
+	if (rs1 != 0) csr = csr & ~rs1;
+
+	write_register_bank(GPR, inst.csr, csr);
+*/
+}
+
+execute(csrrwi)
+{/*
+	uint32 rd = read_gpr(inst.rd);
+
+	if (rd != 0){
+		uint32 csr = read_gpr(inst.csr); //Already zero-extended?
+
+        	write_register_bank(GPR, inst.rd, csr);
+	}
+
+        uint32 imm = inst.imm;
+
+        write_register_bank(GPR, inst.csr, imm);
+*/
+}
+
+execute(csrrsi)
+{/*
+	uint32 csr = read_gpr(inst.csr);
+
+        write_register_bank(GPR, inst.rd, csr);
+
+        uint32 imm = inst.imm;
+
+        if (imm != 0) csr |= imm;
+
+        write_register_bank(GPR, inst.csr, csr);
+*/
+}
+
+execute(csrrci)
+{/*
+	uint32 csr = read_gpr(inst.csr);
+
+        write_register_bank(GPR, inst.rd, csr);
+
+        uint32 imm = inst.imm;
+
+        if (imm != 0) csr = csr & ~imm;
+
+        write_register_bank(GPR, inst.csr, csr);
+
+*/
+}
+
+
+//////////////////////Enveironment Instructions./////////////////////////////////
+execute(ecall)
+{
+	take_exception(0,0);
+	write_register(PC, read_pc() + 4);
+}
+
+execute(ebreak)
+{
+	trap();
+}
+
+
+internal helper uint8 instruction_predicate(Instruction inst)
+{
+	return 1;
+}
+
+/*
+helper uint8 memory_read_32(uint32 addr, uint32 &data)
+{
+	mem_read_32(addr, data);
+	return 1;
+
+}
+
+helper uint8 memory_read_16(uint32 addr, uint16 &data)
+{
+	uint16 inner_data;
+	mem_read_16(addr, inner_data);
+	data = inner_data;
+	return 1;
+	
+}
+
+helper uint8 memory_read_8(uint32 addr, uint8 &data)
+{
+	uint8 inner_data;
+	mem_read_8(addr, inner_data);
+	data = inner_data;
+	return 1;
+	
+}
+
+
+
+
+
+
+helper uint8 memory_write_32(uint32 addr, uint32 data)
+{
+	mem_write_32(addr, data);
+	return 1;
+
+}
+
+helper uint8 memory_write_16(uint32 addr, uint32 data)
+{
+	mem_write_16(addr, data);
+	return 1;
+}
+
+helper uint8 memory_write_8(uint32 addr, uint32 data)
+{
+	mem_write_8(addr, data);
+	return 1;
+}
+*/

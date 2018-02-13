@@ -1,0 +1,9 @@
+TARGET_ADD_SOURCES(gensim-lib
+	IRAction.cpp
+	IRConstant.cpp
+	IR.cpp
+	IRPrettyPrinter.cpp
+	IRRegisterExpression.cpp
+	IRScope.cpp
+	IRType.cpp
+)

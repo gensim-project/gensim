@@ -1,0 +1,11 @@
+------------------------------------------------------------------------
+3.1 The System Description
+------------------------------------------------------------------------
+
+The System description language is based on a subset of ArchC (although
+Gensim and ArchC models are not intercompatible). The System description
+contains top-level information about the architecture being modelled,
+such as the layout of the register file, the features available, and
+the instruction sets supported.
+
+

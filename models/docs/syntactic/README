@@ -1,0 +1,9 @@
+------------------------------------------------------------------------
+3.2 The Syntactic Description
+------------------------------------------------------------------------
+
+The Syntactic description specifies how instructions are encoded in
+the target instruction set. Instruction formats are described using
+a 'printf string' style. This part of the description is very similar
+to ArchC, although some additional information is also required 
+relating to how jumps should be handled.

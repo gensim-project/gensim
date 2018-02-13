@@ -1,0 +1,14 @@
+TARGET_ADD_SOURCES(gensim-lib
+	BasicOperandValidationPasses.cpp
+	CallValidation.cpp
+	CastValidation.cpp
+	ConstantStatementValidationPasses.cpp
+	ControlFlowAtEndOfBlockValidationPass.cpp
+	PhiNodeValidationPass.cpp
+	SingleControlFlowStatementValidationPass.cpp
+	SSAActionValidationPass.cpp
+	SSAActionValidator.cpp
+	SSAStatementValidationPass.cpp
+	SSAStatementValidator.cpp
+	VariableWriteValidationPass.cpp
+)

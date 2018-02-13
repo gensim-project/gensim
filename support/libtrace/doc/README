@@ -1,0 +1,68 @@
+LibTrace
+-------------------------
+
+LibTrace is intended to provide a flexible, lightweight interface for
+storing and manipulating CPU instruction traces. It is intended to 
+provide enough detail to be useful for debugging and analysis, while
+being light enough to a) store large traces and b) trace fast.
+
+Traces are divided into 8 byte 'records'. Each record has a 4-byte 
+header and 4 byte payload (although the header is also commonly used
+to store data). The fixed-size nature of records makes them easy to
+index, and means that it's easy to 'skip ahead' in a trace file without
+becoming desynchronised.
+
+Trace records generally structure their header and payload as follows:
+Header:
+	- 1 byte 'Type' field
+	- 1 byte 'Extension count' field
+	- 2 byte 'Data16' field
+
+Payload:
+	- 4 byte 'Data32' field
+
+The Data16 and Data32 fields are then further modified by other record
+types. 
+
+Data extension records can be used to extend certain fields. These are
+generally used to extend the Data32 field of a record to 64 (or more)
+bits. Data extension records are placed 'after' the record which they
+extend. A trace record, alongside any data extension records it has,
+is referred to as a Trace Record Packet.
+
+Certain record types (esp. memory accesses) are bundled. This means that
+they are only valid when placed together, in order.
+
+The following record types are implemented:
+
+Instruction Header
+	- Denotes the start of an instruction
+	- Data16 = CPU ISA Mode
+	- Data32 + Extensions = PC
+
+Instruction Code
+	- Contains the machine code of the instruction
+	- Data16 = CPU Exception Mode
+	- Data32 + Extensions = Machine code
+
+Register Slot Read/Write
+	- Denotes a read/write of a register 'slot' (i.e., a single non-banked
+	  register).
+	- Data16 = Register ID
+	- Data32 + extensions = value
+
+Register Bank Read/Write
+	- Denotes a read/write of a register bank
+	- Data16 = [Bank ID][Register Index]
+	- Data32 + Extensions = Value
+
+Memory Read/Write Address
+	- Starts a memory access bundle. Contains the address for a memory read
+	- Data16 = Access size
+	- Data32 + Extensions = Address
+
+Memory Read/Write Data
+	- Finishes a memory access bundle. Contains the data read/written.
+	- Data16 = Access size
+	- Data32 + Extensions = Value
+

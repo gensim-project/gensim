@@ -1,0 +1,42 @@
+archsim_add_sources(
+	LowerAdcFlags.cpp
+	LowerAddSub.cpp
+	LowerBitwise.cpp
+	LowerBranch.cpp
+	LowerCall.cpp
+	LowerClz.cpp
+	LowerCMov.cpp
+	LowerCompare.cpp
+	LowerCompareSigned.cpp
+	LowerCount.cpp
+	LowerDispatch.cpp
+	LowerDiv.cpp
+	LowerExtend.cpp
+	LowerFlushTlb.cpp
+	LowerIncPC.cpp
+	LowerIntCheck.cpp
+	LowerJmp.cpp
+	LowerLoadPC.cpp
+	LowerMod.cpp
+	LowerMov.cpp
+	LowerMul.cpp
+	LowerProbeDevice.cpp
+	LowerReadDevice.cpp
+	LowerReadReg.cpp
+	LowerRet.cpp
+	LowerScm.cpp
+	LowerSetCpuFeature.cpp
+	LowerShift.cpp
+	LowerTakeException.cpp
+	LowerTrap.cpp
+	LowerTrunc.cpp
+	LowerVerify.cpp
+	LowerWriteDevice.cpp
+	LowerWriteReg.cpp
+	LowerZNFlags.cpp
+	X86LoweringContext.cpp
+)
+
+ADD_SUBDIRECTORY(fp)
+ADD_SUBDIRECTORY(memory)
+ADD_SUBDIRECTORY(vector)

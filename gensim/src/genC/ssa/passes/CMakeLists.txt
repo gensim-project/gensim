@@ -1,0 +1,23 @@
+TARGET_ADD_SOURCES(gensim-lib
+	AggregatePasses.cpp
+	BlockMergePass.cpp
+	ConstantFoldingPass.cpp
+	ConstantPropagationPass.cpp
+	ControlFlowSimplificationPass.cpp
+	DeadCodeEliminationPass.cpp
+	DeadPhiElimination.cpp
+	DeadSymbolElimination.cpp
+	DeadWriteEliminationPass.cpp
+	InliningPass.cpp
+	JumpThreadingPass.cpp
+	LoadStoreEliminationPass.cpp
+	ParameterRenamePass.cpp
+	PhiAnalysisPass.cpp
+	PhiCleanupPass.cpp
+	PhiPropagationPass.cpp
+	PhiSetEliminationPass.cpp
+	PhiWebEliminationPass.cpp
+	SSAPass.cpp
+	UnreachableBlockElimination.cpp
+	ValuePropagationPass.cpp
+)

@@ -1,0 +1,21 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any;
+
+    stages {
+        stage ('Build Image') {
+            steps {
+                sh 'cd scripts/dockerfiles/archlinux; docker build -t gensim-archlinux . '
+            }
+        }
+
+        stage ('Build') {
+            steps {
+                sh '''
+                docker run --rm -v `pwd`:/workspace gensim-archlinux bash -c "cp -r /workspace ~/gensim-repo; cd ~/gensim-repo; cp ~/gensim-repo/scripts/dockerfiles/archlinux/archsim-config ~/gensim-repo/archsim/.config; make"
+                '''
+            }
+        }
+    }
+}

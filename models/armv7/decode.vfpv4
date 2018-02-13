@@ -1,0 +1,99 @@
+
+decode(Type_vfpv3_dpi)
+{
+	if(sz) {
+		vd = vd | (D << 4);
+		vm = vm | (M << 4);
+		vn = vn | (N << 4);
+	} else {
+		vd = (vd << 1) | D;
+		vm = (vm << 1) | M;
+		vn = (vn << 1) | N;
+	}
+}
+
+decode(Type_vfpv3_dpi_mov)
+{
+	if(sz) {
+		vd = vd | (D << 4);
+	} else {
+		vd = (vd << 1) | D;
+	}
+}
+
+decode(Type_vfpv3_cvt_fp)
+{
+	if(sz) {
+		// double to single
+		vd = (vd << 1) | D;
+		vm = vm | (M << 4);
+	} else {
+		vd = vd | (D << 4);
+		vm = (vm << 1) | M;
+	}
+}
+
+decode(Type_vfpv3_cvt)
+{
+	if(opc2 & 0x4) {
+		//to_integer = true
+		vd = (vd << 1) | D;
+		if(sz) {
+			vm = vm | (M << 4);
+		} else {
+			vm = (vm << 1) | M;
+		}
+	} else {
+		//to_integer = false
+		vm = (vm << 1) | M;
+		if(sz) {
+			vd = vd | (D << 4);
+		} else {
+			vd = (vd << 1) | D;
+		}
+	}
+}
+
+decode(Type_vfpv3_cvt_fxp)
+{	
+	if(sz) {
+		vd = vd | (D << 4);
+	} else {
+		vd = (vd << 1) | D;
+	}
+	
+	vm = (vm << 1) | M;
+}
+
+decode(Type_vfpv3_mem)
+{
+	imm32 = imm8 << 2;
+	if(sz) {
+		vd = (vd) | (D << 4);
+	} else {
+		vd = (vd << 1) | D;
+	}
+}
+
+decode(Type_vfpv3_mult)
+{
+	if(sz) {
+		vd = vd | (D << 4);
+	} else {
+		vd = (vd << 1) | D;
+	}
+}
+
+decode(Type_vfpv3_mcr)
+{
+	vn = (vn << 1) | p;
+}
+
+decode(Type_vfpv3_64b_mov)
+{
+	if(c) { //dp move
+		vm = (M << 4) | vm;
+	} else { // two sp move
+		vm = (vm << 1) | M;
+	}
+}

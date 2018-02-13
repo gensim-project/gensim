@@ -1,0 +1,5 @@
+archsim_add_sources(
+	BaseSystemMemoryTranslationModel.cpp
+	CacheBasedSystemMemoryTranslationModel.cpp
+	FunctionGenSystemMemoryTranslationModel.cpp
+)

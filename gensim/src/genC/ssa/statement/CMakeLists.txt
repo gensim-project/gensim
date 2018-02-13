@@ -1,0 +1,29 @@
+TARGET_ADD_SOURCES(gensim-lib
+	SSABinaryArithmeticStatement.cpp
+	SSABitDepositStatement.cpp
+	SSABitExtractStatement.cpp
+	SSACallStatement.cpp
+	SSACastStatement.cpp
+	SSAConstantStatement.cpp
+	SSAControlFlowStatement.cpp
+	SSADeviceReadStatement.cpp
+	SSAIfStatement.cpp
+	SSAIntrinsicStatement.cpp
+	SSAJumpStatement.cpp
+	SSAMemoryReadStatement.cpp
+	SSAMemoryWriteStatement.cpp
+	SSAPhiStatement.cpp
+	SSARaiseStatement.cpp
+	SSAReadStructMember.cpp
+	SSARegisterStatement.cpp
+	SSAReturnStatement.cpp
+	SSASelectStatement.cpp
+	SSAStatement.cpp
+	SSASwitchStatement.cpp
+	SSAUnaryArithmeticStatement.cpp
+	SSAVariableKillStatement.cpp
+	SSAVariableReadStatement.cpp
+	SSAVariableWriteStatement.cpp
+	SSAVectorExtractElementStatement.cpp
+	SSAVectorInsertElementStatement.cpp
+)

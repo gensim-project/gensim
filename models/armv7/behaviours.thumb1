@@ -1,0 +1,227 @@
+//
+// Thumb Behaviours
+//
+
+//	ac_format MSR_INS		= "0x00:3 %op:2 %off:5 %rs:3 %rd:3";
+decode(MSR_INS) {
+	immu32 = (uint32)off;
+}
+
+//	ac_format ADDSUB_INS	= "0x03:5 %i:1 %op:1 %rn:3 %rs:3 %rd:3";
+decode(ADDSUB_INS) {
+	if (i == 1)
+		immu32 = (uint32)rn;
+}
+
+//	ac_format MCAS_IMM_INS	= "0x01:3 %op:2 %rd:3 %off:8";
+decode(MCAS_IMM_INS) {
+	immu32 = (uint32)off;
+}
+
+//	ac_format ALU_OP_INS	= "0x10:6 %op:4 %rs:3 %rd:3";
+decode(ALU_OP_INS) {
+}
+
+//	ac_format HRO_INS		= "0x11:6 %op:2 %h1:1 %h2:1 %rs:3 %rd:3";
+decode(HRO_INS) {
+		if (h1)
+			vrd = rd + 8;
+		else
+			vrd = rd;
+			
+		if (h2)
+			vrs = rs + 8;
+		else
+			vrs = rs;
+}
+
+//	ac_format PCRL_INS		= "0x09:5 %rd:3 %off:8";
+decode(PCRL_INS) {
+	immu32 = ((uint32)off) << 2;
+}
+
+//	ac_format LSRO_INS		= "0x05:4 %l:1 %b:1 0x00:1 %ro:3 %rb:3 %rd:3";
+decode(LSRO_INS) {
+	
+}
+
+//	ac_format LSSE_INS		= "0x05:4 %h:1 %s:1 0x01:1 %ro:3 %rb:3 %rd:3";
+decode(LSSE_INS) {
+}
+
+//	ac_format LS_IMM_INS	= "0x03:3 %b:1 %l:1 %off:5 %rb:3 %rd:3";
+decode(LS_IMM_INS) {
+	if (b == 0)
+		immu32 = ((uint32)off) << 2;
+	else
+		immu32 = (uint32)off;
+}
+
+//	ac_format LS_HW_INS		= "0x08:4 %l:1 %off:5 %rb:3 %rd:3";
+decode(LS_HW_INS) {
+	immu32 = ((uint32)off) << 1;
+}
+
+//	ac_format SPR_LS_INS	= "0x09:4 %l:1 %rd:3 %off:8";
+decode(SPR_LS_INS) {
+	immu32 = ((uint32)off) << 2;
+}
+
+//	ac_format LDA_INS		= "0x0A:4 %sp:1 %rd:3 %off:8";
+decode(LDA_INS) {
+	immu32 = ((uint32)off) << 2;
+}
+
+//	ac_format ADDOFF_INS	= "0xB0:8 %s:1 %off:7";
+decode(ADDOFF_INS) {
+	immu32 = ((uint32)off) << 2;
+}
+
+//	ac_format PP_REG_INS	= "0x0B:4 %l:1 0x02:2 %r:1 %rlist:8";
+decode(PP_REG_INS) {
+}
+
+//	ac_format MLS_INS		= "0x0C:4 %l:1 %rb:3 %rlist:8";
+decode(MLS_INS) {
+}
+
+//	ac_format CBR_INS		= "0x0D:4 %cond:4 %off:8";
+decode(CBR_INS) {
+	immu32 = ((uint32)off) << 1;
+	imms32 = ((sint32)(sint8)off) << 1;
+	
+	immu32 += 4;
+	imms32 += 4;
+}
+
+//	ac_format SWI_INS		= "0xDF:8 %val:8";
+decode(SWI_INS) {
+	immu32 = (uint32)val;
+}
+
+//	ac_format UBR_INS		= "0x1C:5 %off:11";
+decode(UBR_INS) {
+	imms32 = ((sint32)((sint32)off << 21)) >> 20;
+	imms32 += 4;
+}
+/*
+//	ac_format LBL_HI_INS	= "0x1E:5 %off:11";
+decode(LBL_HI_INS) {
+	imms32 = ((sint32)((sint32)off << 21)) >> 21;
+}
+*/
+//	ac_format LBL_LO_INS	= "0x7:3 %h:1 0x1:1 %off:11";
+
+/*execute(thumb_bl_hi) {
+	uint32 pc = read_pc() + 4;
+
+	pc += (sint32)(inst.imms32 << 12);
+	
+	write_register_bank(RB, 14, pc);
+}
+
+execute(thumb_bl_lo) {
+	uint32 pc = read_pc();
+	uint32 lr = read_register_bank(RB, 14);
+	
+	if (inst.h == 0) {
+		lr += inst.immu32 << 1;
+		lr &= 0xfffffffc;
+		
+		set_cpu_mode((uint8)0);
+	} else {
+		lr += inst.immu32 << 1;
+	}
+
+	write_register_bank(RB, 15, lr);
+	write_register_bank(RB, 14, (pc + 2) | 1);
+}*/
+
+/*decode(LBL_32_INS) {
+	immu32 = (((sint32)((sint32)offh << 21)) >> 21) << 12;
+	immu32 += (offl << 1);
+}*/
+
+decode(BKPT_INS) {
+	immu32 = (uint32)off;
+}
+
+behaviour(read_pc)
+{
+	return read_register_bank(RB, 15);
+}
+
+behaviour(write_pc)
+{
+	write_register_bank(RB, 15, val);
+}
+
+behaviour(read_sp)
+{
+	return read_register_bank(RB, 13);
+}
+
+behaviour(write_sp)
+{
+	write_register_bank(RB, 13, val);
+}
+
+behaviour(get_status_string) { }
+
+behaviour(is_predicated) {
+	// This ensures that the correct branch dispatch code is generated
+	// for the conditional branch instruction.
+  return (curr_interp_insn->Instr_Code == INST_thumb_cbr || curr_interp_insn->GetIsPredicated());
+}
+
+
+behaviour(instruction_predicate) {
+	if(!inst.GetIsPredicated()) return 1;
+	
+	uint32 pred = inst.GetPredicateInfo() >> 4;
+    
+	uint8 cond = pred >> 1;
+	uint8 invert = pred & 1;
+	
+	uint8 result;
+	
+	switch (cond)
+	{ // first 3 bits of the base condition are used
+	case 0:
+		result = read_register(Z);
+		break; //EQ or NE
+	case 1:
+		result = read_register(C);
+		break; //CS or CC
+	case 2:
+		result = read_register(N);
+		break; //MI or PL
+	case 3:
+		result = read_register(V);
+		break; //VS or VC
+	case 4:
+		result = (read_register(C) & !read_register(Z));
+		break; //HI or LS
+	case 5:
+		result = (read_register(N) == read_register(V));
+		break; //GE or LT
+	case 6:
+		result = ((read_register(N) == read_register(V)) & !read_register(Z));
+		break; //GT LE
+	case 7:
+		result = 1;
+		break; //AL
+	default:
+		break;
+	}
+	result = result ^ invert; // if invert is set, flip result
+	return result;
+}
+
+behaviour(simulation_start) { }
+
+behaviour(simulation_suspend) { }
+
+behaviour(simulation_resume) { }
+
+behaviour(simulation_end) { }

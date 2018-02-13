@@ -1,0 +1,152 @@
+// 32-A Standard Extension
+execute(lr_w)
+{
+	uint32 addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(addr, val);
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+execute(sc_w)
+{
+	uint32 rs2 = read_gpr(inst.rs2);
+	uint32 addr = read_gpr(inst.rs1);	
+	mem_write_32(addr, rs2);
+	
+	write_register_bank(GPR, inst.rd, 0);
+}
+
+execute(amoswap_w)
+{
+	// todo: this, but atomic
+	uint32 addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_32(addr, rs2);
+}
+
+execute(amoadd_w)
+{
+	// todo: this, but atomic
+	uint32 addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_32(addr, rs2 + val);
+}
+
+execute(amoxor_w)
+{
+	// todo: this, but atomic
+	uint32 addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_32(addr, rs2 ^ val);
+}
+
+execute(amoand_w)
+{
+	// todo: this, but atomic
+	uint32 addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_32(addr, rs2 & val);
+}
+
+execute(amoor_w)
+{
+	// todo: this, but atomic
+	uint32 addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_32(addr, rs2 | val);
+}
+
+execute(amomin_w)
+{
+	// todo: this, but atomic
+	uint32 addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	if((sint32)rs2 < (sint32)val) {
+		val = rs2;
+	}
+	
+	mem_write_32(addr, val);
+}
+
+execute(amominu_w)
+{
+	// todo: this, but atomic
+	uint32 addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	if(rs2 < val) {
+		val = rs2;
+	}
+	
+	mem_write_32(addr, val);
+}
+
+execute(amomax_w)
+{
+	// todo: this, but atomic
+	uint32 addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	if((sint32)rs2 > (sint32)val) {
+		val = rs2;
+	}
+	
+	mem_write_32(addr, val);
+}
+
+execute(amomaxu_w)
+{
+	// todo: this, but atomic
+	uint32 addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	if(rs2 > val) {
+		val = rs2;
+	}
+	
+	mem_write_32(addr, val);
+}
