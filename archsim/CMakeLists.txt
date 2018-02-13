@@ -42,7 +42,7 @@ TARGET_INCLUDE_DIRECTORIES(archsim PRIVATE)
 TARGET_INCLUDE_DIRECTORIES(archsim-interface INTERFACE "inc/")
 
 # Include helper functions
-INCLUDE(cmake/CrossCompiling.cmake)
+INCLUDE(CrossCompiling)
 
 # Add the archsim src directory to the build
 ADD_SUBDIRECTORY("src")
