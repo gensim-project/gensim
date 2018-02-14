@@ -1,4 +1,4 @@
-CMAKE=cmake
+CMAKE?=cmake
 
 all :
 	mkdir -p build

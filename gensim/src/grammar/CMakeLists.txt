@@ -11,6 +11,8 @@ IF(NOT EXISTS ${ANTLR_JAR})
 	)
 ENDIF()
 
+TARGET_INCLUDE_DIRECTORIES(gensim-grammar PUBLIC ${ANTLR_INCLUDE_DIR})
+
 function(grammar grammar-name)
 	ADD_CUSTOM_COMMAND(
 		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${grammar-name}/${grammar-name}Lexer.c"
