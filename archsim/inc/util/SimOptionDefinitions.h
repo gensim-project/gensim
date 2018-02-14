@@ -25,7 +25,7 @@ DefineCategory(Special, "General Settings");
 DefineCategory(GPU, "General Settings");
 
 DefineFlag(General, Help, "Displays usage information for the running ArcSim.", false);
-DefineSetting(General, ModuleDirectory, "Sets the directory containing module shared objects", "modules/");
+DefineSetting(General, ModuleDirectory, "Sets the directory containing module shared objects", STRINGIFY(ARCHSIM_MODULE_DIRECTORY));
 DefineSetting(General, LogSpec, "Defines logging behaviour", "");
 DefineIntSetting(General, LogLevel, "Defines minimum logging level", 0);
 DefineSetting(General, LogTarget, "Specifies default logging target", "console");

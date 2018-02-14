@@ -33,7 +33,9 @@ function(cross_compile_prefix arch outvar)
 
 	MESSAGE(STATUS "Looking for a compiler prefix for ${arch}...")
 
-	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnu-")
+#	arm-linux-gnu is for building kernels, not user space programs, so remove that one from the list
+#	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnu-")
+
 	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnueabi-")
 	cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnueabi-")
 	cross_compile_try_arch_prefix("${arch}" "${arch}-none-eabi-")
@@ -119,13 +121,15 @@ function(cross_compile_binary ARCHITECTURE TARGET_NAME FLAGS)
 	
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${OUTPUT_FILE}
-		COMMAND "sh" "-c" "${CCPREFIX}-gcc -o ${OUTPUT_FILE} ${FLAGS} ${SOURCES}"
+		COMMAND "sh" "-c" "${CCPREFIX}gcc -o ${OUTPUT_FILE} ${FLAGS} ${SOURCES}"
 		DEPENDS "${SOURCES}"
 		COMMENT "Cross compiling ${TARGET_NAME}" 
 	)
 	
-	ADD_EXECUTABLE(${TARGET_NAME} IMPORTED)
-	ADD_DEPENDENCIES(${TARGET_NAME} PRIVATE ${OUTPUT_FILE})
+	ADD_CUSTOM_TARGET(
+		${TARGET_NAME} ALL
+		DEPENDS ${OUTPUT_FILE}
+	)
 	
 	SET_TARGET_PROPERTIES(
 		${TARGET_NAME} 

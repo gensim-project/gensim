@@ -3,6 +3,7 @@
 function(define_model target-name arch-name arch-file)
 	
 	SET(DLL_PATH "${CMAKE_CURRENT_BINARY_DIR}/output/${arch-name}.dll")
+	SET(OUTPUT_DLL_PATH "${ARCHSIM_MODULE_DIRECTORY}/${arch-name}.dll")
 	
 	SET(gensim-binary "$<TARGET_FILE:gensim>")
 	SET(model-files ${ARGN})
@@ -32,9 +33,15 @@ function(define_model target-name arch-name arch-file)
 		COMMENT "Compiling ${target-name}"
 	)
 	
+	ADD_CUSTOM_COMMAND(
+		OUTPUT ${OUTPUT_DLL_PATH}
+		COMMAND "sh" "-c" "cp ${DLL_PATH} ${OUTPUT_DLL_PATH}"
+		DEPENDS "${DLL_PATH}"
+	)
+	
 	ADD_CUSTOM_TARGET(
 		${target-name} ALL 
-		DEPENDS ${DLL_PATH}
+		DEPENDS ${OUTPUT_DLL_PATH}
 	)
 	
 	SET_TARGET_PROPERTIES(
