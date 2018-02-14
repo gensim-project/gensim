@@ -1,6 +1,7 @@
 
 define_model(
 	model-riscv 
+	riscv
 	riscv.ac
 
 	behaviours.riscv
