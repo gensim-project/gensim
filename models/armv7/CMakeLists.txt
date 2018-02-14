@@ -1,6 +1,7 @@
 
 define_model(
 	model-armv7a 
+	armv7a
 	armv7a.ac
 
 	armv5e_thumb_isa.ac
@@ -23,3 +24,5 @@ define_model(
 	vfpv4.ac
 )
 
+
+ADD_SUBDIRECTORY(tests)

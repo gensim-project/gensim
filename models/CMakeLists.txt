@@ -1,8 +1,8 @@
 # TODO: improve this. Gensim interface is a bit of a nightmare.
 
-function(define_model target-name arch-file)
+function(define_model target-name arch-name arch-file)
 	
-	SET(DLL_PATH "${CMAKE_CURRENT_BINARY_DIR}/output/${model-name}.dll")
+	SET(DLL_PATH "${CMAKE_CURRENT_BINARY_DIR}/output/${arch-name}.dll")
 	
 	SET(gensim-binary "$<TARGET_FILE:gensim>")
 	SET(model-files ${ARGN})
@@ -15,7 +15,7 @@ function(define_model target-name arch-file)
 	SET(gensim-options "-s decode,disasm,adapt_blkjit,jit,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=0")
 	
 	ADD_CUSTOM_COMMAND(
-		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/output"
+		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/output/Makefile"
 		COMMAND "sh" "-c" "mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/output"
 		COMMAND "sh" "-c" "${gensim-binary} -a ${CMAKE_CURRENT_SOURCE_DIR}/${arch-file} ${gensim-options} -t ${CMAKE_CURRENT_BINARY_DIR}/output/"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -28,20 +28,19 @@ function(define_model target-name arch-file)
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${DLL_PATH}
 		COMMAND "sh" "-c" "make -C ${CMAKE_CURRENT_BINARY_DIR}/output"
-		DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/output"
+		DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/output/Makefile"
 		COMMENT "Compiling ${target-name}"
 	)
 	
 	ADD_CUSTOM_TARGET(
-		${target-name}
-		ALL
+		${target-name} ALL 
 		DEPENDS ${DLL_PATH}
 	)
 	
 	SET_TARGET_PROPERTIES(
 		${target-name}
 		PROPERTIES
-			TARGET_FILE ${DLL_PATH}
+			MODEL_PATH ${DLL_PATH}
 	)
 endfunction()
 
