@@ -2,6 +2,8 @@
 # This is useful for bootloaders, helper functions, etc.
 
 function(cross_compile_try_sysroot sysroot)
+	MESSAGE(STATUS "Looking for a cross-compiler sysroot: ${sysroot}")
+	
 	find_file(
 		SYSROOT
 		"include/stdio.h"
@@ -15,6 +17,8 @@ function(cross_compile_try_sysroot sysroot)
 	)
 	
 	string(REGEX REPLACE "include/stdio.h" "" SYSROOT ${SYSROOT})
+	
+	MESSAGE(STATUS "Found the sysroot at : ${SYSROOT}")
 	
 	SET(SYSROOT ${SYSROOT} PARENT_SCOPE)
 endfunction()
