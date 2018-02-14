@@ -1,6 +1,24 @@
 # Functions for cross compiling files for inclusion in a native binary
 # This is useful for bootloaders, helper functions, etc.
 
+function(cross_compile_try_sysroot sysroot)
+	find_file(
+		SYSROOT
+		"include/stdio.h"
+		PATHS /usr/${sysroot}
+		PATHS /usr/${sysroot}
+		NO_DEFAULT_PATH
+		NO_CMAKE_ENVIRONMENT_PATH
+		NO_SYSTEM_ENVIRONMENT_PATH
+		NO_CMAKE_SYSTEM_PATH
+		NO_CMAKE_FIND_ROOT_PATH
+	)
+	
+	string(REGEX REPLACE "include/stdio.h" "" SYSROOT ${SYSROOT})
+	
+	SET(SYSROOT ${SYSROOT} PARENT_SCOPE)
+endfunction()
+
 function(cross_compile_try_compiler prefix)
 	execute_process(
 		COMMAND "sh" "-c" "which ${prefix}gcc"
@@ -34,7 +52,7 @@ function(cross_compile_prefix arch outvar)
 	MESSAGE(STATUS "Looking for a compiler prefix for ${arch}...")
 
 #	arm-linux-gnu is for building kernels, not user space programs, so remove that one from the list
-#	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnu-")
+	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnu-")
 
 	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnueabi-")
 	cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnueabi-")
@@ -119,9 +137,11 @@ function(cross_compile_binary ARCHITECTURE TARGET_NAME FLAGS)
 	SET(OUTPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}")
 	SET(SOURCES "${ARGN}")
 	
+	cross_compile_try_sysroot(arm-linux-gnu)
+	
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${OUTPUT_FILE}
-		COMMAND "sh" "-c" "${CCPREFIX}gcc -o ${OUTPUT_FILE} ${FLAGS} ${SOURCES}"
+		COMMAND "sh" "-c" "${CCPREFIX}gcc -o ${OUTPUT_FILE} --sysroot=${SYSROOT} -I${SYSROOT}/include -L${SYSROOT}/lib ${FLAGS} ${SOURCES}"
 		DEPENDS "${SOURCES}"
 		COMMENT "Cross compiling ${TARGET_NAME}" 
 	)
