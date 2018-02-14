@@ -55,10 +55,7 @@ static int run_simple_simulation(archsim::Session& session)
 	mtrace();
 #endif
 	System simsys (session);
-	if(!simsys.GetModuleManager().LoadModule(archsim::options::ProcessorModel.GetValue())) {
-		LC_ERROR(LogSystem) << "Could not load processor module";
-		return 1;
-	}
+
 	simsys.GetModuleManager().LoadStandardModuleDirectory();
 
 	if(archsim::options::InstructionTick) {

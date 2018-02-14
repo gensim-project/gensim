@@ -49,7 +49,7 @@ bool ModuleManager::LoadModuleDirectory(const std::string& module_directory)
 			if(strcmp("..", ent->d_name) == 0) {
 				continue;
 			}
-			success &= LoadModule(module_directory + std::string(ent->d_name));
+			success &= LoadModule(module_directory + "/" + std::string(ent->d_name));
 		}
 	}
 	return success;
@@ -57,24 +57,7 @@ bool ModuleManager::LoadModuleDirectory(const std::string& module_directory)
 
 bool ModuleManager::LoadStandardModuleDirectory()
 {
-	// Get the path to the binary
-	char output[256];
-	ssize_t result = readlink("/proc/self/exe", output, sizeof(output));
-	if(result < 0) {
-		perror("");
-		return false;
-	}
-	output[result] = '\0';
-
-	// Trim off everything after the last slash
-	for(int i = result; i > 0; --i) {
-		if(output[i] == '/') {
-			break;
-		}
-		output[i] = '\0';
-	}
-
-	return LoadModuleDirectory(std::string(output) + "modules/");
+	return LoadModuleDirectory(archsim::options::ModuleDirectory);
 }
 
 bool ModuleManager::AddModule(ModuleInfo* mod_info)
