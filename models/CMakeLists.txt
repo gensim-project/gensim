@@ -13,12 +13,12 @@ function(define_model target-name arch-name arch-file)
 	GET_PROPERTY(libtrace-includes GLOBAL PROPERTY LIBTRACE_INCLUDES)
 	GET_PROPERTY(archsim-includes GLOBAL PROPERTY ARCHSIM_INCLUDES)
 	
-	SET(gensim-options "-s decode,disasm,adapt_blkjit,jit,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=0")
+	SET(gensim-options -s decode,disasm,adapt_blkjit,jit,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=0)
 	
 	ADD_CUSTOM_COMMAND(
 		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/output/Makefile"
 		COMMAND "sh" "-c" "mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/output"
-		COMMAND "sh" "-c" "${gensim-binary} -a ${CMAKE_CURRENT_SOURCE_DIR}/${arch-file} ${gensim-options} -t ${CMAKE_CURRENT_BINARY_DIR}/output/"
+		COMMAND ${gensim-binary} -a ${CMAKE_CURRENT_SOURCE_DIR}/${arch-file} ${gensim-options} -t ${CMAKE_CURRENT_BINARY_DIR}/output/
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		DEPENDS gensim
 		DEPENDS trace
