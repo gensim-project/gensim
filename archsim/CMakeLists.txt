@@ -5,12 +5,13 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 FIND_PACKAGE(Threads REQUIRED)
 FIND_PACKAGE(SDL)
 
-
-SET(CMAKE_CXX_FLAGS "-fomit-frame-pointer")
-
 # Add the main ArchSim executable to the build, along with its dependencies
 ADD_EXECUTABLE(archsim src/main.cpp)
 ADD_LIBRARY(archsim-interface INTERFACE)
+
+TARGET_COMPILE_OPTIONS(archsim PRIVATE "-fomit-frame-pointer")
+
+standard_flags(archsim)
 
 SET_PROPERTY(GLOBAL PROPERTY ARCHSIM_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/inc")
 

@@ -20,6 +20,8 @@ ADD_LIBRARY(arm-system-devices SHARED
 	src/VersatileSIC.cpp
 )
 
+STANDARD_FLAGS(arm-system-devices)
+
 SET_TARGET_PROPERTIES(arm-system-devices
 	PROPERTIES
 		CXX_STANDARD 11
