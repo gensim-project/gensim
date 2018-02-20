@@ -1,0 +1,29 @@
+# Include standard flags for DEBUG, DEBUGOPT, and RELEASE
+
+IF(NOT CMAKE_BUILD_TYPE)
+	MESSAGE(WARNING "No build type was specified, so defaulting to DEBUG")
+	SET(CMAKE_BUILD_TYPE DEBUG)
+ENDIF()
+
+IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+	SET(CMAKE_BUILD_TYPE "DEBUG")
+ENDIF()
+
+MESSAGE(STATUS "Build type is ${CMAKE_BUILD_TYPE}")
+
+function(standard_flags target-name)
+
+	IF("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
+		TARGET_COMPILE_DEFINITIONS(${target-name} PRIVATE "-DCONFIGSTRING=\"Debug\"")
+		TARGET_COMPILE_OPTIONS(${target-name} PRIVATE -g)
+	ELSEIF("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUGOPT")
+		TARGET_COMPILE_DEFINITIONS(${target-name} PRIVATE "-DCONFIGSTRING=\"Debug (Opt)\"")
+		TARGET_COMPILE_OPTIONS(${target-name} PRIVATE -g -O2)
+	ELSEIF("${CMAKE_BUILD_TYPE}" STREQUAL "RELEASE")
+		TARGET_COMPILE_DEFINITIONS(${target-name} PRIVATE "-DCONFIGSTRING=\"Release\"")
+		TARGET_COMPILE_OPTIONS(${target-name} PRIVATE -O3)
+	ELSE()
+		MESSAGE(SEND_ERROR "Unknown build type \"${CMAKE_BUILD_TYPE}\"")
+	ENDIF()
+
+endfunction()
