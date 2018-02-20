@@ -256,7 +256,8 @@ bool BaseBlockJITTranslate::can_merge_jump(gensim::BlockJitProcessor *processor,
 	uint32_t target;
 	_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target);
 
-	if(indirect) return false;
+	// If this isn't a direct jump, then we can't chain
+	if(!direct) return false;
 
 	// Return true if this jump lands within the same page as it starts
 	if(archsim::VirtualAddress(target).GetPageIndex() == pc.GetPageIndex()) return true;
@@ -270,6 +271,8 @@ archsim::VirtualAddress BaseBlockJITTranslate::get_jump_target(BlockJitProcessor
 
 	_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target);
 
+	assert(direct || indirect);
+	
 	return VirtualAddress(target);
 }
 

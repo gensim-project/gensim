@@ -28,7 +28,8 @@ PL050::PL050(EmulationModel& parent, Address base_address)
 	  KMISTAT("KMISTAT", 0x04, 7, 0x43, true, false),
 	  KMIDATA("KMIDATA", 0x08, 8, 0x00),
 	  KMICLKDIV("KMICLKDIV", 0x0c, 4, 0x00),
-	  KMIIR("KMIIR", 0x10, 2, 0x00, true, false)
+	  KMIIR("KMIIR", 0x10, 2, 0x00, true, false),
+	  last(0)
 {
 	AddRegister(KMICR);
 	AddRegister(KMISTAT);
