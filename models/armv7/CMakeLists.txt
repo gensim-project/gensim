@@ -25,4 +25,6 @@ define_model(
 )
 
 
-ADD_SUBDIRECTORY(tests)
+IF(TESTING_ENABLED)
+	ADD_SUBDIRECTORY(tests)
+ENDIF()

@@ -172,31 +172,36 @@ GtkScreen::~GtkScreen()
 
 bool GtkScreen::Initialise()
 {
+	{
+		std::lock_guard<std::mutex> lock(gtk_lock_);
+	
+		gtk_init(NULL, NULL);
 
-	gtk_init(NULL, NULL);
+		window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+		draw_area = gtk_drawing_area_new();
 
-	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	draw_area = gtk_drawing_area_new();
+		gtk_widget_set_double_buffered(draw_area, false);
 
-	gtk_widget_set_double_buffered(draw_area, false);
+		gtk_widget_set_size_request(draw_area, GetWidth(), GetHeight());
+		gtk_container_add(GTK_CONTAINER(window), draw_area);
 
-	gtk_widget_set_size_request(draw_area, GetWidth(), GetHeight());
-	gtk_container_add(GTK_CONTAINER(window), draw_area);
+		gtk_widget_show_all(window);
+		gtk_window_set_title((GtkWindow*)window, GetId().c_str());
+		gtk_window_set_resizable((GtkWindow*)window,false);
 
-	gtk_widget_show_all(window);
-	gtk_window_set_title((GtkWindow*)window, GetId().c_str());
-	gtk_window_set_resizable((GtkWindow*)window,false);
+		g_signal_connect(window, "key-press-event", G_CALLBACK(key_press_event), this);
+		g_signal_connect(window, "key-release-event", G_CALLBACK(key_release_event), this);
 
-	g_signal_connect(window, "key-press-event", G_CALLBACK(key_press_event), this);
-	g_signal_connect(window, "key-release-event", G_CALLBACK(key_release_event), this);
+		framebuffer = (uint8_t*)malloc(3 * GetWidth() * GetHeight());
 
-	framebuffer = (uint8_t*)malloc(3 * GetWidth() * GetHeight());
+		host_addr_t guest_fb_ptr;
+		GetMemory()->LockRegion(fb_ptr, GetWidth() * GetHeight(), guest_fb_ptr);
+		guest_fb = (uint8_t*)guest_fb_ptr;
 
-	host_addr_t guest_fb_ptr;
-	GetMemory()->LockRegion(fb_ptr, GetWidth() * GetHeight(), guest_fb_ptr);
-	guest_fb = (uint8_t*)guest_fb_ptr;
-
-	running = true;
+		running = true;
+	}
+	
+	
 	start();
 
 	return true;
@@ -206,6 +211,8 @@ bool GtkScreen::Reset()
 {
 	running = false;
 
+	std::lock_guard<std::mutex> lock(gtk_lock_);
+	
 	if(framebuffer)free(framebuffer);
 	framebuffer = NULL;
 
@@ -246,10 +253,14 @@ void GtkScreen::draw_framebuffer()
 void GtkScreen::run()
 {
 	while(running) {
-		gtk_main_iteration();
+		{
+			std::lock_guard<std::mutex> lock(gtk_lock_);
+			
+			gtk_main_iteration();
 
-		draw_framebuffer();
-		gtk_widget_queue_draw(draw_area);
+			draw_framebuffer();
+			gtk_widget_queue_draw(draw_area);
+		}
 		usleep(20000);
 	}
 }

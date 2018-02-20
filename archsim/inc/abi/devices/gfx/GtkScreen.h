@@ -16,6 +16,8 @@
 #include <gtk-2.0/gdk/gdk.h>
 #include <gtk-2.0/gtk/gtk.h>
 
+#include <mutex>
+
 namespace archsim
 {
 	namespace abi
@@ -65,6 +67,8 @@ namespace archsim
 
 					friend void key_press_event(GtkWidget *, GdkEventKey *, void *screen);
 					friend void key_release_event(GtkWidget *, GdkEventKey *, void *screen);
+					
+					std::mutex gtk_lock_;
 				};
 
 				extern VirtualScreenManager<GtkScreen> GtkScreenManager;
