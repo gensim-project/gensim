@@ -18,8 +18,9 @@ AC_ARCH(armv7a)
 	}
 	
 	// Floating point registers
+	// Type, offset, count, register stride, element count, element size, element stride
 	ac_regspace (256) {
-		bank FPSP (float,  0, 32, 8, 1, 4, 4);
+		bank FPSP (float,  0, 32, 4, 1, 4, 4);
 		bank FPDP (double, 0, 32, 8, 1, 8, 8);
 
 		bank VD (float, 0, 32, 8, 2, 4, 4);

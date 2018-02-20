@@ -74,6 +74,7 @@ helper uint8 double_compare(double a, double b)
 
 helper uint8 float_compare(float a, float b)
 {
+	// Flags written N, Z, C, V (in order from most to least significant bit of FPSCR)
 	if(a == b) {
 		write_register(FP_N, 0);
 		write_register(FP_Z, 1);
