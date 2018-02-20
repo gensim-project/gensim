@@ -708,6 +708,8 @@ helper void transpose_i32(uint8 vmi, uint8 vdi)
 execute(neon_vtrn_i32)
 {
 	check_neon_enabled();
+
+	// If vm == vd, output is UNKNOWN
 	
 	transpose_i32(inst.vm, inst.vd);
 	if(inst.Q) {
