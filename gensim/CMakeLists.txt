@@ -5,6 +5,9 @@ find_package(Antlr REQUIRED)
 add_library(gensim-lib SHARED)
 add_library(gensim-test SHARED)
 
+STANDARD_FLAGS(gensim-lib)
+STANDARD_FLAGS(gensim-test)
+
 TARGET_LINK_LIBRARIES(gensim-lib PRIVATE gensim-test gensim-grammar ${ANTLR_LIB})
 
 TARGET_INCLUDE_DIRECTORIES(gensim-lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc)
@@ -40,6 +43,8 @@ function(gensim_tool tool_name)
 			CXX_STANDARD 11
 			CXX_STANDARD_REQUIRED YES
 	)
+
+	STANDARD_FLAGS(${tool_name})
 
 endfunction()
 
