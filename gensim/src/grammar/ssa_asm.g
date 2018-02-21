@@ -17,6 +17,8 @@ tokens {
     ACTION_BLOCKS;
     ACTION_ATTRIBUTE_LIST;
 
+ACTION_EXTERNAL;
+
 STATEMENT;
 
 CONTEXT;
@@ -82,6 +84,7 @@ CMP_LTE = '<=';
 
 ATTRIBUTE_NOINLINE = 'noinline';
 ATTRIBUTE_HELPER = 'helper';
+EXTERNAL = 'external';
 }
 
 SSAASM_TYPE : 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'sint8' | 'sint16' | 'sint32' | 'sint64' | 'float' | 'double' | 'void' | 'Instruction';
@@ -113,14 +116,19 @@ constant_value : SSAASM_INT | SSAASM_FLOAT | SSAASM_DOUBLE;
 
 asm_file : context ;
 
-context : action* -> ^(CONTEXT action*);
+context : context_entry* -> ^(CONTEXT context_entry*);
+
+context_entry : action | action_external;
 
 action : ACTION type SSAASM_ID action_attribute_list action_parameter_list action_symbol_list action_block_def_list action_block_list -> ^(ACTION SSAASM_ID type action_attribute_list action_parameter_list action_symbol_list action_block_def_list action_block_list);
+
+action_external : ACTION EXTERNAL type SSAASM_ID action_attribute_list action_external_parameter_list ';' -> ^(ACTION_EXTERNAL SSAASM_ID type action_attribute_list action_external_parameter_list);
 
 action_attribute : ATTRIBUTE_NOINLINE | ATTRIBUTE_HELPER;
 
 action_attribute_list : action_attribute* -> ^(ACTION_ATTRIBUTE_LIST action_attribute*);
 action_parameter_list : '(' action_parameter* ')' -> ^(ACTION_PARAMS action_parameter*);
+action_external_parameter_list : '(' action_external_parameter* ')' -> ^(ACTION_PARAMS action_external_parameter*);
 action_symbol_list : '[' action_symbol* ']' -> ^(ACTION_SYMBOLS action_symbol*);
 action_block_def_list : '<' SSAASM_ID+ '>' -> ^(ACTION_BLOCK_DEF_LIST SSAASM_ID+);
 action_block_list : '{' block+ '}' -> ^(ACTION_BLOCKS block+);
@@ -129,6 +137,7 @@ action_block_list : '{' block+ '}' -> ^(ACTION_BLOCKS block+);
 
 action_symbol : type SSAASM_ID;
 action_parameter : type SSAASM_ID;
+action_external_parameter : type;
 
 block: 'block' SSAASM_ID block_statement_list -> ^(BLOCK SSAASM_ID block_statement_list);
 

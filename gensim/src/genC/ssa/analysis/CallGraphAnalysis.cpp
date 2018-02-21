@@ -33,7 +33,7 @@ CallGraph::callee_set_t CallGraphAnalysis::GetCallees(SSAFormAction* action) con
 	for(auto block : action->Blocks) {
 		for(auto stmt : block->GetStatements()) {
 			SSACallStatement *call = dynamic_cast<SSACallStatement*>(stmt);
-			if(call != nullptr && dynamic_cast<SSAFormAction *>(call->Target()) != nullptr) {
+			if(call != nullptr) {
 				callees.insert(call->Target());
 			}
 		}

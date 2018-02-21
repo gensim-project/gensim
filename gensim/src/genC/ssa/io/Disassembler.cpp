@@ -32,6 +32,7 @@ void ContextDisassembler::Disassemble(const SSAContext* context, std::ostream& s
 
 	std::vector<SSAActionBase*> action_list;
 	std::set<SSAActionBase *> action_set;
+	
 	while(action_list.size() < context->Actions().size()) {
 		for(auto action : context->Actions()) {
 			if(action_set.count(action.second)) {
@@ -57,19 +58,24 @@ void ContextDisassembler::Disassemble(const SSAContext* context, std::ostream& s
 }
 void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& str)
 {
-	const SSAFormAction *action = dynamic_cast<const SSAFormAction*>(baseaction);
-	if(action == nullptr) {
-		throw std::logic_error("");
-	}
-
 	TypeDisassembler td;
 
 	str << "action ";
-	td.Disassemble(action->GetPrototype().ReturnType(), str);
-	str << " " << action->GetPrototype().GetIRSignature().GetName();
+	
+	bool is_external = false;
+	if(baseaction->GetPrototype().HasAttribute(gensim::genc::ActionAttribute::External)) {
+		is_external = true;
+	}
+	
+	if(is_external) {
+		str << "external ";
+	}
+	
+	td.Disassemble(baseaction->GetPrototype().ReturnType(), str);
+	str << " " << baseaction->GetPrototype().GetIRSignature().GetName();
 
 	// disassemble attributes
-	for(auto i : action->GetPrototype().GetIRSignature().GetAttributes()) {
+	for(auto i : baseaction->GetPrototype().GetIRSignature().GetAttributes()) {
 		switch(i) {
 			case ActionAttribute::NoInline:
 				str << " noinline";
@@ -82,53 +88,73 @@ void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& st
 		}
 	}
 
-	str <<" (";
-	// parameters
-	for(SSASymbol *param : action->ParamSymbols) {
 
-		str << std::endl << indent << indent;
-		td.Disassemble(param->GetType(), str);
-		str << " " << param->GetName();
-	}
+	
+	if(!is_external) {
+		const SSAFormAction *action = dynamic_cast<const SSAFormAction*>(baseaction);
 
-	str << std::endl << indent << ") [";
-	// symbols
-	// build an ordered list of symbols
-	std::map<std::string, SSASymbol*> ordered_syms;
+		str <<" (";
+		// parameters
+		for(SSASymbol *param : action->ParamSymbols) {
 
-	for(SSASymbol *sym : action->Symbols()) {
-		if(sym->SType == Symbol_Parameter) {
-			continue;
+			str << std::endl << indent << indent;
+			td.Disassemble(param->GetType(), str);
+			str << " " << param->GetName();
 		}
-		ordered_syms[sym->GetName()] = sym;
-	}
 
-	for(auto pr : ordered_syms) {
-		SSASymbol *sym = pr.second;
-		str << std::endl << indent << indent;
-		td.Disassemble(sym->GetType(), str);
-		str << " " << pr.first;
-	}
+		str << std::endl << indent << ")";
+		
+		str << "[";
+		// symbols
+		// build an ordered list of symbols
+		std::map<std::string, SSASymbol*> ordered_syms;
 
-	str << std::endl << indent << "] ";
-
-	str << "<" << std::endl;
-	str << indent << indent << action->EntryBlock->GetName() << std::endl;
-	for(auto block : action->Blocks) {
-		if(block == action->EntryBlock) {
-			continue;
+		for(SSASymbol *sym : action->Symbols()) {
+			if(sym->SType == Symbol_Parameter) {
+				continue;
+			}
+			ordered_syms[sym->GetName()] = sym;
 		}
-		str << indent<< indent << block->GetName() << std::endl;
-	}
-	str<< indent << ">";
 
-	str << " {" << std::endl;
-	// blocks
-	BlockDisassembler bd;
-	for(auto block : action->Blocks) {
-		bd.Disassemble(block, str);
+		for(auto pr : ordered_syms) {
+			SSASymbol *sym = pr.second;
+			str << std::endl << indent << indent;
+			td.Disassemble(sym->GetType(), str);
+			str << " " << pr.first;
+		}
+
+		str << std::endl << indent << "] ";
+
+		str << "<" << std::endl;
+		str << indent << indent << action->EntryBlock->GetName() << std::endl;
+		for(auto block : action->Blocks) {
+			if(block == action->EntryBlock) {
+				continue;
+			}
+			str << indent<< indent << block->GetName() << std::endl;
+		}
+		str<< indent << ">";
+
+		str << " {" << std::endl;
+		// blocks
+		BlockDisassembler bd;
+		for(auto block : action->Blocks) {
+			bd.Disassemble(block, str);
+		}
+		str << "}" << std::endl;
+	} else {
+		str <<" (";
+		// parameters
+		for(auto param : baseaction->GetPrototype().ParameterTypes()) {
+
+			str << std::endl << indent << indent;
+			td.Disassemble(param, str);
+		}
+
+		str << std::endl << indent << ");";
+		
+		str << std::endl;
 	}
-	str << "}" << std::endl;
 }
 
 
