@@ -21,11 +21,11 @@ execute(wfi)
 {
 }
 
-execute(flush_itlb_entry)
+execute(flush_itlb_entry_insn)
 {
 	flush_itlb_entry(read_register_bank(RB, inst.rd));
 }
-execute(flush_dtlb_entry)
+execute(flush_dtlb_entry_insn)
 {
 	flush_dtlb_entry(read_register_bank(RB, inst.rd));
 }

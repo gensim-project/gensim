@@ -256,8 +256,8 @@ AC_ISA(arm)
 	ac_behaviour stm_usr;
 	ac_behaviour mcr_fpu;
 	ac_behaviour mrc_fpu;
-	ac_behaviour flush_itlb_entry;
-	ac_behaviour flush_dtlb_entry;
+	ac_behaviour flush_itlb_entry_insn;
+	ac_behaviour flush_dtlb_entry_insn;
 	ac_behaviour smlaxy;
 	
 	/** DPI1 ***/
@@ -1389,10 +1389,10 @@ AC_ISA(arm)
 		wfi.set_behaviour(wfi);
 		
 		cf1.set_decoder(op=0x07, subop1=0x01, subop3=0x00, l=0x00, cp_num=15, funcc2=0, rd=0, crn=8, crm=5, funcc3=1);
-		cf1.set_behaviour(flush_itlb_entry);
+		cf1.set_behaviour(flush_itlb_entry_insn);
 		
 		cf2.set_decoder(op=0x07, subop1=0x01, subop3=0x00, l=0x00, cp_num=15, funcc2=0, rd=0, crn=8, crm=6, funcc3=1);
-		cf2.set_behaviour(flush_dtlb_entry);
+		cf2.set_behaviour(flush_dtlb_entry_insn);
 		
 		ldc.set_decoder(op=0x06, l=0x01);
 		ldc.set_asm("LDC");
