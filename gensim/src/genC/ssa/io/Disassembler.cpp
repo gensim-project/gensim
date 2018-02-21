@@ -39,6 +39,7 @@ void ContextDisassembler::Disassemble(const SSAContext* context, std::ostream& s
 			}
 
 			auto callees = cg.GetCallees((SSAFormAction*)action.second);
+			
 			std::set<SSAActionBase*> intersection;
 			std::set_intersection(action_set.begin(), action_set.end(), callees.begin(), callees.end(), std::inserter(intersection, intersection.begin()));
 			if(intersection == callees) {
@@ -48,6 +49,8 @@ void ContextDisassembler::Disassemble(const SSAContext* context, std::ostream& s
 		}
 	}
 
+	assert(action_list.size() == context->Actions().size());
+	
 	for(auto action : action_list) {
 		ad.Disassemble(action, str);
 	}

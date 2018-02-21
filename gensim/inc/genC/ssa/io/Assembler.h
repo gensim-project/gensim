@@ -19,6 +19,7 @@
 #include <map>
 #include <set>
 
+#include "DiagnosticContext.h"
 #include "define.h"
 
 namespace gensim
@@ -67,7 +68,7 @@ namespace gensim
 				{
 				public:
 					void SetTarget(SSAContext *target);
-					bool Assemble(AssemblyFileContext &afc);
+					bool Assemble(AssemblyFileContext &afc, DiagnosticContext &dc);
 
 				private:
 					SSAContext *target_;

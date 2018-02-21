@@ -90,7 +90,7 @@ void ContextAssembler::SetTarget(SSAContext* target)
 	target_ = target;
 }
 
-bool ContextAssembler::Assemble(AssemblyFileContext &afc)
+bool ContextAssembler::Assemble(AssemblyFileContext &afc, DiagnosticContext &dc)
 {
 	pANTLR3_BASE_TREE tree = (pANTLR3_BASE_TREE)afc.GetTree();
 	if(tree->getType(tree) != CONTEXT) {
@@ -104,8 +104,10 @@ bool ContextAssembler::Assemble(AssemblyFileContext &afc)
 			target_->AddAction(action);
 		}
 	} catch (std::exception &e) {
+		dc.Error(e.what());
 		return false;
 	} catch(gensim::Exception &e) {
+		dc.Error(e.what());
 		return false;
 	}
 

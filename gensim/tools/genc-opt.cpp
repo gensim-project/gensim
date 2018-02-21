@@ -14,8 +14,8 @@
 #include "genC/ssa/testing/SSAActionGenerator.h"
 #include "genC/InstStructBuilder.h"
 
-#include "ssa_asm/ssa_asmLexer.h"
-#include "ssa_asm/ssa_asmParser.h"
+#include <ssa_asm/ssa_asmLexer.h>
+#include <ssa_asm/ssa_asmParser.h>
 
 #include <iostream>
 #include <fstream>
@@ -95,7 +95,11 @@ int main(int argc, char **argv)
 
 	gensim::genc::ssa::io::ContextAssembler assembler;
 	assembler.SetTarget(ctx);
-	assembler.Assemble(*afc);
+	if(!assembler.Assemble(*afc, root_context)) {
+		std::cerr << "Assembly failed" << std::endl;
+		std::cerr << root_context;
+		return 1;
+	}
 
 	gensim::genc::ssa::SSAPassManager manager;
 	manager.SetMultirunAll(false);
