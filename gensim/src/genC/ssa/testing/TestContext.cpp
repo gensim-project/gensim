@@ -41,7 +41,7 @@ bool gensim::genc::ssa::testing::AssembleTest(SSAContext *ctx, const std::string
 	if(!parsed) {
 		return false;
 	}
-	bool assembled = ca.Assemble(*asm_ctx);
+	bool assembled = ca.Assemble(*asm_ctx, dc);
 	return assembled;
 }
 

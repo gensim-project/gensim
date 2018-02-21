@@ -37,6 +37,7 @@ function(gensim_tool tool_name)
 
 	ADD_EXECUTABLE(${tool_name} tools/${tool_name}.cpp)
 	TARGET_LINK_LIBRARIES(${tool_name} gensim-lib)
+	TARGET_LINK_LIBRARIES(${tool_name} gensim-grammar)
 
 	SET_TARGET_PROPERTIES(${tool_name}
 		PROPERTIES
@@ -50,6 +51,8 @@ endfunction()
 
 # Tools to build
 gensim_tool(gensim)
+gensim_tool(gensim-frontend)
+gensim_tool(genc-opt)
 
 
 # Also include tests

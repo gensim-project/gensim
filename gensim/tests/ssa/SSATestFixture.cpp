@@ -41,7 +41,7 @@ SSAFormAction* SSATestFixture::CompileAsm(const std::string& src, const std::str
 	if (!parsed) {
 		return nullptr;
 	}
-	bool assembled = ca.Assemble(*asm_ctx);
+	bool assembled = ca.Assemble(*asm_ctx, Diag());
 	if (!assembled) {
 		std::cerr << Diag();
 		return nullptr;
@@ -67,7 +67,7 @@ SSAContext* SSATestFixture::CompileAsm(const std::string& src)
 	if (!parsed) {
 		return nullptr;
 	}
-	bool assembled = ca.Assemble(*asm_ctx);
+	bool assembled = ca.Assemble(*asm_ctx, Diag());
 	if (!assembled) {
 		std::cerr << Diag();
 		return nullptr;

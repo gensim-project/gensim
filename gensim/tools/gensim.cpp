@@ -310,8 +310,10 @@ int main(int argc, char **argv)
 	for (std::list<isa::ISADescription *>::iterator II = description.ISAs.begin(), IE = description.ISAs.end(); II != IE; ++II) {
 		isa::ISADescription *isa = *II;
 		bool isasuccess = isa->BuildSSAContext(&description, root_context);
-
-		isasuccess &= isa->GetSSAContext().Validate(root_context);
+		
+		if(isasuccess) {
+			isasuccess &= isa->GetSSAContext().Validate(root_context);
+		}
 
 		if (!isasuccess) {
 			success = false;

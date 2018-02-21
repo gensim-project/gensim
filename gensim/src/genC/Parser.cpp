@@ -364,6 +364,16 @@ bool GenCContext::Parse_Execute(pANTLR3_BASE_TREE Execute)
 		diag_ctx.Error("Execute action " + nameStr + " redefined", DiagNode("", nameNode));
 		return false;
 	}
+	
+	if(GetIntrinsic(nameStr) != nullptr) {
+		diag_ctx.Error("The name " + nameStr + " is reserved by an intrinsic function", DiagNode("", nameNode));
+		return false;
+	}
+	
+	if(GetExternal(nameStr) != nullptr) {
+		diag_ctx.Error("The name " + nameStr + " is reserved by an external function", DiagNode("", nameNode));
+		return false;
+	}
 
 	IRExecuteAction *execute = new IRExecuteAction(nameStr, *this, StructTypeTable["Instruction"]);
 	execute->SetDiag(DiagNode("", Execute));
