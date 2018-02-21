@@ -31,6 +31,7 @@ namespace gensim
 			class SSABlock;
 			class SSAContext;
 			class SSAFormAction;
+			class SSAExternalAction;
 			class SSAStatement;
 			class SSAPhiStatement;
 			class SSASymbol;
@@ -78,6 +79,12 @@ namespace gensim
 				{
 				public:
 					SSAFormAction *Assemble(pANTLR3_BASE_TREE tree, SSAContext &context);
+				};
+
+				class ExternalActionAssembler
+				{
+				public:
+					SSAExternalAction *Assemble(pANTLR3_BASE_TREE tree, SSAContext &context);
 				};
 
 				class BlockAssembler

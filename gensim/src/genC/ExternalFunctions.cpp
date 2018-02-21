@@ -20,6 +20,7 @@ void GenCContext::AddExternalFunction(const std::string& name, const IRType& ret
 	}
 
 	IRSignature sig(name, retty, ptl);
+	sig.AddAttribute(gensim::genc::ActionAttribute::External);
 	ExternalTable[name] = new IRExternalAction(sig, *this);
 }
 
@@ -55,7 +56,13 @@ SSAStatement *IRCallExpression::EmitExternalCall(SSABuilder &bldr, const gensim:
 	}
 	
 	SSAActionPrototype prototype(target->GetSignature());
-	auto target_action = new SSAExternalAction(bldr.Context, prototype);
+	SSAExternalAction *target_action = nullptr;
+	if(!bldr.Context.HasAction(prototype.GetIRSignature().GetName())) {
+		target_action = new SSAExternalAction(bldr.Context, prototype);
+		bldr.Context.AddAction(target_action);
+	} else {
+		target_action = static_cast<SSAExternalAction*>(bldr.Context.GetAction(prototype.GetIRSignature().GetName()));
+	}
 	
 	std::vector<SSAValue *> arg_statements;
 	

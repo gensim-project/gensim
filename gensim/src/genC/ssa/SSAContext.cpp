@@ -114,7 +114,9 @@ static bool OptimiseAndTestAction(SSAFormAction *action, SSAPass *pass)
 void SSAContext::Optimise()
 {
 	for(auto action : Actions()) {
-		Optimise((SSAFormAction*)action.second);
+		if(dynamic_cast<SSAFormAction*>(action.second)) {
+			Optimise((SSAFormAction*)action.second);
+		}
 	}
 }
 
@@ -172,7 +174,9 @@ bool SSAContext::Validate(DiagnosticContext& ctx)
 	
 	bool success = true;
 	for(auto action : Actions()) {
-		success &= man.Run((SSAFormAction*)action.second, ctx);
+		if(dynamic_cast<SSAFormAction*>(action.second)) {
+			success &= man.Run((SSAFormAction*)action.second, ctx);
+		}
 	}
 	
 	return success;

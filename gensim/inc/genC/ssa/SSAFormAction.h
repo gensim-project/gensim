@@ -71,16 +71,15 @@ namespace gensim
 				const SSAType _type;
 			};
                         
-                        class SSAExternalAction : public SSAActionBase
-                        {
-                        public:
-                            SSAExternalAction(SSAContext& context, const SSAActionPrototype &prototype) : SSAActionBase(context, prototype) { }
-                            virtual ~SSAExternalAction() { }
-                            
-                            void Unlink() override { }
-                            void Destroy() override { }
+			class SSAExternalAction : public SSAActionBase
+			{
+			public:
+				SSAExternalAction(SSAContext& context, const SSAActionPrototype &prototype) : SSAActionBase(context, prototype) { assert(prototype.HasAttribute(gensim::genc::ActionAttribute::External)); }
+				virtual ~SSAExternalAction() { }
 
-                        };
+				void Unlink() override { }
+				void Destroy() override { Dispose(); }
+			};
 
 			/**
 			 * Class representing an IRAction converted into SSA form.

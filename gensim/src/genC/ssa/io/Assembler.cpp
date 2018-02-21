@@ -99,8 +99,17 @@ bool ContextAssembler::Assemble(AssemblyFileContext &afc, DiagnosticContext &dc)
 
 	try {
 		ActionAssembler actionasm;
+		ExternalActionAssembler xactionasm;
 		for(unsigned i = 0; i < tree->getChildCount(tree); ++i) {
-			auto action = actionasm.Assemble((pANTLR3_BASE_TREE)(tree->getChild(tree, i)), *target_);
+			auto action_node = (pANTLR3_BASE_TREE)tree->getChild(tree, i);
+			SSAActionBase *action = nullptr;
+			if(action_node->getType(action_node) == ACTION) {
+				action = actionasm.Assemble(action_node, *target_);
+			} else if(action_node->getType(action_node) == ACTION_EXTERNAL) {
+				action = xactionasm.Assemble(action_node, *target_);
+			} else {
+				throw std::logic_error("Unexpected node type");
+			}
 			target_->AddAction(action);
 		}
 	} catch (std::exception &e) {
@@ -113,6 +122,52 @@ bool ContextAssembler::Assemble(AssemblyFileContext &afc, DiagnosticContext &dc)
 
 	return true;
 }
+
+SSAExternalAction* ExternalActionAssembler::Assemble(pANTLR3_BASE_TREE tree, SSAContext& context)
+{
+	if(tree->getType(tree) != ACTION_EXTERNAL) {
+		throw std::logic_error("");
+	}
+	AssemblyContext ctx;
+	auto action_id_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
+	std::string action_id = (char*)action_id_node->getText(action_id_node)->chars;
+
+	auto action_rtype_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
+	SSAType return_type = parse_type(context, action_rtype_node);
+
+	auto attribute_list_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
+
+	IRSignature::param_type_list_t params;
+	auto action_params_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 3);
+	for(unsigned i = 0; i < action_params_node->getChildCount(action_params_node); i += 2) {
+		auto type_node = (pANTLR3_BASE_TREE)action_params_node->getChild(action_params_node,i);
+		std::string name = "p" + std::to_string(i);
+
+		IRParam param (name, parse_type(context, type_node));
+		params.push_back(param);
+	}
+
+	IRSignature signature (action_id, return_type, params);
+	signature.AddAttribute(gensim::genc::ActionAttribute::External);
+
+	for(unsigned i = 0; i < attribute_list_node->getChildCount(attribute_list_node); ++i) {
+		auto attribute_node = (pANTLR3_BASE_TREE)attribute_list_node->getChild(attribute_list_node, i);
+		switch(attribute_node->getType(attribute_node)) {
+			case ATTRIBUTE_NOINLINE:
+				signature.AddAttribute(ActionAttribute::NoInline);
+				break;
+			case ATTRIBUTE_HELPER:
+				signature.AddAttribute(ActionAttribute::Helper);
+				break;
+			default:
+				UNREACHABLE;
+		}
+	}
+
+	SSAActionPrototype prototype (signature);
+	return new SSAExternalAction(context, prototype);
+}
+
 
 SSAFormAction* ActionAssembler::Assemble(pANTLR3_BASE_TREE tree, SSAContext &context)
 {
