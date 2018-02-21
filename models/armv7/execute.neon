@@ -418,16 +418,17 @@ execute(neon_vmlal_s16_scalar)
 	uint16[4] vm = read_register_bank(VU16, inst.vm & 7);
 	uint16[4] vn = read_register_bank(VU16, inst.vn);
 
+	uint8 index = (inst.vm >> 3) | (inst.M << 1);
+	sint32 multiplicand = vm[index];
+
 	uint32[2] vd0 = read_register_bank(VU32, inst.vd);
 	uint32[2] vd1 = read_register_bank(VU32, inst.vd+1);
 	
-	uint8 index = (inst.vm >> 3) | (inst.M << 1);
-	
-	// just adds (mla) here, no subtracts (mls)
-	vd0[0] += vn[0] * (sint32)vm[index];
-	vd0[1] += vn[1] * (sint32)vm[index];
-	vd1[0] += vn[2] * (sint32)vm[index];
-	vd1[1] += vn[3] * (sint32)vm[index];
+	// just adds (mla) here, no subtracts (mls)	
+	vd0[0] += (sint32)(sint16)vn[0] * multiplicand;
+	vd0[1] += (sint32)(sint16)vn[1] * multiplicand;
+	vd1[0] += (sint32)(sint16)vn[2] * multiplicand;
+	vd1[1] += (sint32)(sint16)vn[3] * multiplicand;
 	
 	write_register_bank(VU32, inst.vd, vd0);
 	write_register_bank(VU32, inst.vd+1, vd1);
@@ -1646,19 +1647,16 @@ execute(neon_vmul_sp)
 	float[2] vn = read_register_bank(VD, inst.vn);
 	float[2] vm = read_register_bank(VD, inst.vm);
 	
-	float[2] vd;
-	vd[0] = vn[0] * vm[0];
-	vd[1] = vn[1] * vm[1];
-	
+	float[2] vd = vn * vm;
+
 	write_register_bank(VD, inst.vd, vd);
 	
 	if(inst.Q) {
 		float[2] vn2 = read_register_bank(VD, inst.vn+1);
 		float[2] vm2 = read_register_bank(VD, inst.vm+1);
 		
-		vd[0] = vn2[0] * vm2[0];
-		vd[1] = vn2[1] * vm2[1];
-	
+		vd = vn2 * vm2;
+		
 		write_register_bank(VD, inst.vd+1, vd);
 	}
 	__builtin_set_fp_flush(old_flush);

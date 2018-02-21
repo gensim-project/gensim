@@ -99,7 +99,7 @@ behaviour(get_status_string)
 
 behaviour(is_predicated)
 {
-	return (curr_interp_insn->GetIR() & 0xf0000000) != 0xe0000000;
+	return (curr_interp_insn->GetIR() & 0xf0000000) < 0xe0000000;
 }
 
 behaviour(get_predicate_info)
