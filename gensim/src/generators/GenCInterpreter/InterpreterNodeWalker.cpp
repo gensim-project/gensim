@@ -120,7 +120,9 @@ namespace gensim
 
 				// currently special case for SAR until new infrastructure for interpreter (and signed operations) developed
 				if(stmt.Type == genc::BinaryOperator::SignedShiftRight) {
-					output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = (" << Factory.GetOrCreate(stmt.LHS())->GetFixedValue() << " /* signed */ >> " << Factory.GetOrCreate(stmt.RHS())->GetFixedValue() << ");";
+					auto signed_type = stmt.LHS()->GetType();
+					signed_type.Signed = true;
+					output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = ((" << signed_type.GetCType() << ")" << Factory.GetOrCreate(stmt.LHS())->GetFixedValue() << " /* signed */ >> " << Factory.GetOrCreate(stmt.RHS())->GetFixedValue() << ");";
 				} else {
 					output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = (" << Factory.GetOrCreate(stmt.LHS())->GetFixedValue() << genc::BinaryOperator::PrettyPrintOperator(stmt.Type) << Factory.GetOrCreate(stmt.RHS())->GetFixedValue() << ");";
 				}
@@ -171,9 +173,12 @@ namespace gensim
 						}
 
 					case SSACastStatement::Cast_Convert:
-						if(stmt.GetOption() != SSACastStatement::Option_RoundDefault) {
-							UNIMPLEMENTED;
+						auto option = stmt.GetOption();
+						
+						if(option != SSACastStatement::Option_RoundDefault) {
+							return stmt.GetName();
 						}
+						
 						return "(" + stmt.GetType().GetCType() + ")(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + ")";
 
 				}
@@ -183,6 +188,28 @@ namespace gensim
 
 			bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const  override
 			{
+				const SSACastStatement &stmt = (const SSACastStatement &)Statement;
+				
+				if(stmt.GetCastType() == SSACastStatement::Cast_Convert) {
+					auto option = stmt.GetOption();
+					std::stringstream str;
+					
+					switch(option) {
+						case SSACastStatement::Option_RoundDefault:
+							// nothing to do here: this is handled by GetFixedValue
+							return true;
+						case SSACastStatement::Option_RoundTowardZero:
+							output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
+							output << "{";
+							output << "auto mode = fegetround();";
+							output << "fesetround(FE_TOWARDZERO);";
+							output << stmt.GetName() << " = " << "(" << stmt.GetType().GetCType() << ")" << Factory.GetOrCreate(stmt.Expr())->GetFixedValue() << ";";
+							output << "fesetround(mode);";
+							output << "}";
+							break;
+					}
+				}
+				
 				return true;
 				/*
 				const SSACastStatement &stmt = (const SSACastStatement &)Statement;
