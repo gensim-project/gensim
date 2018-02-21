@@ -93,6 +93,7 @@ namespace gensim
 		{
 			str << "#include \"util/Vector.h\"\n";
 			str << "#include <math.h>\n";
+			str << "#include <cfenv>\n";
 
 			return true;
 		}

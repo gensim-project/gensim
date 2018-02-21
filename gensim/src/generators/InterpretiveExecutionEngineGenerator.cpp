@@ -375,7 +375,7 @@ namespace gensim
 			stream << "uint32_t ecause;";
 			stream << "curr_interp_insn = &insn_decode;";
 			stream << "Decode &inst = *((Decode*)curr_interp_insn);\n";
-			stream << "if(ecause = GetDecodeContext()->DecodeSync(archsim::translate::profile::Address(pre_pc), get_cpu_mode(), *curr_interp_insn)) {";
+			stream << "if(ecause = GetDecodeContext()->DecodeSync(archsim::Address(pre_pc), get_cpu_mode(), *curr_interp_insn)) {";
 			stream << "	handle_fetch_fault(ecause);";
 			stream << "} else {";
 
