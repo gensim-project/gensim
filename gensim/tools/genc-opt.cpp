@@ -14,36 +14,9 @@
 #include "genC/ssa/testing/SSAActionGenerator.h"
 #include "genC/InstStructBuilder.h"
 
-#include <ssa_asm/ssa_asmLexer.h>
-#include <ssa_asm/ssa_asmParser.h>
-
 #include <iostream>
 #include <fstream>
 #include <random>
-
-static pANTLR3_INPUT_STREAM GetFile(const std::string &str)
-{
-	FILE *f = fopen(str.c_str(), "r");
-	if(f == nullptr) {
-		return nullptr;
-	}
-	fseek(f, 0, SEEK_END);
-	size_t size = ftell(f);
-	fseek(f, 0, SEEK_SET);
-
-	char *data = (char*)malloc(size);
-	fread(data, 1, size, f);
-
-	// check data
-	for(size_t i = 0; i < size; ++i) {
-		char c= data[i];
-		if(!isascii(c)) {
-			return nullptr;
-		}
-	}
-
-	return antlr3StringStreamNew((pANTLR3_UINT8)data, ANTLR3_ENC_8BIT, size, (pANTLR3_UINT8)strdup(str.c_str()));
-}
 
 gensim::arch::ArchDescription *ParseArch(gensim::DiagnosticContext &diag, const std::string &filename)
 {
