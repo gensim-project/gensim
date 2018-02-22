@@ -427,9 +427,10 @@ bool BaseBlockJITTranslate::compile_block(gensim::BlockJitProcessor *cpu, archsi
 	BlockCompiler compiler (ctx, block_address.Get(), allocator, false, true);
 	compiler.set_cpu(cpu);
 
-	size_t size = compiler.compile(fn);
+	bool dump = (archsim::options::Debug) || _should_be_dumped;
 
-	bool dump = (archsim::options::Debug && size) || _should_be_dumped;
+	size_t size = compiler.compile(fn, dump);
+
 	if(dump) {
 		std::ostringstream str;
 		str << "blkjit-" << std::hex << block_address.Get() << ".bin";

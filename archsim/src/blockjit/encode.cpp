@@ -525,11 +525,14 @@ void X86Encoder::cmpsd(const X86VectorRegister &src, const X86VectorRegister &de
 
 void X86Encoder::cvttsd2si(const X86VectorRegister& src, const X86Register& dest)
 {
-	assert(!src.hireg && !dest.hireg);
-
 	emit8(0xf2);
 
-	if(dest.size == 8) emit8(0x48);
+	bool w = dest.size == 8;
+	bool r = src.hireg;
+	bool b = dest.hireg;
+	if(w || r || b) {
+		encode_rex_prefix(b, 0, r, w);
+	}
 
 	emit8(0x0f);
 	emit8(0x2c);
@@ -553,12 +556,15 @@ void X86Encoder::cvttss2si(const X86VectorRegister& src, const X86Register& dest
 
 void X86Encoder::cvtsd2si(const X86VectorRegister& src, const X86Register& dest)
 {
-	assert(!src.hireg && !dest.hireg);
-
 	emit8(0xf2);
 
-	if(dest.size == 8) emit8(0x48);
-
+	bool w = dest.size == 8;
+	bool r = src.hireg;
+	bool b = dest.hireg;
+	if(w || r || b) {
+		encode_rex_prefix(b, 0, r, w);
+	}
+	
 	emit8(0x0f);
 	emit8(0x2d);
 

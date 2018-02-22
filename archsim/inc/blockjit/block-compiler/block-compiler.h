@@ -40,7 +40,7 @@ namespace captive
 			{
 			public:
 				BlockCompiler(TranslationContext& ctx, uint32_t pa, wulib::MemAllocator &allocator, bool emit_interrupt_check = false, bool emit_chaining_logic = false);
-				size_t compile(shared::block_txln_fn& fn);
+				size_t compile(shared::block_txln_fn& fn, bool dump_intermediates = false);
 
 				void dump_ir(std::ostringstream &ostr);
 				void dump_ir();
