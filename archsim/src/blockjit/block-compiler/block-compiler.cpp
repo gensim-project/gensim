@@ -87,17 +87,14 @@ BlockCompiler::BlockCompiler(TranslationContext& ctx, uint32_t pa, wulib::MemAll
 #undef ASSIGN_REGS
 }
 
-size_t BlockCompiler::compile(block_txln_fn& fn)
+size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 {
 	uint32_t max_stack = 0;
-
-	bool dump_to_the_max = true;
-	dump_to_the_max &= archsim::options::Debug;
 
 	tick_timer timer(0, stderr);
 
 	transforms::SortIRTransform sorter;
-	if(dump_to_the_max) {
+	if(dump_intermediates) {
 		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-preopt-" << std::hex << this->pa << ".txt";
@@ -117,7 +114,7 @@ size_t BlockCompiler::compile(block_txln_fn& fn)
 	if (!threadjumps.Apply(ctx)) return false;
 	timer.tick("JT");
 
-	if(dump_to_the_max) {
+	if(dump_intermediates) {
 		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-reorder-jt-" << std::hex << this->pa << ".txt";
@@ -132,7 +129,7 @@ size_t BlockCompiler::compile(block_txln_fn& fn)
 	if (!dbe.Apply(ctx)) return false;
 	timer.tick("DBE");
 
-	if(dump_to_the_max) {
+	if(dump_intermediates) {
 		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-reorder-jt-dbe-" << std::hex << this->pa << ".txt";
@@ -147,7 +144,7 @@ size_t BlockCompiler::compile(block_txln_fn& fn)
 	if (!mergeblocks.Apply(ctx)) return false;
 	timer.tick("MB");
 
-	if(dump_to_the_max) {
+	if(dump_intermediates) {
 		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o0-" << std::hex << this->pa << ".txt";
@@ -162,7 +159,7 @@ size_t BlockCompiler::compile(block_txln_fn& fn)
 	if (!cpt.Apply(ctx)) return false;
 	timer.tick("Cprop");
 
-	if(dump_to_the_max) {
+	if(dump_intermediates) {
 		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o1-" << std::hex << this->pa << ".txt";
@@ -177,7 +174,7 @@ size_t BlockCompiler::compile(block_txln_fn& fn)
 	if (!peephole.Apply(ctx)) return false;
 	timer.tick("Peep");
 
-	if(dump_to_the_max) {
+	if(dump_intermediates) {
 		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o2-" << std::hex << this->pa << ".txt";
@@ -191,7 +188,7 @@ size_t BlockCompiler::compile(block_txln_fn& fn)
 //	if (!value_merging()) return false;
 	timer.tick("VM");
 
-	if(dump_to_the_max) {
+	if(dump_intermediates) {
 		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o3-" << std::hex << this->pa << ".txt";
@@ -211,7 +208,7 @@ size_t BlockCompiler::compile(block_txln_fn& fn)
 	if(!rse.Apply(ctx)) return false;
 	timer.tick("RSE");
 
-	if(dump_to_the_max) {
+	if(dump_intermediates) {
 		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o4-" << std::hex << this->pa << ".txt";
@@ -232,7 +229,7 @@ size_t BlockCompiler::compile(block_txln_fn& fn)
 
 	if (!analyse(max_stack)) return false;
 
-	if(dump_to_the_max) {
+	if(dump_intermediates) {
 		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o5-" << std::hex << this->pa << ".txt";
@@ -253,7 +250,7 @@ size_t BlockCompiler::compile(block_txln_fn& fn)
 	if( !lower_stack_to_reg()) return false;
 	timer.tick("LSTR");
 
-	if(dump_to_the_max) {
+	if(dump_intermediates) {
 		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o6-" << std::hex << this->pa << ".txt";
@@ -268,7 +265,7 @@ size_t BlockCompiler::compile(block_txln_fn& fn)
 	transforms::Peephole2Transform p2;
 	if(!p2.Apply(ctx)) return false;
 
-	if(dump_to_the_max) {
+	if(dump_intermediates) {
 		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o7-" << std::hex << this->pa << ".txt";

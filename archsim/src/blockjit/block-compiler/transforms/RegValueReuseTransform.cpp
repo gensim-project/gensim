@@ -94,6 +94,12 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 					// reuse the already-live value for this instruction
 					insn->type = IRInstruction::MOV;
 					insn->operands[0] = offset_to_vreg[offset.value];
+					
+					if(insn->operands[0].size < insn->operands[1].size) {
+						insn->type = IRInstruction::ZX;
+					} else if(insn->operands[0].size > insn->operands[1].size) {
+						insn->type = IRInstruction::TRUNC;
+					}
 				} else {
 					// mark the value as live
 					offset_to_vreg[offset.value] = vreg;
