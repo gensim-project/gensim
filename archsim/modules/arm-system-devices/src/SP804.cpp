@@ -91,15 +91,8 @@ void SP804::Tick(uint32_t tick_periods)
 
 void SP804::tick()
 {
-//	fprintf(stderr, "SP804 tick\n");
-	uint32_t tick_scale = archsim::options::TickScale;
-
-	if((ticks / tick_scale) == 0) {
-		LC_ERROR(LogTimers) << "Timer did not progress due to large tick scale!";
-	}
-
-	if (timers[0].IsEnabled()) timers[0].Tick(ticks / tick_scale);
-	if (timers[1].IsEnabled()) timers[1].Tick(ticks / tick_scale);
+	if (timers[0].IsEnabled()) timers[0].Tick(ticks);
+	if (timers[1].IsEnabled()) timers[1].Tick(ticks);
 }
 
 
