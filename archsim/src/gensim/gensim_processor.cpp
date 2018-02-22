@@ -141,58 +141,7 @@ bool Processor::InitialiseTracing()
 		str << "." << (uint64_t)this;
 		tracefile = str.str();
 	}
-	/*
-		if(archsim::options::TraceMode == "bare") {
-			// Initialise TraceStream
-			if (archsim::options::TraceFile.IsSpecified()) {
-				// Associates stream with existing file descriptor
-				trace_mgr = new gensim::BareTraceManager(fopen(tracefile.c_str(), "w"), this);
-			}
-			else
-				trace_mgr = new gensim::BareTraceManager(stdout, this);
-		}
-		else if(archsim::options::TraceMode == "memory") {
-			LC_INFO(LogCPU) << "Tracing in memory mode";
-
-			// Initialise TraceStream
-			if (archsim::options::TraceFile.IsSpecified()) {
-				// Associates stream with existing file descriptor
-				trace_mgr = new gensim::MemoryTraceManager(fopen(tracefile.c_str(), "w"), this);
-			}
-			else
-				trace_mgr = new gensim::MemoryTraceManager(stdout, this);
-		}
-
-		else if (archsim::options::TraceMode == "text") {
-			LC_INFO(LogCPU) << "Tracing in text mode";
-
-			// Initialise TraceStream
-			if (archsim::options::TraceFile.IsSpecified()) {
-				// Associates stream with existing file descriptor
-				trace_mgr = new gensim::TextTraceManager(fopen(tracefile.c_str(), "w"), 1000000, this);
-			}
-			else
-				trace_mgr = new gensim::TextTraceManager(stdout, 1000000, this);
-
-		}
-		else if(archsim::options::TraceMode == "record") {
-			assert(archsim::options::TraceFile.IsSpecified());
-			trace_mgr = new gensim::tracing::record::RecordTraceManager(fopen(tracefile.c_str(), "w"), 1000000, this);
-		}
-		else if (archsim::options::TraceMode == "binary") {
-			uint32_t buffer_size = 16 * 1024 * 1024;
-			LC_INFO(LogCPU) << "Tracing in binary mode";
-
-			if (archsim::options::TraceFile.IsSpecified()) {
-				FILE *f = fopen(((std::string)archsim::options::TraceFile).c_str(), "wb");
-				trace_mgr = new gensim::BinaryTraceManager(f, buffer_size, buffer_size, this);
-			}
-			else {
-				FILE *f = stdout;
-				trace_mgr = new gensim::BinaryTraceManager(f, buffer_size, buffer_size, this);
-			}
-		}
-	 */
+	
 	assert(archsim::options::TraceFile.IsSpecified());
 	trace_mgr = new libtrace::TraceSource(1000000);
 	libtrace::TraceSink *sink = nullptr;
@@ -375,10 +324,18 @@ bool Processor::RunInterp(uint32_t iterations)
 	} else if (IsTracingEnabled()) {
 		while (stepOK && !halted && state.iterations--) {
 			stepOK = step_block_trace();
+			
+			if(state.pending_actions) {
+				handle_pending_action();
+			}
 		}
 	} else {
 		while (stepOK && !halted && state.iterations--) {
 			stepOK = step_block_fast();
+			
+			if(state.pending_actions) {
+				handle_pending_action();
+			}
 		}
 	}
 
