@@ -758,6 +758,11 @@ namespace gensim
 			       "if(GetTraceManager() && GetTraceManager()->IsPacketOpen()) GetTraceManager()->Trace_End_Insn();"
 			       "     do "
 			       "     {"
+				
+				   "     if(archsim::options::InstructionTick) {"
+				   "		GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::InstructionExecute, NULL);"
+						"}"
+				
 			       " uint32_t _current_check_page_pc = archsim::translate::profile::RegionArch::PageIndexOf(read_pc());"
 			       " if(_check_page_pc != _current_check_page_pc) break;";
 			success &= GenerateExecution(stream, true, "stepOK = ");
@@ -780,6 +785,9 @@ namespace gensim
 			       "handle_pending_action();"
 			       "     do "
 			       "     {"
+					"     if(archsim::options::InstructionTick) {"
+				   "		GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::InstructionExecute, NULL);"
+						"}"
 			       " uint32_t _current_check_page_pc = archsim::translate::profile::RegionArch::PageIndexOf(read_pc());"
 			       " if(_check_page_pc != _current_check_page_pc) break;";
 			success &= GenerateExecution(stream, false, "stepOK = ");
