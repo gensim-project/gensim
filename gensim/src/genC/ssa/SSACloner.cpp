@@ -32,7 +32,9 @@ public:
 
 	void VisitCastStatement(SSACastStatement& stmt) override
 	{
-		_clone_context.add(&stmt, new SSACastStatement(_block, stmt.GetType(), _clone_context.get(stmt.Expr())));
+		auto cast_stmt = new SSACastStatement(_block, stmt.GetType(), _clone_context.get(stmt.Expr()), stmt.GetCastType());
+		cast_stmt->SetOption(stmt.GetOption());
+		_clone_context.add(&stmt, cast_stmt);
 	}
 
 	void VisitConstantStatement(SSAConstantStatement& stmt) override
