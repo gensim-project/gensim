@@ -245,6 +245,10 @@ bool BaseBlockJITTranslate::can_merge_jump(gensim::BlockJitProcessor *processor,
 {
 	// only end of block instructions are jumps
 	assert(decode->GetEndOfBlock());
+	
+	if(!_supportChaining) {
+		return false;
+	}
 
 	// We can never merge predicated jumps
 	if(decode->GetIsPredicated()) return false;
