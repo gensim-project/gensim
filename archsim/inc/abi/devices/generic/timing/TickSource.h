@@ -35,13 +35,15 @@ namespace archsim
 
 					inline uint64_t GetCounter()
 					{
-						return _tick_count;
+						return tick_count_;
 					}
 
 				protected:
 					void Tick(uint32_t tick_periods);
 				private:
-					uint64_t _tick_count;
+					uint64_t tick_count_;
+					float microticks_;
+					float microtick_scale_;
 
 				private:
 					std::unordered_set<TickConsumer*> consumers;

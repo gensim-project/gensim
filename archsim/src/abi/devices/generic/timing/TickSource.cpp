@@ -7,6 +7,7 @@
 
 #include "abi/devices/generic/timing/TickSource.h"
 #include "abi/devices/generic/timing/TickConsumer.h"
+#include "util/SimOptions.h"
 
 #include <unistd.h>
 #include <chrono>
@@ -15,7 +16,7 @@ using namespace archsim::abi::devices::timing;
 
 TickConsumer::~TickConsumer() {}
 
-TickSource::TickSource() : _tick_count(0) {}
+TickSource::TickSource() : tick_count_(0), microticks_(0), microtick_scale_(1.0f/archsim::options::TickScale) {}
 
 TickSource::~TickSource() {}
 
@@ -31,10 +32,15 @@ void TickSource::RemoveConsumer(TickConsumer &consumer)
 
 void TickSource::Tick(uint32_t tick_periods)
 {
-	_tick_count++;
-	for(auto *consumer : consumers) {
-		consumer->Tick(tick_periods);
+	microticks_ += tick_periods * microtick_scale_;
+	
+	if(microticks_ >= 1.0f) {
+		tick_count_ += microticks_;
+		for(auto *consumer : consumers) {
+			consumer->Tick(microticks_);
+		}
 	}
+	microticks_ -= (int)microticks_;
 }
 
 MicrosecondTickSource::MicrosecondTickSource(uint32_t tick) : LoopThread("Microsecond Source"), ticks(tick), recalibrate(0), total_overshoot(0), overshoot_samples(0), calibrated_ticks(0)
