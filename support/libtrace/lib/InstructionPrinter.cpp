@@ -65,10 +65,10 @@ public:
 	void VisitInstructionCode(const InstructionCodeReader& record) override {} 
 	void VisitInstructionHeader(const InstructionHeaderReader& record) override {}
 
-	void VisitMemReadAddr(const MemReadAddrReader& record) override {}
-	void VisitMemReadData(const MemReadDataReader& record) override {}
-	void VisitMemWriteAddr(const MemWriteAddrReader& record) override {}
-	void VisitMemWriteData(const MemWriteDataReader& record) override {}
+	void VisitMemReadAddr(const MemReadAddrReader& record) override { target_ << "(M[" << record.GetWidth() << "][" << record.GetAddress() << "]"; }
+	void VisitMemReadData(const MemReadDataReader& record) override { target_ << " => " << record.GetData() << ")"; }
+	void VisitMemWriteAddr(const MemWriteAddrReader& record) override { target_ << "(M[" << record.GetWidth() << "][" << record.GetAddress() << "]"; }
+	void VisitMemWriteData(const MemWriteDataReader& record) override { target_ << " <= " << record.GetData() << ")"; }
 
 private:
 	std::ostream &target_;
