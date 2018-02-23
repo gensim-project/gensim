@@ -362,10 +362,10 @@ helper void vmull_s32(uint8 vd, uint8 vn, uint8 vm, uint8 M)
 {	
 	uint32[2] n = read_register_bank(VU32, vn);
 	uint32[2] m = read_register_bank(VU32, vm);
-	uint64 mult = m[M];
+	sint64 mult = m[M];
 	
-	write_register_bank(VU64, vd, n[0]*mult);
-	write_register_bank(VU64, vd+1, n[1]*mult);
+	write_register_bank(VU64, vd, ((sint64)(sint32)n[0])*mult);
+	write_register_bank(VU64, vd+1, ((sint64)(sint32)n[1])*mult);
 	
 	return;
 }
@@ -447,10 +447,10 @@ execute(neon_vmlsl_s16_scalar)
 	uint8 index = (inst.vm >> 3) | (inst.M << 1);
 	
 	// just adds (mla) here, no subtracts (mls)
-	vd0[0] -= vn[0] * (sint32)vm[index];
-	vd0[1] -= vn[1] * (sint32)vm[index];
-	vd1[0] -= vn[2] * (sint32)vm[index];
-	vd1[1] -= vn[3] * (sint32)vm[index];
+	vd0[0] -= (sint32)(sint16)vn[0] * (sint32)(sint16)vm[index];
+	vd0[1] -= (sint32)(sint16)vn[1] * (sint32)(sint16)vm[index];
+	vd1[0] -= (sint32)(sint16)vn[2] * (sint32)(sint16)vm[index];
+	vd1[1] -= (sint32)(sint16)vn[3] * (sint32)(sint16)vm[index];
 	
 	write_register_bank(VU32, inst.vd, vd0);
 	write_register_bank(VU32, inst.vd+1, vd1);
@@ -1443,11 +1443,14 @@ execute(neon_vext)
 			tmp64 = read_register_bank(VU64, inst.vn+1);
 		} else {
 			v0 = read_register_bank(VU64, inst.vn+1);
-			tmp64 = read_register_bank(VU64, inst.vm);		
+			tmp64 = read_register_bank(VU64, inst.vm);
 		}
 		
 		v0 >>= ((inst.imm4 & 7) * 8);
 		uint64 v1 = tmp64 << (64-((inst.imm4 & 7) * 8));
+		if(inst.imm4 == 8) {
+			v1 = 0;
+		}
 		
 		v0 = v0 | v1;
 		
@@ -1458,7 +1461,11 @@ execute(neon_vext)
 			position -= 64;
 		}
 		
-		v1 <<= 64-position;
+		if(position == 0) {
+			v1 = 0;
+		} else {
+			v1 <<= 64-position;
+		}
 		tmp64 >>= position;
 		
 		v1 |= tmp64;
@@ -1472,10 +1479,14 @@ execute(neon_vext)
 		
 		uint64 vd = 0;	
 		
-		vn >>= position;
-		vm <<= (64-position);
-		
-		vd = vn | vm;
+		if(position == 0) {
+			vd = vn;
+		} else {
+			vn >>= position;
+			vm <<= (64-position);
+			
+			vd = vn | vm;
+		}
 		
 		write_register_bank(VU64, inst.vd, vd);
 	}
