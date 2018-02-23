@@ -25,5 +25,6 @@ endfunction()
 
 add_trace_tool(TraceLess ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordLess.cpp)
 add_trace_tool(TracePCDiff ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordPCDiff.cpp)
+add_trace_tool(TraceCat ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordCat.cpp)
 
 SET_PROPERTY(GLOBAL PROPERTY LIBTRACE_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/inc")
