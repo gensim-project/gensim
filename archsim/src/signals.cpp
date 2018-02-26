@@ -214,6 +214,7 @@ static void sigsegv_handler(siginfo_t *si, void *unused)
 		gensim::Processor *cpu = sim_ctx->GetEmulationModel().GetBootCore();
 		if (cpu != NULL && cpu->HasTraceManager() && cpu->IsTracingEnabled()) {
 			cpu->GetTraceManager()->Trace_End_Insn();
+			cpu->GetTraceManager()->Flush();
 			cpu->GetTraceManager()->Terminate();
 		}
 	}
