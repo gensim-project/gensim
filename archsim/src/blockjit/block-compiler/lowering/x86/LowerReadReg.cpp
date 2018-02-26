@@ -211,8 +211,8 @@ bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 		if (target->is_alloc_reg()) {
 			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, offset->value), GetCompiler().register_from_operand(target));
 		} else if (target->is_alloc_stack()) {
-			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, offset->value), GetCompiler().get_temp(0, 4));
-			Encoder().mov(GetCompiler().get_temp(0, 4), GetCompiler().stack_from_operand(target));
+			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, offset->value), GetCompiler().get_temp(0, target->size));
+			Encoder().mov(GetCompiler().get_temp(0, target->size), GetCompiler().stack_from_operand(target));
 		} else {
 			assert(false);
 		}
@@ -221,8 +221,8 @@ bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 		if (target->is_alloc_reg()) {
 			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, GetCompiler().register_from_operand(offset), 1), GetCompiler().register_from_operand(target));
 		} else if (target->is_alloc_stack()) {
-			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, GetCompiler().register_from_operand(offset), 1), GetCompiler().get_temp(0, 4));
-			Encoder().mov(GetCompiler().get_temp(0, 4), GetCompiler().stack_from_operand(target));
+			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, GetCompiler().register_from_operand(offset), 1), GetCompiler().get_temp(0, target->size));
+			Encoder().mov(GetCompiler().get_temp(0, target->size), GetCompiler().stack_from_operand(target));
 		} else {
 			assert(false);
 		}
