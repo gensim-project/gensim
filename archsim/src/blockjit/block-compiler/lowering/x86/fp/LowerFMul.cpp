@@ -46,14 +46,20 @@ bool LowerFMul::Lower(const captive::shared::IRInstruction *&insn)
 	// dest = op1 * op2
 	if(width == 4) {
 		Encoder().mulss(BLKJIT_FP_1, BLKJIT_FP_0);
-
-		Encoder().movq(BLKJIT_FP_0, GetCompiler().register_from_operand(&dest));
 	} else if(width == 8) {
 		Encoder().mulsd(BLKJIT_FP_1, BLKJIT_FP_0);
-
-		Encoder().movq(BLKJIT_FP_0, GetCompiler().register_from_operand(&dest));
 	}
 
+	if(dest.is_alloc_reg()) {
+		Encoder().movq(BLKJIT_FP_0, GetCompiler().register_from_operand(&dest));
+	} else if(dest.is_alloc_stack()) {
+		Encoder().movq(BLKJIT_FP_0, BLKJIT_TEMPS_0(dest.size));
+		Encoder().mov(BLKJIT_TEMPS_0(dest.size), GetCompiler().stack_from_operand(&dest));
+	} else {
+		assert(false);
+	}
+	
+	
 	insn++;
 
 	return true;
