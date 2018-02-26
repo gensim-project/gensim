@@ -97,7 +97,7 @@ bool LowerShift::Lower(const captive::shared::IRInstruction *&insn)
 					assert(false);
 					break;
 			}
-		} else {
+		} else if(dest->is_alloc_stack()) {
 			auto operand = GetCompiler().stack_from_operand(dest);
 
 			switch (insn->type) {
@@ -117,6 +117,8 @@ bool LowerShift::Lower(const captive::shared::IRInstruction *&insn)
 					assert(false);
 					break;
 			}
+		} else {
+			assert(false);
 		}
 	} else if (amount->is_vreg()) {
 		// this gets complicated since we have to have the shift amoutn in CL
