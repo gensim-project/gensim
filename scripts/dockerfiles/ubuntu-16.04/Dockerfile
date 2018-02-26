@@ -3,12 +3,12 @@ FROM ubuntu:16.04
 RUN apt-get update && apt-get -y install \
     autoconf \
     cmake \
-    libantlr3c-dev \
+    default-jre-headless \
     gcc-arm-linux-gnueabi \
     g++ \
+    libantlr3c-dev \
     libncurses5-dev \
     make \
     mercurial \
-    default-jre-headless \
     wget \
     zlib1g-dev
