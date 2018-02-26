@@ -66,6 +66,12 @@ decode(neon_2reg_scalar)
 	vn = (N << 4) | vn;
 }
 
+decode(neon_2reg_scalar_vmul)
+{
+	vd = (D << 4) | vd;
+	vn = (N << 4) | vn;
+}
+
 decode(neon_vdup_scalar)
 {
 	vd = (D << 4) | vd;

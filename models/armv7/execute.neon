@@ -370,6 +370,77 @@ helper void vmull_s32(uint8 vd, uint8 vn, uint8 vm, uint8 M)
 	return;
 }
 
+execute(neon_vmul_scalar_i16)
+{
+	check_neon_enabled();
+	
+	uint16[4] n = read_register_bank(VU16, inst.vn);
+	uint16[4] m = read_register_bank(VU16, inst.vm & 0x7);
+	
+	uint8 index = inst.M << 1 | inst.vm >> 3;
+	uint16 multiplicand = m[index];
+	n[0] *= multiplicand;
+	n[1] *= multiplicand;
+	n[2] *= multiplicand;
+	n[3] *= multiplicand;
+	write_register_bank(VU16, inst.vd, n);
+	
+	if(inst.Q) {
+		n = read_register_bank(VU16, inst.vn + 1);
+		m = read_register_bank(VU16, inst.vm + 1);
+		
+		n[0] *= multiplicand;
+		n[1] *= multiplicand;
+		n[2] *= multiplicand;
+		n[3] *= multiplicand;
+		write_register_bank(VU16, inst.vd + 1, n);
+	}
+}
+
+execute(neon_vmul_scalar_i32)
+{
+	check_neon_enabled();
+	
+	uint32[2] n = read_register_bank(VU32, inst.vn);
+	uint32[2] m = read_register_bank(VU32, inst.vm);
+	
+	uint32 multiplicand = m[inst.M];
+	n[0] *= multiplicand;
+	n[1] *= multiplicand;
+	write_register_bank(VU32, inst.vd, n);
+	
+	if(inst.Q) {
+		n = read_register_bank(VU32, inst.vn + 1);
+		m = read_register_bank(VU32, inst.vm + 1);
+		
+		n[0] *= multiplicand;
+		n[1] *= multiplicand;
+		write_register_bank(VU32, inst.vd + 1, n);
+	}
+}
+
+execute(neon_vmul_scalar_f32)
+{
+	check_neon_enabled();
+	
+	float[2] n = read_register_bank(VD, inst.vn);
+	float[2] m = read_register_bank(VD, inst.vm);
+	
+	float multiplicand = m[inst.M];
+	n[0] *= multiplicand;
+	n[1] *= multiplicand;
+	write_register_bank(VD, inst.vd, n);
+	
+	if(inst.Q) {
+		n = read_register_bank(VD, inst.vn + 1);
+		m = read_register_bank(VD, inst.vm + 1);
+		
+		n[0] *= multiplicand;
+		n[1] *= multiplicand;
+		write_register_bank(VD, inst.vd + 1, n);
+	}
+}
+
 execute(neon_vmull_scalar)
 {
 	check_neon_enabled();
