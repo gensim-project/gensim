@@ -573,11 +573,14 @@ void X86Encoder::cvtsd2si(const X86VectorRegister& src, const X86Register& dest)
 
 void X86Encoder::cvtss2si(const X86VectorRegister& src, const X86Register& dest)
 {
-	assert(!src.hireg && !dest.hireg);
-
 	emit8(0xf3);
 
-	if(dest.size == 8) emit8(0x48);
+	bool w = dest.size == 8;
+	bool b = src.hireg;
+	bool r = dest.hireg;
+	if(w || r || b) {
+		encode_rex_prefix(b, 0, r, w);
+	}
 
 	emit8(0x0f);
 	emit8(0x2d);

@@ -22,20 +22,24 @@ bool LowerMul::Lower(const captive::shared::IRInstruction *&insn)
 
 	auto &dest_reg = dest->is_alloc_reg() ? GetCompiler().register_from_operand(dest) : BLKJIT_TEMPS_1(source->size);
 
-	if (dest->is_vreg()) {
-		if (source->is_alloc_reg() && dest->is_alloc_reg()) {
-			Encoder().mul(GetCompiler().register_from_operand(source), GetCompiler().register_from_operand(dest));
-		} else if(source->is_alloc_stack() && dest->is_alloc_reg()) {//0x7ffff7e34f70:
-			Encoder().mov(GetCompiler().stack_from_operand(source), BLKJIT_TEMPS_0(source->size));
-			Encoder().mul(BLKJIT_TEMPS_0(source->size), dest_reg);
-		} else if(source->is_constant() && dest->is_alloc_reg()) {
-			Encoder().mov(source->value, BLKJIT_TEMPS_0(source->size));
-			Encoder().mul(BLKJIT_TEMPS_0(source->size), dest_reg);
-		}
+	assert(dest->is_vreg());
+
+	if(dest->is_alloc_stack()) {
+		Encoder().mov(GetCompiler().stack_from_operand(dest), dest_reg);
+	}
+
+	if(source->is_constant()) {
+		Encoder().mov(source->value, BLKJIT_TEMPS_0(source->size));
+		Encoder().mul(BLKJIT_TEMPS_0(source->size), dest_reg);
+	} else if(source->is_alloc_reg()) {
+		Encoder().mul(GetCompiler().register_from_operand(source), dest_reg);
+	} else if(source->is_alloc_stack()) {
+		Encoder().mov(GetCompiler().stack_from_operand(source), BLKJIT_TEMPS_0(source->size));
+		Encoder().mul(BLKJIT_TEMPS_0(source->size), dest_reg);
 	} else {
 		assert(false);
 	}
-
+	
 	if(dest->is_alloc_stack()) {
 		Encoder().mov(BLKJIT_TEMPS_1(source->size), GetCompiler().stack_from_operand(dest));
 	}
