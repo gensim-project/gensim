@@ -34,6 +34,7 @@ endfunction()
 
 ADD_SUBDIRECTORY(archsim)
 ADD_SUBDIRECTORY(gensim)
+ADD_SUBDIRECTORY(scripts)
 
 ADD_SUBDIRECTORY(support/libtrace)
 
