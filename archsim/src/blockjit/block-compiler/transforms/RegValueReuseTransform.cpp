@@ -90,17 +90,35 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 				assert(vreg.is_vreg());
 				assert(offset.is_constant());
 
-				if(offset_to_vreg.count(offset.value)) {
+				// If we have the correct register in a vreg and it  has exactly
+				// the right size, then reuse the loaded value.
+				if(offset_to_vreg.count(offset.value) && offset_to_vreg.at(offset.value).size == vreg.size) {
 					// reuse the already-live value for this instruction
 					insn->type = IRInstruction::MOV;
 					insn->operands[0] = offset_to_vreg[offset.value];
-					
-					if(insn->operands[0].size < insn->operands[1].size) {
-						insn->type = IRInstruction::ZX;
-					} else if(insn->operands[0].size > insn->operands[1].size) {
-						insn->type = IRInstruction::TRUNC;
-					}
 				} else {
+					// we don't have an exact match for the register, but we
+					// might have aliased one which is in a register. if we 
+					// have, then we must kill it
+					
+					// we are accessing the register bank at OFFSET. we have a
+					// problem if there is a live value with a key which is
+					// less than OFFSET, but a key+size which is greater than
+					// offset (the case where the key == OFFSET is already 
+					// covered). 
+					
+					// for now do this naively by looping through the loaded 
+					// values. There is certainly a more efficient way to do 
+					// this using an ordered map.
+					for(auto i : offset_to_vreg) {
+						if((i.first < offset.value) && ((i.first + i.second.size) > offset.value)) {
+							// we have an alias so remove i from the live vales.
+							vreg_to_offset.erase(i.second);
+							offset_to_vreg.erase(i.first);
+							break;
+						}
+					}
+					
 					// mark the value as live
 					offset_to_vreg[offset.value] = vreg;
 					vreg_to_offset[vreg] = offset.value;
