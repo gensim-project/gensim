@@ -91,9 +91,6 @@ bool LowerFCtrl_SetFlush::Lower(const captive::shared::IRInstruction *&insn)
 {
 	const IROperand *mode = &insn->operands[0];
 
-	// Load the address of the stack slot into RCX
-	Encoder().mov(REG_RSP, REG_RCX);
-
 	GetCompiler().emit_save_reg_state(2, GetStackMap(), GetIsStackFixed());
 
 	GetCompiler().load_state_field(0, REG_RDI);
@@ -105,7 +102,7 @@ bool LowerFCtrl_SetFlush::Lower(const captive::shared::IRInstruction *&insn)
 	Encoder().call(BLKJIT_RETURN(8));
 
 	GetCompiler().emit_restore_reg_state(2, GetStackMap(), GetIsStackFixed());
-
+	
 	insn++;
 	return true;
 }

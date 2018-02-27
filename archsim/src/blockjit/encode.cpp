@@ -528,8 +528,8 @@ void X86Encoder::cvttsd2si(const X86VectorRegister& src, const X86Register& dest
 	emit8(0xf2);
 
 	bool w = dest.size == 8;
-	bool r = src.hireg;
-	bool b = dest.hireg;
+	bool r = dest.hireg;
+	bool b = src.hireg;
 	if(w || r || b) {
 		encode_rex_prefix(b, 0, r, w);
 	}
