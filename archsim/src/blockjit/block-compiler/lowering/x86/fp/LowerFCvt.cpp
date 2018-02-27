@@ -49,28 +49,40 @@ bool LowerFCvt_F_To_SI::Lower(const captive::shared::IRInstruction*& insn)
 	const IROperand &dest = insn->operands[1];
 
 	assert(dest.is_vreg());
-	assert(dest.is_alloc_reg());
 
-	Encoder().movq(GetCompiler().register_from_operand(&op1), BLKJIT_FP_0);
+	auto &dest_reg = dest.is_alloc_reg() ? GetCompiler().register_from_operand(&dest) : BLKJIT_TEMPS_0(dest.size);
+	
+	if(op1.is_alloc_reg()) {
+		Encoder().movq(GetCompiler().register_from_operand(&op1), BLKJIT_FP_0);
+	} else if(op1.is_alloc_stack()) {
+		Encoder().mov(GetCompiler().stack_from_operand(&op1), BLKJIT_TEMPS_1(op1.size));
+		Encoder().movq(BLKJIT_TEMPS_1(op1.size), BLKJIT_FP_0);
+	} else {
+		assert(false);
+	}
 
 	if(insn->type == IRInstruction::FCVTT_F_TO_SI) {
 		if(op1.size == 4) {
-			Encoder().cvttss2si(BLKJIT_FP_0, GetCompiler().register_from_operand(&dest));
+			Encoder().cvttss2si(BLKJIT_FP_0, dest_reg);
 		} else if(op1.size == 8) {
-			Encoder().cvttsd2si(BLKJIT_FP_0, GetCompiler().register_from_operand(&dest));
+			Encoder().cvttsd2si(BLKJIT_FP_0, dest_reg);
 		} else {
 			assert(false);
 		}
 	} else {
 		if(op1.size == 4) {
-			Encoder().cvtss2si(BLKJIT_FP_0, GetCompiler().register_from_operand(&dest));
+			Encoder().cvtss2si(BLKJIT_FP_0, dest_reg);
 		} else if(op1.size == 8) {
-			Encoder().cvtsd2si(BLKJIT_FP_0, GetCompiler().register_from_operand(&dest));
+			Encoder().cvtsd2si(BLKJIT_FP_0, dest_reg);
 		} else {
 			assert(false);
 		}
 	}
 
+	if(dest.is_alloc_stack()) {
+		Encoder().mov(BLKJIT_TEMPS_0(dest.size), GetCompiler().stack_from_operand(&dest));
+	}
+	
 	insn++;
 	return true;
 }
