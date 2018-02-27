@@ -512,10 +512,10 @@ bool BlockCompiler::analyse(uint32_t& max_stack)
 			// Update the latest block id.
 			latest_block_id = insn->ir_block;
 		}
-
-		if(insn->type == IRInstruction::BARRIER) {
-			next_global = 0;
-		}
+//
+//		if(insn->type == IRInstruction::BARRIER) {
+//			next_global = 0;
+//		}
 
 		// Clear the live-out set, and make every current live-in a live-out.
 		live_outs.copy(live_ins);

@@ -292,3 +292,68 @@ blkFnWrite32Fallback:
 
 blkFnFallbackSlotAddr:
 .quad blkFnFallbackSlot
+
+
+// Incoming argument in RDI, return value in RDI, available reg is RSI and RDX
+.globl blkjit_cvtt_f_to_u64
+blkjit_cvtt_f_to_u64:
+	movq %rdi, %xmm0
+	ucomiss fzero, %xmm0
+	jae 1f
+	cvttss2si %xmm0, %rdi
+	retq
+1:
+	subss fzero, %xmm0
+	movabs $0x8000000000000000, %rsi
+	cvttss2si %xmm0, %rdi
+	xor %rsi, %rdi
+	retq
+
+.globl blkjit_cvtt_d_to_u64
+blkjit_cvtt_d_to_u64:
+	movq %rdi, %xmm0
+	ucomisd fdzero, %xmm0
+	jae 1f
+	cvttsd2si %xmm0, %rdi
+	retq
+1:
+	subsd fdzero, %xmm0
+	movabs $0x8000000000000000, %rsi
+	cvttsd2si %xmm0, %rdi
+	xor %rsi, %rdi
+	retq
+
+.globl blkjit_cvt_f_to_u64
+blkjit_cvt_f_to_u64:
+	movq %rdi, %xmm0
+	ucomiss fzero, %xmm0
+	jae 1f
+	cvtss2si %xmm0, %rdi
+	retq
+1:
+	subss fzero, %xmm0
+	movabs $0x8000000000000000, %rsi
+	cvtss2si %xmm0, %rdi
+	xor %rsi, %rdi
+	retq
+
+.globl blkjit_cvt_d_to_u64
+blkjit_cvt_d_to_u64:
+	movq %rdi, %xmm0
+	ucomisd fdzero, %xmm0
+	jae 1f
+	cvtsd2si %xmm0, %rdi
+	retq
+1:
+	subsd fdzero, %xmm0
+	movabs $0x8000000000000000, %rsi
+	cvtsd2si %xmm0, %rdi
+	xor %rsi, %rdi
+	retq
+
+.data
+fzero:
+.float 0
+
+fdzero:
+.double 0
