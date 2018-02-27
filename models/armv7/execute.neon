@@ -411,7 +411,6 @@ execute(neon_vmul_scalar_i32)
 	
 	if(inst.Q) {
 		n = read_register_bank(VU32, inst.vn + 1);
-		m = read_register_bank(VU32, inst.vm + 1);
 		
 		n[0] *= multiplicand;
 		n[1] *= multiplicand;
@@ -433,7 +432,6 @@ execute(neon_vmul_scalar_f32)
 	
 	if(inst.Q) {
 		n = read_register_bank(VD, inst.vn + 1);
-		m = read_register_bank(VD, inst.vm + 1);
 		
 		n[0] *= multiplicand;
 		n[1] *= multiplicand;
@@ -516,12 +514,13 @@ execute(neon_vmlsl_s16_scalar)
 	uint32[2] vd1 = read_register_bank(VU32, inst.vd+1);
 	
 	uint8 index = (inst.vm >> 3) | (inst.M << 1);
+	sint32 multiplicand = (sint32)(sint16)vm[index];
 	
-	// just adds (mla) here, no subtracts (mls)
-	vd0[0] -= (sint32)(sint16)vn[0] * (sint32)(sint16)vm[index];
-	vd0[1] -= (sint32)(sint16)vn[1] * (sint32)(sint16)vm[index];
-	vd1[0] -= (sint32)(sint16)vn[2] * (sint32)(sint16)vm[index];
-	vd1[1] -= (sint32)(sint16)vn[3] * (sint32)(sint16)vm[index];
+	// just subs (mls) here, no adds (mla)
+	vd0[0] -= (sint32)(sint16)vn[0] * multiplicand;
+	vd0[1] -= (sint32)(sint16)vn[1] * multiplicand;
+	vd1[0] -= (sint32)(sint16)vn[2] * multiplicand;
+	vd1[1] -= (sint32)(sint16)vn[3] * multiplicand;
 	
 	write_register_bank(VU32, inst.vd, vd0);
 	write_register_bank(VU32, inst.vd+1, vd1);
@@ -1518,9 +1517,13 @@ execute(neon_vext)
 		}
 		
 		v0 >>= ((inst.imm4 & 7) * 8);
-		uint64 v1 = tmp64 << (64-((inst.imm4 & 7) * 8));
-		if(inst.imm4 == 8) {
+		
+		uint32 v1_shift = 64-((inst.imm4 & 7) * 8);
+		uint64 v1 = tmp64;
+		if(v1_shift == 64) {
 			v1 = 0;
+		} else {
+			v1 <<= v1_shift;
 		}
 		
 		v0 = v0 | v1;
@@ -1537,7 +1540,11 @@ execute(neon_vext)
 		} else {
 			v1 <<= 64-position;
 		}
-		tmp64 >>= position;
+		if(position == 64) {
+			tmp64 = 0;
+		} else {
+			tmp64 >>= position;
+		}
 		
 		v1 |= tmp64;
 		
