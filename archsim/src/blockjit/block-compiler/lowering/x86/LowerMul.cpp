@@ -73,17 +73,38 @@ bool LowerUMul::Lower(const captive::shared::IRInstruction *&insn)
 	// move one of the operands into RAX
 	if(rax_is_source && !rax_is_dest) {
 		// source is already in RAX, so mul by destination
-		mul_reg = &GetCompiler().register_from_operand(dest);
+		if(dest->is_alloc_reg()) {
+			mul_reg = &GetCompiler().register_from_operand(dest);
+		} else {
+			mul_reg = &BLKJIT_TEMPS_1(dest->size);
+			GetCompiler().encode_operand_to_reg(dest, *mul_reg);
+		}
 	} else if(rax_is_dest && !rax_is_source) {
 		// dest is already in RAX, so mul by source
-		mul_reg = &GetCompiler().register_from_operand(source);
+		if(source->is_alloc_reg()) {
+			mul_reg = &GetCompiler().register_from_operand(source);
+		} else {
+			mul_reg = &BLKJIT_TEMPS_1(source->size);
+			GetCompiler().encode_operand_to_reg(source, *mul_reg);
+		}
 	} else if(rax_is_source && rax_is_dest) {
 		// doesn't matter, mul by source
-		mul_reg = &GetCompiler().register_from_operand(source);
+		if(source->is_alloc_reg()) {
+			mul_reg = &GetCompiler().register_from_operand(source);
+		} else {
+			mul_reg = &BLKJIT_TEMPS_1(source->size);
+			GetCompiler().encode_operand_to_reg(source, *mul_reg);
+		}
 	} else {
 		// move source into RAX, then multiply
 		GetCompiler().encode_operand_to_reg(source, REGS_RAX(source->size));
-		mul_reg = &GetCompiler().register_from_operand(dest);
+		
+		if(dest->is_alloc_reg()){
+			mul_reg = &GetCompiler().register_from_operand(dest);
+		} else {
+			mul_reg = &BLKJIT_TEMPS_1(dest->size);
+			GetCompiler().encode_operand_to_reg(dest, *mul_reg);
+		}
 	}
 	
 	if(dest->size > 1) {
@@ -94,8 +115,11 @@ bool LowerUMul::Lower(const captive::shared::IRInstruction *&insn)
 	
 	// put result into destination register
 	if(!rax_is_dest) {
-		assert(dest->is_alloc_reg());
-		Encoder().mov(REGS_RAX(dest->size), GetCompiler().register_from_operand(dest));
+		if(dest->is_alloc_reg()) {
+			Encoder().mov(REGS_RAX(dest->size), GetCompiler().register_from_operand(dest));
+		} else if(dest->is_alloc_stack()) {
+			Encoder().mov(REGS_RAX(dest->size), GetCompiler().stack_from_operand(dest));
+		}
 		
 		// also restore RAX
 		Encoder().mov(REG_RDI, REG_RAX);

@@ -115,6 +115,7 @@ bool LowerFCvt_UI_To_F::Lower(const captive::shared::IRInstruction*& insn)
 		Encoder().cvtsi2ss(GetCompiler().register_from_operand(&op1, 8), BLKJIT_FP_0);
 	} else if(op1.size == 4 && dest.size == 8) {
 		// U32 to double
+		Encoder().pxor(BLKJIT_FP_0, BLKJIT_FP_0);
 		// zero extend input register to 64 bits
 		Encoder().mov(GetCompiler().register_from_operand(&op1), GetCompiler().register_from_operand(&op1));
 		// convert to double
