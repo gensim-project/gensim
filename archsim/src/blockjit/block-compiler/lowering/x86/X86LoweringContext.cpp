@@ -52,7 +52,8 @@ bool X86LoweringContext::Prepare(const TranslationContext &ctx, BlockCompiler &c
 	A(IRInstruction::MOV, Mov);
 	A(IRInstruction::UDIV, UDiv);
 	A(IRInstruction::SDIV, SDiv);
-	A(IRInstruction::MUL, Mul);
+	A(IRInstruction::IMUL, IMul);
+	A(IRInstruction::MUL, UMul);
 	A(IRInstruction::MOD, Mod);
 	A(IRInstruction::READ_REG, ReadReg);
 	A(IRInstruction::DISPATCH, Dispatch);

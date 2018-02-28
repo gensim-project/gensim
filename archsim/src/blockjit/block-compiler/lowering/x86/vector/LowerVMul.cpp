@@ -34,12 +34,12 @@ bool LowerVMulI::Lower(const captive::shared::IRInstruction*& insn)
 	Encoder().shr(32, BLKJIT_TEMPS_0(8));
 	Encoder().mov(rhsr, destr);
 	Encoder().shr(32, destr);
-	Encoder().mul(BLKJIT_TEMPS_0(8), destr);
+	Encoder().imul(BLKJIT_TEMPS_0(8), destr);
 	Encoder().shl(32, destr);
 
 	// now do bottom multiply
 	Encoder().mov(GetCompiler().register_from_operand(&rhs, 4), BLKJIT_TEMPS_0(4));
-	Encoder().mul(GetCompiler().register_from_operand(&lhs, 4), BLKJIT_TEMPS_0(4));
+	Encoder().imul(GetCompiler().register_from_operand(&lhs, 4), BLKJIT_TEMPS_0(4));
 	Encoder().orr(BLKJIT_TEMPS_0(8), destr);
 
 	insn++;

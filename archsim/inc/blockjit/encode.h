@@ -270,7 +270,9 @@ namespace captive
 				void sub(uint32_t val, const X86Register& dst);
 				void sub(uint32_t val, uint8_t size, const X86Memory& dst);
 
-				void mul(const X86Register& src, const X86Register& dst);
+				void imul(const X86Register& src, const X86Register& dst);
+				void mul(const X86Register& src);
+				void mul1(const X86Register& src);
 				void div(const X86Register& divisor);
 				void idiv(const X86Register& divisor);
 

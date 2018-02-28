@@ -432,8 +432,13 @@ namespace gensim
 							output << "ctx.add_instruction(IRInstruction::sub(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
 							break;
 						case BinaryOperator::Multiply:
+							
 							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::mul(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							if(LHSNode->Statement.GetType().Signed || RHSNode->Statement.GetType().Signed) {
+								output << "ctx.add_instruction(IRInstruction::imul(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							} else {
+								output << "ctx.add_instruction(IRInstruction::mul(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							}
 							break;
 						case BinaryOperator::Divide:
 
@@ -1268,7 +1273,7 @@ namespace gensim
 						output << "IRRegId tmp = ctx.alloc_reg(4);\n";
 
 						output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*RegNum) << ", IROperand::vreg(tmp, 4)));";
-						output << "ctx.add_instruction(IRInstruction::mul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 4)));";
+						output << "ctx.add_instruction(IRInstruction::imul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 4)));";
 						output << "ctx.add_instruction(IRInstruction::add(IROperand::const32(" << offset << "), IROperand::vreg(tmp, 4)));";
 
 						output << "ctx.add_instruction(IRInstruction::streg(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4)));\n";
@@ -1301,7 +1306,7 @@ namespace gensim
 						output << "IRRegId tmp = ctx.alloc_reg(4);";
 
 						output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*RegNum) << ", IROperand::vreg(tmp, 4)));";
-						output << "ctx.add_instruction(IRInstruction::mul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 4)));";
+						output << "ctx.add_instruction(IRInstruction::imul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 4)));";
 						output << "ctx.add_instruction(IRInstruction::add(IROperand::const32(" << offset << "), IROperand::vreg(tmp, 4)));";
 
 						output << "ctx.add_instruction(IRInstruction::ldreg(IROperand::vreg(tmp, 4), " << operand_for_stmt(Statement) << "));";

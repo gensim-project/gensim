@@ -28,7 +28,8 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 
 	{ .mnemonic = "add",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "sub",		.format = "IBXXXX", .has_side_effects = false },
-	{ .mnemonic = "mul",		.format = "IBXXXX", .has_side_effects = false },
+	{ .mnemonic = "imul",		.format = "IBXXXX", .has_side_effects = false },
+	{ .mnemonic = "umul",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "udiv",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "sdiv",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "mod",		.format = "IBXXXX", .has_side_effects = false },

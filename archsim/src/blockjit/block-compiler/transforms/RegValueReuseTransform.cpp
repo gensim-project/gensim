@@ -97,21 +97,12 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 					insn->type = IRInstruction::MOV;
 					insn->operands[0] = offset_to_vreg[offset.value];
 				} else {
-					// we don't have an exact match for the register, but we
-					// might have aliased one which is in a register. if we 
-					// have, then we must kill it
 					
-					// we are accessing the register bank at OFFSET. we have a
-					// problem if there is a live value with a key which is
-					// less than OFFSET, but a key+size which is greater than
-					// offset (the case where the key == OFFSET is already 
-					// covered). 
-					
-					// for now do this naively by looping through the loaded 
-					// values. There is certainly a more efficient way to do 
-					// this using an ordered map.
 					for(auto i : offset_to_vreg) {
-						if((i.first < offset.value) && ((i.first + i.second.size) > offset.value)) {
+						bool i_fully_before_vreg = (i.first + i.second.size) <= offset.value;
+						bool i_fully_after_vreg = i.first >= (offset.value + vreg.size);
+						
+						if(!(i_fully_before_vreg || i_fully_after_vreg)) {
 							// we have an alias so remove i from the live vales.
 							vreg_to_offset.erase(i.second);
 							offset_to_vreg.erase(i.first);
@@ -136,6 +127,27 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 					offset_to_vreg.clear();
 					vreg_to_offset.clear();
 					break;
+				}
+
+				// we are accessing the register bank at OFFSET. we have a
+				// problem if there is a live value with a key which is
+				// less than OFFSET, but a key+size which is greater than
+				// offset (the case where the key == OFFSET is already 
+				// covered). 
+
+				// for now do this naively by looping through the loaded 
+				// values. There is certainly a more efficient way to do 
+				// this using an ordered map.
+				for(auto i : offset_to_vreg) {
+					bool i_fully_before_vreg = (i.first + i.second.size) <= offset.value;
+					bool i_fully_after_vreg = i.first >= (offset.value + value.size);
+
+					if(!(i_fully_before_vreg || i_fully_after_vreg)) {
+						// we have an alias so remove i from the live vales.
+						vreg_to_offset.erase(i.second);
+						offset_to_vreg.erase(i.first);
+						break;
+					}
 				}
 
 				offset_to_vreg[offset.value] = value;

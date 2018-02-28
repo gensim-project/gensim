@@ -47,6 +47,7 @@ namespace captive
 
 				ADD,
 				SUB,
+				IMUL,
 				MUL,
 				UDIV,
 				SDIV,
@@ -570,6 +571,15 @@ namespace captive
 				assert(dst.is_vreg());
 
 				return IRInstruction(MUL, src, dst);
+			}
+			
+			static IRInstruction imul(const IROperand &src, const IROperand &dst)
+			{
+				assert(src.size == dst.size);
+				assert(src.is_constant() || src.is_vreg());
+				assert(dst.is_vreg());
+
+				return IRInstruction(IMUL, src, dst);
 			}
 
 			static IRInstruction sdiv(const IROperand &src, const IROperand &dst)
