@@ -361,7 +361,7 @@ blkjit_cvt_u64_to_f:
 	test %rdi, %rdi
 	js 1f
 	pxor %xmm0, %xmm0
-	cvtsi2ss %rsi, %xmm0
+	cvtsi2ss %rdi, %xmm0
 	retq
 
 1:
@@ -379,7 +379,7 @@ blkjit_cvt_u64_to_d:
 	test %rdi, %rdi
 	js 1f
 	pxor %xmm0, %xmm0
-	cvtsi2sd %rsi, %xmm0
+	cvtsi2sd %rdi, %xmm0
 	retq
 
 1:
