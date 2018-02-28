@@ -160,7 +160,47 @@ void archsim::abi::devices::gfx::key_release_event(GtkWidget *widget, GdkEventKe
 	}
 }
 
-GtkScreen::GtkScreen(std::string id, memory::MemoryModel *mem_model, System* sys) : VirtualScreen(id, mem_model), Thread("Gtk Screen"), running(false), framebuffer(NULL), draw_area(NULL), window(NULL)
+void archsim::abi::devices::gfx::motion_notify_event(GtkWidget *widget, GdkEventMotion *event, void *screen) 
+{
+	static uint64_t counter = 0;
+	
+	GtkScreen *scr = (GtkScreen*)screen;
+	scr->mouse_x = event->x;
+	scr->mouse_y = event->y;
+}
+
+void archsim::abi::devices::gfx::button_press_event(GtkWidget *widget, GdkEventButton *event, void *screen)
+{
+	GtkScreen *scr = (GtkScreen*)screen;
+	
+	//convert button indices
+	uint32_t ps2_index;
+	switch(event->button) {
+		case 1: // left
+			ps2_index = 0; break;
+		case 2: // middle
+			ps2_index = 2; break;
+		case 3: // right
+			ps2_index = 1; break;
+		default:
+			assert(false);
+	}
+	
+	switch(event->type) {
+		case GDK_BUTTON_PRESS:
+			scr->mouse->ButtonDown(ps2_index);
+			break;
+			
+		case GDK_BUTTON_RELEASE:
+			scr->mouse->ButtonUp(ps2_index);
+			break;
+			
+		default:
+			break;
+	}
+}
+
+GtkScreen::GtkScreen(std::string id, memory::MemoryModel *mem_model, System* sys) : VirtualScreen(id, mem_model), Thread("Gtk Screen"), running(false), framebuffer(NULL), draw_area(NULL), window(NULL), last_mouse_x(0), last_mouse_y(0)
 {
 
 }
@@ -180,6 +220,7 @@ bool GtkScreen::Initialise()
 		window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 		draw_area = gtk_drawing_area_new();
 
+		gtk_widget_set_events(window, GDK_POINTER_MOTION_MASK | GDK_BUTTON1_MASK | GDK_BUTTON2_MASK | GDK_BUTTON3_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK);
 		gtk_widget_set_double_buffered(draw_area, false);
 
 		gtk_widget_set_size_request(draw_area, GetWidth(), GetHeight());
@@ -192,6 +233,10 @@ bool GtkScreen::Initialise()
 		g_signal_connect(window, "key-press-event", G_CALLBACK(key_press_event), this);
 		g_signal_connect(window, "key-release-event", G_CALLBACK(key_release_event), this);
 
+		g_signal_connect(window, "motion-notify-event", G_CALLBACK(motion_notify_event), this);
+		g_signal_connect(window, "button-press-event", G_CALLBACK(button_press_event), this);
+		g_signal_connect(window, "button-release-event", G_CALLBACK(button_press_event), this);
+		
 		framebuffer = (uint8_t*)malloc(3 * GetWidth() * GetHeight());
 
 		host_addr_t guest_fb_ptr;
@@ -256,11 +301,21 @@ void GtkScreen::run()
 		{
 			std::lock_guard<std::mutex> lock(gtk_lock_);
 			
-			gtk_main_iteration();
+			while(gtk_events_pending()) {
+				gtk_main_iteration_do(FALSE);
+			}
 
 			draw_framebuffer();
+			
+			if(mouse_x != last_mouse_x || mouse_y != last_mouse_y) {
+				mouse->Move(mouse_x, mouse_y);
+				last_mouse_x = mouse_x;
+				last_mouse_y = mouse_y;
+			}
+			
 			gtk_widget_queue_draw(draw_area);
 		}
+		
 		usleep(20000);
 	}
 }
