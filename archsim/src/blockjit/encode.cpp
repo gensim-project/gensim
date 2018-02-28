@@ -1209,11 +1209,21 @@ void X86Encoder::sub(uint32_t val, uint8_t size, const X86Memory& dst)
 	}
 }
 
-void X86Encoder::mul(const X86Register& src, const X86Register& dst)
+void X86Encoder::imul(const X86Register& src, const X86Register& dst)
 {
 	assert(src.size == dst.size);
 
 	encode_opcode_mod_rm(0x1af, dst, src);
+}
+
+void X86Encoder::mul(const X86Register& src)
+{
+	encode_opcode_mod_rm(0xf7, 4, src);
+}
+
+void X86Encoder::mul1(const X86Register& src)
+{
+	encode_opcode_mod_rm(0xf6, 4, src);
 }
 
 void X86Encoder::div(const X86Register& divisor)

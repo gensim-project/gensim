@@ -354,3 +354,40 @@ blkjit_cvt_d_to_u64:
 	cvtsd2si %xmm0, %rdi
 	xor %rsi, %rdi
 	retq
+
+// Arg in RDI, return in xmm0
+.globl blkjit_cvt_u64_to_f
+blkjit_cvt_u64_to_f:
+	test %rdi, %rdi
+	js 1f
+	pxor %xmm0, %xmm0
+	cvtsi2ss %rsi, %xmm0
+	retq
+
+1:
+	mov %rdi, %rsi
+	pxor %xmm0, %xmm0
+	shr %rsi
+	and $0x1, %edi
+	or %rdi, %rsi
+	cvtsi2ss %rsi, %xmm0
+	addss %xmm0, %xmm0
+	retq
+
+.globl blkjit_cvt_u64_to_d
+blkjit_cvt_u64_to_d:
+	test %rdi, %rdi
+	js 1f
+	pxor %xmm0, %xmm0
+	cvtsi2sd %rsi, %xmm0
+	retq
+
+1:
+	mov %rdi, %rsi
+	pxor %xmm0, %xmm0
+	shr %rsi
+	and $0x1, %edi
+	or %rdi, %rsi
+	cvtsi2sd %rsi, %xmm0
+	addsd %xmm0, %xmm0
+	retq

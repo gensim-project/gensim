@@ -15,9 +15,12 @@ using namespace captive::shared;
 /*** THESE FUNCTIONS USE THE BLOCKJIT ABI ***/
 // ARG AND RETURN in BLOCKJIT_TEMPS_0
 extern "C" uint64_t blkjit_cvtt_f_to_u64(float);
-extern "C" uint64_t blkjit_cvtt_d_to_u64(float);
+extern "C" uint64_t blkjit_cvtt_d_to_u64(double);
 extern "C" uint64_t blkjit_cvt_f_to_u64(float);
-extern "C" uint64_t blkjit_cvt_d_to_u64(float);
+extern "C" uint64_t blkjit_cvt_d_to_u64(double);
+
+extern "C" float blkjit_cvt_u64_to_f(uint64_t);
+extern "C" double blkjit_cvt_u64_to_d(uint64_t);
 /*** END OF BLOCKJIT ABI FUNCTIONS ***/
 
 bool LowerFCvt_SI_To_F::Lower(const captive::shared::IRInstruction*& insn)
@@ -102,21 +105,32 @@ bool LowerFCvt_UI_To_F::Lower(const captive::shared::IRInstruction*& insn)
 	assert(dest.is_vreg());
 	assert(dest.is_alloc_reg());
 
-	Encoder().pxor(BLKJIT_FP_0, BLKJIT_FP_0);
-
-	if(op1.size == 4) {
+	// Convert unsigned integer to float
+	// 4 cases: U32 to Float, U32 to Double, U64 to Float, U64 To Double
+	if(op1.size == 4 && dest.size == 4) {
+		// U32 to float
+		// zero extend input register to 64 bits
 		Encoder().mov(GetCompiler().register_from_operand(&op1), GetCompiler().register_from_operand(&op1));
+		// convert to float
+		Encoder().cvtsi2ss(GetCompiler().register_from_operand(&op1, 8), BLKJIT_FP_0);
+	} else if(op1.size == 4 && dest.size == 8) {
+		// U32 to double
+		// zero extend input register to 64 bits
+		Encoder().mov(GetCompiler().register_from_operand(&op1), GetCompiler().register_from_operand(&op1));
+		// convert to double
+		Encoder().cvtsi2sd(GetCompiler().register_from_operand(&op1, 8), BLKJIT_FP_0);
+	} else if(op1.size == 8 && dest.size == 4) {
+		// U64 to float
+		// requires a call
+		GetCompiler().encode_operand_to_reg(&op1, BLKJIT_TEMPS_0(op1.size));
+		Encoder().call((void*)blkjit_cvt_u64_to_f, BLKJIT_RETURN(8));
+	} else if(op1.size == 8 && dest.size == 8) {
+		// u64 to double
+		// requires a call
+		GetCompiler().encode_operand_to_reg(&op1, BLKJIT_TEMPS_0(op1.size));
+		Encoder().call((void*)blkjit_cvt_u64_to_d, BLKJIT_RETURN(8));
 	}
-
-	if(dest.size == 4) {
-		Encoder().cvtsi2ss(GetCompiler().register_from_operand(&op1), BLKJIT_FP_0);
-	} else if(dest.size == 8) {
-		if(op1.size == 4) Encoder().mov(GetCompiler().register_from_operand(&op1), GetCompiler().register_from_operand(&op1));
-		Encoder().cvtsi2sd(GetCompiler().register_from_operand(&op1), BLKJIT_FP_0);
-	} else {
-		assert(false);
-	}
-
+	
 	Encoder().movq(BLKJIT_FP_0, GetCompiler().register_from_operand(&dest));
 
 	insn++;
