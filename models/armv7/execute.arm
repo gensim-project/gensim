@@ -467,7 +467,8 @@ execute(tst2)
 {
 	uint32 t;	
 	uint8 carry;
-	t = ((read_gpr(inst.rn)) &   decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry));
+	uint32 rn = read_gpr(inst.rn);
+	t = (rn &   decode_reg((inst.shift_type), read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry));
 
 	update_ZN_flags(t);	
 	write_register(C, carry);
