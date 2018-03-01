@@ -36,7 +36,10 @@ namespace archsim
 			public:
 				PeripheralManager(gensim::Processor &cpu);
 
-				bool Initialise() {return true;}
+				bool Initialise()
+				{
+					return true;
+				}
 
 				gensim::Processor &cpu;
 

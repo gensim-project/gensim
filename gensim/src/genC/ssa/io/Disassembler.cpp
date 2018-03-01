@@ -32,7 +32,7 @@ void ContextDisassembler::Disassemble(const SSAContext* context, std::ostream& s
 
 	std::vector<SSAActionBase*> action_list;
 	std::set<SSAActionBase *> action_set;
-	
+
 	while(action_list.size() < context->Actions().size()) {
 		for(auto action : context->Actions()) {
 			if(action_set.count(action.second)) {
@@ -40,7 +40,7 @@ void ContextDisassembler::Disassemble(const SSAContext* context, std::ostream& s
 			}
 
 			auto callees = cg.GetCallees((SSAFormAction*)action.second);
-			
+
 			std::set<SSAActionBase*> intersection;
 			std::set_intersection(action_set.begin(), action_set.end(), callees.begin(), callees.end(), std::inserter(intersection, intersection.begin()));
 			if(intersection == callees) {
@@ -51,7 +51,7 @@ void ContextDisassembler::Disassemble(const SSAContext* context, std::ostream& s
 	}
 
 	assert(action_list.size() == context->Actions().size());
-	
+
 	for(auto action : action_list) {
 		ad.Disassemble(action, str);
 	}
@@ -61,16 +61,16 @@ void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& st
 	TypeDisassembler td;
 
 	str << "action ";
-	
+
 	bool is_external = false;
 	if(baseaction->GetPrototype().HasAttribute(gensim::genc::ActionAttribute::External)) {
 		is_external = true;
 	}
-	
+
 	if(is_external) {
 		str << "external ";
 	}
-	
+
 	td.Disassemble(baseaction->GetPrototype().ReturnType(), str);
 	str << " " << baseaction->GetPrototype().GetIRSignature().GetName();
 
@@ -89,7 +89,7 @@ void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& st
 	}
 
 
-	
+
 	if(!is_external) {
 		const SSAFormAction *action = dynamic_cast<const SSAFormAction*>(baseaction);
 
@@ -103,7 +103,7 @@ void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& st
 		}
 
 		str << std::endl << indent << ")";
-		
+
 		str << "[";
 		// symbols
 		// build an ordered list of symbols
@@ -152,7 +152,7 @@ void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& st
 		}
 
 		str << std::endl << indent << ");";
-		
+
 		str << std::endl;
 	}
 }
@@ -293,26 +293,48 @@ public:
 		std::string cast_type;
 		std::string cast_option;
 		switch(stmt.GetCastType()) {
-			case SSACastStatement::Cast_ZeroExtend: cast_type = "zextend"; break;
-			case SSACastStatement::Cast_SignExtend: cast_type = "sextend"; break;
-			case SSACastStatement::Cast_Truncate: cast_type = "truncate"; break;
-			case SSACastStatement::Cast_Convert: cast_type = "convert"; break;
-			case SSACastStatement::Cast_Reinterpret: cast_type = "reinterpret"; break;
+			case SSACastStatement::Cast_ZeroExtend:
+				cast_type = "zextend";
+				break;
+			case SSACastStatement::Cast_SignExtend:
+				cast_type = "sextend";
+				break;
+			case SSACastStatement::Cast_Truncate:
+				cast_type = "truncate";
+				break;
+			case SSACastStatement::Cast_Convert:
+				cast_type = "convert";
+				break;
+			case SSACastStatement::Cast_Reinterpret:
+				cast_type = "reinterpret";
+				break;
 			default:
 				UNEXPECTED;
 		}
 		switch(stmt.GetOption()) {
-			case SSACastStatement::Option_None: cast_option = ""; break;
-			case SSACastStatement::Option_RoundDefault: cast_option = "round_default"; break;
-			case SSACastStatement::Option_RoundTowardNInfinity: cast_option = "round_ninfinity"; break;
-			case SSACastStatement::Option_RoundTowardPInfinity: cast_option = "round_pinfinity"; break;
-			case SSACastStatement::Option_RoundTowardNearest: cast_option = "round_nearest"; break;
-			case SSACastStatement::Option_RoundTowardZero: cast_option = "round_zero"; break;
+			case SSACastStatement::Option_None:
+				cast_option = "";
+				break;
+			case SSACastStatement::Option_RoundDefault:
+				cast_option = "round_default";
+				break;
+			case SSACastStatement::Option_RoundTowardNInfinity:
+				cast_option = "round_ninfinity";
+				break;
+			case SSACastStatement::Option_RoundTowardPInfinity:
+				cast_option = "round_pinfinity";
+				break;
+			case SSACastStatement::Option_RoundTowardNearest:
+				cast_option = "round_nearest";
+				break;
+			case SSACastStatement::Option_RoundTowardZero:
+				cast_option = "round_zero";
+				break;
 			default:
 				UNEXPECTED;
 		}
-		
-		
+
+
 		str_ << Header(stmt) << " = cast " << cast_type << " " << cast_option << " " << DisassembleType(stmt.GetType()) << " " << stmt.Expr()->GetName() << ";";
 	}
 	void VisitConstantStatement(SSAConstantStatement& stmt) override

@@ -26,7 +26,7 @@ namespace archsim
 
 					uint32_t ReadRegister(MemoryRegister& reg) override;
 					void WriteRegister(MemoryRegister& reg, uint32_t value) override;
-					
+
 					bool Initialise() override;
 				};
 			}

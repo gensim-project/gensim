@@ -572,7 +572,7 @@ namespace captive
 
 				return IRInstruction(MUL, src, dst);
 			}
-			
+
 			static IRInstruction imul(const IROperand &src, const IROperand &dst)
 			{
 				assert(src.size == dst.size);

@@ -286,7 +286,7 @@ bool ArmRealviewEmulationModel::InstallPlatformDevices()
 	// Ethernet Device
 	//AddGenericPrimecellDevice(0x10010000, 0x10000, 0xf0f0f0f0);
 
-	// GPU 
+	// GPU
 
 	if (archsim::options::GPU) {
 		auto gpu_m = mm.GetModule("devices.arm.gpu");

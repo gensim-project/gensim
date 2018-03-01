@@ -141,7 +141,7 @@ bool Processor::InitialiseTracing()
 		str << "." << (uint64_t)this;
 		tracefile = str.str();
 	}
-	
+
 	assert(archsim::options::TraceFile.IsSpecified());
 	trace_mgr = new libtrace::TraceSource(1000000);
 	libtrace::TraceSink *sink = nullptr;
@@ -324,7 +324,7 @@ bool Processor::RunInterp(uint32_t iterations)
 	} else if (IsTracingEnabled()) {
 		while (stepOK && !halted && state.iterations--) {
 			stepOK = step_block_trace();
-			
+
 			if(state.pending_actions) {
 				handle_pending_action();
 			}
@@ -332,7 +332,7 @@ bool Processor::RunInterp(uint32_t iterations)
 	} else {
 		while (stepOK && !halted && state.iterations--) {
 			stepOK = step_block_fast();
-			
+
 			if(state.pending_actions) {
 				handle_pending_action();
 			}

@@ -43,5 +43,5 @@ void SSAConstantStatement::Accept(SSAStatementVisitor& visitor)
 SSAConstantStatement::SSAConstantStatement(SSABlock* parent, const IRConstant &value, const IRType& type, SSAStatement* before)
 	: SSAStatement(Class_Unknown, 0, parent, before), _constant_type(type), Constant(value)
 {
-	
+
 }

@@ -16,7 +16,7 @@ ArchDescription *gensim::arch::testing::GetTestArch()
 
 	desc->Name = "TestArch";
 	desc->wordsize = 32;
-	
+
 	// add some gprs
 	RegSpaceDescriptor *rsd = new RegSpaceDescriptor(&desc->GetRegFile(), 64);
 	desc->GetRegFile().AddRegisterSpace(rsd);
@@ -30,7 +30,7 @@ ArchDescription *gensim::arch::testing::GetTestArch()
 	desc->GetRegFile().AddRegisterSlot(rsd, new RegSlotViewDescriptor(rsd, "N", "uint8", 1, 2));
 	desc->GetRegFile().AddRegisterSlot(rsd, new RegSlotViewDescriptor(rsd, "Z", "uint8", 1, 3));
 
-	
-	
+
+
 	return desc;
 }

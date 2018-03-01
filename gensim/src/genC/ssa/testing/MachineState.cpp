@@ -52,7 +52,7 @@ uint8_t MemoryState::ReadByte(uint64_t addr)
 {
 	if(_data.count(addr) == 0) {
 		_data[addr] = (addr & 0xff) ^ ((addr >> 8) & 0xff);
-	} 
+	}
 	return _data[addr];
 }
 
@@ -119,9 +119,9 @@ uint8_t BasicRegisterFileState::ReadByte(uint32_t offset)
 			throw std::logic_error("Register file access out of range");
 		}
 	}
-	
+
 	offset %= size_;
-	
+
 	if(!data_.count(offset)) {
 		data_[offset] = offset & 0xff;
 	}

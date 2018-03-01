@@ -1364,27 +1364,27 @@ namespace gensim
 				bool EmitDynamicCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
 					const SSACallStatement &Statement = static_cast<const SSACallStatement&>(this->Statement);
-					
+
 #if 0
-					case SSAIntrinsicStatement::SSAIntrinsic_Flush:
-						output << "__irBuilder.CreateCall(txln_ctx.jit_functions.tm_flush, ctx.block.region.values.cpu_ctx_val);";
-						break;
-					case SSAIntrinsicStatement::SSAIntrinsic_FlushITlb:
-						output << "__irBuilder.CreateCall(txln_ctx.jit_functions.tm_flush_itlb, ctx.block.region.values.cpu_ctx_val);";
-						break;
-					case SSAIntrinsicStatement::SSAIntrinsic_FlushDTlb:
-						output << "__irBuilder.CreateCall(txln_ctx.jit_functions.tm_flush_dtlb, ctx.block.region.values.cpu_ctx_val);";
-						break;
-					case SSAIntrinsicStatement::SSAIntrinsic_FlushITlbEntry:
-						assert(arg0);
-						output << "__irBuilder.CreateCall2(txln_ctx.jit_functions.tm_flush_itlb_entry, ctx.block.region.values.cpu_ctx_val, " << arg0->GetDynamicValue() << ");";
-						break;
-					case SSAIntrinsicStatement::SSAIntrinsic_FlushDTlbEntry:
-						assert(arg0);
-						output << "__irBuilder.CreateCall2(txln_ctx.jit_functions.tm_flush_dtlb_entry, ctx.block.region.values.cpu_ctx_val, " << arg0->GetDynamicValue() << ");";
-						break;
+				case SSAIntrinsicStatement::SSAIntrinsic_Flush:
+					output << "__irBuilder.CreateCall(txln_ctx.jit_functions.tm_flush, ctx.block.region.values.cpu_ctx_val);";
+					break;
+				case SSAIntrinsicStatement::SSAIntrinsic_FlushITlb:
+					output << "__irBuilder.CreateCall(txln_ctx.jit_functions.tm_flush_itlb, ctx.block.region.values.cpu_ctx_val);";
+					break;
+				case SSAIntrinsicStatement::SSAIntrinsic_FlushDTlb:
+					output << "__irBuilder.CreateCall(txln_ctx.jit_functions.tm_flush_dtlb, ctx.block.region.values.cpu_ctx_val);";
+					break;
+				case SSAIntrinsicStatement::SSAIntrinsic_FlushITlbEntry:
+					assert(arg0);
+					output << "__irBuilder.CreateCall2(txln_ctx.jit_functions.tm_flush_itlb_entry, ctx.block.region.values.cpu_ctx_val, " << arg0->GetDynamicValue() << ");";
+					break;
+				case SSAIntrinsicStatement::SSAIntrinsic_FlushDTlbEntry:
+					assert(arg0);
+					output << "__irBuilder.CreateCall2(txln_ctx.jit_functions.tm_flush_dtlb_entry, ctx.block.region.values.cpu_ctx_val, " << arg0->GetDynamicValue() << ");";
+					break;
 #endif
-						
+
 					if(Statement.HasValue()) output << "::llvm::Value *" << Statement.GetName() << ";";
 					output << "{";
 					//first, figure out the type of the function we're calling (+1 because of CPU context - thiscall)

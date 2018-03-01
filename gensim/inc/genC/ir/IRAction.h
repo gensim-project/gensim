@@ -99,13 +99,13 @@ namespace gensim
 		};
 
 		class IRExternalAction : public IRCallableAction
-                {
-                public:
-                    IRExternalAction(const IRSignature &signature, GenCContext& context);
-                    
-                    void PrettyPrintHeader(std::ostringstream& out) const override;
-                };
-                
+		{
+		public:
+			IRExternalAction(const IRSignature &signature, GenCContext& context);
+
+			void PrettyPrintHeader(std::ostringstream& out) const override;
+		};
+
 		class IRIntrinsicAction : public IRCallableAction
 		{
 		public:

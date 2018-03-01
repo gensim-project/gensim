@@ -61,7 +61,7 @@ bool LowerVMulF::Lower(const captive::shared::IRInstruction*& insn)
 	} else {
 		assert(false);
 	}
-	
+
 	if(rhs.is_alloc_reg()) {
 		Encoder().movq(GetCompiler().register_from_operand(&rhs), BLKJIT_FP_1);
 	} else  if(rhs.is_alloc_stack()) {
@@ -70,7 +70,7 @@ bool LowerVMulF::Lower(const captive::shared::IRInstruction*& insn)
 	} else {
 		assert(false);
 	}
-	
+
 	// emit instruction based on ELEMENT size (total vector size / number of elements)
 	switch(lhs.size / width.value) {
 		case 4:

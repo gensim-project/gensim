@@ -41,7 +41,7 @@ public:
 		if(symbol->GetType().Reference) {
 			return false;
 		}
-		
+
 		int reads = 0;
 		for(SSAValue *use : ((SSAValue*)(symbol))->GetUses()) {
 			if(dynamic_cast<SSAVariableReadStatement*>(use)) {
@@ -65,7 +65,7 @@ public:
 		bool infochanged = false;
 		bool newblock = blocks.count(block) == 0;
 		blocks.insert(block);
-		
+
 		std::set<SSASymbol *> read_symbols;
 		// look through the block for variable reads
 		for(auto stmt : block->GetStatements()) {
@@ -78,13 +78,13 @@ public:
 						}
 					}
 				}
-				
+
 				if(spans) {
 					read_symbols.insert(read->Target());
 				}
 			}
 		}
-		
+
 		// insert a phi node for every live value which is read. If a phi statement already
 		// exists for this block/symbol, then add to it.
 		for(auto live_value : read_symbols) {
@@ -117,7 +117,7 @@ public:
 		for(auto i : block->GetSuccessors()) {
 			changed |= RunOnBlock(i, blocks, live_values, phi_statements, valid_variables);
 		}
-		
+
 		return changed;
 	}
 
@@ -125,12 +125,12 @@ public:
 	{
 		SSAPass *renamer = GetComponent<SSAPass>("ParameterRename");
 		renamer->Run(action);
-		
+
 		LoopAnalysis la;
 		if(la.Analyse(action).LoopExists) {
 			return false;
 		}
-		
+
 		std::set<SSASymbol *> valid_variables;
 		for(auto s : action.Symbols()) {
 			if(IsValidToReplace(s)) {

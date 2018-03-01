@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   string_util.h
  * Author: harry
  *
@@ -18,8 +18,10 @@
 #include <string>
 #include <sstream>
 
-namespace archsim {
-	namespace util {
+namespace archsim
+{
+	namespace util
+	{
 
 		std::vector<std::string> split_string(const std::string &input, char delim);
 

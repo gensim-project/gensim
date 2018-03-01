@@ -145,7 +145,7 @@ std::map<std::string, uint32_t> &ISADescription::Get_Decode_Fields() const
 			}
 		}
 	}
-	fieldsSet = true; 
+	fieldsSet = true;
 	return fields;
 }
 

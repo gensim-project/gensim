@@ -380,7 +380,7 @@ void SSAInterpreterStatementVisitor::VisitDeviceReadStatement(SSADeviceReadState
 void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStatement& stmt)
 {
 	_vmstate.SetResult(Interpret_Normal);
-	
+
 	switch(stmt.Type) {
 		case SSAIntrinsicStatement::SSAIntrinsic_GetFeature: // TODO: Implement properly
 		case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode: // TODO: Implement properly
@@ -473,9 +473,9 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 			    "seto %1;"
 			    : "=r"(flags), "=r"(v), "+r"(rhs_i)  : "r"((uint8_t)carry_in.Int()), "r"((uint32_t)lhs.Int()) : "cc"
 			);
-			
+
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(result));
-			
+
 			if (stmt.Type == SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags) {
 				uint8_t c = (flags >> 8) & 1;
 				uint8_t z = (flags >> 14) & 1;
@@ -491,25 +491,24 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 				_machine_state.RegisterFile().Write8(z_offset, z);
 				_machine_state.RegisterFile().Write8(n_offset, n);
 			}
-			
+
 			break;
 		}
-		
+
 		case SSAIntrinsicStatement::SSAIntrinsic_Clz32: {
 			uint32_t input = _vmstate.GetStatementValue(stmt.Args(0)).Int();
 			uint32_t result = __builtin_clz(input);
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(result));
 			break;
 		}
-		
+
 		case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
 			_vmstate.SetResult(Interpret_Halt);
 			break;
-		default:
-		{
+		default: {
 			std::ostringstream intrinsic;
 			stmt.PrettyPrint(intrinsic);
-			
+
 			throw std::logic_error("Intrinsic not handled in interpreter: " + intrinsic.str());
 		}
 

@@ -44,7 +44,7 @@ namespace gensim
 				{
 					return {};
 				}
-                                
+
 				SSARaiseStatement(SSABlock *parent, SSAStatement *before = NULL);
 				~SSARaiseStatement();
 			};

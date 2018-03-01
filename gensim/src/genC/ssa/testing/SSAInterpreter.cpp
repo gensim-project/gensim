@@ -19,7 +19,7 @@ void VMActionState::SetStatementValue(SSAStatement* stmt, IRConstant value)
 {
 	GASSERT(value.Type() != IRConstant::Type_Invalid);
 	Statements()[stmt] = {timestamp_, IRType::Cast(value, stmt->GetType(), stmt->GetType())};
-	
+
 	timestamp_++;
 }
 

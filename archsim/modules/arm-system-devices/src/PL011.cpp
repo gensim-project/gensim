@@ -44,7 +44,8 @@ PL011::~PL011()
 	if(GetSerialPort())GetSerialPort()->Close();
 }
 
-bool PL011::Initialise() {
+bool PL011::Initialise()
+{
 	return true;
 }
 

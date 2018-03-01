@@ -54,7 +54,7 @@ bool AsmDescriptionParser::Parse(void *ptree, const ISADescription &isa)
 	pts->free(pts);
 
 	auto disasm_fields = isa.Get_Disasm_Fields();
-	
+
 	for (uint32_t i = 2; i < tree->getChildCount(tree); i++) {
 		pANTLR3_BASE_TREE node = (pANTLR3_BASE_TREE)tree->getChild(tree, i);
 		switch (node->getType(node)) {

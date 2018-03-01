@@ -6,11 +6,13 @@ using namespace gensim::genc::ssa::testing;
 using namespace gensim::genc::ssa;
 using namespace gensim::genc::ssa::validation;
 
-class SSA_Validate_RegisterIndex : public SSATestFixture { 
+class SSA_Validate_RegisterIndex : public SSATestFixture
+{
 
 };
 
-TEST_F(SSA_Validate_RegisterIndex, ReadSlotInRange) {
+TEST_F(SSA_Validate_RegisterIndex, ReadSlotInRange)
+{
 	const std::string ssaasm = R"||(
 action void test_action () [] < b_0 > { 
 block b_0 {

@@ -18,10 +18,12 @@ using gensim::DiagnosticClass;
 using namespace gensim::genc::ssa;
 using namespace gensim::genc::ssa::validation;
 
-class SingleControlFlowStatementValidationPass : public SSAActionValidationPass {
-	bool Run(const SSAFormAction* action, DiagnosticContext& ctx) override {
+class SingleControlFlowStatementValidationPass : public SSAActionValidationPass
+{
+	bool Run(const SSAFormAction* action, DiagnosticContext& ctx) override
+	{
 		bool success = true;
-		
+
 		for(auto block : action->Blocks) {
 			bool found = false;
 			for(auto stmt : block->GetStatements()) {
@@ -35,7 +37,7 @@ class SingleControlFlowStatementValidationPass : public SSAActionValidationPass 
 				}
 			}
 		}
-		
+
 		return success;
 	}
 };

@@ -31,7 +31,7 @@ bool SSAActionValidator::Run(SSAFormAction* action, DiagnosticContext& diag)
 			}
 		}
 	}
-	
+
 	for(auto i : passes_) {
 		if(!i->Run(action, diag)) {
 			return false;

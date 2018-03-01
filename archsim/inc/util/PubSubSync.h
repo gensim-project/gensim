@@ -118,7 +118,10 @@ namespace archsim
 		{
 		public:
 			PubSubContext();
-			bool Initialise() {return true;}
+			bool Initialise()
+			{
+				return true;
+			}
 			const PubSubscription *Subscribe(PubSubType::PubSubType type, PubSubCallback callback, void *context);
 			void Publish(PubSubType::PubSubType type, const void *data);
 

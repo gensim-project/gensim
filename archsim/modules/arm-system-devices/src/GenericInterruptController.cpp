@@ -37,7 +37,8 @@ namespace archsim
 
 			}
 
-			bool GICDistributorInterface::Initialise() {
+			bool GICDistributorInterface::Initialise()
+			{
 				return true;
 			}
 
@@ -264,7 +265,8 @@ namespace archsim
 
 			}
 
-			bool GICCPUInterface::Initialise() {
+			bool GICCPUInterface::Initialise()
+			{
 				return true;
 			}
 
@@ -481,7 +483,8 @@ namespace archsim
 			{
 			}
 
-			bool GIC::Initialise() {
+			bool GIC::Initialise()
+			{
 				return true;
 			}
 

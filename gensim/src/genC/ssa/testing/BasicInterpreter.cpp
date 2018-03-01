@@ -25,7 +25,7 @@ gensim::genc::IRConstant BasicInterpreter::GetRegisterState(uint32_t bank, uint3
 	const auto &descriptor = arch_.GetRegFile().GetBankByIdx(bank);
 	uint32_t base_offset = descriptor.GetRegFileOffset();
 	uint32_t reg_offset = descriptor.GetElementSize() * index;
-	
+
 	return IRConstant::Integer(msi_.RegisterFile().Read32(base_offset + reg_offset));
 }
 
@@ -35,17 +35,17 @@ void BasicInterpreter::SetRegisterState(uint32_t bank, uint32_t index, gensim::g
 	const auto &descriptor = arch_.GetRegFile().GetBankByIdx(bank);
 	uint32_t base_offset = descriptor.GetRegFileOffset();
 	uint32_t reg_offset = descriptor.GetElementSize() * index;
-	
+
 	return msi_.RegisterFile().Write32(base_offset + reg_offset, value.Int());
 }
 
 void BasicInterpreter::RandomiseInstruction(const gensim::genc::ssa::SSAType &inst_type)
 {
 	std::mt19937_64 random;
-	
+
 	GASSERT(inst_type.IsStruct());
 	auto structtype = inst_type.BaseType.StructType;
-	
+
 	for(auto member : structtype->Members) {
 		innerinterpreter_.State().Instruction().SetField(member.Name, IRConstant::Integer(random()));
 	}

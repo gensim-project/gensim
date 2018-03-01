@@ -55,7 +55,7 @@ namespace archsim
 						{
 							irq_enabled = false;
 						}
-						
+
 						bool Initialise() override;
 
 					protected:

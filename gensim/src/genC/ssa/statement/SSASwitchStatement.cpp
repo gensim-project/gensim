@@ -61,9 +61,9 @@ SSAControlFlowStatement::target_list_t SSASwitchStatement::GetTargets()
 	std::set<SSABlock*> targets;
 	for(unsigned i = 1; i < OperandCount(); i += 2) {
 		auto operand = GetOperand(i);
-		
+
 		GASSERT(dynamic_cast<SSABlock*>(operand) != nullptr);
-		
+
 		SSABlock *block = static_cast<SSABlock*>(operand);
 		targets.insert(block);
 	}

@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   BasicInterpreter.h
  * Author: harry
  *
@@ -19,33 +19,39 @@
 #include "genC/ssa/testing/SSAInterpreter.h"
 #include "genC/ssa/SSAType.h"
 
-namespace gensim {
-	namespace arch {
+namespace gensim
+{
+	namespace arch
+	{
 		class ArchDescription;
 	}
-	namespace genc {
-		namespace ssa {
+	namespace genc
+	{
+		namespace ssa
+		{
 			class SSAFormAction;
-			
-			namespace testing {
+
+			namespace testing
+			{
 				/**
 				 * This is a wrapper around the Interpreter system which makes
 				 * it easier to construct and interface with.
 				 */
-				class BasicInterpreter {
+				class BasicInterpreter
+				{
 				public:
 					BasicInterpreter(const arch::ArchDescription &arch);
-					
+
 					IRConstant GetRegisterState(uint32_t bank, uint32_t index);
 					void SetRegisterState(uint32_t bank, uint32_t index, IRConstant value);
-					
+
 					void RandomiseInstruction(const gensim::genc::ssa::SSAType &inst_type);
-					
+
 					bool ExecuteAction(const SSAFormAction *action, const std::vector<IRConstant> &param_values = {});
 				private:
 					SSAInterpreter innerinterpreter_;
 					const arch::ArchDescription &arch_;
-					
+
 					MachineState<BasicRegisterFileState,MemoryState> msi_;
 				};
 			}

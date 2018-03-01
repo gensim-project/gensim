@@ -83,7 +83,7 @@ namespace gensim
 				} else {
 					str << GetName() << " = (" << GetType().PrettyPrint() << ")" << Expr()->GetName();
 				}
-				
+
 				if (IsFixed()) str << " (const)";
 			}
 
@@ -120,7 +120,7 @@ namespace gensim
 			void SSAIntrinsicStatement::PrettyPrint(std::ostringstream &str) const
 			{
 				str << GetName() << " = " << IntrinsicNames[Type];
-				
+
 				// TODO: Print arguments?
 			}
 
@@ -195,7 +195,7 @@ namespace gensim
 				str << GetName() << ": Return";
 				if (Value() != NULL) str << " " << Value()->GetName();
 			}
-			
+
 			void SSARaiseStatement::PrettyPrint(std::ostringstream &str) const
 			{
 				str << GetName() << ": Raise";

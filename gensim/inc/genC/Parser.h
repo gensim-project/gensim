@@ -92,12 +92,13 @@ namespace gensim
 				return lhs.Line < rhs.Line;
 			}
 		};
-		
-		class FileContents {
+
+		class FileContents
+		{
 		public:
 			FileContents(const std::string &filename);
 			FileContents(const std::string &filename, const std::string &filetext);
-			
+
 			std::string Filename;
 			pANTLR3_INPUT_STREAM TokenStream;
 		};

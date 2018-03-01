@@ -135,7 +135,7 @@ RegBankViewDescriptor *load_reg_view_bank(pANTLR3_BASE_TREE node, RegSpaceDescri
 	uint32_t ecount = strtol((char*)ecount_node->getText(ecount_node)->chars, NULL, 10);
 	uint32_t esize = strtol((char*)esize_node->getText(esize_node)->chars, NULL, 10);
 	uint32_t estride = strtol((char*)estride_node->getText(estride_node)->chars, NULL, 10);
-	
+
 	return new RegBankViewDescriptor(space, id, offset, rcount, rstride, ecount, esize, estride, type);
 }
 

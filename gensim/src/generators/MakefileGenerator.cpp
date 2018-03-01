@@ -44,7 +44,7 @@ namespace gensim
 			makefile << "UNAME := $(shell uname)\n"
 			         "LLVM_INCLUDE=" << GetProperty("llvm_path") << "/include\n"
 			         "ARCHSIM_INCLUDE=" << GetProperty("archsim_path") << "\n"
-					 "LIBTRACE_INCLUDE=" << GetProperty("libtrace_path") << "\n"
+			         "LIBTRACE_INCLUDE=" << GetProperty("libtrace_path") << "\n"
 			         "CXX=g++\n"
 			         "CFLAGS= -std=c++11 -fPIC -I$(ARCHSIM_INCLUDE) -I$(LLVM_INCLUDE) -I$(LIBTRACE_INCLUDE) -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -fno-rtti -fmax-errors=10";
 			if (GetProperty("Debug") == "1") makefile << " -g ";

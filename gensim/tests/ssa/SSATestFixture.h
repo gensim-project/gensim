@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   SSATestFixture.h
  * Author: harry
  *
@@ -27,26 +27,36 @@ using namespace gensim::genc::ssa::testing;
 using namespace gensim::genc::ssa;
 using namespace gensim::genc::ssa::validation;
 
-class SSATestFixture : public ::testing::Test { 
+class SSATestFixture : public ::testing::Test
+{
 public:
 	SSATestFixture();
-	
+
 	bool RunPass(SSAFormAction* action, SSAStatementValidationPass *pass);
 
 	SSAFormAction *CompileAsm(const std::string &src, const std::string &action_name);
 	SSAContext *CompileAsm(const std::string &src);
-	
+
 	bool TryAsmWithPass(const std::string &src, gensim::genc::ssa::validation::SSAStatementValidationPass *pass);
-	
-	gensim::DiagnosticContext &Diag() { return diag_ctx_; }
-	
-	gensim::arch::ArchDescription *GetTestArch() { return test_arch_; }
-	gensim::genc::ssa::SSAContext *GetSSACtx() { return test_context_; }
-	
+
+	gensim::DiagnosticContext &Diag()
+	{
+		return diag_ctx_;
+	}
+
+	gensim::arch::ArchDescription *GetTestArch()
+	{
+		return test_arch_;
+	}
+	gensim::genc::ssa::SSAContext *GetSSACtx()
+	{
+		return test_context_;
+	}
+
 private:
 	gensim::arch::ArchDescription *test_arch_;
 	gensim::genc::ssa::SSAContext *test_context_;
-	
+
 	gensim::DiagnosticSource diag_src_;
 	gensim::DiagnosticContext diag_ctx_;
 };

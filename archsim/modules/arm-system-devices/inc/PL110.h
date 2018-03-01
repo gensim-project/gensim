@@ -24,7 +24,7 @@ namespace archsim
 			public:
 				PL110(EmulationModel &parent, Address base_address);
 				~PL110();
-				
+
 				bool Initialise() override;
 
 				inline bool SetIrqLine(IRQLine *nirq)

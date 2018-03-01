@@ -3,7 +3,7 @@
 #define ENUM_ENTRY(e) SSAIntrinsic_##e,
 
 enum IntrinsicType {
-	#include "genC/ssa/statement/SSAIntrinsicTypes.h"
+#include "genC/ssa/statement/SSAIntrinsicTypes.h"
 };
 
 #undef ENUM_ENTRY
@@ -15,7 +15,7 @@ enum IntrinsicType {
 #define ENUM_ENTRY(e) #e,
 
 static const char *IntrinsicNames[] = {
-	#include "genC/ssa/statement/SSAIntrinsicTypes.h"
+#include "genC/ssa/statement/SSAIntrinsicTypes.h"
 };
 
 #undef ENUM_ENTRY

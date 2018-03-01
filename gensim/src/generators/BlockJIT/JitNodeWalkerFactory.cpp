@@ -432,7 +432,7 @@ namespace gensim
 							output << "ctx.add_instruction(IRInstruction::sub(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
 							break;
 						case BinaryOperator::Multiply:
-							
+
 							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
 							if(LHSNode->Statement.GetType().Signed || RHSNode->Statement.GetType().Signed) {
 								output << "ctx.add_instruction(IRInstruction::imul(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
@@ -1267,7 +1267,8 @@ namespace gensim
 
 							output << "ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), IROperand::vreg(tmp,8)));";
 							output << "}";
-						}						return true;
+						}
+						return true;
 					} else {
 						output << "{";
 						output << "IRRegId tmp = ctx.alloc_reg(4);\n";
@@ -1312,9 +1313,9 @@ namespace gensim
 						output << "ctx.add_instruction(IRInstruction::ldreg(IROperand::vreg(tmp, 4), " << operand_for_stmt(Statement) << "));";
 
 						output <<
-							   "if(trace) {"
-							   "  ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*RegNum) << ", " << operand_for_stmt(Statement) << "));"
-							   "}";
+						       "if(trace) {"
+						       "  ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*RegNum) << ", " << operand_for_stmt(Statement) << "));"
+						       "}";
 
 						output << "}";
 					}
@@ -1808,7 +1809,7 @@ namespace gensim
 
 					// IR Call instruction supports up to 5 operands
 					assert(Statement.ArgCount() <= 5);
-					
+
 					if (Statement.Target()->GetPrototype().GetIRSignature().GetName() == "flush") {
 						output << "ctx.add_instruction(IRInstruction::flush());\n";
 					} else if (Statement.Target()->GetPrototype().GetIRSignature().GetName() == "flush_itlb") {
@@ -1831,7 +1832,7 @@ namespace gensim
 
 						output << "));\n";
 					}
-					
+
 					return true;
 				}
 			};

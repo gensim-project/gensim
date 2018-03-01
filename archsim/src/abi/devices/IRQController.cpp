@@ -31,7 +31,7 @@ namespace archsim
 			{
 
 			}
-			
+
 			bool IRQLine::Initialise()
 			{
 				return true;

@@ -13,9 +13,11 @@
 using namespace gensim::genc::ssa;
 using namespace gensim::genc::ssa::validation;
 
-class CallValidationPass : public SSAStatementValidationPass {
+class CallValidationPass : public SSAStatementValidationPass
+{
 public:
-	void VisitCallStatement(SSACallStatement& stmt) override {
+	void VisitCallStatement(SSACallStatement& stmt) override
+	{
 		// check that call parameters match call
 		unsigned arg_count = stmt.ArgCount();
 		unsigned expected_arg_count = stmt.Target()->GetPrototype().ParameterTypes().size();
@@ -23,11 +25,11 @@ public:
 			Fail("Expected " + std::to_string(expected_arg_count) + " arguments, got " + std::to_string(arg_count), stmt.GetDiag());
 			return;
 		}
-		
+
 		for(unsigned i = 0; i < arg_count; ++i) {
 			auto &arg_type = stmt.Target()->GetPrototype().ParameterTypes().at(i);
 			auto arg = stmt.Arg(i);
-			
+
 			if(arg_type.Reference) {
 				SSASymbol *sym = dynamic_cast<SSASymbol*>(arg);
 				if(sym != nullptr) {

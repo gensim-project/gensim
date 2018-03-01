@@ -34,10 +34,11 @@ using namespace gensim::genc::ssa;
 
 template <typename T> std::string FormatSet(const std::set<T> &set);
 
-template <> std::string FormatSet<SSAStatement*>(const std::set<SSAStatement*> &set){
+template <> std::string FormatSet<SSAStatement*>(const std::set<SSAStatement*> &set)
+{
 	std::stringstream str;
 	str << "{";
-	
+
 	bool first = true;
 	for(auto i : set) {
 		if(!first) {
@@ -47,7 +48,7 @@ template <> std::string FormatSet<SSAStatement*>(const std::set<SSAStatement*> &
 			first = false;
 		}
 	}
-	
+
 	str << "}";
 	return str.str();
 }
@@ -61,12 +62,15 @@ public:
 
 class PhiSetEliminationPass : public SSAPass
 {
-public:	
-	PhiSetInfo GetPhiSets(SSAFormAction &action) const {
+public:
+	PhiSetInfo GetPhiSets(SSAFormAction &action) const
+	{
 		PhiSetInfo psi;
-		
-		auto stmts = action.GetStatements([](SSAStatement *stmt){ return dynamic_cast<SSAPhiStatement*>(stmt) != nullptr; });
-		
+
+		auto stmts = action.GetStatements([](SSAStatement *stmt) {
+			return dynamic_cast<SSAPhiStatement*>(stmt) != nullptr;
+		});
+
 		for(SSAStatement *stmt : stmts) {
 			SSAPhiStatement *phi_stmt = (SSAPhiStatement*)stmt;
 			std::set<SSAStatement*> phi_set;
@@ -75,11 +79,12 @@ public:
 			}
 			psi.PhiSets[phi_set].push_back(phi_stmt);
 		}
-		
+
 		return psi;
 	}
-	
-	void ReplacePhiNode(SSAPhiStatement *phi_stmt, SSASymbol *symbol) const {		
+
+	void ReplacePhiNode(SSAPhiStatement *phi_stmt, SSASymbol *symbol) const
+	{
 		SSAVariableReadStatement *phi_read = new SSAVariableReadStatement(phi_stmt->Parent, symbol, phi_stmt);
 		auto uses = phi_stmt->GetUses();
 		for(auto i : uses) {
@@ -88,24 +93,25 @@ public:
 			}
 		}
 	}
-	
-	void ReplaceNonPhiNode(SSAStatement *stmt, SSASymbol *symbol) const {
+
+	void ReplaceNonPhiNode(SSAStatement *stmt, SSASymbol *symbol) const
+	{
 		// after the statement, insert a write to the phi symbol
 		auto stmt_it = std::find(stmt->Parent->GetStatements().begin(), stmt->Parent->GetStatements().end(), stmt);
 		stmt_it++;
-		
+
 		new SSAVariableWriteStatement(stmt->Parent, symbol, stmt, *stmt_it);
 	}
-	
+
 	bool Run(SSAFormAction& action) const override
 	{
 		SSAPass *phi_cleanup_pass = GetComponent<SSAPass>("PhiCleanup");
 		phi_cleanup_pass->Run(action);
 		delete phi_cleanup_pass;
-		
+
 		// create phi webs
 		auto phisets = GetPhiSets(action);
-		
+
 		std::map<PhiSetInfo::phi_set_t, SSASymbol*> phi_symbols;
 		for(auto &phiset : phisets.PhiSets) {
 			SSAType symbol_type = phiset.second.front()->GetType();
@@ -113,22 +119,22 @@ public:
 			action.AddSymbol(phi_symbol);
 			phi_symbols[phiset.first] = phi_symbol;
 		}
-		
+
 		for(auto &phiset : phisets.PhiSets) {
 			auto phi_symbol = phi_symbols[phiset.first];
 			for(auto i : phiset.first) {
 				ReplaceNonPhiNode((SSAStatement*)i, phi_symbol);
 			}
 		}
-		
+
 		for(auto &phiset : phisets.PhiSets) {
 			auto phi_symbol = phi_symbols[phiset.first];
 			for(auto i : phiset.second) {
 				ReplacePhiNode((SSAPhiStatement*)i, phi_symbol);
 			}
 		}
-		
-		
+
+
 		return false;
 	}
 };

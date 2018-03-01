@@ -68,7 +68,7 @@ namespace gensim
 				{
 					return Manager.GetArch().Name + "_cpu";
 				}
-				
+
 				inline std::string EnumNameForFeatures() const
 				{
 					return Manager.GetArch().Name + "_features";
@@ -88,14 +88,14 @@ namespace gensim
 					str << "namespace " << arch.Name << " {";
 
 					str << "class " << arch.Name << "_environment;";
-					
+
 					// Features
 					str << "enum " << EnumNameForFeatures() << " {\n";
-					
+
 					for (const auto& feat : arch.GetFeatures()) {
 						str << feat.GetName() << " = " << feat.GetId() << ",\n";
 					}
-					
+
 					str << "};";
 
 					// CPU
@@ -180,7 +180,7 @@ namespace gensim
 
 					str << "void __builtin_set_feature(" << EnumNameForFeatures() << " feature, uint32_t value) { feature_manager().set_feature(feature, value); }";
 					str << "uint32_t __builtin_get_feature(" << EnumNameForFeatures() << " feature) const { return feature_manager().get_feature(feature); }";
-					
+
 					str << "public:\n";
 
 					for (const auto& helper : arch.ISAs.front()->HelperFns) {
@@ -194,7 +194,7 @@ namespace gensim
 					}
 
 					str << "};";
-					
+
 					str << "}";
 					str << "}";
 					str << "}";

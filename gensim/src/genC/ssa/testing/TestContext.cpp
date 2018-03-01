@@ -24,9 +24,9 @@ SSAContext *gensim::genc::ssa::testing::GetTestContext()
 	auto isa = gensim::isa::testing::GetTestISA(false);
 	auto ctx = new SSAContext(*isa, *gensim::arch::testing::GetTestArch());
 	gensim::genc::InstStructBuilder isb;
-	
+
 	ctx->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa));
-	
+
 	return ctx;
 }
 

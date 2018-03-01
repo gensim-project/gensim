@@ -21,15 +21,19 @@ using namespace gensim::genc::ssa::validation;
 
 
 
-class ConstantValueSizeValidationPass : public SSAStatementValidationPass {
-	void VisitConstantStatement(SSAConstantStatement& stmt) override {
+class ConstantValueSizeValidationPass : public SSAStatementValidationPass
+{
+	void VisitConstantStatement(SSAConstantStatement& stmt) override
+	{
 		bool constant_fits_type = SSAType::Cast(stmt.Constant, stmt.GetType(), stmt.GetType()) == stmt.Constant;
 		Assert(constant_fits_type, "Constant value does not fit into specified type", stmt.GetDiag());
 	}
 };
 
-class ConstantValueTypeValidationPass : public SSAStatementValidationPass {
-	void VisitConstantStatement(SSAConstantStatement& stmt) override {
+class ConstantValueTypeValidationPass : public SSAStatementValidationPass
+{
+	void VisitConstantStatement(SSAConstantStatement& stmt) override
+	{
 		switch(stmt.Constant.Type()) {
 			case IRConstant::Type_Integer:
 				Assert(!stmt.GetType().IsFloating(), "Value type mismatch in constant", stmt.GetDiag());

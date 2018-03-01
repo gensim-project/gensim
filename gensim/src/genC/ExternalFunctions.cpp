@@ -27,9 +27,12 @@ void GenCContext::AddExternalFunction(const std::string& name, const IRType& ret
 static const IRType &WordType(const arch::ArchDescription *arch)
 {
 	switch(arch->wordsize) {
-		case 32: return IRTypes::UInt32;
-		case 64: return IRTypes::UInt64;
-		default: UNIMPLEMENTED;
+		case 32:
+			return IRTypes::UInt32;
+		case 64:
+			return IRTypes::UInt64;
+		default:
+			UNIMPLEMENTED;
 	}
 }
 
@@ -38,7 +41,7 @@ void GenCContext::LoadExternalFunctions()
 	const IRType &wordtype = WordType(&Arch);
 
 	AddExternalFunction("__builtin_external_call", IRTypes::Void, {});
-	
+
 	// TLB Maintenance
 	AddExternalFunction("flush", IRTypes::Void, {});
 	AddExternalFunction("flush_dtlb", IRTypes::Void, {});
@@ -54,7 +57,7 @@ SSAStatement *IRCallExpression::EmitExternalCall(SSABuilder &bldr, const gensim:
 	if (target == nullptr) {
 		throw std::logic_error("Target of external call is not an IRExternalAction");
 	}
-	
+
 	SSAActionPrototype prototype(target->GetSignature());
 	SSAExternalAction *target_action = nullptr;
 	if(!bldr.Context.HasAction(prototype.GetIRSignature().GetName())) {
@@ -63,9 +66,9 @@ SSAStatement *IRCallExpression::EmitExternalCall(SSABuilder &bldr, const gensim:
 	} else {
 		target_action = static_cast<SSAExternalAction*>(bldr.Context.GetAction(prototype.GetIRSignature().GetName()));
 	}
-	
+
 	std::vector<SSAValue *> arg_statements;
-	
+
 	auto params = target->GetSignature().GetParams();
 	if (params.size() != Args.size()) throw std::logic_error("Argument/Parameter count mismatch when emitting external call '" + target->GetSignature().GetName() + "'");
 

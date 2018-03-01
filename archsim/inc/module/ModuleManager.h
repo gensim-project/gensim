@@ -35,18 +35,19 @@ namespace archsim
 			bool HasModule(const std::string &module_name) const;
 
 			const ModuleInfo *GetModule(const std::string &module_name) const;
-			
-			template<typename T> const T* GetModuleEntry(const std::string &fully_qualified_name) const {
+
+			template<typename T> const T* GetModuleEntry(const std::string &fully_qualified_name) const
+			{
 				const ModuleInfo *module = GetModuleByPrefix(fully_qualified_name);
 				std::string entry_name = fully_qualified_name.substr(module->GetName().size() + 1);
-				
+
 				return module->GetEntry<T>(entry_name);
 			}
-			
+
 		private:
 			const ModuleInfo *GetModuleByPrefix(const char *str) const;
 			const ModuleInfo *GetModuleByPrefix(const std::string &fully_qualified_name) const;
-			
+
 			std::map<std::string, ModuleInfo *> loaded_modules_;
 
 		};

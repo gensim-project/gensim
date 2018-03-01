@@ -26,7 +26,7 @@ bool SSAValidationManager::Run(SSAFormAction* action, DiagnosticContext &ctx)
 			action_passes_.push_back(GetComponent<SSAActionValidationPass>(i));
 		}
 	}
-	
+
 	for(auto block : action->Blocks) {
 		for(auto stmt : block->GetStatements()) {
 			if(!Run(stmt, ctx)) {
@@ -34,7 +34,7 @@ bool SSAValidationManager::Run(SSAFormAction* action, DiagnosticContext &ctx)
 			}
 		}
 	}
-	
+
 	bool success = true;
 	for(auto pass : action_passes_) {
 		success &= pass->Run(action, ctx);
@@ -42,13 +42,14 @@ bool SSAValidationManager::Run(SSAFormAction* action, DiagnosticContext &ctx)
 	return success;
 }
 
-bool SSAValidationManager::Run(SSAStatement* stmt, DiagnosticContext &ctx) {
+bool SSAValidationManager::Run(SSAStatement* stmt, DiagnosticContext &ctx)
+{
 	if(statement_passes_.empty()) {
 		for(auto i : GetRegisteredComponentNames<SSAStatementValidationPass>()) {
 			statement_passes_.push_back(GetComponent<SSAStatementValidationPass>(i));
 		}
 	}
-	
+
 	bool success = true;
 	for(auto pass : statement_passes_) {
 		success &= pass->Run(stmt, ctx);

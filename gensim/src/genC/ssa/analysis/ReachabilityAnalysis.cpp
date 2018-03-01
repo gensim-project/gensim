@@ -39,9 +39,9 @@ std::set<SSABlock*> ReachabilityAnalysis::GetReachable(const SSAFormAction& acti
 
 		is_block_reachable[block] = true;
 
-		// Cannot use GetSuccessors straight away since we might be called from 
+		// Cannot use GetSuccessors straight away since we might be called from
 		// a context where the SSA is not valid (e.g., empty blocks)
-		
+
 		if(!block->GetStatements().empty()) {
 			if(block->GetControlFlow() != nullptr) {
 				for(auto succ : block->GetSuccessors()) {

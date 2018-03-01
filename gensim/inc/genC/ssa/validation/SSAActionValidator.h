@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   SSAActionValidator.h
  * Author: harry
  *
@@ -18,16 +18,21 @@
 
 #include <vector>
 
-namespace gensim {
+namespace gensim
+{
 	class DiagnosticContext;
-	
-	namespace genc {
-		namespace ssa {
+
+	namespace genc
+	{
+		namespace ssa
+		{
 			class SSAFormAction;
-			namespace validation {
+			namespace validation
+			{
 				class SSAActionValidationPass;
-				
-				class SSAActionValidator {
+
+				class SSAActionValidator
+				{
 				public:
 					SSAActionValidator();
 					bool Run(SSAFormAction *action, DiagnosticContext &diag);

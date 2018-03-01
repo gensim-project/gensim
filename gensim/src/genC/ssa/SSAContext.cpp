@@ -171,13 +171,13 @@ bool SSAContext::Validate(DiagnosticContext& ctx)
 {
 	using namespace validation;
 	SSAActionValidator man;
-	
+
 	bool success = true;
 	for(auto action : Actions()) {
 		if(dynamic_cast<SSAFormAction*>(action.second)) {
 			success &= man.Run((SSAFormAction*)action.second, ctx);
 		}
 	}
-	
+
 	return success;
 }

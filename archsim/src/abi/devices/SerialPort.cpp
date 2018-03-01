@@ -23,7 +23,8 @@ using namespace archsim::abi::devices;
 static archsim::abi::devices::ComponentDescriptor serialport_descriptor("SerialPort");
 SerialPort::SerialPort() : Component(serialport_descriptor) {}
 
-SerialPort::~SerialPort() {
+SerialPort::~SerialPort()
+{
 }
 
 bool SerialPort::Initialise()

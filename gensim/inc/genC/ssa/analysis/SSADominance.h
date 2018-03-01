@@ -28,7 +28,8 @@ namespace gensim
 			class SSABlock;
 			class SSAFormAction;
 
-			namespace analysis {
+			namespace analysis
+			{
 				class SSADominance
 				{
 				public:

@@ -118,12 +118,12 @@ bool ArmVersatileEmulationModel::AddGenericPrimecellDevice(Address base_addr, ui
 bool ArmVersatileEmulationModel::InstallPlatformDevices()
 {
 	using module::ModuleDeviceEntry;
-	
+
 	LC_INFO(LogArmVerstaileEmulationModel) << "Installing platform devices";
 
 	auto &mm = GetSystem().GetModuleManager();
 	auto adm = mm.GetModule("devices.arm.system");
-	
+
 	archsim::abi::devices::gfx::VirtualScreenManagerBase *screen_man = NULL;
 	if(!GetComponentInstance(archsim::options::ScreenManagerType, screen_man)) {
 		fprintf(stderr, "Could not instantiate Screen Manager %s!\n%s\n", archsim::options::ScreenManagerType.GetValue().c_str(), GetRegisteredComponents(screen_man).c_str());;
@@ -146,7 +146,7 @@ bool ArmVersatileEmulationModel::InstallPlatformDevices()
 	pl190->SetParameter("IRQLine", GetBootCore()->GetIRQLine(0));
 	pl190->SetParameter("FIQLine", GetBootCore()->GetIRQLine(1));
 	pl190->Initialise();
-	
+
 	if(!HackyMMIORegisterDevice(*pl190)) return false;
 
 	auto timer0 = adm->GetEntry<ModuleDeviceEntry>("SP804")->Get(*this, Address(0x101e2000));
@@ -156,7 +156,7 @@ bool ArmVersatileEmulationModel::InstallPlatformDevices()
 	auto timer1 = adm->GetEntry<ModuleDeviceEntry>("SP804")->Get(*this, Address(0x101e3000));
 	timer1->SetParameter("IRQLine", irq_controller->RegisterSource(5));
 	if(!HackyMMIORegisterDevice(*timer1)) return false;
-	
+
 	auto sic = adm->GetEntry<ModuleDeviceEntry>("VersatileSIC")->Get(*this, Address(0x10003000));
 	auto sic_controller = dynamic_cast<IRQController*>(sic);
 	sic->SetParameter("IRQLine", irq_controller->RegisterSource(31));

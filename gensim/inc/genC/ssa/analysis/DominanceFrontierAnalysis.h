@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   DominanceFrontierAnalysis.h
  * Author: harry
  *
@@ -16,20 +16,25 @@
 
 #include <set>
 
-namespace gensim {
-	namespace genc {
-		namespace ssa {
+namespace gensim
+{
+	namespace genc
+	{
+		namespace ssa
+		{
 			class SSABlock;
-	
-			namespace analysis {
-				class DominanceFrontierAnalysis {
+
+			namespace analysis
+			{
+				class DominanceFrontierAnalysis
+				{
 				public:
 					typedef std::set<SSABlock*> dominance_frontier_t;
 
 					dominance_frontier_t GetDominanceFrontier(SSABlock *block) const;
 				};
 			}
-			
+
 		}
 	}
 }

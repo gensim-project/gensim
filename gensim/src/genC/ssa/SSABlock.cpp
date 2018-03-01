@@ -120,9 +120,9 @@ const SSABlock::BlockList SSABlock::GetPredecessors() const
 SSABlock::BlockList SSABlock::GetSuccessors()
 {
 	CheckDisposal();
-	
+
 	if (Statements.empty()) return {};
-	
+
 	SSAControlFlowStatement *s = GetControlFlow();
 	if(s == nullptr) {
 		throw std::logic_error("Cannot get successors of a block with no control flow statement");
@@ -133,9 +133,9 @@ SSABlock::BlockList SSABlock::GetSuccessors()
 SSABlock::BlockConstList SSABlock::GetSuccessors() const
 {
 	CheckDisposal();
-	
+
 	if (Statements.empty()) return {};
-	
+
 	const SSAControlFlowStatement *s = GetControlFlow();
 	if(s == nullptr) {
 		throw std::logic_error("Cannot get successors of a block with no control flow statement");
@@ -490,7 +490,7 @@ SSAControlFlowStatement *SSABlock::GetControlFlow()
 //		return dynamic_cast<SSAControlFlowStatement*>(Statements.back());
 		if(Statements.back()->GetClass() == SSAStatement::Class_Controlflow) {
 			ctrlflow = (SSAControlFlowStatement*)Statements.back();
-		}	
+		}
 	}
 
 	return ctrlflow;

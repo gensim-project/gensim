@@ -10,10 +10,10 @@ int main(int argc, char **argv)
 {
 	FILE *f = fopen(argv[1], "r");
 	RecordFile rf(f);
-	
+
 	auto it = rf.begin();
 	auto end = rf.end();
-	
+
 	while(it != end) {
 		Record r = *it;
 		TraceRecord *tr = (TraceRecord *)&r;
@@ -22,6 +22,6 @@ int main(int argc, char **argv)
 		}
 		it++;
 	}
-	
+
 	return 0;
 }

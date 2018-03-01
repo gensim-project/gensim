@@ -43,7 +43,7 @@ namespace archsim
 				{
 					return ctrl & 1;
 				}
-				
+
 				bool Initialise() override;
 
 				COMPONENT_PARAMETER_ENTRY_HDR(IRQLine, IRQLine, IRQLine);
@@ -73,7 +73,7 @@ namespace archsim
 				{
 					return 0;
 				}
-				
+
 				bool Initialise() override;
 
 				COMPONENT_PARAMETER_ENTRY_HDR(Owner, GIC.GIC, GIC);

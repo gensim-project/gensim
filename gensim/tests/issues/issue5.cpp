@@ -13,15 +13,16 @@
 using namespace gensim::genc::ssa::testing;
 using namespace gensim::genc::ssa;
 
-class Issues_Issue5 : public SSATestFixture {
-	
+class Issues_Issue5 : public SSATestFixture
+{
+
 };
 
 TEST_F(Issues_Issue5, Issue5)
 {
-    // source code to test
-    
-    const std::string sourcecode = R"||(
+	// source code to test
+
+	const std::string sourcecode = R"||(
     
 action uint32 bitsel helper (
     uint32 sym_320_3_parameter_val
@@ -188,7 +189,7 @@ action uint32 LSR helper (
     s_b_3_4: jump b_2;
   }
 }
- 
+
 action uint32 LSL_C helper (
     uint32 sym_288_3_parameter_bits
     uint32 sym_289_3_parameter_shift
@@ -924,15 +925,15 @@ action void test_instruction (
   }
 }
     )||";
-    // parse code
+	// parse code
 
 	CompileAsm(sourcecode, "test_instruction");
-    
-    if(!GetSSACtx()->Resolve(Diag())) {
+
+	if(!GetSSACtx()->Resolve(Diag())) {
 		std::cout << Diag();
 		ASSERT_EQ(true, false);
 	}
-		
+
 	// actually perform test
 	ASSERT_EQ(true, GetSSACtx()->HasAction("test_instruction"));
 

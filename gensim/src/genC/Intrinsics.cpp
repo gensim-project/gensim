@@ -375,7 +375,7 @@ void GenCContext::LoadIntrinsics()
 	// Floating point helpers
 	AddIntrinsic("float_sqrt", IRTypes::Float, {IRParam("value", IRTypes::Float)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_FloatSqrt);
 	AddIntrinsic("double_sqrt", IRTypes::Double, {IRParam("value", IRTypes::Double)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_DoubleSqrt);
-	
+
 	AddIntrinsic("__builtin_fabs32", IRTypes::Float, {IRParam("value", IRTypes::Float)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_FloatAbs);
 	AddIntrinsic("__builtin_fabs64", IRTypes::Double, {IRParam("value", IRTypes::Double)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs);
 
@@ -383,13 +383,13 @@ void GenCContext::LoadIntrinsics()
 	AddIntrinsic("__builtin_get_fp_flush", IRTypes::UInt32, {}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush);
 	AddIntrinsic("__builtin_set_fp_rounding", IRTypes::Void, {IRParam("mode", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding);
 	AddIntrinsic("__builtin_get_fp_rounding", IRTypes::UInt32, {}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding);
-	
+
 	AddIntrinsic("__builtin_fp_round32", IRTypes::Float, {IRParam("value", IRTypes::Float), IRParam("rmode", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_FPRound32);
 	AddIntrinsic("__builtin_fp_round64", IRTypes::Double, {IRParam("value", IRTypes::Double), IRParam("rmode", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_FPRound64);
 
 	AddIntrinsic("__builtin_fma32", IRTypes::Float, {IRParam("a", IRTypes::Float), IRParam("b", IRTypes::Float), IRParam("c", IRTypes::Float)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_FMA32);
 	AddIntrinsic("__builtin_fma64", IRTypes::Double, {IRParam("a", IRTypes::Double), IRParam("b", IRTypes::Double), IRParam("c", IRTypes::Double)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_FMA64);
-	
+
 	AddIntrinsic("__builtin_cmpf32_flags", IRTypes::Void, {IRParam("a", IRTypes::Float), IRParam("b", IRTypes::Float)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Compare_F32_Flags);
 	AddIntrinsic("__builtin_cmpf64_flags", IRTypes::Void, {IRParam("a", IRTypes::Double), IRParam("b", IRTypes::Double)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Compare_F64_Flags);
 

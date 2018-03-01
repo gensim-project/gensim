@@ -13,19 +13,22 @@ using namespace gensim::genc::ssa::testing;
 using namespace gensim::genc::ssa::validation;
 using namespace gensim::genc::ssa;
 
-class SSA_Validate_PhiNodeValidation : public SSATestFixture {
+class SSA_Validate_PhiNodeValidation : public SSATestFixture
+{
 public:
-	bool Validate(SSAFormAction *action) {
+	bool Validate(SSAFormAction *action)
+	{
 		SSAActionValidationPass *pass = GetComponent<SSAActionValidationPass>("PhiNodeValidationPass");
-		
+
 		gensim::DiagnosticSource src ("test");
 		gensim::DiagnosticContext ctx (src);
-		
+
 		return pass->Run(action, ctx);
 	}
 };
 
-TEST_F(SSA_Validate_PhiNodeValidation, MemberTypesOK) {
+TEST_F(SSA_Validate_PhiNodeValidation, MemberTypesOK)
+{
 	const std::string ssa_asm = R"||(
 
 action void test_action () [] < b_0 b_1 b_2 b_3 > { 

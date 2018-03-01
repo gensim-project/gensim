@@ -26,11 +26,13 @@
 
 using namespace gensim::genc::ssa;
 
-class PhiCleanupPass : public SSAPass {
+class PhiCleanupPass : public SSAPass
+{
 public:
 	// Get all of the phi statements in this block which refer only to previous
 	// statements in the same block
-	std::list<SSAPhiStatement*> GetDominatedPhiNodes(SSABlock *block) const {
+	std::list<SSAPhiStatement*> GetDominatedPhiNodes(SSABlock *block) const
+	{
 		std::list<SSAPhiStatement*> nodes;
 		for(auto stmt : block->GetStatements()) {
 			if(SSAPhiStatement *phi = dynamic_cast<SSAPhiStatement*>(stmt)) {
@@ -44,53 +46,57 @@ public:
 		}
 		return nodes;
 	}
-	
-	void RemoveDominatedPhiNode(SSAPhiStatement *node) const {
+
+	void RemoveDominatedPhiNode(SSAPhiStatement *node) const
+	{
 		GASSERT(node->Get().size() == 1);
 		GASSERT(((SSAStatement*)node->Get().front())->Parent == node->Parent);
-		
+
 		SSAStatement *solo_member = (SSAStatement*)node->Get().front();
-		
+
 		auto uses = node->GetUses();
 		for(auto use : uses) {
 			if(SSAStatement *stmt = dynamic_cast<SSAStatement*>(use)) {
 				stmt->Replace(node, solo_member);
 			}
 		}
-		
+
 		node->Parent->RemoveStatement(*node);
 		node->Unlink();
 		node->Dispose();
 		delete node;
 	}
-	
-	void RemoveDominatedPhiNodes(SSABlock *block) const {
+
+	void RemoveDominatedPhiNodes(SSABlock *block) const
+	{
 		auto nodes = GetDominatedPhiNodes(block);
 		for(auto node : nodes) {
 			RemoveDominatedPhiNode(node);
 		}
 	}
-	
-	void MovePhiNodesToStartOfBlock(SSABlock *block) const {
+
+	void MovePhiNodesToStartOfBlock(SSABlock *block) const
+	{
 		std::list<SSAPhiStatement*> phinodes;
 		for(auto stmt : block->GetStatements()) {
 			if(auto phinode = dynamic_cast<SSAPhiStatement*>(stmt)) {
 				phinodes.push_back(phinode);
 			}
 		}
-		
+
 		for(auto phinode : phinodes) {
 			for(auto member : phinode->Get()) {
 				SSAStatement *member_stmt = (SSAStatement*)member;
 				GASSERT(member_stmt->Parent != phinode->Parent);
 			}
-			
+
 			phinode->Parent->RemoveStatement(*phinode);
 			phinode->Parent->AddStatement(*phinode, *phinode->Parent->GetStatements().front());
 		}
-}
-	
-	bool Run(SSAFormAction& action) const override {
+	}
+
+	bool Run(SSAFormAction& action) const override
+	{
 		for(auto block : action.Blocks) {
 			RemoveDominatedPhiNodes(block);
 			MovePhiNodesToStartOfBlock(block);

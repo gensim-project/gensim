@@ -35,7 +35,7 @@ namespace archsim
 
 				virtual bool Open() = 0;
 				virtual bool Close() = 0;
-				
+
 				bool Initialise() override;
 			};
 

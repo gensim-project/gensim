@@ -64,7 +64,10 @@ namespace archsim
 				{
 					return index_;
 				}
-				void SetIndex(uint32_t index) { index_ = index; }
+				void SetIndex(uint32_t index)
+				{
+					index_ = index;
+				}
 			private:
 				ComponentParameterType type_;
 				uint32_t index_;
@@ -135,8 +138,11 @@ namespace archsim
 			public:
 
 				static const ComponentDescriptor dummy_descriptor;
-				Component() : descriptor_(dummy_descriptor) { throw std::logic_error("Attempted to construct an empty component while using a buggy G++"); }
-				
+				Component() : descriptor_(dummy_descriptor)
+				{
+					throw std::logic_error("Attempted to construct an empty component while using a buggy G++");
+				}
+
 				Component(const ComponentDescriptor &descriptor) : descriptor_(descriptor) {}
 				const ComponentDescriptorInstance &GetDescriptor() const
 				{
@@ -155,7 +161,7 @@ namespace archsim
 				{
 					GetDescriptor().SetParameter(parameter, value);
 				}
-				
+
 				virtual bool Initialise() = 0;
 
 			private:
@@ -207,7 +213,7 @@ namespace archsim
 #define COMPONENT_PARAMETER_ENTRY_SRC(clazz, name, component_type, real_type) real_type *clazz::Get##name() { static_assert(std::is_base_of<Component, real_type>::value, "Component parameters must be derived from Component"); return dynamic_cast<real_type*>(GetParameter<Component*>(#name)); }
 
 #define COMPONENT_PARAMETER_U64(name) uint64_t Get##name() { return (uint64_t)GetParameter<uint64_t>(#name); }
-			
+
 			class CoreComponent : public Component
 			{
 			public:

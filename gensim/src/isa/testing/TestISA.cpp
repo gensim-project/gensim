@@ -15,7 +15,7 @@ using namespace gensim::isa::testing;
 ISADescription *gensim::isa::testing::GetTestISA(bool include_instruction)
 {
 	ISADescription *isa = new ISADescription(0);
-	
+
 	InstructionFormatDescription *ifd;
 	gensim::DiagnosticSource diagsrc ("Testing");
 	gensim::DiagnosticContext diagctx (diagsrc);
@@ -33,6 +33,6 @@ ISADescription *gensim::isa::testing::GetTestISA(bool include_instruction)
 
 		isa->AddInstruction(id);
 	}
-	
-	return isa;	
+
+	return isa;
 }

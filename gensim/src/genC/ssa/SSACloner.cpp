@@ -95,7 +95,7 @@ public:
 
 		}
 	}
-	
+
 	void VisitRaiseStatement(SSARaiseStatement& stmt) override
 	{
 		_clone_context.add(&stmt, new SSARaiseStatement(_block));

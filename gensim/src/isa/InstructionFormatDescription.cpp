@@ -94,7 +94,7 @@ InstructionFormatDescriptionParser::InstructionFormatDescriptionParser(Diagnosti
 bool InstructionFormatDescriptionParser::Parse(const std::string &name, const std::string &format, InstructionFormatDescription *&description)
 {
 	description = new InstructionFormatDescription(isa_);
-	
+
 	// create the new instruction format and set its name
 	description->SetName(name);
 
