@@ -69,6 +69,7 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::READ_DEVICE:
 			case IRInstruction::WRITE_DEVICE:
 			case IRInstruction::ADC_WITH_FLAGS:
+                        case IRInstruction::SET_ZN_FLAGS:
 
 				offset_to_vreg.clear();
 				vreg_to_offset.clear();
