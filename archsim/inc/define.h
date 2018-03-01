@@ -22,6 +22,8 @@
 #include <stddef.h>
 #include <assert.h>
 
+#include "cmake-config.h"
+
 
 // TODO: SWITCH THESE TO CMAKE VARIABLES
 #define CONFIG_NO_MEMORY_EVENTS
@@ -50,16 +52,6 @@
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \
 	TypeName(const TypeName&) = delete; \
 	void operator=(const TypeName&) = delete
-
-
-/**
- * Archsim copyright string
- */
-#define ARCHSIM_COPYRIGHT QUOTEME(\n \
-\t\tArchsim: The Edinburgh High Speed (EHS) Simulator\n \
-\t\t\tUniversity of Edinburgh (c) 2017\n \
-\t\t\t\tRevision : SCM_REV\n \
-\t\t\t\tConfiguration: CONFIGSTRING\n\n)
 
 /*
  * Type-safe memory addressing
