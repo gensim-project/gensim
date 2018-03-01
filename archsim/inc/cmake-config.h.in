@@ -1,6 +1,6 @@
 #ifndef CMAKE_CONFIG_H
 #define CMAKE_CONFIG_H
 
-// nothing to see here...
+#define CONFIGSTRING QUOTEME(${CONFIGSTRING})
 
 #endif
