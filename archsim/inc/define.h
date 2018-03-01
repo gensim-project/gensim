@@ -22,7 +22,7 @@
 #include <stddef.h>
 #include <assert.h>
 
-#include "cmake-config.h"
+
 
 
 // TODO: SWITCH THESE TO CMAKE VARIABLES
@@ -61,5 +61,7 @@ typedef uint32_t addr_t;
 typedef addr_t addr_off_t;
 typedef addr_t virt_addr_t;
 typedef addr_t phys_addr_t;
+
+#include "cmake-config.h"
 
 #endif /* _define_h_ */

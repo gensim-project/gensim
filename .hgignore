@@ -1,5 +1,8 @@
 syntax:regexp
 
+archsim/inc/cmake-config.h
+archsim/inc/cmake-scm.h
+
 ^build/
 nbproject/
 
