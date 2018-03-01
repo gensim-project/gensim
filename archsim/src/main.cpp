@@ -40,6 +40,18 @@
 
 #include "abi/devices/generic/timing/TickSource.h"
 
+#include "cmake-scm.h"
+
+/**
+ * Archsim copyright string
+ */
+#define ARCHSIM_COPYRIGHT QUOTEME(\n \
+\t\tArchsim: The Edinburgh High Speed (EHS) Simulator\n \
+\t\t\tUniversity of Edinburgh (c) 2017\n \
+\t\t\t\tRevision : SCM_REV\n \
+\t\t\t\tConfiguration: CONFIGSTRING\n\n)
+
+
 #ifdef CONFIG_MEMTRACE
 #include <mcheck.h>
 #endif

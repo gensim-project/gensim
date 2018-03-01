@@ -6,6 +6,13 @@ SET(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
 INCLUDE(StandardFlags)
 
+# Use ccache if it can be found
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+endif()
+
+# Enable tests if requested by the user
 IF(TESTING_ENABLED)
 	ENABLE_TESTING()
 	MESSAGE(STATUS "Tests enabled")
@@ -19,7 +26,6 @@ EXECUTE_PROCESS(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-ADD_DEFINITIONS("-DSCM_REV=\"${SCM_REV}\"")
 
 # Put things into an output directory
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/dist/lib)
