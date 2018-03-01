@@ -65,12 +65,12 @@ machine_state_t InterpretAction(gensim::genc::ssa::SSAFormAction *action, std::m
 	size_t regstate_size = action->Arch->GetRegFile().GetSize();
 	machine_state.RegisterFile().SetSize(regstate_size);
 	machine_state.RegisterFile().SetWrap(true);
-	
+
 	// randomize register file
 	for(int i = 0; i < regstate_size; ++i) {
 		machine_state.RegisterFile().Write8(i, r() & 0xff);
 	}
-	
+
 	gensim::genc::ssa::testing::SSAInterpreter interp (action->Arch, machine_state);
 	interp.SetTracing(false);
 
@@ -79,9 +79,9 @@ machine_state_t InterpretAction(gensim::genc::ssa::SSAFormAction *action, std::m
 	for(unsigned int i = 0; i < action->ParamSymbols.size(); ++i) {
 		values.push_back(IRConstant::Integer(0));
 	}
-	
+
 	auto &inst_type = action->GetContext().GetTypeManager().GetStructType("Instruction");
-	
+
 	auto fields = action->Isa->Get_Decode_Fields();
 	for(auto member : inst_type.BaseType.StructType->Members) {
 		uint64_t value = r() & ((1 << fields[member.Name]) - 1);
@@ -100,10 +100,11 @@ machine_state_t InterpretAction(gensim::genc::ssa::SSAFormAction *action, std::m
 	return machine_state;
 }
 
-void TestAction(const std::string &passname, gensim::genc::ssa::SSAFormAction *pre_opt, gensim::genc::ssa::SSAFormAction *post_opt, std::mt19937_64 &r) {
+void TestAction(const std::string &passname, gensim::genc::ssa::SSAFormAction *pre_opt, gensim::genc::ssa::SSAFormAction *post_opt, std::mt19937_64 &r)
+{
 	auto prestate = InterpretAction(pre_opt, r);
 	auto poststate = InterpretAction(post_opt, r);
-	
+
 	if(!prestate.Equals(poststate)) {
 		gensim::genc::ssa::printers::SSAActionPrinter post_opt_printer(*pre_opt), pre_opt_printer(*post_opt);
 
@@ -122,13 +123,13 @@ void OptimiseAction(gensim::genc::ssa::SSAFormAction *action, int tries, std::mt
 {
 	using gensim::genc::ssa::SSAPass;
 	using gensim::genc::ssa::SSAPassDB;
-	
+
 	static std::vector<const SSAPass *> passes = {
 		SSAPassDB::Get("O4")
 //		SSAPassDB::Get("ParameterRename")
-	
+
 	};
-	
+
 	gensim::genc::ssa::validation::SSAActionValidator validator;
 
 	gensim::DiagnosticSource source("OptimiseAction");
@@ -137,9 +138,9 @@ void OptimiseAction(gensim::genc::ssa::SSAFormAction *action, int tries, std::mt
 	bool changed = false;
 
 	changed = false;
-	
+
 	gensim::genc::ssa::SSAFormAction *test_action = action->Clone();
-	
+
 	for(auto i : passes) {
 		if(i == nullptr) {
 			continue;
@@ -157,21 +158,21 @@ void OptimiseAction(gensim::genc::ssa::SSAFormAction *action, int tries, std::mt
 		}
 
 		gensim::genc::ssa::SSAFormAction *pre_opt_action = test_action->Clone();
-		
+
 		changed |= i->Run(*test_action);
-		
+
 		if(!validator.Run(test_action, diag)) {
 			printf("Failed to validate\n");
 			std::cout << diag;
-			
+
 			std::cout << "Pass " << typeid(*i).name() << std::endl;
-			
+
 			gensim::genc::ssa::io::ActionDisassembler ad;
 			std::cout << "Pre opt:\n";
 			ad.Disassemble(pre_opt_action, std::cout);
 			std::cout << "\n\nPost Opt:\n";
 			ad.Disassemble(test_action, std::cout);
-			
+
 			throw std::logic_error("");
 		}
 		if(!test_action->Resolve(diag)) {
@@ -179,7 +180,7 @@ void OptimiseAction(gensim::genc::ssa::SSAFormAction *action, int tries, std::mt
 			std::cout << diag;
 			throw std::logic_error("");
 		}
-		
+
 		for(int t = 0; t < tries; ++t) {
 			r.seed(t);
 			TestAction(typeid(*i).name(), pre_opt_action, test_action, r);
@@ -188,7 +189,7 @@ void OptimiseAction(gensim::genc::ssa::SSAFormAction *action, int tries, std::mt
 		pre_opt_action->Destroy();
 		delete pre_opt_action;
 	}
-	
+
 	test_action->Destroy();
 	delete test_action;
 }
@@ -228,13 +229,13 @@ int main(int argc, char** argv)
 		std::cerr << "Failed to parse Arch" << std::endl << root_context;
 		return 1;
 	}
-	
+
 	gensim::isa::ISADescription *isa = arch->GetIsaByName(isa_name);
 	if(isa == nullptr) {
 		fprintf(stderr, "Could not find isa %s\n", isa_name);
 		return 1;
 	}
-	
+
 	gensim::genc::ssa::SSAContext *ctx = new gensim::genc::ssa::SSAContext(*isa, *arch);
 
 	gensim::genc::ssa::io::AssemblyReader ar;
@@ -250,19 +251,19 @@ int main(int argc, char** argv)
 
 	gensim::genc::ssa::io::ContextAssembler assembler;
 	assembler.SetTarget(ctx);
-	
+
 	if(!assembler.Assemble(*afc)) {
 		fprintf(stderr, "Failed to parse assembly tree\n");
 		std::cerr << root_context;
 		return 1;
 	}
-	
+
 	if(!ctx->Validate(root_context)) {
 		fprintf(stderr, "SSA failed validation\n");
 		std::cerr << root_context;
 		return 1;
 	}
-	
+
 	if(!ctx->Resolve(root_context)) {
 		fprintf(stderr, "Failed to resolve SSA\n");
 		return 1;

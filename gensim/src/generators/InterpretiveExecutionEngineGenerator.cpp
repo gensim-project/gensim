@@ -203,7 +203,7 @@ namespace gensim
 			}
 
 			stream << ""
-					"gensim::DecodeContext *GetDecodeContext() { if(decode_context_ == nullptr) decode_context_ = GetEmulationModel().GetNewDecodeContext(*this); return decode_context_; }"
+			       "gensim::DecodeContext *GetDecodeContext() { if(decode_context_ == nullptr) decode_context_ = GetEmulationModel().GetNewDecodeContext(*this); return decode_context_; }"
 			       "gensim::BaseDecode *curr_interpreted_insn() { return curr_interp_insn; }\n"
 			       "void restart_from_halted() { halted = false; }\n"
 			       "void reset() { " << GetProperty("ParentClass") << "::reset(); }\n"
@@ -223,7 +223,7 @@ namespace gensim
 			       "void DecodeInstrIr(uint32_t ir, uint8_t isa_mode, BaseDecode &dec);"
 			       "private:\n" << disasm->GetProperty("class") << " disasm;\n"
 			       "Decode *curr_interp_insn;\n"
-					"DecodeContext *decode_context_;"
+			       "DecodeContext *decode_context_;"
 			       "archsim::util::Cache<" << decode->GetProperty("class") << ", " << GetProperty("DecodeCacheSize") << "> decode_cache;\n"
 			       "uint32_t decode_instruction_using_cache(uint32_t pc, uint8_t isa_mode, " << decode->GetProperty("class") << " *&dcode, uint32_t &efa);\n";
 
@@ -255,7 +255,7 @@ namespace gensim
 			//emit register bank access functions
 			for(const auto &bank : regfile.GetBanks()) {
 				auto register_type = bank->GetRegisterIRType();
-				
+
 				// Read register function
 
 				str << register_type.GetCType() << " read_register_bank_" << bank->ID << "(uint32_t reg_idx) {";
@@ -577,20 +577,20 @@ namespace gensim
 		bool InterpretiveExecutionEngineGenerator::GenerateModuleDescriptor(util::cppformatstream& stream) const
 		{
 			stream << "ARCHSIM_MODULE() {";
-			
+
 			stream << "auto module = new archsim::module::ModuleInfo(\"" << Manager.GetArch().Name << "\", \"CPU Implementation Module\");";
 			stream << "auto device_entry = new archsim::module::ModuleProcessorEntry(\"CPU\", ARCHSIM_PROCESSORFACTORY(gensim::" << Manager.GetArch().Name << "::Processor));";
 			stream << "module->AddEntry(device_entry);";
 			stream << "return module;";
-			
+
 			stream << "}";
 			stream << "ARCHSIM_MODULE_END() { }";
-			
+
 			//stream << "RegisterComponent(gensim::Processor, Processor, \"" << Manager.GetArch().Name << "\", \"CPU Implementation\",  const std::string&, int, archsim::util::PubSubContext*);\n";
 			return true;
 		}
 
-		
+
 		bool InterpretiveExecutionEngineGenerator::GenerateSource(util::cppformatstream &stream) const
 		{
 			bool success = true;
@@ -615,7 +615,7 @@ namespace gensim
 			stream << "#include <arch/arm/ARMDecodeContext.h>\n";
 
 			GenerateModuleDescriptor(stream);
-			
+
 			stream << "namespace gensim {\n";
 			stream << "namespace " << arch.Name << " {\n";
 
@@ -758,11 +758,11 @@ namespace gensim
 			       "if(GetTraceManager() && GetTraceManager()->IsPacketOpen()) GetTraceManager()->Trace_End_Insn();"
 			       "     do "
 			       "     {"
-				
-				   "     if(archsim::options::InstructionTick) {"
-				   "		GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::InstructionExecute, NULL);"
-						"}"
-				
+
+			       "     if(archsim::options::InstructionTick) {"
+			       "		GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::InstructionExecute, NULL);"
+			       "}"
+
 			       " uint32_t _current_check_page_pc = archsim::translate::profile::RegionArch::PageIndexOf(read_pc());"
 			       " if(_check_page_pc != _current_check_page_pc) break;";
 			success &= GenerateExecution(stream, true, "stepOK = ");
@@ -785,9 +785,9 @@ namespace gensim
 			       "handle_pending_action();"
 			       "     do "
 			       "     {"
-					"     if(archsim::options::InstructionTick) {"
-				   "		GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::InstructionExecute, NULL);"
-						"}"
+			       "     if(archsim::options::InstructionTick) {"
+			       "		GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::InstructionExecute, NULL);"
+			       "}"
 			       " uint32_t _current_check_page_pc = archsim::translate::profile::RegionArch::PageIndexOf(read_pc());"
 			       " if(_check_page_pc != _current_check_page_pc) break;";
 			success &= GenerateExecution(stream, false, "stepOK = ");

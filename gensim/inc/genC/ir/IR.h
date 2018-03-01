@@ -395,7 +395,7 @@ namespace gensim
 				FLOW_CONTINUE,
 				FLOW_RETURN_VOID,
 				FLOW_RETURN_VALUE,
-                                FLOW_RAISE,
+				FLOW_RAISE,
 
 				FLOW_INVALID
 			};

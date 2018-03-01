@@ -55,7 +55,7 @@ namespace gensim
 
 			// emit a jump to the entry block (since it might not be the first one)
 			str << "goto __block_" << action.EntryBlock->GetName() << ";";
-			
+
 			// now iterate over the blocks in the action and emit them
 			for (SSAFormAction::BlockListConstIterator block_ci = action.Blocks.begin(); block_ci != action.Blocks.end(); ++block_ci) {
 				GenCInterpreterNodeFactory fact;

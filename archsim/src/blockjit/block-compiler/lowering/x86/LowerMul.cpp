@@ -35,12 +35,12 @@ bool LowerIMul::Lower(const captive::shared::IRInstruction *&insn)
 		Encoder().imul(GetCompiler().register_from_operand(source), dest_reg);
 	} else if(source->is_alloc_stack()) {
 		Encoder().mov(GetCompiler().stack_from_operand(source), BLKJIT_TEMPS_0(source->size));
-		
+
 		Encoder().imul(BLKJIT_TEMPS_0(source->size), dest_reg);
 	} else {
 		assert(false);
 	}
-	
+
 	if(dest->is_alloc_stack()) {
 		Encoder().mov(BLKJIT_TEMPS_1(source->size), GetCompiler().stack_from_operand(dest));
 	}
@@ -56,19 +56,19 @@ bool LowerUMul::Lower(const captive::shared::IRInstruction *&insn)
 
 	// can only do multiply with mul instruction (RDX:RAX = RAX * SOURCE)
 	// so we need to be very careful about RAX
-	
+
 	// 1. is RAX the destination?
 	// 2. is RAX the source?
 	// 3. is RAX the source AND destination?
 	// 4. is RAX neither?
-	
+
 	// if RAX is not the destination, then back it up to RDI
 	bool rax_is_source = source->is_alloc_reg() && GetCompiler().register_from_operand(source) == REGS_RAX(source->size);
 	bool rax_is_dest = dest->is_alloc_reg() && GetCompiler().register_from_operand(dest) == REGS_RAX(dest->size);
 	if(!rax_is_dest) {
 		Encoder().mov(REG_RAX, REG_RDI);
 	}
-	
+
 	auto mul_reg = &REG_RIZ;
 	// move one of the operands into RAX
 	if(rax_is_source && !rax_is_dest) {
@@ -98,21 +98,21 @@ bool LowerUMul::Lower(const captive::shared::IRInstruction *&insn)
 	} else {
 		// move source into RAX, then multiply
 		GetCompiler().encode_operand_to_reg(source, REGS_RAX(source->size));
-		
-		if(dest->is_alloc_reg()){
+
+		if(dest->is_alloc_reg()) {
 			mul_reg = &GetCompiler().register_from_operand(dest);
 		} else {
 			mul_reg = &BLKJIT_TEMPS_1(dest->size);
 			GetCompiler().encode_operand_to_reg(dest, *mul_reg);
 		}
 	}
-	
+
 	if(dest->size > 1) {
 		Encoder().mul(*mul_reg);
 	} else {
 		Encoder().mul1(*mul_reg);
 	}
-	
+
 	// put result into destination register
 	if(!rax_is_dest) {
 		if(dest->is_alloc_reg()) {
@@ -120,13 +120,13 @@ bool LowerUMul::Lower(const captive::shared::IRInstruction *&insn)
 		} else if(dest->is_alloc_stack()) {
 			Encoder().mov(REGS_RAX(dest->size), GetCompiler().stack_from_operand(dest));
 		}
-		
+
 		// also restore RAX
 		Encoder().mov(REG_RDI, REG_RAX);
 	} else {
 		// otherwise, RAX is the destination and the result is already there - do nothing
 	}
-	
+
 	insn++;
 	return true;
 }

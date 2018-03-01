@@ -18,9 +18,10 @@
 #include "TraceRecordPacket.h"
 #include "TraceRecordStream.h"
 
-namespace libtrace {
+namespace libtrace
+{
 
-class ArchInterface;
+	class ArchInterface;
 
 	class TraceSink
 	{
@@ -73,7 +74,7 @@ class ArchInterface;
 
 		uint32_t isa_mode_;
 		uint32_t pc_;
-		
+
 		RecordStreamOutputInterface *record_output_stream_;
 		PacketStreamInterface *packet_input_stream_;
 	};

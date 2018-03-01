@@ -46,7 +46,7 @@ namespace gensim
 				BLOCK_SOMETIMES_CONST,
 				BLOCK_ALWAYS_CONST
 			};
-	
+
 			class SSABlock : public SSAValue
 			{
 			public:
@@ -132,7 +132,7 @@ namespace gensim
 				 * Clear fixedness analysis information
 				 */
 				void ClearFixedness();
-				
+
 				/**
 				 * Initiate value propagation for this block. Values passed around in variables are instead
 				 * passed around directly where possible

@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   AntlrWrapper.h
  * Author: harry
  *
@@ -17,12 +17,17 @@
 struct ANTLR3_BASE_TREE_struct;
 typedef struct ANTLR3_BASE_TREE_struct *pANTLR3_BASE_TREE;
 
-namespace gensim {
-	class AntlrTreeWrapper {
+namespace gensim
+{
+	class AntlrTreeWrapper
+	{
 	public:
 		AntlrTreeWrapper(pANTLR3_BASE_TREE tree) : tree_(tree) {}
-		pANTLR3_BASE_TREE Get() { return tree_; }
-		
+		pANTLR3_BASE_TREE Get()
+		{
+			return tree_;
+		}
+
 	private:
 		pANTLR3_BASE_TREE tree_;
 	};

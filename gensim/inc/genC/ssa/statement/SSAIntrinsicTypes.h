@@ -66,7 +66,7 @@ ENUM_ENTRY(UpdateZN64)
 
 ENUM_ENTRY(FPRound32)
 ENUM_ENTRY(FPRound64)
-        
+
 ENUM_ENTRY(FPGetRounding)
 ENUM_ENTRY(FPSetRounding)
 ENUM_ENTRY(FPGetFlush)

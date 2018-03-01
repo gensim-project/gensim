@@ -14,11 +14,11 @@ using namespace gensim::genc::ssa::validation;
 bool SSAStatementValidationPass::Run(SSAStatement* stmt, DiagnosticContext& ctx)
 {
 	success_ = true;
-	
+
 	diag_ = &ctx;
-	
+
 	stmt->Accept(*this);
-	
+
 	return success_;
 }
 

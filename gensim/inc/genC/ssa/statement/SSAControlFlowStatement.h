@@ -24,7 +24,7 @@ namespace gensim
 
 				typedef util::MaybeVector<SSABlock*, 2> target_list_t;
 				typedef util::MaybeVector<const SSABlock*, 2> target_const_list_t;
-				
+
 				virtual target_list_t GetTargets() = 0;
 				virtual target_const_list_t GetTargets() const = 0;
 

@@ -40,7 +40,7 @@
 #define STRINGIFY(x) #x
 
 #ifdef NDEBUG
-#define GASSERT(x) 
+#define GASSERT(x)
 #else
 #define GASSERT(x) do { if(!(x)) throw gensim::AssertionFailedException(__FILE__, __LINE__, STRINGIFY(x)); } while(0)
 #endif

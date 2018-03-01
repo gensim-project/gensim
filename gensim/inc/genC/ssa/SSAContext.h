@@ -51,7 +51,7 @@ namespace gensim
 				{
 					return arch_;
 				}
-				
+
 				const gensim::isa::ISADescription& GetIsaDescription() const
 				{
 					return isa_;
@@ -77,7 +77,7 @@ namespace gensim
 				{
 					actions_.insert(std::make_pair(action->GetPrototype().GetIRSignature().GetName(), action));
 				}
-				
+
 				void RemoveAction(SSAActionBase *action)
 				{
 					actions_.erase(action->GetPrototype().GetIRSignature().GetName());

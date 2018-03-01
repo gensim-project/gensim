@@ -84,7 +84,7 @@ const ModuleInfo* ModuleManager::GetModule(const std::string& module_name) const
 	return loaded_modules_.at(module_name);
 }
 
-const ModuleInfo* ModuleManager::GetModuleByPrefix(const char *str) const 
+const ModuleInfo* ModuleManager::GetModuleByPrefix(const char *str) const
 {
 	return GetModuleByPrefix(std::string(str));
 }
@@ -93,15 +93,15 @@ const ModuleInfo* ModuleManager::GetModuleByPrefix(const std::string& fully_qual
 {
 	// split the fqn
 	auto atoms = util::split_string(fully_qualified_name, '.');
-	
+
 	// now try to find a module, atom by atom
 	for(auto it = atoms.begin(); it != atoms.end(); ++it) {
 		auto module_name = util::join_string(atoms.begin(), it, '.');
-				
+
 		if(HasModule(module_name)) {
 			return GetModule(module_name);
 		}
 	}
-	
+
 	throw std::logic_error("Could not find a module entry matching " + fully_qualified_name);
 }

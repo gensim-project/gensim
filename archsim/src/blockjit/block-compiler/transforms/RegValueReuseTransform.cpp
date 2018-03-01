@@ -97,11 +97,11 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 					insn->type = IRInstruction::MOV;
 					insn->operands[0] = offset_to_vreg[offset.value];
 				} else {
-					
+
 					for(auto i : offset_to_vreg) {
 						bool i_fully_before_vreg = (i.first + i.second.size) <= offset.value;
 						bool i_fully_after_vreg = i.first >= (offset.value + vreg.size);
-						
+
 						if(!(i_fully_before_vreg || i_fully_after_vreg)) {
 							// we have an alias so remove i from the live vales.
 							vreg_to_offset.erase(i.second);
@@ -109,7 +109,7 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 							break;
 						}
 					}
-					
+
 					// mark the value as live
 					offset_to_vreg[offset.value] = vreg;
 					vreg_to_offset[vreg] = offset.value;
@@ -132,11 +132,11 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 				// we are accessing the register bank at OFFSET. we have a
 				// problem if there is a live value with a key which is
 				// less than OFFSET, but a key+size which is greater than
-				// offset (the case where the key == OFFSET is already 
-				// covered). 
+				// offset (the case where the key == OFFSET is already
+				// covered).
 
-				// for now do this naively by looping through the loaded 
-				// values. There is certainly a more efficient way to do 
+				// for now do this naively by looping through the loaded
+				// values. There is certainly a more efficient way to do
 				// this using an ordered map.
 				for(auto i : offset_to_vreg) {
 					bool i_fully_before_vreg = (i.first + i.second.size) <= offset.value;

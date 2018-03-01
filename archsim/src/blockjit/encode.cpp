@@ -564,7 +564,7 @@ void X86Encoder::cvtsd2si(const X86VectorRegister& src, const X86Register& dest)
 	if(w || r || b) {
 		encode_rex_prefix(b, 0, r, w);
 	}
-	
+
 	emit8(0x0f);
 	emit8(0x2d);
 

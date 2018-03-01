@@ -41,7 +41,7 @@ namespace gensim
 					{
 						instruction_[field] = value;
 					}
-					
+
 					std::string Dump() const
 					{
 						std::stringstream str;
@@ -122,7 +122,7 @@ namespace gensim
 					virtual void Read(uint32_t offset, size_t size, uint8_t *data) = 0;
 					virtual void Write(uint32_t offset, size_t size, const uint8_t *data) = 0;
 					virtual void Reset() = 0;
-					
+
 					virtual bool IsSet(uint32_t offset) = 0;
 
 					virtual size_t Size() const = 0;

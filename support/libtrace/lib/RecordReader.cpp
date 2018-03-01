@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   RecordReader.cpp
  * Author: harry
  *
@@ -18,7 +18,8 @@
 using namespace libtrace;
 
 
-std::ostream &operator<<(std::ostream &str, const libtrace::RecordReader::DataReader &reader) {
+std::ostream &operator<<(std::ostream &str, const libtrace::RecordReader::DataReader &reader)
+{
 	// just handle u32 and u64 for now
 	if(reader.GetSize() == 4) {
 		str << "0x" << std::hex << std::setw(8) << std::setfill('0') << reader.AsU32();
@@ -27,6 +28,6 @@ std::ostream &operator<<(std::ostream &str, const libtrace::RecordReader::DataRe
 	} else {
 		str << "(cannot decode value)";
 	}
-	
+
 	return str;
 }

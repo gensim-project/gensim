@@ -160,7 +160,7 @@ namespace gensim
 			InstructionFormatDescriptionParser(DiagnosticContext &diag, const ISADescription& isa);
 
 			bool Parse(const std::string &name, const std::string &format_str, InstructionFormatDescription *&desc);
-			
+
 		private:
 			DiagnosticContext &diag;
 			const ISADescription &isa_;

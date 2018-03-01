@@ -32,10 +32,11 @@ namespace archsim
 		static_assert(sizeof(struct BlockCacheEntry) == 16, "Block Cache Entry must be 16 bytes!");
 
 // don't care how big the features set is though
-		class BlockFeaturesEntry {
+		class BlockFeaturesEntry
+		{
 		public:
 			BlockFeaturesEntry() : feature_required_mask(0), feature_level(0) {}
-			
+
 			uint64_t feature_required_mask;
 			uint64_t feature_level;
 		};

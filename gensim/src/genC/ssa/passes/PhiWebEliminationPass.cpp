@@ -43,12 +43,14 @@ public:
 			}
 		}
 	}
-	
-	SSAType GetType() {
+
+	SSAType GetType()
+	{
 		return type_;
 	}
-	
-	std::list<SSAStatement*> GetNodes() {
+
+	std::list<SSAStatement*> GetNodes()
+	{
 		return nodes_;
 	}
 private:
@@ -58,12 +60,15 @@ private:
 
 class PhiWebEliminationPass : public SSAPass
 {
-public:		
-	std::list<PhiWeb> GetPhiWebs(SSAFormAction &action) const {
-		auto stmts = action.GetStatements([](SSAStatement *stmt){ return dynamic_cast<SSAPhiStatement*>(stmt) != nullptr; });
+public:
+	std::list<PhiWeb> GetPhiWebs(SSAFormAction &action) const
+	{
+		auto stmts = action.GetStatements([](SSAStatement *stmt) {
+			return dynamic_cast<SSAPhiStatement*>(stmt) != nullptr;
+		});
 		std::set<SSAStatement *> nodes;
 		std::set<std::pair<SSAStatement*, SSAStatement*>> edges;
-		
+
 		for(auto stmt : stmts) {
 			nodes.insert(stmt);
 			if(SSAPhiStatement *phi_stmt = dynamic_cast<SSAPhiStatement*>(stmt)) {
@@ -74,20 +79,21 @@ public:
 				}
 			}
 		}
-		
+
 		gensim::util::Tarjan<SSAStatement*> tarjan (nodes.begin(), nodes.end(), edges.begin(), edges.end());
 		auto sccs = tarjan.Compute();
-		
+
 		std::list<PhiWeb> phiwebs;
-		
+
 		for(auto &scc : sccs) {
 			phiwebs.push_back(PhiWeb(std::list<SSAStatement*>(scc.begin(), scc.end())));
 		}
-		
+
 		return phiwebs;
 	}
-	
-	void ReplacePhiNode(SSAPhiStatement *phi_stmt, SSASymbol *symbol) const {		
+
+	void ReplacePhiNode(SSAPhiStatement *phi_stmt, SSASymbol *symbol) const
+	{
 		SSAVariableReadStatement *phi_read = new SSAVariableReadStatement(phi_stmt->Parent, symbol, phi_stmt);
 		auto uses = phi_stmt->GetUses();
 		for(auto i : uses) {
@@ -95,36 +101,37 @@ public:
 				stmt->Replace(phi_stmt, phi_read);
 			}
 		}
-		
+
 		phi_stmt->Parent->RemoveStatement(*phi_stmt);
 		phi_stmt->Unlink();
 		phi_stmt->Dispose();
 		delete phi_stmt;
 	}
-	
-	void ReplaceNonPhiNode(SSAStatement *stmt, SSASymbol *symbol) const {
+
+	void ReplaceNonPhiNode(SSAStatement *stmt, SSASymbol *symbol) const
+	{
 		// after the statement, insert a write to the phi symbol
 		auto stmt_it = std::find(stmt->Parent->GetStatements().begin(), stmt->Parent->GetStatements().end(), stmt);
 		stmt_it++;
-		
+
 		new SSAVariableWriteStatement(stmt->Parent, symbol, stmt, *stmt_it);
 	}
-	
+
 	bool Run(SSAFormAction& action) const override
 	{
 		SSAPass *phi_cleanup_pass = GetComponent<SSAPass>("PhiCleanup");
 		phi_cleanup_pass->Run(action);
 		delete phi_cleanup_pass;
-		
+
 		// create phi webs
 		auto phiwebs = GetPhiWebs(action);
-		
+
 		// for each phi web
 		for(auto &web : phiwebs) {
 			//  create a symbol to represent the phi web
 			SSASymbol *web_symbol = new SSASymbol(action.GetContext(), "phinode", web.GetType(), gensim::genc::Symbol_Local);
 			action.AddSymbol(web_symbol);
-			
+
 			// For each entry in the phi web:
 			// - if it's a phi node, replace it with a variable read
 			// - otherwise, place a write to the phi variable immediately afterwards
@@ -136,7 +143,7 @@ public:
 				}
 			}
 		}
-		
+
 		return false;
 	}
 };

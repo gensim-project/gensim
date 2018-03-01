@@ -126,7 +126,7 @@ namespace gensim
 			g.Const = false;
 			return g;
 		}
-		
+
 		IRType IRType::_LongDouble()
 		{
 			IRType g;
@@ -310,9 +310,15 @@ namespace gensim
 			if(to.BaseType.PlainOldDataType == IRPlainOldDataType::INT64) {
 				uint64_t result;
 				switch(value.Type()) {
-					case IRConstant::Type_Integer: result = value.Int(); break;
-					case IRConstant::Type_Float_Single: result = value.Flt(); break;
-					case IRConstant::Type_Float_Double: result = value.Dbl(); break;
+					case IRConstant::Type_Integer:
+						result = value.Int();
+						break;
+					case IRConstant::Type_Float_Single:
+						result = value.Flt();
+						break;
+					case IRConstant::Type_Float_Double:
+						result = value.Dbl();
+						break;
 					default:
 						UNEXPECTED;
 				}

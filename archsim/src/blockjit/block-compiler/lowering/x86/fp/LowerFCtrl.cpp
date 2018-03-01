@@ -102,7 +102,7 @@ bool LowerFCtrl_SetFlush::Lower(const captive::shared::IRInstruction *&insn)
 	Encoder().call(BLKJIT_RETURN(8));
 
 	GetCompiler().emit_restore_reg_state(2, GetStackMap(), GetIsStackFixed());
-	
+
 	insn++;
 	return true;
 }

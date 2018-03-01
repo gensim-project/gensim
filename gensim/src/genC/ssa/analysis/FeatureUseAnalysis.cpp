@@ -9,7 +9,7 @@ using namespace gensim::genc::ssa;
 const std::set<const ArchFeature *> FeatureUseAnalysis::GetUsedFeatures(const SSAFormAction* action) const
 {
 	std::set<const ArchFeature *> feature_set;
-	
+
 	for (auto block : action->Blocks) {
 		for (auto stmt : block->GetStatements()) {
 			if (auto intrinsic = dynamic_cast<SSAIntrinsicStatement *>(stmt)) {
@@ -25,6 +25,6 @@ const std::set<const ArchFeature *> FeatureUseAnalysis::GetUsedFeatures(const SS
 			}
 		}
 	}
-	
+
 	return feature_set;
 }

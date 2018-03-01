@@ -18,7 +18,7 @@ CallGraph CallGraphAnalysis::Analyse(const SSAContext& ctx) const
 	for(auto action : ctx.Actions()) {
 		SSAFormAction *faction = dynamic_cast<SSAFormAction*>(action.second);
 		if (faction == nullptr) continue;
-		
+
 		auto callees = GetCallees(faction);
 		for(auto callee : callees) {
 			graph.AddCallee(faction, callee);

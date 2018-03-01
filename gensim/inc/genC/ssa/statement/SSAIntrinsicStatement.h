@@ -23,9 +23,9 @@ namespace gensim
 			class SSAIntrinsicStatement : public SSAStatement
 			{
 			public:
-				#define __DEFINE_INTRINSIC_ENUM
-				#include "genC/ssa/statement/SSAIntrinsicEnum.h"
-				#undef __DEFINE_INTRINSIC_ENUM
+#define __DEFINE_INTRINSIC_ENUM
+#include "genC/ssa/statement/SSAIntrinsicEnum.h"
+#undef __DEFINE_INTRINSIC_ENUM
 
 				IntrinsicType Type;
 

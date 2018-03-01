@@ -642,7 +642,7 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_WritePc:
 							output << "emitter.store_pc(" << operand_for_node(*arg0) << ");";
 							break;
-							
+
 						case SSAIntrinsicStatement::SSAIntrinsic_TriggerIRQ:
 							output << "emitter.call(__captive_trigger_irq);\n";
 							break;
@@ -654,7 +654,7 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
 							output << "emitter.enter_user_mode();\n";
 							break;
-							
+
 						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
 							output << "auto " << Statement.GetName() << " = ";
 							output << "emitter.call(__captive_popcnt32, " << operand_for_node(*arg0) << ");\n";
@@ -723,7 +723,7 @@ namespace gensim
 							output << "auto " << Statement.GetName() << " = ";
 							output << "emitter.call(__captive_fabs32, " << operand_for_node(*arg0) << ");\n";
 							break;
-							
+
 						case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
 							output << "auto " << Statement.GetName() << " = ";
 							output << "emitter.call(__captive_fabs64, " << operand_for_node(*arg0) << ");\n";
@@ -1183,7 +1183,7 @@ namespace gensim
 					return true;
 				}
 			};
-			
+
 			class SSARaiseStatementWalker : public genc::ssa::SSANodeWalker
 			{
 			public:

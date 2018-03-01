@@ -79,10 +79,10 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Could not find isa %s\n", isa_name);
 		return 1;
 	}
-	
+
 	gensim::genc::ssa::SSAContext *ctx = new gensim::genc::ssa::SSAContext(*isa, *arch);
 
-	
+
 	gensim::genc::ssa::io::AssemblyReader ar;
 	gensim::genc::ssa::io::AssemblyFileContext *afc = nullptr;
 	if(!ar.Parse(input_file, root_context, afc)) {
@@ -97,19 +97,19 @@ int main(int argc, char **argv)
 
 	gensim::genc::ssa::io::ContextAssembler assembler;
 	assembler.SetTarget(ctx);
-	
+
 	if(!assembler.Assemble(*afc)) {
 		fprintf(stderr, "Failed to parse assembly tree\n");
 		std::cerr << root_context;
 		return 1;
 	}
-	
+
 	if(!ctx->Validate(root_context)) {
 		fprintf(stderr, "SSA failed validation\n");
 		std::cerr << root_context;
 		return 1;
 	}
-	
+
 	if(!ctx->Resolve(root_context)) {
 		fprintf(stderr, "Failed to resolve SSA\n");
 		return 1;

@@ -275,7 +275,7 @@ SSABlock* BlockAssembler::Assemble(pANTLR3_BASE_TREE tree, SSAFormAction &action
 	// parse block name
 	auto block_name_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
 	std::string block_name = (char*)block_name_node->getText(block_name_node)->chars;
-	
+
 	SSABlock *block = dynamic_cast<SSABlock*>(ctx_.Get(block_name));
 	if(block == nullptr) {
 		throw std::logic_error("");
@@ -414,10 +414,11 @@ SSAStatement *StatementAssembler::parse_call_statement(pANTLR3_BASE_TREE tree, S
 	return new SSACallStatement(block, (SSAFormAction*)target, params);
 }
 
-SSACastStatement::CastType parse_cast_type(pANTLR3_BASE_TREE node) {
+SSACastStatement::CastType parse_cast_type(pANTLR3_BASE_TREE node)
+{
 	GASSERT(node->getType(node) == SSAASM_ID);
 	std::string node_text = (char*)node->getText(node)->chars;
-	
+
 	if(node_text == "zextend") {
 		return SSACastStatement::Cast_ZeroExtend;
 	} else if(node_text == "sextend") {
@@ -433,10 +434,11 @@ SSACastStatement::CastType parse_cast_type(pANTLR3_BASE_TREE node) {
 	}
 }
 
-SSACastStatement::CastOption parse_cast_option(pANTLR3_BASE_TREE node) {
+SSACastStatement::CastOption parse_cast_option(pANTLR3_BASE_TREE node)
+{
 	GASSERT(node->getType(node) == SSAASM_ID);
 	std::string node_text = (char*)node->getText(node)->chars;
-	
+
 	if(node_text == "none") {
 		return SSACastStatement::Option_None;
 	} else if(node_text == "round_default") {
@@ -452,7 +454,7 @@ SSACastStatement::CastOption parse_cast_option(pANTLR3_BASE_TREE node) {
 	} else {
 		UNEXPECTED;
 	}
-} 
+}
 
 SSAStatement *StatementAssembler::parse_cast_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
 {
@@ -463,13 +465,13 @@ SSAStatement *StatementAssembler::parse_cast_statement(pANTLR3_BASE_TREE tree, S
 	auto cast_type_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
 
 	SSACastStatement::CastType ctype = parse_cast_type(cast_type_node);
-	
+
 	SSACastStatement::CastOption option = SSACastStatement::Option_None;
 	if(tree->getChildCount(tree) == 4) {
 		auto option_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 3);
 		option = parse_cast_option(option_node);
 	}
-	
+
 	auto target_type = parse_type(action_.GetContext(), type_node);
 	auto statement = get_statement(expr_node);
 
@@ -487,11 +489,11 @@ SSAStatement *StatementAssembler::parse_constant_statement(pANTLR3_BASE_TREE tre
 
 	IRConstant constant_value = parse_constant_value(value_node);
 	SSAType constant_type = parse_type(action_.GetContext(), type_node);
-	
+
 	if(SSAType::Cast(constant_value, constant_type, constant_type) != constant_value) {
 		throw std::logic_error("Constant type cannot contain specified value");
 	}
-	
+
 	return new SSAConstantStatement(block, constant_value, constant_type);
 }
 
@@ -657,8 +659,8 @@ SSAStatement *StatementAssembler::parse_struct_statement(pANTLR3_BASE_TREE tree,
 
 	auto struct_symbol = get_symbol(struct_var_node);
 	GASSERT(struct_symbol->GetType().IsStruct());
-	GASSERT(struct_symbol->GetType().BaseType.StructType->HasMember(member_name));	
-	
+	GASSERT(struct_symbol->GetType().BaseType.StructType->HasMember(member_name));
+
 	return new SSAReadStructMemberStatement(block, get_symbol(struct_var_node), member_name);
 }
 
@@ -836,11 +838,11 @@ SSAStatement* StatementAssembler::get_statement(pANTLR3_BASE_TREE stmt_id_node)
 {
 	auto stmt_name = (char*)stmt_id_node->getText(stmt_id_node)->chars;
 	auto stmt = dynamic_cast<SSAStatement*>(ctx_.Get(stmt_name));
-	
+
 	if(stmt == nullptr) {
 		throw std::invalid_argument("Could not find statement");
 	}
-	
+
 	return stmt;
 }
 
@@ -848,11 +850,11 @@ SSASymbol* StatementAssembler::get_symbol(pANTLR3_BASE_TREE sym_id_node)
 {
 	auto sym_name = (char*)sym_id_node->getText(sym_id_node)->chars;
 	auto sym = dynamic_cast<SSASymbol*>(ctx_.Get(sym_name));
-	
+
 	if(sym == nullptr) {
 		throw std::invalid_argument("Could not find symbol");
 	}
-	
+
 	return sym;
 }
 

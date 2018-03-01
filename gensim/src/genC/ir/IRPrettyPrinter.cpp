@@ -411,7 +411,7 @@ namespace gensim
 		{
 			out << "???";
 		}
-		
+
 		void IRExternalAction::PrettyPrintHeader(std::ostringstream& out) const
 		{
 			out << "???";

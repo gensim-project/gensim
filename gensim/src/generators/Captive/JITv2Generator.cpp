@@ -157,7 +157,7 @@ namespace gensim
 
 					return true;
 				}
-				
+
 				bool GenerateJITChunkEpilogue(util::cppformatstream& str) const
 				{
 					str << "template class aarch64_jit2<true>;";
@@ -281,7 +281,7 @@ namespace gensim
 
 					str << "template<bool TRACE>";
 					str << ClassNameForJIT() << "<TRACE>::" << ClassNameForJIT() << "() { }";
-					
+
 					str << "template<bool TRACE>";
 					str << ClassNameForJIT() << "<TRACE>::~" << ClassNameForJIT() << "() { }";
 
@@ -326,7 +326,7 @@ namespace gensim
 
 					str << "template class aarch64_jit2<true>;";
 					str << "template class aarch64_jit2<false>;";
-					
+
 					return true;
 				}
 
@@ -444,9 +444,9 @@ namespace gensim
 						}
 						src_stream << sym->GetType().GetCType() << " CV_" << sym->GetName() << ";\n";
 						src_stream << "auto DV_" << sym->GetName() << " = emitter.alloc_local(emitter.context().types()." << sym->GetType().GetUnifiedType() << "(), ";
-						
+
 						bool is_global = false;
-						
+
 						auto ssavalue = (ssa::SSAValue *)sym;
 						for (const auto use : ssavalue->GetUses()) {
 							if (auto rd = dynamic_cast<const SSAVariableReadStatement *>(use)) {
@@ -461,7 +461,7 @@ namespace gensim
 								}
 							}
 						}
-						
+
 						src_stream << (is_global ? "true" : "false");
 						src_stream << ");\n";
 					}

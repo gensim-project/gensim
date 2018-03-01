@@ -27,30 +27,30 @@ namespace gensim
 				enum CastType {
 					// This cast is unknown. Unknown casts should not exist: they should be flagged during validation
 					Cast_Unknown,
-					
+
 					// Consider the 'bits' of the source value to be of the new type. The bit widths of the types must match.
 					Cast_Reinterpret,
-					
+
 					// Remove higher order bits of the source value until it is the same width as the new type
 					Cast_Truncate,
-					
+
 					// Sign extend the source value until it is the same width as the new type
 					Cast_SignExtend,
-					
+
 					// Zero extend the new value until it is the same width as the new type
 					Cast_ZeroExtend,
-					
+
 					// Convert the 'bits' of the source value to the data format for the new type. This cast type has an option.
 					Cast_Convert
 				};
-				
+
 				enum CastOption {
 					// An unknown option. This should be flagged at validation.
 					Option_Unknown,
-					
+
 					// The default option is no option. This is for casts which do not have options.
 					Option_None,
-					
+
 					// These options are targeted at floating point conversions:
 					// RoundDefault refers to whatever rounding mode is currently selected
 					Option_RoundDefault,
@@ -79,19 +79,21 @@ namespace gensim
 					assert(expr);
 					SetExpr(expr);
 				}
-				
-				CastOption GetOption() const {
+
+				CastOption GetOption() const
+				{
 					return option_;
 				}
-				
-				void SetOption(CastOption option) {
+
+				void SetOption(CastOption option)
+				{
 					option_ = option;
 				}
 
 				~SSACastStatement();
 
 				CastType GetCastType() const;
-				
+
 				const SSAType GetType() const override
 				{
 					return target_type_;

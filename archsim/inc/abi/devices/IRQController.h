@@ -66,7 +66,7 @@ namespace archsim
 
 				bool Initialise() override;
 
-				
+
 				bool Connected;
 
 			protected:

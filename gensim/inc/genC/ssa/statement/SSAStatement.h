@@ -74,9 +74,12 @@ namespace gensim
 					Class_Call,
 					Class_Controlflow
 				};
-				
-				StatementClass GetClass() const { return class_; }
-				
+
+				StatementClass GetClass() const
+				{
+					return class_;
+				}
+
 				typedef std::vector<SSAValue*> operand_list_t;
 
 				bool Resolved;

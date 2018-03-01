@@ -26,7 +26,7 @@ namespace gensim
 	{
 		class ArchDescription;
 	}
-	namespace isa 
+	namespace isa
 	{
 		class ISADescription;
 	}
@@ -70,15 +70,21 @@ namespace gensim
 				SSAActionPrototype prototype_;
 				const SSAType _type;
 			};
-                        
+
 			class SSAExternalAction : public SSAActionBase
 			{
 			public:
-				SSAExternalAction(SSAContext& context, const SSAActionPrototype &prototype) : SSAActionBase(context, prototype) { assert(prototype.HasAttribute(gensim::genc::ActionAttribute::External)); }
+				SSAExternalAction(SSAContext& context, const SSAActionPrototype &prototype) : SSAActionBase(context, prototype)
+				{
+					assert(prototype.HasAttribute(gensim::genc::ActionAttribute::External));
+				}
 				virtual ~SSAExternalAction() { }
 
 				void Unlink() override { }
-				void Destroy() override { Dispose(); }
+				void Destroy() override
+				{
+					Dispose();
+				}
 			};
 
 			/**
@@ -96,7 +102,7 @@ namespace gensim
 				typedef BlockList::iterator BlockListIterator;
 
 				typedef std::vector<SSAStatement *> StatementList;
-				
+
 				/**
 				 * Constructs a new SSAFormAction object.
 				 * @param prototype Associated SSA Action Prototype.
@@ -104,7 +110,7 @@ namespace gensim
 				SSAFormAction(SSAContext& context, const SSAActionPrototype &prototype);
 
 				StatementList GetStatements(std::function<bool(SSAStatement*)>) const;
-				
+
 				std::list<SSABlock *> Blocks;
 				bool ContainsBlock(const SSABlock *block) const;
 				void AddBlock(SSABlock *block);

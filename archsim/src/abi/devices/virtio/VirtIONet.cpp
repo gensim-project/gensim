@@ -16,7 +16,7 @@ static ComponentDescriptor virtionet_descriptor ("VirtioNet");
 VirtIONet::VirtIONet(EmulationModel& parent_model, IRQLine& irq, Address base_address, std::string name, NetworkInterface &iface, uint64_t mac_address)
 	: VirtIO(parent_model, irq, base_address, 0x1000, name, 1, 1, 2),
 	  _iface(iface),
-	Component(virtionet_descriptor)
+	  Component(virtionet_descriptor)
 {
 	bzero(&config, sizeof(config));
 

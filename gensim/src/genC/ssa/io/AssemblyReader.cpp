@@ -45,13 +45,13 @@ static pANTLR3_INPUT_STREAM GetFile(const std::string &str)
 bool AssemblyReader::Parse(const std::string& filename, gensim::DiagnosticContext& diag, AssemblyFileContext*& target) const
 {
 	std::ifstream file (filename, std::ios::in | std::ios::binary | std::ios::ate);
-	
+
 	std::ifstream::pos_type filesize = file.tellg();
 	file.seekg(0, std::ios::beg);
-	
+
 	std::vector<char> data(filesize);
 	file.read(data.data(), filesize);
-	
+
 	std::string text (data.data(), filesize);
 	for(auto i : text) {
 		if(!isspace(i) && !isgraph(i)) {
@@ -59,7 +59,7 @@ bool AssemblyReader::Parse(const std::string& filename, gensim::DiagnosticContex
 			return false;
 		}
 	}
-	
+
 	return ParseText(text, diag, target);
 }
 

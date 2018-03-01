@@ -33,7 +33,7 @@ void TickSource::RemoveConsumer(TickConsumer &consumer)
 void TickSource::Tick(uint32_t tick_periods)
 {
 	microticks_ += tick_periods * microtick_scale_;
-	
+
 	if(microticks_ >= 1.0f) {
 		tick_count_ += microticks_;
 		for(auto *consumer : consumers) {

@@ -109,7 +109,7 @@ namespace gensim
 				void VisitVectorExtractElementStatement(SSAVectorExtractElementStatement& stmt) override;
 				void VisitVectorInsertElementStatement(SSAVectorInsertElementStatement& stmt) override;
 			};
-			
+
 			class EmptySSAStatementVisitor : public SSAStatementVisitor
 			{
 			public:

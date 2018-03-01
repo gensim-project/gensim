@@ -38,7 +38,7 @@ void BinaryFileTraceSink::SinkPackets(const TraceRecord* start, const TraceRecor
 	auto oldsize = records_.size();
 	records_.resize(records_.size() + (end - start));
 	memcpy(records_.data() + oldsize, start, (end-start) * sizeof(*start));
-	
+
 	if(records_.size() >= TraceSource::RecordBufferSize) {
 		Flush();
 	}
@@ -59,17 +59,18 @@ void TextFileTraceSink::SinkPackets(const TraceRecord* start, const TraceRecord*
 	while(start != end) {
 		record_output_stream_->Put(*start++);
 	}
-	
+
 	while(packet_input_stream_->Good()) {
 		TraceRecordPacket packet = packet_input_stream_->Get();
 		WritePacket(packet);
 	}
 }
 
-class TextTraceSinkVisitor : public TraceRecordPacketVisitor {
+class TextTraceSinkVisitor : public TraceRecordPacketVisitor
+{
 public:
 	TextTraceSinkVisitor(FILE *outfile, ArchInterface *interface) : outfile_(outfile), interface_(interface) {}
-	
+
 	virtual ~TextTraceSinkVisitor()
 	{
 
@@ -77,11 +78,13 @@ public:
 
 	void VisitBankRegRead(const BankRegReadReader& record) override {}
 	void VisitBankRegWrite(const BankRegWriteReader& record) override {}
-	void VisitInstructionCode(const InstructionCodeReader& record) override {
+	void VisitInstructionCode(const InstructionCodeReader& record) override
+	{
 		std::string disasm = interface_->DisassembleInstruction(record.GetRecord());
 		fprintf(outfile_, "%08x %s\t\t", record.GetCode().AsU32(), disasm.c_str());
 	}
-	void VisitInstructionHeader(const InstructionHeaderReader& record) override {
+	void VisitInstructionHeader(const InstructionHeaderReader& record) override
+	{
 		fprintf(outfile_, "\n[%08x] ", record.GetPC().AsU32());
 	}
 	void VisitMemReadAddr(const MemReadAddrReader& record) override {}
@@ -100,7 +103,7 @@ void TextFileTraceSink::WritePacket(const TraceRecordPacket& pkt)
 {
 	TextTraceSinkVisitor visitor(outfile_, interface_);
 	visitor.Visit(pkt);
-	
+
 	/*
 	switch(pkt->GetType()) {
 		case TraceRecordType::InstructionHeader:
@@ -144,12 +147,12 @@ void TextFileTraceSink::Flush()
 
 void TextFileTraceSink::WriteInstructionHeader(const InstructionHeaderRecord* record)
 {
-	
+
 }
 
 void TextFileTraceSink::WriteInstructionCode(const InstructionCodeRecord* record)
 {
-	
+
 }
 
 void TextFileTraceSink::WriteRegRead(const RegReadRecord* record)

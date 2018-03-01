@@ -65,7 +65,7 @@ namespace archsim
 
 					uint32_t last_mouse_x, last_mouse_y;
 					uint32_t mouse_x, mouse_y;
-					
+
 					bool running;
 
 					void draw_framebuffer();
@@ -74,7 +74,7 @@ namespace archsim
 					friend void key_release_event(GtkWidget *, GdkEventKey *, void *screen);
 					friend void motion_notify_event(GtkWidget *widget, GdkEventMotion *event, void *screen);
 					friend void button_press_event(GtkWidget *widget, GdkEventButton *event, void *screen);
-					
+
 					std::mutex gtk_lock_;
 				};
 

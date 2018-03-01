@@ -77,9 +77,9 @@ gensim::arch::RegBankViewDescriptor *GenerateRegBank(gensim::arch::RegSpaceDescr
 	int elem_size = type_width_in_bytes;
 	int elem_stride = type_width_in_bytes;
 	int register_stride = elem_count * elem_stride;
-	
+
 	int register_count = random() % (parent->GetSize() / register_stride);
-	
+
 	int offset = 0;
 	return new gensim::arch::RegBankViewDescriptor(parent, id, offset, register_count, register_stride, elem_count, elem_size, elem_stride, type);
 }

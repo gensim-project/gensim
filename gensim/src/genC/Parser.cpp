@@ -66,7 +66,7 @@ IRCallableAction *GenCContext::GetCallable(const std::string& name) const
 	// Intrinsics take precedence...
 	IRCallableAction *action = GetIntrinsic(name);
 	if (action != nullptr) return action;
-	
+
 	// Then helper functions (which can hence override externals)
 	action = GetHelper(name);
 	if (action != nullptr) return action;
@@ -74,7 +74,7 @@ IRCallableAction *GenCContext::GetCallable(const std::string& name) const
 	// Finally external functions.
 	action = GetExternal(name);
 	if (action != nullptr) return action;
-		
+
 	return nullptr;
 }
 
@@ -152,7 +152,7 @@ bool GenCContext::Parse()
 			return false;
 		}
 		pgenCLexer lexer = genCLexerNew(pts);
-		
+
 		pANTLR3_COMMON_TOKEN_STREAM tstream = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(lexer));
 		pgenCParser parser = genCParserNew(tstream);
 
@@ -264,7 +264,7 @@ void GenCContext::Build_Inst_Struct()
 
 FileContents::FileContents(const std::string& filename) : Filename(filename), TokenStream(GetFile(filename))
 {
-	
+
 }
 
 FileContents::FileContents(const std::string& filename, const std::string& filetext) : Filename(filename)
@@ -364,12 +364,12 @@ bool GenCContext::Parse_Execute(pANTLR3_BASE_TREE Execute)
 		diag_ctx.Error("Execute action " + nameStr + " redefined", DiagNode("", nameNode));
 		return false;
 	}
-	
+
 	if(GetIntrinsic(nameStr) != nullptr) {
 		diag_ctx.Error("The name " + nameStr + " is reserved by an intrinsic function", DiagNode("", nameNode));
 		return false;
 	}
-	
+
 	if(GetExternal(nameStr) != nullptr) {
 		diag_ctx.Error("The name " + nameStr + " is reserved by an external function", DiagNode("", nameNode));
 		return false;
@@ -677,7 +677,7 @@ IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &conta
 			IRFlowStatement *ret = new IRFlowStatement(containing_scope);
 			ret->SetDiag(DiagNode(CurrFilename, node));
 			ret->Type = IRFlowStatement::FLOW_RAISE;
-			
+
 			return ret;
 		}
 		case RETURN: {
@@ -814,7 +814,7 @@ IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &conta
 					return nullptr;
 				}
 			}
-			
+
 			IRSelectionStatement *sel = new IRSelectionStatement(containing_scope, IRSelectionStatement::SELECT_SWITCH, *expr, *body, NULL);
 			sel->SetDiag(DiagNode(CurrFilename, exprNode));
 

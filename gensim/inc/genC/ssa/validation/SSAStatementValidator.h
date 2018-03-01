@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   SSAStatementValidator.h
  * Author: harry
  *
@@ -16,20 +16,25 @@
 
 #include <vector>
 
-namespace gensim {
+namespace gensim
+{
 	class DiagnosticContext;
-	
-	namespace genc {
-		namespace ssa {
+
+	namespace genc
+	{
+		namespace ssa
+		{
 			class SSAStatement;
-			namespace validation {
+			namespace validation
+			{
 				class SSAStatementValidationPass;
-				
-				class SSAStatementValidator {
+
+				class SSAStatementValidator
+				{
 				public:
 					SSAStatementValidator();
 					bool Run(SSAStatement *stmt, DiagnosticContext &diag);
-					
+
 				private:
 					std::vector<SSAStatementValidationPass*> passes_;
 				};

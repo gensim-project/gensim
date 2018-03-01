@@ -2,7 +2,8 @@
 
 #include <sstream>
 
-std::vector<std::string> archsim::util::split_string(const std::string &input, char delim) {
+std::vector<std::string> archsim::util::split_string(const std::string &input, char delim)
+{
 	std::vector<std::string> atoms;
 	std::istringstream str (input);
 
@@ -14,6 +15,7 @@ std::vector<std::string> archsim::util::split_string(const std::string &input, c
 	return atoms;
 }
 
-std::string archsim::util::join_string(const std::vector<std::string> &atoms, char delim) {
+std::string archsim::util::join_string(const std::vector<std::string> &atoms, char delim)
+{
 	return join_string(atoms.begin(), atoms.end(), delim);
 }

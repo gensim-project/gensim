@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Could not find isa %s\n", isa_name);
 		return 1;
 	}
-	
+
 	gensim::genc::ssa::SSAContext *ctx = new gensim::genc::ssa::SSAContext(*isa, *arch);
 
 	gensim::genc::ssa::io::AssemblyReader ar;
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to parse asm\n");
 		return 1;
 	}
-	
+
 
 	gensim::genc::InstStructBuilder isb;
 	ctx->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa));
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 	manager.Run(*ctx);
 	ctx->Resolve(root_context);
 	std::cerr << root_context;
-	
+
 	gensim::genc::ssa::io::ContextDisassembler cd;
 	std::ofstream outfile(output_file);
 	cd.Disassemble(ctx, outfile);

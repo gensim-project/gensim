@@ -33,7 +33,7 @@ namespace archsim
 					virtual bool AssertLine(uint32_t line_no) override;
 
 					virtual bool RescindLine(uint32_t line_no) override;
-					
+
 					bool Initialise() override;
 				};
 
@@ -63,7 +63,7 @@ namespace archsim
 				COMPONENT_PARAMETER_ENTRY(IRQLine, IRQLine, IRQLine);
 				COMPONENT_PARAMETER_ENTRY(FIQLine, IRQLine, IRQLine);
 				COMPONENT_PARAMETER_ENTRY(IRQController, IRQController, IRQController);
-				
+
 				bool Initialise() override;
 
 			private:

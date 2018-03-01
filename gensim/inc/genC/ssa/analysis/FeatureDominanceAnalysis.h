@@ -12,7 +12,7 @@ namespace gensim
 			{
 			public:
 				bool HasDominatingSetFeature(uint32_t feature, const SSAStatement *reference_stmt) const;
-				
+
 			private:
 				bool BlockHasDominatingSetFeature(uint32_t feature, const SSABlock *block, const SSAStatement *reference_stmt) const;
 				bool StatementIsDominatingSetFeature(uint32_t feature, const SSAStatement *check_stmt) const;

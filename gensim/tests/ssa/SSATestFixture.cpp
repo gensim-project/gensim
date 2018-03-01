@@ -23,7 +23,7 @@ SSATestFixture::SSATestFixture() : test_arch_(gensim::arch::testing::GetTestArch
 	gensim::isa::ISADescription *isa = gensim::isa::testing::GetTestISA(false);
 	test_context_ = new SSAContext(*isa, *test_arch_);
 	gensim::genc::InstStructBuilder isb;
-	
+
 	test_context_->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa));
 }
 
@@ -47,7 +47,7 @@ SSAFormAction* SSATestFixture::CompileAsm(const std::string& src, const std::str
 		return nullptr;
 	}
 	EXPECT_EQ(assembled, true);
-	
+
 
 	auto test_action = (gensim::genc::ssa::SSAFormAction*)test_ctx->GetAction(action_name);
 	return test_action;
@@ -73,7 +73,7 @@ SSAContext* SSATestFixture::CompileAsm(const std::string& src)
 		return nullptr;
 	}
 	EXPECT_EQ(assembled, true);
-	
+
 
 	return test_ctx;
 }

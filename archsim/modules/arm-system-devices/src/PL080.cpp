@@ -34,7 +34,7 @@ namespace archsim
 			{
 
 			}
-			
+
 			bool PL080::Initialise()
 			{
 				return true;

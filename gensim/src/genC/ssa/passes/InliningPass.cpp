@@ -28,7 +28,7 @@ static bool InlineOneCall(SSAFormAction &action)
 				if (dynamic_cast<SSAFormAction *>(call->Target()) == nullptr) {
 					continue;
 				}
-				
+
 				// Skip inlining functions which are marked as noinline
 				if(call->Target()->HasAttribute(gensim::genc::ActionAttribute::NoInline)) {
 					continue;

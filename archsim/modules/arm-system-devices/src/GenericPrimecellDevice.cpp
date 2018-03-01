@@ -34,7 +34,8 @@ namespace archsim
 
 			}
 
-			bool GenericPrimecellDevice::Initialise() {
+			bool GenericPrimecellDevice::Initialise()
+			{
 				return true;
 			}
 

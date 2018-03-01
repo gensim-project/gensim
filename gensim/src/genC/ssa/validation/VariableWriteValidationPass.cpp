@@ -18,16 +18,18 @@ using gensim::DiagnosticClass;
 using namespace gensim::genc::ssa;
 using namespace gensim::genc::ssa::validation;
 
-class VariableWriteValidationPass : public SSAActionValidationPass {
-	bool Run(const SSAFormAction* action, DiagnosticContext& ctx) override {
+class VariableWriteValidationPass : public SSAActionValidationPass
+{
+	bool Run(const SSAFormAction* action, DiagnosticContext& ctx) override
+	{
 		bool success = true;
-		
+
 		for(auto block : action->Blocks) {
 			for(auto stmt : block->GetStatements()) {
 				if(auto write = dynamic_cast<SSAVariableWriteStatement*>(stmt)) {
 					const SSAType &variable_type = write->Target()->GetType();
 					const SSAType &expr_type = write->Expr()->GetType();
-					
+
 					if(variable_type != expr_type) {
 						ctx.AddEntry(DiagnosticClass::Error, "Value written to variable does not match variable type", write->GetDiag());
 						success = false;
@@ -35,7 +37,7 @@ class VariableWriteValidationPass : public SSAActionValidationPass {
 				}
 			}
 		}
-		
+
 		return success;
 	}
 };

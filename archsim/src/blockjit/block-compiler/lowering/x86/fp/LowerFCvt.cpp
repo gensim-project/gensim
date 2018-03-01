@@ -61,7 +61,7 @@ bool LowerFCvt_F_To_SI::Lower(const captive::shared::IRInstruction*& insn)
 	assert(dest.is_vreg());
 
 	auto &dest_reg = dest.is_alloc_reg() ? GetCompiler().register_from_operand(&dest) : BLKJIT_TEMPS_0(dest.size);
-	
+
 	if(op1.is_alloc_reg()) {
 		Encoder().movq(GetCompiler().register_from_operand(&op1), BLKJIT_FP_0);
 	} else if(op1.is_alloc_stack()) {
@@ -92,7 +92,7 @@ bool LowerFCvt_F_To_SI::Lower(const captive::shared::IRInstruction*& insn)
 	if(dest.is_alloc_stack()) {
 		Encoder().mov(BLKJIT_TEMPS_0(dest.size), GetCompiler().stack_from_operand(&dest));
 	}
-	
+
 	insn++;
 	return true;
 }
@@ -131,7 +131,7 @@ bool LowerFCvt_UI_To_F::Lower(const captive::shared::IRInstruction*& insn)
 		GetCompiler().encode_operand_to_reg(&op1, BLKJIT_TEMPS_0(op1.size));
 		Encoder().call((void*)blkjit_cvt_u64_to_d, BLKJIT_RETURN(8));
 	}
-	
+
 	Encoder().movq(BLKJIT_FP_0, GetCompiler().register_from_operand(&dest));
 
 	insn++;
@@ -172,7 +172,7 @@ bool LowerFCvt_F_To_UI::Lower(const captive::shared::IRInstruction*& insn)
 	} else if(dest.size == 8) {
 		// if dest is u64, then we need to encode a call to a helper
 		void *fn = nullptr;
-		
+
 		if(insn->type == IRInstruction::FCVTT_F_TO_UI) {
 			if(op1.size == 4) {
 				fn = (void*)blkjit_cvtt_f_to_u64;
@@ -190,7 +190,7 @@ bool LowerFCvt_F_To_UI::Lower(const captive::shared::IRInstruction*& insn)
 				assert(false);
 			}
 		}
-		
+
 		// now encode a call to the function
 		// move argument into BLKJIT_TEMPS_0
 		if(op1.is_alloc_reg()) {
@@ -200,10 +200,10 @@ bool LowerFCvt_F_To_UI::Lower(const captive::shared::IRInstruction*& insn)
 		} else {
 			assert(false);
 		}
-		
+
 		// make call
 		Encoder().call(fn, BLKJIT_RETURN(8));
-		
+
 		// move returned value to destination
 		if(dest.is_alloc_reg()) {
 			Encoder().mov(BLKJIT_TEMPS_0(dest.size), GetCompiler().register_from_operand(&dest));
@@ -212,11 +212,11 @@ bool LowerFCvt_F_To_UI::Lower(const captive::shared::IRInstruction*& insn)
 		} else {
 			assert(false);
 		}
-		
+
 	} else {
 		assert(false);
 	}
-	
+
 	insn++;
 	return true;
 }

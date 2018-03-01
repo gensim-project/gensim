@@ -11,8 +11,8 @@ using namespace gensim::genc::ssa;
 
 TEST(Issues, Issue2)
 {
-    // source code to test
-    const std::string sourcecode = R"||(
+	// source code to test
+	const std::string sourcecode = R"||(
 execute(test_instruction){}
 helper void testfn()
 {
@@ -35,20 +35,20 @@ helper void testfn()
 
 }
     )||";
-    // parse code
-	
+	// parse code
+
 	gensim::DiagnosticSource root_source("GenSim");
 	gensim::DiagnosticContext root_context(root_source);
-	
+
 	auto gencctx = gensim::genc::testing::TestContext::GetTestContext(false, root_context);
-    auto ctx = gensim::genc::testing::TestContext::CompileSource(gencctx, sourcecode);
-    
-    if(ctx == nullptr) {
+	auto ctx = gensim::genc::testing::TestContext::CompileSource(gencctx, sourcecode);
+
+	if(ctx == nullptr) {
 		std::cout << root_context;
 	}
-	
+
 	ASSERT_NE(nullptr, ctx);
-	
+
 	if(ctx->Resolve(root_context)) {
 		// actually perform test
 		ASSERT_EQ(true, ctx->HasAction("testfn"));

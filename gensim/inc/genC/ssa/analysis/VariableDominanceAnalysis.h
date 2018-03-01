@@ -29,7 +29,8 @@ namespace gensim
 			class SSAVariableWriteStatement;
 			class SSASymbol;
 
-			namespace analysis {
+			namespace analysis
+			{
 				class VariableDominanceInfo
 				{
 				public:

@@ -42,7 +42,7 @@ bool RecordBufferStreamAdaptor::Good()
 	return index_ < buffer_->Size();
 }
 
-TracePacketStreamAdaptor::TracePacketStreamAdaptor(RecordStreamInputInterface* input_stream) : input_stream_(input_stream), packet_ready_(false), packet_(TraceRecordPacket(TraceRecord(),{}))
+TracePacketStreamAdaptor::TracePacketStreamAdaptor(RecordStreamInputInterface* input_stream) : input_stream_(input_stream), packet_ready_(false), packet_(TraceRecordPacket(TraceRecord(), {}))
 {
 
 }
@@ -85,14 +85,14 @@ bool TracePacketStreamAdaptor::PreparePacket()
 	Record rpacket_head = input_stream_->Get();
 	TraceRecord packet_head = *(TraceRecord*)&rpacket_head;
 	assert(packet_head.GetType() != DataExtension);
-	
+
 	std::vector<DataExtensionRecord> extensions;
 	for(int i = 0; i < packet_head.GetExtensionCount(); ++i) {
 		Record record = input_stream_->Get();
 		DataExtensionRecord trecord = *(DataExtensionRecord*)&record;
 		extensions.push_back(trecord);
 	}
-	
+
 	packet_ = TraceRecordPacket(packet_head, extensions);
 	packet_ready_ = true;
 	return true;

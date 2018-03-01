@@ -67,15 +67,15 @@ SSAConstantStatement *ConstantFoldBinaryOp(SSABinaryArithmeticStatement *binary_
 		case BinaryOperator::SignedShiftRight:
 			val = ((int64_t)lhs->Constant.Int()) >> rhs->Constant.Int();
 			break;
-			
+
 		case BinaryOperator::RotateLeft:
 			val = IRConstant::ROL(lhs->Constant, rhs->Constant, binary_stmt->GetType().Size()*8).Int();
 			break;
-			
+
 		case BinaryOperator::RotateRight:
 			val = IRConstant::ROR(lhs->Constant, rhs->Constant, binary_stmt->GetType().Size()*8).Int();
 			break;
-			
+
 		case BinaryOperator::Bitwise_And:
 			val = lhs->Constant.Int() & rhs->Constant.Int();
 			break;
@@ -111,7 +111,7 @@ SSAConstantStatement *ConstantFoldBinaryOp(SSABinaryArithmeticStatement *binary_
 			val = lhs->Constant.Int() >= rhs->Constant.Int();
 			break;
 
-	
+
 		default:
 			assert(false && "Unimplemented");
 			break;

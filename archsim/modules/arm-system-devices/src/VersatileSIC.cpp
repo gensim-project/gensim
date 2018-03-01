@@ -51,7 +51,7 @@ VersatileSIC<nr_lines>::~VersatileSIC()
 template <int nr_lines>
 bool VersatileSIC<nr_lines>::Initialise()
 {
-	
+
 }
 
 template<int nr_lines>

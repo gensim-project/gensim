@@ -28,7 +28,7 @@ void SSAInliner::Inline(SSACallStatement* call_site) const
 	if (callee == nullptr) {
 		throw std::logic_error("Attempting to inline non-SSAFormAction callee");
 	}
-	
+
 	SSAFormAction *caller = call_site->Parent->Parent;
 
 	// Inlining procedure:
@@ -38,7 +38,7 @@ void SSAInliner::Inline(SSACallStatement* call_site) const
 	// 4. break call site block after call site
 	// 5. replace call site with jump to entry block of callee
 	// 6. replace return statements with jump to remainder of block + write to return variable
-	
+
 	std::map<SSABlock *, SSABlock *> block_map;
 
 	// 1. clone all of the blocks of the callee into the caller

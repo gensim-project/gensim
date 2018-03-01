@@ -26,7 +26,7 @@ bool FeatureDominanceAnalysis::HasDominatingSetFeature(uint32_t feature, const S
 			return true;
 		}
 	}
-	
+
 	// If we got here, then there were no dominating set-feature statements for the feature ID we're interested in.
 	return false;
 }
@@ -44,7 +44,7 @@ bool FeatureDominanceAnalysis::BlockHasDominatingSetFeature(uint32_t feature, co
 			return true;
 		}
 	}
-	
+
 	// If we get here, then the block does not contain a dominating set-feature statement.
 	return false;
 }
@@ -68,7 +68,7 @@ bool FeatureDominanceAnalysis::StatementIsDominatingSetFeature(uint32_t feature,
 			}
 		}
 	}
-	
+
 	// If we get here then the statement is not a dominating set-feature.
 	return false;
 }

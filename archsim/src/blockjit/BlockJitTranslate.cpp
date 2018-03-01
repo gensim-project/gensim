@@ -245,7 +245,7 @@ bool BaseBlockJITTranslate::can_merge_jump(gensim::BlockJitProcessor *processor,
 {
 	// only end of block instructions are jumps
 	assert(decode->GetEndOfBlock());
-	
+
 	if(!_supportChaining) {
 		return false;
 	}
@@ -276,7 +276,7 @@ archsim::VirtualAddress BaseBlockJITTranslate::get_jump_target(BlockJitProcessor
 	_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target);
 
 	assert(direct || indirect);
-	
+
 	return VirtualAddress(target);
 }
 

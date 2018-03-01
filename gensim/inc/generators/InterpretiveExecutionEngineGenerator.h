@@ -68,7 +68,7 @@ namespace gensim
 			virtual bool GenerateExtraProcessorIncludes(util::cppformatstream &) const;
 
 			virtual bool GenerateRegisterAccessFunctions(util::cppformatstream &) const;
-			
+
 			virtual bool GenerateModuleDescriptor(util::cppformatstream &) const;
 		};
 

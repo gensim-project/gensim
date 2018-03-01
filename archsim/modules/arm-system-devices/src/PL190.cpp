@@ -27,8 +27,9 @@ namespace archsim
 			{
 
 			}
-			
-			bool PL190::PL190Controller::Initialise() {
+
+			bool PL190::PL190Controller::Initialise()
+			{
 				return true;
 			}
 
@@ -82,18 +83,19 @@ namespace archsim
 				soft_level = 0;
 				irq_level = 0;
 				fiq_select = 0;
-				
+
 				SetParameter<Component*>("IRQController", &inner_controller);
 			}
-			
-			
-			bool PL190::Initialise() {
+
+
+			bool PL190::Initialise()
+			{
 				if(GetIRQLine() == nullptr || GetFIQLine() == nullptr) {
 					return false;
 				}
-				
+
 				update_vectors();
-				
+
 				return true;
 			}
 

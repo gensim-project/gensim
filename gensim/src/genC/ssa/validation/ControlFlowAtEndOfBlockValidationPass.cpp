@@ -22,12 +22,14 @@ using namespace gensim::genc::ssa::validation;
 // This validation pass asserts that all REACHABLE blocks have a control flow
 // statement
 
-class ControlFlowAtEndOfBlockValidationPass : public SSAActionValidationPass {
-	bool Run(const SSAFormAction* action, DiagnosticContext& ctx) override {
+class ControlFlowAtEndOfBlockValidationPass : public SSAActionValidationPass
+{
+	bool Run(const SSAFormAction* action, DiagnosticContext& ctx) override
+	{
 		bool success = true;
 		ReachabilityAnalysis ra;
 		auto reachable = ra.GetReachable(*action);
-		
+
 		for(auto block : action->Blocks) {
 			if(!reachable.count(block)) {
 				continue;
@@ -40,7 +42,7 @@ class ControlFlowAtEndOfBlockValidationPass : public SSAActionValidationPass {
 				success = false;
 			}
 		}
-		
+
 		return success;
 	}
 };

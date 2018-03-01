@@ -19,18 +19,22 @@ using namespace gensim::genc::ssa;
 using namespace gensim::genc::ssa::validation;
 
 
-class CastToVoidValidationPass : public SSAStatementValidationPass {
+class CastToVoidValidationPass : public SSAStatementValidationPass
+{
 public:
-	void VisitCastStatement(SSACastStatement& stmt) override {
+	void VisitCastStatement(SSACastStatement& stmt) override
+	{
 		if(stmt.GetType() == gensim::genc::IRTypes::Void) {
 			Fail("Cannot cast value to void", stmt.GetDiag());
 		}
 	}
 };
 
-class CastToReferenceValidationPass : public SSAStatementValidationPass {
+class CastToReferenceValidationPass : public SSAStatementValidationPass
+{
 public:
-	void VisitCastStatement(SSACastStatement& stmt) override {
+	void VisitCastStatement(SSACastStatement& stmt) override
+	{
 		if(stmt.GetType().Reference) {
 			Fail("Cannot cast value to reference", stmt.GetDiag());
 		}

@@ -72,49 +72,73 @@ namespace gensim
 		{
 		public:
 			RegBankViewDescriptor(
-					RegSpaceDescriptor *parent,
-					const std::string& id, 
-					uint32_t space_offset,
-					uint32_t register_count,
-					uint32_t register_stride,
-					uint32_t element_count,
-					uint32_t element_size,
-					uint32_t element_stride,
-					const std::string& element_type
+			    RegSpaceDescriptor *parent,
+			    const std::string& id,
+			    uint32_t space_offset,
+			    uint32_t register_count,
+			    uint32_t register_stride,
+			    uint32_t element_count,
+			    uint32_t element_size,
+			    uint32_t element_stride,
+			    const std::string& element_type
 			) : parent_space(parent),
-					ID(id),
-					ElementTypeName(element_type),
-					RegisterSpaceOffset(space_offset),
-					RegisterCount(register_count),
-					RegisterStride(register_stride),
-					ElementCount(element_count),
-					ElementSize(element_size),
-					ElementStride(element_stride) { }
-			
+				ID(id),
+				ElementTypeName(element_type),
+				RegisterSpaceOffset(space_offset),
+				RegisterCount(register_count),
+				RegisterStride(register_stride),
+				ElementCount(element_count),
+				ElementSize(element_size),
+				ElementStride(element_stride) { }
+
 
 			const std::string ID;
 			const std::string ElementTypeName;
-			
+
 			bool Hidden;
 
 			uint32_t GetIndex() const;
-			
+
 			/**
 			 * Get the size of the entire register bank.
 			 */
-			uint32_t GetBankSize() const { return GetRegisterCount() * GetRegisterStride(); }
-			
-			uint32_t GetRegisterCount() const { return RegisterCount; }
-			uint32_t GetRegisterWidth() const { return GetElementCount() * GetElementStride(); }
-			uint32_t GetRegisterStride() const { return RegisterStride; }
+			uint32_t GetBankSize() const
+			{
+				return GetRegisterCount() * GetRegisterStride();
+			}
 
-			uint32_t GetRegSpaceOffset() const { return RegisterSpaceOffset; }
+			uint32_t GetRegisterCount() const
+			{
+				return RegisterCount;
+			}
+			uint32_t GetRegisterWidth() const
+			{
+				return GetElementCount() * GetElementStride();
+			}
+			uint32_t GetRegisterStride() const
+			{
+				return RegisterStride;
+			}
+
+			uint32_t GetRegSpaceOffset() const
+			{
+				return RegisterSpaceOffset;
+			}
 			uint32_t GetRegFileOffset() const;
-			
-			uint32_t GetElementCount() const { return ElementCount; }
-			uint32_t GetElementSize() const { return ElementSize; }
-			uint32_t GetElementStride() const { return ElementStride; }
-			
+
+			uint32_t GetElementCount() const
+			{
+				return ElementCount;
+			}
+			uint32_t GetElementSize() const
+			{
+				return ElementSize;
+			}
+			uint32_t GetElementStride() const
+			{
+				return ElementStride;
+			}
+
 			const genc::IRType GetRegisterIRType() const;
 			const genc::IRType GetElementIRType() const;
 
@@ -130,11 +154,11 @@ namespace gensim
 			uint32_t WriteDescriptor(uint8_t *dest) const;
 		private:
 			RegSpaceDescriptor *parent_space;
-			
+
 			uint32_t RegisterSpaceOffset;
 			uint32_t RegisterCount;
 			uint32_t RegisterStride;
-			
+
 			uint32_t ElementCount;
 			uint32_t ElementSize;
 			uint32_t ElementStride;
@@ -153,12 +177,12 @@ namespace gensim
 			bool HasView(std::string ID) const;
 
 			uint32_t GetOffsetInFile() const;
-			
+
 			uint32_t GetSize() const
 			{
 				return size_in_bytes;
 			}
-			
+
 			uint32_t GetAlignmentRequirements() const;
 
 			bool PrettyPrint(std::ostream &) const;
@@ -225,7 +249,7 @@ namespace gensim
 			{
 				return spaces;
 			}
-			
+
 			RegSlotViewDescriptor &GetSlot(const std::string &id)
 			{
 				for(RegSlotViewDescriptor *i : slot_views) {

@@ -34,7 +34,7 @@ public:
 			for (std::list<SSABlock *>::iterator b_i = action.Blocks.begin(); b_i != action.Blocks.end(); ++b_i) {
 				SSABlock *b = *b_i;
 				// A block can be merged with its successor if it has one successor, and that block has
-				// only one predecessor. The successor cannot be the entry block (since that has an 
+				// only one predecessor. The successor cannot be the entry block (since that has an
 				// additional implicit predecessor) or the block we started with (self loop)
 				if (b->GetSuccessors().size() == 1 && b->GetSuccessors().front()->GetPredecessors().size() == 1 && b->GetSuccessors().front() != action.EntryBlock && b->GetSuccessors().front() != b) {
 					// this block can be merged
@@ -42,7 +42,7 @@ public:
 					// parent block. Then, insert the instructions from the child block at the end of the
 					// parent block
 					SSABlock *child = b->GetSuccessors().front();
-					
+
 					// so: first delete the control flow instruction of the parent block
 					SSAControlFlowStatement *ctrlflow = b->GetControlFlow();
 					if (ctrlflow) {

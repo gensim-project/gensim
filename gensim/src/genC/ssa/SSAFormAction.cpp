@@ -118,7 +118,7 @@ void SSAFormAction::RemoveSymbol(SSASymbol* symbol)
 {
 	symbol->RemoveUse(this);
 	_symbols.erase(symbol);
-	
+
 	for(auto b : Blocks) {
 		b->ClearFixedness();
 	}
@@ -249,7 +249,7 @@ void SSAFormAction::Destroy()
 			stmt->Unlink();
 		}
 	}
-	
+
 	while (!Blocks.empty()) {
 		auto block = Blocks.back();
 		RemoveBlock(block);
@@ -408,7 +408,7 @@ bool SSAFormAction::DoCheckReturn() const
 		if (block->GetSuccessors().empty()) {
 			const SSARaiseStatement *raise_stmt = dynamic_cast<const SSARaiseStatement*> (terminator);
 			const SSAReturnStatement *return_stmt = dynamic_cast<const SSAReturnStatement*> (terminator);
-			
+
 			if (return_stmt == nullptr && raise_stmt == nullptr) {
 				return false;
 			}

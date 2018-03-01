@@ -118,7 +118,7 @@ const genc::IRType RegBankViewDescriptor::GetRegisterIRType() const
 	if (ElementCount > 1) {
 		type.VectorWidth = ElementCount;
 	}
-	
+
 	return type;
 }
 
@@ -135,7 +135,7 @@ bool RegBankViewDescriptor::Resolve(DiagnosticContext &diag)
 		diag.Error("Register bank " + ID + ": must have at least one register!", DiagNode());
 		success = false;
 	}
-	
+
 	if((RegisterSpaceOffset + GetBankSize()) > parent_space->GetSize()) {
 		diag.Error("Register bank " + ID + ": does not fit within the bounds of its register space!", DiagNode());
 		success = false;
@@ -145,7 +145,7 @@ bool RegBankViewDescriptor::Resolve(DiagnosticContext &diag)
 		diag.Error("Register bank " + ID + ": Stride must be greater than element size", DiagNode());
 		success = false;
 	}
-	
+
 	if ((ElementCount * ElementStride) > RegisterStride) {
 		diag.Error("Register bank " + ID + ": Element Count * Element Stride must be less than Register Stride", DiagNode());
 		success = false;
@@ -213,7 +213,7 @@ uint32_t RegSpaceDescriptor::GetOffsetInFile() const
 uint32_t RegSpaceDescriptor::GetAlignmentRequirements() const
 {
 	uint32_t max_register_stride = 0;
-	
+
 	for (auto &bank : banks) {
 		if (bank->GetRegisterStride() > max_register_stride) {
 			max_register_stride = bank->GetRegisterStride();
@@ -225,7 +225,7 @@ uint32_t RegSpaceDescriptor::GetAlignmentRequirements() const
 			max_register_stride = slot->GetWidth();
 		}
 	}
-	
+
 	return max_register_stride;
 }
 

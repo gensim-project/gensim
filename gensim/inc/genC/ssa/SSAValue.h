@@ -91,7 +91,7 @@ namespace gensim
 
 					AddMetadata(new DiagnosticNodeMetadata(diag));
 				}
-				
+
 				const metadata_list_t &GetMetadata() const;
 				void AddMetadata(SSAMetadata *metadata);
 				void RemoveMetadata(SSAMetadata *metadata);
@@ -120,9 +120,10 @@ namespace gensim
 				metadata_list_t _metadata;
 				SSAValueNamespace::value_name_t name_;
 			};
-			
+
 			struct SSAValueLess {
-				bool operator()(const SSAValue *op1, const SSAValue *op2) const {
+				bool operator()(const SSAValue *op1, const SSAValue *op2) const
+				{
 					GASSERT(op1 != nullptr);
 					GASSERT(op2 != nullptr);
 					GASSERT(op1->GetValueName() != op2->GetValueName() || op1 == op2);

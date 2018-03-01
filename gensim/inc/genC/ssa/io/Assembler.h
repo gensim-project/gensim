@@ -53,7 +53,7 @@ namespace gensim
 						if(values_.count(valuename) != 0) {
 							throw std::logic_error("Duplicate value name in assembly context");
 						}
-						
+
 						values_[valuename] = value;
 					}
 

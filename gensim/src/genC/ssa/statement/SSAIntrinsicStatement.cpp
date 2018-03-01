@@ -91,7 +91,7 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 		case SSAIntrinsic_Compare_F32_Flags:
 		case SSAIntrinsic_Compare_F64_Flags:
 			return IRTypes::Void;
-			
+
 		default:
 			return IRTypes::Void;
 	}

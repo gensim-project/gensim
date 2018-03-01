@@ -149,7 +149,7 @@ namespace gensim
 					case SSACastStatement::Cast_Truncate: {
 						if (stmt.GetType().Reference) return Factory.GetOrCreate(stmt.Expr())->GetFixedValue();
 						std::string cast_stmt = Factory.GetOrCreate(stmt.Expr())->GetFixedValue();
-						
+
 						// if we are switching signedness, change signedness  before extending
 						if(stmt.Expr()->GetType().Signed != stmt.GetType().Signed) {
 							SSAType partial_type = stmt.Expr()->GetType();
@@ -157,7 +157,7 @@ namespace gensim
 							cast_stmt = "((" + partial_type.GetCType() + ")" + cast_stmt + ")";
 						}
 						cast_stmt = "((" + stmt.GetType().GetCType() + ")" + cast_stmt + ")";
-						
+
 						return cast_stmt;
 					}
 					case SSACastStatement::Cast_Reinterpret:
@@ -174,11 +174,11 @@ namespace gensim
 
 					case SSACastStatement::Cast_Convert:
 						auto option = stmt.GetOption();
-						
+
 						if(option != SSACastStatement::Option_RoundDefault) {
 							return stmt.GetName();
 						}
-						
+
 						return "(" + stmt.GetType().GetCType() + ")(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + ")";
 
 				}
@@ -189,11 +189,11 @@ namespace gensim
 			bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const  override
 			{
 				const SSACastStatement &stmt = (const SSACastStatement &)Statement;
-				
+
 				if(stmt.GetCastType() == SSACastStatement::Cast_Convert) {
 					auto option = stmt.GetOption();
 					std::stringstream str;
-					
+
 					switch(option) {
 						case SSACastStatement::Option_RoundDefault:
 							// nothing to do here: this is handled by GetFixedValue
@@ -209,7 +209,7 @@ namespace gensim
 							break;
 					}
 				}
-				
+
 				return true;
 				/*
 				const SSACastStatement &stmt = (const SSACastStatement &)Statement;

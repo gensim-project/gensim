@@ -10,8 +10,9 @@
 
 using namespace gensim::genc::ssa::testing;
 
-class SSA_Analysis_LoopAnalysis : public SSATestFixture {
-	
+class SSA_Analysis_LoopAnalysis : public SSATestFixture
+{
+
 };
 
 TEST_F(SSA_Analysis_LoopAnalysis, NoLoopDetected)
