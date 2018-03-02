@@ -154,12 +154,17 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 		}
 	}
 
+	auto dest_reg = &BLKJIT_TEMPS_0(dest->size);
+	if(dest->is_alloc_stack()) {
+		GetCompiler().encode_operand_to_reg(dest, *dest_reg);
+	} else if(dest->is_alloc_reg()) {
+		dest_reg = &GetCompiler().register_from_operand(dest);
+	}
+	
 	switch (insn->type) {
 		case IRInstruction::CMPEQ: {
-			const X86Register &target_reg = dest->is_alloc_reg() ? GetCompiler().register_from_operand(dest) : GetCompiler().get_temp(0, dest->size);
-			Encoder().sete(target_reg);
-
-			if(dest->is_alloc_stack()) Encoder().mov(target_reg, GetCompiler().stack_from_operand(dest));
+			
+			Encoder().sete(*dest_reg);
 
 			if (should_branch) {
 				assert(dest->is_alloc_reg());
@@ -188,10 +193,7 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 			break;
 		}
 		case IRInstruction::CMPNE: {
-			const X86Register &target_reg = dest->is_alloc_reg() ? GetCompiler().register_from_operand(dest) : GetCompiler().get_temp(0, dest->size);
-			Encoder().setne(target_reg);
-
-			if(dest->is_alloc_stack()) Encoder().mov(target_reg, GetCompiler().stack_from_operand(dest));
+			Encoder().setne(*dest_reg);
 
 			if (should_branch) {
 				assert(dest->is_alloc_reg());
@@ -222,34 +224,38 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 		}
 		case IRInstruction::CMPLT:
 			if (invert)
-				Encoder().setnb(GetCompiler().register_from_operand(dest));
+				Encoder().setnb(*dest_reg);
 			else
-				Encoder().setb(GetCompiler().register_from_operand(dest));
+				Encoder().setb(*dest_reg);
 			break;
 
 		case IRInstruction::CMPLTE:
 			if (invert)
-				Encoder().setnbe(GetCompiler().register_from_operand(dest));
+				Encoder().setnbe(*dest_reg);
 			else
-				Encoder().setbe(GetCompiler().register_from_operand(dest));
+				Encoder().setbe(*dest_reg);
 			break;
 
 		case IRInstruction::CMPGT:
 			if (invert)
-				Encoder().setna(GetCompiler().register_from_operand(dest));
+				Encoder().setna(*dest_reg);
 			else
-				Encoder().seta(GetCompiler().register_from_operand(dest));
+				Encoder().seta(*dest_reg);
 			break;
 
 		case IRInstruction::CMPGTE:
 			if (invert)
-				Encoder().setnae(GetCompiler().register_from_operand(dest));
+				Encoder().setnae(*dest_reg);
 			else
-				Encoder().setae(GetCompiler().register_from_operand(dest));
+				Encoder().setae(*dest_reg);
 			break;
 
 		default:
 			assert(false);
+	}
+	
+	if(dest->is_alloc_stack()) {
+		Encoder().mov(*dest_reg, GetCompiler().stack_from_operand(dest));
 	}
 
 	insn++;
