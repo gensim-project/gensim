@@ -12,8 +12,17 @@ function(define_model target-name arch-name arch-file)
 	# include directories directory. 
 	GET_PROPERTY(libtrace-includes GLOBAL PROPERTY LIBTRACE_INCLUDES)
 	GET_PROPERTY(archsim-includes GLOBAL PROPERTY ARCHSIM_INCLUDES)
-	
-	SET(gensim-options -s decode,disasm,adapt_blkjit,jit,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=0)
+
+	# Figure out correct optimisation level depending on build type
+	IF(${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
+		SET(MODEL_OPT "0")
+	ELSEIF(${CMAKE_BUILD_TYPE} STREQUAL "DEBUGOPT")
+		SET(MODEL_OPT "2")
+	ELSEIF(${CMAKE_BUILD_TYPE} STREQUAL "RELEASE")
+		SET(MODEL_OPT "3")
+	ENDIF()
+
+	SET(gensim-options -s decode,disasm,adapt_blkjit,jit,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=${MODEL_OPT})
 	
 	ADD_CUSTOM_COMMAND(
 		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/output/Makefile"
