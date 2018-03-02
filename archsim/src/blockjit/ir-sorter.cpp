@@ -183,3 +183,32 @@ int MergeSort::lower(int from, int to, int val)
 
 	return from;
 }
+
+bool NopFilter::do_sort() {
+	uint32_t fast_ptr, slow_ptr;
+	fast_ptr = 1;
+	
+	// whenever slow_ptr encounters a nop slot, fast_ptr advances until it 
+	// finds a real instruction. Then, it swaps the instruction for the nop.
+	
+	for(slow_ptr = 0; slow_ptr < count(); ++slow_ptr) {
+		if(key(slow_ptr) == NOP_BLOCK) {
+			if(fast_ptr <= slow_ptr) {
+				fast_ptr = slow_ptr + 1;
+			}
+			for(; fast_ptr < count(); ++fast_ptr) {
+				if(key(fast_ptr) != NOP_BLOCK) {
+					break;
+				}
+			}
+			
+			if(fast_ptr >= count()) {
+				return true;
+			}
+			
+			exchange(slow_ptr, fast_ptr);
+		}
+	}
+	
+	return true;
+}

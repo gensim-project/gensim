@@ -85,7 +85,7 @@ bool RegStoreEliminationTransform::Apply(TranslationContext &ctx)
 
 				// Only nop out an instruction if the prev write is smaller than
 				// the new one
-				if(prev_writes.count(offset.value) && prev_writes.at(offset.value)->operands[0].size < insn->operands[0].size) {
+				if(prev_writes.count(offset.value) && prev_writes.at(offset.value)->operands[0].size <= insn->operands[0].size) {
 					make_instruction_nop(prev_writes.at(offset.value), false);
 				}
 

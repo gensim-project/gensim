@@ -49,6 +49,7 @@ static void peephole_and(IRInstruction *insn)
 			insn->operands[0].size = op_size;
 		} else {
 			insn->type = IRInstruction::NOP;
+			insn->ir_block = NOP_BLOCK;
 		}
 	}
 }
