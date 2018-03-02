@@ -6,9 +6,20 @@ using namespace captive::arch::jit;
 using namespace captive::arch::jit::algo;
 using namespace captive::shared;
 
+uint32_t find_run_size(uint32_t* ptr, uint32_t *end) {
+	uint32_t first_idx = ptr[0];
+	uint32_t size = 0;
+	while(ptr[size] == first_idx + size && (ptr + size) < end) {
+		size++;
+	}
+	
+	return size;
+}
+
 IRInstruction *IRSorter::perform_sort()
 {
 	insn_idxs = (uint32_t*)malloc(count() * sizeof(uint32_t));
+	uint32_t *insn_idxs_end = insn_idxs + count();
 
 	for(uint32_t i = 0; i < ctx.count(); ++i) {
 		insn_idxs[i] = i;
@@ -17,11 +28,16 @@ IRInstruction *IRSorter::perform_sort()
 	do_sort();
 
 	IRInstruction *new_buffer = (IRInstruction*)malloc(ctx.count() * sizeof(IRInstruction));
-	bzero(new_buffer, ctx.count() * sizeof(IRInstruction));
-	for(uint32_t i = 0; i < ctx.count(); ++i) {
-		new_buffer[i] = *ctx.at(insn_idxs[i]);
+	IRInstruction *buffer_ptr = new_buffer;
+	
+	uint32_t run_start = 0;
+	while(run_start < count()) {
+		uint32_t run_size = find_run_size(&insn_idxs[run_start], insn_idxs_end);
+		memcpy(buffer_ptr, ctx.get_ir_buffer() + insn_idxs[run_start], run_size * sizeof(*buffer_ptr));
+		buffer_ptr += run_size;
+		run_start += run_size;
 	}
-
+	
 	free(insn_idxs);
 
 	insn_idxs = NULL;
