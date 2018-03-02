@@ -327,8 +327,9 @@ execute(and2)
 	uint32 val;
 	uint32 imm32;
 	uint8 carry;
+	uint32 rn = read_gpr(inst.rn);
 	imm32 = decode_reg(inst.shift_type, read_gpr(inst.rs), read_gpr(inst.rm), read_register(C), carry);
-	val = read_gpr(inst.rn) & imm32;	
+	val = rn & imm32;	
 	if(inst.s) 
 	{
 		update_ZN_flags(val);
