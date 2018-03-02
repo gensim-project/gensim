@@ -95,7 +95,6 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 
 	transforms::SortIRTransform sorter;
 	if(dump_intermediates) {
-		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-preopt-" << std::hex << this->pa << ".txt";
 		std::ofstream of (str.str());
@@ -115,7 +114,6 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 	timer.tick("JT");
 
 	if(dump_intermediates) {
-		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-reorder-jt-" << std::hex << this->pa << ".txt";
 		std::ofstream of (str.str());
@@ -130,7 +128,6 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 	timer.tick("DBE");
 
 	if(dump_intermediates) {
-		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-reorder-jt-dbe-" << std::hex << this->pa << ".txt";
 		std::ofstream of (str.str());
@@ -145,7 +142,6 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 	timer.tick("MB");
 
 	if(dump_intermediates) {
-		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o0-" << std::hex << this->pa << ".txt";
 		std::ofstream of (str.str());
@@ -160,7 +156,6 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 	timer.tick("Cprop");
 
 	if(dump_intermediates) {
-		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o1-" << std::hex << this->pa << ".txt";
 		std::ofstream of (str.str());
@@ -175,7 +170,6 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 	timer.tick("Peep");
 
 	if(dump_intermediates) {
-		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o2-" << std::hex << this->pa << ".txt";
 		std::ofstream of (str.str());
@@ -189,7 +183,6 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 	timer.tick("VM");
 
 	if(dump_intermediates) {
-		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o3-" << std::hex << this->pa << ".txt";
 		std::ofstream of (str.str());
@@ -209,7 +202,6 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 	timer.tick("RSE");
 
 	if(dump_intermediates) {
-		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o4-" << std::hex << this->pa << ".txt";
 		std::ofstream of (str.str());
@@ -230,7 +222,6 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 	if (!analyse(max_stack)) return false;
 
 	if(dump_intermediates) {
-		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o5-" << std::hex << this->pa << ".txt";
 		std::ofstream of (str.str());
@@ -251,7 +242,6 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 	timer.tick("LSTR");
 
 	if(dump_intermediates) {
-		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o6-" << std::hex << this->pa << ".txt";
 		std::ofstream of (str.str());
@@ -266,7 +256,6 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 	if(!p2.Apply(ctx)) return false;
 
 	if(dump_intermediates) {
-		sorter.Apply(ctx);
 		std::ostringstream str;
 		str << "blkjit-o7-" << std::hex << this->pa << ".txt";
 		std::ofstream of (str.str());
@@ -816,7 +805,7 @@ void BlockCompiler::dump_ir(std::ostringstream &ostr)
 
 		if (current_block_id != insn->ir_block) {
 			current_block_id = insn->ir_block;
-			ostr << "block " << current_block_id << ":\n";
+			ostr << "block " << std::hex << current_block_id << ":\n";
 		}
 
 		dump_insn(insn, ostr);

@@ -87,6 +87,18 @@ namespace captive
 						return m;
 					}
 				};
+                                
+                                // Assumes that blocks are in order, except
+                                // for nops. Asserts if blocks are discovered
+                                // to be out of order.
+                                class NopFilter : public IRSorter
+                                {
+                                public:
+                                    NopFilter(TranslationContext &ctx) : IRSorter(ctx) {}
+                                    
+                                protected:
+                                    bool do_sort() override;
+                                };
 			}
 		}
 	}
