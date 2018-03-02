@@ -23,17 +23,26 @@ bool LowerClz::Lower(const captive::shared::IRInstruction *&insn)
 
 	if (source->is_vreg()) {
 		if (dest->is_vreg()) {
-			if (source->is_alloc_reg() && dest->is_alloc_reg()) {
-				Encoder().bsr(GetCompiler().register_from_operand(source), GetCompiler().register_from_operand(dest));
-				Encoder().xorr(0x1f, GetCompiler().register_from_operand(dest));
-			} else if (source->is_alloc_reg() && dest->is_alloc_stack()) {
-				assert(false);
-			} else if (source->is_alloc_stack() && dest->is_alloc_reg()) {
-				assert(false);
-			} else if (source->is_alloc_stack() && dest->is_alloc_stack()) {
-				assert(false);
+			
+			auto source_reg = &BLKJIT_TEMPS_0(source->size);
+			auto dest_reg = &BLKJIT_TEMPS_1(dest->size);
+			
+			if(source->is_alloc_reg()) {
+				source_reg = &GetCompiler().register_from_operand(source);
 			} else {
-				assert(false);
+				GetCompiler().encode_operand_to_reg(source, *source_reg);
+			}
+			if(dest->is_alloc_reg()) {
+				dest_reg = &GetCompiler().register_from_operand(dest);
+			} else {
+				GetCompiler().encode_operand_to_reg(dest, *dest_reg);
+			}
+			
+			Encoder().bsr(*source_reg, *dest_reg);
+			Encoder().xorr(0x1f, *dest_reg);
+			
+			if(dest->is_alloc_stack()) {
+				Encoder().mov(*dest_reg, GetCompiler().stack_from_operand(dest));
 			}
 		} else {
 			assert(false);
