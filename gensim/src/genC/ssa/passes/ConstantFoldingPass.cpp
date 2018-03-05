@@ -226,8 +226,10 @@ public:
 
 			for (std::list<SSACastStatement *>::iterator i = cast_candidates.begin(); i != cast_candidates.end(); ++i) {
 				SSACastStatement *cast_stmt = *i;
-				ConstantFoldCastOp(cast_stmt);
-				change_made = true;
+				if(cast_stmt->GetCastType() != SSACastStatement::Cast_Reinterpret) {
+					ConstantFoldCastOp(cast_stmt);
+					change_made = true;
+				}
 			}
 		}
 		return change_made;
