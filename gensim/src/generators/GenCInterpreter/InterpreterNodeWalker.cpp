@@ -441,12 +441,17 @@ namespace gensim
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = cpuGetFlushMode(this);";
+						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = cpuGetRoundingMode(this);";
+						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
+						output << "cpuSetFlushMode(this, " << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
-						if (stmt.HasValue()) {
-							output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
-						}
+						output << "cpuSetRoundingMode(this, " << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						break;
 						break;
 
 					default:

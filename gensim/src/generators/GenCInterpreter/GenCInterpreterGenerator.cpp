@@ -91,6 +91,7 @@ namespace gensim
 
 		bool GenCInterpreterGenerator::GenerateExtraProcessorIncludes(util::cppformatstream &str) const
 		{
+			str << "#include \"translate/jit_funs.h\"\n";
 			str << "#include \"util/Vector.h\"\n";
 			str << "#include <math.h>\n";
 			str << "#include <cfenv>\n";
