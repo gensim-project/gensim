@@ -319,7 +319,13 @@ execute(vsqrt_sp)
 	check_vfp4_enabled();
 	
 	float vm = float_read_register(inst.vm);
-	float out = float_sqrt(vm);
+	
+	float out;
+	if(vm < 0) {
+		out = bitcast_u32_float((uint32)0x7ff00000); // positive NAN
+	} else {
+		out = float_sqrt(vm);
+	}
 	
 	float_write_register(inst.vd, out);
 }
@@ -459,7 +465,12 @@ execute(vsqrt_dp)
 	check_vfp4_enabled();
 	
 	double vm = double_read_register(inst.vm);
-	double out = double_sqrt(vm);
+	double out;
+	if(vm < 0) {
+		out = bitcast_u64_double((uint64)0x7ff8000000000000);
+	} else {
+		out = double_sqrt(vm);
+	}
 	
 	double_write_register(inst.vd, out);
 }
@@ -605,14 +616,7 @@ execute(vcvt_f32_s32) // convert sint32 to float
 {
 	check_vfp4_enabled();
 	
-	uint32 old_rounding = 0;
-	if(inst.N) // round towards zero
-	{
-		old_rounding = __builtin_get_fp_rounding();
-		__builtin_set_fp_rounding(3);
-	} else {
-
-	}
+	// int to float always uses rounding mode specified by FPSCR
 	
 	// read INTEGER value from FP register
 	float dataf = read_register_bank(FPSP, inst.vm);
@@ -623,26 +627,14 @@ execute(vcvt_f32_s32) // convert sint32 to float
 	
 	//write float back to FP register
 	write_register_bank(FPSP, inst.vd, fdata);
-	
-	if(inst.N)
-	{
-		__builtin_set_fp_rounding(old_rounding);
-	}
 }
 
 execute(vcvt_f32_u32) // convert uint32 to float
 {
 	check_vfp4_enabled();
 	
-	uint32 old_rounding = 0;
-	if(inst.N) // round towards zero
-	{
-		old_rounding = __builtin_get_fp_rounding();
-		__builtin_set_fp_rounding(3);
-	} else {
-
-	}
-	
+	// int to float always uses rounding mode specified by FPSCR
+		
 	// read INTEGER value from FP register
 	float dataf = read_register_bank(FPSP, inst.vm);
 	uint32 data = bitcast_float_u32(dataf);
@@ -653,24 +645,13 @@ execute(vcvt_f32_u32) // convert uint32 to float
 	//write float back to FP register
 	write_register_bank(FPSP, inst.vd, fdata);
 	
-	if(inst.N)
-	{
-		__builtin_set_fp_rounding(old_rounding);
-	}
 }
 
 execute(vcvt_f64_u32) // convert uint32 to double
 {
 	check_vfp4_enabled();
 	
-	uint32 old_rounding = 0;
-	if(inst.N) // round towards zero
-	{
-		old_rounding = __builtin_get_fp_rounding();
-		__builtin_set_fp_rounding(3);
-	} else {
-
-	}
+	// int to float always uses rounding mode specified by FPSCR
 	
 	// Read INTEGER from FP register
 	float dataf = read_register_bank(FPSP, inst.vm);
@@ -681,25 +662,13 @@ execute(vcvt_f64_u32) // convert uint32 to double
 	
 	// Write back to DP register
 	double_write_register(inst.vd, ddata);
-	
-	if(inst.N)
-	{
-		__builtin_set_fp_rounding(old_rounding);
-	}
 }
 
 execute(vcvt_f64_s32) // convert sint32 to double
 {
 	check_vfp4_enabled();
 		
-	uint32 old_rounding = 0;
-	if(inst.N) // round towards zero
-	{
-		old_rounding = __builtin_get_fp_rounding();
-		__builtin_set_fp_rounding(0);
-	} else {
-
-	}
+	// int to float always uses rounding mode specified by FPSCR
 	
 	// Read INTEGER from FP register
 	float dataf = read_register_bank(FPSP, inst.vm);
@@ -710,11 +679,6 @@ execute(vcvt_f64_s32) // convert sint32 to double
 	
 	// Write back to DP register
 	double_write_register(inst.vd, ddata);
-	
-	if(inst.N)
-	{
-		__builtin_set_fp_rounding(old_rounding);
-	}
 }
 
 helper double fxp_32_to_double(uint32 bits, uint8 bit_count, uint8 unsigned, uint8 round_nearest, uint8 i)
