@@ -512,12 +512,22 @@ namespace gensim
 					std::stringstream str;
 					if(stmt.GetType().IsFloating()) {
 						switch(stmt.Constant.Type()) {
-							case genc::IRConstant::Type_Float_Single:
-								str << "(float)(" << stmt.Constant.Flt() << ")";
+							case genc::IRConstant::Type_Float_Single: {
+								// bitcast the floating point constant so that it can be precisely encoded
+								float f = stmt.Constant.Flt();
+								uint32_t bf = *(uint32_t*)(&f);
+								// now, emit code to bitcast it back
+								str << "[]{uint32_t bf = " << bf << "; return *(float*)&bf;}()";
 								break;
-							case genc::IRConstant::Type_Float_Double:
-								str << "(double)(" << stmt.Constant.Dbl() << ")";
+							}
+							case genc::IRConstant::Type_Float_Double: {
+								// bitcast the floating point constant so that it can be precisely encoded
+								double f = stmt.Constant.Dbl();
+								uint64_t bf = *(uint64_t*)(&f);
+								// now, emit code to bitcast it back
+								str << "[]{uint64_t bf = " << bf << "; return *(double*)&bf;}()";
 								break;
+							}
 							default:
 								throw std::logic_error("");
 						}
