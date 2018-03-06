@@ -35,9 +35,54 @@ RegStoreEliminationTransform::~RegStoreEliminationTransform()
 
 }
 
+class RegWriteInfo {
+public:
+	uint32_t Size, Offset;
+	IRInstruction *Write;
+	
+	RegWriteInfo(uint32_t size, uint32_t offset, IRInstruction *write) : Size(size), Offset(offset), Write(write) {}
+};
+
+// Remove writes which alias the given offset and size from the provided map
+static void ClearPreviousWrites(std::map<uint32_t, RegWriteInfo>& writes, uint32_t offset, uint32_t size) 
+{
+	uint32_t begin = offset;
+	uint32_t end = offset + size;
+	std::vector<uint32_t> offsets;
+	for(auto i : writes) {
+		if(i.first <= end || i.first + i.second.Size <= begin) {
+			offsets.push_back(i.first);
+		}
+	}
+	
+	for(auto i : offsets) {
+		writes.erase(i);
+	}
+}
+
+// Look through writes, and if there is a write which aliases with offset and size,
+// then replace that write with a nop instruction
+static void NopPreviousWrites(std::map<uint32_t, RegWriteInfo>& writes, uint32_t offset, uint32_t size) 
+{
+	uint32_t begin = offset;
+	uint32_t end = offset + size;
+	std::vector<uint32_t> offsets;
+	for(auto i : writes) {
+		if(i.second.Offset == offset && i.second.Size == size) {
+			offsets.push_back(i.first);
+		}
+	}
+	
+	for(auto i : offsets) {
+		make_instruction_nop(writes.at(i).Write, true);
+		writes.erase(i);
+	}
+}
+
+
 bool RegStoreEliminationTransform::Apply(TranslationContext &ctx)
 {
-	std::map<uint32_t, IRInstruction*> prev_writes;
+	std::map<uint32_t, RegWriteInfo> prev_writes;
 
 	for(unsigned int ir_idx = 0; ir_idx < ctx.count(); ++ir_idx) {
 		IRInstruction *insn = ctx.at(ir_idx);
@@ -71,11 +116,13 @@ bool RegStoreEliminationTransform::Apply(TranslationContext &ctx)
 
 				assert(offset.is_constant());
 
-				prev_writes.erase(offset.value);
+				ClearPreviousWrites(prev_writes, offset.value, insn->operands[1].size);
+				
 				break;
 			}
 			case IRInstruction::WRITE_REG: {
 				IROperand &offset = insn->operands[1];
+				uint32_t size = insn->operands[0].size;
 				if(!offset.is_constant()) {
 					prev_writes.clear();
 					break;
@@ -85,11 +132,9 @@ bool RegStoreEliminationTransform::Apply(TranslationContext &ctx)
 
 				// Only nop out an instruction if the prev write is smaller than
 				// the new one
-				if(prev_writes.count(offset.value) && prev_writes.at(offset.value)->operands[0].size <= insn->operands[0].size) {
-					make_instruction_nop(prev_writes.at(offset.value), false);
-				}
-
-				prev_writes[offset.value] = insn;
+				NopPreviousWrites(prev_writes, offset.value, size);
+				
+				prev_writes.insert({offset.value, RegWriteInfo(offset.value, size, insn)});
 
 				break;
 			}
