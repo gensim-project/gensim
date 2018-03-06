@@ -523,8 +523,16 @@ execute(vcvt_s32_f64) // convert double to sint32
 		// use pre-set rounding mode
 	}
 
-	sint64 data = (sint64)fdata;
-	sint32 val = (sint32)data;
+	sint64 data64 = 0;
+	if(fdata > (float)0x7fffffff) {
+		data64 = 0x7fffffff;
+	} else if(fdata < (float)(sint32)-(2147483648)) {
+		data64 = 0x80000000;
+	} else {
+		data64 = fdata;
+	}
+
+	sint32 val = (sint32)data64;
 
 	uint32 uval = val;
 	float si = bitcast_u32_float(uval);
@@ -551,7 +559,13 @@ execute(vcvt_u32_f32) // convert float to uint32
 
 	}
 	
-	uint32 data = (uint32)fdata;
+	uint32 data = 0;
+	if(fdata > (float)0xffffffff) {
+		data = 0xffffffff;
+	} else {
+		data = (uint32)fdata;
+	}
+	
 	float ui = bitcast_u32_float(data);
 	write_register_bank(FPSP, inst.vd, ui);
 	
@@ -569,16 +583,23 @@ execute(vcvt_u32_f64) // convert double to uint32
 	// Read 64 bit DOUBLE from DP register
 	double fdata = double_read_register(inst.vm);
 
-	uint32 data32;
+	uint64 data64;
 	if(inst.N) // round towards zero
 	{
-		uint64 data = __builtin_cast_double_to_u64_truncate(fdata);
-		data32 = (uint32)data;
+		if(fdata > 0xffffffff) {
+			data64 = 0xffffffff;
+		} else {
+			data64 = __builtin_cast_double_to_u64_truncate(fdata);
+		}
 	} else {
-		uint64 data = (uint64)(fdata);
-		data32 = (uint32)data;
+		if(fdata > 0xffffffff) {
+			data64 = 0xffffffff;
+		} else {
+			data64 = fdata;
+		}
 	}
 	
+	uint32 data32 = data64;
 	// Write back to SP register as INTEGER
 	float ui = bitcast_u32_float(data32);
 	write_register_bank(FPSP, inst.vd, ui);
@@ -600,7 +621,12 @@ execute(vcvt_s32_f32) // convert float to sint32
 
 	}
 	
-	sint32 data = (sint32)fdata;
+	sint32 data = 0;
+	if(fdata > (float)0xffffffff) {
+		data = 0x7fffffff;
+	} else {
+		data = (sint32)fdata;
+	}
 	uint32 udata = data;
 	
 	float si = bitcast_u32_float(udata);

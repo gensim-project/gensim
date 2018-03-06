@@ -18,6 +18,47 @@ helper void check_neon_enabled()
 	return;
 }
 
+helper uint32 neon_get_fpscr()
+{
+	return read_register(FPSCR);
+}
+
+helper void neon_set_fpscr(uint32 fpscr)
+{
+	// set the FPSCR register and synchronise FP state
+	write_register(FPSCR, fpscr);
+	
+	uint32 fz = (fpscr >> 24) & 1;
+	if(fz) {
+		__builtin_set_fp_flush(fz);
+	}
+	
+	uint32 rmode = (fpscr >> 22) & 3;
+	__builtin_set_fp_rounding(rmode);
+	
+	// trap and exception bits ignored for now
+	
+	return;
+}
+
+helper uint32 neon_get_standard_fpscr()
+{
+	return 0x03000000;
+}
+
+helper uint32 neon_enter_neon_mode()
+{
+	uint32 prev_fpscr = neon_get_fpscr();
+	neon_set_fpscr(neon_get_standard_fpscr());
+	return prev_fpscr;
+}
+
+helper void neon_leave_neon_mode(uint32 prev_flags)
+{
+	neon_set_fpscr(prev_flags);
+	return;
+}
+
 /*
 execute(neon_undef)
 {
@@ -319,7 +360,22 @@ execute(neon_vrev32_8)
 
 helper void vmull_u16(uint8 vd, uint8 vn, uint8 vm, uint8 M)
 {
-	trap();
+	check_neon_enabled();
+	
+	uint16[4] n = read_register_bank(VU16, vn);
+	uint16[4] m = read_register_bank(VU16, vm);
+	uint32 mult = m[M];
+	
+	uint32[2] d1;
+	uint32[2] d2;
+	
+	d1[0] = (uint32)n[0] * (uint32)mult;
+	d1[1] = (uint32)n[1] * (uint32)mult;
+	d2[0] = (uint32)n[2] * (uint32)mult;
+	d2[1] = (uint32)n[3] * (uint32)mult;
+	
+	write_register_bank(VU32, vd, d1);
+	write_register_bank(VU32, vd+1, d2);
 	
 	return;
 }
@@ -341,9 +397,8 @@ helper void vmull_u32(uint8 vd, uint8 vn, uint8 vm, uint8 M)
 helper void vmull_s16(uint8 vd, uint8 vn, uint8 vm, uint8 M)
 {
 	uint16[4] n = read_register_bank(VU16, vn);
-	uint16[4] m = read_register_bank(VU16, vm & 0x7);
-	uint8 index = (vm >> 3) | (M << 1);
-	sint32 mult = m[index];
+	uint16[4] m = read_register_bank(VU16, vm);
+	sint32 mult = m[M];
 	
 	uint32[2] d1;
 	uint32[2] d2;
@@ -425,6 +480,8 @@ execute(neon_vmul_scalar_f32)
 	float[2] n = read_register_bank(VD, inst.vn);
 	float[2] m = read_register_bank(VD, inst.vm);
 	
+	uint32 fpscr = neon_enter_neon_mode();
+	
 	float multiplicand = m[inst.M];
 	n[0] *= multiplicand;
 	n[1] *= multiplicand;
@@ -437,6 +494,8 @@ execute(neon_vmul_scalar_f32)
 		n[1] *= multiplicand;
 		write_register_bank(VD, inst.vd + 1, n);
 	}
+	
+	neon_leave_neon_mode(fpscr);
 }
 
 execute(neon_vmull_scalar)
@@ -450,10 +509,13 @@ execute(neon_vmull_scalar)
 	// U32
 	
 	if(inst.B == 1) { // 16
+		uint8 m = inst.M << 1 | inst.vm >> 3;
+		uint8 vm = inst.vm & 0x7;
+	
 		if(inst.U) // unsigned
-			vmull_u16(inst.vd, inst.vn, inst.vm, inst.M);
+			vmull_u16(inst.vd, inst.vn, vm, m);
 		else 
-			vmull_s16(inst.vd, inst.vn, inst.vm, inst.M);
+			vmull_s16(inst.vd, inst.vn, vm, m);
 	} else if(inst.B == 2) { // 32
 		if(inst.U) // unsigned
 			vmull_u32(inst.vd, inst.vn, inst.vm, inst.M);
