@@ -86,9 +86,14 @@ extern "C" {
 	void cpuSetFlushMode(gensim::Processor *cpu, uint32_t mode)
 	{
 		uint32_t mxcsr;
-		mode &= 1;
+		uint32_t flags = (1 << 6 | 1 << 11 | 1 << 15); // DAZ, UE, FTZ
+		
 		asm volatile ("stmxcsr %0" : "=m"(mxcsr));
-		mxcsr |= mode << 6;
+		if(mode) {
+			mxcsr |= flags;
+		} else {
+			mxcsr &= ~flags;
+		}
 		asm volatile ("ldmxcsr %0" :: "m"(mxcsr));
 	}
 
