@@ -125,7 +125,8 @@ bool LowerAddSub::Lower(const captive::shared::IRInstruction *&insn)
 		} else if(dest->is_alloc_stack()) {
 			switch(insn->type) {
 				case IRInstruction::ADD:
-					Encoder().sub(source->value, dest->size, GetCompiler().stack_from_operand(dest));
+					Encoder().add(source->value, dest->size, GetCompiler().stack_from_operand(dest));
+					break;
 				case IRInstruction::SUB:
 					Encoder().sub(source->value, dest->size, GetCompiler().stack_from_operand(dest));
 					break;

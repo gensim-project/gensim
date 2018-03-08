@@ -786,18 +786,18 @@ void X86Encoder::xchg(const X86Register& a, const X86Register& b)
 	}
 }
 
-void X86Encoder::cbtw()
+void X86Encoder::cbtw() // sx 8 bit to 16 bit AL to AX
 {
 	emit8(0x66);
 	emit8(0x98);
 }
 
-void X86Encoder::cwtl()
+void X86Encoder::cwtl() // sx 16 bit to 32 bit AX to EAX
 {
 	emit8(0x98);
 }
 
-void X86Encoder::cltq()
+void X86Encoder::cltq() // sx 32 bit to 64 bit EAX to RAX
 {
 	emit8(0x48);
 	emit8(0x98);

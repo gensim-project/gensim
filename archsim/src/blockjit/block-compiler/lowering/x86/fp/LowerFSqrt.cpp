@@ -22,13 +22,15 @@ bool LowerFSqrt::Lower(const captive::shared::IRInstruction *&insn)
 	assert(op1.is_vreg());
 	assert(dest.is_vreg());
 
-	assert(op1.is_alloc_reg());
 
 	assert(op1.size == dest.size);
 	assert(op1.size == 4 || op1.size == 8);
 
 	const auto &op1_reg = op1.is_alloc_reg() ? GetCompiler().register_from_operand(&op1) : BLKJIT_TEMPS_0(8);
-
+	if(op1.is_alloc_stack()) {
+		Encoder().mov(GetCompiler().stack_from_operand(&op1), op1_reg);
+	}
+	
 	// dest = op1 - op2
 	if(width == 4) {
 		Encoder().movq(op1_reg, BLKJIT_FP_0);

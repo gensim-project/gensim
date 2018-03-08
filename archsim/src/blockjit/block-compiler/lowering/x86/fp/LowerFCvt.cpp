@@ -146,7 +146,12 @@ bool LowerFCvt_F_To_UI::Lower(const captive::shared::IRInstruction*& insn)
 	assert(dest.is_vreg());
 	assert(dest.is_alloc_reg());
 
-	Encoder().movq(GetCompiler().register_from_operand(&op1), BLKJIT_FP_0);
+	if(op1.is_alloc_reg()) {
+		Encoder().movq(GetCompiler().register_from_operand(&op1), BLKJIT_FP_0);
+	} else if(op1.is_alloc_stack()) {
+		Encoder().mov(GetCompiler().stack_from_operand(&op1), BLKJIT_TEMPS_0(op1.size));
+		Encoder().movq(BLKJIT_TEMPS_0(op1.size), BLKJIT_FP_0);
+	}
 
 	// if dest is u32, then we can do this with one instruction
 	if(dest.size == 4) {

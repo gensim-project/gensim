@@ -84,7 +84,8 @@ bool LowerMov::Lower(const captive::shared::IRInstruction *&insn)
 						Encoder().mov4(source->value, GetCompiler().stack_from_operand(dest));
 						break;
 					case 8:
-						Encoder().mov8(source->value, GetCompiler().stack_from_operand(dest));
+						Encoder().mov(source->value, BLKJIT_TEMPS_0(8));
+						Encoder().mov(BLKJIT_TEMPS_0(8), GetCompiler().stack_from_operand(dest));
 						break;
 					default:
 						assert(false);
