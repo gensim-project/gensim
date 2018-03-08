@@ -13,8 +13,8 @@
 
 #include "concurrent/Thread.h"
 
-#include <gtk-2.0/gdk/gdk.h>
-#include <gtk-2.0/gtk/gtk.h>
+#include <gtk-3.0/gdk/gdk.h>
+#include <gtk-3.0/gtk/gtk.h>
 
 #include <mutex>
 
@@ -74,8 +74,17 @@ namespace archsim
 					friend void key_release_event(GtkWidget *, GdkEventKey *, void *screen);
 					friend void motion_notify_event(GtkWidget *widget, GdkEventMotion *event, void *screen);
 					friend void button_press_event(GtkWidget *widget, GdkEventButton *event, void *screen);
+					friend void draw_callback(GtkWidget *widget, cairo_t *cr, void *screen);
 
+					void grab();
+					void ungrab();
+					void set_cursor_position(int x, int y);
+					
 					std::mutex gtk_lock_;
+					bool grabbed_;
+					bool ignore_next_;
+					GdkPixbuf *pb_;
+					GdkCursor *cursor_;
 				};
 
 				extern VirtualScreenManager<GtkScreen> GtkScreenManager;
