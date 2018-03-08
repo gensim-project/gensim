@@ -26,6 +26,7 @@ bool LowerExtend::Lower(const captive::shared::IRInstruction *&insn)
 	const IROperand *dest = &insn->operands[1];
 
 	if (source->is_vreg()) {
+		
 		if (source->size == 4 && dest->size == 8) {
 			if (insn->type == IRInstruction::ZX) {
 				if (source->is_alloc_reg() && dest->is_alloc_reg()) {
@@ -42,10 +43,17 @@ bool LowerExtend::Lower(const captive::shared::IRInstruction *&insn)
 					assert(false);
 				}
 			} else {
-				if (source->is_alloc_reg() && dest->is_alloc_reg()) {
-					Encoder().movsx(GetCompiler().register_from_operand(source), GetCompiler().register_from_operand(dest));
-				} else {
-					assert(false);
+				auto source_reg = source->is_alloc_reg() ? GetCompiler().register_from_operand(source) : BLKJIT_TEMPS_0(source->size);
+				auto dest_reg = dest->is_alloc_reg() ? GetCompiler().register_from_operand(dest) : BLKJIT_TEMPS_1(dest->size);
+				
+				if(source->is_alloc_stack()) {
+					Encoder().mov(GetCompiler().stack_from_operand(source), source_reg);
+				}
+				
+				Encoder().movsx(source_reg, dest_reg);
+				
+				if(dest->is_alloc_stack()) {
+					Encoder().mov(dest_reg, GetCompiler().stack_from_operand(dest));
 				}
 			}
 		} else {

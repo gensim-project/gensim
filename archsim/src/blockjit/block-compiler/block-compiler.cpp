@@ -194,7 +194,7 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 
 	sorter.Apply(ctx);
 	transforms::RegValueReuseTransform rvr;
-	if(!rvr.Apply(ctx)) return false;
+//	if(!rvr.Apply(ctx)) return false;
 	timer.tick("RVR");
 
 	transforms::RegStoreEliminationTransform rse;
