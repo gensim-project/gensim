@@ -82,7 +82,7 @@ bool JitGenerator::GenerateJitChunks(int count) const
 		        << "#include <set>\n"
 
 		        << "using namespace captive::shared;"
-		        << "using namespace captive::arch::arm;"
+		        << "using namespace captive::arch::" << Manager.GetArch().Name << ";"
 		        << "using gensim::" << Manager.GetArch().Name << "::Decode;"
 		        << "using namespace gensim::" << Manager.GetArch().Name << ";";
 
@@ -165,9 +165,9 @@ bool JitGenerator::GenerateHeader(util::cppformatstream & hdr_stream) const
 
 	        << "namespace captive {"
 	        << "	namespace arch {\n"
-	        << "		namespace arm {\n"
+	        << "		namespace " << arch.Name << " {\n"
 
-	        << "			class ArmJIT : public gensim::blockjit::BaseBlockJITTranslate {"
+	        << "			class JIT : public gensim::blockjit::BaseBlockJITTranslate {"
 	        << "			public:\n"
 	        << "				bool translate_instruction(const gensim::BaseDecode* decode_obj, jit::TranslationContext& ctx, bool trace) ;"
 
@@ -207,11 +207,11 @@ bool JitGenerator::GenerateSource(util::cppformatstream & src_stream) const
 	        << "#include <set>\n"
 
 	        << "using namespace captive::shared;"
-	        << "using namespace captive::arch::arm;"
+	        << "using namespace captive::arch::" << arch.Name << ";"
 	        << "using gensim::" << arch.Name << "::Decode;"
 	        << "using namespace gensim::" << arch.Name << ";"
 
-	        << "bool ArmJIT::translate_instruction(const gensim::BaseDecode* decode_obj, jit::TranslationContext& ctx, bool trace)"
+	        << "bool JIT::translate_instruction(const gensim::BaseDecode* decode_obj, jit::TranslationContext& ctx, bool trace)"
 	        << "{"
 	        << "	const Decode& insn = (const Decode&)*(const Decode *)decode_obj;"
 	        << "	switch (insn.Instr_Code) {";
@@ -244,7 +244,7 @@ bool JitGenerator::GenerateSource(util::cppformatstream & src_stream) const
 
 bool JitGenerator::GeneratePredicateFunction(util::cppformatstream &src_stream, const isa::ISADescription& isa, const isa::InstructionFormatDescription& fmt) const
 {
-	src_stream << "IRRegId ArmJIT::generate_predicate_" << isa.ISAName << "_" << fmt.GetName() << "(const Decode& insn, jit::TranslationContext& ctx, bool trace)";
+	src_stream << "IRRegId JIT::generate_predicate_" << isa.ISAName << "_" << fmt.GetName() << "(const Decode& insn, jit::TranslationContext& ctx, bool trace)";
 	src_stream << "{"
 	           << "std::queue<IRBlockId> dynamic_block_queue;";
 	src_stream << "IRRegId __result = ctx.alloc_reg(1);";
@@ -270,7 +270,7 @@ bool JitGenerator::GenerateJITFunction(util::cppformatstream &src_stream, const 
 
 	const SSAFormAction &action = *ssa_form_action;
 
-	src_stream	<< "bool ArmJIT::translate_" << isa.ISAName << "_" << insn.Name << "(const Decode&insn, jit::TranslationContext& ctx, bool trace)"
+	src_stream	<< "bool JIT::translate_" << isa.ISAName << "_" << insn.Name << "(const Decode&insn, jit::TranslationContext& ctx, bool trace)"
 	            << "{"
 	            << "std::queue<IRBlockId> dynamic_block_queue;";
 
