@@ -134,21 +134,35 @@ bool Processor::InitialiseTracing()
 {
 	assert(!trace_mgr);
 
-	std::string tracefile = archsim::options::TraceFile;
-	if(archsim::options::Verify) {
-		std::stringstream str;
-		str << tracefile;
-		str << "." << (uint64_t)this;
-		tracefile = str.str();
-	}
-
-	assert(archsim::options::TraceFile.IsSpecified());
 	trace_mgr = new libtrace::TraceSource(1000000);
 	libtrace::TraceSink *sink = nullptr;
+	FILE *file;
+	
+	if(archsim::options::TraceFile.IsSpecified()) {
+		file = fopen(archsim::options::TraceFile.GetValue().c_str(), "w");
+		
+		if(file == nullptr) {
+			LC_ERROR(LogCPU) << "Could not open trace file for writing";
+			return false;
+		}
+	} else {
+		file = stdout;
+	}
+	
 	if(archsim::options::TraceMode.GetValue() == "text") {
-		sink = new libtrace::TextFileTraceSink(fopen(tracefile.c_str(), "w"), new libtrace::DefaultArchInterface());
+		LC_ERROR(LogCPU) << "Text-mode tracing not currently supported";
+		return false;
+//		sink = new libtrace::TextFileTraceSink(file, new libtrace::DefaultArchInterface());
 	} else if(archsim::options::TraceMode.GetValue() == "binary") {
-		sink = new libtrace::BinaryFileTraceSink(fopen(tracefile.c_str(), "w"));
+		if(!archsim::options::TraceFile.IsSpecified()) {
+			LC_ERROR(LogCPU) << "Cannot use binary tracing unless a file is specified. Please use --trace-file to specify an output file.";
+			return false;
+		}
+		
+		sink = new libtrace::BinaryFileTraceSink(file);
+	} else {
+		LC_ERROR(LogCPU) << "Unknown trace mode " << archsim::options::TraceMode.GetValue();
+		return false;
 	}
 
 	assert(sink != nullptr);

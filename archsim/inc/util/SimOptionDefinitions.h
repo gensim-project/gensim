@@ -48,7 +48,7 @@ DefineFlag(Tracing, Trace, "Enables tracing output", false);
 DefineFlag(Tracing, SimpleTrace, "Simplified tracing", false);
 DefineFlag(Tracing, TraceSymbols, "Enables symbol resolution in tracing output", false);
 DefineFlag(Tracing, SuppressTracing, "Suppress tracing output at system startup", false);
-DefineSetting(Tracing, TraceMode, "Selects tracing output mode", "text");
+DefineSetting(Tracing, TraceMode, "Selects tracing output mode", "binary");
 DefineSetting(Tracing, TraceFile, "Redirects tracing output to a file", "trace.out");
 DefineSetting(Tracing, StdOutFile, "Redirects stdout to a file", "stdout");
 DefineSetting(Tracing, StdErrFile, "Redirects stderr to a file", "stderr");
