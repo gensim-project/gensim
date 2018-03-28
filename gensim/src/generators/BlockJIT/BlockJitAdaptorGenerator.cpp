@@ -6,6 +6,7 @@
  */
 
 #include "generators/GenerationManager.h"
+#include "arch/ArchDescription.h"
 
 #include "generators/GenCInterpreter/GenCInterpreterGenerator.h"
 
@@ -85,7 +86,7 @@ namespace gensim
 			virtual bool GenerateExtraProcessorSource(util::cppformatstream &stream) const override
 			{
 				stream << "gensim::blockjit::BaseBlockJITTranslate *Processor::CreateBlockJITTranslate() const { ";
-				stream << "return new captive::arch::arm::ArmJIT();";
+				stream << "return new captive::arch::" << Manager.GetArch().Name << "::JIT();";
 				stream << "}";
 				return true;
 			}
