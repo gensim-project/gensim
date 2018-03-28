@@ -18,6 +18,7 @@ DefineFlag(Debug, 'd', "debug");
 DefineFlag(Verbose, 'v', "verbose");
 DefineLongFlag(Profile, "profile");
 DefineLongFlag(ProfilePcFreq, "profile-pc");
+DefineLongFlag(ProfileIrFreq, "profile-ir");
 
 DefineLongFlag(EnablePerfMap, "enable-perf-map");
 

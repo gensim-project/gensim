@@ -179,10 +179,7 @@ void BaseBlockJITTranslate::InvalidateIsaMode()
 bool BaseBlockJITTranslate::build_block(gensim::BlockJitProcessor *processor, archsim::VirtualAddress block_address, TranslationContext &ctx)
 {
 	assert(ctx.current_block() == 0);
-	if(archsim::options::ProfilePcFreq) {
-		ctx.add_instruction(IRInstruction::count(IROperand::const64((uint64_t)processor->metrics.pc_freq_hist.get_value_ptr_at_index(block_address.Get())), IROperand::const64(1)));
-	}
-
+	
 	// initialise some state, and then recursively emit blocks until we come
 	// to a branch that we can't resolve statically
 	if(!_decode)_decode = processor->GetNewDecode();
@@ -224,6 +221,13 @@ bool BaseBlockJITTranslate::emit_instruction(gensim::BlockJitProcessor *processo
 		ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuInstructionTick), IROperand::const64((uint64_t)(void*)processor)));
 	}
 
+	if(archsim::options::ProfilePcFreq) {
+		ctx.add_instruction(IRInstruction::count(IROperand::const64((uint64_t)processor->metrics.pc_freq_hist.get_value_ptr_at_index(pc.Get())), IROperand::const64(1)));
+	}
+	if(archsim::options::ProfileIrFreq) {
+		ctx.add_instruction(IRInstruction::count(IROperand::const64((uint64_t)processor->metrics.inst_ir_freq_hist.get_value_ptr_at_index(decode->ir)), IROperand::const64(1)));
+	}
+	
 	if(processor->IsTracingEnabled()) {
 		IRRegId pc_reg = ctx.alloc_reg(4);
 		ctx.add_instruction(IRInstruction::ldpc(IROperand::vreg(pc_reg, 4)));
