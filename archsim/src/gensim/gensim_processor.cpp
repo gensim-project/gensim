@@ -476,24 +476,31 @@ uint64_t Processor::instructions()
  */
 void Processor::PrintStatistics(std::ostream& stream)
 {
+	
+	if (archsim::options::ProfilePcFreq) {
+		std::ofstream pc_freq ("pc_freq.out");
+		pc_freq << "Instruction frequency histogram" << std::endl;
+		pc_freq << "----------------------------------------" << std::endl;
+		auto &hist = metrics.pc_freq_hist;
+
+		for(auto entry : hist.get_value_map()) {
+			pc_freq << std::hex << entry.first << "\t" << std::dec << *entry.second << std::endl;
+		}
+	}
+
+	if (archsim::options::ProfileIrFreq) {
+		std::ofstream ir_freq ("ir_freq.out");
+
+		ir_freq << "Instruction IR frequency histogram" << std::endl;
+		ir_freq << "-----------------------------------------" << std::endl;
+		auto &hist = metrics.inst_ir_freq_hist;
+
+		for(auto entry : hist.get_value_map()) {
+			ir_freq << std::hex << std::setw(8) << std::setfill('0') << entry.first << "\t" << std::dec << *entry.second << std::endl;
+		}
+	}
+
 	if (archsim::options::Profile) {
-		if (archsim::options::ProfilePcFreq) {
-			std::ofstream pc_freq ("pc_freq.out");
-			pc_freq << "Instruction frequency histogram" << std::endl;
-			pc_freq << "----------------------------------------" << std::endl;
-			auto &hist = metrics.pc_freq_hist;
-
-			for(auto entry : hist.get_value_map()) {
-				pc_freq << std::hex << entry.first << "\t" << std::dec << *entry.second << std::endl;
-			}
-		}
-
-		if (archsim::options::ProfileIrFreq) {
-			stream << "Instruction IR frequency histogram" << std::endl;
-			stream << "-----------------------------------------" << std::endl;
-			stream << metrics.inst_ir_freq_hist.to_string("\n%08x,%u");
-		}
-
 		uint64_t inst_count = 0;
 		std::map<uint32_t, uint64_t> inst_tab;
 
