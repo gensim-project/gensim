@@ -1890,6 +1890,11 @@ helper uint8 mrc_read_special(uint8 crn, uint8 crm, uint8 opc1, uint8 opc2, uint
 		data = read_register(DACR);
 		return 1;
 	}
+	if(crn == 13 && crm == 0 && opc1 == 0 && opc2 == 3) {
+		data = read_register(TPIDRURO);
+		return 1;
+	}
+	
 	return 0;
 }
 

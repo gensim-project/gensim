@@ -202,7 +202,7 @@ bool BlockJitProcessor::translate_block(archsim::VirtualAddress block_pc, bool s
 	// we couldn't find the block in the physical profile, so create a new translation
 	GetEmulationModel().GetSystem().GetProfileManager().MarkRegionAsCode(physaddr.PageBase());
 
-	LC_DEBUG1(LogBlockJitCpu) << "Translating block " << std::hex << block_pc.Get();
+	LC_DEBUG4(LogBlockJitCpu) << "Translating block " << std::hex << block_pc.Get();
 	auto *translate = _translator;
 	if(!support_chaining) translate->setSupportChaining(false);
 

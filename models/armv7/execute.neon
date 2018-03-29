@@ -1,3 +1,27 @@
+helper uint8 neon_float_is_nan(float f)
+{
+	uint32 bits = bitcast_float_u32(f);
+	return ((bits >> 23) == 0x1ff);
+}
+
+helper float neon_get_default_nan_float()
+{
+	return bitcast_u32_float((uint32)0x7fc00000);
+}
+
+helper float[2] neon_multiply_float2(float[2] a, float[2] b)
+{
+	float[2] result = a * b;
+	
+	if(neon_float_is_nan(result[0])) {
+		result[0] = neon_get_default_nan_float();
+	}
+	if(neon_float_is_nan(result[1])) {
+		result[1] = neon_get_default_nan_float();
+	}
+
+	return result;
+}
 
 helper uint8 is_neon_enabled()
 {
@@ -23,11 +47,8 @@ helper uint32 neon_get_fpscr()
 	return read_register(FPSCR);
 }
 
-helper void neon_set_fpscr(uint32 fpscr)
+helper void neon_sync_fpscr(uint32 fpscr)
 {
-	// set the FPSCR register and synchronise FP state
-	write_register(FPSCR, fpscr);
-	
 	uint32 fz = (fpscr >> 24) & 1;
 	if(fz) {
 		__builtin_set_fp_flush(fz);
@@ -41,6 +62,15 @@ helper void neon_set_fpscr(uint32 fpscr)
 	return;
 }
 
+helper void neon_set_fpscr(uint32 fpscr)
+{
+	// set the FPSCR register and synchronise FP state
+	write_register(FPSCR, fpscr);
+	
+	neon_sync_fpscr(fpscr);
+	return;
+}
+
 helper uint32 neon_get_standard_fpscr()
 {
 	return 0x03000000;
@@ -49,13 +79,13 @@ helper uint32 neon_get_standard_fpscr()
 helper uint32 neon_enter_neon_mode()
 {
 	uint32 prev_fpscr = neon_get_fpscr();
-	neon_set_fpscr(neon_get_standard_fpscr());
+	neon_sync_fpscr(neon_get_standard_fpscr());
 	return prev_fpscr;
 }
 
 helper void neon_leave_neon_mode(uint32 prev_flags)
 {
-	neon_set_fpscr(prev_flags);
+	neon_sync_fpscr(prev_flags);
 	return;
 }
 
@@ -482,16 +512,19 @@ execute(neon_vmul_scalar_f32)
 	
 	uint32 fpscr = neon_enter_neon_mode();
 	
-	float multiplicand = m[inst.M];
-	n[0] *= multiplicand;
-	n[1] *= multiplicand;
+	float mult = m[inst.M];
+	float[2] multiplicand;
+	multiplicand[0] = mult;
+	multiplicand[1] = mult;
+	
+	n = neon_multiply_float2(n, multiplicand);
+	
 	write_register_bank(VD, inst.vd, n);
 	
 	if(inst.Q) {
 		n = read_register_bank(VD, inst.vn + 1);
 		
-		n[0] *= multiplicand;
-		n[1] *= multiplicand;
+		n = neon_multiply_float2(n, multiplicand);
 		write_register_bank(VD, inst.vd + 1, n);
 	}
 	
@@ -1792,8 +1825,7 @@ execute(neon_vmul_sp)
 {
 	check_neon_enabled();
 	
-	uint32 old_flush = __builtin_get_fp_flush();
-	__builtin_set_fp_flush(1);
+	uint32 fpscr = neon_enter_neon_mode();
 
 	float[2] vn = read_register_bank(VD, inst.vn);
 	float[2] vm = read_register_bank(VD, inst.vm);
@@ -1810,7 +1842,8 @@ execute(neon_vmul_sp)
 		
 		write_register_bank(VD, inst.vd+1, vd);
 	}
-	__builtin_set_fp_flush(old_flush);
+	
+	neon_leave_neon_mode(fpscr);
 }
 
 execute(neon_vmul_i32)

@@ -184,6 +184,7 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(gensim
 			assert(!"I don't know how to handle this kind of syscall!");
 		}
 		archsim::abi::SyscallResponse response;
+		response.action = ResumeNext;
 
 		request.arg0 = registers[0];
 		request.arg1 = registers[1];
@@ -207,6 +208,14 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(gensim
 				}
 			}
 		}
+		// xxx arm hax
+		// currently a syscall cannot return an action other than resume, so
+		// we need to exit manually here.
+		if(request.syscall == 0x1) {
+			return AbortSimulation;
+		}
+		
+		return response.action;
 
 	} else if (category == 11) {
 		LC_ERROR(LogEmulationModelArmLinux) << "Undefined Instruction Exception @ " << std::hex << cpu.read_pc();

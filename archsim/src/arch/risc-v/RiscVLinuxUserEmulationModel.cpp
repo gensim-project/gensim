@@ -93,6 +93,7 @@ archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(gens
 		request.syscall = registers[17];
 
 		archsim::abi::SyscallResponse response;
+		response.action = ResumeNext;
 
 		request.arg0 = registers[10];
 		request.arg1 = registers[11];
@@ -108,7 +109,7 @@ archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(gens
 			registers[0] = -1;
 		}
 
-		return ResumeNext;
+		return response.action;
 	}
 
 	return AbortSimulation;

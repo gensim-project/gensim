@@ -200,7 +200,7 @@ bool BaseBlockJITTranslate::emit_instruction(gensim::BlockJitProcessor *processo
 	auto fault = _decode_ctx->DecodeSync(pc, GetIsaMode(), *decode);
 	assert(!fault);
 
-	LC_DEBUG1(LogBlockJit) << "Translating instruction " << std::hex << pc.Get() << " " << decode->Instr_Code << " " << decode->ir;
+	LC_DEBUG4(LogBlockJit) << "Translating instruction " << std::hex << pc.Get() << " " << decode->Instr_Code << " " << decode->ir;
 
 	if(decode->Instr_Code == 65535) {
 		LC_DEBUG1(LogBlockJit) << "Invalid instruction! 0x" << std::hex << decode->ir;
@@ -303,7 +303,7 @@ bool BaseBlockJITTranslate::emit_block(gensim::BlockJitProcessor *processor, arc
 		ctx.add_instruction(IRInstruction::profile(IROperand::const64((uint64_t)&rgn), IROperand::const32(block_address.GetPageOffset())));
 	}
 
-	LC_DEBUG1(LogBlockJit) << "Translating block " << std::hex << pc.Get() << " " << _decode->Instr_Code << " " << _decode->ir;
+	LC_DEBUG3(LogBlockJit) << "Translating block " << std::hex << pc.Get() << " " << _decode->Instr_Code << " " << _decode->ir;
 
 	bool success = true;
 
