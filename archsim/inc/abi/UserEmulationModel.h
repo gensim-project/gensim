@@ -35,6 +35,7 @@ namespace archsim
 
 		struct SyscallResponse {
 			unsigned int result;
+			ExceptionAction action;
 		};
 
 		class UserEmulationModel : public EmulationModel

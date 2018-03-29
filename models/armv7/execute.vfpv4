@@ -22,6 +22,26 @@ helper uint8 get_rounding_mode()
 	return (fpscr >> 22) & 0x3;
 }
 
+helper uint8 vfp_float_is_nan(float f)
+{
+	uint32 bits = bitcast_float_u32(f);
+	return ((bits >> 23) == 0x1ff);
+}
+
+helper float vfp_get_default_nan_float()
+{
+	return bitcast_u32_float((uint32)0x7fc00000);
+}
+
+helper float vfp_multiply_float(float a, float b)
+{
+	float result = a * b;
+	if(vfp_float_is_nan(result)) {
+		result = vfp_get_default_nan_float();
+	}
+	return result;
+}
+
 helper uint8 is_vfp4_enabled()
 {
 	if(__builtin_get_feature(ARM_FPU_ENABLED_FPEXC)) {
@@ -197,7 +217,7 @@ execute(vmul_sp)
 	float vm = read_register_bank(FPSP, inst.vm);
 	float vn = read_register_bank(FPSP, inst.vn);
 	
-	float data = vn*vm;
+	float data = vfp_multiply_float(vn,vm);
 
 	float_write_register(inst.vd, data);
 }
@@ -270,11 +290,10 @@ execute(vmla_sp)
 	
 	if(inst.p) {
 		// mls
-		vd -= ml;
-	} else {
-		// mla
-		vd += ml;
+		ml = -ml;
 	}
+	
+	vd += ml;
 	
 	float_write_register(inst.vd, vd);
 }	
@@ -562,6 +581,8 @@ execute(vcvt_u32_f32) // convert float to uint32
 	uint32 data = 0;
 	if(fdata > (float)0xffffffff) {
 		data = 0xffffffff;
+	} else if(fdata < 0) {
+		data = 0x00000000;
 	} else {
 		data = (uint32)fdata;
 	}
@@ -1068,7 +1089,7 @@ execute(vcvt_fp)
 	
 	if(inst.sz)
 	{
-		//double to single
+		//convert double to single
 		double v = double_read_register(inst.vm);
 		float v2 = (float)v;
 		float_write_register(inst.vd, v2);
@@ -1121,6 +1142,9 @@ execute(vmov_a_msr)
 			
 			// set new rounding mode
 			__builtin_set_fp_rounding((fpscr >> 22) & 0x3);
+			
+			// set new flush mode
+			__builtin_set_fp_flush((fpscr >> 24) & 0x1);
 		}
 		break;
 	} 

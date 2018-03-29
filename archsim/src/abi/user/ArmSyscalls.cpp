@@ -458,7 +458,13 @@ static unsigned int sys_getcwd(gensim::Processor& cpu, unsigned int buffer_addr,
 
 static unsigned int sys_arm_settls(gensim::Processor& cpu, unsigned int addr)
 {
+	LC_DEBUG1(LogSyscalls) << "TLS Set to 0x" << std::hex << addr;
 	cpu.GetMemoryModel().Poke(0xffff0ff0, (uint8_t *)&addr, sizeof(addr));
+	
+	// also need to write the TPIDRURO control register which is an alternative way of accessing the TLS value
+	auto &tpidruro = cpu.GetRegisterDescriptor("TPIDRURO");
+	*(uint32_t*)tpidruro.DataStart = addr;
+	
 	return 0;
 }
 

@@ -1,15 +1,15 @@
 # TODO: improve this. Gensim interface is a bit of a nightmare.
 
 function(define_model target-name arch-name arch-file)
-	
+
 	SET(DLL_PATH "${CMAKE_CURRENT_BINARY_DIR}/output/${arch-name}.dll")
 	SET(OUTPUT_DLL_PATH "${ARCHSIM_MODULE_DIRECTORY}/${arch-name}.dll")
-	
+
 	SET(gensim-binary "$<TARGET_FILE:gensim>")
 	SET(model-files ${ARGN})
-	
+
 	# Some sort of weird bug with cmake if we try to get the interface
-	# include directories directory. 
+	# include directories directory.
 	GET_PROPERTY(libtrace-includes GLOBAL PROPERTY LIBTRACE_INCLUDES)
 	GET_PROPERTY(archsim-includes GLOBAL PROPERTY ARCHSIM_INCLUDES)
 
@@ -22,8 +22,10 @@ function(define_model target-name arch-name arch-file)
 		SET(MODEL_OPT "3")
 	ENDIF()
 
-	SET(gensim-options -s decode,disasm,adapt_blkjit,jit,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=${MODEL_OPT})
-	
+	SET(gensim-options -s decode,disasm,adapt_blkjit,jit,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=${MODEL_OPT},makefile.Debug=1)
+
+    #SET(gensim-options -s decode,disasm,genc_interpret,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=3)
+
 	ADD_CUSTOM_COMMAND(
 		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/output/Makefile"
 		COMMAND "sh" "-c" "mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/output"
@@ -34,25 +36,25 @@ function(define_model target-name arch-name arch-file)
 		DEPENDS ${model-files}
 		COMMENT "Generating ${target-name}"
 	)
-	
+
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${DLL_PATH}
-		COMMAND "sh" "-c" "make -C ${CMAKE_CURRENT_BINARY_DIR}/output"
+		COMMAND "sh" "-c" "make -C ${CMAKE_CURRENT_BINARY_DIR}/output -j4"
 		DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/output/Makefile"
 		COMMENT "Compiling ${target-name}"
 	)
-	
+
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${OUTPUT_DLL_PATH}
 		COMMAND "sh" "-c" "cp ${DLL_PATH} ${OUTPUT_DLL_PATH}"
 		DEPENDS "${DLL_PATH}"
 	)
-	
+
 	ADD_CUSTOM_TARGET(
-		${target-name} ALL 
+		${target-name} ALL
 		DEPENDS ${OUTPUT_DLL_PATH}
 	)
-	
+
 	SET_TARGET_PROPERTIES(
 		${target-name}
 		PROPERTIES

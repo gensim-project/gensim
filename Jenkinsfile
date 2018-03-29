@@ -17,7 +17,7 @@ pipeline {
         stage ('Run tests') {
             agent any
             steps {
-				sh 'make test || true'
+				sh 'make TESTING_ENABLED=TRUE test || true'
             }
         }
 	}
