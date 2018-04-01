@@ -3,8 +3,13 @@ archsim_add_sources(
 	VirtualScreenManager.cpp
 )
 
+
+FIND_PACKAGE(PkgConfig)
+IF(PkgConfig_FOUND)
+	PKG_CHECK_MODULES(GTK3 gtk+-3.0)
+ENDIF()
+
 FIND_PACKAGE(SDL2)
-FIND_PACKAGE(GTK2)
 
 IF(SDL2_FOUND)
 	archsim_add_sources(SDLScreen.cpp)
@@ -13,7 +18,7 @@ ELSE()
 	MESSAGE(STATUS "SDL2 NOT FOUND")
 ENDIF()
 
-IF(GTK2_FOUND)
+IF(GTK3_FOUND)
 	archsim_add_sources(GtkScreen.cpp)
 	MESSAGE(STATUS "GTK Found - including GTKScreen")
 ELSE()
