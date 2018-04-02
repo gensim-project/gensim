@@ -27,13 +27,6 @@ namespace captive
 				TranslationContext();
 				~TranslationContext();
 
-				inline void add_instruction(const shared::IRInstruction& instruction)
-				{
-					add_instruction(_current_block_id, instruction);
-				}
-
-				void increment_pc(uint32_t instruction_size);
-
 				inline void add_instruction(shared::IRBlockId block_id, const shared::IRInstruction& instruction)
 				{
 					ensure_buffer(_ir_insn_count + 1);
@@ -42,14 +35,10 @@ namespace captive
 					_ir_insns[_ir_insn_count].ir_block = block_id;
 					_ir_insn_count++;
 				}
-
-				inline shared::IRBlockId current_block() const
-				{
-					return _current_block_id;
-				}
-				inline void current_block(shared::IRBlockId block_id)
-				{
-					_current_block_id = block_id;
+				
+				inline shared::IRInstruction &get_next_instruction() {
+					ensure_buffer(_ir_insn_count + 1);
+					return _ir_insns[_ir_insn_count++];
 				}
 
 				inline shared::IRBlockId alloc_block()

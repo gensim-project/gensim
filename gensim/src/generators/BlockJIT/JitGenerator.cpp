@@ -74,6 +74,7 @@ bool JitGenerator::GenerateJitChunks(int count) const
 
 		stream
 		        << "#include \"blockjit/translation-context.h\"\n"
+				<< "#include \"blockjit/IRBuilder.h\"\n"
 		        << "#include \"decode.h\"\n"
 		        << "#include \"jit.h\"\n"
 		        << "#include \"processor.h\"\n"
@@ -169,18 +170,18 @@ bool JitGenerator::GenerateHeader(util::cppformatstream & hdr_stream) const
 
 	        << "			class JIT : public gensim::blockjit::BaseBlockJITTranslate {"
 	        << "			public:\n"
-	        << "				bool translate_instruction(const gensim::BaseDecode* decode_obj, jit::TranslationContext& ctx, bool trace) ;"
+	        << "				bool translate_instruction(const gensim::BaseDecode* decode_obj, captive::shared::IRBuilder &builder, bool trace) ;"
 
 	        << "			private:\n";
-
+	
 	for (auto isa : arch.ISAs) {
 
 		for (auto fmt : isa->Formats) {
-			hdr_stream << "captive::shared::IRRegId generate_predicate_" << isa->ISAName << "_" << fmt.second->GetName() << "(const Decode& insn, jit::TranslationContext& ctx, bool trace);\n";
+			hdr_stream << "captive::shared::IRRegId generate_predicate_" << isa->ISAName << "_" << fmt.second->GetName() << "(const Decode& insn, captive::shared::IRBuilder &builder, bool trace);\n";
 		}
 
 		for (auto insn : isa->Instructions) {
-			hdr_stream << "bool translate_" << isa->ISAName << "_" << insn.second->Name << "(const Decode& insn, jit::TranslationContext& ctx, bool trace);";
+			hdr_stream << "bool translate_" << isa->ISAName << "_" << insn.second->Name << "(const Decode& insn, captive::shared::IRBuilder &builder, bool trace);";
 		}
 	}
 
@@ -211,7 +212,7 @@ bool JitGenerator::GenerateSource(util::cppformatstream & src_stream) const
 	        << "using gensim::" << arch.Name << "::Decode;"
 	        << "using namespace gensim::" << arch.Name << ";"
 
-	        << "bool JIT::translate_instruction(const gensim::BaseDecode* decode_obj, jit::TranslationContext& ctx, bool trace)"
+	        << "bool JIT::translate_instruction(const gensim::BaseDecode* decode_obj, captive::shared::IRBuilder &builder, bool trace)"
 	        << "{"
 	        << "	const Decode& insn = (const Decode&)*(const Decode *)decode_obj;"
 	        << "	switch (insn.Instr_Code) {";
@@ -219,7 +220,7 @@ bool JitGenerator::GenerateSource(util::cppformatstream & src_stream) const
 	for (auto isa : arch.ISAs) {
 		for (auto insn : isa->Instructions) {
 			src_stream << "case INST_" << isa->ISAName << "_" << insn.second->Name << ":\n";
-			src_stream << "return translate_" << isa->ISAName << "_" << insn.second->Name << "((const Decode&)insn, ctx, trace);";
+			src_stream << "return translate_" << isa->ISAName << "_" << insn.second->Name << "((const Decode&)insn, builder, trace);";
 		}
 	}
 
@@ -244,12 +245,12 @@ bool JitGenerator::GenerateSource(util::cppformatstream & src_stream) const
 
 bool JitGenerator::GeneratePredicateFunction(util::cppformatstream &src_stream, const isa::ISADescription& isa, const isa::InstructionFormatDescription& fmt) const
 {
-	src_stream << "IRRegId JIT::generate_predicate_" << isa.ISAName << "_" << fmt.GetName() << "(const Decode& insn, jit::TranslationContext& ctx, bool trace)";
+	src_stream << "IRRegId JIT::generate_predicate_" << isa.ISAName << "_" << fmt.GetName() << "(const Decode& insn, captive::shared::IRBuilder &builder, bool trace)";
 	src_stream << "{"
 	           << "std::queue<IRBlockId> dynamic_block_queue;";
-	src_stream << "IRRegId __result = ctx.alloc_reg(1);";
+	src_stream << "IRRegId __result = builder.alloc_reg(1);";
 
-	src_stream << "IRBlockId __exit_block = ctx.alloc_block();\n";
+	src_stream << "IRBlockId __exit_block = builder.alloc_block();\n";
 
 	auto insn_predicate_action = dynamic_cast<const SSAFormAction *>(isa.GetSSAContext().GetAction("instruction_predicate"));
 	EmitJITFunction(src_stream, *insn_predicate_action);
@@ -270,7 +271,7 @@ bool JitGenerator::GenerateJITFunction(util::cppformatstream &src_stream, const 
 
 	const SSAFormAction &action = *ssa_form_action;
 
-	src_stream	<< "bool JIT::translate_" << isa.ISAName << "_" << insn.Name << "(const Decode&insn, jit::TranslationContext& ctx, bool trace)"
+	src_stream	<< "bool JIT::translate_" << isa.ISAName << "_" << insn.Name << "(const Decode&insn, captive::shared::IRBuilder &builder, bool trace)"
 	            << "{"
 	            << "std::queue<IRBlockId> dynamic_block_queue;";
 
@@ -283,32 +284,32 @@ bool JitGenerator::GenerateJITFunction(util::cppformatstream &src_stream, const 
 //		XXX ARM HAX
 		src_stream << "if (insn.GetIsPredicated()) {";
 //		src_stream << "if(((uint32_t)insn.GetIR() & 0xf0000000UL) < 0xe0000000UL) {";
-		src_stream << "IRBlockId __predicate_taken = ctx.alloc_block();";
+		src_stream << "IRBlockId __predicate_taken = builder.alloc_block();";
 
-		src_stream << "IRRegId predicate_result = generate_predicate_" << isa.ISAName << "_" << insn.Format->GetName() << "(insn, ctx, trace);";
+		src_stream << "IRRegId predicate_result = generate_predicate_" << isa.ISAName << "_" << insn.Format->GetName() << "(insn, builder, trace);";
 
 		src_stream << "if (insn.GetEndOfBlock()) {";
-		src_stream << "IRBlockId __predicate_not_taken = ctx.alloc_block();";
-		src_stream << "__exit_block = ctx.alloc_block();";
-		src_stream << "ctx.add_instruction(IRInstruction::branch(IROperand::vreg(predicate_result, 1), IROperand::block(__predicate_taken), IROperand::block(__predicate_not_taken)));\n";
-		src_stream << "ctx.current_block(__predicate_not_taken);";
-		src_stream << "ctx.increment_pc(" << (insn.Format->GetLength()/8) << ");";
-		src_stream << "ctx.add_instruction(IRInstruction::jump(IROperand::block(__exit_block)));";
+		src_stream << "IRBlockId __predicate_not_taken = builder.alloc_block();";
+		src_stream << "__exit_block = builder.alloc_block();";
+		src_stream << "builder.branch(IROperand::vreg(predicate_result, 1), IROperand::block(__predicate_taken), IROperand::block(__predicate_not_taken));\n";
+		src_stream << "builder.SetBlock(__predicate_not_taken);";
+		src_stream << "builder.increment_pc(" << (insn.Format->GetLength()/8) << ");";
+		src_stream << "builder.jump(IROperand::block(__exit_block));";
 		src_stream << "} else {";
-		src_stream << "__exit_block = ctx.alloc_block();";
-		src_stream << "ctx.add_instruction(IRInstruction::branch(IROperand::vreg(predicate_result, 1), IROperand::block(__predicate_taken), IROperand::block(__exit_block)));\n";
+		src_stream << "__exit_block = builder.alloc_block();";
+		src_stream << "builder.branch(IROperand::vreg(predicate_result, 1), IROperand::block(__predicate_taken), IROperand::block(__exit_block));\n";
 		src_stream << "}";
 
-		src_stream << "ctx.current_block(__predicate_taken);";
-		src_stream << "} else {__exit_block = ctx.alloc_block(); }";
+		src_stream << "builder.SetBlock(__predicate_taken);";
+		src_stream << "} else {__exit_block = builder.alloc_block(); }";
 	} else {
-		src_stream << "__exit_block = ctx.alloc_block();";
+		src_stream << "__exit_block = builder.alloc_block();";
 	}
 
 	EmitJITFunction(src_stream, action);
 
 	src_stream << "if (!insn.GetEndOfBlock()) {";
-	src_stream << "ctx.increment_pc(" << (insn.Format->GetLength()/8) << ");";
+	src_stream << "builder.increment_pc(" << (insn.Format->GetLength()/8) << ");";
 	src_stream << "}";
 
 	src_stream	<< "	return true;"
@@ -323,7 +324,7 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 
 	for (const auto block : action.Blocks) {
 		src_stream << "// Block " << block->GetName() << "\n";
-		src_stream << "const IRBlockId block_idx_" << block->GetName() << " = ctx.alloc_block();\n";
+		src_stream << "const IRBlockId block_idx_" << block->GetName() << " = builder.alloc_block();\n";
 	}
 
 	for(const auto symbol : action.Symbols()) {
@@ -332,7 +333,7 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 		}
 		src_stream << "// Reg " << symbol->GetName() << std::endl;
 		src_stream << symbol->GetType().GetCType() << " CV_" << symbol->GetName() << ";";
-		src_stream << "const IRRegId ir_idx_" << symbol->GetName() << " = ctx.alloc_reg(" << symbol->GetType().Size() << ");";
+		src_stream << "const IRRegId ir_idx_" << symbol->GetName() << " = builder.alloc_reg(" << symbol->GetType().Size() << ");";
 	}
 
 	src_stream << "goto block_" << action.EntryBlock->GetName() << ";\n";
@@ -367,7 +368,7 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 
 	src_stream << "fixed_done:\n";
 	src_stream << "if (dynamic_block_queue.size() == 0) {\n";
-	src_stream << "ctx.add_instruction(IRInstruction::jump(IROperand::block(__exit_block)));\n";
+	src_stream << "builder.jump(IROperand::block(__exit_block));\n";
 	src_stream << "} else {";
 
 	src_stream << "std::set<IRBlockId> emitted_blocks;";
@@ -383,7 +384,7 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 
 		src_stream << "if (block_index == block_idx_" << block->GetName() << ") // BLOCK START LINE " << block->GetStartLine() << ", END LINE " << block->GetEndLine() << "\n";
 		src_stream << "{";
-		src_stream << "ctx.current_block(block_idx_" << block->GetName() << ");";
+		src_stream << "builder.SetBlock(block_idx_" << block->GetName() << ");";
 
 		for (const auto stmt : block->GetStatements()) {
 			src_stream << "/* " << stmt->GetDiag() << " ";
@@ -406,7 +407,7 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 	src_stream << "}\n";	// ELSE
 
 	src_stream << "dynamic_done:\n";
-	src_stream << "ctx.current_block(__exit_block);";
+	src_stream << "builder.SetBlock(__exit_block);";
 
 	return true;
 }

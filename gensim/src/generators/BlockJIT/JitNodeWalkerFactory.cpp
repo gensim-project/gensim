@@ -239,38 +239,38 @@ namespace gensim
 					SSANodeWalker *LHSNode = Factory.GetOrCreate(Statement.LHS());
 					SSANodeWalker *RHSNode = Factory.GetOrCreate(Statement.RHS());
 
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
 
 					switch(Statement.Type) {
 						case BinaryOperator::Multiply:
-							output << "ctx.add_instruction(IRInstruction::fmul(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.fmul(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 						case BinaryOperator::Divide:
-							output << "ctx.add_instruction(IRInstruction::fdiv(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.fdiv(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 						case BinaryOperator::Add:
-							output << "ctx.add_instruction(IRInstruction::fadd(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.fadd(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 						case BinaryOperator::Subtract:
-							output << "ctx.add_instruction(IRInstruction::fsub(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.fsub(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 						case BinaryOperator::LessThan:
-							output << "ctx.add_instruction(IRInstruction::fcmp_lt(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.fcmp_lt(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 						case BinaryOperator::LessThanEqual:
-							output << "ctx.add_instruction(IRInstruction::fcmp_lte(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.fcmp_lte(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 						case BinaryOperator::GreaterThan:
-							output << "ctx.add_instruction(IRInstruction::fcmp_gt(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.fcmp_gt(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 						case BinaryOperator::GreaterThanEqual:
-							output << "ctx.add_instruction(IRInstruction::fcmp_gte(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.fcmp_gte(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 						case BinaryOperator::Equality:
-							output << "ctx.add_instruction(IRInstruction::fcmp_eq(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.fcmp_eq(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 						case BinaryOperator::Inequality:
-							output << "ctx.add_instruction(IRInstruction::fcmp_ne(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.fcmp_ne(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 						default:
 							output << "assert(false && \"Unimplemented\");";
@@ -289,11 +289,11 @@ namespace gensim
 					const SSAStatement *LHS = Statement.LHS();
 					const SSAStatement *RHS = Statement.RHS();
 
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
 					if(LHS->GetType().IsFloating()) {
-						output << "ctx.add_instruction(IRInstruction::v" << op << "f(IROperand::const32(" << (uint32_t)LHS->GetType().VectorWidth << "), " << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_node(*this) << "));";
+						output << "builder.v" << op << "f(IROperand::const32(" << (uint32_t)LHS->GetType().VectorWidth << "), " << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_node(*this) << ");";
 					} else {
-						output << "ctx.add_instruction(IRInstruction::v" << op << "i(IROperand::const32(" << (uint32_t)LHS->GetType().VectorWidth << "), " << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_node(*this) << "));";
+						output << "builder.v" << op << "i(IROperand::const32(" << (uint32_t)LHS->GetType().VectorWidth << "), " << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_node(*this) << ");";
 					}
 
 					return true;
@@ -347,40 +347,40 @@ namespace gensim
 						if(LHSNode->Statement.GetType() == IRTypes::Double) return EmitDynamicCodeFloat(output, end_label, fully_fixed);
 					}
 
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
 
 					switch (Statement.Type) {
 						// Shift
 						case BinaryOperator::ShiftLeft:
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::shl(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
+							output << "builder.shl(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 						case BinaryOperator::SignedShiftRight:
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::sar(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
+							output << "builder.sar(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 						case BinaryOperator::ShiftRight:
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::shr(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
+							output << "builder.shr(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 						case BinaryOperator::RotateRight:
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::ror(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
+							output << "builder.ror(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 						case BinaryOperator::RotateLeft:
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::rol(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
+							output << "builder.rol(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 
 						// Equality
 						case BinaryOperator::Equality:
 							output << "{"
-							       "ctx.add_instruction(IRInstruction::cmpeq(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n"
+							       "builder.cmpeq(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n"
 							       "}";
 							break;
 						case BinaryOperator::Inequality:
 							output << "{"
-							       "ctx.add_instruction(IRInstruction::cmpne(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n"
+							       "builder.cmpne(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n"
 							       "}";
 							break;
 
@@ -418,39 +418,39 @@ namespace gensim
 								}
 
 							output << "{"
-							       "ctx.add_instruction(IRInstruction::" << comparison << "(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n"
+							       "builder." << comparison << "(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n"
 							       "}";
 							break;
 						}
 						// Arithmetic
 						case BinaryOperator::Add:
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::add(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
+							output << "builder.add(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 						case BinaryOperator::Subtract:
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::sub(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
+							output << "builder.sub(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 						case BinaryOperator::Multiply:
 
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							if(LHSNode->Statement.GetType().Signed || RHSNode->Statement.GetType().Signed) {
-								output << "ctx.add_instruction(IRInstruction::imul(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+								output << "builder.imul(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							} else {
-								output << "ctx.add_instruction(IRInstruction::mul(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+								output << "builder.mul(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							}
 							break;
 						case BinaryOperator::Divide:
 
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							if(Statement.LHS()->GetType().Signed)
-								output << "ctx.add_instruction(IRInstruction::sdiv(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+								output << "builder.sdiv(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							else
-								output << "ctx.add_instruction(IRInstruction::udiv(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+								output << "builder.udiv(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 						case BinaryOperator::Modulo:
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::mod(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
+							output << "builder.mod(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 
 						// Logical
@@ -461,16 +461,16 @@ namespace gensim
 
 						// Bitwise
 						case BinaryOperator::Bitwise_XOR:
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::bitwise_xor(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
+							output << "builder.bitwise_xor(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 						case BinaryOperator::Bitwise_And:
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::bitwise_and(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
+							output << "builder.bitwise_and(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 						case BinaryOperator::Bitwise_Or:
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::bitwise_or(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << "));\n";
+							output << "builder.mov(" << operand_for_node(*LHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
+							output << "builder.bitwise_or(" << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n";
 							break;
 
 						default:
@@ -501,8 +501,8 @@ namespace gensim
 						UNIMPLEMENTED;
 					}
 
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");";
-					output << "ctx.add_instruction(IRInstruction::mov(IROperand::const32(" << stmt.Constant.Int() << "), " << operand_for_stmt(stmt) << "));";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");";
+					output << "builder.mov(IROperand::const32(" << stmt.Constant.Int() << "), " << operand_for_stmt(stmt) << ");";
 					return true;
 				}
 
@@ -581,9 +581,9 @@ namespace gensim
 					assert(to->GetType().IsFloating());
 
 					if(from->GetType().Signed)
-						output << "ctx.add_instruction(IRInstruction::fcvt_si_to_float(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << "));";
+						output << "builder.fcvt_si_to_float(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << ");";
 					else
-						output << "ctx.add_instruction(IRInstruction::fcvt_ui_to_float(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << "));";
+						output << "builder.fcvt_ui_to_float(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << ");";
 
 					return true;
 				}
@@ -603,10 +603,10 @@ namespace gensim
 					if(to->GetType().Signed) {
 						switch(Statement.GetOption()) {
 							case SSACastStatement::Option_RoundDefault:
-								output << "ctx.add_instruction(IRInstruction::fcvt_float_to_si(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << "));";
+								output << "builder.fcvt_float_to_si(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << ");";
 								break;
 							case SSACastStatement::Option_RoundTowardZero:
-								output << "ctx.add_instruction(IRInstruction::fcvtt_float_to_si(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << "));";
+								output << "builder.fcvtt_float_to_si(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << ");";
 								break;
 							default:
 								UNIMPLEMENTED;
@@ -614,10 +614,10 @@ namespace gensim
 					} else {
 						switch(Statement.GetOption()) {
 							case SSACastStatement::Option_RoundDefault:
-								output << "ctx.add_instruction(IRInstruction::fcvt_float_to_ui(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << "));";
+								output << "builder.fcvt_float_to_ui(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << ");";
 								break;
 							case SSACastStatement::Option_RoundTowardZero:
-								output << "ctx.add_instruction(IRInstruction::fcvtt_float_to_ui(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << "));";
+								output << "builder.fcvtt_float_to_ui(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << ");";
 								break;
 							default:
 								UNIMPLEMENTED;
@@ -644,9 +644,9 @@ namespace gensim
 					// 2. double to float
 
 					if(from->GetType().Size() == 4 && to->GetType().Size() == 8) {
-						output << "ctx.add_instruction(IRInstruction::fcvt_single_to_double(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << "));";
+						output << "builder.fcvt_single_to_double(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << ");";
 					} else if(from->GetType().Size() == 8 && to->GetType().Size() == 4) {
-						output << "ctx.add_instruction(IRInstruction::fcvt_double_to_single(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << "));";
+						output << "builder.fcvt_double_to_single(" << operand_for_node(*fromnode) << ", " << operand_for_stmt(*to) << ");";
 					} else {
 						assert(false && "Unsupported float cast!");
 					}
@@ -680,7 +680,7 @@ namespace gensim
 
 					SSANodeWalker *expr = Factory.GetOrCreate(Statement.Expr());
 
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");";
 
 					if(Statement.GetCastType() != SSACastStatement::Cast_Reinterpret) {
 						if(Statement.GetType().IsFloating() || Statement.Expr()->GetType().IsFloating()) {
@@ -689,19 +689,19 @@ namespace gensim
 
 						//If we're truncating, we can do an and (theoretically we can do just a mov but we don't correctly size operands yet)
 						if (Statement.GetType().Size() < Statement.Expr()->GetType().Size()) {
-							output << "ctx.add_instruction(IRInstruction::trunc(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.trunc(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << ");";
 						} else if (Statement.GetType().Size() == Statement.Expr()->GetType().Size()) {
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << "));";
+							output << "builder.mov(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << ");";
 						} else if (Statement.GetType().Size() > Statement.Expr()->GetType().Size()) {
 							//Otherwise we need to sign extend
 							if (Statement.GetType().Signed)
-								output << "ctx.add_instruction(IRInstruction::sx(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << "));";
+								output << "builder.sx(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << ");";
 							else
-								output << "ctx.add_instruction(IRInstruction::zx(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << "));";
+								output << "builder.zx(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << ");";
 						}
 					} else {
 						// for the blockjit, a reinterpret is the same as a mov since things are usually kept in integer registers
-						output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << "));";
+						output << "builder.mov(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << ");";
 					}
 
 					return true;
@@ -799,7 +799,7 @@ namespace gensim
 						output << "goto block_" << stmt.TrueTarget()->GetName() << ";\n";
 					else {
 						CreateBlock(output, "block_idx_" + stmt.TrueTarget()->GetName());
-						output << "ctx.add_instruction(IRInstruction::jump(IROperand::block(block)));";
+						output << "builder.jump(IROperand::block(block));";
 						if (end_label != "")
 							output << "goto " << end_label << ";";
 					}
@@ -808,7 +808,7 @@ namespace gensim
 						output << "goto block_" << stmt.FalseTarget()->GetName() << ";\n";
 					else {
 						CreateBlock(output, "block_idx_" + stmt.FalseTarget()->GetName());
-						output << "ctx.add_instruction(IRInstruction::jump(IROperand::block(block)));";
+						output << "builder.jump(IROperand::block(block));";
 						if (end_label != "")
 							output << "goto " << end_label << ";";
 					}
@@ -827,11 +827,11 @@ namespace gensim
 						//We can predicate which jump target to generate based on the result of the expression
 						output << "if(" << expr->GetFixedValue() << ") {";
 						CreateBlock(output, "block_idx_" + Statement.TrueTarget()->GetName());
-						output << "ctx.add_instruction(IRInstruction::jump(IROperand::block(block)));";
+						output << "builder.jump(IROperand::block(block));";
 						output << "}";
 						output << "else {";
 						CreateBlock(output, "block_idx_" + Statement.TrueTarget()->GetName());
-						output << "ctx.add_instruction(IRInstruction::jump(IROperand::block(block)));";
+						output << "builder.jump(IROperand::block(block));";
 						output << "}";
 						if (end_label != "")
 							output << "goto " << end_label << ";";
@@ -848,11 +848,11 @@ namespace gensim
 						output << "false_target = block;";
 						output << "}";
 
-						output << "ctx.add_instruction(IRInstruction::branch("
+						output << "builder.branch("
 						       << operand_for_node(*expr) << ", "
 						       << "IROperand::block(true_target),"
 						       << "IROperand::block(false_target)"
-						       << "));";
+						       << ");";
 
 						output << "}";
 						if (end_label != "")
@@ -923,99 +923,99 @@ namespace gensim
 					switch (Statement.Type) {
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
-							output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
-							output << "ctx.add_instruction(IRInstruction::clz(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << "));";
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
+							output << "builder.clz(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
-							output << "SetIsaMode(" << operand_for_node(*arg0) << ", ctx);";
+							output << "SetIsaMode(" << operand_for_node(*arg0) << ", builder);";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_Trap:
-							output << "ctx.add_instruction(IRInstruction::trap());";
+							output << "builder.trap();";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
-							output << "ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuPendInterrupt)));";
+							output << "builder.call(IROperand::func((void*)cpuPendInterrupt));";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
 							// XXX TODO FIXME
-							output << "ctx.add_instruction(IRInstruction::trap());";
+							output << "builder.trap();";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
 							// XXX TODO FIXME
-							output << "ctx.add_instruction(IRInstruction::trap());";
+							output << "builder.trap();";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
 							// XXX TODO FIXME
-							output << "ctx.add_instruction(IRInstruction::trap());";
+							output << "builder.trap();";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
-							output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
-							output << "ctx.add_instruction(IRInstruction::probe_device(" << operand_for_node(*arg0) << ", IROperand::vreg(" << Statement.GetName() << ")));";
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
+							output << "builder.probe_device(" << operand_for_node(*arg0) << ", IROperand::vreg(" << Statement.GetName() << "));";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
-							output << "ctx.add_instruction(IRInstruction::write_device(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << "));";
+							output << "builder.write_device(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
-							output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
-							output << "ctx.add_instruction(IRInstruction::ldpc(IROperand::vreg(" << Statement.GetName() << ", " << Statement.GetType().Size() << ")));";
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
+							output << "builder.ldpc(IROperand::vreg(" << Statement.GetName() << ", " << Statement.GetType().Size() << "));";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
 						case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
-							output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
-							output << "ctx.add_instruction(IRInstruction::adc_with_flags(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << "));";
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
+							output << "builder.adc_with_flags(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
-							output << "ctx.add_instruction(IRInstruction::take_exception(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << "));";
+							output << "builder.take_exception(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
-							output << "ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuEnterKernelMode)));";
+							output << "builder.call(IROperand::func((void*)cpuEnterKernelMode));";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
-							output << "ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuEnterUserMode)));";
+							output << "builder.call(IROperand::func((void*)cpuEnterUserMode));";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32:
 						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN64:
-							output << "ctx.add_instruction(IRInstruction::updatezn(" << operand_for_node(*arg0) << "));";
+							output << "builder.updatezn(" << operand_for_node(*arg0) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
-							output << "ctx.add_instruction(IRInstruction::fabsd(" << operand_for_node(*arg0) << "));";
+							output << "builder.fabsd(" << operand_for_node(*arg0) << ");";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatAbs:
-							output << "ctx.add_instruction(IRInstruction::fabsf(" << operand_for_node(*arg0) << "));";
+							output << "builder.fabsf(" << operand_for_node(*arg0) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
-							output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
-							output << "ctx.add_instruction(IRInstruction::fctrl_get_round(" << operand_for_node(*this) << "));";
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
+							output << "builder.fctrl_get_round(" << operand_for_node(*this) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
-							output << "ctx.add_instruction(IRInstruction::fctrl_set_round(" << operand_for_node(*arg0) << "));";
+							output << "builder.fctrl_set_round(" << operand_for_node(*arg0) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
-							output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
-							output << "ctx.add_instruction(IRInstruction::fctrl_get_flush(" << operand_for_node(*this) << "));";
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
+							output << "builder.fctrl_get_flush(" << operand_for_node(*this) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
-							output << "ctx.add_instruction(IRInstruction::fctrl_set_flush(" << operand_for_node(*arg0) << "));";
+							output << "builder.fctrl_set_flush(" << operand_for_node(*arg0) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_SetFeature:
-							output << "SetFeatureLevel(" << arg0->GetFixedValue() << ", " << arg1->GetFixedValue() << ", ctx);";
+							output << "SetFeatureLevel(" << arg0->GetFixedValue() << ", " << arg1->GetFixedValue() << ", builder);";
 							if(!Statement.Parent->IsFixed() != BLOCK_ALWAYS_CONST) output << "InvalidateFeatures();";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatSqrt:
 						case SSAIntrinsicStatement::SSAIntrinsic_DoubleSqrt:
-							output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
-							output << "ctx.add_instruction(IRInstruction::fsqrt(" << operand_for_node(*arg0) << ", " << operand_for_node(*this) << "));";
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
+							output << "builder.fsqrt(" << operand_for_node(*arg0) << ", " << operand_for_node(*this) << ");";
 							break;
 
 						default:
@@ -1078,7 +1078,7 @@ namespace gensim
 						if (stmt.Target()->IsFixed() != BLOCK_ALWAYS_CONST) {
 							output << "{";
 							CreateBlock(output, "block_idx_" + stmt.Target()->GetName());
-							output << "ctx.add_instruction(IRInstruction::jump(IROperand::block(block)));";
+							output << "builder.jump(IROperand::block(block));";
 							output << "}";
 							if (end_label != "")
 								output << "goto " << end_label << ";";
@@ -1096,7 +1096,7 @@ namespace gensim
 					const SSAJumpStatement &Statement = static_cast<const SSAJumpStatement &> (this->Statement);
 					output << "{";
 					CreateBlock(output, "block_idx_" + Statement.Target()->GetName());
-					output << "ctx.add_instruction(IRInstruction::jump(IROperand::block(block))); }";
+					output << "builder.jump(IROperand::block(block)); }";
 					if (end_label != "")
 						output << "goto " << end_label << ";";
 					return true;
@@ -1118,11 +1118,11 @@ namespace gensim
 					SSANodeWalker *address = Factory.GetOrCreate(Statement.Addr());
 
 					if (Statement.User) {
-						output << "ctx.add_instruction(IRInstruction::ldmem_user(" << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << "));\n";
+						output << "builder.ldmem_user(" << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");\n";
 					} else {
-						output << "ctx.add_instruction(IRInstruction::ldmem(" << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << "));\n";
+						output << "builder.ldmem(" << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");\n";
 						output << "if(trace)";
-						output << "ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceOnlyMemRead" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << "));";
+						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemRead" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");";
 					}
 
 					return true;
@@ -1154,11 +1154,11 @@ namespace gensim
 					SSANodeWalker *value = Factory.GetOrCreate(Statement.Value());
 
 					if (Statement.User) {
-						output << "ctx.add_instruction(IRInstruction::stmem_user(" << operand_for_node(*value) << ", " << operand_for_node(*address) << "));\n";
+						output << "builder.stmem_user(" << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
 					} else {
-						output << "ctx.add_instruction(IRInstruction::stmem(" << operand_for_node(*value) << ", " << operand_for_node(*address) << "));\n";
+						output << "builder.stmem(" << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
 						output << "if(trace)";
-						output << "ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceOnlyMemWrite" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_node(*value) << "));";
+						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemWrite" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_node(*value) << ");";
 					}
 
 					return true;
@@ -1181,9 +1181,9 @@ namespace gensim
 				bool EmitDynamicCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
 					const SSAReadStructMemberStatement &Statement = static_cast<const SSAReadStructMemberStatement &> (this->Statement);
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");";
 
-					output << "ctx.add_instruction(IRInstruction::mov(IROperand::const";
+					output << "builder.mov(IROperand::const";
 
 					switch (Statement.GetType().Size()) {
 						case 1:
@@ -1251,8 +1251,8 @@ namespace gensim
 						std::string value_string;
 
 						if(Value->Statement.GetType().Size() < register_width) {
-							output << "IRRegId tmp = ctx.alloc_reg(" << register_width  << ");";
-							output << "ctx.add_instruction(IRInstruction::zx(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, " << register_width << ")));";
+							output << "IRRegId tmp = builder.alloc_reg(" << register_width  << ");";
+							output << "builder.zx(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, " << register_width << "));";
 							std::stringstream str;
 							str << "IROperand::vreg(tmp, " << (uint32_t)register_width << ")";
 							value_string = str.str();
@@ -1260,36 +1260,35 @@ namespace gensim
 							value_string = operand_for_node(*Value);
 						}
 
-						output << "ctx.add_instruction("
-						       << "IRInstruction::streg("
+						output << "builder.streg("
 						       << value_string << ", "
 						       <<"IROperand::const32((uint32_t)(" << offset << " + (" << register_stride << " * " << RegNum->GetFixedValue() << ")))"
-						       << "));\n";
+						       << ");\n";
 
 						if(register_width <= 8) {
 							output << "if(trace) {";
-							output << "IRRegId tmp = ctx.alloc_reg(8);\n";
+							output << "IRRegId tmp = builder.alloc_reg(8);\n";
 							if(Value->Statement.GetType().Size() < 8) {
-								output << "ctx.add_instruction(IRInstruction::zx(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 8)));";
+								output << "builder.zx(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 8));";
 							} else {
-								output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 8)));";
+								output << "builder.mov(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 8));";
 							}
 
-							output << "ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), IROperand::vreg(tmp,8)));";
+							output << "builder.call(IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), IROperand::vreg(tmp,8));";
 							output << "}";
 						}
 						return true;
 					} else {
 						output << "{";
-						output << "IRRegId tmp = ctx.alloc_reg(4);\n";
+						output << "IRRegId tmp = builder.alloc_reg(4);\n";
 
-						output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*RegNum) << ", IROperand::vreg(tmp, 4)));";
-						output << "ctx.add_instruction(IRInstruction::imul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 4)));";
-						output << "ctx.add_instruction(IRInstruction::add(IROperand::const32(" << offset << "), IROperand::vreg(tmp, 4)));";
+						output << "builder.mov(" << operand_for_node(*RegNum) << ", IROperand::vreg(tmp, 4));";
+						output << "builder.imul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 4));";
+						output << "builder.add(IROperand::const32(" << offset << "), IROperand::vreg(tmp, 4));";
 
-						output << "ctx.add_instruction(IRInstruction::streg(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4)));\n";
+						output << "builder.streg(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4));\n";
 						if(register_width <= 4) {
-							output << "if(trace) ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), " << operand_for_node(*RegNum) << ", " << operand_for_node(*Value) << "));";
+							output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), " << operand_for_node(*RegNum) << ", " << operand_for_node(*Value) << ");";
 						}
 						output << "}";
 					}
@@ -1306,25 +1305,25 @@ namespace gensim
 					uint32_t register_width = bank.GetRegisterWidth();
 					uint32_t register_stride = bank.GetRegisterStride();
 
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << register_width << ");\n";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << register_width << ");\n";
 
 					if (write.RegNum()->IsFixed()) {
-						output << "ctx.add_instruction(IRInstruction::ldreg(IROperand::const32((uint32_t)(" << offset << " + (" << register_stride << " * " << RegNum->GetFixedValue() << "))), " << operand_for_stmt(Statement) << "));\n";
-						output << "if(trace) ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), " << operand_for_stmt(Statement) << "));";
+						output << "builder.ldreg(IROperand::const32((uint32_t)(" << offset << " + (" << register_stride << " * " << RegNum->GetFixedValue() << "))), " << operand_for_stmt(Statement) << ");\n";
+						output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), " << operand_for_stmt(Statement) << ");";
 						return true;
 					} else {
 						output << "{";
-						output << "IRRegId tmp = ctx.alloc_reg(4);";
+						output << "IRRegId tmp = builder.alloc_reg(4);";
 
-						output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*RegNum) << ", IROperand::vreg(tmp, 4)));";
-						output << "ctx.add_instruction(IRInstruction::imul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 4)));";
-						output << "ctx.add_instruction(IRInstruction::add(IROperand::const32(" << offset << "), IROperand::vreg(tmp, 4)));";
+						output << "builder.mov(" << operand_for_node(*RegNum) << ", IROperand::vreg(tmp, 4));";
+						output << "builder.imul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 4));";
+						output << "builder.add(IROperand::const32(" << offset << "), IROperand::vreg(tmp, 4));";
 
-						output << "ctx.add_instruction(IRInstruction::ldreg(IROperand::vreg(tmp, 4), " << operand_for_stmt(Statement) << "));";
+						output << "builder.ldreg(IROperand::vreg(tmp, 4), " << operand_for_stmt(Statement) << ");";
 
 						output <<
 						       "if(trace) {"
-						       "  ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*RegNum) << ", " << operand_for_stmt(Statement) << "));"
+						       "  builder.call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*RegNum) << ", " << operand_for_stmt(Statement) << ");"
 						       "}";
 
 						output << "}";
@@ -1343,23 +1342,23 @@ namespace gensim
 
 					if (Value->Statement.GetType().Size() > register_width) {
 						output << "{";
-						output << "IRRegId tmp = ctx.alloc_reg(" << register_width << ");";
-						output << "ctx.add_instruction(IRInstruction::trunc(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, " << register_width << ")));";
-						output << "ctx.add_instruction(IRInstruction::streg(IROperand::vreg(tmp, " << register_width << "), IROperand::const32(" << offset << ")));";
-						output << "if(trace) ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, " << register_width << ")));";
+						output << "IRRegId tmp = builder.alloc_reg(" << register_width << ");";
+						output << "builder.trunc(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, " << register_width << "));";
+						output << "builder.streg(IROperand::vreg(tmp, " << register_width << "), IROperand::const32(" << offset << "));";
+						output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, " << register_width << "));";
 						output << "}";
 					} else if (Value->Statement.GetType().Size() < register_width) {
 						assert(false);
 					} else {
-						output << "ctx.add_instruction(IRInstruction::streg(" << operand_for_node(*Value) << ", IROperand::const32(" << offset << ")));";
+						output << "builder.streg(" << operand_for_node(*Value) << ", IROperand::const32(" << offset << "));";
 
 						output << "if(trace) {";
 						if(register_width < 4) {
-							output << "  IRRegId tmp = ctx.alloc_reg(4);";
-							output << "  ctx.add_instruction(IRInstruction::zx(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4)));";
-							output << "  ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4)));";
+							output << "  IRRegId tmp = builder.alloc_reg(4);";
+							output << "  builder.zx(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4));";
+							output << "  builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
 						} else {
-							output << "  ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*Value) << "));";
+							output << "  builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*Value) << ");";
 						}
 						output << "}";
 
@@ -1374,16 +1373,16 @@ namespace gensim
 					uint32_t offset = reg.GetRegFileOffset();
 					uint32_t register_width = reg.GetWidth();
 
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << register_width << ");\n";
-					output << "ctx.add_instruction(IRInstruction::ldreg(IROperand::const32(" << offset << "), " << operand_for_stmt(Statement) << "));";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << register_width << ");\n";
+					output << "builder.ldreg(IROperand::const32(" << offset << "), " << operand_for_stmt(Statement) << ");";
 
 					output << "if(trace) {";
 					if(register_width < 4) {
-						output << "  IRRegId tmp = ctx.alloc_reg(4);";
-						output << "  ctx.add_instruction(IRInstruction::zx(IROperand::vreg(" << Statement.GetName() << ", " << register_width << "), IROperand::vreg(tmp, 4)));";
-						output << "  ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4)));";
+						output << "  IRRegId tmp = builder.alloc_reg(4);";
+						output << "  builder.zx(IROperand::vreg(" << Statement.GetName() << ", " << register_width << "), IROperand::vreg(tmp, 4));";
+						output << "  builder.call(IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
 					} else {
-						output << "  ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(" << Statement.GetName() << ", 4)));";
+						output << "  builder.call(IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(" << Statement.GetName() << ", 4));";
 					}
 
 					output << "}";
@@ -1437,7 +1436,7 @@ namespace gensim
 					const SSAReturnStatement &Statement = static_cast<const SSAReturnStatement &> (this->Statement);
 					if (fully_fixed) {
 						if (Statement.Value()) {
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*Factory.GetOrCreate(Statement.Value())) << ", IROperand::vreg(__result, 1)));";
+							output << "builder.mov(" << operand_for_node(*Factory.GetOrCreate(Statement.Value())) << ", IROperand::vreg(__result, 1));";
 						}
 						if (end_label != "")
 							output << "goto " << end_label << ";\n";
@@ -1454,7 +1453,7 @@ namespace gensim
 					const IRAction &action = *Statement.Parent->Parent->GetAction();
 					if (dynamic_cast<const IRHelperAction*> (&action)) {
 						if (Statement.Value()) {
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*Factory.GetOrCreate(Statement.Value())) << ", IROperand::vreg(__result, 1)));";
+							output << "builder.mov(" << operand_for_node(*Factory.GetOrCreate(Statement.Value())) << ", IROperand::vreg(__result, 1));";
 						}
 						if (!fully_fixed) {
 							assert(false);
@@ -1462,7 +1461,7 @@ namespace gensim
 						if (end_label != "")
 							output << "goto " << end_label << ";";
 					} else {
-						output << "ctx.add_instruction(IRInstruction::jump(IROperand::block(__exit_block)));";
+						output << "builder.jump(IROperand::block(__exit_block));";
 						if (end_label != "")
 							output << "goto " << end_label << ";";
 					}
@@ -1499,17 +1498,17 @@ namespace gensim
 					const SSANodeWalker *if_true = Factory.GetOrCreate(Statement.TrueVal());
 					const SSANodeWalker *if_false = Factory.GetOrCreate(Statement.FalseVal());
 
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
 
 					if (Statement.Cond()->IsFixed()) {
 						output << "if(" << cond->GetFixedValue() << ") {";
-						output << "  ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*if_true) << ", " << operand_for_stmt(Statement) << "));";
+						output << "  builder.mov(" << operand_for_node(*if_true) << ", " << operand_for_stmt(Statement) << ");";
 						output << "} else {";
-						output << "  ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*if_false) << ", " << operand_for_stmt(Statement) << "));";
+						output << "  builder.mov(" << operand_for_node(*if_false) << ", " << operand_for_stmt(Statement) << ");";
 						output << "}";
 					} else {
-						output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*if_false) << ", " << operand_for_stmt(Statement) << "));";
-						output << "ctx.add_instruction(IRInstruction::cmov(" << operand_for_node(*cond) << ", " << operand_for_node(*if_true) << ", " << operand_for_stmt(Statement) << "));";
+						output << "builder.mov(" << operand_for_node(*if_false) << ", " << operand_for_stmt(Statement) << ");";
+						output << "builder.cmov(" << operand_for_node(*cond) << ", " << operand_for_node(*if_true) << ", " << operand_for_stmt(Statement) << ");";
 					}
 
 					return true;
@@ -1541,7 +1540,7 @@ namespace gensim
 						else {
 							output << "{";
 							CreateBlock(output, "block_idx_" + target->GetName());
-							output << "ctx.add_instruction(IRInstruction::jump(IROperand::block(block)));";
+							output << "builder.jump(IROperand::block(block));";
 							output << "}";
 						}
 						output << "break;";
@@ -1555,7 +1554,7 @@ namespace gensim
 					else {
 						output << "{";
 						CreateBlock(output, "block_idx_" + target->GetName());
-						output << "ctx.add_instruction(IRInstruction::jump(IROperand::block(block)));";
+						output << "builder.jump(IROperand::block(block));";
 						output << "}";
 					}
 
@@ -1607,7 +1606,7 @@ namespace gensim
 				{
 					auto &stmt = (genc::ssa::SSAUnaryArithmeticStatement&)Statement;
 
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");\n";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
 
 					SSANodeWalker *ExprNode = Factory.GetOrCreate(stmt.Expr());
 
@@ -1615,28 +1614,28 @@ namespace gensim
 							using namespace gensim::genc::SSAUnaryOperator;
 						case OP_COMPLEMENT:
 							assert(!stmt.GetType().IsFloating());
-							//output << "IRRegId " << stmt.GetName() << " = ctx.alloc_reg(" << stmt.GetType().Size() << ");";
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*Factory.GetOrCreate(stmt.Expr())) << ", " << operand_for_stmt(stmt) << "));";
+							//output << "IRRegId " << stmt.GetName() << " = builder.alloc_reg(" << stmt.GetType().Size() << ");";
+							output << "builder.mov(" << operand_for_node(*Factory.GetOrCreate(stmt.Expr())) << ", " << operand_for_stmt(stmt) << ");";
 
 							switch (stmt.GetType().Size()) {
 								case 1:
-									output << "ctx.add_instruction(IRInstruction::bitwise_xor(IROperand::const8(0xff), " << operand_for_stmt(stmt) << "));";
+									output << "builder.bitwise_xor(IROperand::const8(0xff), " << operand_for_stmt(stmt) << ");";
 									break;
 								case 2:
-									output << "ctx.add_instruction(IRInstruction::bitwise_xor(IROperand::const16(0xffff), " << operand_for_stmt(stmt) << "));";
+									output << "builder.bitwise_xor(IROperand::const16(0xffff), " << operand_for_stmt(stmt) << ");";
 									break;
 								case 4:
-									output << "ctx.add_instruction(IRInstruction::bitwise_xor(IROperand::const32(0xffffffff), " << operand_for_stmt(stmt) << "));";
+									output << "builder.bitwise_xor(IROperand::const32(0xffffffff), " << operand_for_stmt(stmt) << ");";
 									break;
 								case 8:
-									output << "ctx.add_instruction(IRInstruction::bitwise_xor(IROperand::const64(0xffffffffffffffffull), " << operand_for_stmt(stmt) << "));";
+									output << "builder.bitwise_xor(IROperand::const64(0xffffffffffffffffull), " << operand_for_stmt(stmt) << ");";
 									break;
 								default:
 									assert(false);
 							}
 
 
-							//output << "ctx.add_instruction(IRInstruction::bitwise_not(" << operand_for_stmt(stmt) << "));";
+							//output << "builder.bitwise_not(" << operand_for_stmt(stmt) << "));";
 							break;
 
 						case OP_NEGATE:
@@ -1645,16 +1644,16 @@ namespace gensim
 							//output << "IRRegId " << stmt.GetName() << " = ctx.alloc_reg(" << stmt.GetType().Size() << ");";
 
 							if (stmt.GetType().Size() == 1) {
-								output << "ctx.add_instruction(IRInstruction::cmpeq(" << operand_for_node(*Factory.GetOrCreate(stmt.Expr())) << ", IROperand::const8(0), " << operand_for_stmt(stmt) << "));";
+								output << "builder.cmpeq(" << operand_for_node(*Factory.GetOrCreate(stmt.Expr())) << ", IROperand::const8(0), " << operand_for_stmt(stmt) << ");";
 							} else {
 								output << "{";
-								output << "IRRegId tmp = ctx.alloc_reg(1);";
+								output << "IRRegId tmp = builder.alloc_reg(1);";
 
 								// LHS RHS OUT
-								output << "ctx.add_instruction(IRInstruction::cmpeq(" << operand_for_node(*Factory.GetOrCreate(stmt.Expr())) << ", IROperand::const";
-								output << (uint32_t)(stmt.GetType().Size() * 8) << "(0), IROperand::vreg(tmp, 1)));";
+								output << "builder.cmpeq(" << operand_for_node(*Factory.GetOrCreate(stmt.Expr())) << ", IROperand::const";
+								output << (uint32_t)(stmt.GetType().Size() * 8) << "(0), IROperand::vreg(tmp, 1));";
 
-								output << "ctx.add_instruction(IRInstruction::zx(IROperand::vreg(tmp, 1), " << operand_for_stmt(stmt) << "));";
+								output << "builder.zx(IROperand::vreg(tmp, 1), " << operand_for_stmt(stmt) << ");";
 								output << "}";
 							}
 
@@ -1665,14 +1664,14 @@ namespace gensim
 							assert(stmt.GetType().IsFloating());
 
 							if(stmt.GetType().IsFloating()) {
-								output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*ExprNode) << ", " << operand_for_node(*this) << "));";
+								output << "builder.mov(" << operand_for_node(*ExprNode) << ", " << operand_for_node(*this) << ");";
 
 								switch(stmt.GetType().Size()) {
 									case 4:
-										output << "ctx.add_instruction(IRInstruction::bitwise_xor(IROperand::const32(0x80000000UL), " << operand_for_node(*this) << "));";
+										output << "builder.bitwise_xor(IROperand::const32(0x80000000UL), " << operand_for_node(*this) << ");";
 										break;
 									case 8:
-										output << "ctx.add_instruction(IRInstruction::bitwise_xor(IROperand::const64(0x8000000000000000ULL), " << operand_for_node(*this) << "));";
+										output << "builder.bitwise_xor(IROperand::const64(0x8000000000000000ULL), " << operand_for_node(*this) << ");";
 										break;
 								}
 							}
@@ -1739,10 +1738,10 @@ namespace gensim
 					output << "CV_" << Statement.Target()->GetName() << " = " << expr->GetFixedValue() << ";";
 
 					if (Statement.Parent->Parent->HasDynamicDominatedReads(&Statement)) {
-						output << "ctx.add_instruction(IRInstruction::mov(IROperand::const"
+						output << "builder.mov(IROperand::const"
 						       << (uint32_t)(Statement.Target()->GetType().Size() * 8)
 						       << "(CV_" << Statement.Target()->GetName() << "), "
-						       << operand_for_symbol(*Statement.Target()) << "));";
+						       << operand_for_symbol(*Statement.Target()) << ");";
 
 						//output << "lir.mov(*lir_variables[lir_idx_" << Statement.GetTarget()->GetName() << "], CV_" << Statement.GetTarget()->GetName() << ");";
 					}
@@ -1757,11 +1756,11 @@ namespace gensim
 					SSANodeWalker *value_node = Factory.GetOrCreate(Statement.Expr());
 
 					if (Statement.Target()->GetType().Size() > value_node->Statement.GetType().Size()) {
-						output << "ctx.add_instruction(IRInstruction::zx(" << operand_for_node(*value_node) << ", " << operand_for_symbol(*Statement.Target()) << "));";
+						output << "builder.zx(" << operand_for_node(*value_node) << ", " << operand_for_symbol(*Statement.Target()) << ");";
 					} else if (Statement.Target()->GetType().Size() < value_node->Statement.GetType().Size()) {
-						output << "ctx.add_instruction(IRInstruction::trunc(" << operand_for_node(*value_node) << ", " << operand_for_symbol(*Statement.Target()) << "));";
+						output << "builder.trunc(" << operand_for_node(*value_node) << ", " << operand_for_symbol(*Statement.Target()) << ");";
 					} else {
-						output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*value_node) << ", " << operand_for_symbol(*Statement.Target()) << "));";
+						output << "builder.mov(" << operand_for_node(*value_node) << ", " << operand_for_symbol(*Statement.Target()) << ");";
 					}
 
 					//output << "lir.mov(*lir_variables[lir_idx_" << Statement.GetTarget()->GetName() << "], " << maybe_deref(value_node) << ");";
@@ -1782,12 +1781,12 @@ namespace gensim
 					SSANodeWalker *arg0 = Factory.GetOrCreate(stmt->Device());
 					SSANodeWalker *arg1 = Factory.GetOrCreate(stmt->Address());
 
-					output << "ctx.add_instruction(IRInstruction::read_device("
+					output << "builder.read_device("
 					       << operand_for_node(*arg0)
 					       << ", "
 					       << operand_for_node(*arg1)
 					       << ", "
-					       << operand_for_symbol(*(stmt->Target())) << "));";
+					       << operand_for_symbol(*(stmt->Target())) << ");";
 
 					return true;
 				}
@@ -1821,17 +1820,17 @@ namespace gensim
 					assert(Statement.ArgCount() <= 5);
 
 					if (Statement.Target()->GetPrototype().GetIRSignature().GetName() == "flush") {
-						output << "ctx.add_instruction(IRInstruction::flush());\n";
+						output << "builder.flush();\n";
 					} else if (Statement.Target()->GetPrototype().GetIRSignature().GetName() == "flush_itlb") {
-						output << "ctx.add_instruction(IRInstruction::flush_itlb());\n";
+						output << "builder.flush_itlb();\n";
 					} else if (Statement.Target()->GetPrototype().GetIRSignature().GetName() == "flush_dtlb") {
-						output << "ctx.add_instruction(IRInstruction::flush_dtlb());\n";
+						output << "builder.flush_dtlb();\n";
 					} else if (Statement.Target()->GetPrototype().GetIRSignature().GetName() == "flush_itlb_entry") {
-						output << "ctx.add_instruction(IRInstruction::flush_itlb_entry(" << operand_for_node(*Factory.GetOrCreate(dynamic_cast<const SSAStatement*>(Statement.Arg(0)))) << "));\n";
+						output << "builder.flush_itlb_entry(" << operand_for_node(*Factory.GetOrCreate(dynamic_cast<const SSAStatement*>(Statement.Arg(0)))) << ");\n";
 					} else if (Statement.Target()->GetPrototype().GetIRSignature().GetName() == "flush_dtlb_entry") {
-						output << "ctx.add_instruction(IRInstruction::flush_dtlb_entry(" << operand_for_node(*Factory.GetOrCreate(dynamic_cast<const SSAStatement*>(Statement.Arg(0)))) << "));\n";
+						output << "builder.flush_dtlb_entry(" << operand_for_node(*Factory.GetOrCreate(dynamic_cast<const SSAStatement*>(Statement.Arg(0)))) << ");\n";
 					} else {
-						output << "ctx.add_instruction(IRInstruction::call";
+						output << "builder.call";
 						output << "(IROperand::func((void *)&helper_fn_" << Statement.Target()->GetPrototype().GetIRSignature().GetName() << ")";
 
 						for(int i = 0; i < Statement.ArgCount(); ++i) {
@@ -1840,7 +1839,7 @@ namespace gensim
 							output << ", " << operand_for_node(*argWalker);
 						}
 
-						output << "));\n";
+						output << ");\n";
 					}
 
 					return true;
@@ -1886,17 +1885,17 @@ namespace gensim
 
 					uint32_t base_size_bytes = Statement.Base()->GetType().Size();
 
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");";
 					output << "{";
-					output << "IRRegId temp = ctx.alloc_reg(" << base_size_bytes << ");";
-					output << "ctx.add_instruction(IRInstruction::mov(" << Factory.GetOrCreate(Statement.Base())->GetDynamicValue() << ", IROperand::vreg(temp, " << base_size_bytes <<  ")));";
+					output << "IRRegId temp = builder.alloc_reg(" << base_size_bytes << ");";
+					output << "builder.mov(" << Factory.GetOrCreate(Statement.Base())->GetDynamicValue() << ", IROperand::vreg(temp, " << base_size_bytes <<  "));";
 					if(Statement.Index()->IsFixed()) {
-						output << "ctx.add_instruction(IRInstruction::shr(IROperand::const" << (Statement.Index()->GetType().Size()*8) << "(8 * " << Factory.GetOrCreate(Statement.Index())->GetFixedValue() << " * " << Statement.GetType().Size() << "), IROperand::vreg(temp, " << base_size_bytes << ")));";
+						output << "builder.shr(IROperand::const" << (Statement.Index()->GetType().Size()*8) << "(8 * " << Factory.GetOrCreate(Statement.Index())->GetFixedValue() << " * " << Statement.GetType().Size() << "), IROperand::vreg(temp, " << base_size_bytes << "));";
 					} else {
 						assert(false);
 					}
-					output << "ctx.add_instruction(IRInstruction::bitwise_and(IROperand::const" << (base_size_bytes*8) << "(" << mask << "ull), IROperand::vreg(temp, " << base_size_bytes << ")));";
-					output << "ctx.add_instruction(IRInstruction::trunc(IROperand::vreg(temp, " << base_size_bytes << "), " << operand_for_stmt(Statement) << "));";
+					output << "builder.bitwise_and(IROperand::const" << (base_size_bytes*8) << "(" << mask << "ull), IROperand::vreg(temp, " << base_size_bytes << "));";
+					output << "builder.trunc(IROperand::vreg(temp, " << base_size_bytes << "), " << operand_for_stmt(Statement) << ");";
 					output << "}";
 					return true;
 				}
@@ -1942,7 +1941,7 @@ namespace gensim
 					auto ExprNode = Factory.GetOrCreate(Statement.Value());
 					auto BaseNode = Factory.GetOrCreate(Statement.Base());
 
-					output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().Size() << ");";
+					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");";
 					output << "{";
 					if(Statement.Index()->IsFixed()) {
 						output << "uint64_t mask = ~(" << mask << "ull << (8*" << IndexNode->GetFixedValue() << "*" << Statement.Value()->GetType().Size() << "));";
@@ -1951,18 +1950,18 @@ namespace gensim
 						assert(false);
 					}
 					uint32_t target_size = Statement.GetType().Size();
-					output << "IRRegId val  = ctx.alloc_reg(" << target_size << ");";
-					output << "IRRegId val2  = ctx.alloc_reg(" << target_size << ");";
-					output << "ctx.add_instruction(IRInstruction::mov(" << BaseNode->GetDynamicValue() << ", IROperand::vreg(val2, " << target_size << ")));";
-					output << "ctx.add_instruction(IRInstruction::bitwise_and(IROperand::const" << target_size*8 << "(mask), IROperand::vreg(val2, " << target_size << ")));";
+					output << "IRRegId val  = builder.alloc_reg(" << target_size << ");";
+					output << "IRRegId val2  = builder.alloc_reg(" << target_size << ");";
+					output << "builder.mov(" << BaseNode->GetDynamicValue() << ", IROperand::vreg(val2, " << target_size << "));";
+					output << "builder.bitwise_and(IROperand::const" << target_size*8 << "(mask), IROperand::vreg(val2, " << target_size << "));";
 
 					// shift new entry
-					output << "ctx.add_instruction(IRInstruction::zx(" << ExprNode->GetDynamicValue() << ", IROperand::vreg(val, " << target_size << ")));";
-					output << "ctx.add_instruction(IRInstruction::shl(IROperand::const" << target_size*8 << "(shift), IROperand::vreg(val, " << target_size << ")));";
+					output << "builder.zx(" << ExprNode->GetDynamicValue() << ", IROperand::vreg(val, " << target_size << "));";
+					output << "builder.shl(IROperand::const" << target_size*8 << "(shift), IROperand::vreg(val, " << target_size << "));";
 
 					// orr in new entry
-					output << "ctx.add_instruction(IRInstruction::bitwise_or(IROperand::vreg(val, " << target_size << "), IROperand::vreg(val2, " << target_size << ")));";
-					output << "ctx.add_instruction(IRInstruction::mov(IROperand::vreg(val2, " << target_size << "), " << operand_for_node(*this) << "));";
+					output << "builder.bitwise_or(IROperand::vreg(val, " << target_size << "), IROperand::vreg(val2, " << target_size << "));";
+					output << "builder.mov(IROperand::vreg(val2, " << target_size << "), " << operand_for_node(*this) << ");";
 
 					output << "}";
 
