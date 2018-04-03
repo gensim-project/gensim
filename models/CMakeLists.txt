@@ -64,3 +64,4 @@ endfunction()
 
 ADD_SUBDIRECTORY(armv7)
 ADD_SUBDIRECTORY(risc-v)
+ADD_SUBDIRECTORY(um)

@@ -137,7 +137,9 @@ namespace archsim
 			{
 				return _function_max_size;
 			}
-
+			
+			virtual bool CreateMemoryModel();
+			void SetMemoryModel(archsim::abi::memory::MemoryModel *model) { memory_model = model; }
 		private:
 			System *system;
 

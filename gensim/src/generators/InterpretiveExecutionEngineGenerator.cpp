@@ -158,14 +158,26 @@ namespace gensim
 			       "bool step_block_fast_thread();\n";
 
 			const arch::RegSlotViewDescriptor *pc_slot = Manager.GetArch().GetRegFile().GetTaggedRegSlot("PC");
-			const arch::RegSlotViewDescriptor *sp_slot = Manager.GetArch().GetRegFile().GetTaggedRegSlot("SP");
-
+			
+			const arch::RegSlotViewDescriptor *sp_slot = nullptr;
+			if(Manager.GetArch().GetRegFile().HasTaggedRegSlot("SP")) {
+				sp_slot = Manager.GetArch().GetRegFile().GetTaggedRegSlot("SP");
+			}
+			
 			stream <<
 			       "inline uint32_t read_pc() { return *(" << pc_slot->GetIRType().GetCType() << "*)(((uint8_t*)state.gensim_state) + " << pc_slot->GetRegFileOffset() << "); }\n"
-			       "inline void write_pc(uint32_t val) { *(" << pc_slot->GetIRType().GetCType() << "*)(((uint8_t*)state.gensim_state) + " << pc_slot->GetRegFileOffset() << ") = val; }\n"
-			       "inline uint32_t read_sp() { return *(" << sp_slot->GetIRType().GetCType() << "*)(((uint8_t*)state.gensim_state) + " << sp_slot->GetRegFileOffset() << "); }\n"
-			       "inline void write_sp(uint32_t val) { *(" << sp_slot->GetIRType().GetCType() << "*)(((uint8_t*)state.gensim_state) + " << sp_slot->GetRegFileOffset() << ") = val; }\n";
-
+			       "inline void write_pc(uint32_t val) { *(" << pc_slot->GetIRType().GetCType() << "*)(((uint8_t*)state.gensim_state) + " << pc_slot->GetRegFileOffset() << ") = val; }\n";
+				
+			if(sp_slot != nullptr) {
+				stream << 
+					"inline uint32_t read_sp() { return *(" << sp_slot->GetIRType().GetCType() << "*)(((uint8_t*)state.gensim_state) + " << sp_slot->GetRegFileOffset() << "); }\n"
+				   "inline void write_sp(uint32_t val) { *(" << sp_slot->GetIRType().GetCType() << "*)(((uint8_t*)state.gensim_state) + " << sp_slot->GetRegFileOffset() << ") = val; }\n";
+			} else {
+				stream << 
+					"uint32_t read_sp() { assert(false); }"
+					"void write_sp(uint32_t value) { assert(false); }";
+			}
+				   
 			stream <<
 			       "void software_interrupt(uint32_t category, uint32_t nr);"
 			       "void trace_status(std::stringstream &trace);";
@@ -420,7 +432,7 @@ namespace gensim
 						       "   execute_insn = true;"
 						       "}\n";
 					} else {
-						stream << "execute_insn = instruction_predicate(inst);\n";
+						stream << "execute_insn = " << isa->ISAName << "_instruction_predicate(inst);\n";
 					}
 				}
 

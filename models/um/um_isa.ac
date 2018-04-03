@@ -1,0 +1,86 @@
+AC_ISA(um) 
+{
+	ac_fetchsize 32;
+	
+	ac_format type_normal = "%op:4 %ignored:19 %A:3 %B:3 %C:3";
+	ac_format type_orth = "%op:4 %A:3 %value:25";
+	
+	ac_format type_hax = "%cond2:32";
+
+	// normal instructions
+	ac_instr<type_normal> cmov, aindex, aamend, add, mult, div, nand;
+	
+	// system call instructions
+	ac_instr<type_normal> halt, allocate, abandon, output, input, loadprogram;
+	
+	// orthography
+	ac_instr<type_orth> orthography;
+	
+	ac_behaviour cmov;
+	ac_behaviour aindex;
+	ac_behaviour aamend;
+	ac_behaviour add;
+	ac_behaviour mult;
+	ac_behaviour div;
+	ac_behaviour nand;
+	
+	ac_behaviour halt;
+	ac_behaviour allocate;
+	ac_behaviour abandon;
+	ac_behaviour output;
+	ac_behaviour input;
+	ac_behaviour loadprogram;
+	
+	ac_behaviour orthography;
+	
+	
+	ISA_CTOR(um) {
+		ac_behaviours ("behaviours.um");
+		ac_execute ("execute.um");
+		
+		cmov.set_decoder(op=0);
+		cmov.set_behaviour(cmov);
+		
+		aindex.set_decoder(op=1);
+		aindex.set_behaviour(aindex);
+		
+		aamend.set_decoder(op=2);
+		aamend.set_behaviour(aamend);
+		
+		add.set_decoder(op=3);
+		add.set_behaviour(add);
+		
+		mult.set_decoder(op=4);
+		mult.set_behaviour(mult);
+		
+		div.set_decoder(op=5);
+		div.set_behaviour(div);
+		
+		nand.set_decoder(op=6);
+		nand.set_behaviour(nand);
+		
+		halt.set_decoder(op=7);
+		halt.set_behaviour(halt);
+		
+		allocate.set_decoder(op=8);
+		allocate.set_behaviour(allocate);
+		
+		abandon.set_decoder(op=9);
+		abandon.set_behaviour(abandon);
+		
+		output.set_decoder(op=10);
+		output.set_behaviour(output);
+		
+		input.set_decoder(op=11);
+		input.set_behaviour(input);
+		
+		loadprogram.set_decoder(op=12);
+		loadprogram.set_behaviour(loadprogram);
+		loadprogram.set_end_of_block();
+		loadprogram.set_variable_jump();
+		
+		orthography.set_decoder(op=13);
+		orthography.set_behaviour(orthography);
+		
+	};
+};

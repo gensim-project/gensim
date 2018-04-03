@@ -34,21 +34,30 @@ EmulationModel::~EmulationModel()
 {
 }
 
+bool EmulationModel::CreateMemoryModel()
+{
+	archsim::abi::memory::MemoryModel *mem_model;
+	
+	if (!GetComponentInstance(archsim::options::MemoryModel, mem_model)) {
+		LC_ERROR(LogSystem) << "Unable to create memory model '" << archsim::options::MemoryModel.GetValue() << "'";
+		return false;
+	}
+
+	SetMemoryModel(mem_model);
+}
+
 bool EmulationModel::Initialise(System& system, uarch::uArch& uarch)
 {
 	this->system = &system;
 	this->uarch = &uarch;
 
-	if (!GetComponentInstance(archsim::options::MemoryModel, memory_model)) {
-		LC_ERROR(LogSystem) << "Unable to create memory model '" << archsim::options::MemoryModel.GetValue() << "'";
+	if(!CreateMemoryModel()) {
 		return false;
 	}
-
 	if (!memory_model->Initialise()) {
 		LC_ERROR(LogSystem) << "Unable to initialise memory model '" << archsim::options::MemoryModel.GetValue() << "'";
 		return false;
 	}
-
 	return true;
 }
 
