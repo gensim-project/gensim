@@ -9,7 +9,7 @@ execute(cmov) {
 
 execute(aindex) {
 	uint32 array = read_register_bank(RB, inst.B);
-	uint32 index = read_register_bank(RB, inst.C) * 4;
+	uint32 index = read_register_bank(RB, inst.C) << 2;
 		
 	uint32 value;
 	mem_read_32(array + index, value);
@@ -19,7 +19,7 @@ execute(aindex) {
 
 execute(aamend) {
 	uint32 array = read_register_bank(RB, inst.A);
-	uint32 index = read_register_bank(RB, inst.B) * 4;
+	uint32 index = read_register_bank(RB, inst.B) << 2;
 	
 	uint32 value = read_register_bank(RB, inst.C);
 	

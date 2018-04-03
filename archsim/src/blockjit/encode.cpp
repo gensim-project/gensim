@@ -133,6 +133,15 @@ void X86Encoder::cltd()
 	emit8(0x99);
 }
 
+void X86Encoder::byteswap(const X86Register &reg)
+{
+	if(reg.hireg) {
+		emit8(0x40);
+	}
+	emit8(0x0f);
+	emit8(0xc8 + reg.raw_index);
+}
+
 void X86Encoder::push(const X86Register& reg)
 {
 	if (reg.size == 2 || reg.size == 8) {

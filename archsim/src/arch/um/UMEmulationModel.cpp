@@ -13,7 +13,7 @@
 #include "gensim/gensim_decode.h"
 #include "abi/memory/MemoryModel.h"
 
-#include <map>
+#include <unordered_map>
 #include <set>
 
 using namespace archsim::abi;
@@ -30,7 +30,10 @@ class UMMemoryModel : public archsim::abi::memory::ContiguousMemoryModel {
 		data = (data & 0xff) << 24 | ((data >> 8) & 0xff) << 16 | ((data >> 16) & 0xff) << 8 | ((data >> 24) & 0xff);
 		return ContiguousMemoryModel::Write32(addr, data);
 	}
-
+	
+	uint32_t Fetch32(archsim::abi::memory::guest_addr_t addr, uint32_t& data) override {
+		return Read32(addr, data);
+	}
 
 };
 
@@ -38,29 +41,94 @@ class UMDecodeContext : public gensim::DecodeContext {
 public:
 	UMDecodeContext(gensim::Processor *cpu) : gensim::DecodeContext(cpu) {}
 	virtual uint32_t DecodeSync(archsim::Address address, uint32_t mode, gensim::BaseDecode& target) { 
-		// convert big to small endian :-)
-		uint8_t data[4];
-		
-		GetCPU()->GetMemoryModel().Read8(address.Get(), data[3]);
-		GetCPU()->GetMemoryModel().Read8(address.Get()+1, data[2]);
-		GetCPU()->GetMemoryModel().Read8(address.Get()+2, data[1]);
-		GetCPU()->GetMemoryModel().Read8(address.Get()+3, data[0]);
-		
-		GetCPU()->DecodeInstrIr(*(uint32_t*)&data, mode, target); 
-		return 0;
+		return GetCPU()->DecodeInstr(address.Get(), mode, target);
 	}
 };
+
+typedef struct {
+	uint32_t start, size;
+} free_area_t;
 
 class UMEmulationModel : public archsim::abi::UserEmulationModel {
 public:
 	UMEmulationModel() : UserEmulationModel("um") {}
 	virtual ~UMEmulationModel() {}
 
+	uint32_t Allocate(uint32_t size_bytes) {
+		
+		if(size_bytes > max_allocation_bytes_block_) {
+			size_bytes = max_allocation_bytes_block_;
+		}
+		
+		// Make extra space for the metadata (allocation size)
+		size_bytes += 4;
+
+		LC_DEBUG1(LogCPU) << "Getting allocation for size " << size_bytes;
+		
+		uint32_t allocation;
+		bool found = false;
+		// Look through the current free areas
+		for(auto it = free_areas_.begin(); it != free_areas_.end(); ++it) {
+			auto &i = *it;
+			
+			// Is this free area big enough for our new allocation?
+			if(i.size >= size_bytes) {
+				
+				// Allocate into this free area
+				allocation = i.start;
+				i.start += size_bytes;
+				i.size -= size_bytes;
+				
+				LC_DEBUG1(LogCPU) << "Found a free area at " << std::hex << i.start;
+				
+				// The free area might now be empty (0 bytes). If so, delete it
+				if(i.size == 0) {
+					free_areas_.erase(it);
+					LC_DEBUG1(LogCPU) << "The allocation is now empty";
+				}
+				
+				found = true;
+				break;
+			}	
+		}
+		
+		// If we couldn't find a free area, create a new one on the end of known memory
+		if(!found) {
+			LC_DEBUG1(LogCPU) << "No free areas found, creating a new allocation at " << std::hex << next_allocation_;
+			allocation = next_allocation_;
+			next_allocation_ += size_bytes;
+		}
+		
+		// Write the metadata (allocation size) to the start of the allocation
+		GetMemoryModel().Write32(allocation, size_bytes);
+		allocation += 4;
+		
+		return allocation;
+	}
+	
+	void Abandon(uint32_t allocation)
+	{
+		uint32_t size;
+		
+		// Look for the metadata at the start of the allocation and read it in
+		GetMemoryModel().Read32(allocation-4, size);
+		
+		// Then create a new free area representing this abandonment
+		free_areas_.push_back({allocation-4, size});
+		
+		// Merge free areas together if possible
+		MergeFreeAreas();
+	}
+	
+	void MergeFreeAreas() {
+		// nothing for now
+	}
+	
 	virtual ExceptionAction HandleException(gensim::Processor& cpu, unsigned int category, unsigned int data) {
 		uint8_t A = data & 0xff;
 		uint8_t B = (data >> 8) & 0xff;
 		uint8_t C = (data >> 16) & 0xff;
-		uint32_t *RB = (uint32_t*)GetBootCore()->GetRegisterBankDescriptor(0).GetBankDataStart();
+		uint32_t *RB = RB_ptr_;
 		
 		switch(category) {
 			case 0: // halt
@@ -73,44 +141,13 @@ public:
 				uint32_t size = RB[C];
 				uint32_t size_bytes = size * 4;
 				
-				if(size_bytes > max_allocation_bytes_block_) {
-					size_bytes = max_allocation_bytes_block_;
-				}
-				
-				uint32_t pages = archsim::RegionArch::PageCountOf(size_bytes);
-				
-				uint32_t allocation;
-				
-				LC_DEBUG4(LogCPU) << "Allocating " << pages << " pages for " << size_bytes;
-				
-				if(free_allocations_[pages].size()) {
-					allocation = free_allocations_[pages].back();
-					free_allocations_[pages].pop_back();
-					
-					LC_DEBUG4(LogCPU) << "Found a previous allocation at " <<std::hex << allocation;
-				} else {
-					allocation = next_allocation_;
-					next_allocation_ += pages * archsim::RegionArch::PageSize;
-					LC_DEBUG4(LogCPU) << "Created a new allocation at " << std::hex << allocation;
-				}
-				
-				allocations_[allocation] = size_bytes;
-				
-				host_addr_t address;
-				GetMemoryModel().LockRegion(allocation, pages * archsim::RegionArch::PageSize, address);
-				bzero(address, pages * archsim::RegionArch::PageSize);
-				
-				RB[B] = allocation;
+				RB[B] = Allocate(size_bytes);
 				break;
 			}	
 			case 2: // abandon
 			{
 				uint32_t allocation = RB[C];
-				uint32_t size = allocations_.at(allocation);
-			
-				allocations_.erase(allocation);
-				free_allocations_[archsim::RegionArch::PageCountOf(size)].push_back(allocation);
-				
+				Abandon(allocation);
 				break;
 			}
 			case 3: // output
@@ -126,11 +163,10 @@ public:
 			case 5: // loadprogram
 			{
 				if(RB[B] != 0) {
-					uint32_t size_bytes = allocations_.at(RB[B]) * 1024;
-					uint32_t size_pages = archsim::RegionArch::PageCountOf(size_bytes) * archsim::RegionArch::PageSize;
-
-					GetMemoryModel().GetMappingManager()->UnmapRegion(0, allocations_.at(0));
-					GetMemoryModel().GetMappingManager()->MapRegion(0, size_pages, archsim::abi::memory::RegFlagReadWriteExecute, "Program");
+					uint32_t size_bytes;
+					
+					// Load the size of the array that we're switching to
+					GetMemoryModel().Read32(RB[B]-4, size_bytes);
 					
 					host_addr_t src, dest;
 					GetMemoryModel().LockRegion(RB[B], size_bytes, src);
@@ -148,56 +184,6 @@ public:
 				
 				break;
 			}	
-			
-			case 6: // self modifying code detected
-			{
-				uint32_t &EP = *(uint32_t*)GetBootCore()->GetRegisterDescriptor("EP").DataStart;
-				
-				uint32_t size_bytes = allocations_.at(EP) * 4096;
-				uint32_t size_pages = archsim::RegionArch::PageCountOf(size_bytes) * archsim::RegionArch::PageSize;
-
-				GetMemoryModel().GetMappingManager()->UnmapRegion(0, allocations_.at(0));
-				GetMemoryModel().GetMappingManager()->MapRegion(0, size_pages, archsim::abi::memory::RegFlagReadWriteExecute, "Program");
-
-				host_addr_t src, dest;
-				GetMemoryModel().LockRegion(EP, size_bytes, src);
-				GetMemoryModel().LockRegion(0,  size_bytes, dest);
-
-				memcpy(dest, src, size_bytes);
-				
-				GetSystem().GetProfileManager().Invalidate();
-				GetSystem().GetPubSub().Publish(PubSubType::FlushTranslations, (void*)0);
-				break;
-			}
-			case 7: // execution platter modified (copy on write)
-			{
-				// memcpy the current EP to array 0
-				uint32_t &EP = *(uint32_t*)GetBootCore()->GetRegisterDescriptor("EP").DataStart;
-				
-				uint32_t size_bytes = allocations_.at(EP) * 4096;
-				uint32_t size_pages = archsim::RegionArch::PageCountOf(size_bytes) * archsim::RegionArch::PageSize;
-
-				GetMemoryModel().GetMappingManager()->UnmapRegion(0, allocations_.at(0));
-				GetMemoryModel().GetMappingManager()->MapRegion(0, size_pages, archsim::abi::memory::RegFlagReadWriteExecute, "Program");
-
-				host_addr_t src, dest;
-				GetMemoryModel().LockRegion(EP, size_bytes, src);
-				GetMemoryModel().LockRegion(0,  size_bytes, dest);
-
-				memcpy(dest, src, size_bytes);
-				
-				// update the EF and current EP
-				uint32_t &EF = *(uint32_t*)GetBootCore()->GetRegisterDescriptor("EF").DataStart;
-				EF -= EP;
-				EP = 0;
-				
-				GetSystem().GetProfileManager().Invalidate();
-				GetSystem().GetPubSub().Publish(PubSubType::FlushTranslations, (void*)0);
-				
-				// retry the instruction
-				
-				return AbortInstruction;
-			}
 			
 			default:
 				LC_ERROR(LogCPU) << "Unrecognized syscall " << std::dec << category;
@@ -223,14 +209,14 @@ public:
 			bytes.push_back(c);
 		}
 		
-		allocations_[0] = bytes.size();
-		
 		GetMemoryModel().GetMappingManager()->MapRegion(0, max_allocation_bytes_block_, archsim::abi::memory::RegFlagReadWriteExecute, "Program");
 		GetMemoryModel().WriteN(0, bytes.data(), bytes.size());
+		zero_allocation_size_ = bytes.size();
 		
 		GetMemoryModel().GetMappingManager()->MapRegion(0x80000000, 0x80000000, archsim::abi::memory::RegFlagReadWrite, "Data");
 		
 		GetBootCore()->write_pc(0);
+		RB_ptr_ = (uint32_t*)GetBootCore()->GetRegisterBankDescriptor("RB").GetBankDataStart();
 		next_allocation_ = 0x80000000;
 		
 		serial_port_ = new archsim::abi::devices::ConsoleSerialPort();
@@ -240,10 +226,10 @@ public:
 	}
 
 private:
-	std::map<uint32_t, uint32_t> allocations_;
+	uint32_t zero_allocation_size_;
+	uint32_t *RB_ptr_;
 	
-	// Map of region size (in pages) to free allocations
-	std::map<uint32_t, std::vector<uint32_t>> free_allocations_;
+	std::vector<free_area_t> free_areas_;
 	uint32_t next_allocation_;
 	
 	const uint32_t max_allocation_bytes_block_ = 128 * 1024 * 1024;
