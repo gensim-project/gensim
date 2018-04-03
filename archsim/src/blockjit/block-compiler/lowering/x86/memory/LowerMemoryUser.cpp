@@ -64,10 +64,9 @@ bool LowerReadMemUser::Lower(const captive::shared::IRInstruction*& insn)
 		} else {
 			return false;
 		}
-
-
 	}
 
+	Encoder().byteswap(dest_reg);
 
 	insn++;
 	return true;
@@ -81,6 +80,8 @@ bool LowerWriteMemUser::Lower(const captive::shared::IRInstruction*& insn)
 
 	assert(disp->is_constant());
 
+	Encoder().byteswap(GetCompiler().register_from_operand(value));
+	
 	if(disp->value != 0) {
 		if(offset->is_alloc_reg()) {
 			Encoder().lea(X86Memory::get(GetCompiler().register_from_operand(offset, 4), disp->value), BLKJIT_ARG1(4));

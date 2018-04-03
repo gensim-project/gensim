@@ -130,6 +130,8 @@ namespace captive
 				void call(const X86Register& reg);
 				void call(const X86Memory& mem);
 
+				void byteswap(const X86Register &reg);
+				
 				void push(const X86Register& reg);
 				void pop(const X86Register& reg);
 
