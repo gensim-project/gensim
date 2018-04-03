@@ -1,0 +1,22 @@
+AC_ARCH(um)
+{
+	ac_regspace(32) {
+		bank RB (uint32, 0, 8, 4, 1, 4, 4);
+	}
+	
+	ac_regspace(4) {
+		slot EF(uint32, 4, 0) PC;
+	}
+	
+	ac_regspace(4) {
+		slot EP(uint32, 4, 0);
+	}
+
+	ac_wordsize 32;
+
+	ARCH_CTOR(um) {
+		ac_isa("um_isa.ac");
+		set_endian("big");
+		
+	};
+};

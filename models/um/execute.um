@@ -1,0 +1,106 @@
+
+execute(cmov) {
+	uint32 pred = read_register_bank(RB, inst.C);
+	if(pred) {
+		uint32 value = read_register_bank(RB, inst.B);
+		write_register_bank(RB, inst.A, value);
+	}
+}
+
+execute(aindex) {
+	uint32 array = read_register_bank(RB, inst.B);
+	uint32 index = read_register_bank(RB, inst.C) * 4;
+		
+	uint32 value;
+	mem_read_32(array + index, value);
+	
+	write_register_bank(RB, inst.A, value);
+}
+
+execute(aamend) {
+	uint32 array = read_register_bank(RB, inst.A);
+	uint32 index = read_register_bank(RB, inst.B) * 4;
+	
+	uint32 value = read_register_bank(RB, inst.C);
+	
+	mem_write_32(array + index, value);
+}
+
+execute(add) {
+	uint32 B = read_register_bank(RB, inst.B);
+	uint32 C = read_register_bank(RB, inst.C);
+	write_register_bank(RB, inst.A, B + C);
+}
+
+execute(mult) {
+	uint32 B = read_register_bank(RB, inst.B);
+	uint32 C = read_register_bank(RB, inst.C);
+	write_register_bank(RB, inst.A, B * C);
+}
+
+execute(div) {
+	uint32 B = read_register_bank(RB, inst.B);
+	uint32 C = read_register_bank(RB, inst.C);
+	write_register_bank(RB, inst.A, B / C);
+}
+
+execute(nand) {
+	uint32 B = read_register_bank(RB, inst.B);
+	uint32 C = read_register_bank(RB, inst.C);
+	write_register_bank(RB, inst.A, ~(B & C));
+}
+
+helper void make_syscall(uint32 syscall_id, uint8 A, uint8 B, uint8 C) {
+	uint32 packet = A | (B << 8) | (C << 16);
+	take_exception(syscall_id, packet);
+	
+	return;
+}
+
+execute(halt) {
+	make_syscall(0, inst.A, inst.B, inst.C);
+}
+
+execute(allocate) {
+	make_syscall(1, inst.A, inst.B, inst.C);
+}
+
+execute(abandon) {
+	make_syscall(2, inst.A, inst.B, inst.C);
+}
+
+execute(output) {
+	make_syscall(3, inst.A, inst.B, inst.C);
+}
+
+execute(input) {
+	make_syscall(4, inst.A, inst.B, inst.C);
+}
+
+execute(loadprogram) {
+	make_syscall(5, inst.A, inst.B, inst.C);
+
+//	uint32 new_segment = read_register_bank(RB, inst.B);
+//	uint32 final_address = read_register_bank(RB, inst.C) * 4;
+	
+	// If we branch to within the 0 segment, we need to add on the current execution platter
+	// otherwise, update the execution platter
+//	if(new_segment == 0) {
+//		final_address += read_register(EP);
+//	} else {
+//		write_register(EP, new_segment);
+//		final_address += new_segment;
+//	}
+	
+//	write_register(EF, final_address);
+}
+
+execute(orthography) {
+	write_register_bank(RB, inst.A, inst.value);
+}
+
+
+internal helper uint8 instruction_predicate(Instruction inst)
+{
+	return 1;
+}

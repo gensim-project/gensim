@@ -1,0 +1,12 @@
+
+behaviour(get_status_string) {
+
+}
+
+behaviour(instruction_predicate) {
+	return true;
+}
+
+behaviour(fetch_exception) {
+	
+}

@@ -56,6 +56,16 @@ namespace archsim
 					}
 					code_regions.reset(region_base.GetPageIndex());
 				}
+				void InvalidateRegion(PhysicalAddress region_base, size_t region_size)
+				{
+					uint64_t address = region_base.Get();
+					uint64_t end = address + region_size;
+					
+					while(address <= end) {
+						InvalidateRegion(PhysicalAddress(address));
+						address += RegionArch::PageSize;
+					}
+				}
 				void Invalidate()
 				{
 					for(uint32_t i = 0; i < RegionArch::PageCount; ++i) InvalidateRegion(PhysicalAddress(i << RegionArch::PageBits));

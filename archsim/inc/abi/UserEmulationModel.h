@@ -52,7 +52,7 @@ namespace archsim
 			void ResetCores();
 			void HaltCores();
 
-			bool PrepareBoot(System& system);
+			virtual bool PrepareBoot(System& system);
 
 			bool EmulateSyscall(SyscallRequest& request, SyscallResponse& response);
 

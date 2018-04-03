@@ -236,7 +236,7 @@ IRRegisterBankWriteExpression::~IRRegisterBankWriteExpression()
 bool IRRegisterBankWriteExpression::Resolve(GenCContext &Context)
 {
 	if(Args.size() != 3) {
-		Context.Diag().Error("Register bank reads must have three arguments", Diag());
+		Context.Diag().Error("Register bank writes must have three arguments", Diag());
 		return false;
 	}
 

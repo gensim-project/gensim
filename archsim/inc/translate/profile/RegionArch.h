@@ -46,6 +46,14 @@ namespace archsim
 				{
 					return PageOffsetOf(addr) == 0;
 				}
+				
+				static unsigned int PageCountOf(size_t bytes) __attribute__((pure))
+				{
+					uint32_t pages = (bytes + PageSize-1) / PageSize;
+					assert(pages * PageSize >= bytes);
+					
+					return pages;
+				}
 			};
 
 		}
