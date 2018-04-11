@@ -320,6 +320,13 @@ namespace gensim
 							return EmitVectorOp(output, "sub");
 						case BinaryOperator::Multiply:
 							return EmitVectorOp(output, "mul");
+							
+						case BinaryOperator::Bitwise_Or:
+						case BinaryOperator::Bitwise_And:
+						case BinaryOperator::Equality:
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");\n";
+							output << "assert(false);";
+							break;
 						default:
 							assert(false && "Unimplemented vector operator!");
 							UNEXPECTED;
@@ -681,8 +688,14 @@ namespace gensim
 					SSANodeWalker *expr = Factory.GetOrCreate(Statement.Expr());
 
 					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");";
-
+					
 					if(Statement.GetCastType() != SSACastStatement::Cast_Reinterpret) {
+						if(Statement.GetType() == Statement.Expr()->GetType()) {
+							// actually just a mov
+							output << "builder.mov(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << ");";
+							return true;
+						}
+						
 						if(Statement.GetType().IsFloating() || Statement.Expr()->GetType().IsFloating()) {
 							return EmitFloatCastCode(output, end_label, fully_fixed);
 						}
@@ -1026,7 +1039,7 @@ namespace gensim
 							std::cerr << s.str() << std::endl;
 
 							if(Statement.HasValue()) output << "IRRegId " << Statement.GetName() << ";";
-							output << "assert(false && \"Unimplemented intrinsic\\n\");";
+							output << "assert(false && \"Unimplemented intrinsic " << s.str() << "\\n\");";
 							break;
 //						assert(false && "Unimplemented intrinsic");
 					}

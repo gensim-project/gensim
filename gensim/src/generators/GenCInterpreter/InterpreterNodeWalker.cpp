@@ -328,6 +328,18 @@ namespace gensim
 				const SSAIntrinsicStatement &stmt = (const SSAIntrinsicStatement &) (Statement);
 
 				switch (stmt.Type) {
+					case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
+						output << "assert(false);";
+						break;
+					case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
+						output << "assert(false);";
+						break;
+					case SSAIntrinsicStatement::SSAIntrinsic_WritePc:
+						output << "assert(false);";
+						break;
+					
 					case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = __builtin_clz(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;

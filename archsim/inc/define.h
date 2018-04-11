@@ -29,6 +29,7 @@
 #define CONFIG_NO_MEMORY_EVENTS
 #define INSTRUCTION_WORD_TYPE uint32_t
 
+#define UNIMPLEMENTED do { throw std::logic_error("Not implemented"); } while(0)
 
 // Prompts for gcc's block placement algorithms
 #define LIKELY(x) __builtin_expect((x), 1)
