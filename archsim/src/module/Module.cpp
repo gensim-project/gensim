@@ -37,6 +37,18 @@ namespace archsim
 			}
 			return nullptr;
 		}
+		
+		template<> const archsim::module::ModuleExecutionEngineEntry *archsim::module::ModuleInfo::GetEntry<archsim::module::ModuleExecutionEngineEntry>(const std::string& entryname) const
+		{
+			auto generic_entry = GetGenericEntry(entryname);
+			if(generic_entry)
+			{
+				if(generic_entry->GetType() == archsim::module::ModuleEntry::ModuleEntry_ExecutionEngine) {
+					return ((archsim::module::ModuleExecutionEngineEntry*)generic_entry);
+				}
+			}
+			return nullptr;
+		}
 
 		const std::string& ModuleInfo::GetName() const
 		{
@@ -49,43 +61,12 @@ namespace archsim
 		}
 
 
-		gensim::Processor* ModuleProcessorEntry::Get(const std::string &name, int id, archsim::util::PubSubContext* pubsub) const
-		{
-			return factory_(name, id, pubsub);
-		}
-
-		archsim::abi::devices::MemoryComponent* ModuleDeviceEntry::Get(archsim::abi::EmulationModel &emu_model, archsim::Address address) const
-		{
-			return factory_(emu_model, address);
-		}
-
-		archsim::abi::devices::Component* ModuleComponentEntry::Get(archsim::abi::EmulationModel& model) const
-		{
-			return factory_(model);
-		}
-
 
 		ModuleEntry::ModuleEntry(const std::string& name, ModuleEntryType type) : name_(name), type_(type)
 		{
 
 		}
-
-		ModuleComponentEntry::ModuleComponentEntry(const std::string& name, component_factory_t factory) : ModuleEntry(name, ModuleEntry_Component), factory_(factory)
-		{
-
-		}
-
-
-		ModuleDeviceEntry::ModuleDeviceEntry(const std::string& name, memory_component_factory_t factory) : ModuleEntry(name, ModuleEntry_Device), factory_(factory)
-		{
-
-		}
-
-		ModuleProcessorEntry::ModuleProcessorEntry(const std::string& name, processor_factory_t factory) : ModuleEntry(name, ModuleEntry_Processor), factory_(factory)
-		{
-
-		}
-
+		
 		const std::string& ModuleEntry::GetName() const
 		{
 			return name_;
@@ -125,11 +106,12 @@ namespace archsim
 		template<> const ModuleProcessorEntry *ModuleInfo::GetEntry<>(const std::string &entryname) const
 		{
 			const ModuleEntry *generic_entry = GetGenericEntry(entryname);
-			if(generic_entry->GetType() == ModuleEntry::ModuleEntry_Processor) {
-				return (const ModuleProcessorEntry*)generic_entry;
-			} else {
-				return nullptr;
+			if(generic_entry) {
+				if(generic_entry->GetType() == ModuleEntry::ModuleEntry_Processor) {
+					return (const ModuleProcessorEntry*)generic_entry;
+				} 
 			}
+			return nullptr;
 		}
 
 	}
