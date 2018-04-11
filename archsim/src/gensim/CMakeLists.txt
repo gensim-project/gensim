@@ -10,4 +10,5 @@ archsim_add_sources(
 	StateBlock.cpp
 	ThreadInstance.cpp
 	ExecutionEngine.cpp
+	ExecutionContextManager.cpp
 )

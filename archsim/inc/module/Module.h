@@ -16,7 +16,7 @@
 
 #include "abi/Address.h"
 #include "abi/devices/Component.h"
-//#include "gensim/ExecutionEngine.h"
+#include "gensim/ExecutionEngine.h"
 #include "util/PubSubSync.h"
 #include <functional>
 #include <string>
@@ -33,17 +33,15 @@ namespace archsim
 
 		class ModuleManager;
 
-		typedef std::function<abi::devices::MemoryComponent *(archsim::abi::EmulationModel &, archsim::Address)> memory_component_factory_t;
-		typedef std::function<abi::devices::Component *(archsim::abi::EmulationModel &)> component_factory_t;
-		typedef std::function<::gensim::Processor *(const std::string &, int, archsim::util::PubSubContext*)> processor_factory_t;
-
 		class ModuleEntry
 		{
 		public:
 			enum ModuleEntryType {
 				ModuleEntry_Component,
 				ModuleEntry_Device,
-				ModuleEntry_Processor
+				ModuleEntry_Processor,
+				ModuleEntry_ExecutionEngine,
+				ModuleEntry_ArchDescriptor,
 			};
 
 			ModuleEntry(const std::string &name, ModuleEntryType type);
@@ -55,36 +53,35 @@ namespace archsim
 			const std::string name_;
 		};
 
-		class ModuleComponentEntry : public ModuleEntry
-		{
+		template<typename T> struct ModuleEntryTypeForClass {};
+		template<> struct ModuleEntryTypeForClass<abi::devices::Component*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Component; };
+		template<> struct ModuleEntryTypeForClass<abi::devices::MemoryComponent*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Device; };
+		template<> struct ModuleEntryTypeForClass<gensim::Processor*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Processor; };
+		template<> struct ModuleEntryTypeForClass<archsim::ExecutionEngine*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ExecutionEngine; };
+		template<> struct ModuleEntryTypeForClass<archsim::ArchDescriptor*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ArchDescriptor; };
+		
+		template<ModuleEntry::ModuleEntryType> struct FactoryForModuleEntry {};
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Component> { using factory_t = std::function<abi::devices::Component*(archsim::abi::EmulationModel&)>; };
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Device> { using factory_t = std::function<abi::devices::MemoryComponent*(archsim::abi::EmulationModel& model, archsim::Address base_address)>; };
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Processor> { using factory_t = std::function<gensim::Processor*(const std::string &name, int _core_id, archsim::util::PubSubContext* pubsub)>; };
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ExecutionEngine> { using factory_t = std::function<archsim::ExecutionEngine*()>; };
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ArchDescriptor> { using factory_t = std::function<archsim::ArchDescriptor*()>; };
+		
+		template<typename T> class TypedModuleEntry : public ModuleEntry {
 		public:
-			ModuleComponentEntry(const std::string &name, component_factory_t factory);
-			abi::devices::Component *Get(archsim::abi::EmulationModel &) const;
-
-		private:
-			component_factory_t factory_;
+			static const ModuleEntry::ModuleEntryType kEntry = ModuleEntryTypeForClass<T>::entry;
+			using factory_t = typename FactoryForModuleEntry<kEntry>::factory_t;
+			
+			TypedModuleEntry(const std::string &name, factory_t factory) : ModuleEntry(name, kEntry), Get(factory) { }
+			const factory_t Get;
 		};
-
-		class ModuleDeviceEntry : public ModuleEntry
-		{
-		public:
-			ModuleDeviceEntry(const std::string &name, memory_component_factory_t factory);
-			abi::devices::MemoryComponent *Get(archsim::abi::EmulationModel &, archsim::Address) const;
-
-		private:
-			memory_component_factory_t factory_;
-		};
-
-		class ModuleProcessorEntry : public ModuleEntry
-		{
-		public:
-			ModuleProcessorEntry(const std::string &name, processor_factory_t factory);
-			gensim::Processor *Get(const std::string &, int, archsim::util::PubSubContext*) const;
-
-		private:
-			processor_factory_t factory_;
-		};
-
+		
+		using ModuleComponentEntry = TypedModuleEntry<abi::devices::Component*>;
+		using ModuleDeviceEntry = TypedModuleEntry<abi::devices::MemoryComponent*>;
+		using ModuleProcessorEntry = TypedModuleEntry<gensim::Processor*>;
+		using ModuleExecutionEngineEntry = TypedModuleEntry<archsim::ExecutionEngine*>;
+		using ModuleArchDescriptorEntry = TypedModuleEntry<archsim::ArchDescriptor*>;
+		
 		class ModuleInfo
 		{
 		public:
@@ -118,6 +115,8 @@ namespace archsim
 #define ARCHSIM_DEVICEFACTORY(x) [](archsim::abi::EmulationModel& model, archsim::Address base_address) { static_assert(std::is_base_of<archsim::abi::devices::MemoryComponent,x>::value, "Component must be a MemoryComponent"); return new x(model, base_address); }
 #define ARCHSIM_COMPONENTFACTORY(x) [](archsim::abi::EmulationModel& model) { static_assert(std::is_base_of<archsim::abi::devices::Component,x>::value, "Component must be a Component"); return new x(model); }
 #define ARCHSIM_PROCESSORFACTORY(x) [](const std::string &name, int _core_id, archsim::util::PubSubContext* pubsub) { static_assert(std::is_base_of<gensim::Processor,x>::value, "Component must be a Processor"); return new x(name, _core_id, pubsub); }
+#define ARCHSIM_EEFACTORY(x) []() { static_assert(std::is_base_of<archsim::ExecutionEngine,x>::value, "Component must be a EE"); return new x(); }
+#define ARCHSIM_ARCHDESCRIPTORFACTORY(x) []() { static_assert(std::is_base_of<archsim::ArchDescriptor,x>::value, "Component must be a AD"); return new x(); }
 
 #endif /* MODULE_H */
 

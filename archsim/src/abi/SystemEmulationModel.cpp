@@ -50,6 +50,9 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 
 	// Acquire the CPU component
 	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleProcessorEntry>("CPU");
+	if(moduleentry == nullptr) {
+		return false;
+	}
 	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
 
 

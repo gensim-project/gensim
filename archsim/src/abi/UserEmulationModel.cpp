@@ -42,8 +42,20 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	if (!EmulationModel::Initialise(system, uarch))
 		return false;
 
-	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleProcessorEntry>("CPU");
-	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
+	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleExecutionEngineEntry>("EE");
+	ArchDescriptor *arch;
+	StateBlockDescriptor stateblock;
+	if(moduleentry == nullptr) {
+		return false;
+	}
+	auto ctx = new archsim::ExecutionContext(*arch, moduleentry->Get());
+	GetSystem().GetECM().AddContext(ctx);
+	ThreadInstance *ti = new ThreadInstance(*arch, stateblock);
+	
+	GetSystem().GetECM().AddContext(ctx);
+	ctx->AddThread(ti);
+	
+//	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
 
 	if (!cpu->Initialise(*this, GetMemoryModel())) {
 		return false;
@@ -67,7 +79,7 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		cpu->peripherals.AttachDevice("kb", 13);
 	}
 #endif
-
+	
 	return true;
 }
 
