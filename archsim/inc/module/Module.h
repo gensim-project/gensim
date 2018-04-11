@@ -16,6 +16,7 @@
 
 #include "abi/Address.h"
 #include "abi/devices/Component.h"
+//#include "gensim/ExecutionEngine.h"
 #include "util/PubSubSync.h"
 #include <functional>
 #include <string>
@@ -34,7 +35,7 @@ namespace archsim
 
 		typedef std::function<abi::devices::MemoryComponent *(archsim::abi::EmulationModel &, archsim::Address)> memory_component_factory_t;
 		typedef std::function<abi::devices::Component *(archsim::abi::EmulationModel &)> component_factory_t;
-		typedef std::function<gensim::Processor *(const std::string &, int, archsim::util::PubSubContext*)> processor_factory_t;
+		typedef std::function<::gensim::Processor *(const std::string &, int, archsim::util::PubSubContext*)> processor_factory_t;
 
 		class ModuleEntry
 		{

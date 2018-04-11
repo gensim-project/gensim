@@ -427,6 +427,8 @@ SSACastStatement::CastType parse_cast_type(pANTLR3_BASE_TREE node)
 		return SSACastStatement::Cast_Truncate;
 	} else if(node_text == "convert") {
 		return SSACastStatement::Cast_Convert;
+	} else if(node_text == "splat") {
+		return SSACastStatement::Cast_VectorSplat;
 	} else if(node_text == "reinterpret") {
 		return SSACastStatement::Cast_Reinterpret;
 	} else {
