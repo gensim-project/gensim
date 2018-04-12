@@ -113,6 +113,7 @@ namespace gensim
 
 					str << "bool handle_irq(uint32_t isr) override;";
 					str << "bool handle_mmu_fault(const MMU::resolution_context& ctx) override;";
+					str << "bool handle_single_step() override;";
 					str << "void handle_undefined_instruction() override;";
 
 					str << "bool interrupts_enabled(uint8_t irq_line) const override;";
@@ -388,6 +389,11 @@ namespace gensim
 					str << "bool " << ClassNameForCPU() << "::handle_mmu_fault(const MMU::resolution_context& ctx)";
 					str << "{";
 					str << *(arch.ISAs.front()->BehaviourActions.at("mmu_fault"));
+					str << "}";
+					
+					str << "bool " << ClassNameForCPU() << "::handle_single_step()";
+					str << "{";
+					str << *(arch.ISAs.front()->BehaviourActions.at("single_step"));
 					str << "}";
 
 					/*str << "bool " << ClassNameForCPU() << "::handle_data_fault(MMU::resolution_fault fault)";
