@@ -28,7 +28,12 @@ namespace gensim {
 
 			~InterpEEGenerator();
 		private:
+			bool GenerateBlockExecutor(util::cppformatstream &str) const;
 			
+			bool GenerateDecodeInstruction(util::cppformatstream &str) const;
+			bool GenerateStepInstruction(util::cppformatstream &str) const;
+			bool GenerateStepInstructionISA(util::cppformatstream &str, isa::ISADescription &isa) const;
+			bool GenerateStepInstructionInsn(util::cppformatstream &str, isa::InstructionDescription &insn) const;
 		};
 		
 	}

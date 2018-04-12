@@ -41,11 +41,13 @@ void ExecutionContextManager::AddContext(ExecutionContext* ctx)
 
 void ExecutionContextManager::StartSync()
 {
-	for(auto ctx : contexts_) {
-		auto cresult = ctx->StepThreadsBlock();
-		
-		if(cresult == ExecutionResult::Abort) {
-			break;
+	while(true) {
+		for(auto ctx : contexts_) {
+			auto cresult = ctx->StepThreadsBlock();
+
+			if(cresult == ExecutionResult::Abort) {
+				return;
+			}
 		}
 	}
 }

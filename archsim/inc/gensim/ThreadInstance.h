@@ -17,6 +17,7 @@
 #include "gensim/ArchDescriptor.h"
 #include "gensim/StateBlock.h"
 #include "gensim/MemoryInterface.h"
+#include "abi/Address.h"
 
 namespace archsim {
 		class MemoryInterface;
@@ -43,11 +44,18 @@ namespace archsim {
 			FeatureState &GetFeatures();
 			FPState &GetFPState();
 			
+			uint32_t GetModeID() const { return mode_id_; }
+			
+			Address GetPC();
+			MemoryInterface *GetFetchMI();
+			
 			StateBlockInstance &GetStateBlock();
 		private:
 			const ArchDescriptor &descriptor_;
 			memory_interface_collection_t memory_interfaces_;
 			std::vector<unsigned char> register_file_;
+			
+			uint32_t mode_id_;
 			
 			StateBlockInstance state_block_;
 		};

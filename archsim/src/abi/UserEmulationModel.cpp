@@ -22,7 +22,8 @@ UserEmulationModel::~UserEmulationModel() { }
 
 void UserEmulationModel::PrintStatistics(std::ostream& stream)
 {
-	cpu->PrintStatistics(stream);
+//	cpu->PrintStatistics(stream);
+	UNIMPLEMENTED;
 }
 
 bool UserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, SignalData* data)
@@ -33,7 +34,8 @@ bool UserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, SignalData* 
 
 bool UserEmulationModel::AssertSignal(int signal, SignalData* data)
 {
-	cpu->assert_signal(signal);
+	UNIMPLEMENTED;
+//	cpu->assert_signal(signal);
 	return true;
 }
 
@@ -43,11 +45,15 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 
 	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleExecutionEngineEntry>("EE");
-	ArchDescriptor *arch;
+	auto archentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
 	StateBlockDescriptor stateblock;
 	if(moduleentry == nullptr) {
 		return false;
 	}
+	if(archentry == nullptr) {
+		return false;
+	}
+	auto arch = archentry->Get();
 	auto ctx = new archsim::ExecutionContext(*arch, moduleentry->Get());
 	GetSystem().GetECM().AddContext(ctx);
 	ThreadInstance *ti = new ThreadInstance(*arch, stateblock);
@@ -57,16 +63,16 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	
 //	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
 
-	if (!cpu->Initialise(*this, GetMemoryModel())) {
-		return false;
-	}
+//	if (!cpu->Initialise(*this, GetMemoryModel())) {
+//		return false;
+//	}
+//
+//	cpu->reset_to_initial_state(true);
 
-	cpu->reset_to_initial_state(true);
-
-	archsim::abi::devices::Device *coprocessor;
-	if(!GetComponentInstance("fpu", coprocessor)) return false;
-	cpu->peripherals.RegisterDevice("fpu", coprocessor);
-	cpu->peripherals.AttachDevice("fpu", 10);
+//	archsim::abi::devices::Device *coprocessor;
+//	if(!GetComponentInstance("fpu", coprocessor)) return false;
+//	cpu->peripherals.RegisterDevice("fpu", coprocessor);
+//	cpu->peripherals.AttachDevice("fpu", 10);
 
 #ifdef IO_DEVICES
 	if (system.sim_opts.virtual_screen) {
@@ -85,29 +91,28 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 
 void UserEmulationModel::Destroy()
 {
-	cpu->Destroy();
-	delete cpu;
+	UNIMPLEMENTED;
 }
 
 gensim::Processor *UserEmulationModel::GetCore(int id)
 {
-	if (id != 0) return NULL;
-	return cpu;
+	UNIMPLEMENTED;
 }
 
 gensim::Processor *UserEmulationModel::GetBootCore()
 {
-	return cpu;
+//	return cpu;
+	UNIMPLEMENTED;
 }
 
 void UserEmulationModel::ResetCores()
 {
-	cpu->reset();
+	UNIMPLEMENTED;
 }
 
 void UserEmulationModel::HaltCores()
 {
-	cpu->Halt();
+	UNIMPLEMENTED;
 }
 
 bool UserEmulationModel::InitialiseProgramArguments()
@@ -242,8 +247,8 @@ bool UserEmulationModel::PrepareBoot(System &system)
 	}
 	 * */
 
-	cpu->write_pc(_initial_entry_point);
-	cpu->write_sp(_initial_stack_pointer);
+//	cpu->write_pc(_initial_entry_point);
+//	cpu->write_sp(_initial_stack_pointer);
 
 	return true;
 }

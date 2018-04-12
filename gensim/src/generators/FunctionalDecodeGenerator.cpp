@@ -39,6 +39,8 @@ namespace gensim
 			header_str << "\n#include <define.h>\n\n";
 
 			header_str << "#include <gensim/gensim_decode.h>\n";
+			header_str << "#include <gensim/MemoryInterface.h>\n";
+			header_str << "#include <gensim/ThreadInstance.h>\n";
 			header_str << "#include <util/HashMap.h>\n";
 			header_str << "#include <queue>\n";
 			header_str << "#include <utility>\n";
@@ -78,8 +80,7 @@ namespace gensim
 
 			header_str << "\n";
 
-			if(Manager.GetComponentC(Manager.FnInterpret))
-				header_str << "uint32_t DecodeInstr(uint32_t, uint8_t, gensim::Processor &, dynamic_pred_queue_t &);\n\n";
+			header_str << "uint32_t DecodeInstr(archsim::Address PC, uint32_t isa_mode, archsim::MemoryInterface *fetch_interface) { return 1; }";
 
 			header_str << "void DecodeInstr(uint32_t, uint8_t, dynamic_pred_queue_t &, bool);\n\n";
 

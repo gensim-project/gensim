@@ -71,7 +71,7 @@ namespace archsim
 			bool PrepareStack(System& system, loader::UserElfBinaryLoader& elf_loader);
 			bool InitialiseProgramArguments();
 
-			gensim::Processor* cpu;
+//			gensim::Processor* cpu;
 
 			user::SyscallHandler &syscall_handler_;
 

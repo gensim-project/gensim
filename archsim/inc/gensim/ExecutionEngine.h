@@ -15,6 +15,9 @@
 #define EXECUTIONENGINE_H
 
 #include "ThreadInstance.h"
+#include "util/LogContext.h"
+
+UseLogContext(LogExecutionEngine);
 
 #include <thread>
 #include <map>

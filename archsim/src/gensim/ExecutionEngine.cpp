@@ -10,6 +10,8 @@
 
 using namespace archsim;
 
+DeclareLogContext(LogExecutionEngine, "ExecutionEngine");
+
 void execute_thread(BasicExecutionEngine::ExecutionContext *ctx) {
 	while(!ctx->should_halt && ctx->last_result == ExecutionResult::Continue) {
 		ctx->last_result = ctx->engine->StepThreadBlock(ctx->thread_instance);
