@@ -866,7 +866,6 @@ namespace gensim
 			stream << interp->GetStateStruct();
 			//      stream << QUOTEME(STRUCT_CPU_STATE JIT_TYPES JIT_API) << "\n\n";
 
-			stream << Manager.GetArch().GetIncludes();
 
 			for (std::list<isa::ISADescription *>::const_iterator II = arch.ISAs.begin(), IE = arch.ISAs.end(); II != IE; ++II) {
 				const isa::ISADescription *isa = *II;
@@ -910,7 +909,7 @@ namespace gensim
 
 			std::stringstream cline_str;
 			cline_str << GetProperty("Clang");
-			std::vector<std::string> include_dirs = Manager.GetArch().IncludeDirs;
+			std::vector<std::string> include_dirs;
 			for (std::vector<std::string>::const_iterator idir = include_dirs.begin(); idir != include_dirs.end(); idir++) {
 				cline_str << " -I output/" << *idir;
 			}

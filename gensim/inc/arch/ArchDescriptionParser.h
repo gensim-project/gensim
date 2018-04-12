@@ -24,6 +24,7 @@ namespace gensim
 			bool load_regspace(pANTLR3_BASE_TREE node);
 			bool load_arch_ctor(pANTLR3_BASE_TREE ctorNode);
 			bool load_feature_set(pANTLR3_BASE_TREE ctorNode);
+			bool load_mem(pANTLR3_BASE_TREE ctorNode);
 
 			ArchDescription *arch;
 		};

@@ -466,7 +466,7 @@ namespace gensim
 
 			std::stringstream cline_str;
 			cline_str << GetProperty("Clang");
-			std::vector<std::string> include_dirs = Manager.GetArch().IncludeDirs;
+			std::vector<std::string> include_dirs;// = Manager.GetArch().IncludeDirs;
 			for (std::vector<std::string>::const_iterator idir = include_dirs.begin(); idir != include_dirs.end(); idir++) {
 				cline_str << " -I output/" << *idir;
 			}

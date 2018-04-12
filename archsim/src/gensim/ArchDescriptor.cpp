@@ -27,3 +27,10 @@ ArchDescriptor::ArchDescriptor(const RegisterFileDescriptor& rf, const MemoryInt
 
 }
 
+MemoryInterfacesDescriptor::MemoryInterfacesDescriptor(const std::initializer_list<MemoryInterfaceDescriptor>& interfaces, const std::string& fetch_interface_id)
+{
+	for(auto i : interfaces) {
+		interfaces_.insert({i.GetName(), i});
+	}
+	fetch_interface_name_ = fetch_interface_id;
+}

@@ -71,9 +71,13 @@ namespace archsim {
 		public:
 			using memory_interface_descriptor_collection_t = std::unordered_map<std::string, MemoryInterfaceDescriptor>;
 			
+			MemoryInterfacesDescriptor(const std::initializer_list<MemoryInterfaceDescriptor>& interfaces, const std::string& fetch_interface_id);
+			
 			const memory_interface_descriptor_collection_t &GetInterfaces() const { return interfaces_; }
+			const MemoryInterfaceDescriptor &GetFetchInterface() const { return interfaces_.at(fetch_interface_name_); }
 		private:
 			memory_interface_descriptor_collection_t interfaces_;
+			std::string fetch_interface_name_;
 		};
 		
 		class FeaturesDescriptor {

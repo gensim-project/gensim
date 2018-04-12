@@ -76,7 +76,6 @@ bool InterpEEGenerator::GenerateDecodeInstruction(util::cppformatstream& str) co
 	str << "uint32_t EE::DecodeInstruction(archsim::ThreadInstance *thread, EE::decode_t &inst) {";
 	
 	str << "  return inst.DecodeInstr(thread->GetPC(), thread->GetModeID(), thread->GetFetchMI());";
-	str << "  return 1;";
 	
 	str << "}";
 	
