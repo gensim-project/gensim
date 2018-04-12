@@ -21,6 +21,8 @@
 namespace archsim {
 		class RegisterFileEntryDescriptor {
 		public:
+			RegisterFileEntryDescriptor(const std::string &name, uint32_t id, uint32_t offset, uint32_t entry_count, uint32_t entry_size, uint32_t entry_stride);
+			
 			uint64_t GetOffset() const { return offset_; }
 			uint64_t GetEntryCount() const { return entry_count_; }
 			uint64_t GetEntrySize() const { return entry_size_; }
@@ -30,6 +32,7 @@ namespace archsim {
 			
 		private:
 			std::string name_;
+			uint32_t id_;
 			uint64_t offset_;
 			uint64_t entry_count_;
 			uint64_t entry_size_;
@@ -39,6 +42,8 @@ namespace archsim {
 		class RegisterFileDescriptor {
 		public:
 			using register_file_entry_collection_t = std::unordered_map<std::string, RegisterFileEntryDescriptor>;
+			
+			RegisterFileDescriptor(uint64_t total_size, const std::initializer_list<RegisterFileEntryDescriptor> &entries);
 			uint64_t GetSize() const { return total_size_in_bytes_; }
 			
 			const register_file_entry_collection_t &GetEntries() const { return entries_; }

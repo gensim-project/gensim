@@ -69,7 +69,7 @@ namespace archsim
 		
 		template<typename T> class TypedModuleEntry : public ModuleEntry {
 		public:
-			static const ModuleEntry::ModuleEntryType kEntry = ModuleEntryTypeForClass<T>::entry;
+			static constexpr ModuleEntry::ModuleEntryType kEntry = ModuleEntryTypeForClass<T>::entry;
 			using factory_t = typename FactoryForModuleEntry<kEntry>::factory_t;
 			
 			TypedModuleEntry(const std::string &name, factory_t factory) : ModuleEntry(name, kEntry), Get(factory) { }
@@ -95,7 +95,16 @@ namespace archsim
 
 			const ModuleEntry *GetGenericEntry(const std::string &entryname) const;
 
-			template<typename T> const T *GetEntry(const std::string &entryname) const;
+			template<typename T> const T *GetEntry(const std::string &entryname) const {
+				auto generic_entry = GetGenericEntry(entryname);
+				if(generic_entry != nullptr) {
+					if(generic_entry->GetType() == T::kEntry) {
+						return (T*)generic_entry;
+					}
+				}
+				
+				return nullptr;
+			}
 
 		private:
 			const std::string module_name_;

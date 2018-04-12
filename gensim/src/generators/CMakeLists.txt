@@ -12,6 +12,7 @@ TARGET_ADD_SOURCES(gensim-lib
 	MakefileGenerator.cpp
 	NullTranslationGenerator.cpp
 	TranslationGenerator.cpp
+	ArchDescriptorGenerator.cpp
 )
 
 ADD_SUBDIRECTORY(BlockJIT)
