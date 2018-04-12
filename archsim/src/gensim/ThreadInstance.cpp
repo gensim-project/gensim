@@ -5,6 +5,7 @@
  */
 
 #include "gensim/ThreadInstance.h"
+#include "gensim/MemoryInterface.h"
 
 using namespace archsim;
 
@@ -26,3 +27,14 @@ ThreadInstance::ThreadInstance(const ArchDescriptor& arch, StateBlockDescriptor 
 	// Set default FP state
 	// TODO: this
 }
+
+Address ThreadInstance::GetPC()
+{
+	UNIMPLEMENTED;
+}
+
+MemoryInterface* ThreadInstance::GetFetchMI()
+{
+	return memory_interfaces_.at(descriptor_.GetMemoryInterfaceDescriptor().GetFetchInterface().GetName());
+}
+

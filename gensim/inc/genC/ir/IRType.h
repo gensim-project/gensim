@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include <vector>
 
-#include "define.h"
+#include "../../define.h"
 #include "IREnums.h"
 
 namespace gensim

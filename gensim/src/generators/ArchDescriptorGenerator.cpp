@@ -37,7 +37,12 @@ bool ArchDescriptorGenerator::GenerateSource() const
 	auto rfile = Manager.GetArch().GetRegFile();
 	
 	str << "archsim::RegisterFileDescriptor rfd(" << rfile.GetSize() << ", {});";
-	str << "archsim::MemoryInterfacesDescriptor misd;";
+	
+	for(auto mem_interface : Manager.GetArch().GetMemoryInterfaces().GetInterfaces()) {
+		
+	}
+	
+	str << "archsim::MemoryInterfacesDescriptor misd ({},\"\");";
 	str << "archsim::FeaturesDescriptor features;";
 	
 	str << "ArchDescriptor::ArchDescriptor() : archsim::ArchDescriptor(rfd, misd, features) {}";

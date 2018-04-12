@@ -14,6 +14,8 @@
 #ifndef THREADMANAGER_H
 #define THREADMANAGER_H
 
+#include <arch/ArchDescription.h>
+
 namespace archsim {
 	
 		
@@ -32,7 +34,7 @@ namespace archsim {
 			
 		private:
 			std::vector<ThreadInstance*> thread_instances_;
-			ArchDescriptor &arch_descriptor_;
+			gensim::arch::ArchDescription &arch_descriptor_;
 		};
 
 }

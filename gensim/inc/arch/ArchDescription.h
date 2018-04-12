@@ -20,6 +20,7 @@
 #include "DiagnosticContext.h"
 #include "RegisterFile.h"
 #include "ArchFeatures.h"
+#include "MemoryInterfaceDescription.h"
 
 namespace gensim
 {
@@ -48,20 +49,15 @@ namespace gensim
 		class ArchDescription
 		{
 		public:
+			
 			std::string Name;
 
 			bool big_endian;
 			uint32_t wordsize;
 
-			std::vector<std::string> IncludeFiles;
-			std::vector<std::string> IncludeDirs;
-
 			typedef std::list<isa::ISADescription *> ISAListType;
 
 			ISAListType ISAs;
-			gensim::uarch::UArchDescription *Uarch;
-
-			std::string GetIncludes() const;
 
 			ArchDescription();
 			virtual ~ArchDescription();
@@ -71,21 +67,24 @@ namespace gensim
 
 			RegisterFile &GetRegFile()
 			{
-				return register_file;
+				return register_file_;
 			}
 			const RegisterFile &GetRegFile() const
 			{
-				return register_file;
+				return register_file_;
 			}
 
 			ArchFeatureSet &GetFeatures()
 			{
-				return _features;
+				return features_;
 			}
 			const ArchFeatureSet &GetFeatures() const
 			{
-				return _features;
+				return features_;
 			}
+			
+			MemoryInterfacesDescription GetMemoryInterfaces(){ return memory_interfaces_; }
+			const MemoryInterfacesDescription GetMemoryInterfaces() const { return memory_interfaces_; }
 
 			bool PrettyPrint(std::ostream &) const;
 
@@ -94,8 +93,10 @@ namespace gensim
 			ArchDescription(const ArchDescription &orig);
 			ArchDescription &operator=(const ArchDescription &orig);
 
-			RegisterFile register_file;
-			ArchFeatureSet _features;
+			RegisterFile register_file_;
+			ArchFeatureSet features_;
+			
+			MemoryInterfacesDescription memory_interfaces_;
 		};
 	}  // namespace arch
 }  // namespace gensim

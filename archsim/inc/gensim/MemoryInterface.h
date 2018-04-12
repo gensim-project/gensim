@@ -26,6 +26,9 @@ namespace archsim {
 		public:
 			MemoryInterface(const MemoryInterfaceDescriptor &descriptor) : descriptor_(descriptor) {}
 			const MemoryInterfaceDescriptor &GetDescriptor() { return descriptor_; }
+
+			
+			
 		private:
 			const MemoryInterfaceDescriptor &descriptor_;
 		};

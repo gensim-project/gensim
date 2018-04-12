@@ -207,7 +207,7 @@ format
 	:	def_attr* AC_FORMAT AC_ID EQUALS STRING SEMICOLON -> ^(AC_FORMAT AC_ID STRING def_attr*);
 
 ar_mem
-	:	AC_MEM AC_ID COLON SIZE  SEMICOLON -> ^(AC_MEM AC_ID SIZE);
+	:	AC_MEM AC_ID OPAREN address_width=AC_INT COMMA word_width=AC_INT COMMA endian=AC_ID COMMA is_fetch=AC_INT CPAREN SEMICOLON -> ^(AC_MEM AC_ID $address_width $word_width $endian $is_fetch);
 
 ar_tlm_port
 	:	AC_TLM_PORT AC_ID COLON SIZE SEMICOLON -> ^(AC_TLM_PORT AC_ID SIZE); 

@@ -14,10 +14,9 @@
 #ifndef THREADINSTANCE_H_
 #define THREADINSTANCE_H_
 
-#include "gensim/ArchDescriptor.h"
 #include "gensim/StateBlock.h"
-#include "gensim/MemoryInterface.h"
 #include "abi/Address.h"
+#include "gensim/ArchDescriptor.h"
 
 namespace archsim {
 		class MemoryInterface;

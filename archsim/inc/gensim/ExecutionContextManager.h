@@ -14,7 +14,6 @@
 #ifndef EXECUTIONMANAGER_H
 #define EXECUTIONMANAGER_H
 
-#include "ArchDescriptor.h"
 #include "ExecutionEngine.h"
 #include "ThreadInstance.h"
 
