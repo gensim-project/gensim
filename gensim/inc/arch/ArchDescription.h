@@ -83,8 +83,8 @@ namespace gensim
 				return features_;
 			}
 			
-			MemoryInterfacesDescription GetMemoryInterfaces(){ return memory_interfaces_; }
-			const MemoryInterfacesDescription GetMemoryInterfaces() const { return memory_interfaces_; }
+			MemoryInterfacesDescription &GetMemoryInterfaces(){ return memory_interfaces_; }
+			const MemoryInterfacesDescription &GetMemoryInterfaces() const { return memory_interfaces_; }
 
 			bool PrettyPrint(std::ostream &) const;
 

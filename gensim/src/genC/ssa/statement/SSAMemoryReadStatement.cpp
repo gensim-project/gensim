@@ -34,9 +34,9 @@ bool SSAMemoryReadStatement::Resolve(DiagnosticContext &ctx)
 	return success;
 }
 
-SSAMemoryReadStatement &SSAMemoryReadStatement::CreateRead(SSABlock *parent, SSAStatement *addrExpr, SSASymbol *target, uint8_t width, bool sign, bool user)
+SSAMemoryReadStatement &SSAMemoryReadStatement::CreateRead(SSABlock *parent, SSAStatement *addrExpr, SSASymbol *target, uint8_t width, bool sign, gensim::arch::MemoryInterfaceDescription *interface)
 {
-	SSAMemoryReadStatement &stmt = *(new SSAMemoryReadStatement(parent, addrExpr, target, width, sign, user));
+	SSAMemoryReadStatement &stmt = *(new SSAMemoryReadStatement(parent, addrExpr, target, width, sign, interface));
 	return stmt;
 }
 

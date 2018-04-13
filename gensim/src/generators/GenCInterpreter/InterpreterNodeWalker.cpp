@@ -514,7 +514,7 @@ namespace gensim
 				const SSAMemoryReadStatement &stmt = (const SSAMemoryReadStatement &) (Statement);
 
 				output << "{";
-				output << "uint32_t _value = mem_read_" << (stmt.Width * 8) << (stmt.Signed ? "s" : "") << (stmt.User ? "_user" : "") << "(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << "," << stmt.Target()->GetName() << ");";
+				output << "uint32_t _value = mem_read_" << (stmt.Width * 8) << (stmt.Signed ? "s" : "") << "(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << "," << stmt.Target()->GetName() << ");";
 				output << "if(_value) {"
 				       "take_exception(7, read_pc()+8);"
 				       "longjmp(_longjmp_safepoint, 0);"
@@ -597,19 +597,19 @@ namespace gensim
 					auto idx_node = Factory.GetOrCreate(stmt.RegNum());
 
 					if (stmt.IsRead) {
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = read_register_bank_" << reg_desc.ID << "(" << idx_node->GetFixedValue() << ");";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = interface.read_register_bank_" << reg_desc.ID << "(" << idx_node->GetFixedValue() << ");";
 					} else {
 						auto value_node = Factory.GetOrCreate(stmt.Value());
-						output << "write_register_bank_" << reg_desc.ID << "(" << idx_node->GetFixedValue() << ", " << value_node->GetFixedValue() << ");";
+						output << "interface.write_register_bank_" << reg_desc.ID << "(" << idx_node->GetFixedValue() << ", " << value_node->GetFixedValue() << ");";
 					}
 				} else {
 					auto &reg_desc = regfile.GetSlotByIdx(stmt.Bank);
 
 					if (stmt.IsRead) {
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = read_register_" << reg_desc.GetID() << "();";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = interface.read_register_" << reg_desc.GetID() << "();";
 					} else {
 						auto value_node = Factory.GetOrCreate(stmt.Value());
-						output << "write_register_" << reg_desc.GetID() << "(" << value_node->GetFixedValue() << ");";
+						output << "interface.write_register_" << reg_desc.GetID() << "(" << value_node->GetFixedValue() << ");";
 					}
 				}
 

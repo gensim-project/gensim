@@ -1130,13 +1130,16 @@ namespace gensim
 
 					SSANodeWalker *address = Factory.GetOrCreate(Statement.Addr());
 
-					if (Statement.User) {
-						output << "builder.ldmem_user(" << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");\n";
-					} else {
-						output << "builder.ldmem(" << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");\n";
-						output << "if(trace)";
-						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemRead" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");";
-					}
+					UNIMPLEMENTED;
+					
+					// TODO: fix
+//					if (Statement.User) {
+//						output << "builder.ldmem_user(" << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");\n";
+//					} else {
+//						output << "builder.ldmem(" << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");\n";
+//						output << "if(trace)";
+//						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemRead" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");";
+//					}
 
 					return true;
 				}

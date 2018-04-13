@@ -862,11 +862,12 @@ namespace gensim
 
 					SSANodeWalker *address = Factory.GetOrCreate(Statement.Addr());
 
-					if (Statement.User) {
-						output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
-					} else {
-						output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
-					}
+					// TODO: this
+//					if (Statement.User) {
+//						output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
+//					} else {
+//						output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
+//					}
 
 					output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_stmt(Statement) << ");";
 

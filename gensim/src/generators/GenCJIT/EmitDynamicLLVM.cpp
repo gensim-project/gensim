@@ -936,10 +936,11 @@ namespace gensim
 					const SSANodeWalker *AddrExpr = Factory.GetOrCreate(Statement.Addr());
 					output << "llvm::Value *" << Statement.GetName() << " = NULL;";
 
-					if(Statement.User)
-						output << "txln_ctx.mtm.EmitNonPrivilegedRead(ctx, " << (uint32_t)Statement.Width << ", " << Statement.Signed << ", " << Statement.GetName() << ", " << AddrExpr->GetDynamicValue() << ", " << Statement.Target()->GetType().GetLLVMType() << ", llvm_registers[__idx_" << Statement.Target()->GetName() << "]);";
-					else
-						output << "txln_ctx.mtm.EmitMemoryRead(ctx, " << (uint32_t)Statement.Width << ", " << Statement.Signed << ", " << Statement.GetName() << ", " << AddrExpr->GetDynamicValue() << ", " << Statement.Target()->GetType().GetLLVMType() << ", llvm_registers[__idx_" << Statement.Target()->GetName() << "]);";
+					UNIMPLEMENTED; // todo: handle interfaces
+//					if(Statement.User)
+//						output << "txln_ctx.mtm.EmitNonPrivilegedRead(ctx, " << (uint32_t)Statement.Width << ", " << Statement.Signed << ", " << Statement.GetName() << ", " << AddrExpr->GetDynamicValue() << ", " << Statement.Target()->GetType().GetLLVMType() << ", llvm_registers[__idx_" << Statement.Target()->GetName() << "]);";
+//					else
+//						output << "txln_ctx.mtm.EmitMemoryRead(ctx, " << (uint32_t)Statement.Width << ", " << Statement.Signed << ", " << Statement.GetName() << ", " << AddrExpr->GetDynamicValue() << ", " << Statement.Target()->GetType().GetLLVMType() << ", llvm_registers[__idx_" << Statement.Target()->GetName() << "]);";
 
 					output << "if (__trace) {";
 					output << "llvm::Value *val = __irBuilder.CreateLoad(llvm_registers[__idx_" << Statement.Target()->GetName() << "]);";

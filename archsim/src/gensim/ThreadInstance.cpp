@@ -17,7 +17,7 @@ ThreadInstance::ThreadInstance(const ArchDescriptor& arch, StateBlockDescriptor 
 	register_file_.resize(arch.GetRegisterFileDescriptor().GetSize());
 	
 	// 2. Memory interfaces
-	for(auto interface_descriptor : arch.GetMemoryInterfaceDescriptor().GetInterfaces()) {
+	for(auto &interface_descriptor : arch.GetMemoryInterfaceDescriptor().GetInterfaces()) {
 		memory_interfaces_[interface_descriptor.second.GetName()] = new MemoryInterface(interface_descriptor.second);
 	}
 	
@@ -28,13 +28,45 @@ ThreadInstance::ThreadInstance(const ArchDescriptor& arch, StateBlockDescriptor 
 	// TODO: this
 }
 
-Address ThreadInstance::GetPC()
+MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface_name)
 {
-	UNIMPLEMENTED;
+	return *memory_interfaces_.at(interface_name);
 }
 
-MemoryInterface* ThreadInstance::GetFetchMI()
+
+Address ThreadInstance::GetTaggedSlot(const std::string &tag)
 {
-	return memory_interfaces_.at(descriptor_.GetMemoryInterfaceDescriptor().GetFetchInterface().GetName());
+	auto pc_descriptor = descriptor_.GetRegisterFileDescriptor().GetTaggedEntry(tag);
+	
+	switch(pc_descriptor.GetEntrySize()) {
+		case 4:
+			return Address(*(uint32_t*)(register_file_.data() + pc_descriptor.GetOffset()));
+		case 8:
+			return Address(*(uint64_t*)(register_file_.data() + pc_descriptor.GetOffset()));
+		default:
+			UNIMPLEMENTED;
+	}
+}
+
+void ThreadInstance::SetTaggedSlot(const std::string &tag, Address target)
+{
+	auto pc_descriptor = descriptor_.GetRegisterFileDescriptor().GetTaggedEntry(tag);
+	
+	switch(pc_descriptor.GetEntrySize()) {
+		case 4:
+			*(uint32_t*)(register_file_.data() + pc_descriptor.GetOffset()) = target.Get();
+			break;
+		case 8:
+			*(uint64_t*)(register_file_.data() + pc_descriptor.GetOffset()) = target.Get();
+			break;
+		default:
+			UNIMPLEMENTED;
+	}
+}
+
+
+MemoryInterface &ThreadInstance::GetFetchMI()
+{
+	return *memory_interfaces_.at(descriptor_.GetMemoryInterfaceDescriptor().GetFetchInterface().GetName());
 }
 

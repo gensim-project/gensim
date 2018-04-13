@@ -574,8 +574,10 @@ SSAStatement *StatementAssembler::parse_mem_read_statement(pANTLR3_BASE_TREE tre
 	IRConstant width = parse_constant_value(width_node);
 	SSAStatement *addr = get_statement(addr_node);
 	SSASymbol *target = get_symbol(target_name_node);
+	
+	gensim::arch::MemoryInterfaceDescription *interface = nullptr;
 
-	return &SSAMemoryReadStatement::CreateRead(block, addr, target, width.Int(), false);
+	return &SSAMemoryReadStatement::CreateRead(block, addr, target, width.Int(), false, interface);
 }
 
 SSAStatement *StatementAssembler::parse_mem_write_statement(pANTLR3_BASE_TREE tree, SSABlock *block)

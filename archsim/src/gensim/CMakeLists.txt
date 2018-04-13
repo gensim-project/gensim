@@ -11,4 +11,5 @@ archsim_add_sources(
 	ThreadInstance.cpp
 	ExecutionEngine.cpp
 	ExecutionContextManager.cpp
+	MemoryInterface.cpp
 )

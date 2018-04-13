@@ -15,3 +15,15 @@ MemoryInterfaceDescription::MemoryInterfaceDescription(const std::string& name, 
 {
 
 }
+
+bool MemoryInterfacesDescription::Resolve(DiagnosticContext &diag) {
+	if(interfaces_.empty()) {
+		diag.Error("No memory interfaces were defined.");
+		return false;
+	}
+	if(fetch_interface_name_ == "") {
+		diag.Error("No fetch interface was defined");
+		return false;
+	}
+	return true;
+}

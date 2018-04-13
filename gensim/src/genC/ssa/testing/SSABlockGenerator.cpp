@@ -226,7 +226,7 @@ SSAStatement *generate_memory_read(SSABlock *block, SSABlockGenerator *gen)
 	int width = target->GetType().ElementSize();
 	bool sign = gen->Random() % 2;
 
-	return &SSAMemoryReadStatement::CreateRead(block, addr, target, width, sign, false);
+	return &SSAMemoryReadStatement::CreateRead(block, addr, target, width, sign, nullptr);
 }
 
 SSAStatement *generate_memory_write(SSABlock *block, SSABlockGenerator *gen)

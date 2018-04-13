@@ -7,6 +7,8 @@
 #include "arch/ArchDescription.h"
 #include "isa/ISADescription.h"
 #include "generators/ExecutionEngine/InterpEEGenerator.h"
+#include "generators/GenCInterpreter/GenCInterpreterGenerator.h"
+#include "genC/ssa/SSAContext.h"
 
 using namespace gensim::generator;
 
@@ -128,9 +130,11 @@ bool InterpEEGenerator::GenerateStepInstruction(util::cppformatstream& str) cons
 
 bool InterpEEGenerator::GenerateStepInstructionInsn(util::cppformatstream& str, isa::InstructionDescription& insn) const
 {
-	str << "archsim::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(archsim::ThreadInstance *thread, EE::decode_t &decode) {";
-		
-	str << "  return archsim::ExecutionResult::Abort;";
+	str << "archsim::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(archsim::ThreadInstance *thread, EE::decode_t &inst) {";
+	str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
+	
+	gensim::generator::GenCInterpreterGenerator gci (Manager);
+	gci.GenerateExecuteBodyFor(str, *static_cast<const gensim::genc::ssa::SSAFormAction*>(insn.ISA.GetSSAContext().GetAction(insn.BehaviourName)));
 	
 	str << "}";
 	

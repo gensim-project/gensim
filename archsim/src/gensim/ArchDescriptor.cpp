@@ -9,7 +9,7 @@
 
 using namespace archsim;
 
-RegisterFileEntryDescriptor::RegisterFileEntryDescriptor(const std::string& name, uint32_t id, uint32_t offset, uint32_t entry_count, uint32_t entry_size, uint32_t entry_stride) : name_(name), id_(id), offset_(offset), entry_count_(entry_count), entry_size_(entry_size), entry_stride_(entry_stride)
+RegisterFileEntryDescriptor::RegisterFileEntryDescriptor(const std::string& name, uint32_t id, uint32_t offset, uint32_t entry_count, uint32_t entry_size, uint32_t entry_stride, const std::string tag) : name_(name), id_(id), offset_(offset), entry_count_(entry_count), entry_size_(entry_size), entry_stride_(entry_stride), tag_(tag)
 {
 
 }
@@ -18,6 +18,9 @@ RegisterFileDescriptor::RegisterFileDescriptor(uint64_t total_size, const std::i
 {
 	for(auto &i : entries) {
 		entries_.insert({i.GetName(), i});
+		if(i.GetTag() != "") {
+			tagged_entries_.insert({i.GetTag(), i});
+		}
 	}
 }
 
@@ -25,6 +28,10 @@ RegisterFileDescriptor::RegisterFileDescriptor(uint64_t total_size, const std::i
 ArchDescriptor::ArchDescriptor(const RegisterFileDescriptor& rf, const MemoryInterfacesDescriptor& mem, const FeaturesDescriptor& f) : register_file_(rf), mem_interfaces_(mem), features_(f)
 {
 
+}
+
+MemoryInterfaceDescriptor::MemoryInterfaceDescriptor(const std::string &name, uint64_t address_width_bytes, uint64_t data_width_bytes, bool big_endian) : name_(name), address_width_bytes_(address_width_bytes), data_width_bytes_(data_width_bytes), is_big_endian_(big_endian) {
+	
 }
 
 MemoryInterfacesDescriptor::MemoryInterfacesDescriptor(const std::initializer_list<MemoryInterfaceDescriptor>& interfaces, const std::string& fetch_interface_id)
