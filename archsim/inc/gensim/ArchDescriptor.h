@@ -21,17 +21,20 @@
 namespace archsim {
 		class RegisterFileEntryDescriptor {
 		public:
-			RegisterFileEntryDescriptor(const std::string &name, uint32_t id, uint32_t offset, uint32_t entry_count, uint32_t entry_size, uint32_t entry_stride);
+			RegisterFileEntryDescriptor(const std::string &name, uint32_t id, uint32_t offset, uint32_t entry_count, uint32_t entry_size, uint32_t entry_stride, const std::string tag = "");
 			
 			uint64_t GetOffset() const { return offset_; }
 			uint64_t GetEntryCount() const { return entry_count_; }
 			uint64_t GetEntrySize() const { return entry_size_; }
 			uint64_t GetEntryStride() const { return entry_stride_; }
 			
+			const std::string &GetTag() const { return tag_; }
+			
 			const std::string &GetName() const { return name_; }
 			
 		private:
 			std::string name_;
+			std::string tag_;
 			uint32_t id_;
 			uint64_t offset_;
 			uint64_t entry_count_;
@@ -48,13 +51,23 @@ namespace archsim {
 			
 			const register_file_entry_collection_t &GetEntries() const { return entries_; }
 			
+			const RegisterFileEntryDescriptor &GetTaggedEntry(const std::string &tag) const { 
+				if(tagged_entries_.count(tag) == 0) {
+					throw std::logic_error("Unknown tag \"" + tag + "\"");
+				}
+				return tagged_entries_.at(tag); 
+			}
+			
 		private:
 			uint64_t total_size_in_bytes_;
 			register_file_entry_collection_t entries_;
+			register_file_entry_collection_t tagged_entries_;
 		};
 		
 		class MemoryInterfaceDescriptor {
 		public:
+			MemoryInterfaceDescriptor(const std::string &name, uint64_t address_width_bytes, uint64_t data_width_bytes, bool big_endian);
+			
 			const std::string &GetName() const { return name_; }
 			uint64_t GetAddressWidthInBytes() const { return address_width_bytes_; }
 			uint64_t GetDataWidthInBytes() const { return data_width_bytes_; }

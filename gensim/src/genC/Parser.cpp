@@ -204,6 +204,12 @@ void GenCContext::LoadRegisterNames()
 	for (const auto &slot : Arch.GetRegFile().GetSlots()) {
 		InsertConstant(slot->GetID(), IRTypes::UInt32, regbankid++);
 	}
+	
+	// also load memory interface names
+	regbankid = 0;
+	for(const auto &interface : Arch.GetMemoryInterfaces().GetInterfaces()) {
+		InsertConstant(interface.first, IRTypes::UInt32, regbankid++);
+	}
 }
 
 void GenCContext::LoadFeatureNames()

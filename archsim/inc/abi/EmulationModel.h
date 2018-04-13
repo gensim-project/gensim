@@ -97,7 +97,7 @@ namespace archsim
 
 			bool AttachDevices();
 
-			virtual gensim::Processor* GetBootCore() = 0;
+			virtual gensim::Processor* GetBootCore();
 			virtual gensim::Processor* GetCore(int id) = 0;
 			virtual void ResetCores() = 0;
 			virtual void HaltCores() = 0;

@@ -45,8 +45,15 @@ namespace archsim {
 			
 			uint32_t GetModeID() const { return mode_id_; }
 			
-			Address GetPC();
-			MemoryInterface *GetFetchMI();
+			Address GetTaggedSlot(const std::string &tag);
+			void SetTaggedSlot(const std::string &tag, Address target);
+			
+			Address GetPC() { return GetTaggedSlot("PC"); }
+			void SetPC(Address target) { SetTaggedSlot("PC", target); }
+			Address GetSP() { return GetTaggedSlot("SP"); }
+			void SetSP(Address target) { SetTaggedSlot("SP", target); }
+			
+			MemoryInterface &GetFetchMI();
 			
 			StateBlockInstance &GetStateBlock();
 		private:

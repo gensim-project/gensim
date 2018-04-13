@@ -104,6 +104,7 @@ bool ArchDescriptionParser::load_from_arch_node(pANTLR3_BASE_TREE node)
 	}
 
 	if(!arch->GetRegFile().Resolve(diag_ctx)) return false;
+	if(!arch->GetMemoryInterfaces().Resolve(diag_ctx)) return false;
 
 	return true;
 }

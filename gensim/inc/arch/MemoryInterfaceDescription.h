@@ -17,6 +17,8 @@
 #include <unordered_map>
 #include <string>
 
+#include "DiagnosticContext.h"
+
 namespace gensim {
 	namespace arch {
 
@@ -48,6 +50,8 @@ namespace gensim {
 			
 			const memory_interface_description_collection_t &GetInterfaces() const { return interfaces_; }
 			const MemoryInterfaceDescription &GetFetchInterface() const { return interfaces_.at(fetch_interface_name_); }
+			
+			bool Resolve(DiagnosticContext &diag);
 			
 		private:
 			memory_interface_description_collection_t interfaces_;

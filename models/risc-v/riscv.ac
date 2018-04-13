@@ -4,6 +4,8 @@ RISC-V
 AC_ARCH(riscv)
 {
 
+	ac_mem Mem(4, 4, little, 1);
+
 	// General Purpose Registers
 	ac_regspace(128) {
 		// bank NAME (TYPE, OFFSET, COUNT, REG-STRIDE, # ELEMS, ELEM-SIZE, ELEM-STRIDE)

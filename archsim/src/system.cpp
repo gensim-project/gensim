@@ -173,7 +173,7 @@ bool System::RunSimulation()
 //	}
 //
 //	// Prepare to boot the system
-//	if (!emulation_model->PrepareBoot(*this)) return false;
+	if (!emulation_model->PrepareBoot(*this)) return false;
 //
 //	// Resolve breakpoints
 //	for (auto breakpoint_fn : *archsim::options::Breakpoints.GetValue()) {

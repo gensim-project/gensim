@@ -15,6 +15,7 @@
 #define ARCHDESCRIPTORGENERATOR_H
 
 #include "GenerationManager.h"
+#include "Util.h"
 
 namespace gensim
 {
@@ -30,8 +31,10 @@ namespace gensim
 			const std::vector<std::string> GetSources() const override;
 			
 		private:
-			bool GenerateHeader() const;
-			bool GenerateSource() const;
+			bool GenerateHeader(util::cppformatstream &str) const;
+			bool GenerateSource(util::cppformatstream &str) const;
+			
+			bool GenerateThreadInterface(util::cppformatstream &str) const;
 		};
 		
 	}

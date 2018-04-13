@@ -8,6 +8,7 @@
 #include "gensim/gensim_processor.h"
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
+#include "gensim/MemoryInterface.h"
 
 extern char **environ;
 
@@ -56,10 +57,14 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	auto arch = archentry->Get();
 	auto ctx = new archsim::ExecutionContext(*arch, moduleentry->Get());
 	GetSystem().GetECM().AddContext(ctx);
-	ThreadInstance *ti = new ThreadInstance(*arch, stateblock);
+	main_thread_ = new ThreadInstance(*arch, stateblock);
+	
+	main_thread_->GetMemoryInterface("Mem").Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
+	main_thread_->GetMemoryInterface("Fetch").Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
+
 	
 	GetSystem().GetECM().AddContext(ctx);
-	ctx->AddThread(ti);
+	ctx->AddThread(main_thread_);
 	
 //	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
 
@@ -99,10 +104,9 @@ gensim::Processor *UserEmulationModel::GetCore(int id)
 	UNIMPLEMENTED;
 }
 
-gensim::Processor *UserEmulationModel::GetBootCore()
+archsim::ThreadInstance* UserEmulationModel::GetMainThread()
 {
-//	return cpu;
-	UNIMPLEMENTED;
+	return main_thread_;
 }
 
 void UserEmulationModel::ResetCores()
@@ -247,6 +251,8 @@ bool UserEmulationModel::PrepareBoot(System &system)
 	}
 	 * */
 
+	GetMainThread()->SetPC(Address(_initial_entry_point));
+	GetMainThread()->SetSP(Address(_initial_stack_pointer));
 //	cpu->write_pc(_initial_entry_point);
 //	cpu->write_sp(_initial_stack_pointer);
 
@@ -255,8 +261,8 @@ bool UserEmulationModel::PrepareBoot(System &system)
 
 bool UserEmulationModel::EmulateSyscall(SyscallRequest &request, SyscallResponse &response)
 {
-	if (archsim::options::Verbose)
-		GetBootCore()->metrics.syscalls_invoked.inc();
+//	if (archsim::options::Verbose)
+//		GetBootCore()->metrics.syscalls_invoked.inc();
 	return syscall_handler_.HandleSyscall(request, response);
 }
 
