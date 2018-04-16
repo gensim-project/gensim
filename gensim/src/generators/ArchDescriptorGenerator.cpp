@@ -23,6 +23,8 @@ bool ArchDescriptorGenerator::Generate() const
 	hfile << header.str();
 	std::ofstream sfile ((Manager.GetTarget() + "/arch.cpp").c_str());
 	sfile << source.str();
+	
+	return true;
 }
 
 std::string ArchDescriptorGenerator::GetFunction() const
@@ -85,6 +87,7 @@ bool ArchDescriptorGenerator::GenerateHeader(util::cppformatstream &str) const
 	str << "#define ARCH_DESC_H\n";
 	str << "#include <gensim/ArchDescriptor.h>\n";
 	str << "#include <gensim/ThreadInstance.h>\n";
+	str << "#include <util/Vector.h>\n";
 	str << "namespace gensim {";
 	str << "namespace " << Manager.GetArch().Name << " {";
 	str << "class ArchDescriptor : public archsim::ArchDescriptor {";
@@ -106,18 +109,33 @@ bool ArchDescriptorGenerator::GenerateThreadInterface(util::cppformatstream &str
 	str << "public: ArchInterface(archsim::ThreadInstance *thread) : thread_(thread), reg_file_((char*)thread->GetRegisterFile()) {}";
 	
 	for(gensim::arch::RegBankViewDescriptor *rbank : Manager.GetArch().GetRegFile().GetBanks()) {
-		str << rbank->GetRegisterIRType().GetCType() << " read_register_bank_" << rbank->ID << "(uint32_t idx) { return *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")); }";
+		str << rbank->GetRegisterIRType().GetCType() << " read_register_bank_" << rbank->ID << "(uint32_t idx) const { return *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")); }";
 		str << "void write_register_bank_" << rbank->ID << "(uint32_t idx, " << rbank->GetRegisterIRType().GetCType() << " value) { *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")) = value; }";
 	}
 	for(gensim::arch::RegSlotViewDescriptor *slot : Manager.GetArch().GetRegFile().GetSlots()) {
-		str << slot->GetIRType().GetCType() << " read_register_" << slot->GetID() << "() { return *(" << slot->GetIRType().GetCType() << "*)(reg_file_ + " << slot->GetRegFileOffset() << "); }";
+		str << slot->GetIRType().GetCType() << " read_register_" << slot->GetID() << "() const { return *(" << slot->GetIRType().GetCType() << "*)(reg_file_ + " << slot->GetRegFileOffset() << "); }";
 		str << "void write_register_" << slot->GetID() << "(" << slot->GetIRType().GetCType() << " value) { *(" << slot->GetIRType().GetCType() << "*)(reg_file_ + " << slot->GetRegFileOffset() << ") = value; }";
 	}
+	
+	// read/write pc
+	auto pc_descriptor = Manager.GetArch().GetRegFile().GetTaggedRegSlot("PC");
+	
+	str << "archsim::Address read_pc() const {";
+	str << "return archsim::Address(read_register_" << pc_descriptor->GetID() << "());";
+	str << "}";
+	
+	str << "void write_pc(archsim::Address new_pc) {";
+	str << "write_register_" << pc_descriptor->GetID() << "(new_pc.Get());";
+	str << "}";
+	
+	
 	
 	str << "private: "
 		"archsim::ThreadInstance *thread_;"
 		"char *reg_file_;";
 	str << "};";
+	
+	return true;
 }
 
 

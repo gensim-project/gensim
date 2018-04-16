@@ -907,11 +907,11 @@ namespace gensim
 					output << "emitter.trace(dbt::el::TraceEvent::STORE_MEMORY, " << operand_for_node(*address) << ", " << operand_for_node(*value) << ", emitter.const_u8(" << (uint32_t) Statement.Width << "));\n";
 					output << "}";
 
-					if (Statement.User) {
+//					if (Statement.User) {
+//						output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
+//					} else {
 						output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
-					} else {
-						output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
-					}
+//					}
 
 					return true;
 				}

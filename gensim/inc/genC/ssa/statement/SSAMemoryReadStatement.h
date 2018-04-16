@@ -30,23 +30,22 @@ namespace gensim
 				virtual std::set<SSASymbol *> GetKilledVariables() override;
 				void Accept(SSAStatementVisitor& visitor) override;
 				
-				gensim::arch::MemoryInterfaceDescription *GetInterface() {return interface_;}
 				const gensim::arch::MemoryInterfaceDescription *GetInterface() const {return interface_;}
 
-				static SSAMemoryReadStatement &CreateRead(SSABlock *parent, SSAStatement *addrExpr, SSASymbol *Target, uint8_t Width, bool sign, gensim::arch::MemoryInterfaceDescription *interface);
+				static SSAMemoryReadStatement &CreateRead(SSABlock *parent, SSAStatement *addrExpr, SSASymbol *Target, uint8_t Width, bool sign, const gensim::arch::MemoryInterfaceDescription *interface);
 
 				~SSAMemoryReadStatement();
 
 				STATEMENT_OPERAND(Addr, 1);
 
 			private:
-				SSAMemoryReadStatement(SSABlock *parent, SSAStatement *addrExpr, SSASymbol *target, uint8_t width, bool sign, gensim::arch::MemoryInterfaceDescription *interface)
+				SSAMemoryReadStatement(SSABlock *parent, SSAStatement *addrExpr, SSASymbol *target, uint8_t width, bool sign, const gensim::arch::MemoryInterfaceDescription *interface)
 					: SSAVariableKillStatement(1, parent, target), Width(width), Signed(sign), Fixed(false), interface_(interface)
 				{
 					SetAddr(addrExpr);
 				}
 					
-				gensim::arch::MemoryInterfaceDescription *interface_;
+				const gensim::arch::MemoryInterfaceDescription *interface_;
 			};
 		}
 	}

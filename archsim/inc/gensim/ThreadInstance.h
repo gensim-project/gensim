@@ -38,23 +38,28 @@ namespace archsim {
 			
 			ThreadInstance(const ArchDescriptor &arch, StateBlockDescriptor &state_descriptor);
 			
-			void *GetRegisterFile();
+			void *GetRegisterFile() { return (void*)register_file_.data(); }
 			MemoryInterface &GetMemoryInterface(const std::string &interface_name);
 			FeatureState &GetFeatures();
 			FPState &GetFPState();
 			
 			uint32_t GetModeID() const { return mode_id_; }
+			void SetModeID(uint32_t new_mode) { mode_id_ = new_mode; }
 			
 			Address GetTaggedSlot(const std::string &tag);
 			void SetTaggedSlot(const std::string &tag, Address target);
 			
+                        uint32_t GetExecutionRing() const { return ring_id_; }
+                        void SetExecutionRing(uint32_t new_ring) { ring_id_ = new_ring; }
+                        
 			Address GetPC() { return GetTaggedSlot("PC"); }
 			void SetPC(Address target) { SetTaggedSlot("PC", target); }
 			Address GetSP() { return GetTaggedSlot("SP"); }
 			void SetSP(Address target) { SetTaggedSlot("SP", target); }
 			
 			MemoryInterface &GetFetchMI();
-			
+			const memory_interface_collection_t &GetMemoryInterfaces() { return memory_interfaces_; }
+                        
 			StateBlockInstance &GetStateBlock();
 		private:
 			const ArchDescriptor &descriptor_;
@@ -62,6 +67,7 @@ namespace archsim {
 			std::vector<unsigned char> register_file_;
 			
 			uint32_t mode_id_;
+                        uint32_t ring_id_;
 			
 			StateBlockInstance state_block_;
 		};

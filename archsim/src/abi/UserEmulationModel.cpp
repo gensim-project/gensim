@@ -59,9 +59,9 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	GetSystem().GetECM().AddContext(ctx);
 	main_thread_ = new ThreadInstance(*arch, stateblock);
 	
-	main_thread_->GetMemoryInterface("Mem").Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
-	main_thread_->GetMemoryInterface("Fetch").Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
-
+	for(auto i : main_thread_->GetMemoryInterfaces()) {
+		i.second->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
+	}
 	
 	GetSystem().GetECM().AddContext(ctx);
 	ctx->AddThread(main_thread_);

@@ -22,7 +22,9 @@ bool SSAMemoryReadStatement::IsFixed() const
 bool SSAMemoryReadStatement::Resolve(DiagnosticContext &ctx)
 {
 	bool success = true;
-	if (Target()->IsReference()) Replace(Target(), Target()->GetReferencee());
+	if (Target()->IsReference()) {
+		Replace(Target(), Target()->GetReferencee());
+	}
 
 	if(Target()->GetType().ElementSize() != Width) {
 		ctx.Error("Memory access target size must match the width of the memory access", GetDiag());
@@ -34,7 +36,7 @@ bool SSAMemoryReadStatement::Resolve(DiagnosticContext &ctx)
 	return success;
 }
 
-SSAMemoryReadStatement &SSAMemoryReadStatement::CreateRead(SSABlock *parent, SSAStatement *addrExpr, SSASymbol *target, uint8_t width, bool sign, gensim::arch::MemoryInterfaceDescription *interface)
+SSAMemoryReadStatement &SSAMemoryReadStatement::CreateRead(SSABlock *parent, SSAStatement *addrExpr, SSASymbol *target, uint8_t width, bool sign, const gensim::arch::MemoryInterfaceDescription *interface)
 {
 	SSAMemoryReadStatement &stmt = *(new SSAMemoryReadStatement(parent, addrExpr, target, width, sign, interface));
 	return stmt;
