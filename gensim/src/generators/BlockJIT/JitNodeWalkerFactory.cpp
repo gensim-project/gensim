@@ -1169,13 +1169,13 @@ namespace gensim
 					SSANodeWalker *address = Factory.GetOrCreate(Statement.Addr());
 					SSANodeWalker *value = Factory.GetOrCreate(Statement.Value());
 
-					if (Statement.User) {
-						output << "builder.stmem_user(" << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
-					} else {
+//					if (Statement.User) {
+//						output << "builder.stmem_user(" << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
+//					} else {
 						output << "builder.stmem(" << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
 						output << "if(trace)";
 						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemWrite" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_node(*value) << ");";
-					}
+//					}
 
 					return true;
 				}

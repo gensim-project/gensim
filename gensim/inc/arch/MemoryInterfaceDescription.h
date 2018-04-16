@@ -45,15 +45,18 @@ namespace gensim {
 			MemoryInterfacesDescription();
 			MemoryInterfacesDescription(const std::initializer_list<MemoryInterfaceDescription> &interfaces, const std::string &fetch_interface_id);
 			
-			void AddInterface(const MemoryInterfaceDescription &interface) { interfaces_.insert({interface.GetName(), interface}); }
+			void AddInterface(const MemoryInterfaceDescription &interface);
 			void SetFetchInterface(const std::string &name) { fetch_interface_name_ = name; }
 			
 			const memory_interface_description_collection_t &GetInterfaces() const { return interfaces_; }
 			const MemoryInterfaceDescription &GetFetchInterface() const { return interfaces_.at(fetch_interface_name_); }
 			
+                        const MemoryInterfaceDescription *GetByID(uint32_t id) const { if(id >= id_to_name_.size()) return nullptr; else return &interfaces_.at(id_to_name_.at(id)); }
+                        
 			bool Resolve(DiagnosticContext &diag);
 			
 		private:
+                    std::vector<std::string> id_to_name_;
 			memory_interface_description_collection_t interfaces_;
 			std::string fetch_interface_name_;
 		};

@@ -27,3 +27,8 @@ bool MemoryInterfacesDescription::Resolve(DiagnosticContext &diag) {
 	}
 	return true;
 }
+
+void MemoryInterfacesDescription::AddInterface(const MemoryInterfaceDescription &interface) { 
+	id_to_name_.push_back(interface.GetName());
+	interfaces_.insert({interface.GetName(), interface}); 
+}

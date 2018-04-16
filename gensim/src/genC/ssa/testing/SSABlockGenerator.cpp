@@ -240,7 +240,7 @@ SSAStatement *generate_memory_write(SSABlock *block, SSABlockGenerator *gen)
 
 	int width = 1 << (gen->Random() % 3);
 
-	return &SSAMemoryWriteStatement::CreateWrite(block, addr, value, width);
+	return &SSAMemoryWriteStatement::CreateWrite(block, addr, value, width, nullptr);
 }
 
 SSAControlFlowStatement *generate_return(SSABlock *block, SSABlockGenerator *gen)

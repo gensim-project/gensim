@@ -591,8 +591,10 @@ SSAStatement *StatementAssembler::parse_mem_write_statement(pANTLR3_BASE_TREE tr
 	IRConstant width = parse_constant_value(width_node);
 	SSAStatement *addr = get_statement(addr_node);
 	SSAStatement *target = get_statement(value_node);
-
-	return &SSAMemoryWriteStatement::CreateWrite(block, addr, target, width.Int());
+	
+	gensim::arch::MemoryInterfaceDescription *interface = nullptr;
+	
+	return &SSAMemoryWriteStatement::CreateWrite(block, addr, target, width.Int(), interface);
 }
 
 SSAStatement *StatementAssembler::parse_read_statement(pANTLR3_BASE_TREE tree, SSABlock *block)

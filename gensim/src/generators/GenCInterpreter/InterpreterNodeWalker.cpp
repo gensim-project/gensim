@@ -344,7 +344,8 @@ namespace gensim
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = __builtin_clz(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
-						output << "take_exception(" << (Factory.GetOrCreate(stmt.Args(0))->GetFixedValue()) << "," << (Factory.GetOrCreate(stmt.Args(1))->GetFixedValue()) << ");";
+						output << "assert(false);";
+//						output << "take_exception(" << (Factory.GetOrCreate(stmt.Args(0))->GetFixedValue()) << "," << (Factory.GetOrCreate(stmt.Args(1))->GetFixedValue()) << ");";
 
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
@@ -357,10 +358,10 @@ namespace gensim
 						// nothing here
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_Trap:
-						output << "trap();";
+						output << "throw std::logic_error(\"Trap.\");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
-						output << "set_cpu_mode(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						output << "thread->SetModeID(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = write_device(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
@@ -370,22 +371,25 @@ namespace gensim
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
-						output << "pop_interrupt();";
+						output << "UNIMPLEMENTED; // pop_interrupt\n";
+//						output << "pop_interrupt();";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
-						output << "push_interrupt(1);";
+//						output << "push_interrupt(1);";
+						output << "UNIMPLEMENTED; // push_interrupt\n";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = get_cpu_mode();";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetModeID();";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
-						output << "enter_kernel_mode();";
+						output << "thread->SetExecutionRing(1);";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
-						output << "enter_user_mode();";
+						output << "thread->SetExecutionRing(0);";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
-						output << "pend_interrupt();";
+//						output << "pend_interrupt();";
+						output << "UNIMPLEMENTED; // pendirq\n";
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
@@ -418,10 +422,10 @@ namespace gensim
 						//SZ0A0P1C0000000V
 						output << "{";
 						output << "uint16_t flags = genc_adc_flags(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						output << "write_register_C((flags >> 8) & 1);";
-						output << "write_register_V(flags & 1);";
-						output << "write_register_Z((flags >> 14) & 1);";
-						output << "write_register_N((flags >> 15) & 1);";
+						output << "interface.write_register_C((flags >> 8) & 1);";
+						output << "interface.write_register_V(flags & 1);";
+						output << "interface.write_register_Z((flags >> 14) & 1);";
+						output << "interface.write_register_N((flags >> 15) & 1);";
 						output << "}";
 						break;
 
@@ -437,19 +441,22 @@ namespace gensim
 					 */
 
 					case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32:
-						output << "write_register_Z(!(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
-						output << "write_register_N(((" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ") & 0x80000000) != 0);";
+						output << "interface.write_register_Z(!(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
+						output << "interface.write_register_N(((" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ") & 0x80000000) != 0);";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN64:
-						output << "write_register_Z(!(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
-						output << "write_register_N(((" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ") & 0x8000000000000000ull) != 0);";
+						output << "interface.write_register_Z(!(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
+						output << "interface.write_register_N(((" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ") & 0x8000000000000000ull) != 0);";
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_GetFeature:
-						output << "uint32_t " << stmt.GetName() << " = GetFeatures().GetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						output << "UNIMPLEMENTED; // getfeature\n";
+						output << "uint32_t " << stmt.GetName() << ";";
+//						output << "uint32_t " << stmt.GetName() << " = GetFeatures().GetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_SetFeature:
-						output << "GetFeatures().SetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ");";
+						output << "UNIMPLEMENTED; // setfeature\n";
+//						output << "GetFeatures().SetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ");";
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
@@ -477,7 +484,7 @@ namespace gensim
 				const SSAIntrinsicStatement &stmt = (const SSAIntrinsicStatement &) (Statement);
 				switch (stmt.Type) {
 					case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
-						return "read_pc()";
+						return "interface.read_pc().Get()";
 					default:
 						return stmt.GetName();
 				}
@@ -513,11 +520,15 @@ namespace gensim
 			{
 				const SSAMemoryReadStatement &stmt = (const SSAMemoryReadStatement &) (Statement);
 
+				// look up correct memory interface
+				auto interface = stmt.GetInterface()->GetName();
+				
 				output << "{";
-				output << "uint32_t _value = mem_read_" << (stmt.Width * 8) << (stmt.Signed ? "s" : "") << "(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << "," << stmt.Target()->GetName() << ");";
-				output << "if(_value) {"
-				       "take_exception(7, read_pc()+8);"
-				       "longjmp(_longjmp_safepoint, 0);"
+				output << "archsim::MemoryResult _value = thread->GetMemoryInterface(\"" << interface << "\").Read" << (stmt.Width * 8) << "(archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ")," << stmt.Target()->GetName() << ");";
+				output << "if(_value != archsim::MemoryResult::OK) {"
+					   "assert(false);"	
+//				       "take_exception(7, interface.read_pc().Get()+8);"
+//				       "longjmp(_longjmp_safepoint, 0);"
 				       "}";
 				output << "}";
 				return true;
@@ -533,15 +544,17 @@ namespace gensim
 			}
 
 			bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
-			{
+			{				
 				const SSAMemoryWriteStatement &stmt = (const SSAMemoryWriteStatement &) (Statement);
+				
+				// look up correct memory interface
+				auto interface = stmt.GetInterface()->GetName();
+				
 				output << "{";
-				output << "uint32_t _value = mem_write_" << (stmt.Width * 8) << (stmt.User ? "_user" : "") << "(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ");";
-				output << "if(_value) {"
-				       "if(_value <= 1024) {"
-				       "	take_exception(7, read_pc()+8);"
-				       "}"
-				       "longjmp(_longjmp_safepoint, 0);"
+				output << "archsim::MemoryResult _value = thread->GetMemoryInterface(\"" << interface << "\").Write" << (stmt.Width * 8) << "(archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ")," << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ");";
+				output << "if(_value != archsim::MemoryResult::OK) {"
+				       "	assert(false); "//take_exception(7, interface.read_pc().Get()+8);"
+	//				       "longjmp(_longjmp_safepoint, 0);"
 				       "}";
 				output << "}";
 				return true;

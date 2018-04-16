@@ -99,6 +99,13 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 		throw std::logic_error("Unsupported memory intrinsic: " + call->TargetName);
 	}
 
+	auto mem_interface_read = dynamic_cast<IRVariableExpression*>(call->Args[0]);
+	if(mem_interface_read == nullptr) {
+		throw std::logic_error("First argument of mem intrinsic must be a constant memory interface ID");
+	}
+	
+	auto mem_interface_id = call->GetScope().GetContainingAction().Context.GetConstant(mem_interface_read->Symbol->GetLocalName()).second;
+	
 	SSAStatement *addr = call->Args[1]->EmitSSAForm(bldr);
 	if (addr->GetType() != wordtype) {
 		const auto& dn = addr->GetDiag();
@@ -106,7 +113,10 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 		addr->SetDiag(dn);
 	}
 
-	gensim::arch::MemoryInterfaceDescription *interface = nullptr;
+	const gensim::arch::MemoryInterfaceDescription *interface = bldr.Context.GetArchDescription().GetMemoryInterfaces().GetByID(mem_interface_id);
+	if(interface == nullptr) {
+		throw std::logic_error("could not find an interface with id " + std::to_string(mem_interface_id));
+	}
 	
 	if (is_memory_write) {
 		SSAStatement *value = call->Args[1]->EmitSSAForm(bldr);

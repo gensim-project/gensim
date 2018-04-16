@@ -40,6 +40,8 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 		"#include \"arch.h\"\n"
 		"#include \"decode.h\"\n"
 		"#include <module/Module.h>\n"
+		"#include <util/Vector.h>\n"
+		"#include <translate/jit_funs.h>\n"
 		;
 	
 	GenerateDecodeInstruction(str);
@@ -61,7 +63,7 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 		"  auto module = new archsim::module::ModuleInfo(\"" << Manager.GetArch().Name << "\", \"CPU Module\");"
 		"  auto ee_entry = new archsim::module::ModuleExecutionEngineEntry(\"EE\", ARCHSIM_EEFACTORY(EE));"
 		
-		"  auto arch_entry = new archsim::module::ModuleArchDescriptorEntry(\"ArchDescriptor\", ARCHSIM_ARCHDESCRIPTORFACTORY(ArchDescriptor));"
+		"  auto arch_entry = new archsim::module::ModuleArchDescriptorEntry(\"ArchDescriptor\", ARCHSIM_ARCHDESCRIPTORFACTORY(gensim::" << Manager.GetArch().Name << "::ArchDescriptor));"
 		
 		"	module->AddEntry(ee_entry);"
 		"	module->AddEntry(arch_entry);"
@@ -95,6 +97,7 @@ bool InterpEEGenerator::GenerateBlockExecutor(util::cppformatstream& str) const
 		"  auto result = StepInstruction(thread, inst);"
 		"  if(result != archsim::ExecutionResult::Continue) { break; }"
 		"  if(inst.GetEndOfBlock()) { break; }"
+		"  thread->SetPC(thread->GetPC() + inst.Instr_Length);"
 		
 		"}";
 	
@@ -135,7 +138,7 @@ bool InterpEEGenerator::GenerateStepInstructionInsn(util::cppformatstream& str, 
 	
 	gensim::generator::GenCInterpreterGenerator gci (Manager);
 	gci.GenerateExecuteBodyFor(str, *static_cast<const gensim::genc::ssa::SSAFormAction*>(insn.ISA.GetSSAContext().GetAction(insn.BehaviourName)));
-	
+	str << "return archsim::ExecutionResult::Continue;";
 	str << "}";
 	
 	return true;

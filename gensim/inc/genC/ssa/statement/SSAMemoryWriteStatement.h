@@ -9,6 +9,8 @@
 #pragma once
 
 #include "genC/ssa/statement/SSAStatement.h"
+#include "arch/MemoryInterfaceDescription.h"
+
 
 namespace gensim
 {
@@ -23,7 +25,6 @@ namespace gensim
 			{
 			public:
 				uint8_t Width;
-				bool User;
 
 				virtual bool IsFixed() const override;
 				virtual bool Resolve(DiagnosticContext &ctx) override;
@@ -31,7 +32,7 @@ namespace gensim
 				virtual std::set<SSASymbol *> GetKilledVariables() override;
 				void Accept(SSAStatementVisitor& visitor) override;
 
-				static SSAMemoryWriteStatement &CreateWrite(SSABlock *parent, SSAStatement *addrExpr, SSAStatement *valueExpr, uint8_t Width, bool user = false);
+				static SSAMemoryWriteStatement &CreateWrite(SSABlock *parent, SSAStatement *addrExpr, SSAStatement *valueExpr, uint8_t Width, const gensim::arch::MemoryInterfaceDescription *interface);
 
 				~SSAMemoryWriteStatement();
 
@@ -42,14 +43,18 @@ namespace gensim
 				{
 					return IRTypes::Void;
 				}
+                                
+                                const gensim::arch::MemoryInterfaceDescription *GetInterface() const { return interface_; }
 
 			private:
-				SSAMemoryWriteStatement(SSABlock *parent, SSAStatement *addrExpr, SSAStatement *valueExpr, uint8_t width, bool user = false, SSAStatement *before = NULL)
-					: SSAStatement(Class_Unknown, 2, parent, before), Width(width), User(user)
+				SSAMemoryWriteStatement(SSABlock *parent, SSAStatement *addrExpr, SSAStatement *valueExpr, uint8_t width, const gensim::arch::MemoryInterfaceDescription *interface, SSAStatement *before = NULL)
+					: SSAStatement(Class_Unknown, 2, parent, before), Width(width), interface_(interface)
 				{
 					SetAddr(addrExpr);
 					SetValue(valueExpr);
 				}
+                                        
+                                        const gensim::arch::MemoryInterfaceDescription *interface_;
 			};
 		}
 	}

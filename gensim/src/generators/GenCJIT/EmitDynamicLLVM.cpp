@@ -984,9 +984,9 @@ namespace gensim
 
 					output << "llvm::Value *" << Statement.GetName() << " = NULL;";
 
-					if(Statement.User)
-						output << "txln_ctx.mtm.EmitNonPrivilegedWrite(ctx, " << (uint32_t)Statement.Width << ", " << Statement.GetName() << ", " << AddrExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
-					else
+//					if(Statement.User)
+//						output << "txln_ctx.mtm.EmitNonPrivilegedWrite(ctx, " << (uint32_t)Statement.Width << ", " << Statement.GetName() << ", " << AddrExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
+//					else
 						output << "txln_ctx.mtm.EmitMemoryWrite(ctx, " << (uint32_t)Statement.Width << ", " << Statement.GetName() << ", " << AddrExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
 
 					output << "if (__trace) {";
