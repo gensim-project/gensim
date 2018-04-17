@@ -5,7 +5,7 @@ RUN pacman -Syu --noconfirm && pacman -S --noconfirm \
 	automake \
 	arm-none-eabi-gcc \
     cmake \
-    debus \
+    ibus \
     gcc \
 	jre9-openjdk-headless \
 	libantlr3c \
