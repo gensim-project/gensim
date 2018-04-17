@@ -102,24 +102,12 @@ namespace gensim
 
 			bool load_constraints_from_node(gensim::AntlrTreeWrapper tree, std::list<std::vector<DecodeConstraint> > &target);
 
-		private:
 			mutable bool bitStringsCalculated;
+		private:
+			
 			mutable std::vector<std::string> bitStrings;
 		};
 
-		class InstructionDescriptionParser
-		{
-		public:
-			InstructionDescriptionParser(DiagnosticContext &diag);
-
-			bool Parse(gensim::AntlrTreeWrapper node, const ISADescription &ISA);
-			InstructionDescription *Get();
-
-		private:
-			DiagnosticContext &diag;
-			InstructionDescription *description;
-
-		};
 
 
 	}

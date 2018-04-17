@@ -26,7 +26,6 @@ namespace gensim
 			std::map<int, std::string> mapping;
 
 			AsmMapDescription() {};
-			AsmMapDescription(void *node);
 
 			int GetMin() const
 			{

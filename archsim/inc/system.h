@@ -17,6 +17,7 @@
 #define _system_h_
 
 #include "define.h"
+#include "gensim/ExecutionContextManager.h"
 #include "util/PubSubSync.h"
 #include "concurrent/Barrier.h"
 #include "translate/profile/ProfileManager.h"
@@ -230,6 +231,11 @@ public:
 	{
 		return module_manager_;
 	}
+	
+	inline archsim::ExecutionContextManager &GetECM()
+	{
+		return exec_ctx_mgr_;
+	}
 
 private:
 	std::map<std::string, archsim::abi::devices::generic::block::BlockDevice*> _block_devices;
@@ -238,6 +244,8 @@ private:
 	int max_fd;
 
 	archsim::Session& session;
+	archsim::ExecutionContextManager exec_ctx_mgr_;
+	
 	static archsim::concurrent::LWBarrier2 _verify_barrier_enter;
 	static archsim::concurrent::LWBarrier2 _verify_barrier_leave;
 	bool _verify;

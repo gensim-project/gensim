@@ -8,6 +8,10 @@
 AC_ARCH(armv7a)
 {
 
+	ac_mem Fetch(32, 32, little, 1);
+	ac_mem Mem(32, 32, little, 0);
+	ac_mem UserMem(32, 32, little, 0);
+
 	// General Purpose Registers
 	ac_regspace(64) {
 		// bank NAME (TYPE, OFFSET, COUNT, REG-STRIDE, # ELEMS, ELEM-SIZE, ELEM-STRIDE)

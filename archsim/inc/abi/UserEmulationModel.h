@@ -10,6 +10,7 @@
 
 #include "abi/EmulationModel.h"
 #include "abi/user/SyscallHandler.h"
+#include "gensim/ThreadInstance.h"
 
 namespace archsim
 {
@@ -48,7 +49,9 @@ namespace archsim
 			void Destroy() override;
 
 			gensim::Processor* GetCore(int id);
-			gensim::Processor* GetBootCore();
+			
+			archsim::ThreadInstance *GetMainThread();
+			
 			void ResetCores();
 			void HaltCores();
 
@@ -71,7 +74,7 @@ namespace archsim
 			bool PrepareStack(System& system, loader::UserElfBinaryLoader& elf_loader);
 			bool InitialiseProgramArguments();
 
-			gensim::Processor* cpu;
+//			gensim::Processor* cpu;
 
 			user::SyscallHandler &syscall_handler_;
 
@@ -83,6 +86,8 @@ namespace archsim
 			unsigned int _stack_size;
 			unsigned int _initial_program_break;
 			unsigned int _program_break;
+			
+			archsim::ThreadInstance *main_thread_;
 		};
 	}
 }

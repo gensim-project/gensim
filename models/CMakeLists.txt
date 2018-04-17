@@ -22,9 +22,9 @@ function(define_model target-name arch-name arch-file)
 		SET(MODEL_OPT "3")
 	ENDIF()
 
-	SET(gensim-options -s decode,disasm,adapt_blkjit,jit,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=${MODEL_OPT},makefile.Debug=1)
+	SET(gensim-options -s arch,decode,disasm,ee_interp,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=${MODEL_OPT},makefile.Debug=1)
 
-    #SET(gensim-options -s decode,disasm,genc_interpret,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=3)
+    #SET(gensim-options -s arch,decode,disasm,genc_interpret,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=3)
 
 	ADD_CUSTOM_COMMAND(
 		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/output/Makefile"

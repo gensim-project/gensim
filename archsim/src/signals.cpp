@@ -181,7 +181,8 @@ static void sigsegv_handler(siginfo_t *si, void *unused)
 			if (sim_ctx->GetEmulationModel().GetMemoryModel().GetMappingManager())
 				sim_ctx->GetEmulationModel().GetMemoryModel().GetMappingManager()->DumpRegions();
 
-			gensim::Processor *cpu = sim_ctx->GetEmulationModel().GetBootCore();
+			// XXX HAX
+			gensim::Processor *cpu = nullptr; //sim_ctx->GetEmulationModel().GetBootCore();
 
 			// Make sure we've got a boot CPU.  This isn't necessarily the right thing to do
 			// here if we support multiple cores - as if the segfault was in guest code, we
@@ -211,12 +212,7 @@ static void sigsegv_handler(siginfo_t *si, void *unused)
 
 	// Try and salvage tracing information
 	for(auto sim_ctx : sim_ctxs) {
-		gensim::Processor *cpu = sim_ctx->GetEmulationModel().GetBootCore();
-		if (cpu != NULL && cpu->HasTraceManager() && cpu->IsTracingEnabled()) {
-			cpu->GetTraceManager()->Trace_End_Insn();
-			cpu->GetTraceManager()->Flush();
-			cpu->GetTraceManager()->Terminate();
-		}
+		sim_ctx->Destroy();
 	}
 	// Enough, now.
 	exit(-1);

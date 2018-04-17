@@ -14,9 +14,9 @@ SSAMemoryWriteStatement::~SSAMemoryWriteStatement()
 {
 }
 
-SSAMemoryWriteStatement &SSAMemoryWriteStatement::CreateWrite(SSABlock *parent, SSAStatement *addrExpr, SSAStatement *valueExpr, uint8_t width, bool user)
+SSAMemoryWriteStatement &SSAMemoryWriteStatement::CreateWrite(SSABlock *parent, SSAStatement *addrExpr, SSAStatement *valueExpr, uint8_t width, const gensim::arch::MemoryInterfaceDescription *interface)
 {
-	SSAMemoryWriteStatement &stmt = *(new SSAMemoryWriteStatement(parent, addrExpr, valueExpr, width, user));
+	SSAMemoryWriteStatement &stmt = *(new SSAMemoryWriteStatement(parent, addrExpr, valueExpr, width, interface));
 	return stmt;
 }
 

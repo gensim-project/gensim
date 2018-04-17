@@ -508,7 +508,7 @@ execute(lw)
 
 	uint32 val;
         
-	mem_read_32(addr, val);
+	mem_read_32(Mem, addr, val);
 
 	write_register_bank(GPR, inst.rd, val);
 
@@ -527,7 +527,7 @@ execute(lh)
 
 	uint16 val;	
 
-	mem_read_16(addr, val);
+	mem_read_16(Mem, addr, val);
 
 	sint32 sval = val;
 
@@ -550,7 +550,7 @@ execute(lhu)
 
 	uint16 valh;
 
-	mem_read_16(addr, valh);
+	mem_read_16(Mem, addr, valh);
 
 	uint32 val = valh;
 
@@ -571,7 +571,7 @@ execute(lb)
 
 	uint8 valb;
 
-	mem_read_8(addr, valb);
+	mem_read_8(Mem, addr, valb);
 
 	sint32 val = valb;
 
@@ -595,7 +595,7 @@ execute(lbu)
         
         uint8 valb;
 
-	mem_read_8(addr, valb);
+	mem_read_8(Mem, addr, valb);
 
 	uint32 val = valb;
 
@@ -616,7 +616,7 @@ execute(sw)
 	
 	uint32 addr = rs1 + imm;
 
-	mem_write_32(addr, read_gpr(inst.rs2));
+	mem_write_32(Mem, addr, read_gpr(inst.rs2));
 }
 
 execute(sh)
@@ -634,7 +634,7 @@ execute(sh)
 
 	uint16 half = read_gpr(inst.rs2) & 0xFFFF;
         
-        mem_write_16(addr, half);
+        mem_write_16(Mem, addr, half);
 
 
 }
@@ -654,7 +654,7 @@ execute(sb)
 
 	uint8 quarter = read_gpr(inst.rs2) & 0xFF;
 
-        mem_write_8(addr, quarter);
+        mem_write_8(Mem, addr, quarter);
 
 }
 
@@ -781,7 +781,7 @@ internal helper uint8 instruction_predicate(Instruction inst)
 /*
 helper uint8 memory_read_32(uint32 addr, uint32 &data)
 {
-	mem_read_32(addr, data);
+	mem_read_32(Mem, addr, data);
 	return 1;
 
 }
@@ -789,7 +789,7 @@ helper uint8 memory_read_32(uint32 addr, uint32 &data)
 helper uint8 memory_read_16(uint32 addr, uint16 &data)
 {
 	uint16 inner_data;
-	mem_read_16(addr, inner_data);
+	mem_read_16(Mem, addr, inner_data);
 	data = inner_data;
 	return 1;
 	
@@ -798,7 +798,7 @@ helper uint8 memory_read_16(uint32 addr, uint16 &data)
 helper uint8 memory_read_8(uint32 addr, uint8 &data)
 {
 	uint8 inner_data;
-	mem_read_8(addr, inner_data);
+	mem_read_8(Mem, addr, inner_data);
 	data = inner_data;
 	return 1;
 	
@@ -811,20 +811,20 @@ helper uint8 memory_read_8(uint32 addr, uint8 &data)
 
 helper uint8 memory_write_32(uint32 addr, uint32 data)
 {
-	mem_write_32(addr, data);
+	mem_write_32(Mem, addr, data);
 	return 1;
 
 }
 
 helper uint8 memory_write_16(uint32 addr, uint32 data)
 {
-	mem_write_16(addr, data);
+	mem_write_16(Mem, addr, data);
 	return 1;
 }
 
 helper uint8 memory_write_8(uint32 addr, uint32 data)
 {
-	mem_write_8(addr, data);
+	mem_write_8(Mem, addr, data);
 	return 1;
 }
 */

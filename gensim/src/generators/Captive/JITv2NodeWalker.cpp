@@ -904,11 +904,12 @@ namespace gensim
 
 					SSANodeWalker *address = Factory.GetOrCreate(Statement.Addr());
 
-					if (Statement.User) {
-						output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
-					} else {
-						output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
-					}
+					// TODO: this
+//					if (Statement.User) {
+//						output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
+//					} else {
+//						output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
+//					}
 
 					output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_stmt(Statement) << ");";
 
@@ -948,11 +949,11 @@ namespace gensim
 					output << "emitter.trace(dbt::el::TraceEvent::STORE_MEMORY, " << operand_for_node(*address) << ", " << operand_for_node(*value) << ", emitter.const_u8(" << (uint32_t) Statement.Width << "));\n";
 					output << "}";
 
-					if (Statement.User) {
+//					if (Statement.User) {
+//						output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
+//					} else {
 						output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
-					} else {
-						output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
-					}
+//					}
 
 					return true;
 				}

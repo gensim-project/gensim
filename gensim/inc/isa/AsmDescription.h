@@ -38,20 +38,6 @@ namespace gensim
 
 		};
 
-		class AsmDescriptionParser
-		{
-		public:
-			AsmDescriptionParser(DiagnosticContext &diag, std::string filename);
-
-			bool Parse(void *tree, const ISADescription &format);
-
-			AsmDescription *Get();
-		private:
-			AsmDescription *description;
-			DiagnosticContext &diag;
-			std::string filename;
-		};
-
 	}
 }
 

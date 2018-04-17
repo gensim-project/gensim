@@ -39,6 +39,8 @@ namespace gensim
 			header_str << "\n#include <define.h>\n\n";
 
 			header_str << "#include <gensim/gensim_decode.h>\n";
+			header_str << "#include <gensim/MemoryInterface.h>\n";
+			header_str << "#include <gensim/ThreadInstance.h>\n";
 			header_str << "#include <util/HashMap.h>\n";
 			header_str << "#include <queue>\n";
 			header_str << "#include <utility>\n";
@@ -78,10 +80,9 @@ namespace gensim
 
 			header_str << "\n";
 
-			if(Manager.GetComponentC(Manager.FnInterpret))
-				header_str << "uint32_t DecodeInstr(uint32_t, uint8_t, gensim::Processor &, dynamic_pred_queue_t &);\n\n";
+			header_str << "uint32_t DecodeInstr(archsim::Address PC, uint32_t isa_mode, archsim::MemoryInterface &fetch_interface);";
 
-			header_str << "void DecodeInstr(uint32_t, uint8_t, dynamic_pred_queue_t &, bool);\n\n";
+			header_str << "void DecodeInstr(uint32_t, uint8_t);\n\n";
 
 			for (std::list<isa::ISADescription *>::const_iterator II = Architecture.ISAs.begin(), IE = Architecture.ISAs.end(); II != IE; ++II) {
 				const isa::ISADescription *isa = *II;
@@ -329,79 +330,79 @@ namespace gensim
 			}
 
 			// Start emitting actual instruction decode code
-			if(Manager.GetComponentC(Manager.FnInterpret)) {
-				source_str << "uint32_t " << GetProperty("class") << "::DecodeInstr(uint32_t pc, uint8_t _isa_mode, gensim::Processor &cpu, dynamic_pred_queue_t& dynamic_predication)\n{\n";
+			source_str << "uint32_t " << GetProperty("class") << "::DecodeInstr(archsim::Address pc, uint32_t _isa_mode, archsim::MemoryInterface &fetch)\n{\n";
 
-				// Start by mapping format names to instruction descriptions
-				std::map<std::string, std::list<const isa::InstructionDescription *> > ins_formats;
+			// Start by mapping format names to instruction descriptions
+			std::map<std::string, std::list<const isa::InstructionDescription *> > ins_formats;
 
-				for (std::list<isa::ISADescription *>::const_iterator II = Architecture.ISAs.begin(), IE = Architecture.ISAs.end(); II != IE; ++II) {
-					const isa::ISADescription *isa = *II;
+			for (std::list<isa::ISADescription *>::const_iterator II = Architecture.ISAs.begin(), IE = Architecture.ISAs.end(); II != IE; ++II) {
+				const isa::ISADescription *isa = *II;
 
-					for (std::map<std::string, isa::InstructionFormatDescription *>::const_iterator i = isa->Formats.begin(); i != isa->Formats.end(); ++i) {
-						ins_formats[i->second->GetName()] = std::list<const isa::InstructionDescription *>();
-					}
-
-					for (isa::ISADescription::InstructionDescriptionMap::const_iterator ci = isa->Instructions.begin(); ci != isa->Instructions.end(); ++ci) {
-						ins_formats[ci->second->Format->GetName()].push_back(ci->second);
-					}
+				for (std::map<std::string, isa::InstructionFormatDescription *>::const_iterator i = isa->Formats.begin(); i != isa->Formats.end(); ++i) {
+					ins_formats[i->second->GetName()] = std::list<const isa::InstructionDescription *>();
 				}
 
-				source_str << "uint32_t instr = 0, ecause = 0;\n";
-				source_str << "uint32_t chunk32 = 0;\n";
-				source_str << "uint16_t chunk16 = 0;\n";
-				source_str << "uint8_t chunk8 = 0;\n";
-
-				// Fetch the instruction data depending on which ISA we're decoding for
-				source_str << "switch(_isa_mode) {";
-
-				int maxarchinsnlen = 0;
-				for(const auto &isa : Architecture.ISAs) {
-					if(maxarchinsnlen < isa->GetMaxInstructionLength()) maxarchinsnlen = isa->GetMaxInstructionLength();
+				for (isa::ISADescription::InstructionDescriptionMap::const_iterator ci = isa->Instructions.begin(); ci != isa->Instructions.end(); ++ci) {
+					ins_formats[ci->second->Format->GetName()].push_back(ci->second);
 				}
-
-				for (std::list<isa::ISADescription *>::const_iterator II = Architecture.ISAs.begin(), IE = Architecture.ISAs.end(); II != IE; ++II) {
-					const isa::ISADescription *isa = *II;
-					int maxlen = isa->GetMaxInstructionLength();
-
-					if(maxlen > 32) {
-						fprintf(stderr, "Do not currently support instructions longer than 32 bits\n");
-						return false;
-					}
-
-					source_str << "case ISA_MODE_" << isa->ISAName << ":";
-					int fetched = 0;
-
-					while(fetched < maxlen) {
-						source_str << "ecause = cpu.GetMemoryModel().Fetch" << isa->GetFetchLength() << "(pc + " << fetched/8 << ", chunk" << isa->GetFetchLength() << ");";
-						source_str << "if(ecause) return ecause;";
-						source_str << "instr |= chunk" << isa->GetFetchLength() << ";";
-
-						fetched += isa->GetFetchLength();
-
-						//If there's still potentially more instruction to fetched, make some space for it
-						if(fetched < maxlen)
-							source_str << "instr <<= " << isa->GetFetchLength() << ";";
-					}
-
-					//Shift up the remaining bits if we have ISAs with different insn lengths
-					if(fetched < maxarchinsnlen) source_str << "instr <<= " << maxarchinsnlen - fetched << ";";
-
-					source_str << "break;";
-				}
-
-				source_str << "default:";
-				source_str << "ecause = cpu.GetMemoryModel().Fetch32(pc, instr); if(ecause) return ecause;";
-				source_str << "break;";
-				source_str << "}";
-
-				// recursively emit decode statements for the tree
-				source_str << "DecodeInstr(instr, _isa_mode, dynamic_predication, true);"
-				           "return 0;";
-				source_str << "}";
 			}
 
-			source_str << "void " << GetProperty("class") << "::DecodeInstr(uint32_t instr, uint8_t _isa_mode,dynamic_pred_queue_t & dynamic_predication, bool dyn_pred)\n{\n";
+			source_str << "uint32_t instr = 0;";
+			source_str << "archsim::MemoryResult ecause;\n";
+			source_str << "uint32_t chunk32 = 0;\n";
+			source_str << "uint16_t chunk16 = 0;\n";
+			source_str << "uint8_t chunk8 = 0;\n";
+
+			// Fetch the instruction data depending on which ISA we're decoding for
+			source_str << "switch(_isa_mode) {";
+
+			int maxarchinsnlen = 0;
+			for(const auto &isa : Architecture.ISAs) {
+				if(maxarchinsnlen < isa->GetMaxInstructionLength()) maxarchinsnlen = isa->GetMaxInstructionLength();
+			}
+
+			for (std::list<isa::ISADescription *>::const_iterator II = Architecture.ISAs.begin(), IE = Architecture.ISAs.end(); II != IE; ++II) {
+				const isa::ISADescription *isa = *II;
+				int maxlen = isa->GetMaxInstructionLength();
+
+				if(maxlen > 32) {
+					fprintf(stderr, "Do not currently support instructions longer than 32 bits\n");
+					return false;
+				}
+
+				source_str << "case ISA_MODE_" << isa->ISAName << ":";
+				int fetched = 0;
+
+				while(fetched < maxlen) {
+					source_str << "ecause = fetch.Read" << isa->GetFetchLength() << "(pc + " << fetched/8 << ", chunk" << isa->GetFetchLength() << ");";
+					source_str << "if(ecause != archsim::MemoryResult::OK) return 1;";
+					source_str << "instr |= chunk" << isa->GetFetchLength() << ";";
+
+					fetched += isa->GetFetchLength();
+
+					//If there's still potentially more instruction to fetched, make some space for it
+					if(fetched < maxlen)
+						source_str << "instr <<= " << isa->GetFetchLength() << ";";
+				}
+
+				//Shift up the remaining bits if we have ISAs with different insn lengths
+				if(fetched < maxarchinsnlen) source_str << "instr <<= " << maxarchinsnlen - fetched << ";";
+
+				source_str << "break;";
+			}
+
+			source_str << "default:";
+			source_str << "ecause = fetch.Read32(pc, instr); if(ecause != archsim::MemoryResult::OK) return 1;";
+			source_str << "break;";
+			source_str << "}";
+
+			// recursively emit decode statements for the tree
+			source_str << "DecodeInstr(instr, _isa_mode);"
+					   "return 0;";
+			source_str << "}";
+			
+
+			source_str << "void " << GetProperty("class") << "::DecodeInstr(uint32_t instr, uint8_t _isa_mode)\n{\n";
 
 			source_str << "   Instr_Code = __INST_CODE_INVALID__;\n"; //(" << GetProperty("class") << "_Enum)(unsigned long)(-1);\n";
 			source_str << "   ClearEndOfBlock();";
@@ -476,97 +477,6 @@ namespace gensim
 #else
 			stream << "Instr_Length = " << insn.Format->GetLength() / 8 << ";\n";
 #endif
-
-			if (insn.blockCond) {
-				stream << "Block_Cond = true;\n";
-				stream <<
-				       // Set first instruction
-				       "uint8_t fc0 = opA & 0x1;\n"
-				       "uint8_t invert_bottom_bit = (~fc0) & 0x1;\n"
-				       "uint8_t inverted_cond = (opA & ~0x1) | invert_bottom_bit;\n"
-				       "if (dyn_pred)\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, opA));\n"
-				       "if ((opB & 1) == 0)\n"
-				       "{\n"
-				       "if ((opB & 2) == 0)\n"
-				       "{\n"
-				       "if ((opB & 4) == 0)\n"
-				       "{\n"
-				       // nothing more added
-				       "}\n"
-				       "else\n"
-				       "{\n"
-				       "if ((opB & 8) == (fc0 << 3))\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, opA));\n"
-				       "}\n"
-				       "else\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, inverted_cond));\n"
-				       "}\n"
-				       "}\n"
-				       "}\n"
-				       "else\n"
-				       "{\n"
-				       "if ((opB & 8) == (fc0 << 3))\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, opA));\n"
-				       "}\n"
-				       "else\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, inverted_cond));\n"
-				       "}\n"
-
-				       "if ((opB & 4) == (fc0 << 2))\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, opA));\n"
-				       "}\n"
-				       "else\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, inverted_cond));\n"
-				       "}\n"
-				       "}\n"
-				       "}\n"
-				       "else\n"
-				       "{\n"
-				       "if ((opB & 8) == (fc0 << 3))\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, opA));\n"
-				       "}\n"
-				       "else\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, inverted_cond));\n"
-				       "}\n"
-
-				       "if ((opB & 4) == (fc0 << 2))\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, opA));\n"
-				       "}\n"
-				       "else\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, inverted_cond));\n"
-				       "}\n"
-
-				       "if ((opB & 2) == (fc0 << 1))\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, opA));\n"
-				       "}\n"
-				       "else\n"
-				       "{\n"
-				       "dynamic_predication.push_back(std::pair<bool, uint8_t> (true, inverted_cond));\n"
-				       "}\n"
-				       "}\n"
-				       "}\n";
-			} else {
-				stream <<
-				       "if (!dynamic_predication.empty() && dyn_pred)\n"
-				       "{\n"
-				       "SetIsPredicated();\n"
-				       "cond2 = dynamic_predication.front().second;\n"
-				       "dynamic_predication.pop_front();\n"
-				       "}\n";
-			}
 
 			stream << "return;\n";
 

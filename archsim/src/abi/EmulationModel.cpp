@@ -30,6 +30,8 @@ EmulationModel::EmulationModel()
 	timer_mgr.start();
 }
 
+gensim::Processor *EmulationModel::GetBootCore() { UNIMPLEMENTED; }
+
 EmulationModel::~EmulationModel()
 {
 }

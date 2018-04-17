@@ -24,7 +24,7 @@ namespace gensim
 				return GenerationManager::FnInterpret;
 			}
 
-			ExecutionEngineGenerator(GenerationManager &manager, std::string _name) : GenerationComponent(manager, _name) {}
+			ExecutionEngineGenerator(const GenerationManager &manager, std::string _name) : GenerationComponent(manager, _name) {}
 
 			std::string GetStateStruct() const;
 
