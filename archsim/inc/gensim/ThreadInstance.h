@@ -18,6 +18,8 @@
 #include "abi/Address.h"
 #include "gensim/ArchDescriptor.h"
 
+#include <libtrace/TraceSource.h>
+
 namespace archsim {
 		class MemoryInterface;
 		class FeatureState;
@@ -47,10 +49,10 @@ namespace archsim {
 			void SetModeID(uint32_t new_mode) { mode_id_ = new_mode; }
 			
 			Address GetTaggedSlot(const std::string &tag);
-			void SetTaggedSlot(const std::string &tag, Address target);
+			void SetTaggedSlot(const std::string &tag, Address value);
 			
-                        uint32_t GetExecutionRing() const { return ring_id_; }
-                        void SetExecutionRing(uint32_t new_ring) { ring_id_ = new_ring; }
+			uint32_t GetExecutionRing() const { return ring_id_; }
+			void SetExecutionRing(uint32_t new_ring) { ring_id_ = new_ring; }
                         
 			Address GetPC() { return GetTaggedSlot("PC"); }
 			void SetPC(Address target) { SetTaggedSlot("PC", target); }
@@ -59,6 +61,9 @@ namespace archsim {
 			
 			MemoryInterface &GetFetchMI();
 			const memory_interface_collection_t &GetMemoryInterfaces() { return memory_interfaces_; }
+			
+			libtrace::TraceSource *GetTraceSource() { return trace_source_; }
+			void SetTraceSource(libtrace::TraceSource *source) { trace_source_ = source; }
                         
 			StateBlockInstance &GetStateBlock();
 		private:
@@ -67,9 +72,10 @@ namespace archsim {
 			std::vector<unsigned char> register_file_;
 			
 			uint32_t mode_id_;
-                        uint32_t ring_id_;
+			uint32_t ring_id_;
 			
 			StateBlockInstance state_block_;
+			libtrace::TraceSource *trace_source_;
 		};
 }
 

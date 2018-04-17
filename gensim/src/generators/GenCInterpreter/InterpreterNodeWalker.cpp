@@ -530,7 +530,9 @@ namespace gensim
 //				       "take_exception(7, interface.read_pc().Get()+8);"
 //				       "longjmp(_longjmp_safepoint, 0);"
 				       "}";
+				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Read(1, " << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ", " << stmt.Target()->GetName() << "); }";
 				output << "}";
+				
 				return true;
 			}
 		};
@@ -556,6 +558,7 @@ namespace gensim
 				       "	assert(false); "//take_exception(7, interface.read_pc().Get()+8);"
 	//				       "longjmp(_longjmp_safepoint, 0);"
 				       "}";
+				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Write(1, " << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << "); }";
 				output << "}";
 				return true;
 			}
@@ -610,19 +613,19 @@ namespace gensim
 					auto idx_node = Factory.GetOrCreate(stmt.RegNum());
 
 					if (stmt.IsRead) {
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = interface.read_register_bank_" << reg_desc.ID << "(" << idx_node->GetFixedValue() << ");";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = interface.read_register_bank_" << reg_desc.ID << "<trace>(" << idx_node->GetFixedValue() << ");";
 					} else {
 						auto value_node = Factory.GetOrCreate(stmt.Value());
-						output << "interface.write_register_bank_" << reg_desc.ID << "(" << idx_node->GetFixedValue() << ", " << value_node->GetFixedValue() << ");";
+						output << "interface.write_register_bank_" << reg_desc.ID << "<trace>(" << idx_node->GetFixedValue() << ", " << value_node->GetFixedValue() << ");";
 					}
 				} else {
 					auto &reg_desc = regfile.GetSlotByIdx(stmt.Bank);
 
 					if (stmt.IsRead) {
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = interface.read_register_" << reg_desc.GetID() << "();";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = interface.read_register_" << reg_desc.GetID() << "<trace>();";
 					} else {
 						auto value_node = Factory.GetOrCreate(stmt.Value());
-						output << "interface.write_register_" << reg_desc.GetID() << "(" << value_node->GetFixedValue() << ");";
+						output << "interface.write_register_" << reg_desc.GetID() << "<trace>(" << value_node->GetFixedValue() << ");";
 					}
 				}
 

@@ -119,7 +119,7 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 	}
 	
 	if (is_memory_write) {
-		SSAStatement *value = call->Args[1]->EmitSSAForm(bldr);
+		SSAStatement *value = call->Args[2]->EmitSSAForm(bldr);
 		if (value->GetType() != data_type) {
 			const auto& dn = value->GetDiag();
 			value = new SSACastStatement(&bldr.GetBlock(), data_type, value);

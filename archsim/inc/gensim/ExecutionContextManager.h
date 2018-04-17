@@ -40,11 +40,15 @@ namespace archsim {
 		
 		ExecutionResult StepThreadsBlock();
 		
+		void SetTraceSink(libtrace::TraceSink *source) { trace_sink_ = source; }
+		libtrace::TraceSink *GetTraceSink() { return trace_sink_; }
+		
 	private:
 		std::vector<ThreadInstance*> local_threads_;
 		
 		ArchDescriptor &arch_;
 		ExecutionEngine *engine_;
+		libtrace::TraceSink *trace_sink_;
 	};
 	
 	/**
@@ -53,15 +57,22 @@ namespace archsim {
 	 */
 	class ExecutionContextManager {
 	public:
+		ExecutionContextManager();
+		
 		void AddContext(ExecutionContext *ctx);
 		
 		ExecutionState GetState() const { return state_; }
+		
+		void SetTraceSink(libtrace::TraceSink *sink) { trace_sink_ = sink; }
+		libtrace::TraceSink *GetTraceSink() { return trace_sink_; }
 		
 		void StartSync();
 		
 	private:
 		std::vector<ExecutionContext*> contexts_;
 		ExecutionState state_;
+		
+		libtrace::TraceSink *trace_sink_;
 	};
 }
 

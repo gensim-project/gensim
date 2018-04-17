@@ -116,7 +116,7 @@ bool InterpEEGenerator::GenerateStepInstruction(util::cppformatstream& str) cons
 	str << "switch(thread->GetModeID()) {";
 	
 	for(auto i : Manager.GetArch().ISAs) {
-		str << "case " << i->isa_mode_id << ": return StepInstruction_" << i->ISAName << "(thread, inst);";
+		str << "case " << i->isa_mode_id << ": if(archsim::options::Trace) { return StepInstruction_" << i->ISAName << "<true>(thread, inst); } else { return StepInstruction_" << i->ISAName << "<false>(thread, inst); }";
 	}
 		
 	str << 
@@ -133,11 +133,15 @@ bool InterpEEGenerator::GenerateStepInstruction(util::cppformatstream& str) cons
 
 bool InterpEEGenerator::GenerateStepInstructionInsn(util::cppformatstream& str, isa::InstructionDescription& insn) const
 {
-	str << "archsim::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(archsim::ThreadInstance *thread, EE::decode_t &inst) {";
+	str << "template<bool trace=false> archsim::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(archsim::ThreadInstance *thread, EE::decode_t &inst) {";
 	str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
+	
+	str << "if(trace) { if(thread->GetTraceSource() == nullptr) { throw std::logic_error(\"\"); } thread->GetTraceSource()->Trace_Insn(thread->GetPC().Get(), inst.ir, false, thread->GetModeID(), thread->GetExecutionRing(), 1); }";
 	
 	gensim::generator::GenCInterpreterGenerator gci (Manager);
 	gci.GenerateExecuteBodyFor(str, *static_cast<const gensim::genc::ssa::SSAFormAction*>(insn.ISA.GetSSAContext().GetAction(insn.BehaviourName)));
+	
+	str << "if(trace) { thread->GetTraceSource()->Trace_End_Insn(); }";
 	str << "return archsim::ExecutionResult::Continue;";
 	str << "}";
 	
@@ -150,13 +154,13 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 		GenerateStepInstructionInsn(str, *i.second);
 	}
 	
-	str << "archsim::ExecutionResult StepInstruction_" << isa.ISAName << "(archsim::ThreadInstance *thread, EE::decode_t &decode) {";
+	str << "template<bool trace=false> archsim::ExecutionResult StepInstruction_" << isa.ISAName << "(archsim::ThreadInstance *thread, EE::decode_t &decode) {";
 	
 	str << " switch(decode.Instr_Code) {";
 	str << " using namespace gensim::" << Manager.GetArch().Name << ";";
 	
 	for(auto i : isa.Instructions) {
-		str << "case INST_" << isa.ISAName << "_" << i.second->Name << ": return StepInstruction_" << isa.ISAName << "_" << i.first << "(thread, decode);";
+		str << "case INST_" << isa.ISAName << "_" << i.second->Name << ": return StepInstruction_" << isa.ISAName << "_" << i.first << "<trace>(thread, decode);";
 	}
 	
 	str << " default: LC_ERROR(LogExecutionEngine) << \"Unknown instruction\"; return archsim::ExecutionResult::Abort;";

@@ -21,6 +21,7 @@
 #include "uarch/uArch.h"
 
 #include <iostream>
+#include <libtrace/TraceSink.h>
 
 DeclareLogContext(LogSystem, "System");
 
@@ -66,6 +67,27 @@ bool System::Initialise()
 	} else {
 		LC_INFO(LogSystem) << "JIT Mode Enabled";
 		mode = JIT;
+	}
+	
+	if(archsim::options::Trace) {
+		libtrace::TraceSink *sink = nullptr;
+		
+		if(archsim::options::TraceMode == "binary") {
+			if(!archsim::options::TraceFile.IsSpecified()) {
+				UNIMPLEMENTED;
+			}
+			FILE *f = fopen(archsim::options::TraceFile.GetValue().c_str(), "w");
+			if(f == nullptr) {
+				UNIMPLEMENTED;
+			}
+			
+			sink = new libtrace::BinaryFileTraceSink(f);
+			
+		} else {
+			UNIMPLEMENTED;
+		}
+		
+		GetECM().SetTraceSink(sink);
 	}
 
 	if (mode == JIT) {
@@ -137,6 +159,10 @@ void System::Destroy()
 		delete txln_mgr;
 	}
 
+	if(GetECM().GetTraceSink()) {
+		GetECM().GetTraceSink()->Flush();
+	}
+	
 	emulation_model->Destroy();
 	delete emulation_model;
 

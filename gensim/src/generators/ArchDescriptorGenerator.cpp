@@ -109,12 +109,12 @@ bool ArchDescriptorGenerator::GenerateThreadInterface(util::cppformatstream &str
 	str << "public: ArchInterface(archsim::ThreadInstance *thread) : thread_(thread), reg_file_((char*)thread->GetRegisterFile()) {}";
 	
 	for(gensim::arch::RegBankViewDescriptor *rbank : Manager.GetArch().GetRegFile().GetBanks()) {
-		str << rbank->GetRegisterIRType().GetCType() << " read_register_bank_" << rbank->ID << "(uint32_t idx) const { return *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")); }";
-		str << "void write_register_bank_" << rbank->ID << "(uint32_t idx, " << rbank->GetRegisterIRType().GetCType() << " value) { *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")) = value; }";
+		str << "template<bool trace=false> " << rbank->GetRegisterIRType().GetCType() << " read_register_bank_" << rbank->ID << "(uint32_t idx) const { auto value = *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")); if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Read(true, " << rbank->GetIndex() << ", idx, value); } return value; }";
+		str << "template<bool trace=false> void write_register_bank_" << rbank->ID << "(uint32_t idx, " << rbank->GetRegisterIRType().GetCType() << " value) { *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")) = value; if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Write(true, " << rbank->GetIndex() << ", idx, value); } }";
 	}
 	for(gensim::arch::RegSlotViewDescriptor *slot : Manager.GetArch().GetRegFile().GetSlots()) {
-		str << slot->GetIRType().GetCType() << " read_register_" << slot->GetID() << "() const { return *(" << slot->GetIRType().GetCType() << "*)(reg_file_ + " << slot->GetRegFileOffset() << "); }";
-		str << "void write_register_" << slot->GetID() << "(" << slot->GetIRType().GetCType() << " value) { *(" << slot->GetIRType().GetCType() << "*)(reg_file_ + " << slot->GetRegFileOffset() << ") = value; }";
+		str << "template<bool trace=false> " << slot->GetIRType().GetCType() << " read_register_" << slot->GetID() << "() const { auto value = *(" << slot->GetIRType().GetCType() << "*)(reg_file_ + " << slot->GetRegFileOffset() << "); if(trace) { thread_->GetTraceSource()->Trace_Reg_Read(1, " << slot->GetIndex() << ", value); } return value; }";
+		str << "template<bool trace=false> " << "void write_register_" << slot->GetID() << "(" << slot->GetIRType().GetCType() << " value) { *(" << slot->GetIRType().GetCType() << "*)(reg_file_ + " << slot->GetRegFileOffset() << ") = value; if(trace) { thread_->GetTraceSource()->Trace_Reg_Write(1, " << slot->GetIndex() << ", value); } }";
 	}
 	
 	// read/write pc
