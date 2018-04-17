@@ -14,10 +14,7 @@ helper uint32 read_gpr(uint32 index) {
 
 execute(pld)
 {
-	uint8 c = read_register(C);
-	for(uint32 i = 0; i < c; ++i) {
-		// do something haha
-	}
+
 }
 
 execute(wfi)
