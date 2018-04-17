@@ -36,13 +36,13 @@ MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface
 
 Address ThreadInstance::GetTaggedSlot(const std::string &tag)
 {
-	auto pc_descriptor = descriptor_.GetRegisterFileDescriptor().GetTaggedEntry(tag);
+	auto descriptor = descriptor_.GetRegisterFileDescriptor().GetTaggedEntry(tag);
 	
-	switch(pc_descriptor.GetEntrySize()) {
+	switch(descriptor.GetEntrySize()) {
 		case 4:
-			return Address(*(uint32_t*)(register_file_.data() + pc_descriptor.GetOffset()));
+			return Address(*(uint32_t*)(register_file_.data() + descriptor.GetOffset()));
 		case 8:
-			return Address(*(uint64_t*)(register_file_.data() + pc_descriptor.GetOffset()));
+			return Address(*(uint64_t*)(register_file_.data() + descriptor.GetOffset()));
 		default:
 			UNIMPLEMENTED;
 	}
@@ -50,14 +50,14 @@ Address ThreadInstance::GetTaggedSlot(const std::string &tag)
 
 void ThreadInstance::SetTaggedSlot(const std::string &tag, Address target)
 {
-	auto pc_descriptor = descriptor_.GetRegisterFileDescriptor().GetTaggedEntry(tag);
+	auto descriptor = descriptor_.GetRegisterFileDescriptor().GetTaggedEntry(tag);
 	
-	switch(pc_descriptor.GetEntrySize()) {
+	switch(descriptor.GetEntrySize()) {
 		case 4:
-			*(uint32_t*)(register_file_.data() + pc_descriptor.GetOffset()) = target.Get();
+			*(uint32_t*)(register_file_.data() + descriptor.GetOffset()) = target.Get();
 			break;
 		case 8:
-			*(uint64_t*)(register_file_.data() + pc_descriptor.GetOffset()) = target.Get();
+			*(uint64_t*)(register_file_.data() + descriptor.GetOffset()) = target.Get();
 			break;
 		default:
 			UNIMPLEMENTED;

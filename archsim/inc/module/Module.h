@@ -17,7 +17,6 @@
 #include "abi/Address.h"
 #include "gensim/ArchDescriptor.h"
 #include "abi/devices/Component.h"
-#include "gensim/ExecutionEngine.h"
 #include "util/PubSubSync.h"
 #include <functional>
 #include <string>
@@ -29,6 +28,8 @@ namespace gensim
 
 namespace archsim
 {
+	class ExecutionEngine;
+	
 	namespace module
 	{
 
