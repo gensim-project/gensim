@@ -8,6 +8,8 @@
  */
 #include "genC/ssa/SSAValue.h"
 #include "genC/ssa/metadata/SSAMetadata.h"
+#include "genC/ssa/statement/SSAVariableReadStatement.h"
+#include "genC/ssa/statement/SSAVariableWriteStatement.h"
 
 #include <cassert>
 #include <vector>
@@ -65,6 +67,24 @@ void SSAValue::RemoveUse(SSAValue* user)
 
 	throw std::logic_error("Tried to remove a user which wasn't a user");
 }
+
+bool SSAValue::HasDynamicUses() const
+{
+	for (const auto use : GetUses()) {
+		if (auto rd = dynamic_cast<const SSAVariableReadStatement *>(use)) {
+			if (rd->Parent->IsFixed() != BLOCK_ALWAYS_CONST) {
+				return true;
+			}
+		} else if (auto wr = dynamic_cast<const SSAVariableKillStatement *>(use)) {
+			if (wr->Parent->IsFixed() != BLOCK_ALWAYS_CONST) {
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
 
 void SSAValue::AddMetadata(SSAMetadata* metadata)
 {

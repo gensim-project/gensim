@@ -285,7 +285,7 @@ namespace gensim
 						// by looking at how many children it has.
 						if (child->getChildCount(child) == 1) { // if this arg is unmodified then process it immediately
 							// if this is an imm or an exp (handled identically) then output the expression to generate that imm or exp
-							if (!map_name.compare("imm") || !map_name.compare("exp") || !map_name.compare("reladdr")) {
+							if (!map_name.compare("imm") || !map_name.compare("exp") || !map_name.compare("reladdr") || !map_name.compare("hex32") || !map_name.compare("hex64")) {
 
 								if (!map_name.compare("reladdr")) {
 									source_str << "str << std::hex << (uint32_t)(pc + (sint32_t)(uint32_t)(" << i->args[curr_arg]->ToString("instr", &modifier_decode_function) << ")) << std::dec;\n";

@@ -16,6 +16,7 @@
 #include "genC/ssa/statement/SSAStatement.h"
 #include "genC/ssa/analysis/RegisterAllocationAnalysis.h"
 #include "genC/ssa/analysis/FeatureUseAnalysis.h"
+#include "genC/ssa/analysis/CallGraphAnalysis.h"
 
 #include "JITv2NodeWalker.h"
 #include "genC/ssa/statement/SSAVariableReadStatement.h"
@@ -160,8 +161,8 @@ namespace gensim
 
 				bool GenerateJITChunkEpilogue(util::cppformatstream& str) const
 				{
-					str << "template class aarch64_jit2<true>;";
-					str << "template class aarch64_jit2<false>;";
+					str << "template class " << ClassNameForJIT() << "<true>;";
+					str << "template class " << ClassNameForJIT() << "<false>;";
 
 					return true;
 				}
@@ -324,8 +325,8 @@ namespace gensim
 						}
 					}
 
-					str << "template class aarch64_jit2<true>;";
-					str << "template class aarch64_jit2<false>;";
+					str << "template class " << ClassNameForJIT() << "<true>;";
+					str << "template class " << ClassNameForJIT() << "<false>;";
 
 					return true;
 				}
@@ -335,6 +336,7 @@ namespace gensim
 					str << "template<bool TRACE>";
 					str << "dbt::el::Value *" << ClassNameForJIT() << "<TRACE>::generate_predicate_" << isa.ISAName << "_" << fmt.GetName() << "(const " << ClassNameForFormatDecoder(fmt) << "& insn, dbt::el::Emitter& emitter)";
 					str << "{";
+					
 					str << "std::queue<dbt::el::Block *> dynamic_block_queue;";
 					str << "dbt::el::Block *__exit_block = emitter.context().create_block();";
 					str << "dbt::el::Value *__result = emitter.alloc_local(emitter.context().types().u8(), true);";
@@ -357,6 +359,36 @@ namespace gensim
 					}
 
 					const SSAFormAction &action = *(SSAFormAction *)isa.GetSSAContext().GetAction(insn.BehaviourName);
+					
+					/////////
+#if 0
+					std::list<SSABlock *> work_queue;
+					std::set<SSABlock *> seen;
+					work_queue.push_back(action.EntryBlock);
+					
+					fprintf(stderr, "digraph %s {\n", insn.Name.c_str());
+					while (!work_queue.empty()) {
+						SSABlock *current = work_queue.front();
+						work_queue.pop_front();
+						
+						if (seen.count(current)) continue;
+						
+						seen.insert(current);
+						
+						fprintf(stderr, "B_%08x", current->GetID());
+						if (current == action.EntryBlock) {
+							fprintf(stderr, " [color=red]");
+						}
+						fprintf(stderr, ";\n");
+						
+						for (auto successor : current->GetSuccessors()) {
+							work_queue.push_back(successor);
+							fprintf(stderr, "B_%08x -> B_%08x;\n", current->GetID(), successor->GetID());
+						}
+					}
+					fprintf(stderr, "}\n");
+#endif
+					/////////
 
 					src_stream << "template<bool TRACE>";
 					src_stream << "bool " << ClassNameForJIT() << "<TRACE>::translate_" << isa.ISAName << "_" << insn.Name << "(const " << ClassNameForFormatDecoder(*insn.Format) << "&insn, dbt::el::Emitter& emitter)"
@@ -368,8 +400,19 @@ namespace gensim
 						src_stream << "emitter.mark_used_feature(" << feature->GetId() << ");\n";
 					}
 
-					src_stream << "std::queue<dbt::el::Block *> dynamic_block_queue;"
-					           << "dbt::el::Block *__exit_block = emitter.context().create_block();";
+					bool have_dynamic_blocks = false;
+					for (const auto block : action.Blocks) {
+						if (block->IsFixed() != BLOCK_ALWAYS_CONST) {
+							have_dynamic_blocks = true;
+							break;
+						}
+					}
+					
+					if (have_dynamic_blocks) {
+						src_stream << "std::queue<dbt::el::Block *> dynamic_block_queue;";
+					}
+					
+					src_stream << "dbt::el::Block *__exit_block = emitter.context().create_block();";
 
 					bool generate_predicate_executor = isa.GetDefaultPredicated();
 
@@ -413,6 +456,10 @@ namespace gensim
 
 					EmitJITFunction(src_stream, action);
 
+					/*if (generate_predicate_executor) {
+						src_stream << "emitter.set_current_block(__exit_block);";
+					}*/
+					
 					src_stream << "if (!insn.end_of_block) {";
 					src_stream << "emitter.inc_pc(emitter.const_u8(" << (insn.Format->GetLength() / 8) << "));";
 					src_stream << "}";
@@ -439,31 +486,20 @@ namespace gensim
 					}
 
 					for (const auto sym : action.Symbols()) {
-						if(sym->GetType().Reference) {
+						if(sym->GetType().Reference || sym->SType == Symbol_Parameter) {
 							continue;
 						}
 						src_stream << sym->GetType().GetCType() << " CV_" << sym->GetName() << ";\n";
 						src_stream << "auto DV_" << sym->GetName() << " = emitter.alloc_local(emitter.context().types()." << sym->GetType().GetUnifiedType() << "(), ";
 
-						bool is_global = false;
-
-						auto ssavalue = (ssa::SSAValue *)sym;
-						for (const auto use : ssavalue->GetUses()) {
-							if (auto rd = dynamic_cast<const SSAVariableReadStatement *>(use)) {
-								if (rd->Parent->IsFixed() != BLOCK_ALWAYS_CONST) {
-									is_global = true;
-									break;
-								}
-							} else if (auto wr = dynamic_cast<const SSAVariableKillStatement *>(use)) {
-								if (wr->Parent->IsFixed() != BLOCK_ALWAYS_CONST) {
-									is_global = true;
-									break;
-								}
-							}
-						}
+						bool is_global = sym->HasDynamicUses();
 
 						src_stream << (is_global ? "true" : "false");
 						src_stream << ");\n";
+						
+						/*if (!is_global) {
+							src_stream << "dbt::el::Value *CVR_" << sym->GetName() << " = nullptr;";
+						}*/
 					}
 
 					src_stream << "goto fixed_block_" << action.EntryBlock->GetName() << ";\n";
@@ -504,21 +540,29 @@ namespace gensim
 					src_stream << "fixed_done:\n";
 
 					if (have_dynamic_blocks) {
-						src_stream << "if (dynamic_block_queue.size() == 0) {\n";
-						src_stream << "emitter.jump(__exit_block);\n";
-						src_stream << "} else {";
+						//src_stream << "if (dynamic_block_queue.size() == 0) {\n";
+						//src_stream << "emitter.jump(__exit_block);\n";
+						//src_stream << "} else {";
 
+						src_stream << "if (dynamic_block_queue.size() > 0) {\n";
 						src_stream << "std::set<dbt::el::Block *> emitted_blocks;";
 						src_stream << "while (dynamic_block_queue.size() > 0) {\n";
 
 						src_stream << "dbt::el::Block *block_index = dynamic_block_queue.front();"
 						           << "dynamic_block_queue.pop();"
-						           << "if (emitted_blocks.find(block_index) != emitted_blocks.end()) continue;"
+						           << "if (emitted_blocks.count(block_index)) continue;"
 						           << "emitted_blocks.insert(block_index);";
-
+						
+						bool first = true;
 						for (const auto block : action.Blocks) {
 							if (block->IsFixed() == BLOCK_ALWAYS_CONST) continue;
 
+							if (first) {
+								first = false;
+							} else {
+								src_stream << "else ";
+							}
+							
 							src_stream << "if (block_index == block_" << block->GetName() << ") // BLOCK START LINE " << block->GetStartLine() << ", END LINE " << block->GetEndLine() << "\n";
 							src_stream << "{";
 							src_stream << "emitter.set_current_block(block_" << block->GetName() << ");";
@@ -537,11 +581,15 @@ namespace gensim
 									factory.GetOrCreate(stmt)->EmitDynamicCode(src_stream, "", false);
 							}
 
-							src_stream << "continue; }";
+							src_stream << "}";
 						}
 
 						src_stream << "}\n"; // WHILE
-						src_stream << "}\n"; // ELSE
+						src_stream << "} else {"; // ELSE
+						src_stream << "emitter.jump(__exit_block);\n";
+						src_stream << "}";
+						
+						//src_stream << "emitter.set_current_block(__exit_block);";
 					} else {
 						src_stream << "emitter.jump(__exit_block);\n";
 					}

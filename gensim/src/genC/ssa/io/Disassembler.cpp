@@ -305,6 +305,9 @@ public:
 			case SSACastStatement::Cast_Convert:
 				cast_type = "convert";
 				break;
+			case SSACastStatement::Cast_VectorSplat:
+				cast_type = "splat";
+				break;
 			case SSACastStatement::Cast_Reinterpret:
 				cast_type = "reinterpret";
 				break;

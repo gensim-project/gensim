@@ -524,7 +524,7 @@ void Processor::PrintStatistics(std::ostream& stream)
 		}
 		inst_count = metrics.opcode_freq_hist.get_total();
 
-		stream << "Dynamic instruction frequencies, out of total " << inst_count << std::endl;
+		stream << "Dynamic instruction frequencies, out of total " << std::dec << inst_count << std::endl;
 		stream << "--------------------------------------------------" << std::endl;
 
 		for (std::map<uint32_t, uint64_t>::iterator i = inst_tab.begin(); i != inst_tab.end(); ++i) {

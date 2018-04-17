@@ -81,16 +81,10 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 			return IRTypes::UInt64;
 
 		case SSAIntrinsic_FMA32:
-		case SSAIntrinsic_FPRound32:
 			return IRTypes::Float;
 
 		case SSAIntrinsic_FMA64:
-		case SSAIntrinsic_FPRound64:
 			return IRTypes::Double;
-
-		case SSAIntrinsic_Compare_F32_Flags:
-		case SSAIntrinsic_Compare_F64_Flags:
-			return IRTypes::Void;
 
 		default:
 			return IRTypes::Void;

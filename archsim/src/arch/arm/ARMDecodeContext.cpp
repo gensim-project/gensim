@@ -5,6 +5,7 @@
  */
 
 #include "arch/arm/ARMDecodeContext.h"
+#include "blockjit/IRBuilder.h"
 #include "gensim/gensim_processor.h"
 #include "gensim/gensim_decode.h"
 #include "util/ComponentManager.h"
@@ -75,7 +76,7 @@ uint32_t ARMDecodeContext::DecodeSync(Address address, uint32_t mode, gensim::Ba
 class ARMDecodeTranslateContext : public gensim::DecodeTranslateContext
 {
 public:
-	void Translate(gensim::BaseDecode &insn, gensim::DecodeContext &dcode, captive::arch::jit::TranslationContext &txlt) override
+	void Translate(gensim::BaseDecode &insn, gensim::DecodeContext &dcode, captive::shared::IRBuilder &builder) override
 	{
 		using namespace captive::shared;
 		ARMDecodeContext &decode = (ARMDecodeContext&)dcode;
@@ -93,7 +94,7 @@ public:
 				}
 				itstate = cond | mask;
 
-				txlt.add_instruction(IRInstruction::streg(IROperand::const8(itstate), IROperand::const32(decode.GetITSTATEOffset())));
+				builder.streg(IROperand::const8(itstate), IROperand::const32(decode.GetITSTATEOffset()));
 			}
 		}
 	}

@@ -12,6 +12,9 @@
 
 namespace captive
 {
+	namespace shared {
+		class IRBuilder;
+	}
 	namespace arch
 	{
 		namespace jit
@@ -46,7 +49,7 @@ namespace gensim
 	class DecodeTranslateContext
 	{
 	public:
-		virtual void Translate(gensim::BaseDecode &insn, DecodeContext &decode, captive::arch::jit::TranslationContext &txlt) = 0;
+		virtual void Translate(gensim::BaseDecode &insn, DecodeContext &decode, captive::shared::IRBuilder &builder) = 0;
 	};
 }
 

@@ -54,8 +54,15 @@ TARGET_COMPILE_DEFINITIONS(archsim PUBLIC "-DARCHSIM_MODULE_DIRECTORY=${ARCHSIM_
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-config.h)
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-scm.h.in ${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-scm.h)
 
+# Depending on the version of SDL2 which is available, they might be 
+# using the old system of xxx_LIBRARIES or the new imported target
+# system. 
 IF(SDL2_FOUND)
-	TARGET_LINK_LIBRARIES(archsim ${SDL2_LIBRARIES})
+	if(NOT SDL2_LIBRARIES)
+		TARGET_LINK_LIBRARIES(archsim SDL2::SDL2)
+	else()
+		TARGET_LINK_LIBRARIES(archsim ${SDL2_LIBRARIES})
+	endif()
 ENDIF()
 
 IF(GTK3_FOUND)

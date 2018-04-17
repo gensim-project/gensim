@@ -132,9 +132,9 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 size_t captive::shared::num_descriptors = sizeof(captive::shared::insn_descriptors) / sizeof(captive::shared::insn_descriptors[0]);
 
 TranslationContext::TranslationContext()
-	: _current_block_id(0), _ir_block_count(0), _ir_reg_count(0), _ir_insns(NULL), _ir_insn_count(0), _ir_insn_buffer_size(0)
+	: _ir_block_count(0), _ir_reg_count(0), _ir_insns(NULL), _ir_insn_count(0), _ir_insn_buffer_size(0)
 {
-	current_block(alloc_block());
+	
 }
 
 TranslationContext::~TranslationContext()
@@ -142,15 +142,3 @@ TranslationContext::~TranslationContext()
 	free(_ir_insns);
 }
 
-void TranslationContext::increment_pc(uint32_t instruction_size)
-{
-	uint32_t pc_offset = 0x80;
-	uint32_t pc_size = 4;
-
-//	auto reg = alloc_reg(pc_size);
-	add_instruction(shared::IRInstruction::incpc(shared::IROperand::const32(instruction_size)));
-
-//	add_instruction(shared::IRInstruction::ldreg(shared::IROperand::const32(pc_offset), shared::IROperand::vreg(reg, pc_size)));
-//	add_instruction(shared::IRInstruction::add(shared::IROperand::const32(instruction_size), shared::IROperand::vreg(reg, pc_size)));
-//	add_instruction(shared::IRInstruction::streg(shared::IROperand::vreg(reg, pc_size), shared::IROperand::const32(pc_offset)));
-}
