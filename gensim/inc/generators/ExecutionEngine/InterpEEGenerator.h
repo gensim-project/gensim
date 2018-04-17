@@ -14,6 +14,7 @@
 #ifndef INTERPEEGENERATOR_H
 #define INTERPEEGENERATOR_H
 
+#include "genC/ssa/SSAFormAction.h"
 #include "generators/ExecutionEngine/EEGenerator.h"
 
 namespace gensim {
@@ -31,6 +32,8 @@ namespace gensim {
 			bool GenerateBlockExecutor(util::cppformatstream &str) const;
 			
 			bool GenerateDecodeInstruction(util::cppformatstream &str) const;
+			bool GenerateHelperFunctions(util::cppformatstream &str) const;
+			bool GenerateHelperFunction(util::cppformatstream &str, const isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction*) const;
 			bool GenerateStepInstruction(util::cppformatstream &str) const;
 			bool GenerateStepInstructionISA(util::cppformatstream &str, isa::ISADescription &isa) const;
 			bool GenerateStepInstructionInsn(util::cppformatstream &str, isa::InstructionDescription &insn) const;
