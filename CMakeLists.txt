@@ -38,10 +38,10 @@ function(TARGET_ADD_SOURCES target)
 	endforeach()
 endfunction()
 
-#ADD_SUBDIRECTORY(archsim)
+ADD_SUBDIRECTORY(archsim)
 ADD_SUBDIRECTORY(gensim)
 ADD_SUBDIRECTORY(scripts)
 
 ADD_SUBDIRECTORY(support/libtrace)
 
-#ADD_SUBDIRECTORY(models)
+ADD_SUBDIRECTORY(models)
