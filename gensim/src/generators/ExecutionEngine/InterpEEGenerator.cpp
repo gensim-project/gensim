@@ -55,6 +55,7 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 	str <<
 		"}";
 
+	GenerateHelperFunctions(str);
 	GenerateStepInstruction(str);
 	
 	str <<
@@ -72,6 +73,32 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 		"ARCHSIM_MODULE_END() {}"
 		;
 		
+	return true;
+}
+
+bool InterpEEGenerator::GenerateHelperFunctions(util::cppformatstream& str) const
+{
+	for(auto isa : Manager.GetArch().ISAs) {
+		for(auto action : isa->GetSSAContext().Actions()) {
+			if(action.second->GetPrototype().HasAttribute(gensim::genc::ActionAttribute::Helper)) {
+				GenerateHelperFunction(str, *isa, static_cast<gensim::genc::ssa::SSAFormAction*>(action.second));
+			}
+		}
+	}
+	
+	return true;
+}
+
+bool InterpEEGenerator::GenerateHelperFunction(util::cppformatstream& str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction* action) const
+{
+	assert(action != nullptr);
+	
+	str << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::ThreadInstance *thread";
+	for(auto param : action->GetPrototype().GetIRSignature().GetParams()) {
+		str << ", " << param.GetType().GetCType() << " " << param.GetName();
+	}
+	str << ") { UNIMPLEMENTED; }";
+	
 	return true;
 }
 

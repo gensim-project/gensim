@@ -745,9 +745,19 @@ namespace gensim
 				const SSACallStatement &stmt = (const SSACallStatement&) (Statement);
 
 				if (stmt.HasValue()) output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = ";
+				bool is_helper = false;
+				if(stmt.Target()->GetPrototype().GetIRSignature().HasAttribute(gensim::genc::ActionAttribute::Helper)) {
+					output << "helper_" << stmt.GetISA() << "_" ;
+					is_helper = true;
+				}
 				output << stmt.Target()->GetPrototype().GetIRSignature().GetName() << "(";
 
 				bool first = true;
+				
+				if(is_helper) {
+					first = false;
+					output << "thread";
+				}
 				for (int i = 0; i < stmt.ArgCount(); ++i) {
 					if (!first) output << ",";
 					first = false;
