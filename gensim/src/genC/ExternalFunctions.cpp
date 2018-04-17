@@ -49,6 +49,36 @@ void GenCContext::LoadExternalFunctions()
 	AddExternalFunction("flush_dtlb_entry", IRTypes::Void, {IRParam("addr", IRTypes::UInt64)});
 	AddExternalFunction("flush_itlb_entry", IRTypes::Void, {IRParam("addr", IRTypes::UInt64)});
 	AddExternalFunction("pgt_change", IRTypes::Void, {});
+	
+	// Floating-point
+	AddExternalFunction("__builtin_clear_fpex", IRTypes::Void, {});
+	AddExternalFunction("__builtin_fpex_invalid", IRTypes::UInt8, {});
+	AddExternalFunction("__builtin_fpex_underflow", IRTypes::UInt8, {});
+	AddExternalFunction("__builtin_fpex_overflow", IRTypes::UInt8, {});
+	
+	AddExternalFunction("__builtin_f32_round", IRTypes::Float, {IRParam("value", IRTypes::Float), IRParam("rmode", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_f64_round", IRTypes::Double, {IRParam("value", IRTypes::Double), IRParam("rmode", IRTypes::UInt8)});
+	
+	AddExternalFunction("__builtin_f32_is_nan", IRTypes::UInt8, {IRParam("value", IRTypes::Float)});
+	AddExternalFunction("__builtin_f32_is_snan", IRTypes::UInt8, {IRParam("value", IRTypes::Float)});
+	AddExternalFunction("__builtin_f32_is_qnan", IRTypes::UInt8, {IRParam("value", IRTypes::Float)});
+	AddExternalFunction("__builtin_f64_is_nan", IRTypes::UInt8, {IRParam("value", IRTypes::Double)});
+	AddExternalFunction("__builtin_f64_is_snan", IRTypes::UInt8, {IRParam("value", IRTypes::Double)});
+	AddExternalFunction("__builtin_f64_is_qnan", IRTypes::UInt8, {IRParam("value", IRTypes::Double)});
+	
+	AddExternalFunction("__builtin_fcvt_f32_s32", IRTypes::Int32, {IRParam("value", IRTypes::Float), IRParam("rmode", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_fcvt_f64_s32", IRTypes::Int32, {IRParam("value", IRTypes::Double), IRParam("rmode", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_fcvt_f32_s64", IRTypes::Int64, {IRParam("value", IRTypes::Float), IRParam("rmode", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_fcvt_f64_s64", IRTypes::Int64, {IRParam("value", IRTypes::Double), IRParam("rmode", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_fcvt_f32_u32", IRTypes::UInt32, {IRParam("value", IRTypes::Float), IRParam("rmode", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_fcvt_f64_u32", IRTypes::UInt32, {IRParam("value", IRTypes::Double), IRParam("rmode", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_fcvt_f32_u64", IRTypes::UInt64, {IRParam("value", IRTypes::Float), IRParam("rmode", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_fcvt_f64_u64", IRTypes::UInt64, {IRParam("value", IRTypes::Double), IRParam("rmode", IRTypes::UInt8)});
+
+	AddExternalFunction("__builtin_cmpf32_flags", IRTypes::Void, {IRParam("a", IRTypes::Float), IRParam("b", IRTypes::Float)});
+	AddExternalFunction("__builtin_cmpf32e_flags", IRTypes::Void, {IRParam("a", IRTypes::Float), IRParam("b", IRTypes::Float)});
+	AddExternalFunction("__builtin_cmpf64_flags", IRTypes::Void, {IRParam("a", IRTypes::Double), IRParam("b", IRTypes::Double)});
+	AddExternalFunction("__builtin_cmpf64e_flags", IRTypes::Void, {IRParam("a", IRTypes::Double), IRParam("b", IRTypes::Double)});
 }
 
 SSAStatement *IRCallExpression::EmitExternalCall(SSABuilder &bldr, const gensim::arch::ArchDescription &Arch) const

@@ -41,6 +41,21 @@ namespace gensim
 				output << "auto block = " << block_id_name << ";\n";
 				output << "dynamic_block_queue.push(" << block_id_name << ");\n";
 			}
+			
+			static std::string type_for_statement(const SSAStatement& stmt)
+			{
+				return "emitter.context().types()." + stmt.GetType().GetUnifiedType() + "()";
+			}
+
+			static std::string type_for_symbol(const SSASymbol& sym)
+			{
+				return "emitter.context().types()." + sym.GetType().GetUnifiedType() + "()";
+			}
+
+			static std::string operand_for_symbol(const SSASymbol& sym)
+			{
+				return "DV_" + sym.GetName();
+			}
 
 			static std::string operand_for_node(const SSANodeWalker& node)
 			{
@@ -65,6 +80,8 @@ namespace gensim
 						return "emitter.const_f32(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::Double) {
 						return "emitter.const_f64(" + node.GetFixedValue() + ")";
+					} else if (node.Statement.GetType().VectorWidth > 1) {
+						return "emitter.constant_vector_splat(" + node.GetFixedValue() + ", " + type_for_statement(node.Statement) + ")";
 					} else {
 						fprintf(stderr, "node type: %s @ %s:%d\n", node.Statement.GetType().GetUnifiedType().c_str(), node.Statement.GetDiag().Filename().c_str(), node.Statement.GetDiag().Line());
 						assert(false && "Unsupported node type");
@@ -111,21 +128,6 @@ namespace gensim
 				} else {
 					return stmt.GetName();
 				}
-			}
-
-			static std::string type_for_statement(const SSAStatement& stmt)
-			{
-				return "emitter.context().types()." + stmt.GetType().GetUnifiedType() + "()";
-			}
-
-			static std::string type_for_symbol(const SSASymbol& sym)
-			{
-				return "emitter.context().types()." + sym.GetType().GetUnifiedType() + "()";
-			}
-
-			static std::string operand_for_symbol(const SSASymbol& sym)
-			{
-				return "DV_" + sym.GetName();
 			}
 
 			class SSABinaryArithmeticStatementWalker : public genc::ssa::SSANodeWalker
@@ -320,10 +322,11 @@ namespace gensim
 							throw std::logic_error("Unsupported binary operator '" + std::to_string(Statement.Type) + "'");
 					}
 
+#ifdef REGISTER_ALLOCATION_HINTS
 					if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 						output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 					}
-
+#endif
 					return true;
 				}
 			};
@@ -338,6 +341,47 @@ namespace gensim
 
 				bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
+					const SSAConstantStatement &stmt = static_cast<const SSAConstantStatement &> (this->Statement);
+
+					switch (stmt.Constant.Type()) {
+						case IRConstant::Type_Float_Double:
+						{
+							double value = stmt.Constant.Dbl();
+							
+							output << "double " << stmt.GetName() << ";";
+									
+							output << "{";
+							output << "uint64_t __tmp = " << *(uint64_t *)&value << ";";
+							output << stmt.GetName() << " = *(double *)&__tmp;";
+							output << "}";							
+							
+							break;
+						}
+						
+						case IRConstant::Type_Float_Single:
+						{
+							float value = stmt.Constant.Flt();
+							
+							output << "float " << stmt.GetName() << ";";
+									
+							output << "{";
+							output << "uint32_t __tmp = " << *(uint32_t *)&value << ";";
+							output << stmt.GetName() << " = *(float *)&__tmp;";
+							output << "}";							
+							
+							break;
+						}
+						
+						case IRConstant::Type_Integer:
+							break;
+							
+						case IRConstant::Type_Vector:
+							break;
+						
+						default:
+							throw std::logic_error("Unsupported conversion constant type: " + std::to_string(stmt.Constant.Type()));
+					}
+					
 					return true;
 				}
 
@@ -348,9 +392,11 @@ namespace gensim
 					switch (stmt.Constant.Type()) {
 						case IRConstant::Type_Integer:
 							output << "auto " << Statement.GetName() << " = emitter.const_" << (Statement.GetType().Signed ? "s" : "u") << (Statement.GetType().Size() * 8) << "(" << stmt.Constant.Int() << ");";
+#ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 							}
+#endif
 							break;
 						default:
 							throw std::logic_error("Unsupported constant type: " + std::to_string(stmt.Constant.Type()));
@@ -368,18 +414,13 @@ namespace gensim
 					switch (stmt.Constant.Type()) {
 						case IRConstant::Type_Integer:
 							str << "(" << stmt.GetType().GetCType() << ")" << stmt.Constant.Int() << "ULL";
-							break;
-						case IRConstant::Type_Float_Double:
-							str << "(" << stmt.GetType().GetCType() << ")" << stmt.Constant.Dbl();
-							break;
-						case IRConstant::Type_Float_Single:
-							str << "(" << stmt.GetType().GetCType() << ")" << stmt.Constant.Flt();
-							break;
-						default:
-							throw std::logic_error("Unsupported constant type: " + std::to_string(stmt.Constant.Type()));
+							return str.str();
+						case IRConstant::Type_Vector:
+							str << stmt.Constant.VGet(0).Int() << "ULL";
+							return str.str();
 					}
 
-					return str.str();
+					return stmt.GetName();
 				}
 			};
 
@@ -436,10 +477,11 @@ namespace gensim
 					}
 
 
+#ifdef REGISTER_ALLOCATION_HINTS
 					if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 						output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 					}
-
+#endif
 					return true;
 				}
 
@@ -591,9 +633,11 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
 							output << "auto " << Statement.GetName() << " = emitter.clz(" << operand_for_node(*arg0) << ");";
+#ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 							}
+#endif
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
@@ -634,9 +678,11 @@ namespace gensim
 
 						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
 							output << "auto " << Statement.GetName() << " = emitter.load_pc();";
+#ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 							}
+#endif
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_WritePc:
@@ -663,47 +709,59 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
 						case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
 							output << "auto " << Statement.GetName() << " = emitter.adcf(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
+#ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 							}
+#endif
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_Adc:
 						case SSAIntrinsicStatement::SSAIntrinsic_Adc64:
 							output << "auto " << Statement.GetName() << " = emitter.adc(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
+#ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 							}
+#endif
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags:
 						case SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags:
 							output << "auto " << Statement.GetName() << " = emitter.sbcf(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
+#ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 							}
+#endif
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_Sbc:
 						case SSAIntrinsicStatement::SSAIntrinsic_Sbc64:
 							output << "auto " << Statement.GetName() << " = emitter.sbc(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
+#ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 							}
+#endif
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_SMULH:
 							output << "auto " << Statement.GetName() << " = emitter.smulh(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");";
+#ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 							}
+#endif
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_UMULH:
 							output << "auto " << Statement.GetName() << " = emitter.umulh(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");";
+#ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 							}
+#endif
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32:
@@ -714,9 +772,11 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
 							output << "auto " << Statement.GetName() << " = emitter.bswap(" << operand_for_node(*arg0) << ");";
+#ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 							}
+#endif
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatAbs:
@@ -743,9 +803,7 @@ namespace gensim
 
 						case SSAIntrinsicStatement::SSAIntrinsic_DoubleSqrt:
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatSqrt:
-							output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().GetCaptiveType() << ");\n";
-							output << "ctx.add_instruction(IRInstruction::mov(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << "));\n";
-							output << "ctx.add_instruction(IRInstruction::sqrt(" << operand_for_stmt(Statement) << "));\n";
+							output << "auto " << Statement.GetName() << " = emitter.sqrt(" << operand_for_node(*arg0) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
@@ -757,12 +815,6 @@ namespace gensim
 							output << "emitter.call(__captive_get_rounding_mode);\n";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_FPRound32:
-						case SSAIntrinsicStatement::SSAIntrinsic_FPRound64:
-							output << "auto " << Statement.GetName() << " = ";
-							output << "emitter.call(__captive_fp_round, " << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");\n";
-							break;
-
 						case SSAIntrinsicStatement::SSAIntrinsic_FMA32:
 							output << "auto " << Statement.GetName() << " = ";
 							output << "emitter.call(__captive_fma32, " << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");\n";
@@ -770,16 +822,6 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_FMA64:
 							output << "auto " << Statement.GetName() << " = ";
 							output << "emitter.call(__captive_fma64, " << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_Compare_F32_Flags:
-							output << "auto " << Statement.GetName() << " = ";
-							output << "emitter.call(__captive_cmpf32_flags, " << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_Compare_F64_Flags:
-							output << "auto " << Statement.GetName() << " = ";
-							output << "emitter.call(__captive_cmpf64_flags, " << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");\n";
 							break;
 
 						default:
@@ -958,10 +1000,11 @@ namespace gensim
 					}
 
 					output << "(insn." << Statement.MemberName << ");";
+#ifdef REGISTER_ALLOCATION_HINTS
 					if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 						output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 					}
-
+#endif
 					return true;
 				}
 
@@ -1041,9 +1084,11 @@ namespace gensim
 						assert(false);
 					}
 
+#ifdef REGISTER_ALLOCATION_HINTS
 					if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 						output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 					}
+#endif
 
 					output << "if (TRACE) {";
 					output << "emitter.trace(dbt::el::TraceEvent::LOAD_REGISTER, "
@@ -1094,9 +1139,11 @@ namespace gensim
 					output << "auto " << Statement.GetName() << " = ";
 					output << "emitter.load_register(emitter.const_u32(" << offset << "), " << type_for_statement(Statement) << ");";
 
+#ifdef REGISTER_ALLOCATION_HINTS
 					if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 						output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 					}
+#endif
 
 					output << "if (TRACE) {";
 					output << "emitter.trace(dbt::el::TraceEvent::LOAD_REGISTER, emitter.const_u32(" << offset << "), " << operand_for_stmt(Statement) << ", emitter.const_u8(" << register_width << "));";
@@ -1318,10 +1365,18 @@ namespace gensim
 				bool EmitDynamicCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
 					const SSAVariableReadStatement &Statement = static_cast<const SSAVariableReadStatement &> (this->Statement);
-					output << "auto " << Statement.GetName() << " = emitter.load_local(DV_" << Statement.Target()->GetName() << ", " << type_for_symbol(*Statement.Target()) << ");";
+					
+					//if (Statement.Target()->HasDynamicUses()) {
+						output << "auto " << Statement.GetName() << " = emitter.load_local(DV_" << Statement.Target()->GetName() << ", " << type_for_symbol(*Statement.Target()) << ");";
+					/*} else {
+						output << "auto " << Statement.GetName() << " = CVR_" << Statement.Target()->GetName() << ";";
+					}*/
+					
+#ifdef REGISTER_ALLOCATION_HINTS
 					if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 						output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 					}
+#endif
 					return true;
 				}
 
@@ -1348,10 +1403,12 @@ namespace gensim
 					output << "CV_" << Statement.Target()->GetName() << " = " << expr->GetFixedValue() << ";";
 
 					if (Statement.Parent->Parent->HasDynamicDominatedReads(&Statement)) {
-						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", emitter.const_"
-						       << (Statement.Target()->GetType().Signed ? "s" : "u")
+						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_node(*expr) << ");";
+								
+								/*emitter.const_"
+						       << (Statement.Target()->GetType().IsFloating() ? "f" : (Statement.Target()->GetType().Signed ? "s" : "u"))
 						       << (uint32_t) (Statement.Target()->GetType().Size() * 8)
-						       << "(CV_" << Statement.Target()->GetName() << "));";
+						       << "(CV_" << Statement.Target()->GetName() << "));";*/
 					}
 
 					return true;
@@ -1362,15 +1419,26 @@ namespace gensim
 					const SSAVariableWriteStatement &Statement = static_cast<const SSAVariableWriteStatement &> (this->Statement);
 
 					SSANodeWalker *value_node = Factory.GetOrCreate(Statement.Expr());
-
-					if (Statement.Target()->GetType().Size() > value_node->Statement.GetType().Size()) {
-						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", emitter.zx(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << "));";
-					} else if (Statement.Target()->GetType().Size() < value_node->Statement.GetType().Size()) {
-						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", emitter.truncate(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << "));";
-					} else {
-						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_node(*value_node) << ");";
-					}
-
+					
+					//if (Statement.Target()->HasDynamicUses()) {
+						if (Statement.Target()->GetType().Size() > value_node->Statement.GetType().Size()) {
+							output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", emitter.zx(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << "));";
+						} else if (Statement.Target()->GetType().Size() < value_node->Statement.GetType().Size()) {
+							output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", emitter.truncate(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << "));";
+						} else {
+							output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_node(*value_node) << ");";
+						}
+					/*} else {
+						if (Statement.Target()->GetType().Size() > value_node->Statement.GetType().Size()) {
+							output << "CVR_" << Statement.Target()->GetName() << " = emitter.zx(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << ");";
+						} else if (Statement.Target()->GetType().Size() < value_node->Statement.GetType().Size()) {
+							output << "CVR_" << Statement.Target()->GetName() << " = emitter.truncate(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << ");";
+						} else {
+							output << "CVR_" << Statement.Target()->GetName() << " = " << operand_for_node(*value_node) << ";";
+						}
+						//output << "CVR_" << Statement.Target()->GetName() << " = " << operand_for_node(*value_node) << ";";
+					}*/
+						
 					//output << "lir.mov(*lir_variables[lir_idx_" << Statement.GetTarget()->GetName() << "], " << maybe_deref(value_node) << ");";
 					return true;
 				}
@@ -1407,8 +1475,14 @@ namespace gensim
 					const SSACallStatement &Statement = static_cast<const SSACallStatement &> (this->Statement);
 
 					//assert(Statement.GetArgs().size() < 4);
+					
+					if (Statement.Target()->GetPrototype().GetIRSignature().HasReturnValue()) {
+						output << "auto " << Statement.GetName() << " = ";
+					}
 
-					output << "emitter.call((void *)&__captive_" << Statement.Target()->GetPrototype().GetIRSignature().GetName();
+					auto callTargetName = Statement.Target()->GetPrototype().GetIRSignature().GetName();
+					
+					output << "emitter.call((void *)&__captive_" << callTargetName;
 
 					for (unsigned argIndex = 0; argIndex < Statement.ArgCount(); argIndex++) {
 						auto arg = dynamic_cast<const SSAStatement *> (Statement.Arg(argIndex));
@@ -1419,6 +1493,7 @@ namespace gensim
 					}
 
 					output << ");\n";
+					
 					return true;
 				}
 			};
@@ -1694,10 +1769,11 @@ namespace gensim
 							assert(false);
 					}
 
+#ifdef REGISTER_ALLOCATION_HINTS
 					if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 						output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 					}
-
+#endif
 					return false;
 				}
 			};
