@@ -6,6 +6,9 @@
  */
 
 #include "isa/ISADescriptionParser.h"
+#include "isa/InstructionDescriptionParser.h"
+#include "isa/AsmDescriptionParser.h"
+#include "isa/AsmMapDescriptionParser.h"
 
 #include <archcasm/archcasmParser.h>
 #include <archcasm/archcasmLexer.h>
@@ -149,7 +152,7 @@ bool ISADescriptionParser::load_from_node(pANTLR3_BASE_TREE node, std::string fi
 				break;
 			}
 			case AC_ASM_MAP: {
-				AsmMapDescription map(child);
+				AsmMapDescription map = AsmMapDescriptionParser::Parse(child);
 				isa->AddMapping(map);
 				break;
 			}
@@ -279,7 +282,8 @@ bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::strin
 					success = false;
 					continue;
 				} else {
-					if(!isa->instructions_.at(instrName)->load_constraints_from_node(child, isa->instructions_.at(instrName)->Decode_Constraints))
+					isa->instructions_.at(instrName)->bitStringsCalculated = false;
+					if(!InstructionDescriptionParser::load_constraints_from_node(child, isa->instructions_.at(instrName)->Decode_Constraints))
 						success = false;
 				}
 				break;
@@ -293,7 +297,8 @@ bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::strin
 					diag.Error("Attempting to add end of block constraint to unknown instruction " + instrName, DiagNode(filename, instrNode));
 					success = false;
 				} else {
-					if(!isa->instructions_.at(instrName)->load_constraints_from_node(child, isa->instructions_.at(instrName)->EOB_Contraints))
+					isa->instructions_.at(instrName)->bitStringsCalculated = false;
+					if(!InstructionDescriptionParser::load_constraints_from_node(child, isa->instructions_.at(instrName)->EOB_Contraints))
 						success = false;
 				}
 				break;
@@ -307,7 +312,8 @@ bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::strin
 					diag.Error("Attempting to add Uses-PC constraint to unknown instruction", DiagNode(filename, instrNode));
 					success = false;
 				} else {
-					if(!isa->instructions_.at(instrName)->load_constraints_from_node(child, isa->instructions_.at(instrName)->Uses_PC_Constraints))
+					isa->instructions_.at(instrName)->bitStringsCalculated = false;
+					if(!InstructionDescriptionParser::load_constraints_from_node(child, isa->instructions_.at(instrName)->Uses_PC_Constraints))
 						success = false;
 				}
 				break;

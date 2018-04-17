@@ -31,7 +31,7 @@ namespace gensim
 	namespace arch
 	{
 
-		ArchDescription::ArchDescription() : Uarch(NULL), big_endian(false)
+		ArchDescription::ArchDescription() : big_endian(false)
 		{
 
 		}
@@ -54,16 +54,6 @@ namespace gensim
 			for (auto isa : ISAs)
 				if (isa->ISAName == isaname) return isa;
 			return NULL;
-		}
-
-		std::string ArchDescription::GetIncludes() const
-		{
-			std::stringstream stream;
-			/* generate user-specified #include directives */
-			for (std::vector<std::string>::const_iterator i = IncludeFiles.begin(); i != IncludeFiles.end(); i++) {
-				stream << "#include \"" << *i << "\"\n";
-			}
-			return stream.str();
 		}
 
 		bool ArchDescription::PrettyPrint(std::ostream &str) const

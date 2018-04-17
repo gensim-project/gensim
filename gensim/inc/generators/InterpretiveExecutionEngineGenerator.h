@@ -30,7 +30,7 @@ namespace gensim
 		public:
 			bool Generate() const;
 
-			InterpretiveExecutionEngineGenerator(GenerationManager &manager, std::string _name) : ExecutionEngineGenerator(manager, _name)
+			InterpretiveExecutionEngineGenerator(const GenerationManager &manager, std::string _name) : ExecutionEngineGenerator(manager, _name)
 			{
 
 			}

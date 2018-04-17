@@ -816,7 +816,7 @@ execute(vldr_sp)
 	if(inst.U) addr += imm32;
 	else addr -= imm32;
 	uint32 data;
-	mem_read_32(addr, data);
+	mem_read_32(Mem, addr, data);
 	
 	float dataf = bitcast_u32_float(data);
 	write_register_bank(FPSP, inst.vd, dataf);
@@ -836,8 +836,8 @@ execute(vldr_dp)
 	else addr -= imm32;
 	uint32 data1;
 	uint32 data2;
-	mem_read_32(addr, data1);
-	mem_read_32(addr+4, data2);
+	mem_read_32(Mem, addr, data1);
+	mem_read_32(Mem, addr+4, data2);
 	
 	uint64 data = data1 | (((uint64)data2) << 32);
 	double dataf = bitcast_u64_double(data);
@@ -860,7 +860,7 @@ execute(vstr_sp)
 	float dataf = float_read_register(inst.vd);
 	uint32 data = bitcast_float_u32(dataf);
 	
-	mem_write_32(addr, data);
+	mem_write_32(Mem, addr, data);
 }
 
 execute(vstr_dp)
@@ -882,8 +882,8 @@ execute(vstr_dp)
 	uint32 data1 = data & 0xffffffff;
 	uint32 data2 = data >> 32;
 		
-	mem_write_32(addr, data1);
-	mem_write_32(addr+4, data2);
+	mem_write_32(Mem, addr, data1);
+	mem_write_32(Mem, addr+4, data2);
 }
 
 execute(vldm_sp)
@@ -906,7 +906,7 @@ execute(vldm_sp)
 		if(inst.P) addr += 4;
 		
 		uint32 data1;
-		mem_read_32(addr, data1);
+		mem_read_32(Mem, addr, data1);
 
 		float dataf = bitcast_u32_float(data1);
 		float_write_register(start_reg+i, dataf);
@@ -943,8 +943,8 @@ execute(vldm_dp)
 		if(inst.P) addr += 8;
 		uint32 data1;
 		uint32 data2;
-		mem_read_32(addr, data1);
-		mem_read_32(addr+4, data2);
+		mem_read_32(Mem, addr, data1);
+		mem_read_32(Mem, addr+4, data2);
 
 		uint64 data = data1 | (((uint64)data2) << 32);
 		double dataf = bitcast_u64_double(data);
@@ -983,7 +983,7 @@ execute(vstm_sp)
 		float dataf = float_read_register(start_reg+i);
 		uint32 data = bitcast_float_u32(dataf);
 
-		mem_write_32(addr, data);
+		mem_write_32(Mem, addr, data);
 		
 		if(!inst.P) addr += 4;
 	}
@@ -1020,8 +1020,8 @@ execute(vstm_dp)
 		uint32 data1 = data & 0xffffffff;
 		uint32 data2 = data >> 32;
 
-		mem_write_32(addr, data1);
-		mem_write_32(addr+4, data2);
+		mem_write_32(Mem, addr, data1);
+		mem_write_32(Mem, addr+4, data2);
 		
 		if(!inst.P) addr += 8;
 	}
