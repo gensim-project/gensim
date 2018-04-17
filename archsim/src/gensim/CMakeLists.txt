@@ -6,8 +6,4 @@ archsim_add_sources(
 	gensim_processor_jit.cpp
 	gensim_tracing.cpp
 
-	ArchDescriptor.cpp
-	StateBlock.cpp
-	ThreadInstance.cpp
-	ExecutionEngine.cpp
 )
