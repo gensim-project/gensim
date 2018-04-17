@@ -13,5 +13,6 @@ RUN pacman -Syu --noconfirm && pacman -S --noconfirm \
 	ncurses \
 	openssh \
 	wget \
-	zlib
+	zlib \
+    sdl2
 	
