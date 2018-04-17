@@ -23,7 +23,7 @@ uint32_t RiscVDecodeContext::DecodeSync(Address address, uint32_t mode, gensim::
 
 class RiscVDecodeTranslationContext : public gensim::DecodeTranslateContext
 {
-	void Translate(gensim::BaseDecode& insn, gensim::DecodeContext& decode, captive::arch::jit::TranslationContext& txlt) override
+	void Translate(gensim::BaseDecode& insn, gensim::DecodeContext& decode, captive::shared::IRBuilder &builder) override
 	{
 		// nothing necessary here
 	}

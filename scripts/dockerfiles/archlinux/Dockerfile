@@ -5,6 +5,7 @@ RUN pacman -Syu --noconfirm && pacman -S --noconfirm \
 	automake \
 	arm-none-eabi-gcc \
     cmake \
+    ibus \
     gcc \
 	jre9-openjdk-headless \
 	libantlr3c \
@@ -13,5 +14,6 @@ RUN pacman -Syu --noconfirm && pacman -S --noconfirm \
 	ncurses \
 	openssh \
 	wget \
-	zlib
+	zlib \
+    sdl2
 	

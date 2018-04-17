@@ -50,7 +50,11 @@ bool BaseBlockJITTranslate::translate_block(gensim::BlockJitProcessor *processor
 	_should_be_dumped = false;
 	_decode_ctx = processor->GetEmulationModel().GetNewDecodeContext(*processor);
 	TranslationContext ctx;
-
+	captive::shared::IRBuilder builder;
+	
+	builder.SetContext(&ctx);
+	builder.SetBlock(ctx.alloc_block());
+	
 	InitialiseFeatures(processor);
 	InitialiseIsaMode(processor);
 
@@ -58,7 +62,7 @@ bool BaseBlockJITTranslate::translate_block(gensim::BlockJitProcessor *processor
 	timer.reset();
 
 	// Build the IR for this block
-	if(!build_block(processor, block_address, ctx)) {
+	if(!build_block(processor, block_address, builder)) {
 		LC_ERROR(LogBlockJit) << "Failed to build block";
 		delete _decode_ctx;
 		return false;
@@ -120,10 +124,10 @@ void BaseBlockJITTranslate::InitialiseFeatures(const gensim::BlockJitProcessor *
 	_features_valid = true;
 }
 
-void BaseBlockJITTranslate::SetFeatureLevel(uint32_t feature, uint32_t level, captive::arch::jit::TranslationContext& ctx)
+void BaseBlockJITTranslate::SetFeatureLevel(uint32_t feature, uint32_t level, captive::shared::IRBuilder& builder)
 {
 	_feature_levels[feature] = level;
-	ctx.add_instruction(IRInstruction::set_cpu_feature(IROperand::const32(feature), IROperand::const32(level)));
+	builder.set_cpu_feature(IROperand::const32(feature), IROperand::const32(level));
 }
 
 uint32_t BaseBlockJITTranslate::GetFeatureLevel(uint32_t feature)
@@ -155,14 +159,14 @@ void BaseBlockJITTranslate::InitialiseIsaMode(const gensim::BlockJitProcessor* c
 	_isa_mode = cpu->get_cpu_mode();
 }
 
-void BaseBlockJITTranslate::SetIsaMode(const captive::shared::IROperand& val, captive::arch::jit::TranslationContext& ctx)
+void BaseBlockJITTranslate::SetIsaMode(const captive::shared::IROperand& val, captive::shared::IRBuilder& builder)
 {
 	if(val.is_constant()) {
 		_isa_mode = val.value;
 	} else {
 		InvalidateIsaMode();
 	}
-	ctx.add_instruction(IRInstruction::set_cpu_mode(val));
+	builder.set_cpu_mode(val);
 }
 
 uint32_t BaseBlockJITTranslate::GetIsaMode()
@@ -176,25 +180,23 @@ void BaseBlockJITTranslate::InvalidateIsaMode()
 	_isa_mode_valid = false;
 }
 
-bool BaseBlockJITTranslate::build_block(gensim::BlockJitProcessor *processor, archsim::VirtualAddress block_address, TranslationContext &ctx)
-{
-	assert(ctx.current_block() == 0);
-	
+bool BaseBlockJITTranslate::build_block(gensim::BlockJitProcessor *processor, archsim::VirtualAddress block_address, captive::shared::IRBuilder &builder)
+{	
 	// initialise some state, and then recursively emit blocks until we come
 	// to a branch that we can't resolve statically
 	if(!_decode)_decode = processor->GetNewDecode();
 	if(!_jumpinfo)_jumpinfo = processor->GetJumpInfo();
 	std::unordered_set<VirtualAddress> block_heads;
-	return emit_block(processor, block_address, ctx, block_heads);
+	return emit_block(processor, block_address, builder, block_heads);
 }
 
-bool BaseBlockJITTranslate::emit_instruction(gensim::BlockJitProcessor *processor, archsim::VirtualAddress pc, gensim::BaseDecode *decode, captive::arch::jit::TranslationContext &ctx)
+bool BaseBlockJITTranslate::emit_instruction(gensim::BlockJitProcessor *processor, archsim::VirtualAddress pc, gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
 {
-	if(archsim::options::Verbose)ctx.add_instruction(IRInstruction::count(IROperand::const64((uint64_t)&processor->metrics.interp_inst_count), IROperand::const64(1)));
+	if(archsim::options::Verbose)builder.count(IROperand::const64((uint64_t)&processor->metrics.interp_inst_count), IROperand::const64(1));
 
 
 	if(archsim::options::Profile) {
-		ctx.add_instruction(IRInstruction::count(IROperand::const64((uint64_t)processor->metrics.opcode_freq_hist.get_value_ptr_at_index(decode->Instr_Code)), IROperand::const64(1)));
+		builder.count(IROperand::const64((uint64_t)processor->metrics.opcode_freq_hist.get_value_ptr_at_index(decode->Instr_Code)), IROperand::const64(1));
 	}
 
 	auto fault = _decode_ctx->DecodeSync(pc, GetIsaMode(), *decode);
@@ -210,37 +212,38 @@ bool BaseBlockJITTranslate::emit_instruction(gensim::BlockJitProcessor *processo
 
 	IRInstruction b = IRInstruction::barrier();
 	b.operands[0] = IROperand::const32(decode->GetIR());
-	ctx.add_instruction(b);
+	builder.add_instruction(b);
 
 	b = IRInstruction::barrier();
 	b.operands[0] = IROperand::const32(pc.Get());
-	ctx.add_instruction(b);
+	builder.add_instruction(b);
 
-	if(archsim::options::Verify && !archsim::options::VerifyBlocks) ctx.add_instruction(IRInstruction::verify(IROperand::pc(pc.Get())));
+	if(archsim::options::Verify && !archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
 	else if(archsim::options::InstructionTick) {
-		ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuInstructionTick), IROperand::const64((uint64_t)(void*)processor)));
+		builder.call(IROperand::func((void*)cpuInstructionTick), IROperand::const64((uint64_t)(void*)processor));
 	}
 
 	if(archsim::options::ProfilePcFreq) {
-		ctx.add_instruction(IRInstruction::count(IROperand::const64((uint64_t)processor->metrics.pc_freq_hist.get_value_ptr_at_index(pc.Get())), IROperand::const64(1)));
+		builder.count(IROperand::const64((uint64_t)processor->metrics.pc_freq_hist.get_value_ptr_at_index(pc.Get())), IROperand::const64(1));
 	}
 	if(archsim::options::ProfileIrFreq) {
-		ctx.add_instruction(IRInstruction::count(IROperand::const64((uint64_t)processor->metrics.inst_ir_freq_hist.get_value_ptr_at_index(decode->ir)), IROperand::const64(1)));
+		builder.count(IROperand::const64((uint64_t)processor->metrics.inst_ir_freq_hist.get_value_ptr_at_index(decode->ir)), IROperand::const64(1));
 	}
 	
 	if(processor->IsTracingEnabled()) {
-		IRRegId pc_reg = ctx.alloc_reg(4);
-		ctx.add_instruction(IRInstruction::ldpc(IROperand::vreg(pc_reg, 4)));
-		ctx.add_instruction(IRInstruction::bitwise_and(IROperand::const32(0xfffff000), IROperand::vreg(pc_reg, 4)));
-		ctx.add_instruction(IRInstruction::bitwise_or(IROperand::const32(pc.GetPageOffset()), IROperand::vreg(pc_reg, 4)));
-		ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceInstruction), IROperand::vreg(pc_reg, 4), IROperand::const32(decode->GetIR()), IROperand::const8(decode->isa_mode), IROperand::const8(0)));
+		IRRegId pc_reg = builder.alloc_reg(4);
+		builder.ldpc(IROperand::vreg(pc_reg, 4));
+		builder.bitwise_and(IROperand::const32(0xfffff000), IROperand::vreg(pc_reg, 4));
+		builder.bitwise_or(IROperand::const32(pc.GetPageOffset()), IROperand::vreg(pc_reg, 4));
+		builder.call(IROperand::func((void*)cpuTraceInstruction), IROperand::vreg(pc_reg, 4), IROperand::const32(decode->GetIR()), IROperand::const8(decode->isa_mode), IROperand::const8(0));
 	}
 
-	translate_instruction(decode, ctx, processor->IsTracingEnabled());
-	processor->GetDecodeTranslateContext()->Translate(*decode, *_decode_ctx, ctx);
+	translate_instruction(decode, builder, processor->IsTracingEnabled());
+	processor->GetDecodeTranslateContext()->Translate(*decode, *_decode_ctx, builder);
 
-	if(processor->IsTracingEnabled())
-		ctx.add_instruction(IRInstruction::call(IROperand::func((void*)cpuTraceInsnEnd)));
+	if(processor->IsTracingEnabled()) {
+		builder.call(IROperand::func((void*)cpuTraceInsnEnd));
+	}
 
 	return true;
 }
@@ -284,7 +287,7 @@ archsim::VirtualAddress BaseBlockJITTranslate::get_jump_target(BlockJitProcessor
 	return VirtualAddress(target);
 }
 
-bool BaseBlockJITTranslate::emit_block(gensim::BlockJitProcessor *processor, archsim::VirtualAddress block_address, captive::arch::jit::TranslationContext &ctx, std::unordered_set<VirtualAddress> &block_heads)
+bool BaseBlockJITTranslate::emit_block(gensim::BlockJitProcessor *processor, archsim::VirtualAddress block_address, captive::shared::IRBuilder &builder, std::unordered_set<VirtualAddress> &block_heads)
 {
 
 	VirtualAddress pc = block_address;
@@ -300,7 +303,7 @@ bool BaseBlockJITTranslate::emit_block(gensim::BlockJitProcessor *processor, arc
 		_txln_mgr->GetRegion(phys_page).TraceBlock(*processor, pc.Get());
 		auto &rgn = _txln_mgr->GetRegion(phys_page);
 
-		ctx.add_instruction(IRInstruction::profile(IROperand::const64((uint64_t)&rgn), IROperand::const32(block_address.GetPageOffset())));
+		builder.profile(IROperand::const64((uint64_t)&rgn), IROperand::const32(block_address.GetPageOffset()));
 	}
 
 	LC_DEBUG3(LogBlockJit) << "Translating block " << std::hex << pc.Get() << " " << _decode->Instr_Code << " " << _decode->ir;
@@ -322,7 +325,7 @@ bool BaseBlockJITTranslate::emit_block(gensim::BlockJitProcessor *processor, arc
 		count++;
 
 		// emit the IR for the instruction pointed to by the virtual PC
-		if(!emit_instruction(processor, pc, _decode, ctx)) {
+		if(!emit_instruction(processor, pc, _decode, builder)) {
 			success = false;
 			break;
 		}
@@ -333,8 +336,8 @@ bool BaseBlockJITTranslate::emit_block(gensim::BlockJitProcessor *processor, arc
 				VirtualAddress target = get_jump_target(processor, _decode, pc);
 				if(!block_heads.count(target)) {
 					block_heads.insert(target);
-					if(archsim::options::Verify && archsim::options::VerifyBlocks) ctx.add_instruction(IRInstruction::verify(IROperand::pc(pc.Get())));
-					return emit_block(processor, target, ctx, block_heads);
+					if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
+					return emit_block(processor, target, builder, block_heads);
 				}
 			}
 
@@ -348,15 +351,15 @@ bool BaseBlockJITTranslate::emit_block(gensim::BlockJitProcessor *processor, arc
 		processor->metrics.too_large_block.inc();
 	}
 
-	if(archsim::options::Verify && archsim::options::VerifyBlocks) ctx.add_instruction(IRInstruction::verify(IROperand::pc(pc.Get())));
+	if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
 
 	// attempt to chain (otherwise return)
-	emit_chain(processor, pc, _decode, ctx);
+	emit_chain(processor, pc, _decode, builder);
 
 	return success;
 }
 
-bool BaseBlockJITTranslate::emit_chain(gensim::BlockJitProcessor *processor, archsim::VirtualAddress pc, gensim::BaseDecode *decode, captive::arch::jit::TranslationContext &ctx)
+bool BaseBlockJITTranslate::emit_chain(gensim::BlockJitProcessor *processor, archsim::VirtualAddress pc, gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
 {
 	// If this instruction is an end of block (rather than the start of the next page)
 	// then we might be able to chain
@@ -415,7 +418,7 @@ bool BaseBlockJITTranslate::emit_chain(gensim::BlockJitProcessor *processor, arc
 				}
 
 				if(fallthrough_fn_ptr != nullptr || target_fn_ptr != nullptr) {
-					ctx.add_instruction(IRInstruction::dispatch(IROperand::const32(target_pc), IROperand::const32(fallthrough_pc), IROperand::const64((uint64_t)target_fn_ptr), IROperand::const64((uint64_t)fallthrough_fn_ptr)));
+					builder.dispatch(IROperand::const32(target_pc), IROperand::const32(fallthrough_pc), IROperand::const64((uint64_t)target_fn_ptr), IROperand::const64((uint64_t)fallthrough_fn_ptr));
 					return true;
 				}
 			} else {
@@ -426,7 +429,7 @@ bool BaseBlockJITTranslate::emit_chain(gensim::BlockJitProcessor *processor, arc
 		}
 	}
 	// If we couldn't find any way to chain, then just return
-	ctx.add_instruction(IRInstruction::ret());
+	builder.ret();
 	return true;
 }
 

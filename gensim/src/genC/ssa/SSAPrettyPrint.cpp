@@ -44,7 +44,9 @@ namespace gensim
 					case IRConstant::Type_Float_Double:
 						str << GetName() << " = (" << GetType().PrettyPrint() << ") " << std::hex << Constant.Dbl() << " (const)";
 						break;
-
+					case IRConstant::Type_Vector:
+						str << GetName() << " = {} (const)";
+						break;
 					default:
 						throw std::logic_error("");
 				}

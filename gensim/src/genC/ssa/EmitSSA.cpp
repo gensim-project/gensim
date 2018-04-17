@@ -596,49 +596,52 @@ return call;
 
 SSAStatement *IRCastExpression::EmitSSAForm(SSABuilder &bldr) const
 {
-// if we're casting a const, just emit a const of the cast type
-IRConstExpression *const_stmt = dynamic_cast<IRConstExpression*> (Expr);
-if (const_stmt != nullptr) {
-	if (!const_stmt->Type.IsFloating() && !ToType.IsFloating()) {
-		SSAConstantStatement *stmt = new SSAConstantStatement(&bldr.GetBlock(), IRType::Cast(const_stmt->Value, const_stmt->Type, ToType), ToType);
-		stmt->SetDiag(Diag());
-		return stmt;
+	// if we're casting a const, just emit a const of the cast type
+	IRConstExpression *const_stmt = dynamic_cast<IRConstExpression*> (Expr);
+	if (const_stmt != nullptr) {
+		if (!const_stmt->Type.IsFloating() && !ToType.IsFloating()) {
+			SSAConstantStatement *stmt = new SSAConstantStatement(&bldr.GetBlock(), IRType::Cast(const_stmt->Value, const_stmt->Type, ToType), ToType);
+			stmt->SetDiag(Diag());
+			return stmt;
+		}
 	}
-}
 
-SSAStatement *inner_stmt = Expr->EmitSSAForm(bldr);
-IRType::PromoteResult res = inner_stmt->GetType().AutoPromote(ToType);
-SSACastStatement::CastType cast_type;
-SSACastStatement::CastOption cast_option = SSACastStatement::Option_None;
+	SSAStatement *inner_stmt = Expr->EmitSSAForm(bldr);
+	IRType::PromoteResult res = inner_stmt->GetType().AutoPromote(ToType);
+	SSACastStatement::CastType cast_type;
+	SSACastStatement::CastOption cast_option = SSACastStatement::Option_None;
 
 
-switch (res) {
-	case IRType::PROMOTE_TRUNCATE:
-		cast_type = SSACastStatement::Cast_Truncate;
-		break;
-	case IRType::PROMOTE_CONVERT:
-		cast_type = SSACastStatement::Cast_Convert;
-		cast_option = SSACastStatement::Option_RoundDefault;
-		break;
-	case IRType::PROMOTE_OK:
-		cast_type = SSACastStatement::Cast_ZeroExtend;
-		break;
-	case IRType::PROMOTE_SIGN_CHANGE:
-		cast_type = SSACastStatement::Cast_ZeroExtend;
-		break;
-	case IRType::PROMOTE_OK_SIGNED:
-		cast_type = SSACastStatement::Cast_SignExtend;
-		break;
-	default:
-		assert(false && "Attempting to generate SSA code for invalid cast type");
-		UNEXPECTED;
-}
+	switch (res) {
+		case IRType::PROMOTE_TRUNCATE:
+			cast_type = SSACastStatement::Cast_Truncate;
+			break;
+		case IRType::PROMOTE_CONVERT:
+			cast_type = SSACastStatement::Cast_Convert;
+			cast_option = SSACastStatement::Option_RoundDefault;
+			break;
+		case IRType::PROMOTE_OK:
+			cast_type = SSACastStatement::Cast_ZeroExtend;
+			break;
+		case IRType::PROMOTE_SIGN_CHANGE:
+			cast_type = SSACastStatement::Cast_ZeroExtend;
+			break;
+		case IRType::PROMOTE_OK_SIGNED:
+			cast_type = SSACastStatement::Cast_SignExtend;
+			break;
+		case IRType::PROMOTE_VECTOR:
+			cast_type = SSACastStatement::Cast_VectorSplat;
+			break;
+		default:
+			assert(false && "Attempting to generate SSA code for invalid cast type");
+			UNEXPECTED;
+	}
 
-auto stmt = new SSACastStatement(&bldr.GetBlock(), ToType, (inner_stmt), cast_type);
-stmt->SetOption(cast_option);
-stmt->SetDiag(Diag());
+	auto stmt = new SSACastStatement(&bldr.GetBlock(), ToType, (inner_stmt), cast_type);
+	stmt->SetOption(cast_option);
+	stmt->SetDiag(Diag());
 
-return stmt;
+	return stmt;
 }
 
 SSAStatement *IRConstExpression::EmitSSAForm(SSABuilder &bldr) const
