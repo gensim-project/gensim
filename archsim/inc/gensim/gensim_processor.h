@@ -302,12 +302,13 @@ namespace gensim
 
 		inline archsim::abi::ExceptionAction take_exception(uint32_t category, uint32_t data)
 		{
-			last_exception_action = GetEmulationModel().HandleException(*this, category, data);
-			if(last_exception_action == archsim::abi::AbortInstruction || last_exception_action == archsim::abi::AbortSimulation) {
-				LC_DEBUG4(LogCPU) << "Take Exception";
-				return_to_safepoint();
-			}
-			return last_exception_action;
+			UNIMPLEMENTED;
+//			last_exception_action = GetEmulationModel().HandleException(*this, category, data);
+//			if(last_exception_action == archsim::abi::AbortInstruction || last_exception_action == archsim::abi::AbortSimulation) {
+//				LC_DEBUG4(LogCPU) << "Take Exception";
+//				return_to_safepoint();
+//			}
+//			return last_exception_action;
 		}
 
 		void SetMustLeave()

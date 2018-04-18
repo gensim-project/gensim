@@ -24,6 +24,8 @@ namespace gensim
 }
 namespace archsim
 {
+	class ThreadInstance;
+	
 	namespace uarch
 	{
 		class uArch;
@@ -106,7 +108,7 @@ namespace archsim
 
 			virtual bool PrepareBoot(System& system) = 0;
 
-			virtual ExceptionAction HandleException(gensim::Processor& cpu, uint32_t category, uint32_t data) = 0;
+			virtual ExceptionAction HandleException(archsim::ThreadInstance* thread, uint32_t category, uint32_t data) = 0;
 
 			virtual bool LookupSymbol(unsigned long address, bool exact_match, const BinarySymbol *& symbol) const;
 			virtual bool ResolveSymbol(std::string name, unsigned long& value);

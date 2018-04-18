@@ -73,7 +73,7 @@ bool SyscallHandler::HandleSyscall(SyscallRequest& request, SyscallResponse& res
 		sprintf(buffer, syscall_fn_names.at(request.syscall).c_str(), request.arg0, request.arg1, request.arg2, request.arg3, request.arg4, request.arg5);
 		LC_DEBUG1(LogSyscalls) << "Handling registered syscall " << buffer;
 
-		response.result = (syscall->second)(request.cpu, request.arg0, request.arg1, request.arg2, request.arg3, request.arg4, request.arg5);
+		response.result = (syscall->second)(request.thread, request.arg0, request.arg1, request.arg2, request.arg3, request.arg4, request.arg5);
 
 		LC_DEBUG1(LogSyscalls) << "Syscall returned " << format_rval(response.result);
 		return true;

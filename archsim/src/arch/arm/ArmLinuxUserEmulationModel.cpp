@@ -169,13 +169,13 @@ bool ArmLinuxUserEmulationModel::InstallKernelHelpers()
 	return true;
 }
 
-archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(gensim::Processor& cpu, unsigned int category, unsigned int data)
+archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsim::ThreadInstance* thread, unsigned int category, unsigned int data)
 {
 	if (category == 3) {
-		gensim::RegisterBankDescriptor& bank = cpu.GetRegisterBankDescriptor("RB");
-		uint32_t* registers = (uint32_t*)bank.GetBankDataStart();
+		auto bank = thread->GetRegisterFileInterface().GetEntry<uint32_t>("RB");
+		uint32_t* registers = (uint32_t*)bank;
 
-		archsim::abi::SyscallRequest request {0, cpu};
+		archsim::abi::SyscallRequest request {0, thread};
 		if(IsOABI()) {
 			request.syscall = data & 0xfffff;
 		} else if(IsEABI()) {
@@ -200,14 +200,6 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(gensim
 			registers[0] = -1;
 		}
 
-		//XXX ARM HAX
-		if(request.syscall == 0x0f0002) {
-			if(cpu.GetEmulationModel().GetSystem().HaveTranslationManager()) {
-				if(cpu.cur_exec_mode == gensim::Processor::kExecModeNative) {
-					return AbortInstruction;
-				}
-			}
-		}
 		// xxx arm hax
 		// currently a syscall cannot return an action other than resume, so
 		// we need to exit manually here.
@@ -218,7 +210,7 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(gensim
 		return response.action;
 
 	} else if (category == 11) {
-		LC_ERROR(LogEmulationModelArmLinux) << "Undefined Instruction Exception @ " << std::hex << cpu.read_pc();
+		LC_ERROR(LogEmulationModelArmLinux) << "Undefined Instruction Exception @ " << std::hex << thread->GetPC();
 		GetSystem().exit_code = 1;
 		exit(1);
 		return AbortSimulation;

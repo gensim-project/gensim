@@ -57,7 +57,7 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	auto arch = archentry->Get();
 	auto ctx = new archsim::ExecutionContext(*arch, moduleentry->Get());
 	GetSystem().GetECM().AddContext(ctx);
-	main_thread_ = new ThreadInstance(*arch, stateblock);
+	main_thread_ = new ThreadInstance(*arch, stateblock, *this);
 	
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
 		i.second->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
@@ -295,7 +295,7 @@ unsigned int UserEmulationModel::GetInitialBreak()
 	return _initial_program_break;
 }
 
-ExceptionAction UserEmulationModel::HandleException(gensim::Processor &cpu, unsigned int category, unsigned int data)
+ExceptionAction UserEmulationModel::HandleException(archsim::ThreadInstance *thread, unsigned int category, unsigned int data)
 {
 	LC_WARNING(LogEmulationModelUser) << "Unhandled exception " << category << ", " << data;
 	return AbortSimulation;

@@ -40,6 +40,7 @@ namespace archsim {
 			virtual ExecutionResult StepThreadBlock(ThreadInstance *thread) = 0;
 			virtual ExecutionResult Execute(ThreadInstance *thread) = 0;
 			
+			virtual void TakeException(ThreadInstance *thread, uint64_t category, uint64_t data) = 0;
 		};
 		
 		class BasicExecutionEngine : public ExecutionEngine {
@@ -49,6 +50,10 @@ namespace archsim {
 			virtual ExecutionResult JoinAsyncThread(ThreadInstance* thread);
 			
 			virtual ExecutionResult Execute(ThreadInstance *thread);
+			virtual ExecutionResult StepThreadBlock(ThreadInstance *thread);
+			virtual ExecutionResult StepThreadSingle(ThreadInstance *thread);
+			
+			void TakeException(ThreadInstance* thread, uint64_t category, uint64_t data) override;
 
 			class ExecutionContext {
 			public:
@@ -59,6 +64,9 @@ namespace archsim {
 				BasicExecutionEngine *engine;
 			};
 		private:
+			virtual ExecutionResult ArchStepBlock(ThreadInstance *thread) = 0;
+			virtual ExecutionResult ArchStepSingle(ThreadInstance *thread) = 0;
+			
 			std::map<ThreadInstance*, ExecutionContext*> threads_;
 		};
 }

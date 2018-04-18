@@ -8,6 +8,28 @@
 
 using namespace archsim;
 
+MemoryResult MemoryInterface::WriteString(Address address, const char *data) {
+	do {
+		device_->Write8(address, *data);
+		data++;
+		address += 1;
+	} while(*data);
+}
+
+MemoryResult MemoryInterface::ReadString(Address address, char *data, size_t max_size) {
+	UNIMPLEMENTED;
+}
+
+MemoryResult MemoryInterface::Read(Address address, unsigned char *data, size_t size) {
+	UNIMPLEMENTED;
+}
+
+MemoryResult MemoryInterface::Write(Address address, const unsigned char *data, size_t size) {
+	for(int i = 0; i < size; ++i) {
+		Write8(address + i, data[i]);
+	}
+}
+
 MemoryResult LegacyMemoryInterface::Read8(Address address, uint8_t& data)
 {
 	return mem_model_.Read8(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;

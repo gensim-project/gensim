@@ -344,9 +344,7 @@ namespace gensim
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = __builtin_clz(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
-						output << "assert(false);";
-//						output << "take_exception(" << (Factory.GetOrCreate(stmt.Args(0))->GetFixedValue()) << "," << (Factory.GetOrCreate(stmt.Args(1))->GetFixedValue()) << ");";
-
+						output << "ee->TakeException(thread, " << (Factory.GetOrCreate(stmt.Args(0))->GetFixedValue()) << "," << (Factory.GetOrCreate(stmt.Args(1))->GetFixedValue()) << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
 						output << "UNIMPLEMENTED; // haltcpu\n";
@@ -762,7 +760,7 @@ namespace gensim
 				
 				if(is_helper) {
 					first = false;
-					output << "thread";
+					output << "ee, thread";
 				}
 				for (int i = 0; i < stmt.ArgCount(); ++i) {
 					if (!first) output << ",";

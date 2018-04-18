@@ -339,44 +339,45 @@ void ArmVersatileEmulationModel::HandleSemihostingCall()
 	}
 }
 
-ExceptionAction ArmVersatileEmulationModel::HandleException(gensim::Processor &cpu, unsigned int category, unsigned int data)
+ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::ThreadInstance *cpu, unsigned int category, unsigned int data)
 {
-
-	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu.read_pc() << " mode " << (uint32_t)cpu.get_cpu_mode();
-
-	if (category == 3 && data == 0x123456) {
-		HandleSemihostingCall();
-		return archsim::abi::ResumeNext;
-	}
-
-	// XXX ARM HAX
-	if (category == 11) {
-		uint32_t insn;
-		cpu.mem_read_32(data-4, insn);
-//		GetMemoryModel().Read32(data-4, insn);
-		LC_DEBUG1(LogSystemEmulationModel) << "Undefined instruction exception! " << std::hex << (data-4) << " " << insn;
-//		exit(0);
-	}
-
-	// update ITSTATE if we have a SWI
-	if(category == 3) {
-		auto &desc = cpu.GetRegisterDescriptor("ITSTATE");
-		uint8_t* itstate_ptr = (uint8_t*)desc.DataStart;
-		uint8_t itstate = *itstate_ptr;
-		if(itstate) {
-			uint8_t cond = itstate & 0xe0;
-			uint8_t mask = itstate & 0x1f;
-			mask = (mask << 1) & 0x1f;
-			if(mask == 0x10) {
-				cond = 0;
-				mask = 0;
-			}
-			*itstate_ptr = cond | mask;
-		}
-	}
-
-	cpu.handle_exception(category, data);
-	return archsim::abi::AbortInstruction;
+	UNIMPLEMENTED;
+//	
+//	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu.read_pc() << " mode " << (uint32_t)cpu.get_cpu_mode();
+//
+//	if (category == 3 && data == 0x123456) {
+//		HandleSemihostingCall();
+//		return archsim::abi::ResumeNext;
+//	}
+//
+//	// XXX ARM HAX
+//	if (category == 11) {
+//		uint32_t insn;
+//		cpu.mem_read_32(data-4, insn);
+////		GetMemoryModel().Read32(data-4, insn);
+//		LC_DEBUG1(LogSystemEmulationModel) << "Undefined instruction exception! " << std::hex << (data-4) << " " << insn;
+////		exit(0);
+//	}
+//
+//	// update ITSTATE if we have a SWI
+//	if(category == 3) {
+//		auto &desc = cpu.GetRegisterDescriptor("ITSTATE");
+//		uint8_t* itstate_ptr = (uint8_t*)desc.DataStart;
+//		uint8_t itstate = *itstate_ptr;
+//		if(itstate) {
+//			uint8_t cond = itstate & 0xe0;
+//			uint8_t mask = itstate & 0x1f;
+//			mask = (mask << 1) & 0x1f;
+//			if(mask == 0x10) {
+//				cond = 0;
+//				mask = 0;
+//			}
+//			*itstate_ptr = cond | mask;
+//		}
+//	}
+//
+//	cpu.handle_exception(category, data);
+//	return archsim::abi::AbortInstruction;
 }
 
 gensim::DecodeContext* ArmVersatileEmulationModel::GetNewDecodeContext(gensim::Processor& cpu)
