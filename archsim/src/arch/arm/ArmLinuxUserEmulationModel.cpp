@@ -70,17 +70,17 @@ bool ArmLinuxUserEmulationModel::PrepareBoot(System& system)
 	}
 #endif
 
-	GetBootCore()->peripherals.InitialiseDevices();
+//	GetBootCore()->peripherals.InitialiseDevices();
 
 	// set up FPU
-	gensim::Processor *cpu = GetBootCore();
-	cpu->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_FPEXC", 1);
-	cpu->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 2);
-	cpu->GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 1);
+//	gensim::Processor *cpu = GetBootCore();
+//	cpu->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_FPEXC", 1);
+//	cpu->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 2);
+//	cpu->GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 1);
 
-	auto fpexc = cpu->GetRegisterDescriptor("FPEXC");
-	uint32_t *fpexc_data = (uint32_t*)fpexc.DataStart;
-	*fpexc_data = 0x40000000;
+//	auto fpexc = cpu->GetRegisterDescriptor("FPEXC");
+//	uint32_t *fpexc_data = (uint32_t*)fpexc.DataStart;
+//	*fpexc_data = 0x40000000;
 
 	return true;
 }

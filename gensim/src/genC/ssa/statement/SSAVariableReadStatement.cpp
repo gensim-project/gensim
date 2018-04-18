@@ -126,9 +126,10 @@ bool SSAVariableReadStatement::Resolve(DiagnosticContext &ctx)
 		// Vector types are a bit weird, don't try and track definedness for
 		// these at the moment.
 		if(Target()->GetType().VectorWidth == 1) {
-			if(!HasNoUndefinedPaths()) {
-				ctx.Warning("Read from " + Target()->GetPrettyName() + " may give an undefined result (some paths don't store a value)", GetDiag());
-			}
+			// TODO: this doesn't seem to work correctly
+//			if(!HasNoUndefinedPaths()) {
+//				ctx.Warning("Read from " + Target()->GetPrettyName() + " may give an undefined result (some paths don't store a value)", GetDiag());
+//			}
 		}
 	}
 

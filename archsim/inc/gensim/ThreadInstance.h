@@ -16,6 +16,7 @@
 
 #include "gensim/StateBlock.h"
 #include "abi/Address.h"
+#include "abi/devices/Component.h"
 #include "gensim/ArchDescriptor.h"
 
 #include <libtrace/TraceSource.h>
@@ -23,7 +24,27 @@
 namespace archsim {
 		class MemoryInterface;
 		class FeatureState;
-		class FPState;
+		
+		enum class FlushMode {
+			DoNotFlush,
+			FlushToZero
+		};
+		enum class RoundingMode {
+			RoundTowardZero
+		};
+		
+		class FPState {
+		public:
+			void SetFlushMode(FlushMode newMode) { flush_mode_ = newMode; }
+			FlushMode GetFlushMode() const { return flush_mode_; }
+			
+			void SetRoundingMode(RoundingMode newMode) { rounding_mode_ = newMode; }
+			RoundingMode GetRoundingMode() const { return rounding_mode_; }
+			
+		private:
+			RoundingMode rounding_mode_;
+			FlushMode flush_mode_;
+		};
 		
 		/**
 		 * A ProcessorInstance represents a single instance of a guest thread.
@@ -43,7 +64,7 @@ namespace archsim {
 			void *GetRegisterFile() { return (void*)register_file_.data(); }
 			MemoryInterface &GetMemoryInterface(const std::string &interface_name);
 			FeatureState &GetFeatures();
-			FPState &GetFPState();
+			FPState &GetFPState() { return fp_state_; }
 			
 			uint32_t GetModeID() const { return mode_id_; }
 			void SetModeID(uint32_t new_mode) { mode_id_ = new_mode; }
@@ -64,18 +85,27 @@ namespace archsim {
 			
 			libtrace::TraceSource *GetTraceSource() { return trace_source_; }
 			void SetTraceSource(libtrace::TraceSource *source) { trace_source_ = source; }
-                        
+			
+			archsim::abi::devices::CoreComponent *GetCoreDevice(uint32_t id) { return core_devices_.at(id); }
+			void SetCoreDevice(uint32_t id, archsim::abi::devices::CoreComponent *dev) { core_devices_.insert({id, dev}); }
+			
 			StateBlockInstance &GetStateBlock();
+			
+			void fn_flush_itlb_entry(Address::underlying_t entry) {}
+			void fn_flush_dtlb_entry(Address::underlying_t entry) {}
 		private:
 			const ArchDescriptor &descriptor_;
 			memory_interface_collection_t memory_interfaces_;
 			std::vector<unsigned char> register_file_;
+			FPState fp_state_;
 			
 			uint32_t mode_id_;
 			uint32_t ring_id_;
 			
 			StateBlockInstance state_block_;
 			libtrace::TraceSource *trace_source_;
+			
+			std::unordered_map<uint32_t, archsim::abi::devices::CoreComponent*> core_devices_;
 		};
 }
 
