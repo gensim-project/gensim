@@ -12,6 +12,11 @@ using namespace archsim;
 
 DeclareLogContext(LogExecutionEngine, "ExecutionEngine");
 
+class thread_exception {
+public:
+	thread_exception(uint64_t, uint64_t) {}
+};
+
 void execute_thread(BasicExecutionEngine::ExecutionContext *ctx) {
 	while(!ctx->should_halt && ctx->last_result == ExecutionResult::Continue) {
 		ctx->last_result = ctx->engine->StepThreadBlock(ctx->thread_instance);
@@ -50,4 +55,31 @@ ExecutionResult BasicExecutionEngine::Execute(ThreadInstance* thread)
 	do {
 		result = StepThreadBlock(thread);
 	} while(result == ExecutionResult::Continue);
+}
+
+void BasicExecutionEngine::TakeException(ThreadInstance* thread, uint64_t category, uint64_t data)
+{
+	assert(threads_.count(thread) == 0 || threads_.at(thread)->thread->get_id() == std::this_thread::get_id());
+	
+	auto result = thread->TakeException(category, data);
+	if(result == archsim::abi::AbortInstruction || result == archsim::abi::AbortSimulation) {
+		throw thread_exception(category, data);
+	}
+}
+
+ExecutionResult BasicExecutionEngine::StepThreadBlock(ThreadInstance* thread)
+{
+	try {
+		return ArchStepBlock(thread);
+	} catch(thread_exception &exception) {
+		return ExecutionResult::Exception;
+	}
+}
+ExecutionResult BasicExecutionEngine::StepThreadSingle(ThreadInstance* thread)
+{
+	try {
+		return ArchStepSingle(thread);
+	} catch(thread_exception &exception) {
+		return ExecutionResult::Exception;
+	}
 }

@@ -55,7 +55,7 @@ void ElfSystemEmulationModel::Destroy()
 	SystemEmulationModel::Destroy();
 }
 
-ExceptionAction ElfSystemEmulationModel::HandleException(gensim::Processor &cpu, uint32_t category, uint32_t data)
+ExceptionAction ElfSystemEmulationModel::HandleException(archsim::ThreadInstance *cpu, uint32_t category, uint32_t data)
 {
 	if(category == 3 && data == 0x123456) {
 		if(HandleSemihostingCall()) {

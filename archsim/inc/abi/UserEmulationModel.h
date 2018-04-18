@@ -24,7 +24,7 @@ namespace archsim
 		struct SyscallRequest {
 			unsigned int syscall;
 
-			gensim::Processor& cpu;
+			ThreadInstance *thread;
 
 			unsigned int arg0;
 			unsigned int arg1;
@@ -67,7 +67,7 @@ namespace archsim
 			bool AssertSignal(int signum, SignalData* data);
 			virtual bool InvokeSignal(int signum, uint32_t next_pc, SignalData* data);
 
-			virtual ExceptionAction HandleException(gensim::Processor& cpu, unsigned int category, unsigned int data);
+			virtual ExceptionAction HandleException(ThreadInstance* cpu, unsigned int category, unsigned int data) override;
 			void PrintStatistics(std::ostream& stream);
 
 		private:

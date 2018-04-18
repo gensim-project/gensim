@@ -18,6 +18,7 @@
 #include "abi/Address.h"
 #include "abi/devices/Component.h"
 #include "gensim/ArchDescriptor.h"
+#include "abi/EmulationModel.h"
 
 #include <libtrace/TraceSource.h>
 
@@ -46,6 +47,19 @@ namespace archsim {
 			FlushMode flush_mode_;
 		};
 		
+		class RegisterFileInterface {
+		public:
+			RegisterFileInterface(const RegisterFileDescriptor &descriptor) : descriptor_(descriptor) { data_.resize(descriptor.GetSize()); }
+			
+			char *GetData() { return data_.data(); }
+			
+			template<typename T> T* GetEntry(const std::string &slotname) { return (T*)&data_[descriptor_.GetEntries().at(slotname).GetOffset()]; }
+			
+		private:
+			const RegisterFileDescriptor &descriptor_;
+			std::vector<char> data_;
+		};
+		
 		/**
 		 * A ProcessorInstance represents a single instance of a guest thread.
 		 * It contains all data on registers, memory interfaces, etc., but no
@@ -59,9 +73,11 @@ namespace archsim {
 		public:
 			using memory_interface_collection_t = std::map<std::string, MemoryInterface*>;
 			
-			ThreadInstance(const ArchDescriptor &arch, StateBlockDescriptor &state_descriptor);
+			ThreadInstance(const ArchDescriptor &arch, StateBlockDescriptor &state_descriptor, archsim::abi::EmulationModel &emu_model);
 			
-			void *GetRegisterFile() { return (void*)register_file_.data(); }
+			const ArchDescriptor &GetArch() { return descriptor_; }
+			void *GetRegisterFile() { return (void*)register_file_.GetData(); }
+			RegisterFileInterface &GetRegisterFileInterface() { return register_file_; }
 			MemoryInterface &GetMemoryInterface(const std::string &interface_name);
 			FeatureState &GetFeatures();
 			FPState &GetFPState() { return fp_state_; }
@@ -93,11 +109,16 @@ namespace archsim {
 			
 			void fn_flush_itlb_entry(Address::underlying_t entry) {}
 			void fn_flush_dtlb_entry(Address::underlying_t entry) {}
+			
+			archsim::abi::ExceptionAction TakeException(uint64_t category, uint64_t data);
+			archsim::abi::EmulationModel &GetEmulationModel() { return emu_model_; }
 		private:
 			const ArchDescriptor &descriptor_;
 			memory_interface_collection_t memory_interfaces_;
-			std::vector<unsigned char> register_file_;
+			RegisterFileInterface register_file_;
 			FPState fp_state_;
+			
+			archsim::abi::EmulationModel &emu_model_;
 			
 			uint32_t mode_id_;
 			uint32_t ring_id_;

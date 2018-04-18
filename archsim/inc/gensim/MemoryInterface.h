@@ -78,6 +78,12 @@ namespace archsim {
 		MemoryResult Write32(Address address, uint32_t data) { return device_->Write32(address, data); }
 		MemoryResult Write64(Address address, uint64_t data) { return device_->Write64(address, data); }
 
+		MemoryResult ReadString(Address address,  char *data, size_t max_size);
+		MemoryResult WriteString(Address address, const char *data);
+		
+		MemoryResult Read(Address address, unsigned char *data, size_t size);
+		MemoryResult Write(Address address, const unsigned char *data, size_t size);
+		
 		void Connect(MemoryDevice &device) { device_ = &device; }
 
 	private:
