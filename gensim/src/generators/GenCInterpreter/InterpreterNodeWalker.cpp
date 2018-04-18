@@ -201,10 +201,10 @@ namespace gensim
 						case SSACastStatement::Option_RoundTowardZero:
 							output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
 							output << "{";
-							output << "auto mode = fegetround();";
-							output << "fesetround(FE_TOWARDZERO);";
+							output << "auto mode = thread->GetFPState().GetRoundingMode();";
+							output << "thread->GetFPState().SetRoundingMode(archsim::RoundingMode::RoundTowardZero);";
 							output << stmt.GetName() << " = " << "(" << stmt.GetType().GetCType() << ")" << Factory.GetOrCreate(stmt.Expr())->GetFixedValue() << ";";
-							output << "fesetround(mode);";
+							output << "thread->GetFPState().SetRoundingMode(mode);";
 							output << "}";
 							break;
 					}
@@ -309,7 +309,7 @@ namespace gensim
 				const SSAStatement *addr = stmt.Address();
 				const SSASymbol *target = stmt.Target();
 
-				output << "uint32_t " << stmt.GetName() << " = read_device(" << Factory.GetOrCreate(dev_id)->GetFixedValue() << ", " << Factory.GetOrCreate(addr)->GetFixedValue() << ", " << target->GetName() << ");";
+				output << "uint32_t " << stmt.GetName() << " = thread->GetCoreDevice(" << Factory.GetOrCreate(dev_id)->GetFixedValue() << ")->ReadRegister(" << Factory.GetOrCreate(addr)->GetFixedValue() << ", " << target->GetName() << ");";
 
 				return true;
 			}
@@ -349,7 +349,7 @@ namespace gensim
 
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
-						output << "halt_cpu();";
+						output << "UNIMPLEMENTED; // haltcpu\n";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = __builtin_popcount(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
@@ -364,10 +364,12 @@ namespace gensim
 						output << "thread->SetModeID(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = write_device(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetCoreDevice(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ")->WriteRegister(" << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = probe_device(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						output << "UNIMPLEMENTED; //probedevice\n";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
+//						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = probe_device(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
@@ -460,16 +462,16 @@ namespace gensim
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = cpuGetFlushMode(this);";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = (uint32_t)thread->GetFPState().GetFlushMode();";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = cpuGetRoundingMode(this);";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = (uint32_t)thread->GetFPState().GetRoundingMode();";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
-						output << "cpuSetFlushMode(this, " << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						output << "thread->GetFPState().SetFlushMode((archsim::FlushMode)" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
-						output << "cpuSetRoundingMode(this, " << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						output << "thread->GetFPState().SetRoundingMode((archsim::RoundingMode)" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 						break;
 
@@ -584,7 +586,9 @@ namespace gensim
 
 				if (stmt.MemberName == "IsPredicated")
 					str << "inst.GetIsPredicated()";
-				else {
+				else if(stmt.MemberName == "PredicateInfo") {
+					str << "inst.GetPredicateInfo()";
+				} else {
 					if (Statement.Parent->Parent->Isa->IsFieldOrthogonal(stmt.MemberName))
 						str << "inst.GetField_" << Statement.Parent->Parent->Isa->ISAName << "_" << stmt.MemberName << "()";
 					else
@@ -745,10 +749,12 @@ namespace gensim
 				const SSACallStatement &stmt = (const SSACallStatement&) (Statement);
 
 				if (stmt.HasValue()) output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = ";
-				bool is_helper = false;
-				if(stmt.Target()->GetPrototype().GetIRSignature().HasAttribute(gensim::genc::ActionAttribute::Helper)) {
+				bool is_helper = stmt.Target()->GetPrototype().GetIRSignature().HasAttribute(gensim::genc::ActionAttribute::Helper);
+				bool is_external = stmt.Target()->GetPrototype().GetIRSignature().HasAttribute(gensim::genc::ActionAttribute::External);
+				if(is_helper) {
 					output << "helper_" << stmt.GetISA() << "_" ;
-					is_helper = true;
+				} else if(is_external) {
+					output << "thread->fn_";
 				}
 				output << stmt.Target()->GetPrototype().GetIRSignature().GetName() << "(";
 

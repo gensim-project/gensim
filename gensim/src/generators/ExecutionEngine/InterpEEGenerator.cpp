@@ -9,6 +9,7 @@
 #include "generators/ExecutionEngine/InterpEEGenerator.h"
 #include "generators/GenCInterpreter/GenCInterpreterGenerator.h"
 #include "genC/ssa/SSAContext.h"
+#include "genC/ssa/SSASymbol.h"
 
 using namespace gensim::generator;
 
@@ -42,6 +43,8 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 		"#include <module/Module.h>\n"
 		"#include <util/Vector.h>\n"
 		"#include <translate/jit_funs.h>\n"
+		"#include <gensim/gensim_processor_api.h>\n"
+		"#include <cmath>\n"
 		;
 	
 	GenerateDecodeInstruction(str);
@@ -76,8 +79,33 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 	return true;
 }
 
+void GenerateHelperFunctionPrototype(gensim::util::cppformatstream &str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction *action) 
+{
+	str << "template<bool trace=false> " << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::ThreadInstance *thread";
+
+	for(auto i : action->ParamSymbols) {
+		// if we're accessing a struct, assume that it's an instruction
+		if(i->GetType().IsStruct()) {
+			str << ", EE::decode_t &inst";
+		} else {
+			auto type_string = i->GetType().GetCType();
+			str << ", " << type_string << " " << i->GetName();
+		}
+	}
+	str << ")";
+}
+
 bool InterpEEGenerator::GenerateHelperFunctions(util::cppformatstream& str) const
 {
+	for(auto isa : Manager.GetArch().ISAs) {
+		for(auto action : isa->GetSSAContext().Actions()) {
+			if(action.second->GetPrototype().HasAttribute(gensim::genc::ActionAttribute::Helper)) {
+				GenerateHelperFunctionPrototype(str, *isa, static_cast<gensim::genc::ssa::SSAFormAction*>(action.second));
+				str << ";";
+			}
+		}
+	}
+	
 	for(auto isa : Manager.GetArch().ISAs) {
 		for(auto action : isa->GetSSAContext().Actions()) {
 			if(action.second->GetPrototype().HasAttribute(gensim::genc::ActionAttribute::Helper)) {
@@ -92,12 +120,15 @@ bool InterpEEGenerator::GenerateHelperFunctions(util::cppformatstream& str) cons
 bool InterpEEGenerator::GenerateHelperFunction(util::cppformatstream& str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction* action) const
 {
 	assert(action != nullptr);
+	GenerateHelperFunctionPrototype(str, isa, action);
+	str << " { ";
+
+	str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 	
-	str << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::ThreadInstance *thread";
-	for(auto param : action->GetPrototype().GetIRSignature().GetParams()) {
-		str << ", " << param.GetType().GetCType() << " " << param.GetName();
-	}
-	str << ") { UNIMPLEMENTED; }";
+	gensim::generator::GenCInterpreterGenerator gci (Manager);
+	gci.GenerateExecuteBodyFor(str, *action);	
+	
+	str << " }";
 	
 	return true;
 }
@@ -121,10 +152,10 @@ bool InterpEEGenerator::GenerateBlockExecutor(util::cppformatstream& str) const
 	
 		"  decode_t inst;"
 		"  uint32_t dcode_exception = DecodeInstruction(thread, inst);"
+		"  if(dcode_exception) { return archsim::ExecutionResult::Exception; }"
 		"  auto result = StepInstruction(thread, inst);"
 		"  if(result != archsim::ExecutionResult::Continue) { break; }"
 		"  if(inst.GetEndOfBlock()) { break; }"
-		"  thread->SetPC(thread->GetPC() + inst.Instr_Length);"
 		
 		"}";
 	
@@ -181,18 +212,46 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 		GenerateStepInstructionInsn(str, *i.second);
 	}
 	
+	// predicate stuff
+	bool has_is_predicated = isa.GetSSAContext().HasAction("instruction_is_predicated");
+	bool has_instruction_predicate = isa.GetSSAContext().HasAction("instruction_predicate");
+	if(has_is_predicated != has_instruction_predicate) {
+		// bad times
+	}
+	if(has_is_predicated) {
+		str << "bool " << isa.ISAName << "_is_predicated(archsim::ThreadInstance *thread, EE::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_is_predicated(thread, insn); }";
+	}
+	if(has_instruction_predicate) {
+		str << "bool " << isa.ISAName << "_check_predicate(archsim::ThreadInstance *thread, EE::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_predicate(thread, insn); }"; 
+	}
+	
+	
 	str << "template<bool trace=false> archsim::ExecutionResult StepInstruction_" << isa.ISAName << "(archsim::ThreadInstance *thread, EE::decode_t &decode) {";
 	
+	str << "archsim::ExecutionResult interp_result;";
+	str << "bool should_execute = true;";
+	// check predicate
+	if(has_is_predicated && has_instruction_predicate) {
+		
+		str << "should_execute =  !" << isa.ISAName << "_is_predicated(thread, decode) || " << isa.ISAName << "_check_predicate(thread, decode);";
+	}
+	str << "if(should_execute) {";
 	str << " switch(decode.Instr_Code) {";
 	str << " using namespace gensim::" << Manager.GetArch().Name << ";";
 	
 	for(auto i : isa.Instructions) {
-		str << "case INST_" << isa.ISAName << "_" << i.second->Name << ": return StepInstruction_" << isa.ISAName << "_" << i.first << "<trace>(thread, decode);";
+		str << "case INST_" << isa.ISAName << "_" << i.second->Name << ": interp_result = StepInstruction_" << isa.ISAName << "_" << i.first << "<trace>(thread, decode); break;";
 	}
 	
 	str << " default: LC_ERROR(LogExecutionEngine) << \"Unknown instruction\"; return archsim::ExecutionResult::Abort;";
 	
 	str << "}";
+	str << "}";
+	
+	str << "if(!decode.GetEndOfBlock() || !should_execute) {";
+	str << "  thread->SetPC(thread->GetPC() + decode.Instr_Length);";
+	str << "}";
+	str << "return interp_result;";
 	str << "}";
 	
 	return true;

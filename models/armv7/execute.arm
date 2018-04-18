@@ -3656,6 +3656,11 @@ internal helper void return_from_exception() noinline
 	return;
 }
 
+internal helper uint8 instruction_is_predicated(Instruction inst)
+{
+	return (inst.ir & 0xf0000000) < 0xe0000000;
+}
+
 internal helper uint8 instruction_predicate(Instruction inst)
 {
 	uint8 cond = inst.cond >> 1;
