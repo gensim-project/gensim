@@ -154,8 +154,8 @@ bool InterpEEGenerator::GenerateBlockExecutor(util::cppformatstream& str) const
 		"  uint32_t dcode_exception = DecodeInstruction(thread, inst);"
 		"  if(dcode_exception) { return archsim::ExecutionResult::Exception; }"
 		"  auto result = StepInstruction(thread, inst);"
-		"  if(result != archsim::ExecutionResult::Continue) { break; }"
-		"  if(inst.GetEndOfBlock()) { break; }"
+		"  if(result != archsim::ExecutionResult::Continue) { return result; }"
+		"  if(inst.GetEndOfBlock()) { return archsim::ExecutionResult::Continue; }"
 		
 		"}";
 	
@@ -194,12 +194,9 @@ bool InterpEEGenerator::GenerateStepInstructionInsn(util::cppformatstream& str, 
 	str << "template<bool trace=false> archsim::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(EE *ee, archsim::ThreadInstance *thread, EE::decode_t &inst) {";
 	str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 	
-	str << "if(trace) { if(thread->GetTraceSource() == nullptr) { throw std::logic_error(\"\"); } thread->GetTraceSource()->Trace_Insn(thread->GetPC().Get(), inst.ir, false, thread->GetModeID(), thread->GetExecutionRing(), 1); }";
-	
 	gensim::generator::GenCInterpreterGenerator gci (Manager);
 	gci.GenerateExecuteBodyFor(str, *static_cast<const gensim::genc::ssa::SSAFormAction*>(insn.ISA.GetSSAContext().GetAction(insn.BehaviourName)));
 	
-	str << "if(trace) { thread->GetTraceSource()->Trace_End_Insn(); }";
 	str << "return archsim::ExecutionResult::Continue;";
 	str << "}";
 	
@@ -230,6 +227,8 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 	
 	str << "archsim::ExecutionResult interp_result;";
 	str << "bool should_execute = true;";
+	
+	str << "if(trace) { if(thread->GetTraceSource() == nullptr) { throw std::logic_error(\"\"); } thread->GetTraceSource()->Trace_Insn(thread->GetPC().Get(), decode.ir, false, thread->GetModeID(), thread->GetExecutionRing(), 1); }";
 	// check predicate
 	if(has_is_predicated && has_instruction_predicate) {
 		
@@ -251,6 +250,8 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 	str << "if(!decode.GetEndOfBlock() || !should_execute) {";
 	str << "  thread->SetPC(thread->GetPC() + decode.Instr_Length);";
 	str << "}";
+	
+	str << "if(trace) { thread->GetTraceSource()->Trace_End_Insn(); }";
 	str << "return interp_result;";
 	str << "}";
 	

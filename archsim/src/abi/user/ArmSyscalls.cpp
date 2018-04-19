@@ -191,22 +191,23 @@ static unsigned int sys_mmap(archsim::ThreadInstance* cpu, unsigned int addr, un
 	}
 
 	auto interface = cpu->GetMemoryInterface("Mem");
-	UNIMPLEMENTED;
+	
 //	if (!cpu.GetMemoryModel().IsAligned(len)) {
 //		return -EINVAL;
 //	}
-//
-//	archsim::abi::memory::RegionFlags reg_flags = (archsim::abi::memory::RegionFlags)(archsim::abi::memory::RegFlagRead | archsim::abi::memory::RegFlagWrite);
-//	if(prot & PROT_EXEC) reg_flags = (archsim::abi::memory::RegionFlags)(reg_flags | archsim::abi::memory::RegFlagExecute);
-//
-//	if (addr == 0 && !(flags & MAP_FIXED)) {
-//		addr = cpu.GetMemoryModel().GetMappingManager()->MapAnonymousRegion(len, reg_flags);
-//	} else {
-//		if (!cpu.GetMemoryModel().GetMappingManager()->MapRegion(addr, len, reg_flags, ""))
-//			return -1;
-//	}
-//
-//	return addr;
+
+	archsim::abi::memory::RegionFlags reg_flags = (archsim::abi::memory::RegionFlags)(archsim::abi::memory::RegFlagRead | archsim::abi::memory::RegFlagWrite);
+	if(prot & PROT_EXEC) reg_flags = (archsim::abi::memory::RegionFlags)(reg_flags | archsim::abi::memory::RegFlagExecute);
+
+	auto &emu_model = (archsim::abi::UserEmulationModel&)cpu->GetEmulationModel();
+	if (addr == 0 && !(flags & MAP_FIXED)) {
+		addr = emu_model.MapAnonymousRegion(len, reg_flags).Get();
+	} else {
+		if (!emu_model.MapRegion(Address(addr), len, reg_flags, ""))
+			return -1;
+	}
+
+	return addr;
 }
 
 static unsigned int sys_mmap2(archsim::ThreadInstance* cpu, unsigned int addr, unsigned int len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned int off)
