@@ -21,7 +21,14 @@ MemoryResult MemoryInterface::ReadString(Address address, char *data, size_t max
 }
 
 MemoryResult MemoryInterface::Read(Address address, unsigned char *data, size_t size) {
-	UNIMPLEMENTED;
+	for(int i = 0; i < size; ++i) {
+		auto result = Read8(address + i, data[i]);
+		if(result != MemoryResult::OK) {
+			return result;
+		}
+	}
+	
+	return MemoryResult::OK; 
 }
 
 MemoryResult MemoryInterface::Write(Address address, const unsigned char *data, size_t size) {

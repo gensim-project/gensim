@@ -96,7 +96,7 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 
 void UserEmulationModel::Destroy()
 {
-	UNIMPLEMENTED;
+//	UNIMPLEMENTED;
 }
 
 gensim::Processor *UserEmulationModel::GetCore(int id)
@@ -264,6 +264,16 @@ bool UserEmulationModel::EmulateSyscall(SyscallRequest &request, SyscallResponse
 //	if (archsim::options::Verbose)
 //		GetBootCore()->metrics.syscalls_invoked.inc();
 	return syscall_handler_.HandleSyscall(request, response);
+}
+
+archsim::Address UserEmulationModel::MapAnonymousRegion(size_t size, archsim::abi::memory::RegionFlags flags)
+{
+	return Address(GetMemoryModel().GetMappingManager()->MapAnonymousRegion(size, flags));
+}
+
+bool UserEmulationModel::MapRegion(archsim::Address addr, size_t size, archsim::abi::memory::RegionFlags flags, const std::string &region_name)
+{
+	return GetMemoryModel().GetMappingManager()->MapRegion(addr.Get(), size, flags, region_name);
 }
 
 void UserEmulationModel::SetInitialBreak(unsigned int brk)

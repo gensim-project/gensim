@@ -9,6 +9,7 @@
 #define	USEREMULATIONMODEL_H
 
 #include "abi/EmulationModel.h"
+#include "abi/memory/MemoryModel.h"
 #include "abi/user/SyscallHandler.h"
 #include "gensim/ThreadInstance.h"
 
@@ -58,6 +59,9 @@ namespace archsim
 			bool PrepareBoot(System& system);
 
 			bool EmulateSyscall(SyscallRequest& request, SyscallResponse& response);
+			
+			Address MapAnonymousRegion(size_t size, archsim::abi::memory::RegionFlags flags);
+			bool MapRegion(Address addr, size_t size, archsim::abi::memory::RegionFlags flags, const std::string &region_name);
 
 			void SetInitialBreak(unsigned int brk);
 			void SetBreak(unsigned int brk);
