@@ -44,6 +44,7 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 		"#include <util/Vector.h>\n"
 		"#include <translate/jit_funs.h>\n"
 		"#include <gensim/gensim_processor_api.h>\n"
+		"#include <abi/devices/Device.h>\n"
 		"#include <cmath>\n"
 		;
 	

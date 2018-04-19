@@ -309,7 +309,7 @@ namespace gensim
 				const SSAStatement *addr = stmt.Address();
 				const SSASymbol *target = stmt.Target();
 
-				output << "uint32_t " << stmt.GetName() << " = thread->GetCoreDevice(" << Factory.GetOrCreate(dev_id)->GetFixedValue() << ")->ReadRegister(" << Factory.GetOrCreate(addr)->GetFixedValue() << ", " << target->GetName() << ");";
+				output << "uint32_t " << stmt.GetName() << " = thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(dev_id)->GetFixedValue() << ")->Read32(" << Factory.GetOrCreate(addr)->GetFixedValue() << ", " << target->GetName() << ");";
 
 				return true;
 			}
@@ -362,7 +362,7 @@ namespace gensim
 						output << "thread->SetModeID(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetCoreDevice(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ")->WriteRegister(" << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ")->Write32(" << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
 						output << "UNIMPLEMENTED; //probedevice\n";

@@ -20,7 +20,8 @@ namespace gensim
 
 namespace archsim
 {
-
+	class ThreadInstance;
+	
 	namespace abi
 	{
 
@@ -34,14 +35,14 @@ namespace archsim
 			class PeripheralManager : public Component
 			{
 			public:
-				PeripheralManager(gensim::Processor &cpu);
+				PeripheralManager(archsim::ThreadInstance &cpu);
 
 				bool Initialise()
 				{
 					return true;
 				}
 
-				gensim::Processor &cpu;
+				archsim::ThreadInstance &cpu;
 
 				// Map by name of all peripherals attached to this peripheral manager.
 				// There peripherals are not necessarily attached directly to the core
@@ -59,6 +60,7 @@ namespace archsim
 
 				bool ProbeDeviceByName(std::string name);
 				Device* GetDeviceByName(std::string name);
+				Device *GetDevice(uint32_t device_id) { return AttachedPeripherals.at(device_id); }
 
 				bool InitialiseDevices();
 

@@ -66,7 +66,8 @@ bool Processor::RunJIT(bool verbose, uint32_t iterations)
 
 		// If we've got an MMU, do a translation.
 		if (mmu) {
-			uint32_t tx_fault = mmu->Translate(this, virt_pc, phys_pc, MMUACCESSINFO(in_kernel_mode(), 0, 1));
+			UNIMPLEMENTED;
+			uint32_t tx_fault = 0;//mmu->Translate(this, virt_pc, phys_pc, MMUACCESSINFO(in_kernel_mode(), 0, 1));
 
 			// If we faulted, execute in the interpreter, otherwise, we now have a physical pc.
 			if (tx_fault) {

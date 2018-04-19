@@ -275,7 +275,8 @@ extern "C" {
 
 	uint32_t cpuTranslate(gensim::Processor *cpu, uint32_t virt_addr, uint32_t *phys_addr)
 	{
-		return ((archsim::abi::devices::MMU *)cpu->peripherals.GetDeviceByName("mmu"))->Translate(cpu, virt_addr, *phys_addr, MMUACCESSINFO(cpu->in_kernel_mode(), 0, 0));
+		UNIMPLEMENTED;
+//		return ((archsim::abi::devices::MMU *)cpu->peripherals.GetDeviceByName("mmu"))->Translate(cpu, virt_addr, *phys_addr, MMUACCESSINFO(cpu->in_kernel_mode(), 0, 0));
 	}
 
 	uint32_t cpuRead8(gensim::Processor *cpu, uint32_t address, uint8_t& data)

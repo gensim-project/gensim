@@ -54,7 +54,7 @@ Processor::Processor(const std::string &arch_name, int _core_id, archsim::util::
 	  core_id(_core_id),
 	  memory_model(NULL),
 	  cur_exec_mode(kExecModeInterpretive),
-	  peripherals(*this),
+	  peripherals(*(archsim::ThreadInstance*)0),
 	  interrupt_mode(0),
 	  emulation_model(NULL),
 	  trace_mgr(NULL),
