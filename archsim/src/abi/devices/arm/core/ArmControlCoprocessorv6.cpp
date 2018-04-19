@@ -225,10 +225,11 @@ bool ArmControlCoprocessorv6::access_cp1(bool is_read, uint32_t &data)
 						cp1_R = R;
 						get_mmu()->set_enabled(M);
 
-						if(!V_descriptor) V_descriptor = &Manager->cpu.GetRegisterDescriptor("cpV");
-						uint8_t *v_reg =
-						    (uint8_t*) V_descriptor->DataStart;
-						*v_reg = V;
+						UNIMPLEMENTED;
+//						if(!V_descriptor) V_descriptor = &Manager->cpu.GetRegisterDescriptor("cpV");
+//						uint8_t *v_reg =
+//						    (uint8_t*) V_descriptor->DataStart;
+//						*v_reg = V;
 
 						LC_DEBUG1(LogArmCoprocessor) << "CP1 Write: "
 						                             " L2:" << L2 << " EE:" << EE << " VE:" << VE << " XP:" << XP
@@ -237,7 +238,7 @@ bool ArmControlCoprocessorv6::access_cp1(bool is_read, uint32_t &data)
 						                             << R << " S:" << S << " B:" << B << " L:" << L << " D:" << D
 						                             << " P:" << P << " W:" << W << " C:" << C << " A:" << A << " M:"
 						                             << M << " 0x" << std::hex << std::setw(8) << std::setfill('0')
-						                             << data << " at " << this->Manager->cpu.read_pc();
+						                             << data << " at " << this->Manager->cpu.GetPC().Get();
 
 						sctl_word = data;
 						sctl_word |= 0b00000000110001010000000001110000;
@@ -281,12 +282,13 @@ bool ArmControlCoprocessorv6::access_cp1(bool is_read, uint32_t &data)
 
 						// check cpacr
 						uint32_t cpacr_fp = (cpacr >> 20);
-						if(cpacr_fp == 0) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 0);
-						else if(cpacr_fp == 0x5) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 1);
-						else Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 2);
-
-						if(cpacr >> 31) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 0);
-						else Manager->cpu.GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 1);
+						UNIMPLEMENTED;
+//						if(cpacr_fp == 0) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 0);
+//						else if(cpacr_fp == 0x5) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 1);
+//						else Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 2);
+//
+//						if(cpacr >> 31) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 0);
+//						else Manager->cpu.GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 1);
 
 					}
 					break;
@@ -786,10 +788,10 @@ bool ArmControlCoprocessorv6::access_cp15(bool is_read, uint32_t &data)
 {
 	if(is_read) return true;
 	if(data == 0) {
-		Manager->cpu.StartTracing();
+//		Manager->cpu.StartTracing();
 		LC_INFO(LogArmCoprocessor) << "Enabling tracing";
 	} else {
-		Manager->cpu.StopTracing();
+//		Manager->cpu.StopTracing();
 		LC_INFO(LogArmCoprocessor) << "Disabling tracing";
 	}
 	return true;

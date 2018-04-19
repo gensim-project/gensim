@@ -19,6 +19,7 @@
 #include "abi/devices/Component.h"
 #include "gensim/ArchDescriptor.h"
 #include "abi/EmulationModel.h"
+#include "abi/devices/PeripheralManager.h"
 
 #include <libtrace/TraceSource.h>
 
@@ -52,8 +53,12 @@ namespace archsim {
 			RegisterFileInterface(const RegisterFileDescriptor &descriptor) : descriptor_(descriptor) { data_.resize(descriptor.GetSize()); }
 			
 			char *GetData() { return data_.data(); }
+			const char *GetData() const { return data_.data(); }
 			
 			template<typename T> T* GetEntry(const std::string &slotname) { return (T*)&data_[descriptor_.GetEntries().at(slotname).GetOffset()]; }
+			
+			Address GetTaggedSlot(const std::string &tag) const;
+			void SetTaggedSlot(const std::string &tag, Address value);
 			
 		private:
 			const RegisterFileDescriptor &descriptor_;
@@ -75,49 +80,51 @@ namespace archsim {
 			
 			ThreadInstance(const ArchDescriptor &arch, StateBlockDescriptor &state_descriptor, archsim::abi::EmulationModel &emu_model);
 			
+			// Functions to do with accessing the larger substructures within the thread
 			const ArchDescriptor &GetArch() { return descriptor_; }
-			void *GetRegisterFile() { return (void*)register_file_.GetData(); }
 			RegisterFileInterface &GetRegisterFileInterface() { return register_file_; }
 			MemoryInterface &GetMemoryInterface(const std::string &interface_name);
 			FeatureState &GetFeatures();
 			FPState &GetFPState() { return fp_state_; }
+			archsim::abi::devices::PeripheralManager &GetPeripherals() { return peripherals_; }
+			StateBlockInstance &GetStateBlock();
+			archsim::abi::EmulationModel &GetEmulationModel() { return emu_model_; }
 			
+			// Functions to do with execution modes
 			uint32_t GetModeID() const { return mode_id_; }
 			void SetModeID(uint32_t new_mode) { mode_id_ = new_mode; }
-			
-			Address GetTaggedSlot(const std::string &tag);
-			void SetTaggedSlot(const std::string &tag, Address value);
 			
 			uint32_t GetExecutionRing() const { return ring_id_; }
 			void SetExecutionRing(uint32_t new_ring) { ring_id_ = new_ring; }
                         
-			Address GetPC() { return GetTaggedSlot("PC"); }
-			void SetPC(Address target) { SetTaggedSlot("PC", target); }
-			Address GetSP() { return GetTaggedSlot("SP"); }
-			void SetSP(Address target) { SetTaggedSlot("SP", target); }
+			// Functions to do with registers
+			void *GetRegisterFile() { return (void*)register_file_.GetData(); }
+			Address GetPC() { return GetRegisterFileInterface().GetTaggedSlot("PC"); }
+			void SetPC(Address target) { GetRegisterFileInterface().SetTaggedSlot("PC", target); }
+			Address GetSP() { return GetRegisterFileInterface().GetTaggedSlot("SP"); }
+			void SetSP(Address target) { GetRegisterFileInterface().SetTaggedSlot("SP", target); }
 			
+			// Functions to do with memory interfaces
 			MemoryInterface &GetFetchMI();
 			const memory_interface_collection_t &GetMemoryInterfaces() { return memory_interfaces_; }
 			
+			// Functions to do with tracing
 			libtrace::TraceSource *GetTraceSource() { return trace_source_; }
 			void SetTraceSource(libtrace::TraceSource *source) { trace_source_ = source; }
 			
-			archsim::abi::devices::CoreComponent *GetCoreDevice(uint32_t id) { return core_devices_.at(id); }
-			void SetCoreDevice(uint32_t id, archsim::abi::devices::CoreComponent *dev) { core_devices_.insert({id, dev}); }
-			
-			StateBlockInstance &GetStateBlock();
-			
+			// External functions
 			void fn_flush_itlb_entry(Address::underlying_t entry) {}
 			void fn_flush_dtlb_entry(Address::underlying_t entry) {}
 			
+			// Functions to do with manipulating state according to the architecture
 			archsim::abi::ExceptionAction TakeException(uint64_t category, uint64_t data);
-			archsim::abi::EmulationModel &GetEmulationModel() { return emu_model_; }
+			
 		private:
 			const ArchDescriptor &descriptor_;
 			memory_interface_collection_t memory_interfaces_;
 			RegisterFileInterface register_file_;
 			FPState fp_state_;
-			
+			archsim::abi::devices::PeripheralManager peripherals_;
 			archsim::abi::EmulationModel &emu_model_;
 			
 			uint32_t mode_id_;
@@ -126,7 +133,7 @@ namespace archsim {
 			StateBlockInstance state_block_;
 			libtrace::TraceSource *trace_source_;
 			
-			std::unordered_map<uint32_t, archsim::abi::devices::CoreComponent*> core_devices_;
+			
 		};
 }
 

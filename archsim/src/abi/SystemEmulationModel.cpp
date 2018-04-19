@@ -9,6 +9,8 @@
 #include "abi/devices/MMU.h"
 #include "abi/memory/MemoryModel.h"
 
+#include "gensim/MemoryInterface.h"
+
 #include "abi/memory/system/FunctionBasedSystemMemoryModel.h"
 
 #include "abi/memory/system/CacheBasedSystemMemoryModel.h"
@@ -39,7 +41,7 @@ SystemEmulationModel::~SystemEmulationModel() { }
 
 void SystemEmulationModel::PrintStatistics(std::ostream& stream)
 {
-	cpu->PrintStatistics(stream);
+//	cpu->PrintStatistics(stream);
 }
 
 bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
@@ -49,11 +51,26 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 
 	// Acquire the CPU component
-	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleProcessorEntry>("CPU");
+	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleExecutionEngineEntry>("EE");
+	auto archentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
+	StateBlockDescriptor stateblock;
 	if(moduleentry == nullptr) {
 		return false;
 	}
-	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
+	if(archentry == nullptr) {
+		return false;
+	}
+	auto arch = archentry->Get();
+	auto ctx = new archsim::ExecutionContext(*arch, moduleentry->Get());
+	GetSystem().GetECM().AddContext(ctx);
+	main_thread_ = new ThreadInstance(*arch, stateblock, *this);
+	
+	for(auto i : main_thread_->GetMemoryInterfaces()) {
+		i.second->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
+	}
+	
+	GetSystem().GetECM().AddContext(ctx);
+	ctx->AddThread(main_thread_);
 
 
 	// Create a system memory model for this CPU
@@ -64,13 +81,13 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 
-	if (!cpu->Initialise(*this, *smm)) {
-		delete smm;
-		return false;
-	}
+//	if (!cpu->Initialise(*this, *smm)) {
+//		delete smm;
+//		return false;
+//	}
 
 	// Initialise the CPU
-	cpu->reset_to_initial_state(true);
+//	cpu->reset_to_initial_state(true);
 
 	// Install Devices
 	if (!InstallDevices()) {
@@ -78,11 +95,11 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	}
 
 	// Obtain the MMU
-	devices::MMU *mmu = (devices::MMU*)cpu->peripherals.GetDeviceByName("mmu");
+	devices::MMU *mmu = (devices::MMU*)main_thread_->GetPeripherals().GetDeviceByName("mmu");
 
 	// Update the memory model with the necessary object references
 	smm->SetMMU(mmu);
-	smm->SetCPU(cpu);
+	smm->SetCPU(main_thread_);
 	smm->SetDeviceManager(&base_device_manager);
 
 	mmu->SetPhysMem(&GetMemoryModel());
@@ -98,34 +115,32 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 void SystemEmulationModel::Destroy()
 {
 	DestroyDevices();
-
-	cpu->GetMemoryModel().Destroy();
-	delete &cpu->GetMemoryModel();
-
-	cpu->Destroy();
-	delete cpu;
 }
 
 gensim::Processor *SystemEmulationModel::GetCore(int id)
 {
+	UNIMPLEMENTED;
 	if (id != 0) return NULL;
 
-	return cpu;
+//	return cpu;
 }
 
 gensim::Processor *SystemEmulationModel::GetBootCore()
 {
-	return cpu;
+	UNIMPLEMENTED;
+//	return cpu;
 }
 
 void SystemEmulationModel::ResetCores()
 {
-	cpu->reset_exception();
+	UNIMPLEMENTED;
+//	cpu->reset_exception();
 }
 
 void SystemEmulationModel::HaltCores()
 {
-	cpu->Halt();
+	UNIMPLEMENTED;
+//	cpu->Halt();
 }
 
 bool SystemEmulationModel::PrepareBoot(System &system)
@@ -160,13 +175,13 @@ bool SystemEmulationModel::PrepareBoot(System &system)
 	delete loader;
 
 	// Run platform-specific CPU boot code
-	if (!PrepareCore(*cpu)) {
-		LC_ERROR(LogSystemEmulationModel) << "Unable to prepare CPU for booting";
-		return false;
-	}
-
-	// Take a reset exception.
-	cpu->reset_exception();
+//	if (!PrepareCore(*cpu)) {
+//		LC_ERROR(LogSystemEmulationModel) << "Unable to prepare CPU for booting";
+//		return false;
+//	}
+//
+//	// Take a reset exception.
+//	cpu->reset_exception();
 	return true;
 }
 

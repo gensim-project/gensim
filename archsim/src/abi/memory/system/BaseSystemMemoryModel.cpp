@@ -28,7 +28,7 @@ BaseSystemMemoryModel::BaseSystemMemoryModel(MemoryModel *phys_mem, util::PubSub
 
 bool BaseSystemMemoryModel::Initialise()
 {
-	if(!GetCPU()) return false;
+	if(!GetThread()) return false;
 	if(!GetDeviceManager()) return false;
 	if(!GetPhysMem()) return false;
 	if(!GetMMU()) return false;
@@ -52,7 +52,7 @@ bool BaseSystemMemoryModel::ResolveGuestAddress(host_const_addr_t, guest_addr_t&
 
 uint32_t BaseSystemMemoryModel::PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
 {
-	return GetMMU()->Translate(GetCPU(), virt_addr, out_phys_addr, info);
+	return GetMMU()->Translate(GetThread(), virt_addr, out_phys_addr, info);
 }
 
 MemoryTranslationModel &BaseSystemMemoryModel::GetTranslationModel()
@@ -90,7 +90,7 @@ uint32_t BaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *data, in
 	}
 
 	phys_addr_t phys_addr;
-	uint32_t fault = GetMMU()->Translate(GetCPU(), virt_addr, phys_addr, MMUACCESSINFO2(use_perms ? GetCPU()->in_kernel_mode() : false, false, is_fetch, side_effects));
+	uint32_t fault = GetMMU()->Translate(GetThread(), virt_addr, phys_addr, MMUACCESSINFO2(use_perms ? GetThread()->GetExecutionRing() : false, false, is_fetch, side_effects));
 
 	LC_DEBUG4(LogSystemMemoryModel) << "DoRead Fault: " << fault;
 
@@ -168,7 +168,7 @@ uint32_t BaseSystemMemoryModel::DoWrite(guest_addr_t virt_addr, uint8_t *data, i
 	}
 
 	phys_addr_t phys_addr;
-	uint32_t fault = GetMMU()->Translate(GetCPU(), virt_addr, phys_addr, MMUACCESSINFO2(use_perms ? GetCPU()->in_kernel_mode() : false, true, 0, side_effects));
+	uint32_t fault = GetMMU()->Translate(GetThread(), virt_addr, phys_addr, MMUACCESSINFO2(use_perms ? GetThread()->GetExecutionRing() : false, true, 0, side_effects));
 
 	LC_DEBUG4(LogSystemMemoryModel) << "DoWrite Fault: " << fault;
 

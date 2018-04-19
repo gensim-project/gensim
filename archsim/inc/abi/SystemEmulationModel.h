@@ -59,7 +59,7 @@ namespace archsim
 			}
 
 		protected:
-			gensim::Processor* cpu;
+			archsim::ThreadInstance *main_thread_;
 
 			virtual bool InstallDevices() = 0;
 			virtual void DestroyDevices() = 0;

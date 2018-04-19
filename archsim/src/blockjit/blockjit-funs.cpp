@@ -151,15 +151,6 @@ extern "C" {
 
 	void blkWrite32(gensim::Processor **pcpu, uint32_t address, uint32_t value)
 	{
-		LC_DEBUG2(LogBlockJitFuns) << "blkWrite32";
-		gensim::Processor *cpu = *pcpu;
-		archsim::abi::memory::FunctionBasedSystemMemoryModel::write_handler_t fun = ((archsim::abi::memory::FunctionBasedSystemMemoryModel::write_handler_t*)cpu->state.smm_write_cache)[address>>12];
-
-		auto rval = fun((cpuState*)pcpu, address);
-		if(rval.fault) {
-			cpuWrite32(cpu, address, value);
-			return;
-		}
-		*((uint32_t*)rval.ptr) = value;
+		UNIMPLEMENTED;
 	}
 }

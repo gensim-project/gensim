@@ -10,7 +10,7 @@
 
 using namespace archsim;
 
-ThreadInstance::ThreadInstance(const ArchDescriptor& arch, StateBlockDescriptor &state_block_desc, archsim::abi::EmulationModel &emu_model) : descriptor_(arch), state_block_(state_block_desc), emu_model_(emu_model), mode_id_(0), ring_id_(0), register_file_(arch.GetRegisterFileDescriptor())
+ThreadInstance::ThreadInstance(const ArchDescriptor& arch, StateBlockDescriptor &state_block_desc, archsim::abi::EmulationModel &emu_model) : descriptor_(arch), state_block_(state_block_desc), emu_model_(emu_model), mode_id_(0), ring_id_(0), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
 {
 	// Need to fill in structures based on arch descriptor info
 	
@@ -32,30 +32,30 @@ MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface
 }
 
 
-Address ThreadInstance::GetTaggedSlot(const std::string &tag)
+Address RegisterFileInterface::GetTaggedSlot(const std::string &tag) const
 {
-	auto descriptor = descriptor_.GetRegisterFileDescriptor().GetTaggedEntry(tag);
+	auto descriptor = descriptor_.GetTaggedEntry(tag);
 	
 	switch(descriptor.GetEntrySize()) {
 		case 4:
-			return Address(*(uint32_t*)(register_file_.GetData() + descriptor.GetOffset()));
+			return Address(*(uint32_t*)(GetData() + descriptor.GetOffset()));
 		case 8:
-			return Address(*(uint64_t*)(register_file_.GetData() + descriptor.GetOffset()));
+			return Address(*(uint64_t*)(GetData() + descriptor.GetOffset()));
 		default:
 			UNIMPLEMENTED;
 	}
 }
 
-void ThreadInstance::SetTaggedSlot(const std::string &tag, Address target)
+void RegisterFileInterface::SetTaggedSlot(const std::string &tag, Address target)
 {
-	auto descriptor = descriptor_.GetRegisterFileDescriptor().GetTaggedEntry(tag);
+	auto descriptor = descriptor_.GetTaggedEntry(tag);
 	
 	switch(descriptor.GetEntrySize()) {
 		case 4:
-			*(uint32_t*)(register_file_.GetData() + descriptor.GetOffset()) = target.Get();
+			*(uint32_t*)(GetData() + descriptor.GetOffset()) = target.Get();
 			break;
 		case 8:
-			*(uint64_t*)(register_file_.GetData() + descriptor.GetOffset()) = target.Get();
+			*(uint64_t*)(GetData() + descriptor.GetOffset()) = target.Get();
 			break;
 		default:
 			UNIMPLEMENTED;

@@ -135,8 +135,8 @@ bool ElfSystemEmulationModel::InstallDevices()
 		return false;
 	}
 
-	cpu->peripherals.RegisterDevice("coprocessor", coprocessor);
-	cpu->peripherals.AttachDevice("coprocessor", 15);
+	main_thread_->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
+	main_thread_->GetPeripherals().AttachDevice("coprocessor", 15);
 
 	archsim::abi::devices::Device *mmu;
 	if (!GetComponentInstance("ARM926EJSMMU", mmu)) {
@@ -144,8 +144,8 @@ bool ElfSystemEmulationModel::InstallDevices()
 		return false;
 	}
 
-	cpu->peripherals.RegisterDevice("mmu", mmu);
-	cpu->peripherals.InitialiseDevices();
+	main_thread_->GetPeripherals().RegisterDevice("mmu", mmu);
+	main_thread_->GetPeripherals().InitialiseDevices();
 
 	return true;
 }
