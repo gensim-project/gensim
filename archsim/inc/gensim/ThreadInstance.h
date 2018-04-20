@@ -118,7 +118,7 @@ namespace archsim {
 			void SetSP(Address target) { GetRegisterFileInterface().SetTaggedSlot("SP", target); }
 			
 			// Functions to do with memory interfaces
-			MemoryInterface &GetFetchMI();
+			MemoryInterface &GetFetchMI() { return *fetch_mi_; }
 			const memory_interface_collection_t &GetMemoryInterfaces() { return memory_interfaces_; }
 			
 			// Functions to do with tracing
@@ -166,6 +166,7 @@ namespace archsim {
 			
 			const ArchDescriptor &descriptor_;
 			memory_interface_collection_t memory_interfaces_;
+			MemoryInterface *fetch_mi_;
 			RegisterFileInterface register_file_;
 			FPState fp_state_;
 			archsim::abi::devices::PeripheralManager peripherals_;

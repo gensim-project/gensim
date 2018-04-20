@@ -148,8 +148,8 @@ bool InterpEEGenerator::GenerateHelperFunction(util::cppformatstream& str, const
 bool InterpEEGenerator::GenerateDecodeInstruction(util::cppformatstream& str) const
 {
 	str << "uint32_t EE::DecodeInstruction(archsim::ThreadInstance *thread, EE::decode_t &inst) {";
-	
-	str << "  return inst.DecodeInstr(thread->GetPC(), thread->GetModeID(), thread->GetFetchMI());";
+	str << "  gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
+	str << "  return inst.DecodeInstr(interface.read_pc(), thread->GetModeID(), thread->GetFetchMI());";
 	
 	str << "}";
 	
@@ -237,7 +237,7 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 	
 	
 	str << "template<bool trace=false> archsim::ExecutionResult StepInstruction_" << isa.ISAName << "(EE *ee, archsim::ThreadInstance *thread, EE::decode_t &decode) {";
-	
+	str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 	str << "archsim::ExecutionResult interp_result;";
 	str << "bool should_execute = true;";
 	
@@ -261,7 +261,7 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 	str << "}";
 	
 	str << "if(!decode.GetEndOfBlock() || !should_execute) {";
-	str << "  thread->SetPC(thread->GetPC() + decode.Instr_Length);";
+	str << "  interface.write_pc(interface.read_pc() + decode.Instr_Length);";
 	str << "}";
 	
 	str << "if(trace) { thread->GetTraceSource()->Trace_End_Insn(); }";
