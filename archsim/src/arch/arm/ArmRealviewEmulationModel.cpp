@@ -419,6 +419,12 @@ ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::ThreadInstan
 	return archsim::abi::AbortInstruction;
 }
 
+void ArmRealviewEmulationModel::HandleInterrupt(archsim::ThreadInstance *thread, CPUIRQLine *irq) 
+{
+	auto &behaviour = thread->GetArch().GetBehavioursDescriptor().GetISA("arm").GetBehaviour("take_interrupt");
+	behaviour.Invoke(thread, {irq->Line()});
+}
+
 gensim::DecodeContext* ArmRealviewEmulationModel::GetNewDecodeContext(gensim::Processor& cpu)
 {
 	return new archsim::arch::arm::ARMDecodeContext(&cpu);

@@ -388,8 +388,7 @@ namespace gensim
 						output << "thread->SetExecutionRing(0);";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
-//						output << "pend_interrupt();";
-						output << "UNIMPLEMENTED; // pendirq\n";
+						output << "thread->PendIRQ();";
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:

@@ -279,13 +279,13 @@ bool ArmControlCoprocessorv6::access_cp1(bool is_read, uint32_t &data)
 
 						// check cpacr
 						uint32_t cpacr_fp = (cpacr >> 20);
-						UNIMPLEMENTED;
-//						if(cpacr_fp == 0) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 0);
-//						else if(cpacr_fp == 0x5) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 1);
-//						else Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 2);
-//
-//						if(cpacr >> 31) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 0);
-//						else Manager->cpu.GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 1);
+
+						if(cpacr_fp == 0) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 0);
+						else if(cpacr_fp == 0x5) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 1);
+						else Manager->cpu.GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 2);
+
+						if(cpacr >> 31) Manager->cpu.GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 0);
+						else Manager->cpu.GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 1);
 
 					}
 					break;

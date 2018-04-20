@@ -30,6 +30,12 @@ EmulationModel::EmulationModel()
 	timer_mgr.start();
 }
 
+void EmulationModel::HandleInterrupt(archsim::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq)
+{
+	UNIMPLEMENTED;
+}
+
+
 gensim::Processor *EmulationModel::GetBootCore() { UNIMPLEMENTED; }
 
 EmulationModel::~EmulationModel()

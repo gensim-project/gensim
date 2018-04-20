@@ -21,7 +21,7 @@
 
 namespace archsim {
 		
-		class StateBlockInstance;
+		class StateBlock;
 		
 		/**
 		 * The State Block is essentially a contiguous key-value store used
@@ -33,39 +33,19 @@ namespace archsim {
 		 * This way, JIT systems can keep a pointer to the state block and
 		 * still be able to quickly look up information by using the block
 		 * offsets.
-		 * 
-		 * The State Block is split into a descriptor and instance, since
-		 * you might have multiple systems using the exact same configuration.
-		 * However, right now this isn't managed automatically and so a new
-		 * descriptor and state block is created for each guest thread.
 		 */
-		class StateBlockDescriptor {
-		public:
-			StateBlockDescriptor() : total_size_(0), finalised_(0) {}
-			
+	
+		class StateBlock {
+		public:			
 			void AddBlock(const std::string &name, size_t size_in_bytes);
-			size_t GetBlockOffset(const std::string &name);
+			size_t GetBlockOffset(const std::string &name) const;
 			
-			size_t GetSizeInBytes() { assert(finalised_); return total_size_; }
+			void *GetData() { return data_.data(); }
 			
-			StateBlockInstance *GetNewInstance();
-			void Finalise() { finalised_ = true; }
+			template<typename T> T* GetEntry(const std::string &entryname) { return (T*)(data_.data() + GetBlockOffset(entryname)); }
 			
 		private:
 			std::map<std::string, uint64_t> block_offsets_;
-			size_t total_size_;
-			bool finalised_;
-		};
-		
-		class StateBlockInstance {
-		public:
-			StateBlockInstance(StateBlockDescriptor &descriptor) : descriptor_(descriptor), data_() { descriptor_.Finalise(); data_.resize(descriptor_.GetSizeInBytes()); }
-			
-			const StateBlockDescriptor &GetDescriptor() const { return descriptor_; }
-			void *GetData() { return data_.data(); }
-			
-		private:
-			StateBlockDescriptor &descriptor_;
 			std::vector<unsigned char> data_;
 		};
 		

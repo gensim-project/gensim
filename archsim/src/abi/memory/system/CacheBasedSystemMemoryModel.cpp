@@ -134,6 +134,9 @@ bool CacheBasedSystemMemoryModel::Initialise()
 	subscriber->Subscribe(PubSubType::DTlbFullFlush, FlushCallback, this);
 	subscriber->Subscribe(PubSubType::PrivilegeLevelChange, FlushCallback, this);
 
+	GetThread()->GetStateBlock().AddBlock("smm_read_cache", sizeof(void*));
+	GetThread()->GetStateBlock().AddBlock("smm_write_cache", sizeof(void*));
+	
 	InstallCaches();
 	FlushCaches();
 	return true;
@@ -261,14 +264,16 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 
 void CacheBasedSystemMemoryModel::InstallCaches()
 {
-	UNIMPLEMENTED;
-//	if(GetThread()->in_kernel_mode()) {
-//		GetThread()->state.smm_read_cache = _read_kernel_cache.GetCachePtr();
-//		GetThread()->state.smm_write_cache = _write_kernel_cache.GetCachePtr();
-//	} else {
-//		GetThread()->state.smm_read_cache = _read_user_cache.GetCachePtr();
-//		GetThread()->state.smm_write_cache = _write_user_cache.GetCachePtr();
-//	}
+	void **smm_read_cache = GetThread()->GetStateBlock().GetEntry<void*>("smm_read_cache");
+	void **smm_write_cache = GetThread()->GetStateBlock().GetEntry<void*>("smm_write_cache");
+	
+	if(GetThread()->GetExecutionRing()) {
+		*smm_read_cache = _read_kernel_cache.GetCachePtr();
+		*smm_write_cache = _write_kernel_cache.GetCachePtr();
+	} else {
+		*smm_read_cache = _read_user_cache.GetCachePtr();
+		*smm_write_cache = _write_user_cache.GetCachePtr();
+	}
 }
 
 uint32_t CacheBasedSystemMemoryModel::Read(guest_addr_t virt_addr, uint8_t *data, int size)

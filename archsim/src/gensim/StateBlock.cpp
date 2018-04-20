@@ -8,22 +8,13 @@
 
 using namespace archsim;
 
-StateBlockInstance* StateBlockDescriptor::GetNewInstance()
+void StateBlock::AddBlock(const std::string& name, size_t size_in_bytes)
 {
-	return new StateBlockInstance(*this);
+	block_offsets_[name] = data_.size();
+	data_.resize(data_.size() + size_in_bytes);
 }
 
-void StateBlockDescriptor::AddBlock(const std::string& name, size_t size_in_bytes)
+size_t StateBlock::GetBlockOffset(const std::string& name) const
 {
-	assert(!finalised_);
-	
-	block_offsets_[name] = total_size_;
-	total_size_ += size_in_bytes;
-}
-
-size_t StateBlockDescriptor::GetBlockOffset(const std::string& name)
-{
-	assert(block_offsets_.count(name));
 	return block_offsets_.at(name);
 }
-

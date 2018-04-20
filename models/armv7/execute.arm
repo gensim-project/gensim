@@ -3499,6 +3499,24 @@ helper void set_arm_mode(uint32 mode)
 	return;
 }
 
+helper void take_interrupt(uint32 irq_line) noinline export
+{
+	// FIQ : irq_line == 0
+	// IRQ : irq_line == 1
+	
+	if(irq_line)
+	{
+		if(!read_register(I))
+			take_arm_exception(2, address_of_next_instruction());
+	}
+	else
+	{
+		if(!read_register(F))
+			take_arm_exception(1, address_of_next_instruction());
+	}
+	return;
+}
+
 helper void take_arm_exception(uint32 mode, uint32 r14) noinline export
 {
 	uint32 vector = 0;

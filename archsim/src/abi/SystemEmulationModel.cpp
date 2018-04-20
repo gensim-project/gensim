@@ -53,7 +53,7 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	// Acquire the CPU component
 	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleExecutionEngineEntry>("EE");
 	auto archentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
-	StateBlockDescriptor stateblock;
+
 	if(moduleentry == nullptr) {
 		return false;
 	}
@@ -63,9 +63,8 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	auto arch = archentry->Get();
 	auto ctx = new archsim::ExecutionContext(*arch, moduleentry->Get());
 	GetSystem().GetECM().AddContext(ctx);
-	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, stateblock, *this);
+	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 	
-
 	// Create a system memory model for this CPU
 	SystemMemoryModel *smm = NULL;
 	if(!GetComponentInstance(archsim::options::SystemMemoryModel, smm, &GetMemoryModel(), &system.GetPubSub())) {
@@ -81,14 +80,6 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	GetSystem().GetECM().AddContext(ctx);
 	ctx->AddThread(main_thread_);
 	
-//	if (!cpu->Initialise(*this, *smm)) {
-//		delete smm;
-//		return false;
-//	}
-
-	// Initialise the CPU
-//	cpu->reset_to_initial_state(true);
-
 	// Install Devices
 	if (!InstallDevices()) {
 		return false;
@@ -184,6 +175,7 @@ bool SystemEmulationModel::PrepareBoot(System &system)
 //	cpu->reset_exception();
 	return true;
 }
+
 
 bool SystemEmulationModel::RegisterMemoryComponent(abi::devices::MemoryComponent& component)
 {
