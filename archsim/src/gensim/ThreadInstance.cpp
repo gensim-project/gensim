@@ -19,6 +19,7 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 	for(auto &interface_descriptor : arch.GetMemoryInterfaceDescriptor().GetInterfaces()) {
 		memory_interfaces_[interface_descriptor.second.GetName()] = new MemoryInterface(interface_descriptor.second);
 	}
+	fetch_mi_ = memory_interfaces_.at(arch.GetMemoryInterfaceDescriptor().GetFetchInterface().GetName());
 	
 	// 3. Features
 	for(auto feature : GetArch().GetFeaturesDescriptor().GetFeatures()) {
@@ -63,12 +64,6 @@ void RegisterFileInterface::SetTaggedSlot(const std::string &tag, Address target
 		default:
 			UNIMPLEMENTED;
 	}
-}
-
-
-MemoryInterface &ThreadInstance::GetFetchMI()
-{
-	return *memory_interfaces_.at(descriptor_.GetMemoryInterfaceDescriptor().GetFetchInterface().GetName());
 }
 
 archsim::abi::ExceptionAction ThreadInstance::TakeException(uint64_t category, uint64_t data)
