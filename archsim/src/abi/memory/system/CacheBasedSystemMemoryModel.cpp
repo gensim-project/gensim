@@ -128,7 +128,7 @@ bool CacheBasedSystemMemoryModel::Initialise()
 	translation_model->Initialise(*this);
 #endif
 
-	subscriber = new archsim::util::PubSubscriber(&GetThread()->GetEmulationModel().GetSystem().GetPubSub());
+	subscriber = new archsim::util::PubSubscriber(GetThread()->GetEmulationModel().GetSystem().GetPubSub());
 	subscriber->Subscribe(PubSubType::RegionDispatchedForTranslationPhysical, FlushCallback, this);
 	subscriber->Subscribe(PubSubType::DTlbEntryFlush, FlushCallback, this);
 	subscriber->Subscribe(PubSubType::DTlbFullFlush, FlushCallback, this);

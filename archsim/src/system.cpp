@@ -38,7 +38,7 @@ System::System(archsim::Session& session) :
 	_verify_tid(-1),
 	_halted(false),
 	_tick_source(NULL),
-	profile_manager(&pubsubctx)
+	profile_manager(pubsubctx)
 {
 	max_fd = 0;
 	OpenFD(STDIN_FILENO);

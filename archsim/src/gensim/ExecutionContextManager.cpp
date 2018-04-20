@@ -55,7 +55,7 @@ void ExecutionContextManager::StartSync()
 		for(auto ctx : contexts_) {
 			auto cresult = ctx->StepThreadsBlock();
 
-			if(cresult != ExecutionResult::Continue) {
+			if(cresult == ExecutionResult::Abort || cresult == ExecutionResult::Halt) {
 				return;
 			}
 		}

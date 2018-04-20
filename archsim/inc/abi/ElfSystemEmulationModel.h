@@ -32,7 +32,7 @@ namespace archsim
 			virtual void DestroyDevices() override;
 
 			virtual bool InstallPlatform(loader::BinaryLoader& loader) override;
-			virtual bool PrepareCore(gensim::Processor& core) override;
+			virtual bool PrepareCore(archsim::ThreadInstance& core) override;
 
 			bool HandleSemihostingCall();
 

@@ -371,12 +371,12 @@ namespace gensim
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
-						output << "UNIMPLEMENTED; // pop_interrupt\n";
+//						output << "UNIMPLEMENTED; // pop_interrupt\n";
 //						output << "pop_interrupt();";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
 //						output << "push_interrupt(1);";
-						output << "UNIMPLEMENTED; // push_interrupt\n";
+//						output << "UNIMPLEMENTED; // push_interrupt\n";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetModeID();";
@@ -450,13 +450,12 @@ namespace gensim
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_GetFeature:
-						output << "UNIMPLEMENTED; // getfeature\n";
-						output << "uint32_t " << stmt.GetName() << ";";
-//						output << "uint32_t " << stmt.GetName() << " = GetFeatures().GetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+//						output << "UNIMPLEMENTED; // getfeature\n";
+//						output << "uint32_t " << stmt.GetName() << ";";
+						output << "uint32_t " << stmt.GetName() << " = thread->GetFeatures().GetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_SetFeature:
-						output << "UNIMPLEMENTED; // setfeature\n";
-//						output << "GetFeatures().SetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ");";
+						output << "thread->GetFeatures().SetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ");";
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:

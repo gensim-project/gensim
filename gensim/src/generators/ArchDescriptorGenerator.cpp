@@ -74,9 +74,22 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 	}
 	
 	str << "static archsim::MemoryInterfacesDescriptor misd ({" << mem_interface_list << "},\"" << Manager.GetArch().GetMemoryInterfaces().GetFetchInterface().GetName() << "\");";
-	str << "static archsim::FeaturesDescriptor features;";
 	
-	str << "ArchDescriptor::ArchDescriptor() : archsim::ArchDescriptor(rfd, misd, features) {}";
+	std::string feature_list;
+	for(const auto &feature : Manager.GetArch().GetFeatures()) {
+		if(!feature_list.empty()) {
+			feature_list += ", ";
+		}
+		feature_list += "feature_" + feature.GetName();
+		str << "static archsim::FeatureDescriptor feature_" << feature.GetName() << "(\"" << feature.GetName() << "\", " << feature.GetId() << ", " << feature.GetDefaultLevel() << ");";
+	}
+	str << "static archsim::FeaturesDescriptor features ({" << feature_list << "});";
+	
+	str << "namespace " << Manager.GetArch().Name << "{";
+	str << "extern archsim::BehavioursDescriptor behaviours;";
+	str << "}";
+	
+	str << "ArchDescriptor::ArchDescriptor() : archsim::ArchDescriptor(rfd, misd, features, ::" << Manager.GetArch().Name << "::behaviours) {}";
 	
 	return true;
 }

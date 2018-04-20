@@ -48,7 +48,7 @@ RegisterBankDescriptor::RegisterBankDescriptor(const std::string& name, unsigned
 }
 
 
-Processor::Processor(const std::string &arch_name, int _core_id, archsim::util::PubSubContext* pubsub)
+Processor::Processor(const std::string &arch_name, int _core_id, archsim::util::PubSubContext& pubsub)
 	: asserted_irqs(0),
 	  halted(false),
 	  core_id(_core_id),
@@ -63,7 +63,7 @@ Processor::Processor(const std::string &arch_name, int _core_id, archsim::util::
 	  tracing_enabled(false),
 	  end_of_block(false),
 	  last_exception_action(archsim::abi::None),
-	  subscriber(new archsim::util::PubSubscriber(pubsub)),
+	  subscriber(pubsub),
 	  _skip_verify(false),
 	  _safepoint_safe(false),
 	  _features(pubsub),
@@ -79,7 +79,6 @@ Processor::~Processor()
 {
 	_safepoint_safe = false;
 	LC_DEBUG1(LogCPU) << "Deleting processor";
-	delete subscriber;
 }
 
 static void flush_icache_callback(PubSubType::PubSubType type, void *context, const void *data)
@@ -112,8 +111,6 @@ bool Processor::Initialise(archsim::abi::EmulationModel& emulation_model, archsi
 	if (archsim::options::CacheModel) {
 		emulation_model.GetuArch().GetCacheGeometry().Install(*this, memory_model);
 	}
-
-	subscriber = new archsim::util::PubSubscriber(&emulation_model.GetSystem().GetPubSub());
 
 	if (archsim::options::Trace) {
 		if (!InitialiseTracing())
@@ -435,9 +432,11 @@ archsim::abi::devices::IRQLine *Processor::GetIRQLine(uint32_t line_no)
 			return line;
 		}
 	}
-	auto new_line = new archsim::abi::devices::CPUIRQLine(this);;
-	irq_lines_.push_back(new_line);
-	return new_line;
+	UNIMPLEMENTED;
+//	auto new_line = new archsim::abi::devices::CPUIRQLine(this);
+//	new_line->SetLine(line_no);
+//	irq_lines_.push_back(new_line);
+//	return new_line;
 }
 
 void Processor::handle_irq(uint32_t line)

@@ -65,7 +65,7 @@ namespace archsim
 			virtual void DestroyDevices() = 0;
 
 			virtual bool InstallPlatform(loader::BinaryLoader& loader) = 0;
-			virtual bool PrepareCore(gensim::Processor& core) = 0;
+			virtual bool PrepareCore(archsim::ThreadInstance& core) = 0;
 
 			bool RegisterMemoryComponent(abi::devices::MemoryComponent& component);
 			void RegisterCoreComponent(abi::devices::CoreComponent& component);

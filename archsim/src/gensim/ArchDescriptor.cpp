@@ -25,7 +25,7 @@ RegisterFileDescriptor::RegisterFileDescriptor(uint64_t total_size, const std::i
 }
 
 
-ArchDescriptor::ArchDescriptor(const RegisterFileDescriptor& rf, const MemoryInterfacesDescriptor& mem, const FeaturesDescriptor& f) : register_file_(rf), mem_interfaces_(mem), features_(f)
+ArchDescriptor::ArchDescriptor(const RegisterFileDescriptor& rf, const MemoryInterfacesDescriptor& mem, const FeaturesDescriptor& f, const BehavioursDescriptor &behaviours) : register_file_(rf), mem_interfaces_(mem), features_(f), behaviours_(behaviours)
 {
 
 }
@@ -40,4 +40,18 @@ MemoryInterfacesDescriptor::MemoryInterfacesDescriptor(const std::initializer_li
 		interfaces_.insert({i.GetName(), i});
 	}
 	fetch_interface_name_ = fetch_interface_id;
+}
+
+ISABehavioursDescriptor::ISABehavioursDescriptor(const std::string &isaname, const std::initializer_list<BehaviourDescriptor> &behaviours) : name_(isaname)
+{
+	for(auto &i : behaviours) {
+		behaviours_.insert({i.GetName(), i});
+	}
+}
+
+BehavioursDescriptor::BehavioursDescriptor(const std::initializer_list<ISABehavioursDescriptor> &isas)
+{
+	for(auto &i : isas) {
+		isas_.insert({i.GetName(), i});
+	}
 }

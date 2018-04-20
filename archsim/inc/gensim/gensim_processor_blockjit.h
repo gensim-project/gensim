@@ -38,7 +38,7 @@ namespace gensim
 	class BlockJitProcessor : public Processor
 	{
 	public:
-		BlockJitProcessor(const std::string &arch_name, int _core_id, archsim::util::PubSubContext*);
+		BlockJitProcessor(const std::string &arch_name, int _core_id, archsim::util::PubSubContext&);
 		virtual ~BlockJitProcessor();
 
 		virtual bool RunInterp(uint32_t steps) override;

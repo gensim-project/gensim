@@ -15,13 +15,10 @@
 #include <vector>
 #include <mutex>
 
-namespace gensim
-{
-	class Processor;
-}
-
 namespace archsim
 {
+	class ThreadInstance;
+	
 	namespace abi
 	{
 		namespace devices
@@ -99,7 +96,7 @@ namespace archsim
 			class CPUIRQLine : public IRQLine
 			{
 			public:
-				CPUIRQLine(gensim::Processor *cpu);
+				CPUIRQLine(archsim::ThreadInstance *cpu);
 
 				void Assert();
 				void Rescind();
@@ -120,7 +117,7 @@ namespace archsim
 				}
 
 			protected:
-				gensim::Processor *CPU;
+				archsim::ThreadInstance *CPU;
 				bool Acknowledged;
 			};
 

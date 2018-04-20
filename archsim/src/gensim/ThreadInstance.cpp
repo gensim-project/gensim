@@ -5,12 +5,13 @@
  */
 
 #include "abi/EmulationModel.h"
+#include "abi/devices/IRQController.h"
 #include "gensim/ThreadInstance.h"
 #include "gensim/MemoryInterface.h"
 
 using namespace archsim;
 
-ThreadInstance::ThreadInstance(const ArchDescriptor& arch, StateBlockDescriptor &state_block_desc, archsim::abi::EmulationModel &emu_model) : descriptor_(arch), state_block_(state_block_desc), emu_model_(emu_model), mode_id_(0), ring_id_(0), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
+ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, StateBlockDescriptor &state_block_desc, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(state_block_desc), features_(pubsub), emu_model_(emu_model), mode_id_(0), ring_id_(0), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
 {
 	// Need to fill in structures based on arch descriptor info
 	
@@ -20,7 +21,9 @@ ThreadInstance::ThreadInstance(const ArchDescriptor& arch, StateBlockDescriptor 
 	}
 	
 	// 3. Features
-	// TODO: this
+	for(auto feature : GetArch().GetFeaturesDescriptor().GetFeatures()) {
+		GetFeatures().AddNamedFeature(feature.GetName(), feature.GetID());
+	}
 	
 	// Set default FP state
 	// TODO: this
@@ -71,4 +74,43 @@ MemoryInterface &ThreadInstance::GetFetchMI()
 archsim::abi::ExceptionAction ThreadInstance::TakeException(uint64_t category, uint64_t data)
 {
 	return emu_model_.HandleException(this, category, data);
+}
+
+archsim::abi::devices::IRQLine* ThreadInstance::GetIRQLine(uint32_t irq_no)
+{
+	if(irq_lines_.count(irq_no) == 0) {
+		irq_lines_[irq_no] = new archsim::abi::devices::CPUIRQLine(this);
+		irq_lines_[irq_no]->SetLine(irq_no);
+	}
+	return irq_lines_.at(irq_no);
+}
+
+void ThreadInstance::TakeIRQ()
+{
+	pending_irqs_++;
+	SendMessage(ThreadMessage::Interrupt);
+}
+
+void ThreadInstance::RescindIRQ()
+{
+	pending_irqs_--;
+}
+
+ExecutionResult ThreadInstance::HandleMessage()
+{
+	auto message = GetNextMessage();
+	switch(message) {
+		case ThreadMessage::Nop: return ExecutionResult::Continue;
+		case ThreadMessage::Halt: return ExecutionResult::Halt;
+		case ThreadMessage::Interrupt: 
+			HandleIRQ();
+			return ExecutionResult::Exception;
+		default:
+			throw std::logic_error("Unexpected message");
+	}
+}
+
+void ThreadInstance::HandleIRQ()
+{
+	UNIMPLEMENTED;
 }

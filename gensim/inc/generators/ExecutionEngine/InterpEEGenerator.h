@@ -37,6 +37,8 @@ namespace gensim {
 			bool GenerateStepInstruction(util::cppformatstream &str) const;
 			bool GenerateStepInstructionISA(util::cppformatstream &str, isa::ISADescription &isa) const;
 			bool GenerateStepInstructionInsn(util::cppformatstream &str, isa::InstructionDescription &insn) const;
+			
+			bool GenerateBehavioursDescriptors(util::cppformatstream &str) const;
 		};
 		
 	}

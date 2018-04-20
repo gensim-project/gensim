@@ -78,7 +78,7 @@ namespace archsim
 		class TranslationManager
 		{
 		public:
-			TranslationManager(util::PubSubContext *pubsubContext);
+			TranslationManager(util::PubSubContext &pubsubContext);
 			virtual ~TranslationManager();
 
 			virtual bool Initialise();

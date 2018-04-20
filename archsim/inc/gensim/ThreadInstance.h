@@ -14,18 +14,30 @@
 #ifndef THREADINSTANCE_H_
 #define THREADINSTANCE_H_
 
+#include "gensim/ExecutionEngine.h"
 #include "gensim/StateBlock.h"
 #include "abi/Address.h"
 #include "abi/devices/Component.h"
 #include "gensim/ArchDescriptor.h"
 #include "abi/EmulationModel.h"
 #include "abi/devices/PeripheralManager.h"
+#include "gensim/ProcessorFeatures.h"
 
 #include <libtrace/TraceSource.h>
+
+#include <atomic>
+#include <mutex>
+#include <queue>
 
 namespace archsim {
 		class MemoryInterface;
 		class FeatureState;
+		
+		enum class ThreadMessage {
+			Nop,
+			Interrupt,
+			Halt
+		};
 		
 		enum class FlushMode {
 			DoNotFlush,
@@ -78,13 +90,13 @@ namespace archsim {
 		public:
 			using memory_interface_collection_t = std::map<std::string, MemoryInterface*>;
 			
-			ThreadInstance(const ArchDescriptor &arch, StateBlockDescriptor &state_descriptor, archsim::abi::EmulationModel &emu_model);
+			ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor &arch, StateBlockDescriptor &state_descriptor, archsim::abi::EmulationModel &emu_model);
 			
 			// Functions to do with accessing the larger substructures within the thread
 			const ArchDescriptor &GetArch() { return descriptor_; }
 			RegisterFileInterface &GetRegisterFileInterface() { return register_file_; }
 			MemoryInterface &GetMemoryInterface(const std::string &interface_name);
-			FeatureState &GetFeatures();
+			ProcessorFeatureInterface &GetFeatures() { return features_; }
 			FPState &GetFPState() { return fp_state_; }
 			archsim::abi::devices::PeripheralManager &GetPeripherals() { return peripherals_; }
 			StateBlockInstance &GetStateBlock();
@@ -118,20 +130,55 @@ namespace archsim {
 			
 			// Functions to do with manipulating state according to the architecture
 			archsim::abi::ExceptionAction TakeException(uint64_t category, uint64_t data);
+			archsim::abi::devices::IRQLine *GetIRQLine(uint32_t irq_no);
+
+			void TakeIRQ();
+			void RescindIRQ();
+			void HandleIRQ();
 			
+			void SendMessage(ThreadMessage message) 
+			{
+				std::unique_lock<std::mutex> lock(message_lock_);
+				message_queue_.push(message);
+				message_waiting_ = true;
+			}
+		
+			bool HasMessage() const { return message_waiting_; }
+			ThreadMessage GetNextMessage() 
+			{
+				std::unique_lock<std::mutex> lock(message_lock_);
+				auto message = message_queue_.front();
+				message_queue_.pop();
+				
+				message_waiting_ = !message_queue_.empty();
+				
+				return message;
+			}
+			
+			archsim::ExecutionResult HandleMessage();
 		private:
+			
 			const ArchDescriptor &descriptor_;
 			memory_interface_collection_t memory_interfaces_;
 			RegisterFileInterface register_file_;
 			FPState fp_state_;
 			archsim::abi::devices::PeripheralManager peripherals_;
 			archsim::abi::EmulationModel &emu_model_;
+			ProcessorFeatureInterface features_;
+			util::PubSubscriber pubsub_;
+			
+			std::mutex message_lock_;
+			std::queue<ThreadMessage> message_queue_;
+			bool message_waiting_;
+			std::atomic<uint32_t> pending_irqs_;
 			
 			uint32_t mode_id_;
 			uint32_t ring_id_;
 			
 			StateBlockInstance state_block_;
 			libtrace::TraceSource *trace_source_;
+			
+			std::map<uint32_t, archsim::abi::devices::IRQLine *> irq_lines_;
 			
 			
 		};

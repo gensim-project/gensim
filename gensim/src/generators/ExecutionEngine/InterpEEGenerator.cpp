@@ -19,6 +19,8 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const {
 		"#include <gensim/ExecutionEngine.h>\n"
 		"#include <cstdint>\n"
 		
+		"namespace " << Manager.GetArch().Name << "{"
+		
 		"class EE : public archsim::BasicExecutionEngine {"
 		"public:"
 		
@@ -31,7 +33,12 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const {
 		"  uint32_t DecodeInstruction(archsim::ThreadInstance *thread, decode_t &inst);"
 		"  archsim::ExecutionResult StepInstruction(archsim::ThreadInstance *thread, decode_t &inst);"
 		"};"
+		""
 		;
+
+		
+	str << "}";
+		
 	return true;
 }
 
@@ -48,6 +55,8 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 		"#include <cmath>\n"
 		;
 	
+	str << "using namespace " << Manager.GetArch().Name << ";";
+	
 	GenerateDecodeInstruction(str);
 	
 	str <<
@@ -61,6 +70,8 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 
 	GenerateHelperFunctions(str);
 	GenerateStepInstruction(str);
+	
+	GenerateBehavioursDescriptors(str);
 	
 	str <<
 		
@@ -151,6 +162,7 @@ bool InterpEEGenerator::GenerateBlockExecutor(util::cppformatstream& str) const
 	str << 
 		"while(true) {"
 	
+		"  if(thread->HasMessage()) { return thread->HandleMessage(); }"
 		"  decode_t inst;"
 		"  uint32_t dcode_exception = DecodeInstruction(thread, inst);"
 		"  if(dcode_exception) { return archsim::ExecutionResult::Exception; }"
@@ -254,6 +266,58 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 	
 	str << "if(trace) { thread->GetTraceSource()->Trace_End_Insn(); }";
 	str << "return interp_result;";
+	str << "}";
+	
+	return true;
+}
+
+bool InterpEEGenerator::GenerateBehavioursDescriptors(util::cppformatstream& str) const
+{
+	std::string isa_descriptors;
+	for(auto i : Manager.GetArch().ISAs) {
+		if(!isa_descriptors.empty()) {
+			isa_descriptors += ", ";
+		}
+		isa_descriptors += "behaviours_" + i->ISAName;
+		
+		std::string behaviours_list;
+		
+		for(auto action : i->GetSSAContext().Actions()) {
+			if(action.second->GetPrototype().HasAttribute(gensim::genc::ActionAttribute::Export)) {
+				if(!behaviours_list.empty()) {
+					behaviours_list += ", ";
+				}
+				behaviours_list += "bd_" + i->ISAName + "_" + action.first;
+				
+				str << "static archsim::BehaviourDescriptor bd_" << i->ISAName << "_" << action.first << "(\"" << action.first << "\", [](const archsim::InvocationContext &ctx){ helper_" << i->ISAName << "_" << action.first << "<false>(nullptr, ctx.GetThread()";
+				
+				// unpack arguments
+				for(int index = 0; index < action.second->GetPrototype().ParameterTypes().size(); ++index) {
+					auto &argtype = action.second->GetPrototype().ParameterTypes().at(index);
+					// if we're accessing a struct, assume it's a decode_t
+					std::string type_string;
+					
+					if(argtype.Reference) {
+						UNIMPLEMENTED;
+					}
+					
+					if(argtype.IsStruct()) {
+						UNIMPLEMENTED;
+					}
+						
+					str << ", (" << argtype.GetCType() << ")ctx.GetArg(" << index << ")";
+					
+				}
+				
+				str << "); return 0; });";
+			}
+		}
+		
+		str << "static archsim::ISABehavioursDescriptor behaviours_" << i->ISAName << "(\"" << i->ISAName << "\", {" << behaviours_list << "});";
+	}
+	
+	str << "namespace " << Manager.GetArch().Name << "{";
+	str << "archsim::BehavioursDescriptor behaviours ({" << isa_descriptors << "});";
 	str << "}";
 	
 	return true;

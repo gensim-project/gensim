@@ -63,15 +63,8 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	auto arch = archentry->Get();
 	auto ctx = new archsim::ExecutionContext(*arch, moduleentry->Get());
 	GetSystem().GetECM().AddContext(ctx);
-	main_thread_ = new ThreadInstance(*arch, stateblock, *this);
+	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, stateblock, *this);
 	
-	for(auto i : main_thread_->GetMemoryInterfaces()) {
-		i.second->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
-	}
-	
-	GetSystem().GetECM().AddContext(ctx);
-	ctx->AddThread(main_thread_);
-
 
 	// Create a system memory model for this CPU
 	SystemMemoryModel *smm = NULL;
@@ -81,6 +74,13 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 
+	for(auto i : main_thread_->GetMemoryInterfaces()) {
+		i.second->Connect(*new archsim::LegacyMemoryInterface(*smm));
+	}
+	
+	GetSystem().GetECM().AddContext(ctx);
+	ctx->AddThread(main_thread_);
+	
 //	if (!cpu->Initialise(*this, *smm)) {
 //		delete smm;
 //		return false;
@@ -175,10 +175,10 @@ bool SystemEmulationModel::PrepareBoot(System &system)
 	delete loader;
 
 	// Run platform-specific CPU boot code
-//	if (!PrepareCore(*cpu)) {
-//		LC_ERROR(LogSystemEmulationModel) << "Unable to prepare CPU for booting";
-//		return false;
-//	}
+	if (!PrepareCore(*main_thread_)) {
+		LC_ERROR(LogSystemEmulationModel) << "Unable to prepare CPU for booting";
+		return false;
+	}
 //
 //	// Take a reset exception.
 //	cpu->reset_exception();

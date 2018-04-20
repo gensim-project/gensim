@@ -33,7 +33,7 @@ namespace archsim
 				void DestroyDevices() override;
 				bool InstallPlatform(abi::loader::BinaryLoader& loader) override;
 
-				bool PrepareCore(gensim::Processor& core) override;
+				bool PrepareCore(archsim::ThreadInstance& core) override;
 
 			private:
 				uint32_t entry_point;

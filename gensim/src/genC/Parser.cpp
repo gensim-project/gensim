@@ -473,6 +473,7 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 
 	bool inlined = false;
 	bool noinlined = false;
+	bool exported = false;
 	IRConstness::IRConstness helper_constness = IRConstness::never_const;
 	for (uint32_t i = 3; i < node->getChildCount(node) - 1; ++i) {
 
@@ -484,6 +485,10 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 			}
 			case GENC_ATTR_NOINLINE: {
 				noinlined = true;
+				break;
+			}
+			case GENC_ATTR_EXPORT: {
+				exported = true;
 				break;
 			}
 		}
@@ -514,6 +519,9 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 	IRSignature sig(name, return_type, param_list);
 	if (noinlined) {
 		sig.AddAttribute(ActionAttribute::NoInline);
+	}
+	if(exported) {
+		sig.AddAttribute(ActionAttribute::Export);
 	}
 	sig.AddAttribute(ActionAttribute::Helper);
 

@@ -5,6 +5,7 @@
  */
 
 #include "gensim/ExecutionEngine.h"
+#include "gensim/ThreadInstance.h"
 
 #include <cassert>
 
@@ -72,6 +73,9 @@ ExecutionResult BasicExecutionEngine::StepThreadBlock(ThreadInstance* thread)
 	try {
 		return ArchStepBlock(thread);
 	} catch(thread_exception &exception) {
+		if(thread->GetTraceSource()) {
+			thread->GetTraceSource()->Trace_End_Insn();
+		}
 		return ExecutionResult::Exception;
 	}
 }
@@ -80,6 +84,9 @@ ExecutionResult BasicExecutionEngine::StepThreadSingle(ThreadInstance* thread)
 	try {
 		return ArchStepSingle(thread);
 	} catch(thread_exception &exception) {
+		if(thread->GetTraceSource()) {
+			thread->GetTraceSource()->Trace_End_Insn();
+		}
 		return ExecutionResult::Exception;
 	}
 }

@@ -84,7 +84,7 @@ static void InvalidateCallback(PubSubType::PubSubType type, void *ctx, const voi
 	}
 }
 
-TranslationManager::TranslationManager(util::PubSubContext *psCtx) : _needs_leave(false), ics(NULL), curr_hotspot_threshold(archsim::options::JitHotspotThreshold), subscriber(psCtx), engine(NULL), manager(NULL)
+TranslationManager::TranslationManager(util::PubSubContext &psCtx) : _needs_leave(false), ics(NULL), curr_hotspot_threshold(archsim::options::JitHotspotThreshold), subscriber(psCtx), engine(NULL), manager(NULL)
 {
 	if (!archsim::options::JitDisableBranchOpt) {
 		// Allocate storage for the region translation cache.

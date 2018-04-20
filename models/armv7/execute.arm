@@ -3499,7 +3499,7 @@ helper void set_arm_mode(uint32 mode)
 	return;
 }
 
-helper void take_arm_exception(uint32 mode, uint32 r14) noinline
+helper void take_arm_exception(uint32 mode, uint32 r14) noinline export
 {
 	uint32 vector = 0;
 	uint32 lr_val = 0;

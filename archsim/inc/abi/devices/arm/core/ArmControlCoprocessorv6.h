@@ -122,7 +122,7 @@ namespace archsim
 
 				bool TRE,AFE;
 
-				const gensim::RegisterDescriptor *V_descriptor;
+				uint8_t *V_ptr;
 
 				MMU *get_mmu();
 			};

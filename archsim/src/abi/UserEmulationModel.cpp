@@ -57,7 +57,7 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	auto arch = archentry->Get();
 	auto ctx = new archsim::ExecutionContext(*arch, moduleentry->Get());
 	GetSystem().GetECM().AddContext(ctx);
-	main_thread_ = new ThreadInstance(*arch, stateblock, *this);
+	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, stateblock, *this);
 	
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
 		i.second->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));

@@ -31,7 +31,7 @@ namespace PubSubType
 
 PubSubscription::PubSubscription(PubSubType::PubSubType type, PubSubCallback callback, void *ctx) : type(type), callback(callback), context(ctx) {}
 
-PubSubscriber::PubSubscriber(PubSubContext *context) : pubsubcontext(context) {}
+PubSubscriber::PubSubscriber(PubSubContext &context) : pubsubcontext(context) {}
 
 PubSubscriber::~PubSubscriber()
 {
@@ -40,21 +40,20 @@ PubSubscriber::~PubSubscriber()
 
 void PubSubscriber::Subscribe(PubSubType::PubSubType type, PubSubCallback callback, void *context)
 {
-	pubsubcontext->Subscribe(type, callback, context);
+	pubsubcontext.Subscribe(type, callback, context);
 }
 
 void PubSubscriber::Publish(PubSubType::PubSubType type, const void *data)
 {
-	pubsubcontext->Publish(type, data);
+	pubsubcontext.Publish(type, data);
 }
-
 
 void PubSubscriber::Unsubscribe(PubSubType::PubSubType type)
 {
 	for(auto i = subscriptions.begin(); i != subscriptions.end(); ++i) {
 		auto sub = *i;
 		if(sub->GetType() == type) {
-			pubsubcontext->Unsubscribe(sub);
+			pubsubcontext.Unsubscribe(sub);
 			subscriptions.erase(i);
 			return;
 		}
