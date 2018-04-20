@@ -14,6 +14,7 @@
 #ifndef THREADINSTANCE_H_
 #define THREADINSTANCE_H_
 
+#include "abi/devices/IRQController.h"
 #include "gensim/ExecutionEngine.h"
 #include "gensim/StateBlock.h"
 #include "abi/Address.h"
@@ -90,7 +91,7 @@ namespace archsim {
 		public:
 			using memory_interface_collection_t = std::map<std::string, MemoryInterface*>;
 			
-			ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor &arch, StateBlockDescriptor &state_descriptor, archsim::abi::EmulationModel &emu_model);
+			ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor &arch, archsim::abi::EmulationModel &emu_model);
 			
 			// Functions to do with accessing the larger substructures within the thread
 			const ArchDescriptor &GetArch() { return descriptor_; }
@@ -99,7 +100,7 @@ namespace archsim {
 			ProcessorFeatureInterface &GetFeatures() { return features_; }
 			FPState &GetFPState() { return fp_state_; }
 			archsim::abi::devices::PeripheralManager &GetPeripherals() { return peripherals_; }
-			StateBlockInstance &GetStateBlock();
+			StateBlock &GetStateBlock() { return state_block_; }
 			archsim::abi::EmulationModel &GetEmulationModel() { return emu_model_; }
 			
 			// Functions to do with execution modes
@@ -132,8 +133,13 @@ namespace archsim {
 			archsim::abi::ExceptionAction TakeException(uint64_t category, uint64_t data);
 			archsim::abi::devices::IRQLine *GetIRQLine(uint32_t irq_no);
 
+			// Record that an IRQ line is currently high
 			void TakeIRQ();
+			// Record that an IRQ line that was previously high has gone low
 			void RescindIRQ();
+			// Check for any acknowledged but still pending interrupts
+			void PendIRQ();
+			// Acknowledge an IRQ and take an interrupt
 			void HandleIRQ();
 			
 			void SendMessage(ThreadMessage message) 
@@ -175,10 +181,10 @@ namespace archsim {
 			uint32_t mode_id_;
 			uint32_t ring_id_;
 			
-			StateBlockInstance state_block_;
+			StateBlock state_block_;
 			libtrace::TraceSource *trace_source_;
 			
-			std::map<uint32_t, archsim::abi::devices::IRQLine *> irq_lines_;
+			std::map<uint32_t, archsim::abi::devices::CPUIRQLine *> irq_lines_;
 			
 			
 		};

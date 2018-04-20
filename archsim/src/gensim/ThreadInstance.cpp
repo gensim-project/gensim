@@ -11,7 +11,7 @@
 
 using namespace archsim;
 
-ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, StateBlockDescriptor &state_block_desc, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(state_block_desc), features_(pubsub), emu_model_(emu_model), mode_id_(0), ring_id_(0), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
+ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), mode_id_(0), ring_id_(0), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
 {
 	// Need to fill in structures based on arch descriptor info
 	
@@ -112,5 +112,29 @@ ExecutionResult ThreadInstance::HandleMessage()
 
 void ThreadInstance::HandleIRQ()
 {
-	UNIMPLEMENTED;
+	for(auto irq : irq_lines_) {
+		if(irq.second->IsAsserted() && !irq.second->IsAcknowledged()) {
+			GetEmulationModel().HandleInterrupt(this, irq.second);
+			irq.second->Acknowledge();
+		}
+	}
+}
+
+void ThreadInstance::PendIRQ()
+{
+	bool should_pend_interrupts = false;
+	for (auto irq : irq_lines_) {
+		if (irq.second->IsAsserted()) {
+			should_pend_interrupts = true;
+			break;
+		}
+	}
+
+	if (should_pend_interrupts) {
+		SendMessage(ThreadMessage::Interrupt);
+
+		for (auto irq : irq_lines_) {
+			irq.second->Raise();
+		}
+	}
 }

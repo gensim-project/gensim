@@ -44,6 +44,7 @@ namespace archsim
 			class SystemComponent;
 			class CoreComponent;
 			class MemoryComponent;
+			class CPUIRQLine;
 		}
 
 		namespace loader
@@ -109,6 +110,7 @@ namespace archsim
 			virtual bool PrepareBoot(System& system) = 0;
 
 			virtual ExceptionAction HandleException(archsim::ThreadInstance* thread, uint32_t category, uint32_t data) = 0;
+			virtual void HandleInterrupt(archsim::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine *irq);
 
 			virtual bool LookupSymbol(unsigned long address, bool exact_match, const BinarySymbol *& symbol) const;
 			virtual bool ResolveSymbol(std::string name, unsigned long& value);

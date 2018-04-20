@@ -27,7 +27,8 @@ namespace archsim
 				void Destroy() override;
 
 				archsim::abi::ExceptionAction HandleException(archsim::ThreadInstance *cpu, uint32_t category, uint32_t data) override;
-
+				void HandleInterrupt(archsim::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq) override;
+				
 				gensim::DecodeContext* GetNewDecodeContext(gensim::Processor& cpu) override;
 
 

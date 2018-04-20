@@ -51,6 +51,7 @@ namespace archsim
 
 			virtual ExceptionAction HandleException(archsim::ThreadInstance *cpu, uint32_t category, uint32_t data) = 0;
 
+			
 			void PrintStatistics(std::ostream& stream);
 
 			devices::DeviceManager& GetDeviceManager()
