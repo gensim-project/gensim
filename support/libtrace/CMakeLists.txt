@@ -1,9 +1,12 @@
 PROJECT(libtrace)
 
-FIND_PACKAGE(Curses REQUIRED)
+FIND_PACKAGE(Curses)
 
 FILE(GLOB LIBTRACE_SOURCES lib/*.cpp)
 ADD_LIBRARY(trace ${LIBTRACE_SOURCES})
+
+SET(INCLUDEDIRS inc/)
+
 TARGET_INCLUDE_DIRECTORIES(trace PUBLIC inc/ ${CURSES_INCLUDE_DIR})
 
 SET_TARGET_PROPERTIES(trace
@@ -23,8 +26,12 @@ function(add_trace_tool tool-name)
 	)
 endfunction()
 
-add_trace_tool(TraceLess ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordLess.cpp)
-add_trace_tool(TracePCDiff ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordPCDiff.cpp)
 add_trace_tool(TraceCat ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordCat.cpp)
+add_trace_tool(TracePCDiff ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordPCDiff.cpp)
+
+if(CURSES_FOUND)
+	MESSAGE(STATUS "Found Curses so building TraceLess")
+	add_trace_tool(TraceLess ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordLess.cpp)
+endif()
 
 SET_PROPERTY(GLOBAL PROPERTY LIBTRACE_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/inc")
