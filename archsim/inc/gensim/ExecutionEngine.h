@@ -14,7 +14,6 @@
 #ifndef EXECUTIONENGINE_H
 #define EXECUTIONENGINE_H
 
-#include "ThreadInstance.h"
 #include "util/LogContext.h"
 
 UseLogContext(LogExecutionEngine);
@@ -23,6 +22,8 @@ UseLogContext(LogExecutionEngine);
 #include <map>
 
 namespace archsim {
+	class ThreadInstance;
+	
 		enum class ExecutionResult {
 			Continue,
 			Exception,

@@ -149,7 +149,7 @@ namespace gensim
 			kExecModeNative = 0x1, // native execution mode
 		};
 
-		Processor(const std::string &name, int _core_id, archsim::util::PubSubContext* pubsub);
+		Processor(const std::string &name, int _core_id, archsim::util::PubSubContext& pubsub);
 		virtual ~Processor();
 
 		const std::string &GetArchName() const
@@ -554,12 +554,12 @@ namespace gensim
 			if(tracing_enabled) return;
 			if(!trace_mgr) InitialiseTracing();
 			tracing_enabled = true;
-			GetSubscriber()->Publish(PubSubType::FlushTranslations, NULL);
+			GetSubscriber().Publish(PubSubType::FlushTranslations, NULL);
 		}
 		virtual void StopTracing()
 		{
 			tracing_enabled = false;
-			GetSubscriber()->Publish(PubSubType::FlushTranslations, NULL);
+			GetSubscriber().Publish(PubSubType::FlushTranslations, NULL);
 		}
 
 		void return_to_safepoint();
@@ -585,7 +585,7 @@ namespace gensim
 		archsim::abi::memory::MemoryCounterEventHandler *mem_counter;
 		archsim::abi::memory::Endianness endianness;
 
-		archsim::util::PubSubscriber *subscriber;
+		archsim::util::PubSubscriber subscriber;
 
 		gensim::DecodeContext *decode_ctx_;
 
@@ -602,7 +602,7 @@ namespace gensim
 
 		bool _skip_verify;
 
-		archsim::util::PubSubscriber *GetSubscriber()
+		archsim::util::PubSubscriber &GetSubscriber()
 		{
 			return subscriber;
 		}

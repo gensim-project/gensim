@@ -72,7 +72,7 @@ namespace archsim
 		class PubSubscriber
 		{
 		public:
-			PubSubscriber(PubSubContext *ctx);
+			PubSubscriber(PubSubContext &ctx);
 			~PubSubscriber();
 
 			void Subscribe(PubSubType::PubSubType type, PubSubCallback callback, void *context);
@@ -80,7 +80,7 @@ namespace archsim
 			void Unsubscribe(PubSubType::PubSubType type);
 		private:
 			std::vector<PubSubscription*> subscriptions;
-			PubSubContext* pubsubcontext;
+			PubSubContext& pubsubcontext;
 		};
 
 		class PubSubContext;

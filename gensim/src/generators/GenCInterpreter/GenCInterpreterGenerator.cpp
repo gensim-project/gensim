@@ -49,7 +49,6 @@ namespace gensim
 			for (auto *sym : action.Symbols()) {
 				if(sym->SType == genc::Symbol_Parameter) continue;
 				if (sym->IsReference()) continue;
-//		if(ci->second->Uses.size() == 0) continue;
 				str << sym->GetType().GetCType() << " " << sym->GetName() << ";";
 			}
 

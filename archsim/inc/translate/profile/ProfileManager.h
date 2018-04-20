@@ -33,7 +33,7 @@ namespace archsim
 			class ProfileManager
 			{
 			public:
-				ProfileManager(archsim::util::PubSubContext *pubsub) : pubsub(pubsub)
+				ProfileManager(archsim::util::PubSubContext &pubsub) : pubsub(pubsub)
 				{
 					Invalidate();
 				}

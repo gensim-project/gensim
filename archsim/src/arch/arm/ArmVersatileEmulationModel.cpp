@@ -75,9 +75,9 @@ bool ArmVersatileEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	return InstallBootloader(loader);
 }
 
-bool ArmVersatileEmulationModel::PrepareCore(gensim::Processor& core)
+bool ArmVersatileEmulationModel::PrepareCore(archsim::ThreadInstance& core)
 {
-	uint32_t *regs = (uint32_t *)core.GetRegisterBankDescriptor("RB").GetBankDataStart();
+	uint32_t *regs = (uint32_t *)core.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 
 	// r0 = 0
 	regs[0] = 0;

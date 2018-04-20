@@ -28,7 +28,7 @@ RegisterComponent(archsim::abi::devices::Device, ArmControlCoprocessorv6,
                   "armcoprocessor", "ARMv6 ARM Control Coprocessor unit interface")
 ;
 
-ArmControlCoprocessorv6::ArmControlCoprocessorv6() : cp1_M(false), cp1_S(false), cp1_R(false), far(0), fsr(0), ttbr0(0), ttbr1(0), ttbcr(0),dacr(0xffffffff), V_descriptor(NULL), cpacr(0), actlr(0)
+ArmControlCoprocessorv6::ArmControlCoprocessorv6() : cp1_M(false), cp1_S(false), cp1_R(false), far(0), fsr(0), ttbr0(0), ttbr1(0), ttbcr(0),dacr(0xffffffff), V_ptr(NULL), cpacr(0), actlr(0)
 {
 	sctl_word = 0x00c50078;
 }
@@ -225,11 +225,8 @@ bool ArmControlCoprocessorv6::access_cp1(bool is_read, uint32_t &data)
 						cp1_R = R;
 						get_mmu()->set_enabled(M);
 
-						UNIMPLEMENTED;
-//						if(!V_descriptor) V_descriptor = &Manager->cpu.GetRegisterDescriptor("cpV");
-//						uint8_t *v_reg =
-//						    (uint8_t*) V_descriptor->DataStart;
-//						*v_reg = V;
+						if(!V_ptr) V_ptr = Manager->cpu.GetRegisterFileInterface().GetEntry<uint8_t>("cpV");
+						*V_ptr = V;
 
 						LC_DEBUG1(LogArmCoprocessor) << "CP1 Write: "
 						                             " L2:" << L2 << " EE:" << EE << " VE:" << VE << " XP:" << XP

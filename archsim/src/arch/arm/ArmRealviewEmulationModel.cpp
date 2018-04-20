@@ -3,6 +3,8 @@
  */
 #include "arch/arm/ArmRealviewEmulationModel.h"
 #include "arch/arm/ARMDecodeContext.h"
+#include "gensim/ThreadInstance.h"
+#include "gensim/MemoryInterface.h"
 
 #include "abi/loader/BinaryLoader.h"
 #include "abi/devices/SerialPort.h"
@@ -76,9 +78,9 @@ bool ArmRealviewEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	return InstallBootloader(loader);
 }
 
-bool ArmRealviewEmulationModel::PrepareCore(gensim::Processor& core)
+bool ArmRealviewEmulationModel::PrepareCore(archsim::ThreadInstance& core)
 {
-	uint32_t *regs = (uint32_t *)core.GetRegisterBankDescriptor("RB").GetBankDataStart();
+	uint32_t *regs = (uint32_t *)core.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 
 	// r0 = 0
 	regs[0] = 0;
@@ -144,7 +146,7 @@ bool ArmRealviewEmulationModel::InstallPlatformDevices()
 	auto gic = adm->GetEntry<ModuleComponentEntry>("GIC.GIC")->Get(*this);
 	gic_distributor->SetParameter("Owner", gic);
 	gic_cpuinterface->SetParameter("Owner", gic);
-	gic_cpuinterface->SetParameter("IRQLine", (archsim::abi::devices::Component*)GetBootCore()->GetIRQLine(1));
+	gic_cpuinterface->SetParameter("IRQLine", (archsim::abi::devices::Component*)main_thread_->GetIRQLine(1));
 	auto irq_controller = dynamic_cast<archsim::abi::devices::IRQController*>(gic);
 
 	gic->SetParameter("CpuInterface", gic_cpuinterface);
@@ -379,43 +381,42 @@ void ArmRealviewEmulationModel::HandleSemihostingCall()
 
 ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::ThreadInstance *cpu, unsigned int category, unsigned int data)
 {
-	UNIMPLEMENTED;
+	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu->GetPC() << " mode " << (uint32_t)cpu->GetModeID();
+
+	if (category == 3 && data == 0x123456) {
+		HandleSemihostingCall();
+		return archsim::abi::ResumeNext;
+	}
+
+	// XXX ARM HAX
+	if (category == 11) {
+		uint32_t insn;
+		cpu->GetFetchMI().Read32(Address(data-4), insn);
+//		GetMemoryModel().Read32(data-4, insn);
+		LC_DEBUG1(LogSystemEmulationModel) << "Undefined instruction exception! " << std::hex << (data-4) << " " << insn;
+//		exit(0);
+	}
+
+	// update ITSTATE if we have a SWI
+	if(category == 3) {
+		auto *itstate_ptr = cpu->GetRegisterFileInterface().GetEntry<uint8_t>("ITSTATE");
+		uint8_t itstate = *itstate_ptr;
+		if(itstate) {
+			uint8_t cond = itstate & 0xe0;
+			uint8_t mask = itstate & 0x1f;
+			mask = (mask << 1) & 0x1f;
+			if(mask == 0x10) {
+				cond = 0;
+				mask = 0;
+			}
+			*itstate_ptr = cond | mask;
+		}
+	}
+
+	auto &behaviour = cpu->GetArch().GetBehavioursDescriptor().GetISA("arm").GetBehaviour("take_arm_exception");
+	behaviour.Invoke(cpu, {category, data});
 	
-//	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu.read_pc() << " mode " << (uint32_t)cpu.get_cpu_mode();
-//
-//	if (category == 3 && data == 0x123456) {
-//		HandleSemihostingCall();
-//		return archsim::abi::ResumeNext;
-//	}
-//
-//	// XXX ARM HAX
-//	if (category == 11) {
-//		uint32_t insn;
-//		cpu.mem_read_32(data-4, insn);
-////		GetMemoryModel().Read32(data-4, insn);
-//		LC_DEBUG1(LogSystemEmulationModel) << "Undefined instruction exception! " << std::hex << (data-4) << " " << insn;
-////		exit(0);
-//	}
-//
-//	// update ITSTATE if we have a SWI
-//	if(category == 3) {
-//		auto &desc = cpu.GetRegisterDescriptor("ITSTATE");
-//		uint8_t* itstate_ptr = (uint8_t*)desc.DataStart;
-//		uint8_t itstate = *itstate_ptr;
-//		if(itstate) {
-//			uint8_t cond = itstate & 0xe0;
-//			uint8_t mask = itstate & 0x1f;
-//			mask = (mask << 1) & 0x1f;
-//			if(mask == 0x10) {
-//				cond = 0;
-//				mask = 0;
-//			}
-//			*itstate_ptr = cond | mask;
-//		}
-//	}
-//
-//	cpu.handle_exception(category, data);
-//	return archsim::abi::AbortInstruction;
+	return archsim::abi::AbortInstruction;
 }
 
 gensim::DecodeContext* ArmRealviewEmulationModel::GetNewDecodeContext(gensim::Processor& cpu)

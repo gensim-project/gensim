@@ -104,18 +104,18 @@ bool ElfSystemEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	return true;
 }
 
-bool ElfSystemEmulationModel::PrepareCore(gensim::Processor &cpu)
+bool ElfSystemEmulationModel::PrepareCore(archsim::ThreadInstance &cpu)
 {
 	LC_DEBUG1(LogElfSystemEmulationModel) << "Binary entry point: " << std::hex << binary_entrypoint;
 
 	// Load r12 with the entry-point to the binary being executed.
-	uint32_t *regs = (uint32_t *)cpu.GetRegisterBankDescriptor("RB").GetBankDataStart();
+	uint32_t *regs = (uint32_t *)cpu.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 	regs[12] = binary_entrypoint;
 
 	LC_DEBUG1(LogElfSystemEmulationModel) << "Initial SP: " << std::hex << initial_sp;
 
 	// Load sp with the top of the stack.
-	regs = (uint32_t *)cpu.GetRegisterBankDescriptor("RB").GetBankDataStart();
+	regs = (uint32_t *)cpu.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 	regs[13] = initial_sp;
 
 	return true;

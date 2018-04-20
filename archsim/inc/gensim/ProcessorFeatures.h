@@ -106,7 +106,7 @@ namespace archsim
 	{
 	public:
 		ProcessorFeatureInterface() = delete;
-		ProcessorFeatureInterface(archsim::util::PubSubContext *pubsub) : _pubsub(pubsub) {}
+		ProcessorFeatureInterface(archsim::util::PubSubContext &pubsub) : _pubsub(pubsub) {}
 
 		void AddNamedFeature(const std::string &name, uint32_t id)
 		{

@@ -61,7 +61,7 @@ static void tlbflush_callback(PubSubType::PubSubType type, void *context, const 
 
 }
 
-BlockJitProcessor::BlockJitProcessor(const std::string &arch_name, int core_id, archsim::util::PubSubContext* pubsub) : Processor(arch_name, core_id, pubsub), _translator(NULL), _phys_block_profile(_block_allocator), _flush_txlns(false), _flush_all_txlns(false), _pc_ptr(nullptr)
+BlockJitProcessor::BlockJitProcessor(const std::string &arch_name, int core_id, archsim::util::PubSubContext& pubsub) : Processor(arch_name, core_id, pubsub), _translator(NULL), _phys_block_profile(_block_allocator), _flush_txlns(false), _flush_all_txlns(false), _pc_ptr(nullptr)
 {
 
 
@@ -78,13 +78,13 @@ bool BlockJitProcessor::Initialise(archsim::abi::EmulationModel& emulation_model
 		return false;
 	}
 
-	GetSubscriber()->Subscribe(PubSubType::RegionInvalidatePhysical, tlbflush_callback, (void*)this);
-	GetSubscriber()->Subscribe(PubSubType::L1ICacheFlush, tlbflush_callback, (void*)this);
-	GetSubscriber()->Subscribe(PubSubType::ITlbFullFlush, tlbflush_callback, (void*)this);
-	GetSubscriber()->Subscribe(PubSubType::ITlbEntryFlush, tlbflush_callback, (void*)this);
-	GetSubscriber()->Subscribe(PubSubType::FeatureChange, tlbflush_callback, (void*)this);
-	GetSubscriber()->Subscribe(PubSubType::FlushTranslations, tlbflush_callback, (void*)this);
-	GetSubscriber()->Subscribe(PubSubType::FlushAllTranslations, tlbflush_callback, (void*)this);
+	GetSubscriber().Subscribe(PubSubType::RegionInvalidatePhysical, tlbflush_callback, (void*)this);
+	GetSubscriber().Subscribe(PubSubType::L1ICacheFlush, tlbflush_callback, (void*)this);
+	GetSubscriber().Subscribe(PubSubType::ITlbFullFlush, tlbflush_callback, (void*)this);
+	GetSubscriber().Subscribe(PubSubType::ITlbEntryFlush, tlbflush_callback, (void*)this);
+	GetSubscriber().Subscribe(PubSubType::FeatureChange, tlbflush_callback, (void*)this);
+	GetSubscriber().Subscribe(PubSubType::FlushTranslations, tlbflush_callback, (void*)this);
+	GetSubscriber().Subscribe(PubSubType::FlushAllTranslations, tlbflush_callback, (void*)this);
 
 	_translator = CreateBlockJITTranslate();
 
