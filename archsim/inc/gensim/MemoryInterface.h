@@ -59,6 +59,23 @@ namespace archsim {
 		archsim::abi::memory::MemoryModel &mem_model_;
 	};
 	
+	class LegacyFetchMemoryInterface : public MemoryDevice {
+	public:
+		LegacyFetchMemoryInterface(archsim::abi::memory::MemoryModel &mem_model) : mem_model_(mem_model) {}
+		
+		MemoryResult Read8(Address address, uint8_t& data) override;
+		MemoryResult Read16(Address address, uint16_t& data) override;
+		MemoryResult Read32(Address address, uint32_t& data) override;
+		MemoryResult Read64(Address address, uint64_t& data) override;
+		MemoryResult Write8(Address address, uint8_t data) override;
+		MemoryResult Write16(Address address, uint16_t data) override;
+		MemoryResult Write32(Address address, uint32_t data) override;
+		MemoryResult Write64(Address address, uint64_t data) override;
+
+	private:
+		archsim::abi::memory::MemoryModel &mem_model_;
+	};
+	
 	/**
 	 * This class represents a specific instantiation of a memory master.
 	 * This is connected to an underlying device (which may be a bus).

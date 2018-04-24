@@ -74,7 +74,11 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	}
 
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
-		i.second->Connect(*new archsim::LegacyMemoryInterface(*smm));
+		if(i.second == &main_thread_->GetFetchMI()) {
+			i.second->Connect(*new archsim::LegacyFetchMemoryInterface(*smm));
+		} else {
+			i.second->Connect(*new archsim::LegacyMemoryInterface(*smm));
+		}
 	}
 	
 	GetSystem().GetECM().AddContext(ctx);

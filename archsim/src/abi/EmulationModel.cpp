@@ -35,6 +35,12 @@ void EmulationModel::HandleInterrupt(archsim::ThreadInstance* thread, archsim::a
 	UNIMPLEMENTED;
 }
 
+ExceptionAction EmulationModel::HandleMemoryFault(archsim::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
+{
+	LC_ERROR(LogEmulationModel) << "A memory fault occurred at address " << address;
+	return ExceptionAction::AbortSimulation;
+}
+
 
 gensim::Processor *EmulationModel::GetBootCore() { UNIMPLEMENTED; }
 

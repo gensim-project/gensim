@@ -79,6 +79,14 @@ namespace archsim {
 		};
 		
 		/**
+		 * An exception indicating that something unusual happened during
+		 * instruction execution.
+		 */
+		class ThreadException {
+		public:
+		};
+		
+		/**
 		 * A ProcessorInstance represents a single instance of a guest thread.
 		 * It contains all data on registers, memory interfaces, etc., but no
 		 * code to actually perform any execution.
@@ -131,6 +139,7 @@ namespace archsim {
 			
 			// Functions to do with manipulating state according to the architecture
 			archsim::abi::ExceptionAction TakeException(uint64_t category, uint64_t data);
+			archsim::abi::ExceptionAction TakeMemoryException(MemoryInterface &interface, Address address);
 			archsim::abi::devices::IRQLine *GetIRQLine(uint32_t irq_no);
 
 			// Record that an IRQ line is currently high
@@ -162,6 +171,8 @@ namespace archsim {
 			}
 			
 			archsim::ExecutionResult HandleMessage();
+			
+			util::PubSubscriber &GetPubsub() { return pubsub_; }
 		private:
 			
 			const ArchDescriptor &descriptor_;

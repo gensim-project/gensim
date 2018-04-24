@@ -522,13 +522,14 @@ namespace gensim
 				auto interface = stmt.GetInterface()->GetName();
 				
 				output << "{";
-				output << "archsim::MemoryResult _value = thread->GetMemoryInterface(\"" << interface << "\").Read" << (stmt.Width * 8) << "(archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ")," << stmt.Target()->GetName() << ");";
-				output << "if(_value != archsim::MemoryResult::OK) {"
-					   "assert(false);"	
-//				       "take_exception(7, interface.read_pc().Get()+8);"
-//				       "longjmp(_longjmp_safepoint, 0);"
-				       "}";
-				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Read(1, " << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ", " << stmt.Target()->GetName() << "); }";
+				output << "archsim::Address addr = archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ");";
+				output << "auto &interface = thread->GetMemoryInterface(\"" << interface << "\");";
+				output << "archsim::MemoryResult _value = interface.Read" << (stmt.Width * 8) << "(addr," << stmt.Target()->GetName() << ");";
+				output << "if(_value != archsim::MemoryResult::OK) {";
+				// trigger exception
+				output << "  thread->TakeMemoryException(interface, addr);";
+				output << "}";
+				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Read(1, " << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ", " << stmt.Target()->GetName() << ", " << (uint32_t)(stmt.Width) << "); }";
 				output << "}";
 				
 				return true;
@@ -551,12 +552,13 @@ namespace gensim
 				auto interface = stmt.GetInterface()->GetName();
 				
 				output << "{";
-				output << "archsim::MemoryResult _value = thread->GetMemoryInterface(\"" << interface << "\").Write" << (stmt.Width * 8) << "(archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ")," << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ");";
-				output << "if(_value != archsim::MemoryResult::OK) {"
-				       "	assert(false); "//take_exception(7, interface.read_pc().Get()+8);"
-	//				       "longjmp(_longjmp_safepoint, 0);"
-				       "}";
-				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Write(1, " << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << "); }";
+				output << "auto &interface = thread->GetMemoryInterface(\"" << interface << "\");";
+				output << "archsim::Address addr = archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ");";
+				output << "archsim::MemoryResult _value = interface.Write" << (stmt.Width * 8) << "(addr," << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ");";
+				output << "if(_value != archsim::MemoryResult::OK) {";
+				output << "  thread->TakeMemoryException(interface, addr);";
+				output << "}";
+				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Write(1, " << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ", " << (uint32_t)stmt.Width << "); }";
 				output << "}";
 				return true;
 			}
