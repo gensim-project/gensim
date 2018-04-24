@@ -14,6 +14,9 @@ SET_TARGET_PROPERTIES(trace
 
 function(add_trace_tool tool-name)
 	ADD_EXECUTABLE(${tool-name} ${ARGN})
+	
+	standard_flags(${tool-name})
+	
 	TARGET_LINK_LIBRARIES(${tool-name} trace ${CURSES_LIBRARIES})
 
 	SET_TARGET_PROPERTIES(${tool-name}
@@ -25,6 +28,7 @@ endfunction()
 
 add_trace_tool(TraceLess ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordLess.cpp)
 add_trace_tool(TracePCDiff ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordPCDiff.cpp)
+add_trace_tool(TraceDiffMemory ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordDiffMemory.cpp)
 add_trace_tool(TraceCat ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordCat.cpp)
 
 SET_PROPERTY(GLOBAL PROPERTY LIBTRACE_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/inc")

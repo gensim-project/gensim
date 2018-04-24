@@ -161,15 +161,14 @@ bool InterpEEGenerator::GenerateBlockExecutor(util::cppformatstream& str) const
 {
 	str << 
 		"while(true) {"
-	
-		"  if(thread->HasMessage()) { return thread->HandleMessage(); }"
+		
 		"  decode_t inst;"
 		"  uint32_t dcode_exception = DecodeInstruction(thread, inst);"
-		"  if(dcode_exception) { return archsim::ExecutionResult::Exception; }"
+		"  if(thread->HasMessage()) { return thread->HandleMessage(); }"
+		"  if(dcode_exception) { thread->TakeMemoryException(thread->GetFetchMI(), thread->GetPC()); return archsim::ExecutionResult::Exception; }"
 		"  auto result = StepInstruction(thread, inst);"
+		"  if(inst.GetEndOfBlock()) { if(archsim::options::InstructionTick) { thread->GetPubsub().Publish(PubSubType::InstructionExecute, nullptr); } return archsim::ExecutionResult::Continue; }"
 		"  if(result != archsim::ExecutionResult::Continue) { return result; }"
-		"  if(inst.GetEndOfBlock()) { return archsim::ExecutionResult::Continue; }"
-		
 		"}";
 	
 	return true;
@@ -183,7 +182,6 @@ bool InterpEEGenerator::GenerateStepInstruction(util::cppformatstream& str) cons
 	
 	str << 
 		"archsim::ExecutionResult EE::StepInstruction(archsim::ThreadInstance *thread, EE::decode_t &inst) {";
-	
 	str << "switch(thread->GetModeID()) {";
 	
 	for(auto i : Manager.GetArch().ISAs) {

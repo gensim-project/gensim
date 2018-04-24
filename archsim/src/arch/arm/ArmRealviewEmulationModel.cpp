@@ -80,6 +80,9 @@ bool ArmRealviewEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 
 bool ArmRealviewEmulationModel::PrepareCore(archsim::ThreadInstance& core)
 {
+	// invoke reset exception
+	core.GetArch().GetBehavioursDescriptor().GetISA("arm").GetBehaviour("take_arm_exception").Invoke(&core, {0, 0});
+	
 	uint32_t *regs = (uint32_t *)core.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 
 	// r0 = 0
@@ -417,6 +420,15 @@ ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::ThreadInstan
 	behaviour.Invoke(cpu, {category, data});
 	
 	return archsim::abi::AbortInstruction;
+}
+
+archsim::abi::ExceptionAction ArmRealviewEmulationModel::HandleMemoryFault(archsim::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
+{
+	if(&interface == &thread.GetFetchMI()) {
+		return HandleException(&thread, 6, thread.GetPC().Get() + 4);
+	} else {
+		return HandleException(&thread, 7, thread.GetPC().Get() + 8);
+	}
 }
 
 void ArmRealviewEmulationModel::HandleInterrupt(archsim::ThreadInstance *thread, CPUIRQLine *irq) 

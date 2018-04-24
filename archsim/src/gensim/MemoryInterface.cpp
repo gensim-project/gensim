@@ -76,3 +76,43 @@ MemoryResult LegacyMemoryInterface::Write64(Address address, uint64_t data)
 {
 	return mem_model_.Write64(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
 }
+
+MemoryResult LegacyFetchMemoryInterface::Read8(Address address, uint8_t& data)
+{
+	return mem_model_.Fetch8(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+}
+
+MemoryResult LegacyFetchMemoryInterface::Read16(Address address, uint16_t& data)
+{
+	return mem_model_.Fetch16(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+}
+
+MemoryResult LegacyFetchMemoryInterface::Read32(Address address, uint32_t& data)
+{
+	return mem_model_.Fetch32(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+}
+
+MemoryResult LegacyFetchMemoryInterface::Read64(Address address, uint64_t& data)
+{
+	UNIMPLEMENTED;
+}
+
+MemoryResult LegacyFetchMemoryInterface::Write8(Address address, uint8_t data)
+{
+	UNIMPLEMENTED;
+}
+
+MemoryResult LegacyFetchMemoryInterface::Write16(Address address, uint16_t data)
+{
+	UNIMPLEMENTED;
+}
+
+MemoryResult LegacyFetchMemoryInterface::Write32(Address address, uint32_t data)
+{
+	UNIMPLEMENTED;
+}
+
+MemoryResult LegacyFetchMemoryInterface::Write64(Address address, uint64_t data)
+{
+	UNIMPLEMENTED;
+}

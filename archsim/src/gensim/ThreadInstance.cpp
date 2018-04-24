@@ -68,8 +68,28 @@ void RegisterFileInterface::SetTaggedSlot(const std::string &tag, Address target
 
 archsim::abi::ExceptionAction ThreadInstance::TakeException(uint64_t category, uint64_t data)
 {
-	return emu_model_.HandleException(this, category, data);
+	auto result = emu_model_.HandleException(this, category, data);
+	switch(result) {
+		case archsim::abi::ExceptionAction::AbortInstruction:
+		case archsim::abi::ExceptionAction::AbortSimulation:
+			throw archsim::ThreadException();
+		default:
+			return result;
+	}
 }
+
+archsim::abi::ExceptionAction ThreadInstance::TakeMemoryException(MemoryInterface& interface, Address address)
+{
+	auto result = emu_model_.HandleMemoryFault(*this, interface, address);
+	switch(result) {
+		case archsim::abi::ExceptionAction::AbortInstruction:
+		case archsim::abi::ExceptionAction::AbortSimulation:
+			throw archsim::ThreadException();
+		default:
+			return result;
+	}
+}
+
 
 archsim::abi::devices::IRQLine* ThreadInstance::GetIRQLine(uint32_t irq_no)
 {

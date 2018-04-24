@@ -9,6 +9,7 @@
 #define EMULATIONMODEL_H
 
 #include "util/TimerManager.h"
+#include "abi/Address.h"
 
 #include <fstream>
 #include <set>
@@ -25,6 +26,7 @@ namespace gensim
 namespace archsim
 {
 	class ThreadInstance;
+	class MemoryInterface;
 	
 	namespace uarch
 	{
@@ -110,6 +112,7 @@ namespace archsim
 			virtual bool PrepareBoot(System& system) = 0;
 
 			virtual ExceptionAction HandleException(archsim::ThreadInstance* thread, uint32_t category, uint32_t data) = 0;
+			virtual ExceptionAction HandleMemoryFault(archsim::ThreadInstance &thread, archsim::MemoryInterface &interface, archsim::Address address);
 			virtual void HandleInterrupt(archsim::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine *irq);
 
 			virtual bool LookupSymbol(unsigned long address, bool exact_match, const BinarySymbol *& symbol) const;
