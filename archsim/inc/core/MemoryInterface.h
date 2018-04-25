@@ -14,7 +14,7 @@
 #ifndef MEMORYINTERFACE_H
 #define MEMORYINTERFACE_H
 
-#include "ArchDescriptor.h"
+#include "core/arch/ArchDescriptor.h"
 #include "abi/Address.h"
 #include "abi/memory/MemoryModel.h"
 

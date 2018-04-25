@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-#include "gensim/ExecutionContextManager.h"
+#include "core/execution/ExecutionContextManager.h"
 
 using namespace archsim;
 

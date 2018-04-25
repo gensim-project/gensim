@@ -14,8 +14,8 @@
 #ifndef EXECUTIONMANAGER_H
 #define EXECUTIONMANAGER_H
 
-#include "ExecutionEngine.h"
-#include "ThreadInstance.h"
+#include "core/execution/ExecutionEngine.h"
+#include "core/thread/ThreadInstance.h"
 
 namespace archsim {
 	

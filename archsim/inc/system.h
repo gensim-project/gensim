@@ -17,7 +17,7 @@
 #define _system_h_
 
 #include "define.h"
-#include "gensim/ExecutionContextManager.h"
+#include "core/execution/ExecutionContextManager.h"
 #include "util/PubSubSync.h"
 #include "concurrent/Barrier.h"
 #include "translate/profile/ProfileManager.h"

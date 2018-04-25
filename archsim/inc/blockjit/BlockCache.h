@@ -12,7 +12,7 @@
 #include "abi/Address.h"
 #include "util/NTZero.h"
 #include "blockjit/blockcache-defines.h"
-#include "gensim/ProcessorFeatures.h"
+#include "core/thread/ProcessorFeatures.h"
 
 #include <cstring>
 

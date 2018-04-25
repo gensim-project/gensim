@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-#include "gensim/StateBlock.h"
+#include "core/thread/StateBlock.h"
 
 using namespace archsim;
 

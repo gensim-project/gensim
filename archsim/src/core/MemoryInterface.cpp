@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-#include "gensim/MemoryInterface.h"
+#include "core/MemoryInterface.h"
 
 using namespace archsim;
 

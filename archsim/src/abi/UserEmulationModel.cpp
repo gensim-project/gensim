@@ -8,7 +8,7 @@
 #include "gensim/gensim_processor.h"
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
-#include "gensim/MemoryInterface.h"
+#include "core/MemoryInterface.h"
 
 extern char **environ;
 

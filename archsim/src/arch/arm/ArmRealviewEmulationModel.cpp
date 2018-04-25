@@ -3,8 +3,8 @@
  */
 #include "arch/arm/ArmRealviewEmulationModel.h"
 #include "arch/arm/ARMDecodeContext.h"
-#include "gensim/ThreadInstance.h"
-#include "gensim/MemoryInterface.h"
+#include "core/thread/ThreadInstance.h"
+#include "core/MemoryInterface.h"
 
 #include "abi/loader/BinaryLoader.h"
 #include "abi/devices/SerialPort.h"

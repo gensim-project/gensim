@@ -15,7 +15,7 @@
 #define MODULE_H
 
 #include "abi/Address.h"
-#include "gensim/ArchDescriptor.h"
+#include "core/arch/ArchDescriptor.h"
 #include "abi/devices/Component.h"
 #include "util/PubSubSync.h"
 #include <functional>
