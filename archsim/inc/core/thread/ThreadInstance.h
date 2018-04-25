@@ -15,14 +15,14 @@
 #define THREADINSTANCE_H_
 
 #include "abi/devices/IRQController.h"
-#include "gensim/ExecutionEngine.h"
-#include "gensim/StateBlock.h"
+#include "core/execution/ExecutionEngine.h"
+#include "core/thread/StateBlock.h"
 #include "abi/Address.h"
 #include "abi/devices/Component.h"
-#include "gensim/ArchDescriptor.h"
+#include "core/arch/ArchDescriptor.h"
 #include "abi/EmulationModel.h"
 #include "abi/devices/PeripheralManager.h"
-#include "gensim/ProcessorFeatures.h"
+#include "core/thread/ProcessorFeatures.h"
 
 #include <libtrace/TraceSource.h>
 

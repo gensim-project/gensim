@@ -13,7 +13,7 @@
 #include "util/MemAllocator.h"
 #include "util/LogContext.h"
 
-#include "gensim/ProcessorFeatures.h"
+#include "core/thread/ProcessorFeatures.h"
 
 #include <bitset>
 #include <map>

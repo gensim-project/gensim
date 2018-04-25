@@ -38,7 +38,8 @@ InstructionCountPerformanceSource::InstructionCountPerformanceSource(gensim::Pro
 
 uint64_t InstructionCountPerformanceSource::GetValue()
 {
-	return cpu.instructions();
+	UNIMPLEMENTED;
+//	return cpu.instructions();
 }
 
 LivePerformanceMeter::LivePerformanceMeter(gensim::Processor& cpu, std::vector<PerformanceSource *> sources, std::string filename, uint32_t period) : cpu(cpu), sources(sources), filename(filename), period(period), terminate(false)

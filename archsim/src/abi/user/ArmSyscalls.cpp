@@ -8,7 +8,7 @@
 #include "abi/EmulationModel.h"
 #include "abi/UserEmulationModel.h"
 #include "abi/memory/MemoryModel.h"
-#include "gensim/MemoryInterface.h"
+#include "core/MemoryInterface.h"
 
 #include "gensim/gensim_processor.h"
 

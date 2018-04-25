@@ -12,7 +12,7 @@
 #include "translate/profile/Region.h"
 #include "blockjit/translation-context.h"
 #include "blockjit/IRBuilder.h"
-#include "gensim/ProcessorFeatures.h"
+#include "core/thread/ProcessorFeatures.h"
 
 #include "arch/arm/ARMDecodeContext.h"
 

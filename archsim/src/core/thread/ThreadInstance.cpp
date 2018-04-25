@@ -6,8 +6,8 @@
 
 #include "abi/EmulationModel.h"
 #include "abi/devices/IRQController.h"
-#include "gensim/ThreadInstance.h"
-#include "gensim/MemoryInterface.h"
+#include "core/thread/ThreadInstance.h"
+#include "core/MemoryInterface.h"
 
 using namespace archsim;
 

@@ -4,8 +4,8 @@
  * and open the template in the editor.
  */
 
-#include "gensim/ExecutionEngine.h"
-#include "gensim/ThreadInstance.h"
+#include "core/execution/ExecutionEngine.h"
+#include "core/thread/ThreadInstance.h"
 
 #include <cassert>
 

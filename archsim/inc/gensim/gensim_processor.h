@@ -21,7 +21,7 @@
 #include "gensim/gensim_processor_metrics.h"
 #include "tracing/TraceManager.h"
 
-#include "gensim/ProcessorFeatures.h"
+#include "core/thread/ProcessorFeatures.h"
 
 #include "util/Counter.h"
 #include "util/CounterTimer.h"

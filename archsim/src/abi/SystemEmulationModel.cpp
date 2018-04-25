@@ -9,7 +9,7 @@
 #include "abi/devices/MMU.h"
 #include "abi/memory/MemoryModel.h"
 
-#include "gensim/MemoryInterface.h"
+#include "core/MemoryInterface.h"
 
 #include "abi/memory/system/FunctionBasedSystemMemoryModel.h"
 
@@ -134,8 +134,7 @@ void SystemEmulationModel::ResetCores()
 
 void SystemEmulationModel::HaltCores()
 {
-	UNIMPLEMENTED;
-//	cpu->Halt();
+	main_thread_->SendMessage(archsim::ThreadMessage::Halt);
 }
 
 bool SystemEmulationModel::PrepareBoot(System &system)

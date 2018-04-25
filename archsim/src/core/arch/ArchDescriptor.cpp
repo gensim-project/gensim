@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-#include "gensim/ArchDescriptor.h"
+#include "core/arch/ArchDescriptor.h"
 #include "define.h"
 
 using namespace archsim;

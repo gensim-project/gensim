@@ -11,7 +11,7 @@
 #include "abi/EmulationModel.h"
 #include "abi/memory/MemoryModel.h"
 #include "abi/user/SyscallHandler.h"
-#include "gensim/ThreadInstance.h"
+#include "core/thread/ThreadInstance.h"
 
 namespace archsim
 {
