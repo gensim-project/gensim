@@ -48,7 +48,10 @@ bool BaseBlockJITTranslate::translate_block(gensim::BlockJitProcessor *processor
 {
 	// Initialise the translation context
 	_should_be_dumped = false;
-	_decode_ctx = processor->GetEmulationModel().GetNewDecodeContext(*processor);
+	
+	UNIMPLEMENTED;
+//	_decode_ctx = processor->GetEmulationModel().GetNewDecodeContext(*processor);
+	
 	TranslationContext ctx;
 	captive::shared::IRBuilder builder;
 	

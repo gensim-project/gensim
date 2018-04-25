@@ -85,7 +85,7 @@ bool ArmLinuxUserEmulationModel::PrepareBoot(System& system)
 	return true;
 }
 
-gensim::DecodeContext* ArmLinuxUserEmulationModel::GetNewDecodeContext(gensim::Processor &cpu)
+gensim::DecodeContext* ArmLinuxUserEmulationModel::GetNewDecodeContext(archsim::ThreadInstance &cpu)
 {
 	return new archsim::arch::arm::ARMDecodeContext(&cpu);
 }

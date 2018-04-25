@@ -208,7 +208,7 @@ void GenCContext::LoadRegisterNames()
 	// also load memory interface names
 	regbankid = 0;
 	for(const auto &interface : Arch.GetMemoryInterfaces().GetInterfaces()) {
-		InsertConstant(interface.first, IRTypes::UInt32, regbankid++);
+		InsertConstant(interface.first, IRTypes::UInt32, interface.second.GetID());
 	}
 }
 

@@ -30,7 +30,7 @@ namespace archsim
 				void HandleInterrupt(archsim::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq) override;
 				archsim::abi::ExceptionAction HandleMemoryFault(archsim::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address) override;
 
-				gensim::DecodeContext* GetNewDecodeContext(gensim::Processor& cpu) override;
+				gensim::DecodeContext* GetNewDecodeContext(archsim::ThreadInstance& cpu) override;
 
 
 			protected:

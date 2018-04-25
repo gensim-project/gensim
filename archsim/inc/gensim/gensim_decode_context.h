@@ -24,6 +24,11 @@ namespace captive
 	}
 }
 
+namespace archsim 
+{
+	class ThreadInstance;
+}
+
 namespace gensim
 {
 	class BaseDecode;
@@ -32,16 +37,16 @@ namespace gensim
 	class DecodeContext
 	{
 	public:
-		DecodeContext(gensim::Processor *cpu);
+		DecodeContext(archsim::ThreadInstance *cpu);
 		virtual ~DecodeContext();
 		virtual uint32_t DecodeSync(archsim::Address address, uint32_t mode, BaseDecode &target) = 0;
 
-		gensim::Processor *GetCPU()
+		archsim::ThreadInstance *GetCPU()
 		{
 			return cpu_;
 		}
 	private:
-		gensim::Processor *cpu_;
+		archsim::ThreadInstance *cpu_;
 	};
 
 	// This class is used to emit operations which should happen unconditionally

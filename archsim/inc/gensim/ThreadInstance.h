@@ -97,7 +97,7 @@ namespace archsim {
 		 */
 		class ThreadInstance {
 		public:
-			using memory_interface_collection_t = std::map<std::string, MemoryInterface*>;
+			using memory_interface_collection_t = std::vector<MemoryInterface*>;
 			
 			ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor &arch, archsim::abi::EmulationModel &emu_model);
 			
@@ -105,6 +105,7 @@ namespace archsim {
 			const ArchDescriptor &GetArch() { return descriptor_; }
 			RegisterFileInterface &GetRegisterFileInterface() { return register_file_; }
 			MemoryInterface &GetMemoryInterface(const std::string &interface_name);
+			MemoryInterface &GetMemoryInterface(uint32_t id);
 			ProcessorFeatureInterface &GetFeatures() { return features_; }
 			FPState &GetFPState() { return fp_state_; }
 			archsim::abi::devices::PeripheralManager &GetPeripherals() { return peripherals_; }

@@ -260,7 +260,7 @@ bool ArchDescriptionParser::load_mem(pANTLR3_BASE_TREE memNode)
 	
 	bool is_fetch = strtoll((const char*)fetchNode->getText(fetchNode)->chars, nullptr, 10);
 	
-	MemoryInterfaceDescription mid (name, addr, word, big_endian);
+	MemoryInterfaceDescription mid (name, addr, word, big_endian, arch->GetMemoryInterfaces().GetInterfaces().size());
 	arch->GetMemoryInterfaces().AddInterface(mid);
 	
 	if(is_fetch) {

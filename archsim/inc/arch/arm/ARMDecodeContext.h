@@ -60,7 +60,7 @@ namespace archsim
 			class ARMDecodeContext : public gensim::DecodeContext
 			{
 			public:
-				ARMDecodeContext(gensim::Processor *cpu);
+				ARMDecodeContext(archsim::ThreadInstance *cpu);
 
 				/*
 				 * DecodeSync is the main decode method exposed by the decode context.

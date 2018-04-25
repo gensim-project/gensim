@@ -107,7 +107,7 @@ namespace archsim
 			virtual void ResetCores() = 0;
 			virtual void HaltCores() = 0;
 
-			virtual gensim::DecodeContext *GetNewDecodeContext(gensim::Processor &cpu) = 0;
+			virtual gensim::DecodeContext *GetNewDecodeContext(archsim::ThreadInstance &cpu) = 0;
 
 			virtual bool PrepareBoot(System& system) = 0;
 

@@ -93,10 +93,11 @@ bool Processor::Initialise(archsim::abi::EmulationModel& emulation_model, archsi
 {
 	LC_DEBUG1(LogCPU) << "Initialising processor";
 
-	if(!GetComponentInstance(GetArchName(), decode_ctx_, this)) {
-		LC_ERROR(LogCPU) << "Could not find decode context for arch \"" << GetArchName() << "\"";
-		return false;
-	}
+	UNIMPLEMENTED;
+//	if(!GetComponentInstance(GetArchName(), decode_ctx_, this)) {
+//		LC_ERROR(LogCPU) << "Could not find decode context for arch \"" << GetArchName() << "\"";
+//		return false;
+//	}
 
 	this->emulation_model = &emulation_model;
 	this->memory_model = &memory_model;

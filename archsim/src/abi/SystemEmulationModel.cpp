@@ -74,10 +74,10 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	}
 
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
-		if(i.second == &main_thread_->GetFetchMI()) {
-			i.second->Connect(*new archsim::LegacyFetchMemoryInterface(*smm));
+		if(i == &main_thread_->GetFetchMI()) {
+			i->Connect(*new archsim::LegacyFetchMemoryInterface(*smm));
 		} else {
-			i.second->Connect(*new archsim::LegacyMemoryInterface(*smm));
+			i->Connect(*new archsim::LegacyMemoryInterface(*smm));
 		}
 	}
 	

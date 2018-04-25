@@ -81,7 +81,7 @@ bool ArmRealviewEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 bool ArmRealviewEmulationModel::PrepareCore(archsim::ThreadInstance& core)
 {
 	// invoke reset exception
-	core.GetArch().GetBehavioursDescriptor().GetISA("arm").GetBehaviour("take_arm_exception").Invoke(&core, {0, 0});
+	core.GetArch().GetISA("arm").GetBehaviours().GetBehaviour("take_arm_exception").Invoke(&core, {0, 0});
 	
 	uint32_t *regs = (uint32_t *)core.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 
@@ -416,7 +416,7 @@ ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::ThreadInstan
 		}
 	}
 
-	auto &behaviour = cpu->GetArch().GetBehavioursDescriptor().GetISA("arm").GetBehaviour("take_arm_exception");
+	auto &behaviour = cpu->GetArch().GetISA("arm").GetBehaviours().GetBehaviour("take_arm_exception");
 	behaviour.Invoke(cpu, {category, data});
 	
 	return archsim::abi::AbortInstruction;
@@ -433,11 +433,11 @@ archsim::abi::ExceptionAction ArmRealviewEmulationModel::HandleMemoryFault(archs
 
 void ArmRealviewEmulationModel::HandleInterrupt(archsim::ThreadInstance *thread, CPUIRQLine *irq) 
 {
-	auto &behaviour = thread->GetArch().GetBehavioursDescriptor().GetISA("arm").GetBehaviour("take_interrupt");
+	auto &behaviour = thread->GetArch().GetISA("arm").GetBehaviours().GetBehaviour("take_interrupt");
 	behaviour.Invoke(thread, {irq->Line()});
 }
 
-gensim::DecodeContext* ArmRealviewEmulationModel::GetNewDecodeContext(gensim::Processor& cpu)
+gensim::DecodeContext* ArmRealviewEmulationModel::GetNewDecodeContext(archsim::ThreadInstance& cpu)
 {
 	return new archsim::arch::arm::ARMDecodeContext(&cpu);
 }

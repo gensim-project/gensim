@@ -16,10 +16,11 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 	// Need to fill in structures based on arch descriptor info
 	
 	// 2. Memory interfaces
+	memory_interfaces_.resize(arch.GetMemoryInterfaceDescriptor().GetInterfaces().size());
 	for(auto &interface_descriptor : arch.GetMemoryInterfaceDescriptor().GetInterfaces()) {
-		memory_interfaces_[interface_descriptor.second.GetName()] = new MemoryInterface(interface_descriptor.second);
+		memory_interfaces_[interface_descriptor.second.GetID()] = new MemoryInterface(interface_descriptor.second);
 	}
-	fetch_mi_ = memory_interfaces_.at(arch.GetMemoryInterfaceDescriptor().GetFetchInterface().GetName());
+	fetch_mi_ = memory_interfaces_.at(arch.GetMemoryInterfaceDescriptor().GetFetchInterface().GetID());
 	
 	// 3. Features
 	for(auto feature : GetArch().GetFeaturesDescriptor().GetFeatures()) {
@@ -31,6 +32,16 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 }
 
 MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface_name)
+{
+	for(auto i : memory_interfaces_) {
+		if(i->GetDescriptor().GetName() == interface_name) {
+			return *i;
+		}
+	}
+	
+	UNIMPLEMENTED;
+}
+MemoryInterface& ThreadInstance::GetMemoryInterface(uint32_t interface_name)
 {
 	return *memory_interfaces_.at(interface_name);
 }

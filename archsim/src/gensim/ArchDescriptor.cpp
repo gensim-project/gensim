@@ -25,12 +25,14 @@ RegisterFileDescriptor::RegisterFileDescriptor(uint64_t total_size, const std::i
 }
 
 
-ArchDescriptor::ArchDescriptor(const RegisterFileDescriptor& rf, const MemoryInterfacesDescriptor& mem, const FeaturesDescriptor& f, const BehavioursDescriptor &behaviours) : register_file_(rf), mem_interfaces_(mem), features_(f), behaviours_(behaviours)
+ArchDescriptor::ArchDescriptor(const RegisterFileDescriptor& rf, const MemoryInterfacesDescriptor& mem, const FeaturesDescriptor& f, const std::initializer_list<ISADescriptor> &isas) : register_file_(rf), mem_interfaces_(mem), features_(f), isas_(isas)
 {
-
+	for(auto isa : isas_) {
+		isa_mode_ids_[isa.GetName()] = isa.GetID();
+	}
 }
 
-MemoryInterfaceDescriptor::MemoryInterfaceDescriptor(const std::string &name, uint64_t address_width_bytes, uint64_t data_width_bytes, bool big_endian) : name_(name), address_width_bytes_(address_width_bytes), data_width_bytes_(data_width_bytes), is_big_endian_(big_endian) {
+MemoryInterfaceDescriptor::MemoryInterfaceDescriptor(const std::string &name, uint64_t address_width_bytes, uint64_t data_width_bytes, bool big_endian, uint32_t id) : name_(name), address_width_bytes_(address_width_bytes), data_width_bytes_(data_width_bytes), is_big_endian_(big_endian), id_(id) {
 	
 }
 
@@ -42,16 +44,14 @@ MemoryInterfacesDescriptor::MemoryInterfacesDescriptor(const std::initializer_li
 	fetch_interface_name_ = fetch_interface_id;
 }
 
-ISABehavioursDescriptor::ISABehavioursDescriptor(const std::string &isaname, const std::initializer_list<BehaviourDescriptor> &behaviours) : name_(isaname)
+ISABehavioursDescriptor::ISABehavioursDescriptor(const std::initializer_list<BehaviourDescriptor> &behaviours)
 {
 	for(auto &i : behaviours) {
 		behaviours_.insert({i.GetName(), i});
 	}
 }
 
-BehavioursDescriptor::BehavioursDescriptor(const std::initializer_list<ISABehavioursDescriptor> &isas)
+ISADescriptor::ISADescriptor(const std::string& name, uint32_t id, const DecodeFunction& decoder, const ISABehavioursDescriptor& behaviours) : name_(name), id_(id), decoder_(decoder), behaviours_(behaviours)
 {
-	for(auto &i : isas) {
-		isas_.insert({i.GetName(), i});
-	}
+	
 }

@@ -382,7 +382,7 @@ ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::ThreadInsta
 //	return archsim::abi::AbortInstruction;
 }
 
-gensim::DecodeContext* ArmVersatileEmulationModel::GetNewDecodeContext(gensim::Processor& cpu)
+gensim::DecodeContext* ArmVersatileEmulationModel::GetNewDecodeContext(archsim::ThreadInstance& cpu)
 {
 	return new archsim::arch::arm::ARMDecodeContext(&cpu);
 }
