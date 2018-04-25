@@ -5,6 +5,7 @@
  */
 
 #include "arch/ArchDescription.h"
+#include "isa/ISADescription.h"
 #include "generators/ArchDescriptorGenerator.h"
 
 using namespace gensim::generator;
@@ -40,6 +41,7 @@ const std::vector<std::string> ArchDescriptorGenerator::GetSources() const
 bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 {
 	str << "#include \"arch.h\"\n";
+	str << "#include \"decode.h\"\n";
 	
 	str << "using namespace gensim::" << Manager.GetArch().Name << ";";
 	
@@ -65,7 +67,7 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 	
 	std::string mem_interface_list;
 	for(const auto &mem_interface : Manager.GetArch().GetMemoryInterfaces().GetInterfaces()) {
-		str << "static archsim::MemoryInterfaceDescriptor mem_" << mem_interface.second.GetName() << "(\"" << mem_interface.second.GetName() << "\", " << mem_interface.second.GetAddressWidthInBytes() << ", " << mem_interface.second.GetDataWidthInBytes() << ", " << (uint64_t)mem_interface.second.IsBigEndian() << ");";
+		str << "static archsim::MemoryInterfaceDescriptor mem_" << mem_interface.second.GetName() << "(\"" << mem_interface.second.GetName() << "\", " << mem_interface.second.GetAddressWidthInBytes() << ", " << mem_interface.second.GetDataWidthInBytes() << ", " << (uint64_t)mem_interface.second.IsBigEndian() << ", " << mem_interface.second.GetID() << ");";
 		
 		if(mem_interface_list.size()) {
 			mem_interface_list += ", ";
@@ -85,11 +87,23 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 	}
 	str << "static archsim::FeaturesDescriptor features ({" << feature_list << "});";
 	
-	str << "namespace " << Manager.GetArch().Name << "{";
-	str << "extern archsim::BehavioursDescriptor behaviours;";
-	str << "}";
+	std::string isa_list;
+	for(const auto &isa : Manager.GetArch().ISAs) {
+		if(!isa_list.empty()) {
+			isa_list += ", ";
+		}
+		isa_list += "isa_" + isa->ISAName;
+		
+		str << "namespace " << Manager.GetArch().Name << " { ";
+		str << "extern archsim::ISABehavioursDescriptor get_behaviours_" << isa->ISAName << "();";
+		str << "}";
+		
+		
+		str << "static archsim::ISADescriptor isa_" << isa->ISAName << " (\"" << isa->ISAName << "\", " << (uint32_t)isa->isa_mode_id << ", [](archsim::Address addr, archsim::MemoryInterface *interface, gensim::BaseDecode &decode){ return ((gensim::" << Manager.GetArch().Name << "::Decode&)decode).DecodeInstr(addr, " << (uint32_t)isa->isa_mode_id << ", *interface); }, " << Manager.GetArch().Name << "::get_behaviours_" << isa->ISAName << "());";
+		
+	}
 	
-	str << "ArchDescriptor::ArchDescriptor() : archsim::ArchDescriptor(rfd, misd, features, ::" << Manager.GetArch().Name << "::behaviours) {}";
+	str << "ArchDescriptor::ArchDescriptor() : archsim::ArchDescriptor(rfd, misd, features, {" << isa_list << "}) {}";
 	
 	return true;
 }

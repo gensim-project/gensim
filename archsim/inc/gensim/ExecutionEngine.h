@@ -21,6 +21,10 @@ UseLogContext(LogExecutionEngine);
 #include <thread>
 #include <map>
 
+namespace gensim {
+	class DecodeContext;
+}
+
 namespace archsim {
 	class ThreadInstance;
 	
@@ -46,6 +50,8 @@ namespace archsim {
 		
 		class BasicExecutionEngine : public ExecutionEngine {
 		public:
+			BasicExecutionEngine();
+			
 			virtual void StartAsyncThread(ThreadInstance* thread);
 			virtual void HaltAsyncThread(ThreadInstance* thread);
 			virtual ExecutionResult JoinAsyncThread(ThreadInstance* thread);
@@ -64,11 +70,15 @@ namespace archsim {
 				ThreadInstance *thread_instance;
 				BasicExecutionEngine *engine;
 			};
+		protected:
+			gensim::DecodeContext *decode_context_;	
 		private:
 			virtual ExecutionResult ArchStepBlock(ThreadInstance *thread) = 0;
 			virtual ExecutionResult ArchStepSingle(ThreadInstance *thread) = 0;
 			
 			std::map<ThreadInstance*, ExecutionContext*> threads_;
+			
+			
 		};
 }
 

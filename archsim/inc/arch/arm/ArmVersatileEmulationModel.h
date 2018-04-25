@@ -27,7 +27,7 @@ namespace archsim
 				void Destroy() override;
 
 				archsim::abi::ExceptionAction HandleException(archsim::ThreadInstance *thread, uint32_t category, uint32_t data);
-				gensim::DecodeContext* GetNewDecodeContext(gensim::Processor& cpu) override;
+				gensim::DecodeContext* GetNewDecodeContext(archsim::ThreadInstance& cpu) override;
 
 
 			protected:

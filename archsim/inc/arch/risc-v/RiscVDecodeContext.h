@@ -33,7 +33,7 @@ namespace archsim
 			class RiscVDecodeContext : public gensim::DecodeContext
 			{
 			public:
-				RiscVDecodeContext(gensim::Processor *cpu);
+				RiscVDecodeContext(archsim::ThreadInstance *cpu);
 
 				/*
 				 * DecodeSync is the main decode method exposed by the decode context.

@@ -4,7 +4,7 @@
 
 using namespace gensim;
 
-DecodeContext::DecodeContext(gensim::Processor* cpu) : cpu_(cpu)
+DecodeContext::DecodeContext(archsim::ThreadInstance* cpu) : cpu_(cpu)
 {
 
 }
@@ -15,5 +15,5 @@ DecodeContext::~DecodeContext()
 
 }
 
-DefineComponentType(gensim::DecodeContext, gensim::Processor *);
+DefineComponentType(gensim::DecodeContext, archsim::ThreadInstance *);
 DefineComponentType(gensim::DecodeTranslateContext);

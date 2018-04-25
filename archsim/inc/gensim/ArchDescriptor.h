@@ -14,6 +14,8 @@
 #ifndef ARCHDESCRIPTOR_H
 #define ARCHDESCRIPTOR_H
 
+#include "abi/Address.h"
+
 #include <functional>
 #include <map>
 #include <vector>
@@ -21,8 +23,14 @@
 #include <string>
 #include <unordered_map>
 
+namespace gensim {
+	class DecodeContext;
+	class BaseDecode;
+}
+
 namespace archsim {
 	
+	class MemoryInterface;
 	class ThreadInstance;
 	
 		class RegisterFileEntryDescriptor {
@@ -72,18 +80,20 @@ namespace archsim {
 		
 		class MemoryInterfaceDescriptor {
 		public:
-			MemoryInterfaceDescriptor(const std::string &name, uint64_t address_width_bytes, uint64_t data_width_bytes, bool big_endian);
+			MemoryInterfaceDescriptor(const std::string &name, uint64_t address_width_bytes, uint64_t data_width_bytes, bool big_endian, uint32_t id);
 			
 			const std::string &GetName() const { return name_; }
 			uint64_t GetAddressWidthInBytes() const { return address_width_bytes_; }
 			uint64_t GetDataWidthInBytes() const { return data_width_bytes_; }
 			bool IsBigEndian() const { return is_big_endian_; }
+			uint32_t GetID() const { return id_; }
 			
 		private:
 			std::string name_;
 			uint64_t address_width_bytes_;
 			uint64_t data_width_bytes_;
 			bool is_big_endian_;
+			uint32_t id_;
 		};
 		
 		class MemoryInterfacesDescriptor {
@@ -113,7 +123,7 @@ namespace archsim {
 		public:
 			using FeatureContainer = std::vector<FeatureDescriptor>;
 			
-			FeaturesDescriptor(const std::initializer_list<FeatureDescriptor> features) : features_(features) {}
+			FeaturesDescriptor(const std::initializer_list<FeatureDescriptor> &features) : features_(features) {}
 			
 			const FeatureContainer &GetFeatures() const { return features_; }
 			
@@ -150,26 +160,35 @@ namespace archsim {
 		
 		class ISABehavioursDescriptor {
 		public:
-			ISABehavioursDescriptor(const std::string &isaname, const std::initializer_list<BehaviourDescriptor> &behaviours);
+			ISABehavioursDescriptor(const std::initializer_list<BehaviourDescriptor> &behaviours);
 			
 			const BehaviourDescriptor &GetBehaviour(const std::string &name) const { return behaviours_.at(name); }
-			const std::string &GetName() const { return name_; }
-			
 		private:
-			std::string name_;
 			std::unordered_map<std::string, BehaviourDescriptor> behaviours_;
 		};
+				
+		using DecodeFunction = std::function<uint32_t(archsim::Address addr, archsim::MemoryInterface *, gensim::BaseDecode&)>;
 		
-		class BehavioursDescriptor {
+		/**
+		 * Class which encapsulates ISA specific portions of the architecture,
+		 * including instruction decoding and behaviour invocation.
+		 */
+		class ISADescriptor {
 		public:
-			BehavioursDescriptor(const std::initializer_list<ISABehavioursDescriptor> &behaviours);
+			ISADescriptor(const std::string &name, uint32_t id, const DecodeFunction &decoder, const ISABehavioursDescriptor &behaviours);
 			
-			// TODO: support non integer arguments
-			void InvokeISABehaviour(archsim::ThreadInstance *thread, const std::string &isa, const std::string &behaviour, const std::vector<uint64_t> &arguments);
-			const ISABehavioursDescriptor &GetISA(const std::string &isa) const { return isas_.at(isa); }
+			// This is a bit of a hack right now. In the future there needs to be a clearer interaction between the thread, the 'decode context', and the decoded instruction
+			uint32_t DecodeInstr(archsim::Address addr, archsim::MemoryInterface *interface, gensim::BaseDecode &target) const { return decoder_(addr, interface, target); }
 			
+			const ISABehavioursDescriptor &GetBehaviours() const { return behaviours_; }
+			
+			const std::string &GetName() const { return name_; }
+			uint32_t GetID() const { return id_; }
 		private:
-			std::map<std::string, ISABehavioursDescriptor> isas_;
+			DecodeFunction decoder_;
+			ISABehavioursDescriptor behaviours_;
+			const std::string name_;
+			uint32_t id_;
 		};
 		
 		/**
@@ -179,18 +198,22 @@ namespace archsim {
 		 */
 		class ArchDescriptor {
 		public:
-			ArchDescriptor(const RegisterFileDescriptor &rf, const MemoryInterfacesDescriptor &mem, const FeaturesDescriptor &f, const BehavioursDescriptor &behaviours);
+			ArchDescriptor(const RegisterFileDescriptor &rf, const MemoryInterfacesDescriptor &mem, const FeaturesDescriptor &f, const std::initializer_list<ISADescriptor> &isas);
 			
 			const RegisterFileDescriptor &GetRegisterFileDescriptor() const { return register_file_; }
 			const MemoryInterfacesDescriptor &GetMemoryInterfaceDescriptor() const { return mem_interfaces_; }
 			const FeaturesDescriptor &GetFeaturesDescriptor() const { return features_; }
-			const BehavioursDescriptor &GetBehavioursDescriptor() const { return behaviours_; }
+			
+			const ISADescriptor &GetISA(const std::string &isaname) const { return isas_.at(isa_mode_ids_.at(isaname)); }
+			const ISADescriptor &GetISA(uint32_t mode) const { return isas_.at(mode); }
 			
 		private:
 			const RegisterFileDescriptor register_file_;
 			const MemoryInterfacesDescriptor mem_interfaces_;
 			const FeaturesDescriptor features_;
-			const BehavioursDescriptor behaviours_;
+			
+			std::vector<ISADescriptor> isas_;
+			std::map<std::string, uint32_t> isa_mode_ids_;
 		};
 }
 

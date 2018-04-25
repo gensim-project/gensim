@@ -519,11 +519,11 @@ namespace gensim
 				const SSAMemoryReadStatement &stmt = (const SSAMemoryReadStatement &) (Statement);
 
 				// look up correct memory interface
-				auto interface = stmt.GetInterface()->GetName();
+				auto interface = stmt.GetInterface();
 				
 				output << "{";
 				output << "archsim::Address addr = archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ");";
-				output << "auto &interface = thread->GetMemoryInterface(\"" << interface << "\");";
+				output << "auto &interface = thread->GetMemoryInterface(" << interface->GetID() << ");";
 				output << "archsim::MemoryResult _value = interface.Read" << (stmt.Width * 8) << "(addr," << stmt.Target()->GetName() << ");";
 				output << "if(_value != archsim::MemoryResult::OK) {";
 				// trigger exception
@@ -549,10 +549,10 @@ namespace gensim
 				const SSAMemoryWriteStatement &stmt = (const SSAMemoryWriteStatement &) (Statement);
 				
 				// look up correct memory interface
-				auto interface = stmt.GetInterface()->GetName();
+				auto interface = stmt.GetInterface();
 				
 				output << "{";
-				output << "auto &interface = thread->GetMemoryInterface(\"" << interface << "\");";
+				output << "auto &interface = thread->GetMemoryInterface(" << interface->GetID() << ");";
 				output << "archsim::Address addr = archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ");";
 				output << "archsim::MemoryResult _value = interface.Write" << (stmt.Width * 8) << "(addr," << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ");";
 				output << "if(_value != archsim::MemoryResult::OK) {";

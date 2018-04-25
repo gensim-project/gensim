@@ -36,7 +36,7 @@ namespace archsim
 
 				bool PrepareBoot(System& system);
 
-				gensim::DecodeContext* GetNewDecodeContext(gensim::Processor &cpu) override;
+				gensim::DecodeContext* GetNewDecodeContext(archsim::ThreadInstance &cpu) override;
 
 
 			private:

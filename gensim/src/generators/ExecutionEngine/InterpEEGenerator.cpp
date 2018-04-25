@@ -52,6 +52,7 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 		"#include <translate/jit_funs.h>\n"
 		"#include <gensim/gensim_processor_api.h>\n"
 		"#include <abi/devices/Device.h>\n"
+		"#include <gensim/gensim_decode_context.h>\n"
 		"#include <cmath>\n"
 		;
 	
@@ -148,9 +149,10 @@ bool InterpEEGenerator::GenerateHelperFunction(util::cppformatstream& str, const
 bool InterpEEGenerator::GenerateDecodeInstruction(util::cppformatstream& str) const
 {
 	str << "uint32_t EE::DecodeInstruction(archsim::ThreadInstance *thread, EE::decode_t &inst) {";
+	str << "  if(decode_context_ == nullptr) { decode_context_ = thread->GetEmulationModel().GetNewDecodeContext(*thread); }";
 	str << "  gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
-	str << "  return inst.DecodeInstr(interface.read_pc(), thread->GetModeID(), thread->GetFetchMI());";
-	
+	str << "  auto result = decode_context_->DecodeSync(archsim::Address(interface.read_pc()), thread->GetModeID(), inst);";
+	str << "  return result;";
 	str << "}";
 	
 	return true;
@@ -285,9 +287,9 @@ bool InterpEEGenerator::GenerateBehavioursDescriptors(util::cppformatstream& str
 				if(!behaviours_list.empty()) {
 					behaviours_list += ", ";
 				}
-				behaviours_list += "bd_" + i->ISAName + "_" + action.first;
+				behaviours_list += "bd_" + i->ISAName + "_" + action.first + "()";
 				
-				str << "static archsim::BehaviourDescriptor bd_" << i->ISAName << "_" << action.first << "(\"" << action.first << "\", [](const archsim::InvocationContext &ctx){ helper_" << i->ISAName << "_" << action.first << "<false>(nullptr, ctx.GetThread()";
+				str << "static archsim::BehaviourDescriptor bd_" << i->ISAName << "_" << action.first << "() { archsim::BehaviourDescriptor bd (\"" << action.first << "\", [](const archsim::InvocationContext &ctx){ helper_" << i->ISAName << "_" << action.first << "<false>(nullptr, ctx.GetThread()";
 				
 				// unpack arguments
 				for(int index = 0; index < action.second->GetPrototype().ParameterTypes().size(); ++index) {
@@ -307,16 +309,15 @@ bool InterpEEGenerator::GenerateBehavioursDescriptors(util::cppformatstream& str
 					
 				}
 				
-				str << "); return 0; });";
+				str << "); return 0; }); return bd; }";
 			}
 		}
-		
-		str << "static archsim::ISABehavioursDescriptor behaviours_" << i->ISAName << "(\"" << i->ISAName << "\", {" << behaviours_list << "});";
+	
+		str << "namespace " << Manager.GetArch().Name << "{";
+		str << "archsim::ISABehavioursDescriptor get_behaviours_" << i->ISAName << "() { static archsim::ISABehavioursDescriptor bd ({" << behaviours_list << "}); return bd; }";
+		str << "}";
 	}
 	
-	str << "namespace " << Manager.GetArch().Name << "{";
-	str << "archsim::BehavioursDescriptor behaviours ({" << isa_descriptors << "});";
-	str << "}";
 	
 	return true;
 }

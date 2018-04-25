@@ -21,6 +21,8 @@ void execute_thread(BasicExecutionEngine::ExecutionContext *ctx) {
 	}
 }
 
+BasicExecutionEngine::BasicExecutionEngine() : decode_context_(nullptr) {}
+
 void BasicExecutionEngine::StartAsyncThread(ThreadInstance* thread)
 {
 	ExecutionContext *ctx = new ExecutionContext();
