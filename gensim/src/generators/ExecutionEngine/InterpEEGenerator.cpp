@@ -19,6 +19,7 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const {
 		"#include <core/execution/ExecutionEngine.h>\n"
 		"#include <cstdint>\n"
 		
+		"namespace gensim {"
 		"namespace " << Manager.GetArch().Name << "{"
 		
 		"class EE : public archsim::core::execution::BasicExecutionEngine {"
@@ -36,6 +37,7 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const {
 		""
 		;
 
+	str << "}";
 	str << "}";
 		
 	return true;
@@ -55,7 +57,7 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 		"#include <cmath>\n"
 		;
 	
-	str << "using namespace " << Manager.GetArch().Name << ";";
+	str << "using namespace gensim::" << Manager.GetArch().Name << ";";
 	
 	GenerateDecodeInstruction(str);
 	
@@ -73,21 +75,6 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 	
 	GenerateBehavioursDescriptors(str);
 	
-	str <<
-		
-		"ARCHSIM_MODULE() {"
-		"  auto module = new archsim::module::ModuleInfo(\"" << Manager.GetArch().Name << "\", \"CPU Module\");"
-		"  auto ee_entry = new archsim::module::ModuleExecutionEngineEntry(\"EE\", ARCHSIM_EEFACTORY(EE));"
-		
-		"  auto arch_entry = new archsim::module::ModuleArchDescriptorEntry(\"ArchDescriptor\", ARCHSIM_ARCHDESCRIPTORFACTORY(gensim::" << Manager.GetArch().Name << "::ArchDescriptor));"
-		
-		"	module->AddEntry(ee_entry);"
-		"	module->AddEntry(arch_entry);"
-		"  return module;"
-		"}"
-		"ARCHSIM_MODULE_END() {}"
-		;
-		
 	return true;
 }
 

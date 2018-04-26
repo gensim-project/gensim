@@ -7,6 +7,7 @@ TARGET_ADD_SOURCES(gensim-lib
 	JumpInfoGenerator.cpp
 	MakefileGenerator.cpp
 	ArchDescriptorGenerator.cpp
+	ModuleDescriptorGenerator.cpp
 
 # These are deprecated and should be removed soon
 	InterpretiveExecutionEngineGenerator.cpp

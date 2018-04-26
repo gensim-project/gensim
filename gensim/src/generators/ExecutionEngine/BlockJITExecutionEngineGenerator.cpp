@@ -5,17 +5,30 @@
  */
 
 #include "generators/ExecutionEngine/BlockJITExecutionEngineGenerator.h"
+#include "arch/ArchDescription.h"
 
 using namespace gensim::generator;
 
-BlockJITExecutionEngineGenerator::BlockJITExecutionEngineGenerator(GenerationManager &man) : EEGenerator(man, "ee_blockjit")
+BlockJITExecutionEngineGenerator::BlockJITExecutionEngineGenerator(GenerationManager &man) : EEGenerator(man, "blockjit")
 {
-
+	man.AddModuleEntry(ModuleEntry("EE", "gensim::" + man.GetArch().Name + "::BlockJITEE", "ee_blockjit.h", ModuleEntryType::ExecutionEngine));
 }
 
 
 bool BlockJITExecutionEngineGenerator::GenerateHeader(util::cppformatstream& str) const
 {
+	str << "#include <core/execution/BlockJITExecutionEngine.h>\n";
+	
+	str << "namespace gensim {";
+	str << "namespace " << Manager.GetArch().Name << "{";
+	
+	str << "class BlockJITEE : public archsim::core::execution::BlockJITExecutionEngine {";
+	
+	str << "};";
+	
+	str << "}";
+	str << "}";
+	
 	return true;
 }
 
