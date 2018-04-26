@@ -25,7 +25,7 @@ using namespace gensim::isa;
 DEFINE_COMPONENT(JitGenerator, jit)
 COMPONENT_INHERITS(jit, translate)
 
-JitGenerator::JitGenerator(GenerationManager& man) : GenerationComponent(man, "jit") { }
+JitGenerator::JitGenerator(const GenerationManager& man) : GenerationComponent(man, "jit") { }
 
 bool JitGenerator::Generate() const
 {
@@ -160,9 +160,20 @@ bool JitGenerator::GenerateHeader(util::cppformatstream & hdr_stream) const
 	        << "#include <blockjit/translation-context.h>\n"
 	        << "#include <blockjit/BlockJitTranslate.h>\n"
 	        << "#include <util/SimOptions.h>\n"
-	        << "#include <translate/jit_funs.h>\n"
+	        << "#include <translate/jit_funs.h>\n";
+		
+	GenerateClass(hdr_stream);
 
-	        << "using gensim::" << arch.Name << "::Decode;"
+	hdr_stream << "#endif\n";
+	
+	return true;
+}
+
+bool JitGenerator::GenerateClass(util::cppformatstream& str) const
+{
+	const arch::ArchDescription &arch = Manager.GetArch();
+
+	str     << "using gensim::" << arch.Name << "::Decode;"
 
 	        << "namespace captive {"
 	        << "	namespace arch {\n"
@@ -177,22 +188,23 @@ bool JitGenerator::GenerateHeader(util::cppformatstream & hdr_stream) const
 	for (auto isa : arch.ISAs) {
 
 		for (auto fmt : isa->Formats) {
-			hdr_stream << "captive::shared::IRRegId generate_predicate_" << isa->ISAName << "_" << fmt.second->GetName() << "(const Decode& insn, captive::shared::IRBuilder &builder, bool trace);\n";
+			str << "captive::shared::IRRegId generate_predicate_" << isa->ISAName << "_" << fmt.second->GetName() << "(const Decode& insn, captive::shared::IRBuilder &builder, bool trace);\n";
 		}
 
 		for (auto insn : isa->Instructions) {
-			hdr_stream << "bool translate_" << isa->ISAName << "_" << insn.second->Name << "(const Decode& insn, captive::shared::IRBuilder &builder, bool trace);";
+			str << "bool translate_" << isa->ISAName << "_" << insn.second->Name << "(const Decode& insn, captive::shared::IRBuilder &builder, bool trace);";
 		}
 	}
 
-	hdr_stream	<< "			};"
+	str	<< "			};"
 
 	            << "		}"
 	            << "	}"
-	            << "}\n#endif\n";
+	            << "}";
 
 	return true;
 }
+
 
 bool JitGenerator::GenerateSource(util::cppformatstream & src_stream) const
 {
@@ -205,7 +217,18 @@ bool JitGenerator::GenerateSource(util::cppformatstream & src_stream) const
 	        << "#include \"processor.h\"\n"
 
 	        << "#include <queue>\n"
-	        << "#include <set>\n"
+	        << "#include <set>\n";
+	
+	GenerateTranslation(src_stream);
+	
+	return true;
+}
+
+bool JitGenerator::GenerateTranslation(util::cppformatstream& src_stream) const
+{
+	const arch::ArchDescription &arch = Manager.GetArch();
+
+	src_stream
 
 	        << "using namespace captive::shared;"
 	        << "using namespace captive::arch::" << arch.Name << ";"
@@ -242,6 +265,7 @@ bool JitGenerator::GenerateSource(util::cppformatstream & src_stream) const
 
 	return true;
 }
+
 
 bool JitGenerator::GeneratePredicateFunction(util::cppformatstream &src_stream, const isa::ISADescription& isa, const isa::InstructionFormatDescription& fmt) const
 {

@@ -35,7 +35,7 @@ namespace gensim
 		class JitGenerator : public GenerationComponent
 		{
 		public:
-			JitGenerator(GenerationManager &man);
+			JitGenerator(const GenerationManager &man);
 
 			bool Generate() const override;
 			const std::vector<std::string> GetSources() const override
@@ -48,7 +48,10 @@ namespace gensim
 				return "jit";
 			}
 
-		private:
+		public:
+			bool GenerateClass(util::cppformatstream &str) const;
+			bool GenerateTranslation(util::cppformatstream &str) const;
+			
 			bool GenerateHeader(util::cppformatstream &) const;
 			bool GenerateSource(util::cppformatstream &) const;
 

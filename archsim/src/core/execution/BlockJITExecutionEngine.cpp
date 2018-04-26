@@ -17,7 +17,7 @@ using namespace archsim::core::thread;
 
 extern int block_trampoline_source(ThreadInstance *thread, const archsim::RegisterFileEntryDescriptor &pc_descriptor, struct archsim::blockjit::BlockCacheEntry *block_cache);
 
-BlockJITExecutionEngine::BlockJITExecutionEngine() : phys_block_profile_(mem_allocator_)
+BlockJITExecutionEngine::BlockJITExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) : phys_block_profile_(mem_allocator_), translator_(translator)
 {
 
 }

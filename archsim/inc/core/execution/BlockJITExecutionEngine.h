@@ -30,7 +30,7 @@ namespace archsim {
 			{
 			public:
 				
-				BlockJITExecutionEngine();
+				BlockJITExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator);
 				
 				ExecutionResult ArchStepBlock(thread::ThreadInstance* thread) override;
 				ExecutionResult ArchStepSingle(thread::ThreadInstance* thread) override;
