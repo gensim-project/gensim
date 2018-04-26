@@ -8,8 +8,15 @@
 #include "abi/devices/IRQController.h"
 #include "core/thread/ThreadInstance.h"
 #include "core/MemoryInterface.h"
+#include "util/LogContext.h"
+
+// These are deprecated and should be removed soon
+DeclareLogContext(LogCPU, "CPU");
+DeclareLogContext(LogBlockJitCpu, "BlockJIT");
+
 
 using namespace archsim;
+using namespace archsim::core::thread;
 
 ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), mode_id_(0), ring_id_(0), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
 {
@@ -29,6 +36,8 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 	
 	// Set default FP state
 	// TODO: this
+	
+	metrics_ = new archsim::core::thread::ThreadMetrics();
 }
 
 MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface_name)
@@ -83,7 +92,7 @@ archsim::abi::ExceptionAction ThreadInstance::TakeException(uint64_t category, u
 	switch(result) {
 		case archsim::abi::ExceptionAction::AbortInstruction:
 		case archsim::abi::ExceptionAction::AbortSimulation:
-			throw archsim::ThreadException();
+			throw ThreadException();
 		default:
 			return result;
 	}
@@ -95,7 +104,7 @@ archsim::abi::ExceptionAction ThreadInstance::TakeMemoryException(MemoryInterfac
 	switch(result) {
 		case archsim::abi::ExceptionAction::AbortInstruction:
 		case archsim::abi::ExceptionAction::AbortSimulation:
-			throw archsim::ThreadException();
+			throw ThreadException();
 		default:
 			return result;
 	}
@@ -122,8 +131,10 @@ void ThreadInstance::RescindIRQ()
 	pending_irqs_--;
 }
 
-ExecutionResult ThreadInstance::HandleMessage()
+archsim::core::execution::ExecutionResult ThreadInstance::HandleMessage()
 {
+	using archsim::core::execution::ExecutionResult;
+	
 	auto message = GetNextMessage();
 	switch(message) {
 		case ThreadMessage::Nop: return ExecutionResult::Continue;

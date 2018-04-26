@@ -22,8 +22,8 @@ bool LowerLoadPC::Lower(const captive::shared::IRInstruction *&insn)
 
 	assert(target->is_vreg());
 
-	const gensim::BlockJitProcessor *cpu = GetCompiler().get_cpu();
-	uint32_t pc_offset = cpu->GetRegisterByTag("PC")->Offset;
+	const auto *cpu = GetCompiler().get_cpu();
+	uint32_t pc_offset = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC").GetOffset();
 
 	if (target->is_alloc_reg()) {
 		// TODO: FIXME: XXX: HACK HACK HACK

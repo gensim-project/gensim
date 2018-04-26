@@ -30,12 +30,12 @@ EmulationModel::EmulationModel()
 	timer_mgr.start();
 }
 
-void EmulationModel::HandleInterrupt(archsim::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq)
+void EmulationModel::HandleInterrupt(archsim::core::thread::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq)
 {
 	UNIMPLEMENTED;
 }
 
-ExceptionAction EmulationModel::HandleMemoryFault(archsim::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
+ExceptionAction EmulationModel::HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
 {
 	LC_ERROR(LogEmulationModel) << "A memory fault occurred at address " << address;
 	return ExceptionAction::AbortSimulation;

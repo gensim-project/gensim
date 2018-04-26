@@ -37,6 +37,12 @@ MemoryResult MemoryInterface::Write(Address address, const unsigned char *data, 
 	}
 }
 
+TranslationResult MemoryInterface::PerformTranslation(Address virtual_address, Address& physical_address, uint32_t ring)
+{
+	physical_address = virtual_address;
+	return TranslationResult::OK;
+}
+
 MemoryResult LegacyMemoryInterface::Read8(Address address, uint8_t& data)
 {
 	return mem_model_.Read8(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;

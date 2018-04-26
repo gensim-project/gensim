@@ -10,6 +10,9 @@
 #include "gensim/gensim.h"
 #include "gensim/gensim_processor.h"
 
+#include "core/thread/ThreadInstance.h"
+#include "core/thread/ThreadMetrics.h"
+
 //#include "tracing/TraceManager.h"
 #include "translate/TranslationManager.h"
 
@@ -177,6 +180,14 @@ void System::PrintStatistics(std::ostream& stream)
 	stream << "Event Statistics" << std::endl;
 	pubsubctx.PrintStatistics(stream);
 
+	stream << "Thread Statistics" << std::endl;
+	archsim::core::thread::ThreadMetricPrinter printer;
+	for(auto context : GetECM()) {
+		for(auto thread : *context) {
+			printer.PrintStats(thread->GetMetrics(), stream);
+		}
+	}
+	
 	stream << "Simulation Statistics" << std::endl;
 
 	// Print Emulation Model statistics

@@ -6,18 +6,14 @@
 
 #include <cstdint>
 
-#include "gensim/gensim_processor_state.h"
-#include "gensim/gensim_processor_blockjit.h"
+#include "core/thread/ThreadInstance.h"
 #include "blockjit/BlockCache.h"
 
-
-volatile register uint8_t* regstate asm("rbp");
-volatile register struct cpuState *cpustate asm("r12");
-
-static void block_trampoline_loop(const struct archsim::blockjit::BlockCacheEntry *block_cache, uint32_t *pc_ptr)
+template <typename PC_t> static void block_trampoline_loop(archsim::core::thread::ThreadInstance *thread, const struct archsim::blockjit::BlockCacheEntry *block_cache, PC_t *pc_ptr)
 {
-	while (!cpustate->pending_actions) {
-		uint64_t pc = *(uint32_t*)(pc_ptr);
+	void *regfile = thread->GetRegisterFile();
+	while (!thread->HasMessage()) {
+		uint64_t pc = *(PC_t*)(pc_ptr);
 
 		uint64_t entry_idx = pc & BLOCKCACHE_MASK;
 		entry_idx >>= BLOCKCACHE_INSTRUCTION_SHIFT;
@@ -25,7 +21,7 @@ static void block_trampoline_loop(const struct archsim::blockjit::BlockCacheEntr
 		const auto & entry  = block_cache[entry_idx];
 
 		if(entry.virt_tag == pc) {
-			entry.ptr();
+			entry.ptr(regfile, thread);
 			asm volatile ("":::"r15", "r14", "r13", "rbx", "rbp");
 		} else {
 			break;
@@ -33,23 +29,22 @@ static void block_trampoline_loop(const struct archsim::blockjit::BlockCacheEntr
 	}
 }
 
-int block_trampoline_source(struct cpuState *state, struct archsim::blockjit::BlockCacheEntry *block_cache, uint32_t *pc_ptr)
+int block_trampoline_source(archsim::core::thread::ThreadInstance *thread, const archsim::RegisterFileEntryDescriptor &pc_descriptor, struct archsim::blockjit::BlockCacheEntry *block_cache)
 {
 	uint64_t backup_rbp, backup_r12;
-	asm volatile ("mov %%rbp, %0" : "=m"(backup_rbp));
-	asm volatile ("mov %%r12, %0" : "=m"(backup_r12));
-
-	regstate = (uint8_t*)state->gensim_state;
-	cpustate = state;
-
-	cpustate->iterations = 10000;
-
+	
 	// IMPORTANT:
 	// In this loop, the following registers must not be written by the compiler:
 	// rbp, rbx, r12, r13, r14, r15
-	block_trampoline_loop(block_cache, pc_ptr);
-
-	asm volatile ("mov %0, %%rbp" :: "m"(backup_rbp));
-	asm volatile ("mov %0, %%r12" :: "m"(backup_r12));
+	
+	switch(pc_descriptor.GetEntrySize()) {
+		case 4:
+			block_trampoline_loop<uint32_t>(thread, block_cache, (uint32_t*)((uint8_t*)thread->GetRegisterFile() + pc_descriptor.GetOffset()));
+		case 8:
+			block_trampoline_loop<uint64_t>(thread, block_cache, (uint64_t*)((uint8_t*)thread->GetRegisterFile() + pc_descriptor.GetOffset()));
+		default:
+			UNIMPLEMENTED;
+	}
+	
 	return 0;
 }

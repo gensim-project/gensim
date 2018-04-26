@@ -269,7 +269,8 @@ namespace gensim
 
 			if (state.pending_actions & PENDINGACTION_INTERRUPT) {
 				LC_DEBUG2(LogCPU) << "Handling pending IRQ";
-				handle_pending_irq();
+//				handle_pending_irq();
+				UNIMPLEMENTED;
 				return 0;
 			} else if (state.pending_actions & PENDINGACTION_SIGNAL) {
 				handle_pending_signal();

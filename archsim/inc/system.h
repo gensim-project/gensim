@@ -232,7 +232,7 @@ public:
 		return module_manager_;
 	}
 	
-	inline archsim::ExecutionContextManager &GetECM()
+	inline archsim::core::execution::ExecutionContextManager &GetECM()
 	{
 		return exec_ctx_mgr_;
 	}
@@ -244,7 +244,7 @@ private:
 	int max_fd;
 
 	archsim::Session& session;
-	archsim::ExecutionContextManager exec_ctx_mgr_;
+	archsim::core::execution::ExecutionContextManager exec_ctx_mgr_;
 	
 	static archsim::concurrent::LWBarrier2 _verify_barrier_enter;
 	static archsim::concurrent::LWBarrier2 _verify_barrier_leave;

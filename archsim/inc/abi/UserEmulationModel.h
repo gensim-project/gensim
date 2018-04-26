@@ -25,7 +25,7 @@ namespace archsim
 		struct SyscallRequest {
 			unsigned int syscall;
 
-			ThreadInstance *thread;
+			archsim::core::thread::ThreadInstance *thread;
 
 			unsigned int arg0;
 			unsigned int arg1;
@@ -51,7 +51,7 @@ namespace archsim
 
 			gensim::Processor* GetCore(int id);
 			
-			archsim::ThreadInstance *GetMainThread();
+			archsim::core::thread::ThreadInstance *GetMainThread();
 			
 			void ResetCores();
 			void HaltCores();
@@ -71,7 +71,7 @@ namespace archsim
 			bool AssertSignal(int signum, SignalData* data);
 			virtual bool InvokeSignal(int signum, uint32_t next_pc, SignalData* data);
 
-			virtual ExceptionAction HandleException(ThreadInstance* cpu, unsigned int category, unsigned int data) override;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, unsigned int category, unsigned int data) override;
 			void PrintStatistics(std::ostream& stream);
 
 		private:
@@ -91,7 +91,7 @@ namespace archsim
 			unsigned int _initial_program_break;
 			unsigned int _program_break;
 			
-			archsim::ThreadInstance *main_thread_;
+			archsim::core::thread::ThreadInstance *main_thread_;
 		};
 	}
 }

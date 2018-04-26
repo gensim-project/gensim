@@ -113,20 +113,21 @@ static void sigusr1_handler(siginfo_t *si, void *unused)
 static void sigusr2_handler(siginfo_t *si, void *unused)
 {
 	for(auto sim_ctx : sim_ctxs) {
-		gensim::Processor *core = sim_ctx->GetEmulationModel().GetBootCore();
-
-		if (!core->HasTraceManager()) {
-			core->InitialiseTracing();
-		}
-
-		if (core->IsTracingEnabled())
-			core->StopTracing();
-		else
-			core->StartTracing();
-
-		if (core->GetEmulationModel().GetSystem().HaveTranslationManager()) {
-			core->GetEmulationModel().GetSystem().GetTranslationManager().Invalidate();
-		}
+		UNIMPLEMENTED;
+//		gensim::Processor *core = sim_ctx->GetEmulationModel().GetBootCore();
+//
+//		if (!core->HasTraceManager()) {
+////			core->InitialiseTracing();
+//		}
+//
+//		if (core->IsTracingEnabled())
+//			core->StopTracing();
+//		else
+//			core->StartTracing();
+//
+//		if (core->GetEmulationModel().GetSystem().HaveTranslationManager()) {
+//			core->GetEmulationModel().GetSystem().GetTranslationManager().Invalidate();
+//		}
 	}
 
 	/*if (!sigusr2)

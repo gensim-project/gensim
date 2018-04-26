@@ -46,7 +46,7 @@ namespace archsim
 				{
 					dev_man = devman;
 				}
-				void SetCPU(archsim::ThreadInstance *cpu)
+				void SetCPU(archsim::core::thread::ThreadInstance *cpu)
 				{
 					this->thread_ = cpu;
 				}
@@ -65,7 +65,7 @@ namespace archsim
 				{
 					return dev_man;
 				}
-				archsim::ThreadInstance *GetThread()
+				archsim::core::thread::ThreadInstance *GetThread()
 				{
 					return thread_;
 				}
@@ -82,7 +82,7 @@ namespace archsim
 				MemoryModel *phys_mem;
 				devices::DeviceManager *dev_man;
 				devices::MMU *mmu;
-				archsim::ThreadInstance *thread_;
+				archsim::core::thread::ThreadInstance *thread_;
 
 			};
 

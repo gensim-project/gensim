@@ -10,6 +10,7 @@
 #include "abi/memory/MemoryModel.h"
 
 #include "core/MemoryInterface.h"
+#include "core/execution/ExecutionEngine.h"
 
 #include "abi/memory/system/FunctionBasedSystemMemoryModel.h"
 
@@ -29,6 +30,7 @@
 
 using namespace archsim::abi;
 using namespace archsim::abi::memory;
+using namespace archsim::core::thread;
 
 UseLogContext(LogEmulationModel);
 DeclareChildLogContext(LogSystemEmulationModel, LogEmulationModel, "System");
@@ -61,7 +63,7 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 	auto arch = archentry->Get();
-	auto ctx = new archsim::ExecutionContext(*arch, moduleentry->Get());
+	auto ctx = new archsim::core::execution::ExecutionContext(*arch, moduleentry->Get());
 	GetSystem().GetECM().AddContext(ctx);
 	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 	
@@ -80,8 +82,7 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 			i->Connect(*new archsim::LegacyMemoryInterface(*smm));
 		}
 	}
-	
-	GetSystem().GetECM().AddContext(ctx);
+
 	ctx->AddThread(main_thread_);
 	
 	// Install Devices
@@ -134,7 +135,7 @@ void SystemEmulationModel::ResetCores()
 
 void SystemEmulationModel::HaltCores()
 {
-	main_thread_->SendMessage(archsim::ThreadMessage::Halt);
+	main_thread_->SendMessage(archsim::core::thread::ThreadMessage::Halt);
 }
 
 bool SystemEmulationModel::PrepareBoot(System &system)

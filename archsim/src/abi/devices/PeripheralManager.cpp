@@ -16,7 +16,7 @@ namespace archsim
 
 			ComponentDescriptor peripheral_manager_descriptor("PeripheralManager");
 
-			PeripheralManager::PeripheralManager(archsim::ThreadInstance &_cpu) : Component(peripheral_manager_descriptor), cpu(_cpu), emu_model(NULL)
+			PeripheralManager::PeripheralManager(archsim::core::thread::ThreadInstance &_cpu) : Component(peripheral_manager_descriptor), cpu(_cpu), emu_model(NULL)
 			{
 				assert(&cpu);
 			}

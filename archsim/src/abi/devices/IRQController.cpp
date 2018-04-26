@@ -6,7 +6,8 @@
  */
 
 #include "abi/devices/IRQController.h"
-#include "gensim/gensim_processor.h"
+#include "core/thread/ThreadInstance.h"
+
 namespace archsim
 {
 	namespace abi
@@ -70,7 +71,7 @@ namespace archsim
 			}
 
 
-			CPUIRQLine::CPUIRQLine(archsim::ThreadInstance *_cpu) : CPU(_cpu), Acknowledged(false)
+			CPUIRQLine::CPUIRQLine(archsim::core::thread::ThreadInstance *_cpu) : CPU(_cpu), Acknowledged(false)
 			{
 
 			}

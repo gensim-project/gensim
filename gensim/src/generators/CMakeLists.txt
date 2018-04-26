@@ -1,23 +1,24 @@
 TARGET_ADD_SOURCES(gensim-lib
 	ByteByByteDecodeGenerator.cpp
-	ClangLLVMTranslationGenerator.cpp
 	DecodeGenerator.cpp
-	DefinitionGenerator.cpp
 	DisasmGenerator.cpp
-	ExecutionEngineGenerator.cpp
 	FunctionalDecodeGenerator.cpp
 	GenerationManager.cpp
-	InterpretiveExecutionEngineGenerator.cpp
 	JumpInfoGenerator.cpp
 	MakefileGenerator.cpp
-	NullTranslationGenerator.cpp
-	TranslationGenerator.cpp
 	ArchDescriptorGenerator.cpp
+
+# These are deprecated and should be removed soon
+	InterpretiveExecutionEngineGenerator.cpp
+	ClangLLVMTranslationGenerator.cpp
+	TranslationGenerator.cpp
+	ExecutionEngineGenerator.cpp
 )
 
 ADD_SUBDIRECTORY(BlockJIT)
 ADD_SUBDIRECTORY(Captive)
 ADD_SUBDIRECTORY(ExecutionEngine)
+
+# This stuff needs refactoring into something a bit more manageable
 ADD_SUBDIRECTORY(GenCInterpreter)
 ADD_SUBDIRECTORY(GenCJIT)
-ADD_SUBDIRECTORY(NaiveJIT)

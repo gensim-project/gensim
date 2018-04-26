@@ -54,19 +54,19 @@ namespace gensim
 			BaseBlockJITTranslate();
 			virtual ~BaseBlockJITTranslate();
 
-			bool translate_block(gensim::BlockJitProcessor *processor, archsim::VirtualAddress block_address, archsim::blockjit::BlockTranslation &out_txln, wulib::MemAllocator &allocator);
+			bool translate_block(archsim::core::thread::ThreadInstance *processor, archsim::Address block_address, archsim::blockjit::BlockTranslation &out_txln, wulib::MemAllocator &allocator);
 
 			void setSupportChaining(bool enable);
 			void setSupportProfiling(bool enable);
 			void setTranslationMgr(archsim::translate::TranslationManager *txln_mgr);
 
-			void InitialiseFeatures(const gensim::BlockJitProcessor *cpu);
+			void InitialiseFeatures(const archsim::core::thread::ThreadInstance *cpu);
 			void SetFeatureLevel(uint32_t feature, uint32_t level, captive::shared::IRBuilder& builder);
 			uint32_t GetFeatureLevel(uint32_t feature);
 			void InvalidateFeatures();
 			archsim::ProcessorFeatureSet GetProcessorFeatures() const;
 
-			void InitialiseIsaMode(const gensim::BlockJitProcessor *cpu);
+			void InitialiseIsaMode(const archsim::core::thread::ThreadInstance *cpu);
 			void SetIsaMode(const captive::shared::IROperand&, captive::shared::IRBuilder& builder);
 			uint32_t GetIsaMode();
 			void InvalidateIsaMode();
@@ -75,7 +75,6 @@ namespace gensim
 			virtual bool translate_instruction(const BaseDecode* decode_obj, captive::shared::IRBuilder& builder, bool trace) = 0;
 
 		private:
-			typedef archsim::VirtualAddress VirtualAddress;
 			
 			std::map<uint32_t, uint32_t> _feature_levels;
 			std::map<uint32_t, uint32_t> _initial_feature_levels;
@@ -98,15 +97,15 @@ namespace gensim
 
 			bool _should_be_dumped;
 
-			bool build_block(gensim::BlockJitProcessor *cpu, VirtualAddress block_address, captive::shared::IRBuilder &builder);
-			bool compile_block(gensim::BlockJitProcessor *cpu, VirtualAddress block_address, captive::arch::jit::TranslationContext &ctx, captive::shared::block_txln_fn &fn, wulib::MemAllocator &allocator);
+			bool build_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::shared::IRBuilder &builder);
+			bool compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, captive::shared::block_txln_fn &fn, wulib::MemAllocator &allocator);
 
-			bool emit_block(gensim::BlockJitProcessor *cpu, VirtualAddress block_address, captive::shared::IRBuilder &ctx, std::unordered_set<VirtualAddress> &block_heads);
-			bool emit_instruction(gensim::BlockJitProcessor *cpu, VirtualAddress pc, gensim::BaseDecode *insn, captive::shared::IRBuilder &builder);
-			bool emit_chain(gensim::BlockJitProcessor *cpu, VirtualAddress block_address, gensim::BaseDecode *insn, captive::shared::IRBuilder &ctx);
+			bool emit_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::shared::IRBuilder &ctx, std::unordered_set<archsim::Address> &block_heads);
+			bool emit_instruction(archsim::core::thread::ThreadInstance *cpu, archsim::Address pc, gensim::BaseDecode *insn, captive::shared::IRBuilder &builder);
+			bool emit_chain(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, gensim::BaseDecode *insn, captive::shared::IRBuilder &ctx);
 
-			bool can_merge_jump(gensim::BlockJitProcessor *cpu, gensim::BaseDecode *decode, VirtualAddress pc);
-			VirtualAddress get_jump_target(gensim::BlockJitProcessor *cpu, gensim::BaseDecode *decode, VirtualAddress pc);
+			bool can_merge_jump(archsim::core::thread::ThreadInstance *cpu, gensim::BaseDecode *decode, archsim::Address pc);
+			archsim::Address get_jump_target(archsim::core::thread::ThreadInstance *cpu, gensim::BaseDecode *decode, archsim::Address pc);
 		};
 	}
 }

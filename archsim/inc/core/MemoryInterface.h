@@ -76,6 +76,13 @@ namespace archsim {
 		archsim::abi::memory::MemoryModel &mem_model_;
 	};
 	
+	enum class TranslationResult {
+		UNKNOWN,
+		OK,
+		NotPresent,
+		NotPrivileged
+	};
+	
 	/**
 	 * This class represents a specific instantiation of a memory master.
 	 * This is connected to an underlying device (which may be a bus).
@@ -86,12 +93,12 @@ namespace archsim {
 		const MemoryInterfaceDescriptor &GetDescriptor() { return descriptor_; }
 
 		MemoryResult Read8 (Address address, uint8_t &data) { return device_->Read8(address, data); } 
-		MemoryResult Read16(Address address, uint16_t &data) { return device_->Read16(address, data); } 
+		MemoryResult Read16(Address address, uint16_t &data) { return device_->Read16(address, data); }
 		MemoryResult Read32(Address address, uint32_t &data) { return device_->Read32(address, data); }
 		MemoryResult Read64(Address address, uint64_t &data) { return device_->Read64(address, data); }
 		
 		MemoryResult Write8 (Address address, uint8_t data) { return device_->Write8(address, data); } 
-		MemoryResult Write16(Address address, uint16_t data) { return device_->Write16(address, data); } 
+		MemoryResult Write16(Address address, uint16_t data) { return device_->Write16(address, data); }
 		MemoryResult Write32(Address address, uint32_t data) { return device_->Write32(address, data); }
 		MemoryResult Write64(Address address, uint64_t data) { return device_->Write64(address, data); }
 
@@ -101,6 +108,7 @@ namespace archsim {
 		MemoryResult Read(Address address, unsigned char *data, size_t size);
 		MemoryResult Write(Address address, const unsigned char *data, size_t size);
 		
+		virtual TranslationResult PerformTranslation(Address virtual_address, Address &physical_address, uint32_t ring);
 		void Connect(MemoryDevice &device) { device_ = &device; }
 
 	private:

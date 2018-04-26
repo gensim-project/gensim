@@ -449,7 +449,7 @@ namespace archsim
 
 				}
 
-				TranslateResult Translate(archsim::ThreadInstance *cpu, uint32_t virt_addr, uint32_t &phys_addr, AccessInfo info) override
+				TranslateResult Translate(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr, uint32_t &phys_addr, AccessInfo info) override
 				{
 					//Canary value to catch invalid accesses
 					phys_addr = 0xf0f0f0f0;
@@ -496,7 +496,7 @@ namespace archsim
 					return result;
 				}
 
-				void handle_result(TranslateResult result, archsim::ThreadInstance *cpu, uint32_t mva, const struct AccessInfo info)
+				void handle_result(TranslateResult result, archsim::core::thread::ThreadInstance *cpu, uint32_t mva, const struct AccessInfo info)
 				{
 					uint32_t new_fsr = 0;
 

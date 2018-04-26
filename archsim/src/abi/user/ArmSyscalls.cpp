@@ -31,14 +31,14 @@ UseLogContext(LogSyscalls);
 
 using archsim::Address;
 
-static unsigned int translate_fd(archsim::ThreadInstance* cpu, int fd)
+static unsigned int translate_fd(archsim::core::thread::ThreadInstance* cpu, int fd)
 {
 	fd = cpu->GetEmulationModel().GetSystem().GetFD(fd);
 
 	return fd;
 }
 
-static unsigned int sys_exit(archsim::ThreadInstance* cpu, unsigned int exit_code)
+static unsigned int sys_exit(archsim::core::thread::ThreadInstance* cpu, unsigned int exit_code)
 {
 //	cpu->Halt();
 	cpu->GetEmulationModel().GetSystem().exit_code = exit_code;
@@ -46,7 +46,7 @@ static unsigned int sys_exit(archsim::ThreadInstance* cpu, unsigned int exit_cod
 	return 0;
 }
 
-static unsigned int sys_uname(archsim::ThreadInstance* cpu, unsigned int addr)
+static unsigned int sys_uname(archsim::core::thread::ThreadInstance* cpu, unsigned int addr)
 {
 	if (addr == 0) {
 		return -EFAULT;
@@ -70,7 +70,7 @@ static unsigned int sys_uname(archsim::ThreadInstance* cpu, unsigned int addr)
 	return 0;
 }
 
-static unsigned int sys_open(archsim::ThreadInstance* cpu, unsigned int filename_addr, unsigned int flags, unsigned int mode)
+static unsigned int sys_open(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int flags, unsigned int mode)
 {
 	char filename[256];
 	auto interface = cpu->GetMemoryInterface("Mem");
@@ -84,7 +84,7 @@ static unsigned int sys_open(archsim::ThreadInstance* cpu, unsigned int filename
 	return guest_fd;
 }
 
-static unsigned int sys_openat(archsim::ThreadInstance* cpu, int dirfd, unsigned int filename_addr, unsigned int flags, unsigned int mode)
+static unsigned int sys_openat(archsim::core::thread::ThreadInstance* cpu, int dirfd, unsigned int filename_addr, unsigned int flags, unsigned int mode)
 {
 	if(dirfd == AT_FDCWD) {
 		return sys_open(cpu, filename_addr, flags, mode);
@@ -102,14 +102,14 @@ static unsigned int sys_openat(archsim::ThreadInstance* cpu, int dirfd, unsigned
 	return guest_fd;
 }
 
-static unsigned int sys_close(archsim::ThreadInstance* cpu, unsigned int fd)
+static unsigned int sys_close(archsim::core::thread::ThreadInstance* cpu, unsigned int fd)
 {
 	if (cpu->GetEmulationModel().GetSystem().CloseFD(fd))
 		return -errno;
 	return 0;
 }
 
-static unsigned int sys_writev(archsim::ThreadInstance* cpu, unsigned int fd, unsigned int iov_addr, int cnt)
+static unsigned int sys_writev(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int iov_addr, int cnt)
 {
 	if (cnt < 0 || cnt > 8) return -1;
 
@@ -135,7 +135,7 @@ static unsigned int sys_writev(archsim::ThreadInstance* cpu, unsigned int fd, un
 	return res;
 }
 
-static unsigned int sys_lseek(archsim::ThreadInstance* cpu, unsigned int fd, unsigned int offset, unsigned int whence)
+static unsigned int sys_lseek(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int offset, unsigned int whence)
 {
 	fd = translate_fd(cpu, fd);
 	int lseek_result = lseek(fd, offset, whence);
@@ -145,7 +145,7 @@ static unsigned int sys_lseek(archsim::ThreadInstance* cpu, unsigned int fd, uns
 		return lseek_result;
 }
 
-static unsigned int sys_llseek(archsim::ThreadInstance* cpu, unsigned int fd, unsigned int offset_high, unsigned int offset_low, unsigned int result_addr, unsigned int whence)
+static unsigned int sys_llseek(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int offset_high, unsigned int offset_low, unsigned int result_addr, unsigned int whence)
 {
 	loff_t result;
 
@@ -167,7 +167,7 @@ static unsigned int sys_llseek(archsim::ThreadInstance* cpu, unsigned int fd, un
 	return result == -1 ? -errno : 0;
 }
 
-static unsigned int sys_unlink(archsim::ThreadInstance* cpu, unsigned int filename_addr)
+static unsigned int sys_unlink(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr)
 {
 	char filename[256];
 	auto interface = cpu->GetMemoryInterface("Mem");
@@ -178,7 +178,7 @@ static unsigned int sys_unlink(archsim::ThreadInstance* cpu, unsigned int filena
 	return 0;
 }
 
-static unsigned int sys_mmap(archsim::ThreadInstance* cpu, unsigned int addr, unsigned int len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned int off)
+static unsigned int sys_mmap(archsim::core::thread::ThreadInstance* cpu, unsigned int addr, unsigned int len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned int off)
 {
 	if (!(flags & MAP_ANONYMOUS)) {
 		LC_ERROR(LogSyscalls) << "Unsupported usage of MMAP";
@@ -210,18 +210,18 @@ static unsigned int sys_mmap(archsim::ThreadInstance* cpu, unsigned int addr, un
 	return addr;
 }
 
-static unsigned int sys_mmap2(archsim::ThreadInstance* cpu, unsigned int addr, unsigned int len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned int off)
+static unsigned int sys_mmap2(archsim::core::thread::ThreadInstance* cpu, unsigned int addr, unsigned int len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned int off)
 {
 	return sys_mmap(cpu, addr, len, prot, flags, fd, off);
 }
 
-static unsigned int sys_mremap(archsim::ThreadInstance* cpu, unsigned int old_addr, unsigned int old_size, unsigned int new_size, unsigned int flags)
+static unsigned int sys_mremap(archsim::core::thread::ThreadInstance* cpu, unsigned int old_addr, unsigned int old_size, unsigned int new_size, unsigned int flags)
 {
 	LC_ERROR(LogSyscalls) << "mremap not supported";
 	return -1;
 }
 
-static unsigned int sys_munmap(archsim::ThreadInstance* cpu, unsigned int addr, unsigned int len)
+static unsigned int sys_munmap(archsim::core::thread::ThreadInstance* cpu, unsigned int addr, unsigned int len)
 {
 	UNIMPLEMENTED;
 //	if (!cpu.GetMemoryModel().IsAligned(len)) {
@@ -232,14 +232,14 @@ static unsigned int sys_munmap(archsim::ThreadInstance* cpu, unsigned int addr, 
 //	return 0;
 }
 
-static unsigned int sys_mprotect(archsim::ThreadInstance *cpu, unsigned int addr, unsigned int len, unsigned int flags)
+static unsigned int sys_mprotect(archsim::core::thread::ThreadInstance *cpu, unsigned int addr, unsigned int len, unsigned int flags)
 {
 	LC_ERROR(LogSyscalls) << "[SYSCALL] mprotect not currently supported";
 	LC_ERROR(LogSyscalls) << "[SYSCALL] " << std::hex << addr << " " << len << " " << flags;
 	return -EINVAL;
 }
 
-static unsigned int sys_read(archsim::ThreadInstance* cpu, unsigned int fd, unsigned int addr, unsigned int len)
+static unsigned int sys_read(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int addr, unsigned int len)
 {
 	char* rd_buf = new char[len];
 	ssize_t res;
@@ -261,7 +261,7 @@ static unsigned int sys_read(archsim::ThreadInstance* cpu, unsigned int fd, unsi
 		return res;
 }
 
-static unsigned int sys_write(archsim::ThreadInstance* cpu, unsigned int fd, unsigned int addr, unsigned int len)
+static unsigned int sys_write(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int addr, unsigned int len)
 {
 	ssize_t res;
 
@@ -284,7 +284,7 @@ static unsigned int sys_write(archsim::ThreadInstance* cpu, unsigned int fd, uns
 		return res;
 }
 
-static unsigned int sys_fstat64(archsim::ThreadInstance* cpu, unsigned int fd, unsigned int addr)
+static unsigned int sys_fstat64(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int addr)
 {
 	struct stat64 st;
 	struct arm_stat64 result_st;
@@ -316,7 +316,7 @@ static unsigned int sys_fstat64(archsim::ThreadInstance* cpu, unsigned int fd, u
 	return 0;
 }
 
-static unsigned int sys_fstat(archsim::ThreadInstance* cpu, unsigned int fd, unsigned int addr)
+static unsigned int sys_fstat(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int addr)
 {
 	struct stat st;
 	struct arm_stat result_st;
@@ -348,7 +348,7 @@ static unsigned int sys_fstat(archsim::ThreadInstance* cpu, unsigned int fd, uns
 	return 0;
 }
 
-static unsigned int sys_stat64(archsim::ThreadInstance* cpu, unsigned int filename_addr, unsigned int addr)
+static unsigned int sys_stat64(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int addr)
 {
 	struct stat64 st;
 	struct arm_stat64 result_st;
@@ -382,7 +382,7 @@ static unsigned int sys_stat64(archsim::ThreadInstance* cpu, unsigned int filena
 	return 0;
 }
 
-static unsigned int sys_lstat64(archsim::ThreadInstance* cpu, unsigned int filename_addr, unsigned int addr)
+static unsigned int sys_lstat64(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int addr)
 {
 	struct stat64 st;
 	struct arm_stat64 result_st;
@@ -416,7 +416,7 @@ static unsigned int sys_lstat64(archsim::ThreadInstance* cpu, unsigned int filen
 	return 0;
 }
 
-static unsigned int sys_ioctl(archsim::ThreadInstance* cpu, unsigned int fd, unsigned int request, unsigned int a0)
+static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int request, unsigned int a0)
 {
 	fd = translate_fd(cpu, fd);
 	auto interface = cpu->GetMemoryInterface("Mem");
@@ -440,14 +440,14 @@ static unsigned int sys_ioctl(archsim::ThreadInstance* cpu, unsigned int fd, uns
 	}
 }
 
-static unsigned int sys_fcntl64(archsim::ThreadInstance* cpu, unsigned int fd, unsigned int cmd, unsigned int a0)
+static unsigned int sys_fcntl64(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int cmd, unsigned int a0)
 {
 	int rc = fcntl(translate_fd(cpu, fd), cmd, a0);
 	if (rc) return -errno;
 	return 0;
 }
 
-static unsigned int sys_mkdir(archsim::ThreadInstance* cpu, unsigned int filename_addr, unsigned int mode)
+static unsigned int sys_mkdir(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int mode)
 {
 	char filename[256];
 	auto interface = cpu->GetMemoryInterface("Mem");
@@ -459,7 +459,7 @@ static unsigned int sys_mkdir(archsim::ThreadInstance* cpu, unsigned int filenam
 	return 0;
 }
 
-static unsigned int sys_getcwd(archsim::ThreadInstance* cpu, unsigned int buffer_addr, unsigned int size)
+static unsigned int sys_getcwd(archsim::core::thread::ThreadInstance* cpu, unsigned int buffer_addr, unsigned int size)
 {
 	const unsigned int max_size = 4096;
 	if (size == 0 || size > max_size)
@@ -480,7 +480,7 @@ static unsigned int sys_getcwd(archsim::ThreadInstance* cpu, unsigned int buffer
 	return 0;
 }
 
-static unsigned int sys_arm_settls(archsim::ThreadInstance* cpu, unsigned int addr)
+static unsigned int sys_arm_settls(archsim::core::thread::ThreadInstance* cpu, unsigned int addr)
 {
 	LC_DEBUG1(LogSyscalls) << "TLS Set to 0x" << std::hex << addr;
 	
@@ -493,7 +493,7 @@ static unsigned int sys_arm_settls(archsim::ThreadInstance* cpu, unsigned int ad
 	return 0;
 }
 
-static unsigned int sys_brk(archsim::ThreadInstance* cpu, unsigned int new_brk)
+static unsigned int sys_brk(archsim::core::thread::ThreadInstance* cpu, unsigned int new_brk)
 {
 	archsim::abi::UserEmulationModel& uem = static_cast<archsim::abi::UserEmulationModel&>(cpu->GetEmulationModel());
 	auto oldbrk = uem.GetBreak();
@@ -503,7 +503,7 @@ static unsigned int sys_brk(archsim::ThreadInstance* cpu, unsigned int new_brk)
 	return uem.GetBreak();
 }
 
-static unsigned int sys_gettimeofday(archsim::ThreadInstance* cpu, unsigned int tv_addr, unsigned int tz_addr)
+static unsigned int sys_gettimeofday(archsim::core::thread::ThreadInstance* cpu, unsigned int tv_addr, unsigned int tz_addr)
 {
 	struct timeval host_tv;
 	struct timezone host_tz;
@@ -535,12 +535,12 @@ static unsigned int sys_gettimeofday(archsim::ThreadInstance* cpu, unsigned int 
 	return 0;
 }
 
-static unsigned int sys_rt_sigprocmask(archsim::ThreadInstance* cpu, unsigned int how, unsigned int set_ptr, unsigned int oldset_ptr)
+static unsigned int sys_rt_sigprocmask(archsim::core::thread::ThreadInstance* cpu, unsigned int how, unsigned int set_ptr, unsigned int oldset_ptr)
 {
 	return 0;
 }
 
-static unsigned int sys_rt_sigaction(archsim::ThreadInstance* cpu, unsigned int signum, unsigned int act_ptr, unsigned int oldact_ptr)
+static unsigned int sys_rt_sigaction(archsim::core::thread::ThreadInstance* cpu, unsigned int signum, unsigned int act_ptr, unsigned int oldact_ptr)
 {
 	if(!archsim::options::UserPermitSignalHandling) return -EINVAL;
 	auto interface = cpu->GetMemoryInterface("Mem");
@@ -574,7 +574,7 @@ static unsigned int sys_rt_sigaction(archsim::ThreadInstance* cpu, unsigned int 
 	return 0;
 }
 
-static unsigned int sys_times(archsim::ThreadInstance* cpu, unsigned int buf_addr)
+static unsigned int sys_times(archsim::core::thread::ThreadInstance* cpu, unsigned int buf_addr)
 {
 	if (buf_addr == 0)
 		return -EFAULT;
@@ -619,7 +619,7 @@ static void host_timespec_to_arm(struct timespec *ts, struct arm_timespec *arm)
 	arm->tv_sec = ts->tv_sec;
 }
 
-static unsigned int sys_clock_gettime(archsim::ThreadInstance *cpu, unsigned int clk_id, unsigned int timespec_ptr)
+static unsigned int sys_clock_gettime(archsim::core::thread::ThreadInstance *cpu, unsigned int clk_id, unsigned int timespec_ptr)
 {
 	struct arm_timespec arm_ts;
 	struct timespec ts;
@@ -640,7 +640,7 @@ static unsigned int sys_clock_gettime(archsim::ThreadInstance *cpu, unsigned int
 	return -result;
 }
 
-static unsigned int sys_nanosleep(archsim::ThreadInstance* cpu, unsigned int req_ptr, unsigned int rem_ptr)
+static unsigned int sys_nanosleep(archsim::core::thread::ThreadInstance* cpu, unsigned int req_ptr, unsigned int rem_ptr)
 {
 	struct arm_timespec arm_req, arm_rem;
 	struct timespec req, rem;
@@ -666,25 +666,25 @@ static unsigned int sys_nanosleep(archsim::ThreadInstance* cpu, unsigned int req
 	return rc ? -errno : rc;
 }
 
-static unsigned int sys_cacheflush(archsim::ThreadInstance *cpu, uint32_t start, uint32_t end)
+static unsigned int sys_cacheflush(archsim::core::thread::ThreadInstance *cpu, uint32_t start, uint32_t end)
 {
 	cpu->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, (void*)(uint64_t)0);
 
 	return 0;
 }
 
-static unsigned int sys_dup(archsim::ThreadInstance *cpu, int oldfd)
+static unsigned int sys_dup(archsim::core::thread::ThreadInstance *cpu, int oldfd)
 {
 	int result = dup(oldfd);
 	if(result) return result;
 	else return -errno;
 }
 
-static unsigned int syscall_return_zero(archsim::ThreadInstance* cpu)
+static unsigned int syscall_return_zero(archsim::core::thread::ThreadInstance* cpu)
 {
 	return 0;
 }
-static unsigned int syscall_return_enosys(archsim::ThreadInstance* cpu)
+static unsigned int syscall_return_enosys(archsim::core::thread::ThreadInstance* cpu)
 {
 	return -ENOSYS;
 }

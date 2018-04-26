@@ -57,8 +57,6 @@ static void tlbflush_callback(PubSubType::PubSubType type, void *context, const 
 			assert(false);
 			break;
 	}
-
-
 }
 
 BlockJitProcessor::BlockJitProcessor(const std::string &arch_name, int core_id, archsim::util::PubSubContext& pubsub) : Processor(arch_name, core_id, pubsub), _translator(NULL), _phys_block_profile(_block_allocator), _flush_txlns(false), _flush_all_txlns(false), _pc_ptr(nullptr)
@@ -147,7 +145,8 @@ bool BlockJitProcessor::RunInterp(uint32_t steps)
 		// execute it
 		if(_virt_block_cache.Contains(archsim::VirtualAddress(read_pc_fast())) || translate_block(archsim::VirtualAddress(read_pc_fast()), true, false)) {
 			cur_exec_mode = kExecModeNative;
-			block_trampoline_source(&state, _virt_block_cache.GetPtr(), pc_ptr);
+			UNIMPLEMENTED;
+			//			block_trampoline_source(&state, _virt_block_cache.GetPtr(), pc_ptr);
 			cur_exec_mode = kExecModeInterpretive;
 		}
 
@@ -176,58 +175,60 @@ bool BlockJitProcessor::step_block_trace()
 
 bool BlockJitProcessor::translate_block(archsim::VirtualAddress block_pc, bool support_chaining, bool support_profiling)
 {
-	// Look up the block in the cache, just in case we already have it translated
-	captive::shared::block_txln_fn fn;
-	if((fn = _virt_block_cache.Lookup(block_pc))) return true;
-
-	// we missed in the block cache, so fall back to the physical profile
-	uint32_t phys_addr;
-
-	// Translate WITH side effects. If a fault occurs, stop translating this block
-	uint32_t fault = GetMemoryModel().PerformTranslation(block_pc.Get(), phys_addr, MMUACCESSINFO_SE(in_kernel_mode(), 0, 1));
-
-	if(fault) {
-		handle_fetch_fault(fault);
-		return false;
-	}
-
-	archsim::PhysicalAddress physaddr(phys_addr);
-
-	archsim::blockjit::BlockTranslation txln;
-	if(_phys_block_profile.Get(physaddr, GetFeatures(), txln)) {
-		_virt_block_cache.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
-		return true;
-	}
-
-	// we couldn't find the block in the physical profile, so create a new translation
-	GetEmulationModel().GetSystem().GetProfileManager().MarkRegionAsCode(physaddr.PageBase());
-
-	LC_DEBUG4(LogBlockJitCpu) << "Translating block " << std::hex << block_pc.Get();
-	auto *translate = _translator;
-	if(!support_chaining) translate->setSupportChaining(false);
-
-	if(support_profiling) {
-		translate->setSupportProfiling(true);
-		translate->setTranslationMgr(&GetEmulationModel().GetSystem().GetTranslationManager());
-	}
-
-	if(archsim::options::Verbose)compile_time.Start();
-
-	bool success = translate->translate_block(this, block_pc, txln, _block_allocator);
-	if(archsim::options::Verbose)compile_time.Stop();
-
-	if(success) {
-		// we successfully created a translation, so add it to the physical profile
-		// and to the cache, since we'll probably need it again soon
-		_phys_block_profile.Insert(physaddr, txln);
-		_virt_block_cache.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
-	} else {
-		// if we failed to produce a translation, then try and stop the simulation
-		LC_ERROR(LogBlockJitCpu) << "Failed to compile block! Aborting.";
-		halted = true;
-	}
-
-	return success;
+	UNIMPLEMENTED;
+//	
+//	// Look up the block in the cache, just in case we already have it translated
+//	captive::shared::block_txln_fn fn;
+//	if((fn = _virt_block_cache.Lookup(block_pc))) return true;
+//
+//	// we missed in the block cache, so fall back to the physical profile
+//	uint32_t phys_addr;
+//
+//	// Translate WITH side effects. If a fault occurs, stop translating this block
+//	uint32_t fault = GetMemoryModel().PerformTranslation(block_pc.Get(), phys_addr, MMUACCESSINFO_SE(in_kernel_mode(), 0, 1));
+//
+//	if(fault) {
+//		handle_fetch_fault(fault);
+//		return false;
+//	}
+//
+//	archsim::PhysicalAddress physaddr(phys_addr);
+//
+//	archsim::blockjit::BlockTranslation txln;
+//	if(_phys_block_profile.Get(physaddr, GetFeatures(), txln)) {
+//		_virt_block_cache.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
+//		return true;
+//	}
+//
+//	// we couldn't find the block in the physical profile, so create a new translation
+//	GetEmulationModel().GetSystem().GetProfileManager().MarkRegionAsCode(physaddr.PageBase());
+//
+//	LC_DEBUG4(LogBlockJitCpu) << "Translating block " << std::hex << block_pc.Get();
+//	auto *translate = _translator;
+//	if(!support_chaining) translate->setSupportChaining(false);
+//
+//	if(support_profiling) {
+//		translate->setSupportProfiling(true);
+//		translate->setTranslationMgr(&GetEmulationModel().GetSystem().GetTranslationManager());
+//	}
+//
+//	if(archsim::options::Verbose)compile_time.Start();
+//
+//	bool success = translate->translate_block(this, block_pc, txln, _block_allocator);
+//	if(archsim::options::Verbose)compile_time.Stop();
+//
+//	if(success) {
+//		// we successfully created a translation, so add it to the physical profile
+//		// and to the cache, since we'll probably need it again soon
+//		_phys_block_profile.Insert(physaddr, txln);
+//		_virt_block_cache.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
+//	} else {
+//		// if we failed to produce a translation, then try and stop the simulation
+//		LC_ERROR(LogBlockJitCpu) << "Failed to compile block! Aborting.";
+//		halted = true;
+//	}
+//
+//	return success;
 }
 
 void BlockJitProcessor::FlushTxlnCache()

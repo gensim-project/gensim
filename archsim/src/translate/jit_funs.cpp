@@ -172,27 +172,32 @@ extern "C" {
 
 	void tmFlushTlb(gensim::Processor *cpu)
 	{
-		cpu->flush_tlb();
+		UNIMPLEMENTED;
+//		cpu->flush_tlb();
 	}
 
 	void tmFlushITlb(gensim::Processor *cpu)
 	{
-		cpu->flush_itlb();
+		UNIMPLEMENTED;
+//		cpu->flush_itlb();
 	}
 
 	void tmFlushDTlb(gensim::Processor *cpu)
 	{
-		cpu->flush_dtlb();
+		UNIMPLEMENTED;
+//		cpu->flush_dtlb();
 	}
 
 	void tmFlushITlbEntry(gensim::Processor *cpu, uint32_t addr)
 	{
-		cpu->flush_itlb_entry(addr);
+		UNIMPLEMENTED;
+//		cpu->flush_itlb_entry(addr);
 	}
 
 	void tmFlushDTlbEntry(gensim::Processor *cpu, uint32_t addr)
 	{
-		cpu->flush_dtlb_entry(addr);
+		UNIMPLEMENTED;
+//		cpu->flush_dtlb_entry(addr);
 	}
 
 	uint8_t devProbeDevice(gensim::Processor *cpu, uint32_t device_id)
@@ -240,22 +245,26 @@ extern "C" {
 	uint32_t cpuTakeException(gensim::Processor *cpu, uint32_t category, uint32_t data)
 	{
 		LC_DEBUG2(LogJitFuns) << "CPU Take Exception";
-		return (uint32_t)(((gensim::Processor*)cpu)->take_exception(category, data));
+		UNIMPLEMENTED;
+//		return (uint32_t)(((gensim::Processor*)cpu)->take_exception(category, data));
 	}
 
 	void cpuPushInterruptState(gensim::Processor *cpu, uint32_t state)
 	{
-		((gensim::Processor*)cpu)->push_interrupt(state);
+		UNIMPLEMENTED;
+//		((gensim::Processor*)cpu)->push_interrupt(state);
 	}
 
 	void cpuPopInterruptState(gensim::Processor *cpu)
 	{
-		((gensim::Processor*)cpu)->pop_interrupt();
+		UNIMPLEMENTED;
+//		((gensim::Processor*)cpu)->pop_interrupt();
 	}
 
 	void cpuHalt(gensim::Processor *cpu)
 	{
-		((gensim::Processor*)cpu)->Halt();
+		UNIMPLEMENTED;
+//		((gensim::Processor*)cpu)->Halt();
 	}
 
 	uint32_t cpuHandlePendingAction(gensim::Processor *cpu)
@@ -265,12 +274,12 @@ extern "C" {
 
 	void cpuReturnToSafepoint(gensim::Processor *cpu)
 	{
-		cpu->return_to_safepoint();
+		UNIMPLEMENTED;
 	}
 
 	void cpuPendInterrupt(gensim::Processor *cpu)
 	{
-		cpu->pend_interrupt();
+		UNIMPLEMENTED;
 	}
 
 	uint32_t cpuTranslate(gensim::Processor *cpu, uint32_t virt_addr, uint32_t *phys_addr)
@@ -376,71 +385,78 @@ extern "C" {
 
 	uint32_t cpuRead8User(gensim::Processor *cpu, uint32_t address, uint8_t&data)
 	{
-		LC_DEBUG2(LogJitFuns) << "cpuRead8User";
-		uint8_t dl;
-		uint32_t rc = cpu->mem_read_8_user(address, dl);
-		data = dl;
-		if(rc) {
-			cpu->take_exception(7, cpu->read_pc()+8);
-		}
-		return rc;
+		UNIMPLEMENTED;
+//		LC_DEBUG2(LogJitFuns) << "cpuRead8User";
+//		uint8_t dl;
+//		uint32_t rc = cpu->mem_read_8_user(address, dl);
+//		data = dl;
+//		if(rc) {
+//			cpu->take_exception(7, cpu->read_pc()+8);
+//		}
+//		return rc;
 	}
 
 	uint32_t cpuRead32User(gensim::Processor *cpu, uint32_t address, uint32_t&data)
 	{
-		LC_DEBUG2(LogJitFuns) << "cpuRead32User";
-		int rc = cpu->mem_read_32_user(address, data);
-		if(rc) {
-			cpu->take_exception(7, cpu->read_pc()+8);
-		}
-		return rc;
+		UNIMPLEMENTED;
+//		LC_DEBUG2(LogJitFuns) << "cpuRead32User";
+//		int rc = cpu->mem_read_32_user(address, data);
+//		if(rc) {
+//			cpu->take_exception(7, cpu->read_pc()+8);
+//		}
+//		return rc;
 	}
 
 	uint32_t cpuWrite8User(gensim::Processor *cpu, uint32_t address, uint8_t data)
 	{
-		LC_DEBUG2(LogJitFuns) << "cpuWrite8User";
-		int rc = ((gensim::Processor*)cpu)->GetMemoryModel().Write8User(address, data);
-		if(rc) {
-			if(rc < 1024) {
-				// XXX ARM HAX
-				cpu->take_exception(7, cpu->read_pc()+8);
-			} else {
-				cpuReturnToSafepoint(cpu);
-			}
-		} else {
-			if(cpu->IsTracingEnabled())cpu->GetTraceManager()->Trace_Mem_Write(true, address, data, 1);
-		}
-		return rc;
+		UNIMPLEMENTED;
+//		LC_DEBUG2(LogJitFuns) << "cpuWrite8User";
+//		int rc = ((gensim::Processor*)cpu)->GetMemoryModel().Write8User(address, data);
+//		if(rc) {
+//			if(rc < 1024) {
+//				// XXX ARM HAX
+//				cpu->take_exception(7, cpu->read_pc()+8);
+//			} else {
+//				cpuReturnToSafepoint(cpu);
+//			}
+//		} else {
+//			if(cpu->IsTracingEnabled())cpu->GetTraceManager()->Trace_Mem_Write(true, address, data, 1);
+//		}
+//		return rc;
 	}
 
 	uint32_t cpuWrite32User(gensim::Processor *cpu, uint32_t address, uint32_t data)
 	{
-		LC_DEBUG2(LogJitFuns) << "cpuWrite32User";
-		int rc = cpu->mem_write_32_user(address, data);
-		if(rc) {
-			if(rc < 1024) {
-				// XXX ARM HAX
-				cpu->take_exception(7, cpu->read_pc()+8);
-			} else {
-				cpuReturnToSafepoint(cpu);
-			}
-		}
-		return rc;
+		UNIMPLEMENTED;
+//		LC_DEBUG2(LogJitFuns) << "cpuWrite32User";
+//		int rc = cpu->mem_write_32_user(address, data);
+//		if(rc) {
+//			if(rc < 1024) {
+//				// XXX ARM HAX
+//				cpu->take_exception(7, cpu->read_pc()+8);
+//			} else {
+//				cpuReturnToSafepoint(cpu);
+//			}
+//		}
+//		return rc;
 	}
 
 	void cpuEnterKernelMode(gensim::Processor *cpu)
 	{
-		cpu->enter_kernel_mode();
+		UNIMPLEMENTED;
+//		cpu->enter_kernel_mode();
 	}
 
 	void cpuEnterUserMode(gensim::Processor *cpu)
 	{
-		cpu->enter_user_mode();
+		UNIMPLEMENTED;
+//		cpu->enter_user_mode();
 	}
 
 	void cpuInstructionTick(gensim::Processor *cpu)
 	{
-		cpu->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::InstructionExecute, NULL);
+		UNIMPLEMENTED;
+//		cpu->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::InstructionExecute, NULL);
 	}
 
 	/*

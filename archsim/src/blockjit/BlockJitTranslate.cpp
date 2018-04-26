@@ -9,6 +9,8 @@
 #include "gensim/gensim_decode.h"
 #include "gensim/gensim_translate.h"
 
+#include "core/MemoryInterface.h"
+
 #include "blockjit/BlockJitTranslate.h"
 #include "blockjit/BlockProfile.h"
 #include "blockjit/block-compiler/block-compiler.h"
@@ -33,6 +35,8 @@ using namespace gensim::blockjit;
 using namespace captive::arch::jit;
 using namespace captive::shared;
 
+using archsim::Address;
+
 BaseBlockJITTranslate::BaseBlockJITTranslate() : _supportChaining(!archsim::options::JitDisableBranchOpt), _supportProfiling(false), _txln_mgr(NULL), _jumpinfo(NULL), _decode(NULL), _should_be_dumped(false)
 {
 
@@ -44,13 +48,12 @@ BaseBlockJITTranslate::~BaseBlockJITTranslate()
 	if(_jumpinfo) delete _jumpinfo;
 }
 
-bool BaseBlockJITTranslate::translate_block(gensim::BlockJitProcessor *processor, archsim::VirtualAddress block_address, archsim::blockjit::BlockTranslation &out_txln, wulib::MemAllocator &allocator)
+bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstance *processor, archsim::Address block_address, archsim::blockjit::BlockTranslation &out_txln, wulib::MemAllocator &allocator)
 {
 	// Initialise the translation context
 	_should_be_dumped = false;
 	
-	UNIMPLEMENTED;
-//	_decode_ctx = processor->GetEmulationModel().GetNewDecodeContext(*processor);
+	_decode_ctx = processor->GetEmulationModel().GetNewDecodeContext(*processor);
 	
 	TranslationContext ctx;
 	captive::shared::IRBuilder builder;
@@ -112,7 +115,7 @@ void BaseBlockJITTranslate::setTranslationMgr(archsim::translate::TranslationMan
 	_txln_mgr = txln_mgr;
 }
 
-void BaseBlockJITTranslate::InitialiseFeatures(const gensim::BlockJitProcessor *cpu)
+void BaseBlockJITTranslate::InitialiseFeatures(const archsim::core::thread::ThreadInstance *cpu)
 {
 	_feature_levels.clear();
 	_initial_feature_levels.clear();
@@ -156,10 +159,10 @@ archsim::ProcessorFeatureSet BaseBlockJITTranslate::GetProcessorFeatures() const
 	return features;
 }
 
-void BaseBlockJITTranslate::InitialiseIsaMode(const gensim::BlockJitProcessor* cpu)
+void BaseBlockJITTranslate::InitialiseIsaMode(const archsim::core::thread::ThreadInstance* cpu)
 {
 	_isa_mode_valid = true;
-	_isa_mode = cpu->get_cpu_mode();
+	_isa_mode = cpu->GetModeID();
 }
 
 void BaseBlockJITTranslate::SetIsaMode(const captive::shared::IROperand& val, captive::shared::IRBuilder& builder)
@@ -183,23 +186,24 @@ void BaseBlockJITTranslate::InvalidateIsaMode()
 	_isa_mode_valid = false;
 }
 
-bool BaseBlockJITTranslate::build_block(gensim::BlockJitProcessor *processor, archsim::VirtualAddress block_address, captive::shared::IRBuilder &builder)
+bool BaseBlockJITTranslate::build_block(archsim::core::thread::ThreadInstance *processor, archsim::Address block_address, captive::shared::IRBuilder &builder)
 {	
 	// initialise some state, and then recursively emit blocks until we come
 	// to a branch that we can't resolve statically
-	if(!_decode)_decode = processor->GetNewDecode();
-	if(!_jumpinfo)_jumpinfo = processor->GetJumpInfo();
-	std::unordered_set<VirtualAddress> block_heads;
+	if(!_decode)_decode = processor->GetArch().GetISA(processor->GetModeID()).GetNewDecode();
+	if(!_jumpinfo)_jumpinfo = processor->GetArch().GetISA(processor->GetModeID()).GetNewJumpInfo();
+	std::unordered_set<Address> block_heads;
 	return emit_block(processor, block_address, builder, block_heads);
 }
 
-bool BaseBlockJITTranslate::emit_instruction(gensim::BlockJitProcessor *processor, archsim::VirtualAddress pc, gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
+bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstance *processor, Address pc, gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
 {
-	if(archsim::options::Verbose)builder.count(IROperand::const64((uint64_t)&processor->metrics.interp_inst_count), IROperand::const64(1));
+	if(archsim::options::Verbose)builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
 
 
 	if(archsim::options::Profile) {
-		builder.count(IROperand::const64((uint64_t)processor->metrics.opcode_freq_hist.get_value_ptr_at_index(decode->Instr_Code)), IROperand::const64(1));
+		UNIMPLEMENTED;
+//		builder.count(IROperand::const64((uint64_t)processor->metrics.opcode_freq_hist.get_value_ptr_at_index(decode->Instr_Code)), IROperand::const64(1));
 	}
 
 	auto fault = _decode_ctx->DecodeSync(pc, GetIsaMode(), *decode);
@@ -227,13 +231,15 @@ bool BaseBlockJITTranslate::emit_instruction(gensim::BlockJitProcessor *processo
 	}
 
 	if(archsim::options::ProfilePcFreq) {
-		builder.count(IROperand::const64((uint64_t)processor->metrics.pc_freq_hist.get_value_ptr_at_index(pc.Get())), IROperand::const64(1));
+		UNIMPLEMENTED;
+//		builder.count(IROperand::const64((uint64_t)processor->metrics.pc_freq_hist.get_value_ptr_at_index(pc.Get())), IROperand::const64(1));
 	}
 	if(archsim::options::ProfileIrFreq) {
-		builder.count(IROperand::const64((uint64_t)processor->metrics.inst_ir_freq_hist.get_value_ptr_at_index(decode->ir)), IROperand::const64(1));
+		UNIMPLEMENTED;
+//		builder.count(IROperand::const64((uint64_t)processor->metrics.inst_ir_freq_hist.get_value_ptr_at_index(decode->ir)), IROperand::const64(1));
 	}
 	
-	if(processor->IsTracingEnabled()) {
+	if(processor->GetTraceSource()) {
 		IRRegId pc_reg = builder.alloc_reg(4);
 		builder.ldpc(IROperand::vreg(pc_reg, 4));
 		builder.bitwise_and(IROperand::const32(0xfffff000), IROperand::vreg(pc_reg, 4));
@@ -241,17 +247,17 @@ bool BaseBlockJITTranslate::emit_instruction(gensim::BlockJitProcessor *processo
 		builder.call(IROperand::func((void*)cpuTraceInstruction), IROperand::vreg(pc_reg, 4), IROperand::const32(decode->GetIR()), IROperand::const8(decode->isa_mode), IROperand::const8(0));
 	}
 
-	translate_instruction(decode, builder, processor->IsTracingEnabled());
-	processor->GetDecodeTranslateContext()->Translate(*decode, *_decode_ctx, builder);
+	translate_instruction(decode, builder, processor->GetTraceSource() != nullptr);
+	processor->GetArch().GetISA(processor->GetModeID()).GetNewDTC()->Translate(*decode, *_decode_ctx, builder);
 
-	if(processor->IsTracingEnabled()) {
+	if(processor->GetTraceSource()) {
 		builder.call(IROperand::func((void*)cpuTraceInsnEnd));
 	}
 
 	return true;
 }
 
-bool BaseBlockJITTranslate::can_merge_jump(gensim::BlockJitProcessor *processor, BaseDecode *decode, VirtualAddress pc)
+bool BaseBlockJITTranslate::can_merge_jump(archsim::core::thread::ThreadInstance *processor, BaseDecode *decode, Address pc)
 {
 	// only end of block instructions are jumps
 	assert(decode->GetEndOfBlock());
@@ -274,11 +280,11 @@ bool BaseBlockJITTranslate::can_merge_jump(gensim::BlockJitProcessor *processor,
 	if(!direct) return false;
 
 	// Return true if this jump lands within the same page as it starts
-	if(archsim::VirtualAddress(target).GetPageIndex() == pc.GetPageIndex()) return true;
+	if(archsim::Address(target).GetPageIndex() == pc.GetPageIndex()) return true;
 	else return false;
 }
 
-archsim::VirtualAddress BaseBlockJITTranslate::get_jump_target(BlockJitProcessor *processor, BaseDecode *decode, VirtualAddress pc)
+archsim::Address BaseBlockJITTranslate::get_jump_target(archsim::core::thread::ThreadInstance *processor, BaseDecode *decode, Address pc)
 {
 	bool indirect = false, direct = false;
 	uint32_t target;
@@ -287,26 +293,28 @@ archsim::VirtualAddress BaseBlockJITTranslate::get_jump_target(BlockJitProcessor
 
 	assert(direct || indirect);
 
-	return VirtualAddress(target);
+	return Address(target);
 }
 
-bool BaseBlockJITTranslate::emit_block(gensim::BlockJitProcessor *processor, archsim::VirtualAddress block_address, captive::shared::IRBuilder &builder, std::unordered_set<VirtualAddress> &block_heads)
+bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *processor, archsim::Address block_address, captive::shared::IRBuilder &builder, std::unordered_set<Address> &block_heads)
 {
 
-	VirtualAddress pc = block_address;
+	Address pc = block_address;
 	uint32_t pc_page = block_address.GetPageBase();
 
 	uint32_t phys_page = 0;
 	if(archsim::options::ProfilePcFreq || _supportProfiling) {
-		processor->GetMemoryModel().PerformTranslation(pc.GetPageBase(), phys_page, MMUACCESSINFO(processor->in_kernel_mode(), false, true));
+		UNIMPLEMENTED;
+		//		processor->GetFetchMI().PerformTranslation(pc.GetPageBase(), phys_page, MMUACCESSINFO(processor->in_kernel_mode(), false, true));
 	}
 
 	if(_supportProfiling) {
-
-		_txln_mgr->GetRegion(phys_page).TraceBlock(*processor, pc.Get());
-		auto &rgn = _txln_mgr->GetRegion(phys_page);
-
-		builder.profile(IROperand::const64((uint64_t)&rgn), IROperand::const32(block_address.GetPageOffset()));
+		UNIMPLEMENTED;
+		
+//		_txln_mgr->GetRegion(phys_page).TraceBlock(*processor, pc.Get());
+//		auto &rgn = _txln_mgr->GetRegion(phys_page);
+//
+//		builder.profile(IROperand::const64((uint64_t)&rgn), IROperand::const32(block_address.GetPageOffset()));
 	}
 
 	LC_DEBUG3(LogBlockJit) << "Translating block " << std::hex << pc.Get() << " " << _decode->Instr_Code << " " << _decode->ir;
@@ -336,7 +344,7 @@ bool BaseBlockJITTranslate::emit_block(gensim::BlockJitProcessor *processor, arc
 		// If this instruction is an end of block, potentially merge the next block
 		if(_decode->GetEndOfBlock()) {
 			if(can_merge_jump(processor, _decode, pc)) {
-				VirtualAddress target = get_jump_target(processor, _decode, pc);
+				Address target = get_jump_target(processor, _decode, pc);
 				if(!block_heads.count(target)) {
 					block_heads.insert(target);
 					if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
@@ -350,10 +358,6 @@ bool BaseBlockJITTranslate::emit_block(gensim::BlockJitProcessor *processor, arc
 		}
 	}
 
-	if(count >= max_count) {
-		processor->metrics.too_large_block.inc();
-	}
-
 	if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
 
 	// attempt to chain (otherwise return)
@@ -362,7 +366,7 @@ bool BaseBlockJITTranslate::emit_block(gensim::BlockJitProcessor *processor, arc
 	return success;
 }
 
-bool BaseBlockJITTranslate::emit_chain(gensim::BlockJitProcessor *processor, archsim::VirtualAddress pc, gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
+bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *processor, archsim::Address pc, gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
 {
 	// If this instruction is an end of block (rather than the start of the next page)
 	// then we might be able to chain
@@ -395,20 +399,20 @@ bool BaseBlockJITTranslate::emit_chain(gensim::BlockJitProcessor *processor, arc
 
 				//need to translate target and fallthrough PCs
 
-				uint32_t target_ppc, fallthrough_ppc;
-				if(target_pc) processor->GetMemoryModel().PerformTranslation(target_pc, target_ppc, MMUACCESSINFO(processor->in_kernel_mode(), false, true));
-				if(fallthrough_pc) processor->GetMemoryModel().PerformTranslation(fallthrough_pc, fallthrough_ppc, MMUACCESSINFO(processor->in_kernel_mode(), false, true));
+				Address target_ppc(0), fallthrough_ppc(0);
+				if(target_pc) processor->GetFetchMI().PerformTranslation(Address(target_pc), target_ppc, processor->GetExecutionRing());
+				if(fallthrough_pc) processor->GetFetchMI().PerformTranslation(Address(fallthrough_pc), fallthrough_ppc, processor->GetExecutionRing());
 
 				archsim::blockjit::BlockTranslation target_fn;
 				archsim::blockjit::BlockTranslation fallthrough_fn;
 
 				block_txln_fn target_fn_ptr = nullptr, fallthrough_fn_ptr = nullptr;
 
-				if(target_ppc) {
-					processor->GetTranslatedBlock(archsim::PhysicalAddress(target_ppc), GetProcessorFeatures(), target_fn);
+				if(target_ppc.Get() != 0) {
+//					processor->GetTranslatedBlock(target_ppc, GetProcessorFeatures(), target_fn);
 				}
-				if(fallthrough_ppc) {
-					processor->GetTranslatedBlock(archsim::PhysicalAddress(fallthrough_ppc), GetProcessorFeatures(), fallthrough_fn);
+				if(fallthrough_ppc.Get() != 0) {
+//					processor->GetTranslatedBlock(fallthrough_ppc, GetProcessorFeatures(), fallthrough_fn);
 				}
 
 				// actually get functions
@@ -436,7 +440,7 @@ bool BaseBlockJITTranslate::emit_chain(gensim::BlockJitProcessor *processor, arc
 	return true;
 }
 
-bool BaseBlockJITTranslate::compile_block(gensim::BlockJitProcessor *cpu, archsim::VirtualAddress block_address, captive::arch::jit::TranslationContext &ctx, captive::shared::block_txln_fn &fn, wulib::MemAllocator &allocator)
+bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, captive::shared::block_txln_fn &fn, wulib::MemAllocator &allocator)
 {
 	BlockCompiler compiler (ctx, block_address.Get(), allocator, false, true);
 	compiler.set_cpu(cpu);

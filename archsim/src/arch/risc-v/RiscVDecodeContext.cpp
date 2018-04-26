@@ -11,7 +11,7 @@
 
 using namespace archsim::arch::riscv;
 
-RiscVDecodeContext::RiscVDecodeContext(archsim::ThreadInstance *cpu) : DecodeContext(cpu)
+RiscVDecodeContext::RiscVDecodeContext(archsim::core::thread::ThreadInstance *cpu) : DecodeContext(cpu)
 {
 
 }
@@ -30,5 +30,5 @@ class RiscVDecodeTranslationContext : public gensim::DecodeTranslateContext
 
 };
 
-RegisterComponent(gensim::DecodeContext, RiscVDecodeContext, "riscv", "risc v", archsim::ThreadInstance*);
+RegisterComponent(gensim::DecodeContext, RiscVDecodeContext, "riscv", "risc v", archsim::core::thread::ThreadInstance*);
 RegisterComponent(gensim::DecodeTranslateContext, RiscVDecodeTranslationContext, "riscv", "risc v");

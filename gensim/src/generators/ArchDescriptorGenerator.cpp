@@ -4,9 +4,14 @@
  * and open the template in the editor.
  */
 
+#include "genC/ssa/analysis/CallGraphAnalysis.h"
 #include "arch/ArchDescription.h"
 #include "isa/ISADescription.h"
 #include "generators/ArchDescriptorGenerator.h"
+#include "generators/GenCInterpreter/GenCInterpreterGenerator.h"
+#include "genC/ssa/SSAContext.h"
+#include "genC/ssa/SSAFormAction.h"
+#include "genC/ssa/SSASymbol.h"
 
 using namespace gensim::generator;
 
@@ -38,10 +43,29 @@ const std::vector<std::string> ArchDescriptorGenerator::GetSources() const
 	return {"arch.cpp"};
 }
 
+static void GenerateHelperFunctionPrototype(gensim::util::cppformatstream &str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction *action) 
+{
+	str << "template<bool trace=false> " << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::execution::ExecutionEngine *ee, archsim::core::thread::ThreadInstance *thread";
+
+	for(auto i : action->ParamSymbols) {
+		// if we're accessing a struct, assume that it's an instruction
+		if(i->GetType().IsStruct()) {
+			str << ", Decode &inst";
+		} else {
+			auto type_string = i->GetType().GetCType();
+			str << ", " << type_string << " " << i->GetName();
+		}
+	}
+	str << ")";
+}
+
 bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 {
+	str << "#include <core/thread/ThreadInstance.h>\n";
+	str << "#include <core/execution/ExecutionEngine.h>\n";
 	str << "#include \"arch.h\"\n";
 	str << "#include \"decode.h\"\n";
+	str << "#include \"jumpinfo.h\"\n";
 	
 	str << "using namespace gensim::" << Manager.GetArch().Name << ";";
 	
@@ -93,13 +117,75 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 			isa_list += ", ";
 		}
 		isa_list += "isa_" + isa->ISAName;
+	
 		
-		str << "namespace " << Manager.GetArch().Name << " { ";
-		str << "extern archsim::ISABehavioursDescriptor get_behaviours_" << isa->ISAName << "();";
-		str << "}";
+		std::string behaviours_list = "";
+		GenCInterpreterGenerator interp (Manager);
 		
+		// figure out the complete list of behaviours we need to output in order to service this ISA's exported behaviours
+		gensim::genc::ssa::CallGraphAnalysis cga;
+		auto callgraph = cga.Analyse(isa->GetSSAContext());
+		std::set<gensim::genc::ssa::SSAActionBase *> exported_actions;
+		for(const auto &action : isa->GetSSAContext().Actions()) {
+			if(action.second->GetPrototype().HasAttribute(gensim::genc::ActionAttribute::Export)) {
+				auto allcallees = callgraph.GetDeepCallees((gensim::genc::ssa::SSAFormAction*)action.second);
+				exported_actions.insert(allcallees.begin(), allcallees.end());
+				exported_actions.insert(action.second);
+			}
+		}
 		
-		str << "static archsim::ISADescriptor isa_" << isa->ISAName << " (\"" << isa->ISAName << "\", " << (uint32_t)isa->isa_mode_id << ", [](archsim::Address addr, archsim::MemoryInterface *interface, gensim::BaseDecode &decode){ return ((gensim::" << Manager.GetArch().Name << "::Decode&)decode).DecodeInstr(addr, " << (uint32_t)isa->isa_mode_id << ", *interface); }, " << Manager.GetArch().Name << "::get_behaviours_" << isa->ISAName << "());";
+		for(auto action : exported_actions) {
+			GenerateHelperFunctionPrototype(str, *isa, (gensim::genc::ssa::SSAFormAction*)action);
+			str << ";";
+		}
+		
+		for(const auto &action : exported_actions) {
+
+			// generate helper function
+			GenerateHelperFunctionPrototype(str, *isa, (gensim::genc::ssa::SSAFormAction*)action);
+			str << "{";
+			str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
+			interp.GenerateExecuteBodyFor(str, *(gensim::genc::ssa::SSAFormAction*)action);
+			str << "}";
+
+			if(action->GetPrototype().HasAttribute(gensim::genc::ActionAttribute::Export)) {
+				if(!behaviours_list.empty()) {
+					behaviours_list += ", ";
+				}
+				behaviours_list += "bd_" + isa->ISAName + "_" + action->GetName() + "()";
+
+				str << "static archsim::BehaviourDescriptor bd_" << isa->ISAName << "_" << action->GetName() << "() { archsim::BehaviourDescriptor bd (\"" << action->GetPrototype().GetIRSignature().GetName() << "\", [](const archsim::InvocationContext &ctx){ helper_" << isa->ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "<false>(nullptr, ctx.GetThread()";
+
+				// unpack arguments
+				for(int index = 0; index < action->GetPrototype().ParameterTypes().size(); ++index) {
+					auto &argtype = action->GetPrototype().ParameterTypes().at(index);
+					// if we're accessing a struct, assume it's a decode_t
+					std::string type_string;
+
+					if(argtype.Reference) {
+						UNIMPLEMENTED;
+					}
+
+					if(argtype.IsStruct()) {
+						UNIMPLEMENTED;
+					}
+
+					str << ", (" << argtype.GetCType() << ")ctx.GetArg(" << index << ")";
+
+				}
+
+				str << "); return 0; }); return bd; }";
+			}
+		}
+		
+		str << "static archsim::ISABehavioursDescriptor get_behaviours_" << isa->ISAName << "() { return archsim::ISABehavioursDescriptor({" << behaviours_list << "}); };";
+		
+		str << "static auto " << isa->ISAName << "_decode_instr = [](archsim::Address addr, archsim::MemoryInterface *interface, gensim::BaseDecode &decode){ return ((gensim::" << Manager.GetArch().Name << "::Decode&)decode).DecodeInstr(addr, " << (uint32_t)isa->isa_mode_id << ", *interface); };";
+		str << "static auto " << isa->ISAName << "_newdecoder = []() { return new gensim::" << Manager.GetArch().Name << "::Decode(); };";
+		str << "static auto " << isa->ISAName << "_newjumpinfo = []() { return new gensim::" << Manager.GetArch().Name << "::JumpInfo(); };";
+		str << "static auto " << isa->ISAName << "_newdtc = []() { return nullptr; };";
+		
+		str << "static archsim::ISADescriptor isa_" << isa->ISAName << " (\"" << isa->ISAName << "\", " << (uint32_t)isa->isa_mode_id << ", " << isa->ISAName << "_decode_instr, " << isa->ISAName << "_newdecoder, " << isa->ISAName << "_newjumpinfo, " << isa->ISAName << "_newdtc, get_behaviours_" << isa->ISAName << "());";
 		
 	}
 	
@@ -112,8 +198,8 @@ bool ArchDescriptorGenerator::GenerateHeader(util::cppformatstream &str) const
 {	
 	str << "#ifndef ARCH_DESC_H\n";
 	str << "#define ARCH_DESC_H\n";
-	str << "#include <gensim/ArchDescriptor.h>\n";
-	str << "#include <gensim/ThreadInstance.h>\n";
+	str << "#include <core/arch/ArchDescriptor.h>\n";
+	str << "#include <core/thread/ThreadInstance.h>\n";
 	str << "#include <util/Vector.h>\n";
 	str << "namespace gensim {";
 	str << "namespace " << Manager.GetArch().Name << " {";
@@ -133,7 +219,7 @@ bool ArchDescriptorGenerator::GenerateHeader(util::cppformatstream &str) const
 
 bool ArchDescriptorGenerator::GenerateThreadInterface(util::cppformatstream &str) const {
 	str << "class ArchInterface {";
-	str << "public: ArchInterface(archsim::ThreadInstance *thread) : thread_(thread), reg_file_((char*)thread->GetRegisterFile()) {}";
+	str << "public: ArchInterface(archsim::core::thread::ThreadInstance *thread) : thread_(thread), reg_file_((char*)thread->GetRegisterFile()) {}";
 	
 	for(gensim::arch::RegBankViewDescriptor *rbank : Manager.GetArch().GetRegFile().GetBanks()) {
 		std::string read_trace_string = "";
@@ -164,10 +250,8 @@ bool ArchDescriptorGenerator::GenerateThreadInterface(util::cppformatstream &str
 	str << "write_register_" << pc_descriptor->GetID() << "(new_pc.Get());";
 	str << "}";
 	
-	
-	
 	str << "private: "
-		"archsim::ThreadInstance *thread_;"
+		"archsim::core::thread::ThreadInstance *thread_;"
 		"char *reg_file_;";
 	str << "};";
 	

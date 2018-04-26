@@ -20,8 +20,8 @@ using namespace captive::shared;
 bool LowerIncPC::Lower(const captive::shared::IRInstruction *&insn)
 {
 	const IROperand *amount = &insn->operands[0];
-	const gensim::BlockJitProcessor *cpu = GetCompiler().get_cpu();
-	uint32_t pc_offset = cpu->GetRegisterByTag("PC")->Offset;
+	const auto *cpu = GetCompiler().get_cpu();
+	uint32_t pc_offset = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC").GetOffset();
 
 	if (amount->is_constant()) {
 		Encoder().add4(amount->value, X86Memory::get(BLKJIT_REGSTATE_REG, pc_offset));
