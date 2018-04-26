@@ -24,7 +24,7 @@ namespace archsim
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
 			void Destroy() override;
 
-			virtual ExceptionAction HandleException(archsim::ThreadInstance *thread, uint32_t category, uint32_t data) override;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *thread, uint32_t category, uint32_t data) override;
 
 		protected:
 
@@ -32,7 +32,7 @@ namespace archsim
 			virtual void DestroyDevices() override;
 
 			virtual bool InstallPlatform(loader::BinaryLoader& loader) override;
-			virtual bool PrepareCore(archsim::ThreadInstance& core) override;
+			virtual bool PrepareCore(archsim::core::thread::ThreadInstance& core) override;
 
 			bool HandleSemihostingCall();
 

@@ -49,7 +49,7 @@ namespace archsim
 
 			bool PrepareBoot(System& system) override;
 
-			virtual ExceptionAction HandleException(archsim::ThreadInstance *cpu, uint32_t category, uint32_t data) = 0;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data) = 0;
 
 			
 			void PrintStatistics(std::ostream& stream);
@@ -60,13 +60,13 @@ namespace archsim
 			}
 
 		protected:
-			archsim::ThreadInstance *main_thread_;
+			archsim::core::thread::ThreadInstance *main_thread_;
 
 			virtual bool InstallDevices() = 0;
 			virtual void DestroyDevices() = 0;
 
 			virtual bool InstallPlatform(loader::BinaryLoader& loader) = 0;
-			virtual bool PrepareCore(archsim::ThreadInstance& core) = 0;
+			virtual bool PrepareCore(archsim::core::thread::ThreadInstance& core) = 0;
 
 			bool RegisterMemoryComponent(abi::devices::MemoryComponent& component);
 			void RegisterCoreComponent(abi::devices::CoreComponent& component);

@@ -78,7 +78,7 @@ bool ArmRealviewEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	return InstallBootloader(loader);
 }
 
-bool ArmRealviewEmulationModel::PrepareCore(archsim::ThreadInstance& core)
+bool ArmRealviewEmulationModel::PrepareCore(archsim::core::thread::ThreadInstance& core)
 {
 	// invoke reset exception
 	core.GetArch().GetISA("arm").GetBehaviours().GetBehaviour("take_arm_exception").Invoke(&core, {0, 0});
@@ -382,7 +382,7 @@ void ArmRealviewEmulationModel::HandleSemihostingCall()
 	}
 }
 
-ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::ThreadInstance *cpu, unsigned int category, unsigned int data)
+ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
 {
 	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu->GetPC() << " mode " << (uint32_t)cpu->GetModeID();
 
@@ -422,7 +422,7 @@ ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::ThreadInstan
 	return archsim::abi::AbortInstruction;
 }
 
-archsim::abi::ExceptionAction ArmRealviewEmulationModel::HandleMemoryFault(archsim::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
+archsim::abi::ExceptionAction ArmRealviewEmulationModel::HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
 {
 	if(&interface == &thread.GetFetchMI()) {
 		return HandleException(&thread, 6, thread.GetPC().Get() + 4);
@@ -431,13 +431,13 @@ archsim::abi::ExceptionAction ArmRealviewEmulationModel::HandleMemoryFault(archs
 	}
 }
 
-void ArmRealviewEmulationModel::HandleInterrupt(archsim::ThreadInstance *thread, CPUIRQLine *irq) 
+void ArmRealviewEmulationModel::HandleInterrupt(archsim::core::thread::ThreadInstance *thread, CPUIRQLine *irq) 
 {
 	auto &behaviour = thread->GetArch().GetISA("arm").GetBehaviours().GetBehaviour("take_interrupt");
 	behaviour.Invoke(thread, {irq->Line()});
 }
 
-gensim::DecodeContext* ArmRealviewEmulationModel::GetNewDecodeContext(archsim::ThreadInstance& cpu)
+gensim::DecodeContext* ArmRealviewEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu)
 {
 	return new archsim::arch::arm::ARMDecodeContext(&cpu);
 }

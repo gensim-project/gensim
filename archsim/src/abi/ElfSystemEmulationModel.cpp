@@ -55,7 +55,7 @@ void ElfSystemEmulationModel::Destroy()
 	SystemEmulationModel::Destroy();
 }
 
-ExceptionAction ElfSystemEmulationModel::HandleException(archsim::ThreadInstance *cpu, uint32_t category, uint32_t data)
+ExceptionAction ElfSystemEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data)
 {
 	if(category == 3 && data == 0x123456) {
 		if(HandleSemihostingCall()) {
@@ -104,7 +104,7 @@ bool ElfSystemEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	return true;
 }
 
-bool ElfSystemEmulationModel::PrepareCore(archsim::ThreadInstance &cpu)
+bool ElfSystemEmulationModel::PrepareCore(archsim::core::thread::ThreadInstance &cpu)
 {
 	LC_DEBUG1(LogElfSystemEmulationModel) << "Binary entry point: " << std::hex << binary_entrypoint;
 

@@ -7,6 +7,8 @@
 #include "core/execution/ExecutionContextManager.h"
 
 using namespace archsim;
+using namespace archsim::core::execution;
+using namespace archsim::core::thread;
 
 ExecutionContext::ExecutionContext(ArchDescriptor& arch, ExecutionEngine* engine) : arch_(arch), engine_(engine), trace_sink_(nullptr)
 {

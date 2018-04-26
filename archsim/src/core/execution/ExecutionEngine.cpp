@@ -10,6 +10,8 @@
 #include <cassert>
 
 using namespace archsim;
+using namespace archsim::core::execution;
+using namespace archsim::core::thread;
 
 DeclareLogContext(LogExecutionEngine, "ExecutionEngine");
 
@@ -61,15 +63,16 @@ void BasicExecutionEngine::TakeException(ThreadInstance* thread, uint64_t catego
 	
 	auto result = thread->TakeException(category, data);
 	if(result == archsim::abi::AbortInstruction || result == archsim::abi::AbortSimulation) {
-		throw archsim::ThreadException();
+		throw ThreadException();
 	}
 }
 
 ExecutionResult BasicExecutionEngine::StepThreadBlock(ThreadInstance* thread)
 {
+	archsim::util::CounterTimerContext timer(thread->GetMetrics().SelfRuntime);
 	try {
 		return ArchStepBlock(thread);
-	} catch(archsim::ThreadException &exception) {
+	} catch(ThreadException &exception) {
 		if(thread->GetTraceSource()) {
 			thread->GetTraceSource()->Trace_End_Insn();
 		}
@@ -78,9 +81,10 @@ ExecutionResult BasicExecutionEngine::StepThreadBlock(ThreadInstance* thread)
 }
 ExecutionResult BasicExecutionEngine::StepThreadSingle(ThreadInstance* thread)
 {
+	archsim::util::CounterTimerContext timer(thread->GetMetrics().SelfRuntime);
 	try {
 		return ArchStepSingle(thread);
-	} catch(archsim::ThreadException &exception) {
+	} catch(ThreadException &exception) {
 		if(thread->GetTraceSource()) {
 			thread->GetTraceSource()->Trace_End_Insn();
 		}

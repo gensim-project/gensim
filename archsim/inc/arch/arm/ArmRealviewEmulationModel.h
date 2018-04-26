@@ -26,11 +26,11 @@ namespace archsim
 				bool Initialise(System& system, uarch::uArch& uarch) override;
 				void Destroy() override;
 
-				archsim::abi::ExceptionAction HandleException(archsim::ThreadInstance *cpu, uint32_t category, uint32_t data) override;
-				void HandleInterrupt(archsim::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq) override;
-				archsim::abi::ExceptionAction HandleMemoryFault(archsim::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address) override;
+				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data) override;
+				void HandleInterrupt(archsim::core::thread::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq) override;
+				archsim::abi::ExceptionAction HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address) override;
 
-				gensim::DecodeContext* GetNewDecodeContext(archsim::ThreadInstance& cpu) override;
+				gensim::DecodeContext* GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu) override;
 
 
 			protected:
@@ -38,7 +38,7 @@ namespace archsim
 				void DestroyDevices() override;
 				bool InstallPlatform(abi::loader::BinaryLoader& loader) override;
 
-				bool PrepareCore(archsim::ThreadInstance& core) override;
+				bool PrepareCore(archsim::core::thread::ThreadInstance& core) override;
 
 			private:
 				uint32_t entry_point;

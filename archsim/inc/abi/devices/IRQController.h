@@ -17,7 +17,11 @@
 
 namespace archsim
 {
-	class ThreadInstance;
+	namespace core {
+		namespace thread {
+			class ThreadInstance;
+		}
+	}
 	
 	namespace abi
 	{
@@ -96,7 +100,7 @@ namespace archsim
 			class CPUIRQLine : public IRQLine
 			{
 			public:
-				CPUIRQLine(archsim::ThreadInstance *cpu);
+				CPUIRQLine(archsim::core::thread::ThreadInstance *cpu);
 
 				void Assert();
 				void Rescind();
@@ -117,7 +121,7 @@ namespace archsim
 				}
 
 			protected:
-				archsim::ThreadInstance *CPU;
+				archsim::core::thread::ThreadInstance *CPU;
 				bool Acknowledged;
 			};
 

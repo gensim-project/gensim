@@ -75,7 +75,7 @@ bool ArmVersatileEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	return InstallBootloader(loader);
 }
 
-bool ArmVersatileEmulationModel::PrepareCore(archsim::ThreadInstance& core)
+bool ArmVersatileEmulationModel::PrepareCore(archsim::core::thread::ThreadInstance& core)
 {
 	uint32_t *regs = (uint32_t *)core.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 
@@ -143,8 +143,8 @@ bool ArmVersatileEmulationModel::InstallPlatformDevices()
 
 	auto pl190 = adm->GetEntry<ModuleDeviceEntry>("PL190")->Get(*this, Address(0x1014000));
 	auto irq_controller = dynamic_cast<IRQController*>(pl190->GetParameter<Component*>("IRQController"));
-	pl190->SetParameter("IRQLine", GetBootCore()->GetIRQLine(0));
-	pl190->SetParameter("FIQLine", GetBootCore()->GetIRQLine(1));
+	pl190->SetParameter("IRQLine", main_thread_->GetIRQLine(0));
+	pl190->SetParameter("FIQLine", main_thread_->GetIRQLine(1));
 	pl190->Initialise();
 
 	if(!HackyMMIORegisterDevice(*pl190)) return false;
@@ -341,7 +341,7 @@ void ArmVersatileEmulationModel::HandleSemihostingCall()
 	}
 }
 
-ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::ThreadInstance *cpu, unsigned int category, unsigned int data)
+ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
 {
 	UNIMPLEMENTED;
 //	
@@ -382,7 +382,7 @@ ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::ThreadInsta
 //	return archsim::abi::AbortInstruction;
 }
 
-gensim::DecodeContext* ArmVersatileEmulationModel::GetNewDecodeContext(archsim::ThreadInstance& cpu)
+gensim::DecodeContext* ArmVersatileEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu)
 {
 	return new archsim::arch::arm::ARMDecodeContext(&cpu);
 }

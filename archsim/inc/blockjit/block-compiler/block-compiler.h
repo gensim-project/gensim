@@ -17,6 +17,7 @@
 
 #include "blockjit/translation-context.h"
 #include "util/wutils/small-set.h"
+#include "core/thread/ThreadInstance.h"
 
 #include <map>
 #include <vector>
@@ -24,11 +25,6 @@
 #include <iomanip>
 
 #include "blockjit/blockjit-abi.h"
-
-namespace gensim
-{
-	class BlockJitProcessor;
-}
 
 namespace captive
 {
@@ -48,11 +44,11 @@ namespace captive
 				bool emit_interrupt_check;
 				bool emit_chaining_logic;
 
-				void set_cpu(gensim::BlockJitProcessor *cpu)
+				void set_cpu(archsim::core::thread::ThreadInstance *cpu)
 				{
 					_cpu = cpu;
 				}
-				const gensim::BlockJitProcessor *get_cpu()
+				const archsim::core::thread::ThreadInstance *get_cpu()
 				{
 					return _cpu;
 				}
@@ -65,7 +61,7 @@ namespace captive
 				wulib::MemAllocator &_allocator;
 				TranslationContext& ctx;
 				x86::X86Encoder encoder;
-				gensim::BlockJitProcessor *_cpu;
+				archsim::core::thread::ThreadInstance *_cpu;
 				uint32_t pa;
 
 

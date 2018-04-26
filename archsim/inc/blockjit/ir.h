@@ -24,6 +24,14 @@
 
 #define NOP_BLOCK 0x7fffffff
 
+namespace archsim {
+	namespace core {
+		namespace thread {
+			class ThreadInstance;
+		}
+	}
+}
+
 namespace captive
 {
 	namespace shared
@@ -35,7 +43,7 @@ namespace captive
 
 		struct IRInstruction;
 
-		typedef uint32_t (*block_txln_fn)();
+		typedef uint32_t (*block_txln_fn)(void *, archsim::core::thread::ThreadInstance *);
 
 
 	}

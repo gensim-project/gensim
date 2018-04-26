@@ -85,7 +85,7 @@ bool ArmLinuxUserEmulationModel::PrepareBoot(System& system)
 	return true;
 }
 
-gensim::DecodeContext* ArmLinuxUserEmulationModel::GetNewDecodeContext(archsim::ThreadInstance &cpu)
+gensim::DecodeContext* ArmLinuxUserEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance &cpu)
 {
 	return new archsim::arch::arm::ARMDecodeContext(&cpu);
 }
@@ -169,7 +169,7 @@ bool ArmLinuxUserEmulationModel::InstallKernelHelpers()
 	return true;
 }
 
-archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsim::ThreadInstance* thread, unsigned int category, unsigned int data)
+archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsim::core::thread::ThreadInstance* thread, unsigned int category, unsigned int data)
 {
 	if (category == 3) {
 		auto bank = thread->GetRegisterFileInterface().GetEntry<uint32_t>("RB");

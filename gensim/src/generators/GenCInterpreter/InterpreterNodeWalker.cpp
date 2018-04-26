@@ -202,7 +202,7 @@ namespace gensim
 							output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
 							output << "{";
 							output << "auto mode = thread->GetFPState().GetRoundingMode();";
-							output << "thread->GetFPState().SetRoundingMode(archsim::RoundingMode::RoundTowardZero);";
+							output << "thread->GetFPState().SetRoundingMode(archsim::core::thread::RoundingMode::RoundTowardZero);";
 							output << stmt.GetName() << " = " << "(" << stmt.GetType().GetCType() << ")" << Factory.GetOrCreate(stmt.Expr())->GetFixedValue() << ";";
 							output << "thread->GetFPState().SetRoundingMode(mode);";
 							output << "}";
@@ -464,11 +464,10 @@ namespace gensim
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = (uint32_t)thread->GetFPState().GetRoundingMode();";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
-						output << "thread->GetFPState().SetFlushMode((archsim::FlushMode)" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						output << "thread->GetFPState().SetFlushMode((archsim::core::thread::FlushMode)" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
-						output << "thread->GetFPState().SetRoundingMode((archsim::RoundingMode)" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
-						break;
+						output << "thread->GetFPState().SetRoundingMode((archsim::core::thread::RoundingMode)" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 
 					default:

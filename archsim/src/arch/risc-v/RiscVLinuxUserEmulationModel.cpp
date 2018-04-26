@@ -62,7 +62,7 @@ bool RiscVLinuxUserEmulationModel::PrepareBoot(System& system)
 	return true;
 }
 
-gensim::DecodeContext* RiscVLinuxUserEmulationModel::GetNewDecodeContext(archsim::ThreadInstance& cpu)
+gensim::DecodeContext* RiscVLinuxUserEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu)
 {
 	return new arch::riscv::RiscVDecodeContext(&cpu);
 }
@@ -78,7 +78,7 @@ bool RiscVLinuxUserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, Si
 	return false;
 }
 
-archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(archsim::ThreadInstance *cpu, unsigned int category, unsigned int data)
+archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
 {
 	UNIMPLEMENTED;
 //	

@@ -28,7 +28,11 @@ namespace gensim
 
 namespace archsim
 {
-	class ExecutionEngine;
+	namespace core {
+		namespace execution {
+			class ExecutionEngine;
+		}
+	}
 	
 	namespace module
 	{
@@ -59,14 +63,14 @@ namespace archsim
 		template<> struct ModuleEntryTypeForClass<abi::devices::Component*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Component; };
 		template<> struct ModuleEntryTypeForClass<abi::devices::MemoryComponent*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Device; };
 		template<> struct ModuleEntryTypeForClass<gensim::Processor*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Processor; };
-		template<> struct ModuleEntryTypeForClass<archsim::ExecutionEngine*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ExecutionEngine; };
+		template<> struct ModuleEntryTypeForClass<archsim::core::execution::ExecutionEngine*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ExecutionEngine; };
 		template<> struct ModuleEntryTypeForClass<archsim::ArchDescriptor*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ArchDescriptor; };
 		
 		template<ModuleEntry::ModuleEntryType> struct FactoryForModuleEntry {};
 		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Component> { using factory_t = std::function<abi::devices::Component*(archsim::abi::EmulationModel&)>; };
 		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Device> { using factory_t = std::function<abi::devices::MemoryComponent*(archsim::abi::EmulationModel& model, archsim::Address base_address)>; };
 		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Processor> { using factory_t = std::function<gensim::Processor*(const std::string &name, int _core_id, archsim::util::PubSubContext* pubsub)>; };
-		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ExecutionEngine> { using factory_t = std::function<archsim::ExecutionEngine*()>; };
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ExecutionEngine> { using factory_t = std::function<archsim::core::execution::ExecutionEngine*()>; };
 		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ArchDescriptor> { using factory_t = std::function<archsim::ArchDescriptor*()>; };
 		
 		template<typename T> class TypedModuleEntry : public ModuleEntry {
@@ -81,7 +85,7 @@ namespace archsim
 		using ModuleComponentEntry = TypedModuleEntry<abi::devices::Component*>;
 		using ModuleDeviceEntry = TypedModuleEntry<abi::devices::MemoryComponent*>;
 		using ModuleProcessorEntry = TypedModuleEntry<gensim::Processor*>;
-		using ModuleExecutionEngineEntry = TypedModuleEntry<archsim::ExecutionEngine*>;
+		using ModuleExecutionEngineEntry = TypedModuleEntry<archsim::core::execution::ExecutionEngine*>;
 		using ModuleArchDescriptorEntry = TypedModuleEntry<archsim::ArchDescriptor*>;
 		
 		class ModuleInfo
@@ -126,7 +130,7 @@ namespace archsim
 #define ARCHSIM_DEVICEFACTORY(x) [](archsim::abi::EmulationModel& model, archsim::Address base_address) { static_assert(std::is_base_of<archsim::abi::devices::MemoryComponent,x>::value, "Component must be a MemoryComponent"); return new x(model, base_address); }
 #define ARCHSIM_COMPONENTFACTORY(x) [](archsim::abi::EmulationModel& model) { static_assert(std::is_base_of<archsim::abi::devices::Component,x>::value, "Component must be a Component"); return new x(model); }
 #define ARCHSIM_PROCESSORFACTORY(x) [](const std::string &name, int _core_id, archsim::util::PubSubContext* pubsub) { static_assert(std::is_base_of<gensim::Processor,x>::value, "Component must be a Processor"); return new x(name, _core_id, pubsub); }
-#define ARCHSIM_EEFACTORY(x) []() { static_assert(std::is_base_of<archsim::ExecutionEngine,x>::value, "Component must be a EE"); return new x(); }
+#define ARCHSIM_EEFACTORY(x) []() { static_assert(std::is_base_of<archsim::core::execution::ExecutionEngine,x>::value, "Component must be a EE"); return new x(); }
 #define ARCHSIM_ARCHDESCRIPTORFACTORY(x) []() { static_assert(std::is_base_of<archsim::ArchDescriptor,x>::value, "Component must be a AD"); return new x(); }
 
 #endif /* MODULE_H */

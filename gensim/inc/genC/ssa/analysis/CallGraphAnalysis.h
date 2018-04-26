@@ -39,6 +39,8 @@ namespace gensim
 				{
 					return call_graph_[caller];
 				}
+				
+				const callee_set_t GetDeepCallees(SSAFormAction *caller);
 			private:
 				std::map<SSAFormAction*, std::set<SSAActionBase *>> call_graph_;
 			};

@@ -12,7 +12,7 @@
 
 using namespace archsim::arch::arm;
 
-ARMDecodeContext::ARMDecodeContext(archsim::ThreadInstance *cpu) : DecodeContext(cpu)
+ARMDecodeContext::ARMDecodeContext(archsim::core::thread::ThreadInstance *cpu) : DecodeContext(cpu)
 {
 	auto itstate_desc = cpu->GetArch().GetRegisterFileDescriptor().GetEntries().at("ITSTATE");
 	
@@ -100,4 +100,4 @@ public:
 };
 
 RegisterComponent(gensim::DecodeTranslateContext, ARMDecodeTranslateContext, "armv7a", "arm decode translate context");
-RegisterComponent(gensim::DecodeContext, ARMDecodeContext, "armv7a", "arm decode context", archsim::ThreadInstance*);
+RegisterComponent(gensim::DecodeContext, ARMDecodeContext, "armv7a", "arm decode context", archsim::core::thread::ThreadInstance*);

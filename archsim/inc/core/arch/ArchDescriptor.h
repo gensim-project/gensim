@@ -16,6 +16,12 @@
 
 #include "abi/Address.h"
 
+#include "core/arch/RegisterFileDescriptor.h"
+#include "core/arch/MemoryInterfaceDescriptor.h"
+
+#include "gensim/gensim_translate.h"
+#include "gensim/gensim_decode_context.h"
+
 #include <functional>
 #include <map>
 #include <vector>
@@ -31,83 +37,13 @@ namespace gensim {
 namespace archsim {
 	
 	class MemoryInterface;
-	class ThreadInstance;
 	
-		class RegisterFileEntryDescriptor {
-		public:
-			RegisterFileEntryDescriptor(const std::string &name, uint32_t id, uint32_t offset, uint32_t entry_count, uint32_t entry_size, uint32_t entry_stride, const std::string tag = "");
-			
-			uint64_t GetOffset() const { return offset_; }
-			uint64_t GetEntryCount() const { return entry_count_; }
-			uint64_t GetEntrySize() const { return entry_size_; }
-			uint64_t GetEntryStride() const { return entry_stride_; }
-			
-			const std::string &GetTag() const { return tag_; }
-			
-			const std::string &GetName() const { return name_; }
-			
-		private:
-			std::string name_;
-			std::string tag_;
-			uint32_t id_;
-			uint64_t offset_;
-			uint64_t entry_count_;
-			uint64_t entry_size_;
-			uint64_t entry_stride_;
-			
-		};
-		class RegisterFileDescriptor {
-		public:
-			using register_file_entry_collection_t = std::unordered_map<std::string, RegisterFileEntryDescriptor>;
-			
-			RegisterFileDescriptor(uint64_t total_size, const std::initializer_list<RegisterFileEntryDescriptor> &entries);
-			uint64_t GetSize() const { return total_size_in_bytes_; }
-			
-			const register_file_entry_collection_t &GetEntries() const { return entries_; }
-			
-			const RegisterFileEntryDescriptor &GetTaggedEntry(const std::string &tag) const { 
-				if(tagged_entries_.count(tag) == 0) {
-					throw std::logic_error("Unknown tag \"" + tag + "\"");
-				}
-				return tagged_entries_.at(tag); 
-			}
-			
-		private:
-			uint64_t total_size_in_bytes_;
-			register_file_entry_collection_t entries_;
-			register_file_entry_collection_t tagged_entries_;
-		};
-		
-		class MemoryInterfaceDescriptor {
-		public:
-			MemoryInterfaceDescriptor(const std::string &name, uint64_t address_width_bytes, uint64_t data_width_bytes, bool big_endian, uint32_t id);
-			
-			const std::string &GetName() const { return name_; }
-			uint64_t GetAddressWidthInBytes() const { return address_width_bytes_; }
-			uint64_t GetDataWidthInBytes() const { return data_width_bytes_; }
-			bool IsBigEndian() const { return is_big_endian_; }
-			uint32_t GetID() const { return id_; }
-			
-		private:
-			std::string name_;
-			uint64_t address_width_bytes_;
-			uint64_t data_width_bytes_;
-			bool is_big_endian_;
-			uint32_t id_;
-		};
-		
-		class MemoryInterfacesDescriptor {
-		public:
-			using memory_interface_descriptor_collection_t = std::unordered_map<std::string, MemoryInterfaceDescriptor>;
-			
-			MemoryInterfacesDescriptor(const std::initializer_list<MemoryInterfaceDescriptor>& interfaces, const std::string& fetch_interface_id);
-			
-			const memory_interface_descriptor_collection_t &GetInterfaces() const { return interfaces_; }
-			const MemoryInterfaceDescriptor &GetFetchInterface() const { return interfaces_.at(fetch_interface_name_); }
-		private:
-			memory_interface_descriptor_collection_t interfaces_;
-			std::string fetch_interface_name_;
-		};
+	namespace core {
+		namespace thread {
+			class ThreadInstance;
+		}
+	}
+	
 		
 		class FeatureDescriptor {
 		public:
@@ -133,14 +69,14 @@ namespace archsim {
 		
 		class InvocationContext {
 		public:
-			InvocationContext(archsim::ThreadInstance *thread, const std::vector<uint64_t> &arguments) : thread_(thread), args_(arguments) {}
+			InvocationContext(archsim::core::thread::ThreadInstance *thread, const std::vector<uint64_t> &arguments) : thread_(thread), args_(arguments) {}
 			
-			archsim::ThreadInstance *GetThread() const { return thread_; }
+			archsim::core::thread::ThreadInstance *GetThread() const { return thread_; }
 			const std::vector<uint64_t> &GetArgs() const { return args_; }
 			uint64_t GetArg(int idx) const { return GetArgs().at(idx); }
 			
 		private:
-			archsim::ThreadInstance *thread_;
+			archsim::core::thread::ThreadInstance *thread_;
 			std::vector<uint64_t> args_;
 		};
 		
@@ -152,7 +88,7 @@ namespace archsim {
 			BehaviourDescriptor(const std::string &name, const FunctionType& fn) : name_(name), function_(fn) {}
 			const std::string &GetName() const { return name_; }
 			
-			InvocationResult Invoke(archsim::ThreadInstance *thread, const std::vector<uint64_t> args) const { return function_(InvocationContext(thread, args)); }
+			InvocationResult Invoke(archsim::core::thread::ThreadInstance *thread, const std::vector<uint64_t> args) const { return function_(InvocationContext(thread, args)); }
 		private:
 			const std::string name_;
 			FunctionType function_;
@@ -168,6 +104,9 @@ namespace archsim {
 		};
 				
 		using DecodeFunction = std::function<uint32_t(archsim::Address addr, archsim::MemoryInterface *, gensim::BaseDecode&)>;
+		using NewDecoderFunction = std::function<gensim::BaseDecode*()>;
+		using NewJumpInfoFunction = std::function<gensim::BaseJumpInfo*()>;
+		using NewDTCFunction = std::function<gensim::DecodeTranslateContext*()>;
 		
 		/**
 		 * Class which encapsulates ISA specific portions of the architecture,
@@ -175,10 +114,14 @@ namespace archsim {
 		 */
 		class ISADescriptor {
 		public:
-			ISADescriptor(const std::string &name, uint32_t id, const DecodeFunction &decoder, const ISABehavioursDescriptor &behaviours);
+			ISADescriptor(const std::string &name, uint32_t id, const DecodeFunction &decoder, const NewDecoderFunction &newdecoder, const NewJumpInfoFunction &newjumpinfo, const NewDTCFunction &dtc, const ISABehavioursDescriptor &behaviours);
 			
 			// This is a bit of a hack right now. In the future there needs to be a clearer interaction between the thread, the 'decode context', and the decoded instruction
 			uint32_t DecodeInstr(archsim::Address addr, archsim::MemoryInterface *interface, gensim::BaseDecode &target) const { return decoder_(addr, interface, target); }
+			
+			gensim::BaseDecode *GetNewDecode() const { return new_decoder_(); }
+			gensim::BaseJumpInfo *GetNewJumpInfo() const { return new_jump_info_(); }
+			gensim::DecodeTranslateContext *GetNewDTC() const { return new_dtc_(); }
 			
 			const ISABehavioursDescriptor &GetBehaviours() const { return behaviours_; }
 			
@@ -186,6 +129,10 @@ namespace archsim {
 			uint32_t GetID() const { return id_; }
 		private:
 			DecodeFunction decoder_;
+			NewDecoderFunction new_decoder_;
+			NewJumpInfoFunction new_jump_info_;
+			NewDTCFunction new_dtc_;
+			
 			ISABehavioursDescriptor behaviours_;
 			const std::string name_;
 			uint32_t id_;

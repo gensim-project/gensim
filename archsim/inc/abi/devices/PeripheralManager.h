@@ -20,8 +20,11 @@ namespace gensim
 
 namespace archsim
 {
-	class ThreadInstance;
-	
+	namespace core {
+		namespace thread {
+			class ThreadInstance;
+		}
+	}
 	namespace abi
 	{
 
@@ -35,14 +38,14 @@ namespace archsim
 			class PeripheralManager : public Component
 			{
 			public:
-				PeripheralManager(archsim::ThreadInstance &cpu);
+				PeripheralManager(archsim::core::thread::ThreadInstance &cpu);
 
 				bool Initialise()
 				{
 					return true;
 				}
 
-				archsim::ThreadInstance &cpu;
+				archsim::core::thread::ThreadInstance &cpu;
 
 				// Map by name of all peripherals attached to this peripheral manager.
 				// There peripherals are not necessarily attached directly to the core

@@ -9,6 +9,7 @@
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
 #include "core/MemoryInterface.h"
+#include "core/execution/ExecutionEngine.h"
 
 extern char **environ;
 
@@ -54,15 +55,14 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 	auto arch = archentry->Get();
-	auto ctx = new archsim::ExecutionContext(*arch, moduleentry->Get());
+	auto ctx = new archsim::core::execution::ExecutionContext(*arch, moduleentry->Get());
 	GetSystem().GetECM().AddContext(ctx);
-	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
+	main_thread_ = new archsim::core::thread::ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 	
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
 		i->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
 	}
 	
-	GetSystem().GetECM().AddContext(ctx);
 	ctx->AddThread(main_thread_);
 	
 //	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
@@ -103,7 +103,7 @@ gensim::Processor *UserEmulationModel::GetCore(int id)
 	UNIMPLEMENTED;
 }
 
-archsim::ThreadInstance* UserEmulationModel::GetMainThread()
+archsim::core::thread::ThreadInstance* UserEmulationModel::GetMainThread()
 {
 	return main_thread_;
 }
@@ -304,7 +304,7 @@ unsigned int UserEmulationModel::GetInitialBreak()
 	return _initial_program_break;
 }
 
-ExceptionAction UserEmulationModel::HandleException(archsim::ThreadInstance *thread, unsigned int category, unsigned int data)
+ExceptionAction UserEmulationModel::HandleException(archsim::core::thread::ThreadInstance *thread, unsigned int category, unsigned int data)
 {
 	LC_WARNING(LogEmulationModelUser) << "Unhandled exception " << category << ", " << data;
 	return AbortSimulation;
