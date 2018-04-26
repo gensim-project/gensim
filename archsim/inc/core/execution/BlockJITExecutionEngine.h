@@ -30,6 +30,8 @@ namespace archsim {
 			{
 			public:
 				
+				BlockJITExecutionEngine();
+				
 				ExecutionResult ArchStepBlock(thread::ThreadInstance* thread) override;
 				ExecutionResult ArchStepSingle(thread::ThreadInstance* thread) override;
 

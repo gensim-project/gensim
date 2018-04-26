@@ -16,7 +16,7 @@
 using namespace gensim::generator;
 
 ArchDescriptorGenerator::ArchDescriptorGenerator(GenerationManager& manager) : GenerationComponent(manager, "ArchDescriptor") {
-	
+	manager.AddModuleEntry(ModuleEntry("ArchDescriptor", "gensim::" + manager.GetArch().Name + "::ArchDescriptor", "arch.h", ModuleEntryType::ArchDescriptor));
 }
 
 bool ArchDescriptorGenerator::Generate() const

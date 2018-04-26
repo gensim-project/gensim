@@ -22,7 +22,9 @@ namespace gensim {
 		
 		class InterpEEGenerator : public EEGenerator  {
 		public:
-			InterpEEGenerator(GenerationManager &manager) : EEGenerator(manager, "interpreter") {}
+			InterpEEGenerator(GenerationManager &manager) : EEGenerator(manager, "interpreter") {
+				manager.AddModuleEntry(ModuleEntry("EE", "gensim::" + manager.GetArch().Name + "::EE", "ee_interpreter.h", ModuleEntryType::ExecutionEngine));
+			}
 			
 			virtual bool GenerateHeader(util::cppformatstream &str) const;
 			virtual bool GenerateSource(util::cppformatstream &str) const;
