@@ -156,13 +156,13 @@ extern "C" {
 
 	void jitTrap()
 	{
-		asm("int3");
+		throw std::logic_error("trap.");
 	}
 
 	void jitTrapIf(bool should_trap)
 	{
 		if (should_trap)
-			asm volatile("int3\n");
+			throw std::logic_error("trap.");
 	}
 
 	void jitAssert(bool cond)
