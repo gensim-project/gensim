@@ -442,7 +442,7 @@ void System::CheckVerify()
 			for(uint32_t i = 0; i < my_desc.NumberOfRegistersInBank()-1; ++i) {
 				if(((uint32_t*)my_bank)[i] != ((uint32_t*)other_bank)[i]) {
 					ReportDivergent(my_cpu, next_cpu);
-					asm("int3\n");
+					
 					halt_simulation = true;
 				}
 			}
@@ -469,7 +469,7 @@ void System::CheckVerify()
 
 					if(my_data != next_data) {
 						ReportDivergent(my_cpu, next_cpu);
-						asm("int3\n");
+						
 						halt_simulation = true;
 						break;
 					}
@@ -485,7 +485,7 @@ void System::CheckVerify()
 
 	if(halt_simulation) {
 		if(_next_verify_system)_next_verify_system->HaltSimulation();
-		asm("int3");
+		
 		HaltSimulation();
 	}
 }
