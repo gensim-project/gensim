@@ -22,13 +22,28 @@ namespace archsim
 		{
 			namespace virtio
 			{
-				class VirtIONet : public VirtIO, public generic::net::NetworkInterfaceReceiveCallback
+				class ConfigBlock {
+				public:
+					uint8_t mac[6];
+					uint16_t status;
+				};
+
+				struct virtio_net_hdr {
+					uint8_t flags;
+					uint8_t gso_type;
+					uint16_t hdr_len;
+					uint16_t gso_size;
+					uint16_t csum_start, csum_offset;
+					uint16_t num_buffers;
+				} __attribute__((packed));
+				
+				class VirtIONet : public VirtIO
 				{
 				public:
-					VirtIONet(EmulationModel& parent_model, IRQLine& irq, Address base_address, std::string name, generic::net::NetworkInterface &iface, uint64_t mac_address);
+					VirtIONet(EmulationModel& parent_model, IRQLine& irq, Address base_address, const std::string &name, generic::net::NetworkInterface &iface, uint64_t mac_address);
 					virtual ~VirtIONet();
 
-					void receive_packet(const uint8_t *buffer, uint32_t length) override;
+					void receive_packet(const uint8_t *buffer, uint32_t length);
 
 				protected:
 					uint8_t *GetConfigArea() const override
@@ -49,21 +64,9 @@ namespace archsim
 
 					std::mutex _receive_buffer_lock;
 					std::list<VirtIOQueueEvent*> _receive_buffers;
+					
+					ConfigBlock config;
 
-					struct {
-						uint8_t mac[6];
-						uint16_t status;
-					} config;
-
-
-					struct virtio_net_hdr {
-						uint8_t flags;
-						uint8_t gso_type;
-						uint16_t hdr_len;
-						uint16_t gso_size;
-						uint16_t csum_start, csum_offset;
-						uint16_t num_buffers;
-					} __packed;
 				};
 			}
 		}

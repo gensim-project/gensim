@@ -144,6 +144,7 @@ namespace archsim
 				}
 
 				Component(const ComponentDescriptor &descriptor) : descriptor_(descriptor) {}
+				virtual ~Component();
 				const ComponentDescriptorInstance &GetDescriptor() const
 				{
 					return descriptor_;
@@ -225,7 +226,7 @@ namespace archsim
 			{
 			public:
 				MemoryComponent(EmulationModel &parent_model, Address base_address, uint32_t size);
-				virtual ~MemoryComponent() = 0;
+				virtual ~MemoryComponent();
 
 				inline Address GetBaseAddress() const
 				{
