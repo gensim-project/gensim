@@ -127,6 +127,8 @@ namespace archsim
 	}
 }
 
+Component::~Component() {}
+
 // TODO: do this more nicely
 #define CASTTOCOMPONENT(x) static_cast<Component*>(x)
 template<> void Component::SetParameter(const std::string &parameter, archsim::abi::devices::IRQLine *value)
@@ -178,6 +180,7 @@ RegisterBackedMemoryComponent::RegisterBackedMemoryComponent(EmulationModel& par
 RegisterBackedMemoryComponent::~RegisterBackedMemoryComponent()
 {
 }
+
 
 bool RegisterBackedMemoryComponent::Read(uint32_t offset, uint8_t size, uint32_t& data)
 {

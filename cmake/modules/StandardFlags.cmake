@@ -14,7 +14,7 @@ MESSAGE(STATUS "Build type is ${CMAKE_BUILD_TYPE}")
 function(standard_flags target-name)
 
 	IF("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
-		TARGET_COMPILE_OPTIONS(${target-name} PRIVATE -g)
+		TARGET_COMPILE_OPTIONS(${target-name} PRIVATE -g -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-reorder)
 		SET(CONFIGSTRING "Debug" PARENT_SCOPE)
 	ELSEIF("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUGOPT")
 		TARGET_COMPILE_OPTIONS(${target-name} PRIVATE -g -O2)
