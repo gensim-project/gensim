@@ -1,4 +1,4 @@
-/*
+ /*
  * JitGenerator.cpp
  */
 #include "arch/ArchDescription.h"
@@ -7,6 +7,7 @@
 #include "isa/InstructionFormatDescription.h"
 
 #include "generators/BlockJIT/JitGenerator.h"
+#include "generators/GenCInterpreter/GenCInterpreterGenerator.h"
 
 #include "genC/ssa/SSAFormAction.h"
 #include "genC/ssa/SSAContext.h"
@@ -114,36 +115,35 @@ bool JitGenerator::GenerateHelpers(util::cppformatstream& src_stream, const isa:
 {
 //SSAContext::ActionListConstIterator HI = isa->GetSSAContext().HelpersBegin(), HE = isa->GetSSAContext().HelpersEnd(); HI != HE; ++HI
 
+	GenCInterpreterGenerator interp (Manager);
+	
 	for (const auto& action_item : isa->GetSSAContext().Actions()) {
 		if (!action_item.second->HasAttribute(ActionAttribute::Helper)) continue;
 
 		auto action = dynamic_cast<const SSAFormAction *>(action_item.second);
 
-		if (!action->HasAttribute(ActionAttribute::NoInline) || action->GetPrototype().GetIRSignature().GetName() == "instruction_predicate") continue;
+		if (action->GetPrototype().GetIRSignature().GetName() == "instruction_predicate") continue;
+		if (action->GetPrototype().GetIRSignature().GetName() == "instruction_is_predicated") continue;
+		
+		interp.GeneratePrototype(src_stream, *isa, *action);
+		src_stream << ";";
+	}
+	for (const auto& action_item : isa->GetSSAContext().Actions()) {
+		if (!action_item.second->HasAttribute(ActionAttribute::Helper)) continue;
 
-		src_stream << "static " << action->GetPrototype().ReturnType().GetCType() << " helper_fn_" << action->GetPrototype().GetIRSignature().GetName() << "(Processor *cpu";
+		auto action = dynamic_cast<const SSAFormAction *>(action_item.second);
 
-		std::stringstream args;
+		if (action->GetPrototype().GetIRSignature().GetName() == "instruction_predicate") continue;
+		if (action->GetPrototype().GetIRSignature().GetName() == "instruction_is_predicated") continue;
 
-		int i = 0;
-		for (auto param : action->GetPrototype().GetIRSignature().GetParams()) {
-			src_stream << ", " << param.GetType().GetCType() << " p" << (uint32_t)i;
+		interp.GeneratePrototype(src_stream, *isa, *action);
 
-			if (i > 0) {
-				args << ", ";
-			}
-
-			args << "p" << (uint32_t)i;
-
-			i++;
-		}
-
-		src_stream << ")";
 		src_stream << "{";
-		if (action->GetPrototype().GetIRSignature().GetType() != genc::IRTypes::Void) {
-			src_stream << "return ";
-		}
-		src_stream << "cpu->" << action->GetPrototype().GetIRSignature().GetName() << "(" << args.str() << ");";
+		src_stream << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
+		// generate helper function code inline here
+		
+		interp.GenerateExecuteBodyFor(src_stream, *action);
+		
 		src_stream << "}";
 	}
 
@@ -157,6 +157,7 @@ bool JitGenerator::GenerateHeader(util::cppformatstream & hdr_stream) const
 	hdr_stream
 	        << "#ifndef _JIT_HEADER\n#define _JIT_HEADER\n"
 	        << "#include \"decode.h\"\n"
+			<< "#include \"arch.h\"\n"
 	        << "#include <blockjit/translation-context.h>\n"
 	        << "#include <blockjit/BlockJitTranslate.h>\n"
 	        << "#include <util/SimOptions.h>\n"

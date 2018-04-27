@@ -200,6 +200,7 @@ bool ArchDescriptorGenerator::GenerateHeader(util::cppformatstream &str) const
 	str << "#define ARCH_DESC_H\n";
 	str << "#include <core/arch/ArchDescriptor.h>\n";
 	str << "#include <core/thread/ThreadInstance.h>\n";
+	str << "#include <gensim/gensim_processor_api.h>\n";
 	str << "#include <util/Vector.h>\n";
 	str << "namespace gensim {";
 	str << "namespace " << Manager.GetArch().Name << " {";
