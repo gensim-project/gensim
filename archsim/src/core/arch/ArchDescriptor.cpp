@@ -25,7 +25,7 @@ RegisterFileDescriptor::RegisterFileDescriptor(uint64_t total_size, const std::i
 }
 
 
-ArchDescriptor::ArchDescriptor(const RegisterFileDescriptor& rf, const MemoryInterfacesDescriptor& mem, const FeaturesDescriptor& f, const std::initializer_list<ISADescriptor> &isas) : register_file_(rf), mem_interfaces_(mem), features_(f), isas_(isas)
+ArchDescriptor::ArchDescriptor(const std::string &name, const RegisterFileDescriptor& rf, const MemoryInterfacesDescriptor& mem, const FeaturesDescriptor& f, const std::initializer_list<ISADescriptor> &isas) : register_file_(rf), mem_interfaces_(mem), features_(f), name_(name), isas_(isas)
 {
 	for(auto isa : isas_) {
 		isa_mode_ids_[isa.GetName()] = isa.GetID();

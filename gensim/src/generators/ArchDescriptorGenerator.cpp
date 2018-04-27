@@ -189,7 +189,7 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 		
 	}
 	
-	str << "ArchDescriptor::ArchDescriptor() : archsim::ArchDescriptor(rfd, misd, features, {" << isa_list << "}) {}";
+	str << "ArchDescriptor::ArchDescriptor() : archsim::ArchDescriptor(\"" << Manager.GetArch().Name << "\", rfd, misd, features, {" << isa_list << "}) {}";
 	
 	return true;
 }

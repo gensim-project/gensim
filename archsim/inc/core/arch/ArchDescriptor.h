@@ -145,7 +145,7 @@ namespace archsim {
 		 */
 		class ArchDescriptor {
 		public:
-			ArchDescriptor(const RegisterFileDescriptor &rf, const MemoryInterfacesDescriptor &mem, const FeaturesDescriptor &f, const std::initializer_list<ISADescriptor> &isas);
+			ArchDescriptor(const std::string &name, const RegisterFileDescriptor &rf, const MemoryInterfacesDescriptor &mem, const FeaturesDescriptor &f, const std::initializer_list<ISADescriptor> &isas);
 			
 			const RegisterFileDescriptor &GetRegisterFileDescriptor() const { return register_file_; }
 			const MemoryInterfacesDescriptor &GetMemoryInterfaceDescriptor() const { return mem_interfaces_; }
@@ -154,10 +154,14 @@ namespace archsim {
 			const ISADescriptor &GetISA(const std::string &isaname) const { return isas_.at(isa_mode_ids_.at(isaname)); }
 			const ISADescriptor &GetISA(uint32_t mode) const { return isas_.at(mode); }
 			
+			const std::string &GetName() const { return name_; }
+			
 		private:
 			const RegisterFileDescriptor register_file_;
 			const MemoryInterfacesDescriptor mem_interfaces_;
 			const FeaturesDescriptor features_;
+			
+			std::string name_;
 			
 			std::vector<ISADescriptor> isas_;
 			std::map<std::string, uint32_t> isa_mode_ids_;
