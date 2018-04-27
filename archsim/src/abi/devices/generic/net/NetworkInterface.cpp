@@ -13,6 +13,6 @@ using namespace archsim::abi::devices::generic::net;
 void NetworkInterface::invoke_receive(const uint8_t* buffer, uint32_t length)
 {
 	if(_receive_callback) {
-		_receive_callback->receive_packet(buffer, length);
+		_receive_callback(buffer, length);
 	}
 }

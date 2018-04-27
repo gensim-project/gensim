@@ -31,7 +31,7 @@ VirtIONet::VirtIONet(EmulationModel& parent_model, IRQLine& irq, Address base_ad
 
 	this->HostFeatures.Set((1 << 5) | (1 << 16));
 
-	iface.attach(*this);
+	iface.attach([this](const uint8_t *buffer, uint32_t length){this->receive_packet(buffer, length);});
 }
 
 VirtIONet::~VirtIONet()

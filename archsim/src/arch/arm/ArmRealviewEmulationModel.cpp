@@ -262,15 +262,15 @@ bool ArmRealviewEmulationModel::InstallPlatformDevices()
 	devices::virtio::VirtIOBlock *vbda = new devices::virtio::VirtIOBlock(*this, *irq_controller->RegisterSource(35), Address(0x10100000), "virtio-block-a", *GetSystem().GetBlockDevice("vda"));
 	if (!HackyMMIORegisterDevice(*vbda)) return false;
 
-	/*
+	
 	devices::generic::net::TapInterface *tap = new devices::generic::net::TapInterface("tap0");
 	if(tap->start()) {
-		devices::virtio::VirtIONet *vnet = new devices::virtio::VirtIONet(*this, *gic0->RegisterSource(34), 0x10200000, "virtio-net-a", *tap, 0x020000000001ULL);
+		devices::virtio::VirtIONet *vnet = new devices::virtio::VirtIONet(*this, *irq_controller->RegisterSource(34), Address(0x10200000), "virtio-net-a", *tap, 0x020000000001ULL);
 		if(!HackyMMIORegisterDevice(*vnet)) return false;
 	} else {
 		LC_ERROR(LogArmSystemEmulationModel) << "Could not start tap device";
 	}
-	 */
+	 
 
 //	WSBlockDevice *wsblock = new WSBlockDevice(*this, archsim::translate::profile::Address(0x10200000), *GetSystem().GetBlockDevice("vda"));
 //	if (!HackyMMIORegisterDevice(*wsblock)) return false;

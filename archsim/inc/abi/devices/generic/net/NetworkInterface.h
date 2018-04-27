@@ -15,6 +15,7 @@
 #define NETWORKINTERFACE_H
 
 #include <cstdint>
+#include <functional>
 
 namespace archsim
 {
@@ -27,12 +28,8 @@ namespace archsim
 				namespace net
 				{
 
-					class NetworkInterfaceReceiveCallback
-					{
-					public:
-						virtual void receive_packet(const uint8_t *buffer, uint32_t length) = 0;
-					};
-
+					using NetworkInterfaceReceiveCallback = std::function<void (const uint8_t *buffer, uint32_t length)>;
+					
 					class NetworkInterface
 					{
 					public:
@@ -45,9 +42,9 @@ namespace archsim
 						{
 						}
 
-						void attach(NetworkInterfaceReceiveCallback& callback)
+						void attach(const NetworkInterfaceReceiveCallback& callback)
 						{
-							_receive_callback = &callback;
+							_receive_callback = callback;
 						}
 
 						virtual bool transmit_packet(const uint8_t *buffer, uint32_t length) = 0;
@@ -59,7 +56,7 @@ namespace archsim
 						void invoke_receive(const uint8_t *buffer, uint32_t length);
 
 					private:
-						NetworkInterfaceReceiveCallback *_receive_callback;
+						NetworkInterfaceReceiveCallback _receive_callback;
 					};
 
 				}

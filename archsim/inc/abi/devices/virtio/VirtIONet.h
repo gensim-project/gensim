@@ -22,13 +22,13 @@ namespace archsim
 		{
 			namespace virtio
 			{
-				class VirtIONet : public VirtIO, public generic::net::NetworkInterfaceReceiveCallback
+				class VirtIONet : public VirtIO
 				{
 				public:
 					VirtIONet(EmulationModel& parent_model, IRQLine& irq, Address base_address, std::string name, generic::net::NetworkInterface &iface, uint64_t mac_address);
 					virtual ~VirtIONet();
 
-					void receive_packet(const uint8_t *buffer, uint32_t length) override;
+					void receive_packet(const uint8_t *buffer, uint32_t length);
 
 				protected:
 					uint8_t *GetConfigArea() const override
