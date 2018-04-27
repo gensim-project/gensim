@@ -248,7 +248,11 @@ bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstan
 	}
 
 	translate_instruction(decode, builder, processor->GetTraceSource() != nullptr);
-	processor->GetArch().GetISA(processor->GetModeID()).GetNewDTC()->Translate(*decode, *_decode_ctx, builder);
+	gensim::DecodeTranslateContext *dtc;
+	if(!GetComponentInstance(processor->GetArch().GetName(), dtc)) {
+		throw std::logic_error("Could not get DTC");
+	}
+	dtc->Translate(*decode, *_decode_ctx, builder);
 
 	if(processor->GetTraceSource()) {
 		builder.call(IROperand::func((void*)cpuTraceInsnEnd));
