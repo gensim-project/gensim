@@ -7,12 +7,14 @@
 #include "generators/ExecutionEngine/BlockJITExecutionEngineGenerator.h"
 #include "generators/BlockJIT/JitGenerator.h"
 #include "arch/ArchDescription.h"
+#include "isa/ISADescription.h"
 
 using namespace gensim::generator;
 
 BlockJITExecutionEngineGenerator::BlockJITExecutionEngineGenerator(GenerationManager &man) : EEGenerator(man, "blockjit")
 {
 	man.AddModuleEntry(ModuleEntry("EE", "gensim::" + man.GetArch().Name + "::BlockJITEE", "ee_blockjit.h", ModuleEntryType::ExecutionEngine));
+	sources = {"ee_blockjit.cpp"};
 }
 
 
@@ -38,6 +40,9 @@ bool BlockJITExecutionEngineGenerator::GenerateSource(util::cppformatstream& str
 {
 	str << "#include \"ee_blockjit.h\"\n";
 	str << "#include \"decode.h\"\n";
+	str << "#include \"arch.h\"\n";
+	str << "#include <abi/devices/Device.h>\n";
+	str << "#include <abi/devices/Component.h>\n";
 	
 	str << "using namespace gensim::" << Manager.GetArch().Name << ";";
 	
@@ -45,13 +50,19 @@ bool BlockJITExecutionEngineGenerator::GenerateSource(util::cppformatstream& str
 	jitgen.GenerateClass(str);
 	jitgen.GenerateTranslation(str);
 	
-	jitgen.GenerateJitChunks(5);
-	auto jitgensources = jitgen.GetSources();
-	for(auto i : jitgensources) { 
-		sources.push_back(i);
-	}
-	
 	str << "BlockJITEE::BlockJITEE() : archsim::core::execution::BlockJITExecutionEngine(new captive::arch::" << Manager.GetArch().Name << "::JIT) {}";
+	
+	
+	for(auto &isa : Manager.GetArch().ISAs) {
+		jitgen.GenerateHelpers(str, isa);
+		
+		for(auto &insn : isa->Instructions) {
+			jitgen.GenerateJITFunction(str, *isa, *insn.second);
+		}	
+	}
+
+
+	
 	
 	return true;
 }

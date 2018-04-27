@@ -125,7 +125,7 @@ bool InterpEEGenerator::GenerateHelperFunction(util::cppformatstream& str, const
 	str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 	
 	gensim::generator::GenCInterpreterGenerator gci (Manager);
-	gci.GenerateExecuteBodyFor(str, *action);	
+	gci.GenerateExecuteBodyFor(str, *action);
 	
 	str << " }";
 	

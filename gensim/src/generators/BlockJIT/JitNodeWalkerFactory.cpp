@@ -947,7 +947,8 @@ namespace gensim
 							output << "builder.trap();";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
-							output << "builder.call(IROperand::func((void*)cpuPendInterrupt));";
+							output << "UNIMPLEMENTED; // pendirq\n";
+//							output << "builder.call(IROperand::func((void*)cpuPendInterrupt));";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
 							// XXX TODO FIXME
@@ -984,10 +985,12 @@ namespace gensim
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
-							output << "builder.call(IROperand::func((void*)cpuEnterKernelMode));";
+							output << "UNIMPLEMENTED; // enterkernelmode\n";
+//							output << "builder.call(IROperand::func((void*)cpuEnterKernelMode));";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
-							output << "builder.call(IROperand::func((void*)cpuEnterUserMode));";
+							output << "UNIMPLEMENTED; // enterusermode\n";
+//							output << "builder.call(IROperand::func((void*)cpuEnterUserMode));";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32:
@@ -1130,7 +1133,7 @@ namespace gensim
 
 					SSANodeWalker *address = Factory.GetOrCreate(Statement.Addr());
 
-					UNIMPLEMENTED;
+					output << "builder.ldmem(IROperand::const32(" << Statement.GetInterface()->GetID() << ")," << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");\n";
 					
 					// TODO: fix
 //					if (Statement.User) {
@@ -1172,7 +1175,7 @@ namespace gensim
 //					if (Statement.User) {
 //						output << "builder.stmem_user(" << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
 //					} else {
-						output << "builder.stmem(" << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
+						output << "builder.stmem(IROperand::const32(" << Statement.GetInterface()->GetID() << "), " << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
 //						output << "if(trace)";
 //						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemWrite" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_node(*value) << ");";
 //					}
@@ -1847,7 +1850,7 @@ namespace gensim
 						output << "builder.flush_dtlb_entry(" << operand_for_node(*Factory.GetOrCreate(dynamic_cast<const SSAStatement*>(Statement.Arg(0)))) << ");\n";
 					} else {
 						output << "builder.call";
-						output << "(IROperand::func((void *)&helper_fn_" << Statement.Target()->GetPrototype().GetIRSignature().GetName() << ")";
+						output << "(IROperand::func((void *)&helper_" << Statement.Target()->GetContext().GetIsaDescription().ISAName << "_" << Statement.Target()->GetPrototype().GetIRSignature().GetName() << "<false>)";
 
 						for(int i = 0; i < Statement.ArgCount(); ++i) {
 							auto arg = Statement.Arg(i);

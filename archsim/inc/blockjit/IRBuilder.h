@@ -127,8 +127,8 @@ namespace captive {
 			
 			INSN2(streg);
 			INSN2(ldreg);
-			INSN2(ldmem);
-			INSN2(stmem);
+			INSN3(ldmem);
+			INSN3(stmem);
 			INSN2(ldmem_user);
 			INSN2(stmem_user);
 			
