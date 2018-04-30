@@ -45,7 +45,7 @@ const std::vector<std::string> ArchDescriptorGenerator::GetSources() const
 
 static void GenerateHelperFunctionPrototype(gensim::util::cppformatstream &str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction *action) 
 {
-	str << "template<bool trace=false> " << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::execution::ExecutionEngine *ee, archsim::core::thread::ThreadInstance *thread";
+	str << "template<bool trace=false> " << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
 
 	for(auto i : action->ParamSymbols) {
 		// if we're accessing a struct, assume that it's an instruction
@@ -154,7 +154,7 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 				}
 				behaviours_list += "bd_" + isa->ISAName + "_" + action->GetName() + "()";
 
-				str << "static archsim::BehaviourDescriptor bd_" << isa->ISAName << "_" << action->GetName() << "() { archsim::BehaviourDescriptor bd (\"" << action->GetPrototype().GetIRSignature().GetName() << "\", [](const archsim::InvocationContext &ctx){ helper_" << isa->ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "<false>(nullptr, ctx.GetThread()";
+				str << "static archsim::BehaviourDescriptor bd_" << isa->ISAName << "_" << action->GetName() << "() { archsim::BehaviourDescriptor bd (\"" << action->GetPrototype().GetIRSignature().GetName() << "\", [](const archsim::InvocationContext &ctx){ helper_" << isa->ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "<false>(ctx.GetThread()";
 
 				// unpack arguments
 				for(int index = 0; index < action->GetPrototype().ParameterTypes().size(); ++index) {

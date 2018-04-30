@@ -43,6 +43,7 @@ bool BlockJITExecutionEngineGenerator::GenerateSource(util::cppformatstream& str
 	str << "#include \"arch.h\"\n";
 	str << "#include <abi/devices/Device.h>\n";
 	str << "#include <abi/devices/Component.h>\n";
+	str << "#include <translate/jit_funs.h>\n";
 	
 	str << "using namespace gensim::" << Manager.GetArch().Name << ";";
 	

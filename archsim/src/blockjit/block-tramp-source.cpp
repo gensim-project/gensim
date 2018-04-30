@@ -21,7 +21,7 @@ template <typename PC_t> static void block_trampoline_loop(archsim::core::thread
 		const auto & entry  = block_cache[entry_idx];
 
 		if(entry.virt_tag == pc) {
-			entry.ptr(regfile, thread);
+			entry.ptr(regfile, thread->GetStateBlock().GetData());
 			asm volatile ("":::"r15", "r14", "r13", "rbx", "rbp");
 		} else {
 			break;
@@ -40,8 +40,10 @@ int block_trampoline_source(archsim::core::thread::ThreadInstance *thread, const
 	switch(pc_descriptor.GetEntrySize()) {
 		case 4:
 			block_trampoline_loop<uint32_t>(thread, block_cache, (uint32_t*)((uint8_t*)thread->GetRegisterFile() + pc_descriptor.GetOffset()));
+			break;
 		case 8:
 			block_trampoline_loop<uint64_t>(thread, block_cache, (uint64_t*)((uint8_t*)thread->GetRegisterFile() + pc_descriptor.GetOffset()));
+			break;
 		default:
 			UNIMPLEMENTED;
 	}

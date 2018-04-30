@@ -13,8 +13,8 @@ using namespace captive::shared;
 bool LowerScm::Lower(const captive::shared::IRInstruction *&insn)
 {
 	auto &value = insn->operands[0];
-
-	GetCompiler().lea_state_field(gensim::CpuStateOffsets::CpuState_isa_mode, BLKJIT_TEMPS_0(8));
+	
+	GetCompiler().lea_state_field("ModeID", BLKJIT_TEMPS_0(8));
 	if(value.is_constant()) {
 		Encoder().mov1(value.value, X86Memory::get(BLKJIT_TEMPS_0(8)));
 	} else if(value.is_alloc_reg()) {

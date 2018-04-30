@@ -695,11 +695,10 @@ void BlockCompiler::emit_save_reg_state(int num_operands, stack_map_t &stack_map
 	// XXX host architecture dependent
 	// On X86-64, the stack pointer on entry to a function must have an offset
 	// of 0x8 (such that %rsp + 8 is 16 byte aligned). Since the call instruction
-	// will push 8 bytes onto the stack, this means that if an even number of
-	// registers are saved, overall an odd number of stack slots will be
-	// consumed and the stack alignment requirements will be violated. Thus,
-	// we must 'fix' the stack by default.
-	fix_stack = true;
+	// will push 8 bytes onto the stack, plus we save 3 more regs (CPUState, Regstate, RBP),
+	// we have an overall even number of regs saved and so the this should be upheld.
+	// so, we don't need to fix the stack by default.
+	fix_stack = false;
 
 	stack_map.clear();
 

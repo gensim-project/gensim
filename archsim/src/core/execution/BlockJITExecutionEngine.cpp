@@ -10,6 +10,8 @@
 #include "util/LogContext.h"
 #include "system.h"
 
+#include <setjmp.h>
+
 UseLogContext(LogBlockJitCpu);
 
 using namespace archsim::core::execution;
@@ -36,11 +38,35 @@ ExecutionResult BlockJITExecutionEngine::ArchStepBlock(ThreadInstance* thread)
 		thread->HandleMessage();
 	}
 	
-	const auto &pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
-	
-	if(virt_block_cache_.Contains(thread->GetPC()) || translateBlock(thread, thread->GetPC(), true, false)) {
-		block_trampoline_source(thread, pc_desc, virt_block_cache_.GetPtr());
+	if(!thread->GetStateBlock().HasEntry("blockjit_safepoint")) {
+		thread->GetStateBlock().AddBlock("blockjit_safepoint", sizeof(jmp_buf));
 	}
+	
+	jmp_buf buf;
+	auto jmp_result = setjmp(buf);
+	
+	if(!jmp_result) {
+		thread->GetStateBlock().SetEntry<jmp_buf>("blockjit_safepoint", buf);
+		
+		const auto &pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
+
+		if(virt_block_cache_.Contains(thread->GetPC()) || translateBlock(thread, thread->GetPC(), true, false)) {
+			block_trampoline_source(thread, pc_desc, virt_block_cache_.GetPtr());
+		}
+	} else {
+		if(thread->GetTraceSource() != nullptr) {
+			thread->GetTraceSource()->Trace_End_Insn();
+		}
+		
+		switch((archsim::abi::ExceptionAction)jmp_result) {
+			case archsim::abi::ExceptionAction::AbortSimulation:
+				return ExecutionResult::Abort;
+			default:
+				return ExecutionResult::Continue;
+		}
+	}
+	
+	return ExecutionResult::Continue;
 }
 
 ExecutionResult BlockJITExecutionEngine::ArchStepSingle(ThreadInstance* thread)

@@ -164,14 +164,14 @@ namespace captive
 					return tmp;
 				}
 
-				inline void load_state_field(uint32_t slot, const x86::X86Register& reg)
+				inline void load_state_field(const std::string &entry, const x86::X86Register& reg)
 				{
-					encoder.mov(x86::X86Memory::get(BLKJIT_CPUSTATE_REG, slot), reg);
+					encoder.mov(x86::X86Memory::get(BLKJIT_CPUSTATE_REG,  get_cpu()->GetStateBlock().GetBlockOffset(entry)), reg);
 				}
 
-				inline void lea_state_field(uint32_t slot, const x86::X86Register& reg)
+				inline void lea_state_field(const std::string &entry, const x86::X86Register& reg)
 				{
-					encoder.lea(x86::X86Memory::get(BLKJIT_CPUSTATE_REG, slot), reg);
+					encoder.lea(x86::X86Memory::get(BLKJIT_CPUSTATE_REG, get_cpu()->GetStateBlock().GetBlockOffset(entry)), reg);
 				}
 			};
 		}

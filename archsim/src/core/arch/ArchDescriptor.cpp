@@ -18,6 +18,7 @@ RegisterFileDescriptor::RegisterFileDescriptor(uint64_t total_size, const std::i
 {
 	for(auto &i : entries) {
 		entries_.insert({i.GetName(), i});
+		id_to_names_.insert({i.GetID(), i.GetName()});
 		if(i.GetTag() != "") {
 			tagged_entries_.insert({i.GetTag(), i});
 		}

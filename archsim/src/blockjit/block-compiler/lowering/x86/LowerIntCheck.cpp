@@ -12,25 +12,27 @@ using namespace captive::shared;
 
 bool LowerIntCheck::Lower(const captive::shared::IRInstruction *&insn)
 {
-	// load interrupt check field
-	GetCompiler().load_state_field(gensim::CpuStateOffsets::CpuState_pending_actions, BLKJIT_TEMPS_0(4));
-
-	// if field is zero, skip ret instruction
-	Encoder().test(BLKJIT_TEMPS_0(4), BLKJIT_TEMPS_0(4));
-
-	uint32_t dontreturn;
-	Encoder().je_short_reloc(dontreturn);
-
-	uint32_t max_stack = GetLoweringContext().GetStackFrameSize();
-	if(max_stack & 15) {
-		max_stack = (max_stack & ~15) + 16;
-	}
-	if(max_stack)
-		Encoder().add(max_stack, REG_RSP);
-
-	Encoder().ret();
-
-	*(uint8_t*)(Encoder().get_buffer() + dontreturn) = Encoder().current_offset() - dontreturn - 1;
+	UNIMPLEMENTED;
+	
+//	// load interrupt check field
+//	GetCompiler().load_state_field(gensim::CpuStateOffsets::CpuState_pending_actions, BLKJIT_TEMPS_0(4));
+//
+//	// if field is zero, skip ret instruction
+//	Encoder().test(BLKJIT_TEMPS_0(4), BLKJIT_TEMPS_0(4));
+//
+//	uint32_t dontreturn;
+//	Encoder().je_short_reloc(dontreturn);
+//
+//	uint32_t max_stack = GetLoweringContext().GetStackFrameSize();
+//	if(max_stack & 15) {
+//		max_stack = (max_stack & ~15) + 16;
+//	}
+//	if(max_stack)
+//		Encoder().add(max_stack, REG_RSP);
+//
+//	Encoder().ret();
+//
+//	*(uint8_t*)(Encoder().get_buffer() + dontreturn) = Encoder().current_offset() - dontreturn - 1;
 
 	insn++;
 	return true;
