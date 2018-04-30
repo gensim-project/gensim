@@ -31,7 +31,7 @@ namespace archsim
 				int val = !ctr;
 
 				_b[my_tid] = val;
-				while(_b[!my_tid] != val && !_interrupt) asm("pause");
+				while(_b[!my_tid] != val && !_interrupt) ; //asm("pause");
 
 				_ctr = !ctr;
 

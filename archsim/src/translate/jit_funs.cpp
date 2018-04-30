@@ -18,6 +18,8 @@
 #include "gensim/gensim_processor_state.h"
 #include "gensim/gensim_processor.h"
 
+#include "core/MemoryInterface.h"
+#include "core/thread/ThreadInstance.h"
 #include "tracing/TraceManager.h"
 
 #include "util/LogContext.h"
@@ -25,6 +27,7 @@
 #include "translate/jit_funs.h"
 
 #include <cfenv>
+#include <setjmp.h>
 
 DeclareChildLogContext(LogJitFuns, LogCPU, "LogJITFuns");
 UseLogContext(LogJitFuns)
@@ -242,11 +245,16 @@ extern "C" {
 		pubsub->Publish(PubSubType::BlockExecute, &data);
 	}
 
-	uint32_t cpuTakeException(gensim::Processor *cpu, uint32_t category, uint32_t data)
+	uint32_t cpuTakeException(archsim::core::thread::ThreadInstance *thread, uint32_t category, uint32_t data)
 	{
 		LC_DEBUG2(LogJitFuns) << "CPU Take Exception";
-		UNIMPLEMENTED;
-//		return (uint32_t)(((gensim::Processor*)cpu)->take_exception(category, data));
+		auto result = thread->GetEmulationModel().HandleException(thread, category, data);
+		if(result != archsim::abi::ExceptionAction::ResumeNext) {
+			jmp_buf buf;
+			thread->GetStateBlock().GetEntry<jmp_buf>("blockjit_safepoint", &buf);
+			longjmp(buf, (int)result);
+		}
+		return (int)result;
 	}
 
 	void cpuPushInterruptState(gensim::Processor *cpu, uint32_t state)
@@ -290,97 +298,88 @@ extern "C" {
 
 	uint32_t cpuRead8(gensim::Processor *cpu, uint32_t address, uint8_t& data)
 	{
-		LC_DEBUG2(LogJitFuns) << "cpuRead8";
-		auto rval = ((gensim::Processor*)cpu)->GetMemoryModel().Read8(address, data);
-		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead8(cpu, address, data);
-
-		if(rval) {
-			// XXX ARM HAX
-			cpu->take_exception(7, cpu->read_pc()+8);
-		}
-
-		return rval;
+		UNIMPLEMENTED;
+//		LC_DEBUG2(LogJitFuns) << "cpuRead8";
+//		auto rval = ((gensim::Processor*)cpu)->GetMemoryModel().Read8(address, data);
+//		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead8(cpu, address, data);
+//
+//		if(rval) {
+//			// XXX ARM HAX
+//			cpu->take_exception(7, cpu->read_pc()+8);
+//		}
+//
+//		return rval;
 	}
 
 	uint32_t cpuRead16(gensim::Processor *cpu, uint32_t address, uint16_t& data)
 	{
-		LC_DEBUG2(LogJitFuns) << "cpuRead8";
-		auto rval = ((gensim::Processor*)cpu)->GetMemoryModel().Read16(address, data);
-		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead16(cpu, address, data);
-
-		if(rval) {
-			// XXX ARM HAX
-			cpu->take_exception(7, cpu->read_pc()+8);
-		}
-
-		return rval;
+		UNIMPLEMENTED;
+//		LC_DEBUG2(LogJitFuns) << "cpuRead8";
+//		auto rval = ((gensim::Processor*)cpu)->GetMemoryModel().Read16(address, data);
+//		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead16(cpu, address, data);
+//
+//		if(rval) {
+//			// XXX ARM HAX
+//			cpu->take_exception(7, cpu->read_pc()+8);
+//		}
+//
+//		return rval;
 	}
 
 	uint32_t cpuRead32(gensim::Processor *cpu, uint32_t address, uint32_t& data)
 	{
-		LC_DEBUG2(LogJitFuns) << "cpuRead8";
-		auto rval = ((gensim::Processor*)cpu)->GetMemoryModel().Read32(address, data);
-		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead32(cpu, address, data);
-
-		if(rval) {
-			// XXX ARM HAX
-			cpu->take_exception(7, cpu->read_pc()+8);
-		}
-
-		return rval;
+		UNIMPLEMENTED;
+		
+//		LC_DEBUG2(LogJitFuns) << "cpuRead8";
+//		auto rval = ((gensim::Processor*)cpu)->GetMemoryModel().Read32(address, data);
+//		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead32(cpu, address, data);
+//
+//		if(rval) {
+//			// XXX ARM HAX
+//			cpu->take_exception(7, cpu->read_pc()+8);
+//		}
+//
+//		return rval;
 	}
 
-	uint32_t cpuWrite8(gensim::Processor *cpu, uint32_t address, uint8_t data)
+	uint32_t cpuWrite8(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint32_t address, uint8_t data)
 	{
 		LC_DEBUG2(LogJitFuns) << "cpuWrite8";
 
-		int rval = ((gensim::Processor*)cpu)->GetMemoryModel().Write8(address, data);
-		if(rval) {
-			if(rval < 1024) {
-				// XXX ARM HAX
-				cpu->take_exception(7, cpu->read_pc()+8);
-			} else {
-				cpuReturnToSafepoint(cpu);
-			}
+		auto &interface = cpu->GetMemoryInterface(interface_id);
+		auto rval = interface.Write8(archsim::Address(address), data);
+		if(rval != archsim::MemoryResult::OK) {
+			cpu->TakeMemoryException(interface, archsim::Address(address));
 		} else {
-			if(cpu->IsTracingEnabled())cpu->GetTraceManager()->Trace_Mem_Write(true, address, data, 1);
+			// OK!
 		}
-
-		return rval;
+		return 0;
 	}
 
-	uint32_t cpuWrite16(gensim::Processor *cpu, uint32_t address, uint16_t data)
+	uint32_t cpuWrite16(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint32_t address, uint16_t data)
 	{
 		LC_DEBUG2(LogJitFuns) << "cpuWrite16";
-		int rval = ((gensim::Processor*)cpu)->GetMemoryModel().Write16(address, data);
-		if(rval) {
-			if(rval < 1024) {
-				// XXX ARM HAX
-				cpu->take_exception(7, cpu->read_pc()+8);
-			} else {
-				cpuReturnToSafepoint(cpu);
-			}
+		auto &interface = cpu->GetMemoryInterface(interface_id);
+		auto rval = interface.Write16(archsim::Address(address), data);
+		if(rval != archsim::MemoryResult::OK) {
+			cpu->TakeMemoryException(interface, archsim::Address(address));
 		} else {
-			if(cpu->IsTracingEnabled())cpu->GetTraceManager()->Trace_Mem_Write(true, address, data, 2);
+			// OK!
 		}
-		return rval;
+		return 0;
 	}
 
-	uint32_t cpuWrite32(gensim::Processor *cpu, uint32_t address, uint32_t data)
+	uint32_t cpuWrite32(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint32_t address, uint32_t data)
 	{
 		LC_DEBUG2(LogJitFuns) << "cpuWrite32";
-		int rval = ((gensim::Processor*)cpu)->GetMemoryModel().Write32(address, data);
-		if(rval) {
-			if(rval < 1024) {
-				// XXX ARM HAX
-				cpu->take_exception(7, cpu->read_pc()+8);
-			} else {
-				cpuReturnToSafepoint(cpu);
-			}
+		auto &interface = cpu->GetMemoryInterface(interface_id);
+		auto rval = interface.Write32(archsim::Address(address), data);
+		if(rval != archsim::MemoryResult::OK) {
+			cpu->TakeMemoryException(interface, archsim::Address(address));
 		} else {
-			if(cpu->IsTracingEnabled())cpu->GetTraceManager()->Trace_Mem_Write(true, address, data);
+			// OK!
 		}
-		return rval;
+		return 0;
 	}
 
 	uint32_t cpuRead8User(gensim::Processor *cpu, uint32_t address, uint8_t&data)
@@ -468,27 +467,28 @@ extern "C" {
 		assert(false && "string tracing not currently supported");
 	}
 
-	void cpuTraceInstruction(gensim::Processor *cpu, uint32_t pc, uint32_t ir, uint8_t isa_mode, uint8_t irq_mode, uint8_t exec)
+	void cpuTraceInstruction(archsim::core::thread::ThreadInstance *cpu, uint32_t pc, uint32_t ir, uint8_t isa_mode, uint8_t irq_mode, uint8_t exec)
 	{
-		cpu->GetTraceManager()->Trace_Insn(pc, ir, 1, isa_mode, irq_mode, exec);
+		cpu->GetTraceSource()->Trace_Insn(pc, ir, 1, isa_mode, irq_mode, exec);
 	}
 
-	void cpuTraceInsnEnd(gensim::Processor *cpu)
+	void cpuTraceInsnEnd(archsim::core::thread::ThreadInstance *cpu)
 	{
-		cpu->GetTraceManager()->Trace_End_Insn();
+		cpu->GetTraceSource()->Trace_End_Insn();
 	}
 
-	void cpuTraceRegWrite(gensim::Processor *cpu, uint8_t reg, uint64_t value)
+	void cpuTraceRegWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t reg, uint64_t value)
 	{
-		auto &descriptor = cpu->GetRegisterDescriptor(reg);
-		switch(descriptor.RegisterWidth) {
+//		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
+		// TODO: unify reg descriptor IDs in gensim and archsim
+		switch(4) {
 			case 1:
 			case 2:
 			case 4:
-				cpu->GetTraceManager()->Trace_Reg_Write(true, reg, (uint32_t)value);
+				cpu->GetTraceSource()->Trace_Reg_Write(true, reg, (uint32_t)value);
 				break;
 			case 8:
-				cpu->GetTraceManager()->Trace_Reg_Write(true, reg, (uint64_t)value);
+				cpu->GetTraceSource()->Trace_Reg_Write(true, reg, (uint64_t)value);
 				break;
 			default:
 				assert(false);
@@ -496,94 +496,97 @@ extern "C" {
 
 	}
 
-	void cpuTraceRegRead(gensim::Processor *cpu, uint8_t reg, uint64_t value)
+	void cpuTraceRegRead(archsim::core::thread::ThreadInstance *cpu, uint8_t reg, uint64_t value)
 	{
-		auto &descriptor = cpu->GetRegisterDescriptor(reg);
-		switch(descriptor.RegisterWidth) {
+		//		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
+		// TODO: unify reg descriptor IDs in gensim and archsim
+		switch(4) {
 			case 1:
 			case 2:
 			case 4:
-				cpu->GetTraceManager()->Trace_Reg_Read(true, reg, (uint32_t)value);
+				cpu->GetTraceSource()->Trace_Reg_Read(true, reg, (uint32_t)value);
 				break;
 			case 8:
-				cpu->GetTraceManager()->Trace_Reg_Read(true, reg, (uint64_t)value);
+				cpu->GetTraceSource()->Trace_Reg_Read(true, reg, (uint64_t)value);
 				break;
 			default:
 				assert(false);
 		}
 	}
 
-	void cpuTraceRegBankWrite(gensim::Processor *cpu, uint8_t bank, uint32_t reg, uint64_t value)
+	void cpuTraceRegBankWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint64_t value)
 	{
-		auto &descriptor = cpu->GetRegisterBankDescriptor(bank);
-		switch(descriptor.SizeOfElementInBytes()) {
+		//		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
+		// TODO: unify reg descriptor IDs in gensim and archsim
+		switch(4) {
 			case 1:
 			case 2:
 			case 4:
-				cpu->GetTraceManager()->Trace_Bank_Reg_Write(true, bank, reg, (uint32_t)value);
+				cpu->GetTraceSource()->Trace_Bank_Reg_Write(true, bank, reg, (uint32_t)value);
 				break;
 			case 8:
-				cpu->GetTraceManager()->Trace_Bank_Reg_Write(true, bank, reg, (uint64_t)value);
+				cpu->GetTraceSource()->Trace_Bank_Reg_Write(true, bank, reg, (uint64_t)value);
 				break;
 			default:
 				assert(false);
 		}
 	}
 
-	void cpuTraceRegBankRead(gensim::Processor *cpu, uint8_t bank, uint32_t reg, uint64_t value)
+	void cpuTraceRegBankRead(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint64_t value)
 	{
-		auto &descriptor = cpu->GetRegisterBankDescriptor(bank);
-		switch(descriptor.SizeOfElementInBytes()) {
+		//		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
+		// TODO: unify reg descriptor IDs in gensim and archsim
+		switch(4) {
 			case 1:
 			case 2:
 			case 4:
-				cpu->GetTraceManager()->Trace_Bank_Reg_Read(true, bank, reg, (uint32_t)value);
+				cpu->GetTraceSource()->Trace_Bank_Reg_Read(true, bank, reg, (uint32_t)value);
 				break;
 			case 8:
-				cpu->GetTraceManager()->Trace_Bank_Reg_Read(true, bank, reg, (uint64_t)value);
+				cpu->GetTraceSource()->Trace_Bank_Reg_Read(true, bank, reg, (uint64_t)value);
 				break;
 			default:
 				assert(false);
 		}
 	}
 
-	void cpuTraceOnlyMemRead8(gensim::Processor *cpu, uint32_t addr, uint32_t value)
+	void cpuTraceOnlyMemRead8(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t value)
 	{
-		cpu->GetTraceManager()->Trace_Mem_Read(true, addr, value & 0xff, 1);
+//		cpu->GetTraceManager()->Trace_Mem_Read(true, addr, value & 0xff, 1);
 	}
 
-	void cpuTraceOnlyMemRead8s(gensim::Processor *cpu, uint32_t addr, uint32_t value)
+	void cpuTraceOnlyMemRead8s(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t value)
 	{
-		cpu->GetTraceManager()->Trace_Mem_Read(true, addr, value & 0xff, 1);
+//		cpu->GetTraceManager()->Trace_Mem_Read(true, addr, value & 0xff, 1);
 	}
 
-	void cpuTraceOnlyMemRead16(gensim::Processor *cpu, uint32_t addr, uint32_t value)
+	void cpuTraceOnlyMemRead16(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t value)
 	{
-		cpu->GetTraceManager()->Trace_Mem_Read(true, addr, value & 0xffff, 2);
+//		cpu->GetTraceManager()->Trace_Mem_Read(true, addr, value & 0xffff, 2);
 	}
 
-	void cpuTraceOnlyMemRead16s(gensim::Processor *cpu, uint32_t addr, uint32_t value)
+	void cpuTraceOnlyMemRead16s(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t value)
 	{
-		cpu->GetTraceManager()->Trace_Mem_Read(true, addr, value & 0xffff, 2);
+//		cpu->GetTraceManager()->Trace_Mem_Read(true, addr, value & 0xffff, 2);
 	}
 
-	void cpuTraceOnlyMemRead32(gensim::Processor *cpu, uint32_t addr, uint32_t value)
+	void cpuTraceOnlyMemRead32(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t value)
 	{
-		cpu->GetTraceManager()->Trace_Mem_Read(true, addr, value, 4);
+//		cpu->GetTraceManager()->Trace_Mem_Read(true, addr, value, 4);
 	}
 
-	void cpuTraceOnlyMemWrite8(gensim::Processor *cpu, uint32_t addr, uint32_t data)
+	void cpuTraceOnlyMemWrite8(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t data)
 	{
-		cpu->GetTraceManager()->Trace_Mem_Write(true, addr, data & 0xff, 1);
+//		cpu->GetTraceManager()->Trace_Mem_Write(true, addr, data & 0xff, 1);
 	}
 
-	void cpuTraceOnlyMemWrite16(gensim::Processor *cpu, uint32_t addr, uint32_t data)
+	void cpuTraceOnlyMemWrite16(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t data)
 	{
-		cpu->GetTraceManager()->Trace_Mem_Write(true, addr, data & 0xffff, 2);
+//		cpu->GetTraceManager()->Trace_Mem_Write(true, addr, data & 0xffff, 2);
 	}
 
-	void cpuTraceOnlyMemWrite32(gensim::Processor *cpu, uint32_t addr, uint32_t data)
+	void cpuTraceOnlyMemWrite32(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t data)
 	{
-		cpu->GetTraceManager()->Trace_Mem_Write(true, addr, data, 4);
+//		cpu->GetTraceManager()->Trace_Mem_Write(true, addr, data, 4);
 	}
 }

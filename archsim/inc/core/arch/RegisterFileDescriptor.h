@@ -35,7 +35,7 @@ namespace archsim {
 		uint64_t GetEntryStride() const { return entry_stride_; }
 
 		const std::string &GetTag() const { return tag_; }
-
+		uint32_t GetID() const { return id_; }
 		const std::string &GetName() const { return name_; }
 
 	private:
@@ -51,6 +51,7 @@ namespace archsim {
 	class RegisterFileDescriptor {
 	public:
 		using register_file_entry_collection_t = std::unordered_map<std::string, RegisterFileEntryDescriptor>;
+		using register_file_id_collection_t = std::unordered_map<uint32_t, std::string>;
 
 		RegisterFileDescriptor(uint64_t total_size, const std::initializer_list<RegisterFileEntryDescriptor> &entries);
 		uint64_t GetSize() const { return total_size_in_bytes_; }
@@ -63,10 +64,13 @@ namespace archsim {
 			}
 			return tagged_entries_.at(tag); 
 		}
+		
+		const RegisterFileEntryDescriptor &GetByID(uint32_t id) const { return entries_.at(id_to_names_.at(id)); }
 
 	private:
 		uint64_t total_size_in_bytes_;
 		register_file_entry_collection_t entries_;
+		register_file_id_collection_t id_to_names_;
 		register_file_entry_collection_t tagged_entries_;
 	};
 

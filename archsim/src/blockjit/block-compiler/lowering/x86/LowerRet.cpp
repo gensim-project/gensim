@@ -21,20 +21,12 @@ using namespace captive::shared;
 bool LowerRet::Lower(const captive::shared::IRInstruction *&insn)
 {
 	uint32_t max_stack = GetLoweringContext().GetStackFrameSize();
-	if(max_stack & 15) {
-		max_stack = (max_stack & ~15) + 16;
-	}
-	if(max_stack)
-		Encoder().add(max_stack, REG_RSP);
-
-	if(archsim::options::Mode != "interp") {
-		Encoder().sub(1, 4, X86Memory::get(BLKJIT_CPUSTATE_REG, gensim::CpuStateOffsets::CpuState_iterations));
-	}
-
-	if(archsim::options::Verbose.GetValue()) {
-		Encoder().add(1, 4, X86Memory::get(BLKJIT_CPUSTATE_REG, gensim::CpuStateOffsets::CpuState_chained_cantchain));
-	}
-
+	
+	Encoder().pop(BLKJIT_REGSTATE_REG);
+	Encoder().pop(BLKJIT_CPUSTATE_REG);
+	Encoder().mov(REG_RBP, REG_RSP);
+	Encoder().pop(REG_RBP);
+	
 	Encoder().xorr(REG_EAX, REG_EAX);
 	Encoder().ret();
 

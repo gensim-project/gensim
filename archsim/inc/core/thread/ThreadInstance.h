@@ -123,14 +123,15 @@ namespace archsim {
 				FPState &GetFPState() { return fp_state_; }
 				archsim::abi::devices::PeripheralManager &GetPeripherals() { return peripherals_; }
 				StateBlock &GetStateBlock() { return state_block_; }
+				const StateBlock &GetStateBlock() const { return state_block_; }
 				archsim::abi::EmulationModel &GetEmulationModel() { return emu_model_; }
 
 				// Functions to do with execution modes
-				uint32_t GetModeID() const { return mode_id_; }
-				void SetModeID(uint32_t new_mode) { mode_id_ = new_mode; }
+				uint32_t GetModeID() const { return GetStateBlock().GetEntry<uint32_t>("ModeID"); }
+				void SetModeID(uint32_t new_mode) { GetStateBlock().SetEntry<uint32_t>("ModeID", new_mode); }
 
-				uint32_t GetExecutionRing() const { return ring_id_; }
-				void SetExecutionRing(uint32_t new_ring) { ring_id_ = new_ring; }
+				uint32_t GetExecutionRing() const { return GetStateBlock().GetEntry<uint32_t>("RingID"); }
+				void SetExecutionRing(uint32_t new_ring) { GetStateBlock().SetEntry<uint32_t>("RingID", new_ring);  }
 
 				// Functions to do with registers
 				void *GetRegisterFile() { return (void*)register_file_.GetData(); }
@@ -207,8 +208,8 @@ namespace archsim {
 				bool message_waiting_;
 				std::atomic<uint32_t> pending_irqs_;
 
-				uint32_t mode_id_;
-				uint32_t ring_id_;
+				uint32_t *mode_id_ptr_;
+				uint32_t *ring_id_ptr_;
 
 				StateBlock state_block_;
 				libtrace::TraceSource *trace_source_;

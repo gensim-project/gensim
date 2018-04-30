@@ -57,16 +57,6 @@ ExecutionResult BasicExecutionEngine::Execute(ThreadInstance* thread)
 	} while(result == ExecutionResult::Continue);
 }
 
-void BasicExecutionEngine::TakeException(ThreadInstance* thread, uint64_t category, uint64_t data)
-{
-	assert(threads_.count(thread) == 0 || threads_.at(thread)->thread->get_id() == std::this_thread::get_id());
-	
-	auto result = thread->TakeException(category, data);
-	if(result == archsim::abi::AbortInstruction || result == archsim::abi::AbortSimulation) {
-		throw ThreadException();
-	}
-}
-
 ExecutionResult BasicExecutionEngine::StepThreadBlock(ThreadInstance* thread)
 {
 	archsim::util::CounterTimerContext timer(thread->GetMetrics().SelfRuntime);

@@ -1140,8 +1140,8 @@ namespace gensim
 //						output << "builder.ldmem_user(" << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");\n";
 //					} else {
 //						output << "builder.ldmem(" << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");\n";
-//						output << "if(trace)";
-//						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemRead" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");";
+						output << "if(trace)";
+						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemRead" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");";
 //					}
 
 					return true;
@@ -1176,8 +1176,8 @@ namespace gensim
 //						output << "builder.stmem_user(" << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
 //					} else {
 						output << "builder.stmem(IROperand::const32(" << Statement.GetInterface()->GetID() << "), " << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
-//						output << "if(trace)";
-//						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemWrite" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_node(*value) << ");";
+						output << "if(trace)";
+						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemWrite" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_node(*value) << ");";
 //					}
 
 					return true;
@@ -1293,7 +1293,7 @@ namespace gensim
 								output << "builder.mov(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 8));";
 							}
 
-//							output << "builder.call(IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), IROperand::vreg(tmp,8));";
+							output << "builder.call(IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), IROperand::vreg(tmp,8));";
 							output << "}";
 						}
 						return true;
@@ -1307,7 +1307,7 @@ namespace gensim
 
 						output << "builder.streg(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4));\n";
 						if(register_width <= 4) {
-//							output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), " << operand_for_node(*RegNum) << ", " << operand_for_node(*Value) << ");";
+							output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), " << operand_for_node(*RegNum) << ", " << operand_for_node(*Value) << ");";
 						}
 						output << "}";
 					}
@@ -1328,7 +1328,7 @@ namespace gensim
 
 					if (write.RegNum()->IsFixed()) {
 						output << "builder.ldreg(IROperand::const32((uint32_t)(" << offset << " + (" << register_stride << " * " << RegNum->GetFixedValue() << "))), " << operand_for_stmt(Statement) << ");\n";
-//						output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), " << operand_for_stmt(Statement) << ");";
+						output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), " << operand_for_stmt(Statement) << ");";
 						return true;
 					} else {
 						output << "{";
@@ -1342,7 +1342,7 @@ namespace gensim
 
 						output <<
 						       "if(trace) {"
-//						       "  builder.call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*RegNum) << ", " << operand_for_stmt(Statement) << ");"
+						       "  builder.call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*RegNum) << ", " << operand_for_stmt(Statement) << ");"
 						       "}";
 
 						output << "}";
@@ -1364,7 +1364,7 @@ namespace gensim
 						output << "IRRegId tmp = builder.alloc_reg(" << register_width << ");";
 						output << "builder.trunc(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, " << register_width << "));";
 						output << "builder.streg(IROperand::vreg(tmp, " << register_width << "), IROperand::const32(" << offset << "));";
-//						output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, " << register_width << "));";
+						output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, " << register_width << "));";
 						output << "}";
 					} else if (Value->Statement.GetType().Size() < register_width) {
 						assert(false);
@@ -1375,9 +1375,9 @@ namespace gensim
 						if(register_width < 4) {
 							output << "  IRRegId tmp = builder.alloc_reg(4);";
 							output << "  builder.zx(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4));";
-//							output << "  builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
+							output << "  builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
 						} else {
-//							output << "  builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*Value) << ");";
+							output << "  builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*Value) << ");";
 						}
 						output << "}";
 
@@ -1399,9 +1399,9 @@ namespace gensim
 					if(register_width < 4) {
 						output << "  IRRegId tmp = builder.alloc_reg(4);";
 						output << "  builder.zx(IROperand::vreg(" << Statement.GetName() << ", " << register_width << "), IROperand::vreg(tmp, 4));";
-//						output << "  builder.call(IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
+						output << "  builder.call(IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
 					} else {
-//						output << "  builder.call(IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(" << Statement.GetName() << ", 4));";
+						output << "  builder.call(IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(" << Statement.GetName() << ", 4));";
 					}
 
 					output << "}";

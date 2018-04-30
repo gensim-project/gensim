@@ -12,6 +12,7 @@
 #include "abi/memory/system/FunctionBasedSystemMemoryModel.h"
 #include "gensim/gensim_processor_state.h"
 #include "gensim/gensim_processor.h"
+#include "core/MemoryInterface.h"
 #include "util/LogContext.h"
 
 #include "translate/profile/Region.h"
@@ -21,6 +22,8 @@
 DeclareChildLogContext(LogBlockJitFuns, LogCPU, "BlockJITFuns");
 UseLogContext(LogBlockJitFuns)
 
+using archsim::Address;
+
 extern "C" {
 	void blkProfile(gensim::Processor *cpu, void *region, uint32_t address)
 	{
@@ -28,129 +31,43 @@ extern "C" {
 		rgn->TraceBlock(*cpu, address);
 	}
 
-	uint8_t blkRead8(gensim::Processor **pcpu, uint32_t address)
+	uint8_t blkRead8(archsim::core::thread::ThreadInstance **thread_p, uint32_t address, uint32_t interface)
 	{
-		LC_DEBUG2(LogBlockJitFuns) << "blkRead8";
+		auto *thread = *thread_p;
 		uint8_t data;
-		gensim::Processor *cpu = *pcpu;
-		auto rval = cpu->GetMemoryModel().Read8(address, data);
-//		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead8(cpu, address, data);
+		auto rval = thread->GetMemoryInterface(interface).Read8(Address(address), data);
 
-		if(UNLIKELY(rval)) {
-			// XXX ARM HAX
-			cpu->take_exception(7, cpu->read_pc()+8);
+		if(rval != archsim::MemoryResult::OK) {
+			thread->TakeMemoryException(thread->GetMemoryInterface(interface), Address(address));
 		}
 
 		return data;
 	}
 
-	uint16_t blkRead16(gensim::Processor **pcpu, uint32_t address)
+	uint16_t blkRead16(archsim::core::thread::ThreadInstance **thread_p, uint32_t address, uint32_t interface)
 	{
-		LC_DEBUG2(LogBlockJitFuns) << "blkRead16";
+		auto *thread = *thread_p;
 		uint16_t data;
-		gensim::Processor *cpu = *pcpu;
-		auto rval = cpu->GetMemoryModel().Read16(address, data);
-//		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead16(cpu, address, data);
+		auto rval = thread->GetMemoryInterface(interface).Read16(Address(address), data);
 
-		if(UNLIKELY(rval)) {
-			// XXX ARM HAX
-			cpu->take_exception(7, cpu->read_pc()+8);
+		if(rval != archsim::MemoryResult::OK) {
+			thread->TakeMemoryException(thread->GetMemoryInterface(interface), Address(address));
 		}
 
 		return data;
 	}
 
-	uint32_t blkRead32(gensim::Processor **pcpu, uint32_t address)
+	uint32_t blkRead32(archsim::core::thread::ThreadInstance **thread_p, uint32_t address, uint32_t interface)
 	{
-		LC_DEBUG2(LogBlockJitFuns) << "blkRead32";
+		auto *thread = *thread_p;
 		uint32_t data;
-		gensim::Processor *cpu = *pcpu;
-		auto rval = ((gensim::Processor*)cpu)->GetMemoryModel().Read32(address, data);
-//		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead32(cpu, address, data);
+		auto rval = thread->GetMemoryInterface(interface).Read32(Address(address), data);
 
-		if(UNLIKELY(rval)) {
-			// XXX ARM HAX
-			cpu->take_exception(7, cpu->read_pc()+8);
+		if(rval != archsim::MemoryResult::OK) {
+			thread->TakeMemoryException(thread->GetMemoryInterface(interface), Address(address));
 		}
 
 		return data;
 	}
 
-	uint8_t blkRead8User(gensim::Processor **pcpu, uint32_t address)
-	{
-		LC_DEBUG2(LogBlockJitFuns) << "blkRead8User";
-		uint32_t data;
-		gensim::Processor *cpu = *pcpu;
-		auto rval = cpu->GetMemoryModel().Read8User(address, data);
-//		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead8(cpu, address, data);
-
-		if(UNLIKELY(rval)) {
-			// XXX ARM HAX
-			cpu->take_exception(7, cpu->read_pc()+8);
-		}
-
-		return data;
-	}
-
-	uint16_t blkRead16User(gensim::Processor **pcpu, uint32_t address)
-	{
-		LC_DEBUG2(LogBlockJitFuns) << "blkRead16User";
-		__builtin_unreachable();
-		return 0;
-	}
-
-	uint32_t blkRead32User(gensim::Processor **pcpu, uint32_t address)
-	{
-		LC_DEBUG2(LogBlockJitFuns) << "blkRead32User";
-		uint32_t data;
-		gensim::Processor *cpu = *pcpu;
-		auto rval = ((gensim::Processor*)cpu)->GetMemoryModel().Read32User(address, data);
-//		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead32(cpu, address, data);
-
-		if(UNLIKELY(rval)) {
-			// XXX ARM HAX
-			cpu->take_exception(7, cpu->read_pc()+8);
-		}
-
-		return data;
-	}
-
-	void blkWrite8(gensim::Processor **pcpu, uint32_t address, uint32_t value)
-	{
-		LC_DEBUG2(LogBlockJitFuns) << "blkWrite8";
-		gensim::Processor *cpu = *pcpu;
-		auto rval = cpu->GetMemoryModel().Write8(address, value);
-//		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemWrite8(cpu, address, value);
-
-		if(UNLIKELY(rval)) {
-			if(rval < 1024) {
-				// XXX ARM HAX
-				cpu->take_exception(7, cpu->read_pc()+8);
-			} else {
-//				cpuReturnToSafepoint(cpu);
-			}
-		}
-	}
-
-	void blkWrite16(gensim::Processor **pcpu, uint32_t address, uint32_t value)
-	{
-		LC_DEBUG2(LogBlockJitFuns) << "blkWrite16";
-		gensim::Processor *cpu = *pcpu;
-		auto rval = cpu->GetMemoryModel().Write16(address, value);
-//		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemWrite16(cpu, address, value);
-
-		if(UNLIKELY(rval)) {
-			if(rval < 1024) {
-				// XXX ARM HAX
-				cpu->take_exception(7, cpu->read_pc()+8);
-			} else {
-//				cpuReturnToSafepoint(cpu);
-			}
-		}
-	}
-
-	void blkWrite32(gensim::Processor **pcpu, uint32_t address, uint32_t value)
-	{
-		UNIMPLEMENTED;
-	}
 }

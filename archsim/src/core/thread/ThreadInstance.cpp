@@ -18,7 +18,7 @@ DeclareLogContext(LogBlockJitCpu, "BlockJIT");
 using namespace archsim;
 using namespace archsim::core::thread;
 
-ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), mode_id_(0), ring_id_(0), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
+ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), mode_id_ptr_(nullptr), ring_id_ptr_(nullptr), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
 {
 	// Need to fill in structures based on arch descriptor info
 	
@@ -38,6 +38,24 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 	// TODO: this
 	
 	metrics_ = new archsim::core::thread::ThreadMetrics();
+	
+	// Set up default state block entries
+	
+	// Set up thread pointer back to this
+	state_block_.AddBlock("thread_ptr", sizeof(this));
+	state_block_.SetEntry<ThreadInstance*>("thread_ptr", this);
+	
+	// Set up ISA Mode ID
+	state_block_.AddBlock("ModeID", sizeof(uint32_t));
+	state_block_.SetEntry<uint32_t>("ModeID", 0);
+	
+	// Set up Ring ID
+	state_block_.AddBlock("RingID", sizeof(uint32_t));
+	state_block_.SetEntry<uint32_t>("RingID", 0);
+	
+	message_waiting_ = false;
+	trace_source_ = nullptr;
+	
 }
 
 MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface_name)

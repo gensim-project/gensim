@@ -264,15 +264,12 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 
 void CacheBasedSystemMemoryModel::InstallCaches()
 {
-	void **smm_read_cache = GetThread()->GetStateBlock().GetEntry<void*>("smm_read_cache");
-	void **smm_write_cache = GetThread()->GetStateBlock().GetEntry<void*>("smm_write_cache");
-	
 	if(GetThread()->GetExecutionRing()) {
-		*smm_read_cache = _read_kernel_cache.GetCachePtr();
-		*smm_write_cache = _write_kernel_cache.GetCachePtr();
+		GetThread()->GetStateBlock().SetEntry<void*>("smm_read_cache", _read_kernel_cache.GetCachePtr());
+		GetThread()->GetStateBlock().SetEntry<void*>("smm_write_cache", _write_kernel_cache.GetCachePtr());
 	} else {
-		*smm_read_cache = _read_user_cache.GetCachePtr();
-		*smm_write_cache = _write_user_cache.GetCachePtr();
+		GetThread()->GetStateBlock().SetEntry<void*>("smm_read_cache", _read_user_cache.GetCachePtr());
+		GetThread()->GetStateBlock().SetEntry<void*>("smm_write_cache", _write_user_cache.GetCachePtr());
 	}
 }
 

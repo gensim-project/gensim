@@ -44,7 +44,6 @@ namespace archsim {
 				virtual core::execution::ExecutionResult StepThreadBlock(thread::ThreadInstance *thread) = 0;
 				virtual core::execution::ExecutionResult Execute(thread::ThreadInstance *thread) = 0;
 
-				virtual void TakeException(thread::ThreadInstance *thread, uint64_t category, uint64_t data) = 0;
 			};
 
 			class BasicExecutionEngine : public ExecutionEngine {
@@ -58,8 +57,6 @@ namespace archsim {
 				virtual core::execution::ExecutionResult Execute(thread::ThreadInstance *thread);
 				virtual core::execution::ExecutionResult StepThreadBlock(thread::ThreadInstance *thread);
 				virtual core::execution::ExecutionResult StepThreadSingle(thread::ThreadInstance *thread);
-
-				void TakeException(thread::ThreadInstance* thread, uint64_t category, uint64_t data) override;
 
 				class ExecutionContext {
 				public:
