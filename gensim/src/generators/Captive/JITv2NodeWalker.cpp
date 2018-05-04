@@ -418,6 +418,9 @@ namespace gensim
 						case IRConstant::Type_Vector:
 							str << stmt.Constant.VGet(0).Int() << "ULL";
 							return str.str();
+							
+						default:
+							throw std::logic_error("Unhandled");
 					}
 
 					return stmt.GetName();

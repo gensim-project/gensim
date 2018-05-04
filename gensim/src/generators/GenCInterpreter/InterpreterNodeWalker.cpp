@@ -170,6 +170,8 @@ namespace gensim
 								return "(bitcast_double_u64(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
 							case genc::IRPlainOldDataType::INT32:
 								return "(bitcast_float_u32(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
+							default:
+								throw std::logic_error("Unhandled");
 						}
 
 					case SSACastStatement::Cast_Convert:
@@ -207,6 +209,9 @@ namespace gensim
 							output << "thread->GetFPState().SetRoundingMode(mode);";
 							output << "}";
 							break;
+							
+						default:
+							throw std::logic_error("Unhandled");
 					}
 				}
 

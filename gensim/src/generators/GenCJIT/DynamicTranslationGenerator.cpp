@@ -248,6 +248,9 @@ namespace gensim
 					case gensim::genc::IRPlainOldDataType::INT64:
 						cstream << "SafeFreeVR64(__idx_" << sym->GetName() << ");";
 						break;
+						
+					default:
+						throw std::logic_error("Unhandled");
 				}
 			}
 

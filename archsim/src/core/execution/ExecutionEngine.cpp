@@ -47,6 +47,7 @@ void BasicExecutionEngine::HaltAsyncThread(ThreadInstance* thread)
 ExecutionResult BasicExecutionEngine::JoinAsyncThread(ThreadInstance* thread)
 {
 	threads_.at(thread)->thread->join();
+	return ExecutionResult::Halt;
 }
 
 ExecutionResult BasicExecutionEngine::Execute(ThreadInstance* thread)
@@ -55,29 +56,29 @@ ExecutionResult BasicExecutionEngine::Execute(ThreadInstance* thread)
 	do {
 		result = StepThreadBlock(thread);
 	} while(result == ExecutionResult::Continue);
+	
+	return result;
 }
 
 ExecutionResult BasicExecutionEngine::StepThreadBlock(ThreadInstance* thread)
 {
 	archsim::util::CounterTimerContext timer(thread->GetMetrics().SelfRuntime);
-	try {
-		return ArchStepBlock(thread);
-	} catch(ThreadException &exception) {
-		if(thread->GetTraceSource()) {
-			thread->GetTraceSource()->Trace_End_Insn();
-		}
-		return ExecutionResult::Exception;
+	CreateThreadExecutionSafepoint(thread);
+	
+	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) {
+		thread->GetTraceSource()->Trace_End_Insn();
 	}
+	
+	return ArchStepBlock(thread);
 }
 ExecutionResult BasicExecutionEngine::StepThreadSingle(ThreadInstance* thread)
 {
 	archsim::util::CounterTimerContext timer(thread->GetMetrics().SelfRuntime);
-	try {
-		return ArchStepSingle(thread);
-	} catch(ThreadException &exception) {
-		if(thread->GetTraceSource()) {
-			thread->GetTraceSource()->Trace_End_Insn();
-		}
-		return ExecutionResult::Exception;
+	CreateThreadExecutionSafepoint(thread);
+	
+	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) {
+		thread->GetTraceSource()->Trace_End_Insn();
 	}
+	
+	return ArchStepSingle(thread);
 }

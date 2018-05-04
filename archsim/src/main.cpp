@@ -66,14 +66,12 @@ static int run_simple_simulation(archsim::Session& session)
 #ifdef CONFIG_MEMTRACE
 	mtrace();
 #endif
-	System simsys (session);
-
-	simsys.GetModuleManager().LoadStandardModuleDirectory();
+	System *simsys = new System(session);
 
 	if(archsim::options::InstructionTick) {
-		simsys.SetTickSource(new archsim::abi::devices::timing::SubscriberTickSource(simsys.GetPubSub(), PubSubType::InstructionExecute, 1));
+		simsys->SetTickSource(new archsim::abi::devices::timing::SubscriberTickSource(simsys->GetPubSub(), PubSubType::InstructionExecute, 1));
 	} else {
-		simsys.SetTickSource(new archsim::abi::devices::timing::MicrosecondTickSource(1000));
+		simsys->SetTickSource(new archsim::abi::devices::timing::MicrosecondTickSource(1000));
 	}
 
 	archsim::abi::devices::generic::block::BlockDevice *block_dev = nullptr;
@@ -90,27 +88,27 @@ static int run_simple_simulation(archsim::Session& session)
 			block_dev = &master_fbbd;
 		}
 
-		simsys.InstallBlockDevice("vda", block_dev);
+		simsys->InstallBlockDevice("vda", block_dev);
 	}
 
 	// Configure the system object.
-	if (!simsys.Initialise()) {
+	if (!simsys->Initialise()) {
 		LC_ERROR(LogInfrastructure) << "Unable to initialise simulation system";
 		return -1;
 	}
 
 	// Store a pointer to the system object, and start the simulation.
-	signals_register(&simsys);
+	signals_register(simsys);
 
-	simsys.RunSimulation();
-	int rc = simsys.exit_code;
+	simsys->RunSimulation();
+	int rc = simsys->exit_code;
 
 	if (archsim::options::Verbose) {
-		simsys.PrintStatistics(std::cout);
+		simsys->PrintStatistics(std::cout);
 	}
 
 	// Destroy System after simulation to clean up resources
-	simsys.Destroy();
+	simsys->Destroy();
 
 	return rc;
 }
@@ -263,6 +261,8 @@ int main(int argc, char *argv[])
 	init_timer.Start();
 
 	archsim::Session session;
+	session.GetModuleManager().LoadStandardModuleDirectory();
+	
 	archsim::util::CommandLineManager command_line;
 
 	int rc;

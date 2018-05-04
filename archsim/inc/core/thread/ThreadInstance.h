@@ -29,6 +29,9 @@
 #include <atomic>
 #include <mutex>
 #include <queue>
+#include <setjmp.h>
+
+#define CreateThreadExecutionSafepoint(thread) do { setjmp(thread->Safepoint); } while(0)
 
 namespace archsim {
 	class MemoryInterface;
@@ -131,7 +134,7 @@ namespace archsim {
 				void SetModeID(uint32_t new_mode) { GetStateBlock().SetEntry<uint32_t>("ModeID", new_mode); }
 
 				uint32_t GetExecutionRing() const { return GetStateBlock().GetEntry<uint32_t>("RingID"); }
-				void SetExecutionRing(uint32_t new_ring) { GetStateBlock().SetEntry<uint32_t>("RingID", new_ring);  }
+				void SetExecutionRing(uint32_t new_ring);
 
 				// Functions to do with registers
 				void *GetRegisterFile() { return (void*)register_file_.GetData(); }
@@ -149,7 +152,7 @@ namespace archsim {
 				void SetTraceSource(libtrace::TraceSource *source) { trace_source_ = source; }
 
 				// External functions
-				void fn_flush_itlb_entry(Address::underlying_t entry) {}
+				void fn_flush_itlb_entry(Address::underlying_t entry) { pubsub_.Publish(PubSubType::FlushTranslations, 0); }
 				void fn_flush_dtlb_entry(Address::underlying_t entry) {}
 
 				// Functions to do with manipulating state according to the architecture
@@ -190,6 +193,9 @@ namespace archsim {
 				util::PubSubscriber &GetPubsub() { return pubsub_; }
 
 				archsim::core::thread::ThreadMetrics &GetMetrics() { return *metrics_; }
+				
+				jmp_buf Safepoint;
+				void ReturnToSafepoint();
 			private:
 
 				const ArchDescriptor &descriptor_;
@@ -208,14 +214,10 @@ namespace archsim {
 				bool message_waiting_;
 				std::atomic<uint32_t> pending_irqs_;
 
-				uint32_t *mode_id_ptr_;
-				uint32_t *ring_id_ptr_;
-
 				StateBlock state_block_;
 				libtrace::TraceSource *trace_source_;
 
 				std::map<uint32_t, archsim::abi::devices::CPUIRQLine *> irq_lines_;
-
 
 			};
 		}

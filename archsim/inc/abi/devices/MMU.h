@@ -14,7 +14,7 @@
 
 namespace archsim
 {
-	namespace abi
+	namespace abi	
 	{
 		namespace memory
 		{
@@ -27,6 +27,7 @@ namespace archsim
 			struct AccessInfo {
 				uint8_t Write:1, Kernel:1, Fetch:1, SideEffects:1;
 
+				AccessInfo() {}
 				AccessInfo(bool K, bool W, bool F, bool SE=0) : Write(W), Kernel(K), Fetch(F), SideEffects(SE) {}
 			};
 

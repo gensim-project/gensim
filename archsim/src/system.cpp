@@ -203,69 +203,7 @@ void System::PrintStatistics(std::ostream& stream)
 
 bool System::RunSimulation()
 {
-//	gensim::Processor *core = emulation_model->GetBootCore();
-//
-//	if (!core) {
-//		LC_ERROR(LogSystem) << "No processor core configured!";
-//	}
-//
-//	// Prepare to boot the system
 	if (!emulation_model->PrepareBoot(*this)) return false;
-//
-//	// Resolve breakpoints
-//	for (auto breakpoint_fn : *archsim::options::Breakpoints.GetValue()) {
-//		unsigned long breakpoint_addr;
-//
-//		if (!emulation_model->ResolveSymbol(breakpoint_fn, breakpoint_addr) ) {
-//			LC_WARNING(LogSystem) << "Unable to resolve function symbol: " << breakpoint_fn;
-//			continue;
-//		}
-//
-//		LC_DEBUG1(LogSystem) << "Resolved function breakpoint: " << breakpoint_fn << " @ " << std::hex << breakpoint_addr;
-//		breakpoints.insert(breakpoint_addr);
-//	}
-//
-//	// Start live performance measurement (if necessary)
-//	archsim::util::LivePerformanceMeter *perf_meter = NULL;
-//	if (archsim::options::LivePerformance) {
-//		perf_meter = new archsim::util::LivePerformanceMeter(*core, performance_sources, "perf.dat", 1000000);
-//		perf_meter->start();
-//	}
-//
-//	bool active = true;
-//
-//	// TODO: Turn into a command-line option
-//	uint32_t steps = 1000000;
-//
-//	while (active && !core->halted) {
-//
-//		switch (mode) {
-//			case Interpreter:
-//				active = core->RunInterp(steps);
-//				break;
-//
-//			case JIT:
-//				active = core->RunJIT(archsim::options::Verbose, steps);
-//				break;
-//
-//			case SingleStep:
-//				//fprintf(stderr, "[%08x] %s\n", core->read_pc(), core->GetDisasm()->DisasmInstr(*core->curr_interpreted_insn(), core->read_pc()).c_str());
-//				active = core->RunSingleInstruction();
-//				std::cin.ignore();
-//				break;
-//
-//			default:
-//				fprintf(stderr, "unsupported simulation mode\n");
-//				active = false;
-//				break;
-//		}
-//	}
-//
-//	if (perf_meter) {
-//		perf_meter->stop();
-//		delete perf_meter;
-//	}
-
 	GetECM().StartSync();
 
 	return true;

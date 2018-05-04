@@ -13,7 +13,7 @@ struct cpuContext;
 
 extern "C" {
 
-	void cpuSetFeature(gensim::Processor *cpu, uint32_t feature, uint32_t level);
+	void cpuSetFeature(archsim::core::thread::ThreadInstance *cpu, uint32_t feature, uint32_t level);
 	uint32_t cpuGetRoundingMode(gensim::Processor *cpu);
 	void cpuSetRoundingMode(gensim::Processor *cpu, uint32_t mode);
 	uint32_t cpuGetFlushMode(gensim::Processor *cpu);
@@ -34,9 +34,9 @@ extern "C" {
 
 	uint8_t devProbeDevice(gensim::Processor *cpu, uint32_t device_id);
 
-	uint8_t devWriteDevice(gensim::Processor *cpu, uint32_t device_id, uint32_t addr, uint32_t data);
+	uint8_t devWriteDevice(archsim::core::thread::ThreadInstance *cpu, uint32_t device_id, uint32_t addr, uint32_t data);
 
-	uint8_t devReadDevice(gensim::Processor *cpu, uint32_t device_id, uint32_t addr, uint32_t* data);
+	uint8_t devReadDevice(archsim::core::thread::ThreadInstance *cpu, uint32_t device_id, uint32_t addr, uint32_t* data);
 
 	void sysVerify(gensim::Processor *cpu);
 
@@ -49,7 +49,7 @@ extern "C" {
 	uint32_t cpuHandlePendingAction(gensim::Processor *cpu);
 
 	void cpuReturnToSafepoint(gensim::Processor *cpu);
-	void cpuPendInterrupt(gensim::Processor *cpu);
+	void cpuPendInterrupt(archsim::core::thread::ThreadInstance *cpu);
 
 	uint32_t cpuTranslate(gensim::Processor *cpu, uint32_t virt_addr, uint32_t *phys_addr);
 
@@ -74,7 +74,7 @@ extern "C" {
 
 	void cpuEnterKernelMode(gensim::Processor *cpu);
 	void cpuEnterUserMode(gensim::Processor *cpu);
-	void cpuInstructionTick(gensim::Processor *cpu);
+	void cpuInstructionTick(archsim::core::thread::ThreadInstance *cpu);
 
 	void cpuTraceString(gensim::Processor *cpu, const char* str, uint32_t do_emit);
 

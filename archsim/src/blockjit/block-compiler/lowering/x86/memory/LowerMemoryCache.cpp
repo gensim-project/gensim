@@ -55,7 +55,15 @@ public:
 
 		// We need to fix the stack, since the ABI requires that (%rsp+8) is 16
 		// byte aligned.
-//		Encoder().sub(8, REG_RSP);
+		if(ctx.GetStackFrameSize() % 16 == 8) {
+			Encoder().sub(8, REG_RSP);
+		}
+		Encoder().push(REG_RDI); // thread
+		Encoder().push(REG_RSI); // address
+		Encoder().push(REG_RDX); // interface
+		
+		Encoder().mov(REG_R12, BLKJIT_ARG0(8));
+		Encoder().mov(REG_R15, BLKJIT_ARG1(8));
 		Encoder().mov(interface_id_, BLKJIT_ARG2(8));
 
 		// Now, emit the memory instruction fallback
@@ -72,12 +80,18 @@ public:
 			default:
 				assert(false);
 		}
+		
+		Encoder().pop(REG_RDX); // interface
+		Encoder().pop(REG_RSI); // address
+		Encoder().pop(REG_RDI); // thread
 
+		if(ctx.GetStackFrameSize() % 16 == 8) {
+			Encoder().add(8, REG_RSP);
+		}
+		
 		if(destination_ != REG_RIZ) {
 			Encoder().mov(BLKJIT_RETURN(access_size_), destination_);
 		}
-
-//		Encoder().add(8, REG_RSP);
 
 		// Finally, emit a jump back to the IR lowering after the memory instruction
 		Encoder().jmp_offset(return_target_ - Encoder().current_offset() - 5);
@@ -137,17 +151,32 @@ public:
 			*(uint32_t*)(Encoder().get_buffer() + _nonaligned_in) = Encoder().current_offset() - _nonaligned_in - 4;
 
 
+		// thread
+		// interface
+		// address
+		// data
+		
+		Encoder().push(REG_RDI);
+		Encoder().push(REG_RSI);
+		Encoder().push(REG_RDX);
 		Encoder().push(REG_RCX);
 		
+		Encoder().mov(X86Memory::get(REG_R12), BLKJIT_ARG0(8));
+		Encoder().mov(BLKJIT_ARG1(8), BLKJIT_ARG2(8));
+		Encoder().mov(interface_id_, BLKJIT_ARG1(8));
+
 		if(destination_is_reg_) {
 			Encoder().mov(destination_reg_, REGS_RCX(_access_size));
 		} else {
-			Encoder().mov(destination_stack_, REGS_RCX(_access_size));
+			Encoder().mov(X86Memory::get(REG_RSP, destination_stack_.displacement + 0x20), REGS_RCX(_access_size));
 		}
 
+		if(ctx.GetStackFrameSize() % 16 != 8) {
+			Encoder().sub(8, REG_RSP);
+		}
+		
 		// We need to fix the stack, since the ABI requires that (%rsp+8) is 16
 		// byte aligned.
-//		Encoder().sub(8, REG_RSP);
 		Encoder().mov(interface_id_, BLKJIT_ARG1(8));
 
 		switch(_access_size) {
@@ -161,9 +190,15 @@ public:
 				Encoder().call((void*)blkCacheWrite32Fallback, BLKJIT_RETURN(8));
 				break;
 		}
-//		Encoder().add(8, REG_RSP);
-
+		
+		if(ctx.GetStackFrameSize() % 16 != 8) {
+			Encoder().add(8, REG_RSP);
+		}
 		Encoder().pop(REG_RCX);
+		Encoder().pop(REG_RDX);
+		Encoder().pop(REG_RSI);
+		Encoder().pop(REG_RDI);
+		
 		
 		// Finally, emit a jump back to the IR lowering after the memory instruction
 		Encoder().jmp_offset(_return_target - Encoder().current_offset() - 5);

@@ -75,16 +75,6 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 
-	for(auto i : main_thread_->GetMemoryInterfaces()) {
-		if(i == &main_thread_->GetFetchMI()) {
-			i->Connect(*new archsim::LegacyFetchMemoryInterface(*smm));
-		} else {
-			i->Connect(*new archsim::LegacyMemoryInterface(*smm));
-		}
-	}
-
-	ctx->AddThread(main_thread_);
-	
 	// Install Devices
 	if (!InstallDevices()) {
 		return false;
@@ -92,7 +82,20 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 
 	// Obtain the MMU
 	devices::MMU *mmu = (devices::MMU*)main_thread_->GetPeripherals().GetDeviceByName("mmu");
+	
+	for(auto i : main_thread_->GetMemoryInterfaces()) {
+		if(i == &main_thread_->GetFetchMI()) {
+			i->Connect(*new archsim::LegacyFetchMemoryInterface(*smm));
+			i->ConnectTranslationProvider(*new archsim::MMUTranslationProvider(mmu, main_thread_));
+		} else {
+			i->Connect(*new archsim::LegacyMemoryInterface(*smm));
+			i->ConnectTranslationProvider(*new archsim::MMUTranslationProvider(mmu, main_thread_));
+		}
+	}
 
+	ctx->AddThread(main_thread_);
+	
+	
 	// Update the memory model with the necessary object references
 	smm->SetMMU(mmu);
 	smm->SetCPU(main_thread_);

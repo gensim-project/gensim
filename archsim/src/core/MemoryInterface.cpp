@@ -5,15 +5,35 @@
  */
 
 #include "core/MemoryInterface.h"
+#include "core/thread/ThreadInstance.h"
 
 using namespace archsim;
 
+TranslationResult MMUTranslationProvider::Translate(Address virt_addr, Address& phys_addr, bool is_write, bool is_fetch, bool side_effects) {
+	AccessInfo info;
+	info.Fetch = is_fetch;
+	info.SideEffects = side_effects;
+	info.Write = is_write;
+	info.Kernel = thread_->GetExecutionRing() != 0;
+	uint32_t physaddr;
+	
+	auto result = mmu_->Translate(thread_, virt_addr.Get(), physaddr, info);
+	phys_addr = Address(physaddr);
+	switch(result) {
+		case archsim::abi::devices::MMU::TXLN_OK: return TranslationResult::OK;
+		default:
+			return TranslationResult::NotPresent;
+	}
+}
+
 MemoryResult MemoryInterface::WriteString(Address address, const char *data) {
 	do {
-		device_->Write8(address, *data);
+		Write8(address, *data);
 		data++;
 		address += 1;
 	} while(*data);
+	
+	return MemoryResult::OK;
 }
 
 MemoryResult MemoryInterface::ReadString(Address address, char *data, size_t max_size) {
@@ -21,7 +41,7 @@ MemoryResult MemoryInterface::ReadString(Address address, char *data, size_t max
 }
 
 MemoryResult MemoryInterface::Read(Address address, unsigned char *data, size_t size) {
-	for(int i = 0; i < size; ++i) {
+	for(unsigned int i = 0; i < size; ++i) {
 		auto result = Read8(address + i, data[i]);
 		if(result != MemoryResult::OK) {
 			return result;
@@ -32,15 +52,11 @@ MemoryResult MemoryInterface::Read(Address address, unsigned char *data, size_t 
 }
 
 MemoryResult MemoryInterface::Write(Address address, const unsigned char *data, size_t size) {
-	for(int i = 0; i < size; ++i) {
+	for(unsigned int i = 0; i < size; ++i) {
 		Write8(address + i, data[i]);
 	}
-}
-
-TranslationResult MemoryInterface::PerformTranslation(Address virtual_address, Address& physical_address, uint32_t ring)
-{
-	physical_address = virtual_address;
-	return TranslationResult::OK;
+	
+	return MemoryResult::OK;
 }
 
 MemoryResult LegacyMemoryInterface::Read8(Address address, uint8_t& data)
