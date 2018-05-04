@@ -35,6 +35,11 @@ namespace archsim {
 				ExecutionResult ArchStepBlock(thread::ThreadInstance* thread) override;
 				ExecutionResult ArchStepSingle(thread::ThreadInstance* thread) override;
 
+				void FlushTxlns();
+				void FlushTxlnsFeature();
+				void FlushTxlnCache();
+				void FlushAllTxlns();
+				
 			private:
 				void checkFlushTxlns();
 				bool translateBlock(thread::ThreadInstance *thread, archsim::Address block_pc, bool support_chaining, bool support_profiling);
@@ -47,6 +52,10 @@ namespace archsim {
 				archsim::blockjit::BlockProfile phys_block_profile_;
 				archsim::blockjit::BlockCache virt_block_cache_;
 				gensim::blockjit::BaseBlockJITTranslate *translator_;
+				
+				bool flush_txlns_;
+				bool flush_all_txlns_;
+				bool subscribed_;
 			};
 		}
 	}

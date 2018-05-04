@@ -12,6 +12,7 @@
 
 #include "abi/devices/generic/Keyboard.h"
 #include "abi/devices/generic/Mouse.h"
+#include "module/ModuleManager.h"
 
 namespace archsim
 {
@@ -20,6 +21,11 @@ namespace archsim
 	public:
 		abi::devices::generic::MouseAggregator global_mouse;
 		abi::devices::generic::KeyboardAggregator global_kbd;
+		
+		module::ModuleManager &GetModuleManager() { return module_manager_; }
+		
+	private:
+		module::ModuleManager module_manager_;
 	};
 }
 

@@ -226,7 +226,7 @@ bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstan
 	builder.add_instruction(b);
 
 	if(archsim::options::Verify && !archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
-	else if(archsim::options::InstructionTick) {
+	if(archsim::options::InstructionTick) {
 		builder.call(IROperand::func((void*)cpuInstructionTick), IROperand::const64((uint64_t)(void*)processor));
 	}
 
@@ -347,14 +347,14 @@ bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *pr
 
 		// If this instruction is an end of block, potentially merge the next block
 		if(_decode->GetEndOfBlock()) {
-			if(can_merge_jump(processor, _decode, pc)) {
-				Address target = get_jump_target(processor, _decode, pc);
-				if(!block_heads.count(target)) {
-					block_heads.insert(target);
-					if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
-					return emit_block(processor, target, builder, block_heads);
-				}
-			}
+//			if(can_merge_jump(processor, _decode, pc)) {
+//				Address target = get_jump_target(processor, _decode, pc);
+//				if(!block_heads.count(target)) {
+//					block_heads.insert(target);
+//					if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
+//					return emit_block(processor, target, builder, block_heads);
+//				}
+//			}
 
 			break;
 		} else {
@@ -404,8 +404,8 @@ bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *pr
 				//need to translate target and fallthrough PCs
 
 				Address target_ppc(0), fallthrough_ppc(0);
-				if(target_pc) processor->GetFetchMI().PerformTranslation(Address(target_pc), target_ppc, processor->GetExecutionRing());
-				if(fallthrough_pc) processor->GetFetchMI().PerformTranslation(Address(fallthrough_pc), fallthrough_ppc, processor->GetExecutionRing());
+				if(target_pc) processor->GetFetchMI().PerformTranslation(Address(target_pc), target_ppc, false, true, false);
+				if(fallthrough_pc) processor->GetFetchMI().PerformTranslation(Address(fallthrough_pc), fallthrough_ppc, false, true, false);
 
 				archsim::blockjit::BlockTranslation target_fn;
 				archsim::blockjit::BlockTranslation fallthrough_fn;

@@ -19,51 +19,111 @@ using namespace archsim::core::thread;
 
 extern int block_trampoline_source(ThreadInstance *thread, const archsim::RegisterFileEntryDescriptor &pc_descriptor, struct archsim::blockjit::BlockCacheEntry *block_cache);
 
-BlockJITExecutionEngine::BlockJITExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) : phys_block_profile_(mem_allocator_), translator_(translator)
+void flush_txlns_callback(PubSubType::PubSubType type, void *context, const void *data) 
 {
+	BlockJITExecutionEngine *engine = (BlockJITExecutionEngine*)context;
 
+	switch(type) {
+		case PubSubType::ITlbFullFlush:
+		case PubSubType::ITlbEntryFlush:
+			engine->FlushTxlnCache();
+			break;
+		case PubSubType::FlushTranslations:
+		case PubSubType::L1ICacheFlush:
+			engine->FlushTxlns();
+			break;
+		
+		case PubSubType::FeatureChange:
+			engine->FlushTxlnsFeature();
+			break;
+			
+		case PubSubType::FlushAllTranslations:
+			engine->FlushAllTxlns();
+			break;
+			
+		case PubSubType::RegionInvalidatePhysical:
+		default:
+			break;
+	}
+}
+
+BlockJITExecutionEngine::BlockJITExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) : phys_block_profile_(mem_allocator_), translator_(translator), subscribed_(false)
+{
+	
+}
+
+void BlockJITExecutionEngine::FlushTxlns()
+{
+	virt_block_cache_.Invalidate();
+	flush_txlns_ = 1;
+}
+
+void BlockJITExecutionEngine::FlushAllTxlns()
+{
+	virt_block_cache_.Invalidate();
+	flush_all_txlns_ = 1;
+	flush_txlns_ = 1;
+}
+
+void BlockJITExecutionEngine::FlushTxlnCache()
+{
+	virt_block_cache_.Invalidate();
+}
+
+void BlockJITExecutionEngine::FlushTxlnsFeature()
+{
+	// ???
+//	virt_block_cache_.InvalidateFeatures(GetFeatures().GetAvailableMask());
 }
 
 
 void BlockJITExecutionEngine::checkFlushTxlns()
 {
-	LC_ERROR(LogBlockJitCpu) << "Not implemented!";
+	if(flush_txlns_) {
+		if(archsim::options::AggressiveCodeInvalidation || flush_all_txlns_) phys_block_profile_.Invalidate();
+		else phys_block_profile_.GarbageCollect();
+		virt_block_cache_.Invalidate();
+		flush_txlns_ = false;
+		flush_all_txlns_ = false;
+	}
 }
 
 
 ExecutionResult BlockJITExecutionEngine::ArchStepBlock(ThreadInstance* thread)
 {
+	util::PubSubscriber pubsub (thread->GetPubsub());
+	pubsub.Subscribe(PubSubType::FlushTranslations, flush_txlns_callback, this);
+	pubsub.Subscribe(PubSubType::FlushAllTranslations, flush_txlns_callback, this);
+	pubsub.Subscribe(PubSubType::ITlbFullFlush, flush_txlns_callback, this);
+	pubsub.Subscribe(PubSubType::ITlbEntryFlush, flush_txlns_callback, this);
+	pubsub.Subscribe(PubSubType::L1ICacheFlush, flush_txlns_callback, this);
+	pubsub.Subscribe(PubSubType::FeatureChange, flush_txlns_callback, this);
+	pubsub.Subscribe(PubSubType::RegionInvalidatePhysical, flush_txlns_callback, this);
+	
+	CreateThreadExecutionSafepoint(thread);
+	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) {
+		thread->GetTraceSource()->Trace_End_Insn();
+	}
+	
 	checkFlushTxlns();
 	if(thread->HasMessage()) {
-		thread->HandleMessage();
-	}
-	
-	if(!thread->GetStateBlock().HasEntry("blockjit_safepoint")) {
-		thread->GetStateBlock().AddBlock("blockjit_safepoint", sizeof(jmp_buf));
-	}
-	
-	jmp_buf buf;
-	auto jmp_result = setjmp(buf);
-	
-	if(!jmp_result) {
-		thread->GetStateBlock().SetEntry<jmp_buf>("blockjit_safepoint", buf);
-		
-		const auto &pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
-
-		if(virt_block_cache_.Contains(thread->GetPC()) || translateBlock(thread, thread->GetPC(), true, false)) {
-			block_trampoline_source(thread, pc_desc, virt_block_cache_.GetPtr());
-		}
-	} else {
-		if(thread->GetTraceSource() != nullptr) {
-			thread->GetTraceSource()->Trace_End_Insn();
-		}
-		
-		switch((archsim::abi::ExceptionAction)jmp_result) {
-			case archsim::abi::ExceptionAction::AbortSimulation:
-				return ExecutionResult::Abort;
+		auto result = thread->HandleMessage();
+		switch(result) {
+			case ExecutionResult::Continue: 
+				break;
 			default:
-				return ExecutionResult::Continue;
+				return result;
 		}
+	}
+	
+	const auto &pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
+
+	if(virt_block_cache_.Contains(thread->GetPC()) || translateBlock(thread, thread->GetPC(), true, false)) {
+		block_trampoline_source(thread, pc_desc, virt_block_cache_.GetPtr());
+	}
+	
+	if(thread->GetTraceSource() != nullptr && thread->GetTraceSource()->IsPacketOpen()) {
+		thread->GetTraceSource()->Trace_End_Insn();
 	}
 	
 	return ExecutionResult::Continue;
@@ -84,7 +144,7 @@ bool BlockJITExecutionEngine::translateBlock(ThreadInstance *thread, archsim::Ad
 	Address physaddr (0);
 
 	// Translate WITH side effects. If a fault occurs, stop translating this block
-	TranslationResult fault = thread->GetFetchMI().PerformTranslation(block_pc, physaddr, thread->GetExecutionRing());
+	TranslationResult fault = thread->GetFetchMI().PerformTranslation(block_pc, physaddr, false, true, true);
 
 	if(fault != TranslationResult::OK) {
 		thread->TakeMemoryException(thread->GetFetchMI(), block_pc);
@@ -120,6 +180,7 @@ bool BlockJITExecutionEngine::translateBlock(ThreadInstance *thread, archsim::Ad
 		// if we failed to produce a translation, then try and stop the simulation
 		LC_ERROR(LogBlockJitCpu) << "Failed to compile block! Aborting.";
 		thread->SendMessage(archsim::core::thread::ThreadMessage::Halt);
+		return false;
 	}
 
 	return success;

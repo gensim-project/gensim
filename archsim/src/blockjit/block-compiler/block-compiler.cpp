@@ -695,10 +695,8 @@ void BlockCompiler::emit_save_reg_state(int num_operands, stack_map_t &stack_map
 	// XXX host architecture dependent
 	// On X86-64, the stack pointer on entry to a function must have an offset
 	// of 0x8 (such that %rsp + 8 is 16 byte aligned). Since the call instruction
-	// will push 8 bytes onto the stack, plus we save 3 more regs (CPUState, Regstate, RBP),
-	// we have an overall even number of regs saved and so the this should be upheld.
-	// so, we don't need to fix the stack by default.
-	fix_stack = false;
+	// will push 8 bytes onto the stack, plus we save 2 more regs (CPUState, Regstate),
+	fix_stack = true;
 
 	stack_map.clear();
 
@@ -742,7 +740,12 @@ void BlockCompiler::emit_restore_reg_state(int num_operands, stack_map_t &stack_
 }
 
 void BlockCompiler::encode_operand_function_argument(const IROperand *oper, const X86Register& target_reg, stack_map_t &stack_map)
-{
+{	
+	uint8_t stack_offset_adjust = 8;
+	if(stack_map.size() % 2) {
+		stack_offset_adjust = 0;
+	}
+	
 	if (oper->is_constant() == IROperand::CONSTANT) {
 		if(oper->value == 0) encoder.xorr(target_reg, target_reg);
 		else encoder.mov(oper->value, target_reg);
@@ -754,7 +757,7 @@ void BlockCompiler::encode_operand_function_argument(const IROperand *oper, cons
 			auto &reg = get_allocable_register(oper->alloc_data, 8);
 			encoder.mov(X86Memory::get(REG_RSP, stack_map.at(&reg)), target_reg);
 		} else {
-			int64_t stack_offset = (oper->alloc_data + (8*stack_map.size()));
+			int64_t stack_offset = (stack_offset_adjust + oper->alloc_data + (8*stack_map.size()));
 			encoder.mov(X86Memory::get(REG_RSP, stack_offset), target_reg);
 		}
 	} else {

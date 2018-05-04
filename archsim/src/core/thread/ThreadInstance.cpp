@@ -9,6 +9,9 @@
 #include "core/thread/ThreadInstance.h"
 #include "core/MemoryInterface.h"
 #include "util/LogContext.h"
+#include "system.h"
+
+#include <setjmp.h>
 
 // These are deprecated and should be removed soon
 DeclareLogContext(LogCPU, "CPU");
@@ -18,7 +21,7 @@ DeclareLogContext(LogBlockJitCpu, "BlockJIT");
 using namespace archsim;
 using namespace archsim::core::thread;
 
-ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), mode_id_ptr_(nullptr), ring_id_ptr_(nullptr), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
+ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
 {
 	// Need to fill in structures based on arch descriptor info
 	
@@ -55,7 +58,17 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 	
 	message_waiting_ = false;
 	trace_source_ = nullptr;
-	
+}
+
+void ThreadInstance::ReturnToSafepoint()
+{
+	longjmp(Safepoint, 1);
+}
+
+void ThreadInstance::SetExecutionRing(uint32_t new_ring)
+{
+	GetStateBlock().SetEntry<uint32_t>("RingID", new_ring); 
+	GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::PrivilegeLevelChange, this); 
 }
 
 MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface_name)
@@ -107,25 +120,19 @@ void RegisterFileInterface::SetTaggedSlot(const std::string &tag, Address target
 archsim::abi::ExceptionAction ThreadInstance::TakeException(uint64_t category, uint64_t data)
 {
 	auto result = emu_model_.HandleException(this, category, data);
-	switch(result) {
-		case archsim::abi::ExceptionAction::AbortInstruction:
-		case archsim::abi::ExceptionAction::AbortSimulation:
-			throw ThreadException();
-		default:
-			return result;
+	if(result != archsim::abi::ExceptionAction::ResumeNext) {
+		ReturnToSafepoint();
 	}
+	return result;
 }
 
 archsim::abi::ExceptionAction ThreadInstance::TakeMemoryException(MemoryInterface& interface, Address address)
 {
 	auto result = emu_model_.HandleMemoryFault(*this, interface, address);
-	switch(result) {
-		case archsim::abi::ExceptionAction::AbortInstruction:
-		case archsim::abi::ExceptionAction::AbortSimulation:
-			throw ThreadException();
-		default:
-			return result;
+	if(result != archsim::abi::ExceptionAction::ResumeNext) {
+		ReturnToSafepoint();
 	}
+	return result;
 }
 
 

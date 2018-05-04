@@ -19,7 +19,7 @@ template <typename PC_t> static void block_trampoline_loop(archsim::core::thread
 		entry_idx >>= BLOCKCACHE_INSTRUCTION_SHIFT;
 
 		const auto & entry  = block_cache[entry_idx];
-
+		
 		if(entry.virt_tag == pc) {
 			entry.ptr(regfile, thread->GetStateBlock().GetData());
 			asm volatile ("":::"r15", "r14", "r13", "rbx", "rbp");

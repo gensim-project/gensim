@@ -24,6 +24,7 @@
 #include "abi/devices/generic/block/BlockCache.h"
 #include "abi/devices/generic/block/BlockDevice.h"
 #include "module/ModuleManager.h"
+#include "session.h"
 
 #include <ostream>
 #include <set>
@@ -229,7 +230,7 @@ public:
 
 	inline archsim::module::ModuleManager &GetModuleManager()
 	{
-		return module_manager_;
+		return GetSession().GetModuleManager();
 	}
 	
 	inline archsim::core::execution::ExecutionContextManager &GetECM()

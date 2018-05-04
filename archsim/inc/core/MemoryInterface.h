@@ -17,12 +17,48 @@
 #include "core/arch/ArchDescriptor.h"
 #include "abi/Address.h"
 #include "abi/memory/MemoryModel.h"
+#include "abi/devices/MMU.h"
 
 namespace archsim {
 	
 	enum class MemoryResult {
 		OK,
 		Error
+	};
+	
+	enum class TranslationResult {
+		UNKNOWN,
+		OK,
+		NotPresent,
+		NotPrivileged
+	};
+	
+	class MemoryTranslationProvider {
+	public:
+		virtual TranslationResult Translate(Address virt_addr, Address &phys_addr, bool is_write, bool is_fetch, bool side_effects) = 0;
+	};
+	
+	class LamdaMemoryTranslationProvider : public MemoryTranslationProvider {
+	public:
+		using FnType = std::function<TranslationResult (Address, Address&, bool)>;
+		
+		LamdaMemoryTranslationProvider(FnType fn) : function_(fn) { }
+		virtual ~LamdaMemoryTranslationProvider() { }
+		TranslationResult Translate(Address virt_addr, Address& phys_addr, bool is_write, bool is_fetch, bool side_effects) override { return function_(virt_addr, phys_addr, side_effects); }
+		
+	private:
+		FnType function_;
+	};
+	
+	class MMUTranslationProvider : public MemoryTranslationProvider {
+	public:
+		MMUTranslationProvider(archsim::abi::devices::MMU *mmu, archsim::core::thread::ThreadInstance *thread) : mmu_(mmu), thread_(thread) {}
+		virtual ~MMUTranslationProvider() {}
+		
+		TranslationResult Translate(Address virt_addr, Address& phys_addr, bool is_write, bool is_fetch, bool side_effects) override;
+	private:
+		archsim::abi::devices::MMU *mmu_;
+		archsim::core::thread::ThreadInstance *thread_;
 	};
 	
 	class MemoryDevice {
@@ -76,13 +112,6 @@ namespace archsim {
 		archsim::abi::memory::MemoryModel &mem_model_;
 	};
 	
-	enum class TranslationResult {
-		UNKNOWN,
-		OK,
-		NotPresent,
-		NotPrivileged
-	};
-	
 	/**
 	 * This class represents a specific instantiation of a memory master.
 	 * This is connected to an underlying device (which may be a bus).
@@ -108,11 +137,14 @@ namespace archsim {
 		MemoryResult Read(Address address, unsigned char *data, size_t size);
 		MemoryResult Write(Address address, const unsigned char *data, size_t size);
 		
-		virtual TranslationResult PerformTranslation(Address virtual_address, Address &physical_address, uint32_t ring);
+		TranslationResult PerformTranslation(Address virtual_address, Address &physical_address, bool is_write, bool is_fetch, bool side_effects) { return provider_->Translate(virtual_address, physical_address, is_write, is_fetch, side_effects); }
+		
 		void Connect(MemoryDevice &device) { device_ = &device; }
+		void ConnectTranslationProvider(MemoryTranslationProvider &provider) { provider_ = &provider; }
 
 	private:
 		const MemoryInterfaceDescriptor &descriptor_;
+		MemoryTranslationProvider *provider_;
 		MemoryDevice *device_;
 	};
 
