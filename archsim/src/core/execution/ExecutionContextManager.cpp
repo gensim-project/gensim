@@ -10,56 +10,34 @@ using namespace archsim;
 using namespace archsim::core::execution;
 using namespace archsim::core::thread;
 
-ExecutionContext::ExecutionContext(ArchDescriptor& arch, ExecutionEngine* engine) : arch_(arch), engine_(engine), trace_sink_(nullptr)
+ExecutionContextManager::ExecutionContextManager() : state_(ExecutionState::Ready)
 {
 
 }
 
-void ExecutionContext::AddThread(ThreadInstance* thread)
+void ExecutionContextManager::AddEngine(ExecutionEngine* engine)
 {
-	local_threads_.push_back(thread);
-	
-	if(GetTraceSink() != nullptr) {
-		auto source = new libtrace::TraceSource(1024*1024);
-		source->SetSink(GetTraceSink());
-		source->SetAggressiveFlush(true);
-		thread->SetTraceSource(source);
+	engine->SetTraceSink(GetTraceSink());
+	contexts_.push_back(engine);
+}
+
+void ExecutionContextManager::Start()
+{
+	for(auto i : contexts_) {
+		i->Start();
 	}
 }
 
-ExecutionResult ExecutionContext::StepThreadsBlock()
+void ExecutionContextManager::Join()
 {
-	ExecutionResult result = ExecutionResult::Continue;
-	
-	for(auto thread : local_threads_) {
-		auto tresult = engine_->StepThreadBlock(thread);
-		if(tresult != result) {
-			return tresult;
-		}
+	for(auto i : contexts_) {
+		i->Join();
 	}
-	return result;
 }
 
-
-ExecutionContextManager::ExecutionContextManager() : trace_sink_(nullptr) {
-	
-}
-
-void ExecutionContextManager::AddContext(ExecutionContext* ctx)
+void ExecutionContextManager::Halt()
 {
-	contexts_.push_back(ctx);
-	ctx->SetTraceSink(GetTraceSink());
-}
-
-void ExecutionContextManager::StartSync()
-{
-	while(true) {
-		for(auto ctx : contexts_) {
-			auto cresult = ctx->StepThreadsBlock();
-
-			if(cresult == ExecutionResult::Abort || cresult == ExecutionResult::Halt) {
-				return;
-			}
-		}
+	for(auto i : contexts_) {
+		i->Halt();
 	}
 }

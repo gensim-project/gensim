@@ -17,8 +17,6 @@ UseLogContext(LogBlockJitCpu);
 using namespace archsim::core::execution;
 using namespace archsim::core::thread;
 
-extern int block_trampoline_source(ThreadInstance *thread, const archsim::RegisterFileEntryDescriptor &pc_descriptor, struct archsim::blockjit::BlockCacheEntry *block_cache);
-
 void flush_txlns_callback(PubSubType::PubSubType type, void *context, const void *data) 
 {
 	BlockJITExecutionEngine *engine = (BlockJITExecutionEngine*)context;
@@ -42,6 +40,8 @@ void flush_txlns_callback(PubSubType::PubSubType type, void *context, const void
 			break;
 			
 		case PubSubType::RegionInvalidatePhysical:
+			engine->InvalidateRegion(archsim::Address((uint64_t)data));
+			break;
 		default:
 			break;
 	}
@@ -72,10 +72,15 @@ void BlockJITExecutionEngine::FlushTxlnCache()
 
 void BlockJITExecutionEngine::FlushTxlnsFeature()
 {
-	// ???
-//	virt_block_cache_.InvalidateFeatures(GetFeatures().GetAvailableMask());
+	for(auto i : GetThreads()) {
+		virt_block_cache_.InvalidateFeatures(i->GetFeatures().GetAvailableMask());
+	}	
 }
 
+void BlockJITExecutionEngine::InvalidateRegion(Address addr)
+{
+	phys_block_profile_.MarkPageDirty(addr);
+}
 
 void BlockJITExecutionEngine::checkFlushTxlns()
 {
@@ -88,9 +93,71 @@ void BlockJITExecutionEngine::checkFlushTxlns()
 	}
 }
 
-
-ExecutionResult BlockJITExecutionEngine::ArchStepBlock(ThreadInstance* thread)
+template<typename PC_t> ExecutionResult BlockJITExecutionEngine::ExecuteLoop(ExecutionEngineThreadContext *ctx, PC_t *pc_ptr)
 {
+	auto thread = ctx->GetThread();
+	
+	CreateThreadExecutionSafepoint(thread);
+	
+	while(ctx->GetState() == ExecutionState::Running) {
+		if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) {
+			thread->GetTraceSource()->Trace_End_Insn();
+		}
+		
+		checkFlushTxlns();
+		
+		if(thread->HasMessage()) {
+			auto result = thread->HandleMessage();
+			switch(result) {
+				case ExecutionResult::Continue: 
+				case ExecutionResult::Exception:
+					break;
+				default:
+					return result;
+			}
+		}
+		
+		block_txln_fn fn = virt_block_cache_.Lookup(Address(*pc_ptr));
+		if(fn || translateBlock(thread, Address(*pc_ptr), true, false)) {
+			ExecuteInnerLoop(ctx, pc_ptr);
+		}
+
+		if(thread->GetTraceSource() != nullptr && thread->GetTraceSource()->IsPacketOpen()) {
+			thread->GetTraceSource()->Trace_End_Insn();
+		}
+	}
+	
+	return ExecutionResult::Halt;
+}
+
+template<typename PC_t> void BlockJITExecutionEngine::ExecuteInnerLoop(ExecutionEngineThreadContext* ctx, PC_t* pc_ptr)
+{
+	auto thread = ctx->GetThread();
+	auto regfile = thread->GetRegisterFile();
+	
+	while(!thread->HasMessage()) {
+		uint64_t pc = *(PC_t*)(pc_ptr);
+
+		uint64_t entry_idx = pc & BLOCKCACHE_MASK;
+		entry_idx >>= BLOCKCACHE_INSTRUCTION_SHIFT;
+
+		const auto & entry  = virt_block_cache_.GetEntry(Address(pc));
+
+		if(entry.virt_tag == pc) {
+			entry.ptr(regfile, thread->GetStateBlock().GetData());
+			asm volatile ("":::"r15", "r14", "r13", "rbx", "rbp");
+		} else {
+			return;
+		}
+	}
+}
+
+
+
+ExecutionResult BlockJITExecutionEngine::Execute(ExecutionEngineThreadContext* ctx)
+{
+	auto thread = ctx->GetThread();
+	
 	util::PubSubscriber pubsub (thread->GetPubsub());
 	pubsub.Subscribe(PubSubType::FlushTranslations, flush_txlns_callback, this);
 	pubsub.Subscribe(PubSubType::FlushAllTranslations, flush_txlns_callback, this);
@@ -100,38 +167,22 @@ ExecutionResult BlockJITExecutionEngine::ArchStepBlock(ThreadInstance* thread)
 	pubsub.Subscribe(PubSubType::FeatureChange, flush_txlns_callback, this);
 	pubsub.Subscribe(PubSubType::RegionInvalidatePhysical, flush_txlns_callback, this);
 	
-	CreateThreadExecutionSafepoint(thread);
-	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) {
-		thread->GetTraceSource()->Trace_End_Insn();
-	}
-	
-	checkFlushTxlns();
-	if(thread->HasMessage()) {
-		auto result = thread->HandleMessage();
-		switch(result) {
-			case ExecutionResult::Continue: 
-				break;
-			default:
-				return result;
-		}
-	}
-	
 	const auto &pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
-
-	if(virt_block_cache_.Contains(thread->GetPC()) || translateBlock(thread, thread->GetPC(), true, false)) {
-		block_trampoline_source(thread, pc_desc, virt_block_cache_.GetPtr());
-	}
+	void *pc_ptr = (uint8_t*)thread->GetRegisterFile() + pc_desc.GetOffset();
 	
-	if(thread->GetTraceSource() != nullptr && thread->GetTraceSource()->IsPacketOpen()) {
-		thread->GetTraceSource()->Trace_End_Insn();
+	switch(pc_desc.GetEntrySize()) {
+		case 4:
+			return ExecuteLoop(ctx, (uint32_t*)pc_ptr);
+		case 8:
+			return ExecuteLoop(ctx, (uint64_t*)pc_ptr);
+		default:
+			throw std::logic_error("Unsupported PC type");
 	}
-	
-	return ExecutionResult::Continue;
 }
 
-ExecutionResult BlockJITExecutionEngine::ArchStepSingle(ThreadInstance* thread)
+ExecutionEngineThreadContext* BlockJITExecutionEngine::GetNewContext(thread::ThreadInstance* thread)
 {
-	UNIMPLEMENTED;
+	return new ExecutionEngineThreadContext(this, thread);
 }
 
 bool BlockJITExecutionEngine::translateBlock(ThreadInstance *thread, archsim::Address block_pc, bool support_chaining, bool support_profiling)

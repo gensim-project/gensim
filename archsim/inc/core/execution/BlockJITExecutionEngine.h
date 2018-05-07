@@ -26,21 +26,25 @@
 namespace archsim {
 	namespace core {
 		namespace execution {
-			class BlockJITExecutionEngine : public BasicExecutionEngine
+			class BlockJITExecutionEngine : public ExecutionEngine
 			{
 			public:
 				
 				BlockJITExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator);
 				
-				ExecutionResult ArchStepBlock(thread::ThreadInstance* thread) override;
-				ExecutionResult ArchStepSingle(thread::ThreadInstance* thread) override;
-
 				void FlushTxlns();
 				void FlushTxlnsFeature();
 				void FlushTxlnCache();
 				void FlushAllTxlns();
+				void InvalidateRegion(Address addr);
 				
 			private:
+				ExecutionEngineThreadContext* GetNewContext(thread::ThreadInstance* thread) override;
+				ExecutionResult Execute(ExecutionEngineThreadContext* thread) override;
+
+				template<typename PC_t> ExecutionResult ExecuteLoop(ExecutionEngineThreadContext *ctx, PC_t* pc_ptr);
+				template<typename PC_t> void ExecuteInnerLoop(ExecutionEngineThreadContext *ctx, PC_t* pc_ptr);
+				
 				void checkFlushTxlns();
 				bool translateBlock(thread::ThreadInstance *thread, archsim::Address block_pc, bool support_chaining, bool support_profiling);
 				

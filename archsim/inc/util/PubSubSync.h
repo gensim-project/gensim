@@ -92,7 +92,7 @@ namespace archsim
 
 			PubSubInstance(PubSubType::PubSubType type);
 
-			const PubSubscription* Subscribe(PubSubCallback callback, void *context);
+			PubSubscription* Subscribe(PubSubCallback callback, void *context);
 			void Publish(const void *data);
 
 			void Unsubscribe(const PubSubscription*);
@@ -122,7 +122,7 @@ namespace archsim
 			{
 				return true;
 			}
-			const PubSubscription *Subscribe(PubSubType::PubSubType type, PubSubCallback callback, void *context);
+			PubSubscription *Subscribe(PubSubType::PubSubType type, PubSubCallback callback, void *context);
 			void Publish(PubSubType::PubSubType type, const void *data);
 
 			inline bool HasSubscribers(PubSubType::PubSubType type) const

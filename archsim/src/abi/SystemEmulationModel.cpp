@@ -63,8 +63,8 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 	auto arch = archentry->Get();
-	auto ctx = new archsim::core::execution::ExecutionContext(*arch, moduleentry->Get());
-	GetSystem().GetECM().AddContext(ctx);
+	auto engine = moduleentry->Get();
+	GetSystem().GetECM().AddEngine(engine);
 	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 	
 	// Create a system memory model for this CPU
@@ -93,7 +93,7 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		}
 	}
 
-	ctx->AddThread(main_thread_);
+	engine->AttachThread(main_thread_);
 	
 	
 	// Update the memory model with the necessary object references

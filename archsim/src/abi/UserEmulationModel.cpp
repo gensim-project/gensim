@@ -55,15 +55,15 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 	auto arch = archentry->Get();
-	auto ctx = new archsim::core::execution::ExecutionContext(*arch, moduleentry->Get());
-	GetSystem().GetECM().AddContext(ctx);
+	auto engine = moduleentry->Get();
+	GetSystem().GetECM().AddEngine(engine);
 	main_thread_ = new archsim::core::thread::ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 	
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
 		i->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
 	}
 	
-	ctx->AddThread(main_thread_);
+	engine->AttachThread(main_thread_);
 	
 //	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
 

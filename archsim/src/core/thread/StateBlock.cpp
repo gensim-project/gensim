@@ -8,10 +8,12 @@
 
 using namespace archsim;
 
-void StateBlock::AddBlock(const std::string& name, size_t size_in_bytes)
+uint32_t StateBlock::AddBlock(const std::string& name, size_t size_in_bytes)
 {
-	block_offsets_[name] = data_.size();
+	uint32_t offset = data_.size();
+	block_offsets_[name] = offset;
 	data_.resize(data_.size() + size_in_bytes);
+	return offset;
 }
 
 size_t StateBlock::GetBlockOffset(const std::string& name) const
