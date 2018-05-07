@@ -53,7 +53,7 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 	state_block_.SetEntry<uint32_t>("ModeID", 0);
 	
 	// Set up Ring ID
-	state_block_.AddBlock("RingID", sizeof(uint32_t));
+	ring_offset_ = state_block_.AddBlock("RingID", sizeof(uint32_t));
 	state_block_.SetEntry<uint32_t>("RingID", 0);
 	
 	message_waiting_ = false;

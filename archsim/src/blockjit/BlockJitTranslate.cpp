@@ -37,7 +37,7 @@ using namespace captive::shared;
 
 using archsim::Address;
 
-BaseBlockJITTranslate::BaseBlockJITTranslate() : _supportChaining(!archsim::options::JitDisableBranchOpt), _supportProfiling(false), _txln_mgr(NULL), _jumpinfo(NULL), _decode(NULL), _should_be_dumped(false)
+BaseBlockJITTranslate::BaseBlockJITTranslate() : _supportChaining(!archsim::options::JitDisableBranchOpt), _supportProfiling(false), _txln_mgr(NULL), _jumpinfo(NULL), _decode(NULL), _should_be_dumped(false), decode_txlt_ctx(nullptr)
 {
 
 }
@@ -248,11 +248,14 @@ bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstan
 	}
 
 	translate_instruction(decode, builder, processor->GetTraceSource() != nullptr);
-	gensim::DecodeTranslateContext *dtc;
-	if(!GetComponentInstance(processor->GetArch().GetName(), dtc)) {
-		throw std::logic_error("Could not get DTC");
+	
+	if(decode_txlt_ctx == nullptr) {
+		if(!GetComponentInstance(processor->GetArch().GetName(), decode_txlt_ctx)) {
+			throw std::logic_error("Could not get DTC");
+		}
 	}
-	dtc->Translate(*decode, *_decode_ctx, builder);
+	
+	decode_txlt_ctx->Translate(*decode, *_decode_ctx, builder);
 
 	if(processor->GetTraceSource()) {
 		builder.call(IROperand::func((void*)cpuTraceInsnEnd));
@@ -347,14 +350,14 @@ bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *pr
 
 		// If this instruction is an end of block, potentially merge the next block
 		if(_decode->GetEndOfBlock()) {
-//			if(can_merge_jump(processor, _decode, pc)) {
-//				Address target = get_jump_target(processor, _decode, pc);
-//				if(!block_heads.count(target)) {
-//					block_heads.insert(target);
-//					if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
-//					return emit_block(processor, target, builder, block_heads);
-//				}
-//			}
+			if(can_merge_jump(processor, _decode, pc)) {
+				Address target = get_jump_target(processor, _decode, pc);
+				if(!block_heads.count(target)) {
+					block_heads.insert(target);
+					if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
+					return emit_block(processor, target, builder, block_heads);
+				}
+			}
 
 			break;
 		} else {

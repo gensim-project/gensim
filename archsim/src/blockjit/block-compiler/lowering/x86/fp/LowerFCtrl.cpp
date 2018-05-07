@@ -19,7 +19,7 @@ bool LowerFCtrl_GetRound::Lower(const captive::shared::IRInstruction *&insn)
 
 	GetCompiler().emit_save_reg_state(1, GetStackMap(), GetIsStackFixed());
 
-	GetCompiler().load_state_field(0, REG_RDI);
+	GetCompiler().load_state_field("thread_ptr", REG_RDI);
 
 	// Load the address of the target function into a temporary, and perform an indirect call.
 	Encoder().mov((uint64_t)&cpuGetRoundingMode, BLKJIT_RETURN(8));
@@ -46,7 +46,7 @@ bool LowerFCtrl_SetRound::Lower(const captive::shared::IRInstruction *&insn)
 
 	GetCompiler().emit_save_reg_state(2, GetStackMap(), GetIsStackFixed());
 
-	GetCompiler().load_state_field(0, REG_RDI);
+	GetCompiler().load_state_field("thread_ptr", REG_RDI);
 
 	GetCompiler().encode_operand_function_argument(mode, REG_RSI, GetStackMap());
 
@@ -66,7 +66,7 @@ bool LowerFCtrl_GetFlush::Lower(const captive::shared::IRInstruction *&insn)
 
 	GetCompiler().emit_save_reg_state(1, GetStackMap(), GetIsStackFixed());
 
-	GetCompiler().load_state_field(0, REG_RDI);
+	GetCompiler().load_state_field("thread_ptr", REG_RDI);
 
 	// Load the address of the target function into a temporary, and perform an indirect call.
 	Encoder().mov((uint64_t)&cpuGetFlushMode, BLKJIT_RETURN(8));
@@ -93,7 +93,7 @@ bool LowerFCtrl_SetFlush::Lower(const captive::shared::IRInstruction *&insn)
 
 	GetCompiler().emit_save_reg_state(2, GetStackMap(), GetIsStackFixed());
 
-	GetCompiler().load_state_field(0, REG_RDI);
+	GetCompiler().load_state_field("thread_ptr", REG_RDI);
 
 	GetCompiler().encode_operand_function_argument(mode, REG_RSI, GetStackMap());
 

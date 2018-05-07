@@ -16,12 +16,16 @@
 
 #include "util/LogContext.h"
 #include "core/execution/ExecutionResult.h"
+#include "core/execution/ExecutionState.h"
+#include <libtrace/TraceSink.h>
 
 
 UseLogContext(LogExecutionEngine);
 
 #include <thread>
 #include <map>
+#include <mutex>
+#include <set>
 
 namespace gensim {
 	class DecodeContext;
@@ -34,47 +38,64 @@ namespace archsim {
 		}
 		namespace execution {
 
+			class ExecutionEngine;
+			
+			class ExecutionEngineThreadContext {
+			public:
+				ExecutionEngineThreadContext(ExecutionEngine *engine, thread::ThreadInstance *thread);
+				~ExecutionEngineThreadContext();
+				
+				std::thread &GetWorker() { return worker_; }
+				thread::ThreadInstance *GetThread() { return thread_; }
+				ExecutionState GetState() { return state_; }
+				
+				void Start();
+				void Halt();
+				void Suspend();
+				void Join();
+				
+			private:
+				void Execute();
+				
+				std::mutex lock_;
+				ExecutionState state_;
+				std::thread worker_;
+				ExecutionEngine *engine_;
+				thread::ThreadInstance *thread_;
+			};
+			
 			class ExecutionEngine {
 			public:
-				virtual void StartAsyncThread(thread::ThreadInstance *thread) = 0;
-				virtual void HaltAsyncThread(thread::ThreadInstance *thread) = 0;
-				virtual core::execution::ExecutionResult JoinAsyncThread(thread::ThreadInstance *thread) = 0;
-
-				virtual core::execution::ExecutionResult StepThreadSingle(thread::ThreadInstance *thread) = 0;
-				virtual core::execution::ExecutionResult StepThreadBlock(thread::ThreadInstance *thread) = 0;
-				virtual core::execution::ExecutionResult Execute(thread::ThreadInstance *thread) = 0;
-
-			};
-
-			class BasicExecutionEngine : public ExecutionEngine {
-			public:
-				BasicExecutionEngine();
-
-				virtual void StartAsyncThread(thread::ThreadInstance* thread);
-				virtual void HaltAsyncThread(thread::ThreadInstance* thread);
-				virtual core::execution::ExecutionResult JoinAsyncThread(thread::ThreadInstance* thread);
-
-				virtual core::execution::ExecutionResult Execute(thread::ThreadInstance *thread);
-				virtual core::execution::ExecutionResult StepThreadBlock(thread::ThreadInstance *thread);
-				virtual core::execution::ExecutionResult StepThreadSingle(thread::ThreadInstance *thread);
-
-				class ExecutionContext {
-				public:
-					std::thread *thread;
-					volatile bool should_halt;
-					core::execution::ExecutionResult last_result;
-					thread::ThreadInstance *thread_instance;
-					BasicExecutionEngine *engine;
-				};
-			protected:
-				gensim::DecodeContext *decode_context_;	
+				using ThreadContainer = std::set<thread::ThreadInstance*>;
+				
+				ExecutionEngine();
+				
+				void AttachThread(thread::ThreadInstance *thread);
+				void DetachThread(thread::ThreadInstance *thread);
+				
+				ThreadContainer &GetThreads() { return threads_; }
+				
+				void Start();
+				void Halt();
+				void Suspend();
+				void Join();
+				
+				void SetTraceSink(libtrace::TraceSink *sink) { trace_sink_ = sink; }
+				libtrace::TraceSink *GetTraceSink() { return trace_sink_; }
+				
 			private:
-				virtual core::execution::ExecutionResult ArchStepBlock(thread::ThreadInstance *thread) = 0;
-				virtual core::execution::ExecutionResult ArchStepSingle(thread::ThreadInstance *thread) = 0;
-
-				std::map<thread::ThreadInstance*, ExecutionContext*> threads_;
-
-
+				friend class ExecutionEngineThreadContext;
+				virtual ExecutionResult Execute(ExecutionEngineThreadContext *thread) = 0;
+				
+				ExecutionEngineThreadContext *GetContext(thread::ThreadInstance *thread);
+				virtual ExecutionEngineThreadContext *GetNewContext(thread::ThreadInstance *thread) = 0;
+				
+				libtrace::TraceSink *trace_sink_;
+				
+				ThreadContainer threads_;
+				std::map<thread::ThreadInstance *, ExecutionEngineThreadContext *> thread_contexts_;
+				std::mutex lock_;
+				ExecutionState state_;
 			};
 		}
 	}

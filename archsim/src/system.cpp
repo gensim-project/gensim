@@ -183,7 +183,7 @@ void System::PrintStatistics(std::ostream& stream)
 	stream << "Thread Statistics" << std::endl;
 	archsim::core::thread::ThreadMetricPrinter printer;
 	for(auto context : GetECM()) {
-		for(auto thread : *context) {
+		for(auto thread : context->GetThreads()) {
 			printer.PrintStats(thread->GetMetrics(), stream);
 		}
 	}
@@ -204,7 +204,8 @@ void System::PrintStatistics(std::ostream& stream)
 bool System::RunSimulation()
 {
 	if (!emulation_model->PrepareBoot(*this)) return false;
-	GetECM().StartSync();
+	GetECM().Start();
+	GetECM().Join();
 
 	return true;
 }

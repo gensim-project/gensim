@@ -15,70 +15,133 @@ using namespace archsim::core::thread;
 
 DeclareLogContext(LogExecutionEngine, "ExecutionEngine");
 
-void execute_thread(BasicExecutionEngine::ExecutionContext *ctx) {
-	while(!ctx->should_halt && ctx->last_result == ExecutionResult::Continue) {
-		ctx->last_result = ctx->engine->StepThreadBlock(ctx->thread_instance);
-		
-		assert(ctx->last_result != ExecutionResult::Exception);
+void ExecutionEngineThreadContext::Execute()
+{
+	engine_->Execute(this);
+}
+
+void ExecutionEngineThreadContext::Start()
+{
+	std::lock_guard<std::mutex> lg(lock_);
+	state_ = ExecutionState::Running;
+	worker_ = std::thread([this](){Execute();});
+}
+
+void ExecutionEngineThreadContext::Suspend()
+{
+	{
+		std::lock_guard<std::mutex> lg(lock_);
+		state_ = ExecutionState::Suspending;
+		thread_->SendMessage(ThreadMessage::Halt);
+	}
+	
+	Join();
+	state_ = ExecutionState::Ready;
+}
+
+void ExecutionEngineThreadContext::Halt()
+{
+	{
+		std::lock_guard<std::mutex> lg(lock_);
+		state_ = ExecutionState::Halting;
+		thread_->SendMessage(ThreadMessage::Halt);
+	}
+	
+	Join();
+	state_ = ExecutionState::Halted;
+}
+
+void ExecutionEngineThreadContext::Join()
+{
+	worker_.join();
+	state_ = ExecutionState::Ready;
+}
+
+ExecutionEngineThreadContext::ExecutionEngineThreadContext(ExecutionEngine *engine, ThreadInstance *thread) : worker_(), engine_(engine), thread_(thread)
+{
+	
+}
+
+ExecutionEngineThreadContext::~ExecutionEngineThreadContext()
+{
+
+}
+
+
+ExecutionEngine::ExecutionEngine() : state_(ExecutionState::Ready), trace_sink_(nullptr)
+{
+
+}
+
+void ExecutionEngine::AttachThread(thread::ThreadInstance* thread)
+{
+	std::lock_guard<std::mutex> lg(lock_);
+	if(state_ == ExecutionState::Running) {
+		throw std::logic_error("Cannot attach a thread while engine is running");
+	}
+	
+	if(thread_contexts_.count(thread)) {
+		throw std::logic_error("Thread already attached to this engine");
+	}
+	
+	thread_contexts_[thread] = GetNewContext(thread);
+	threads_.insert(thread);
+}
+
+void ExecutionEngine::DetachThread(thread::ThreadInstance* thread)
+{
+	std::lock_guard<std::mutex> lg(lock_);
+	if(state_ == ExecutionState::Running) {
+		throw std::logic_error("Cannot detach a thread while engine is running");
+	}
+	
+	if(!thread_contexts_.count(thread)) {
+		throw std::logic_error("Thread not attached to this engine");
+	}
+	
+	auto context = GetContext(thread);
+	delete context;
+	thread_contexts_.erase(thread);
+	threads_.erase(thread);
+}
+
+ExecutionEngineThreadContext *ExecutionEngine::GetContext(thread::ThreadInstance* thread)
+{
+	return thread_contexts_.at(thread);
+}
+
+void ExecutionEngine::Start()
+{
+	std::lock_guard<std::mutex> lg(lock_);
+	
+	for(auto i : thread_contexts_) {
+		i.second->Start();
 	}
 }
 
-BasicExecutionEngine::BasicExecutionEngine() : decode_context_(nullptr) {}
-
-void BasicExecutionEngine::StartAsyncThread(ThreadInstance* thread)
+void ExecutionEngine::Suspend()
 {
-	ExecutionContext *ctx = new ExecutionContext();
-	ctx->should_halt = false;
-	ctx->last_result = ExecutionResult::Continue;
-	ctx->thread_instance = thread;
-	ctx->engine = this;
+	std::lock_guard<std::mutex> lg(lock_);
 	
-	ctx->thread = new std::thread(execute_thread, ctx);
-		
-	threads_[thread] = ctx;
-}
-
-void BasicExecutionEngine::HaltAsyncThread(ThreadInstance* thread)
-{
-	threads_.at(thread)->should_halt = true;
-	threads_.at(thread)->thread->join();
-}
-
-ExecutionResult BasicExecutionEngine::JoinAsyncThread(ThreadInstance* thread)
-{
-	threads_.at(thread)->thread->join();
-	return ExecutionResult::Halt;
-}
-
-ExecutionResult BasicExecutionEngine::Execute(ThreadInstance* thread)
-{
-	ExecutionResult result;
-	do {
-		result = StepThreadBlock(thread);
-	} while(result == ExecutionResult::Continue);
-	
-	return result;
-}
-
-ExecutionResult BasicExecutionEngine::StepThreadBlock(ThreadInstance* thread)
-{
-	archsim::util::CounterTimerContext timer(thread->GetMetrics().SelfRuntime);
-	CreateThreadExecutionSafepoint(thread);
-	
-	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) {
-		thread->GetTraceSource()->Trace_End_Insn();
+	for(auto i : thread_contexts_) {
+		i.second->Suspend();
 	}
-	
-	return ArchStepBlock(thread);
 }
-ExecutionResult BasicExecutionEngine::StepThreadSingle(ThreadInstance* thread)
+
+void ExecutionEngine::Join()
 {
-	archsim::util::CounterTimerContext timer(thread->GetMetrics().SelfRuntime);
-	CreateThreadExecutionSafepoint(thread);
+	std::lock_guard<std::mutex> lg(lock_);
 	
-	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) {
-		thread->GetTraceSource()->Trace_End_Insn();
+	for(auto i : thread_contexts_) {
+		i.second->Join();
 	}
+}
+
+void ExecutionEngine::Halt()
+{
+	std::lock_guard<std::mutex> lg(lock_);
 	
-	return ArchStepSingle(thread);
+	for(auto i : thread_contexts_) {
+		i.second->Halt();
+	}
 }

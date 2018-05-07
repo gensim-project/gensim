@@ -133,7 +133,7 @@ namespace archsim {
 				uint32_t GetModeID() const { return GetStateBlock().GetEntry<uint32_t>("ModeID"); }
 				void SetModeID(uint32_t new_mode) { GetStateBlock().SetEntry<uint32_t>("ModeID", new_mode); }
 
-				uint32_t GetExecutionRing() const { return GetStateBlock().GetEntry<uint32_t>("RingID"); }
+				uint32_t GetExecutionRing() const { return *(uint32_t*)(((char*)GetStateBlock().GetData()) + ring_offset_); }
 				void SetExecutionRing(uint32_t new_ring);
 
 				// Functions to do with registers
@@ -197,7 +197,6 @@ namespace archsim {
 				jmp_buf Safepoint;
 				void ReturnToSafepoint();
 			private:
-
 				const ArchDescriptor &descriptor_;
 				memory_interface_collection_t memory_interfaces_;
 				MemoryInterface *fetch_mi_;
@@ -208,6 +207,8 @@ namespace archsim {
 				ProcessorFeatureInterface features_;
 				util::PubSubscriber pubsub_;
 				archsim::core::thread::ThreadMetrics *metrics_;
+				
+				uint32_t ring_offset_;
 
 				std::mutex message_lock_;
 				std::queue<ThreadMessage> message_queue_;

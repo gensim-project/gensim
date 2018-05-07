@@ -38,7 +38,7 @@ namespace archsim {
 	
 		class StateBlock {
 		public:			
-			void AddBlock(const std::string &name, size_t size_in_bytes);
+			uint32_t AddBlock(const std::string &name, size_t size_in_bytes);
 			size_t GetBlockOffset(const std::string &name) const;
 			bool HasEntry(const std::string &name) const { return block_offsets_.count(name); }
 			
