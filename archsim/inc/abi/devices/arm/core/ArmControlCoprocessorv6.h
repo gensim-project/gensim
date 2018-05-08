@@ -10,7 +10,6 @@
 
 #include "abi/devices/arm/core/ArmCoprocessor.h"
 #include "abi/devices/arm/core/PMU.h"
-#include "gensim/gensim_processor.h"
 #include "util/LogContext.h"
 
 UseLogContext(LogArmCoprocessor);

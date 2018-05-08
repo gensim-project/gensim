@@ -10,8 +10,6 @@
 #include "abi/devices/MMU.h"
 #include "abi/memory/MemoryModel.h"
 #include "abi/memory/system/FunctionBasedSystemMemoryModel.h"
-#include "gensim/gensim_processor_state.h"
-#include "gensim/gensim_processor.h"
 #include "core/MemoryInterface.h"
 #include "util/LogContext.h"
 
@@ -19,6 +17,7 @@
 
 #include "translate/jit_funs.h"
 
+UseLogContext(LogCPU)
 DeclareChildLogContext(LogBlockJitFuns, LogCPU, "BlockJITFuns");
 UseLogContext(LogBlockJitFuns)
 
@@ -28,7 +27,8 @@ extern "C" {
 	void blkProfile(gensim::Processor *cpu, void *region, uint32_t address)
 	{
 		archsim::translate::profile::Region *rgn = (archsim::translate::profile::Region *)region;
-		rgn->TraceBlock(*cpu, address);
+//		rgn->TraceBlock(*cpu, address);
+		UNIMPLEMENTED;
 	}
 
 	uint8_t blkRead8(archsim::core::thread::ThreadInstance **thread_p, uint32_t address, uint32_t interface)

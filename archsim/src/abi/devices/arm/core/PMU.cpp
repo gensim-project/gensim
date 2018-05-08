@@ -1,7 +1,6 @@
 #include "abi/devices/arm/core/PMU.h"
 #include "abi/devices/Device.h"
 #include "abi/devices/PeripheralManager.h"
-#include "gensim/gensim_processor.h"
 
 using namespace archsim::abi::devices::arm::core;
 

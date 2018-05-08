@@ -95,7 +95,7 @@ namespace archsim {
 				ThreadContainer threads_;
 				std::map<thread::ThreadInstance *, ExecutionEngineThreadContext *> thread_contexts_;
 				std::mutex lock_;
-				ExecutionState state_;
+				ExecutionState state_;	
 			};
 		}
 	}

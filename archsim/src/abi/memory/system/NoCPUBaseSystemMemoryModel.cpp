@@ -10,7 +10,6 @@
 #include "abi/devices/DeviceManager.h"
 #include "abi/devices/Component.h"
 #include "abi/devices/MMU.h"
-#include "gensim/gensim_processor.h"
 #include "util/LogContext.h"
 #include "stdio.h"
 

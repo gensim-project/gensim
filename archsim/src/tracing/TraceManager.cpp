@@ -11,7 +11,6 @@
 #include "util/ComponentManager.h"
 
 #include "gensim/gensim_decode.h"
-#include "gensim/gensim_processor.h"
 #include "tracing/TraceManager.h"
 #include "tracing/TraceTypes.h"
 

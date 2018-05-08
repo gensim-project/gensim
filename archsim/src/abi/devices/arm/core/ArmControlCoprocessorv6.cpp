@@ -7,8 +7,6 @@
 #include "abi/devices/PeripheralManager.h"
 #include "abi/devices/arm/core/ArmControlCoprocessorv6.h"
 
-#include "gensim/gensim_processor.h"
-
 #include "translate/TranslationManager.h"
 
 #include "util/LogContext.h"

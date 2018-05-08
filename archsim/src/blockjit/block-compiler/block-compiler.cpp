@@ -25,7 +25,6 @@ UseLogContext(LogBlockJit)
 
 #include "translate/jit_funs.h"
 #include "translate/profile/Region.h"
-#include "gensim/gensim_processor_state.h"
 
 #include <iostream>
 #include "blockjit/blockjit-shunts.h"

@@ -105,11 +105,6 @@ namespace archsim
 			virtual bool Initialise(System& system, archsim::uarch::uArch& uarch);
 			virtual void Destroy();
 
-			bool AttachDevices();
-
-			virtual gensim::Processor* GetBootCore();
-			virtual gensim::Processor* GetCore(int id) = 0;
-			virtual void ResetCores() = 0;
 			virtual void HaltCores() = 0;
 
 			virtual gensim::DecodeContext *GetNewDecodeContext(archsim::core::thread::ThreadInstance &cpu) = 0;
@@ -155,9 +150,6 @@ namespace archsim
 
 			abi::memory::MemoryModel *memory_model;
 			archsim::uarch::uArch *uarch;
-
-			std::ifstream *FindDeviceConfigFile(std::string dir, std::string devname);
-			bool ConfigureDevice(std::string name, devices::Device *device);
 
 			typedef std::map<int, SignalData *> SignalMap;
 			SignalMap _captured_signals;

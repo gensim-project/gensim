@@ -11,7 +11,6 @@
 #include "system.h"
 #include "abi/EmulationModel.h"
 #include "abi/memory/MemoryModel.h"
-#include "gensim/gensim_processor.h"
 
 #include <libtrace/TraceSource.h>
 
@@ -114,28 +113,7 @@ static void sigusr2_handler(siginfo_t *si, void *unused)
 {
 	for(auto sim_ctx : sim_ctxs) {
 		UNIMPLEMENTED;
-//		gensim::Processor *core = sim_ctx->GetEmulationModel().GetBootCore();
-//
-//		if (!core->HasTraceManager()) {
-////			core->InitialiseTracing();
-//		}
-//
-//		if (core->IsTracingEnabled())
-//			core->StopTracing();
-//		else
-//			core->StartTracing();
-//
-//		if (core->GetEmulationModel().GetSystem().HaveTranslationManager()) {
-//			core->GetEmulationModel().GetSystem().GetTranslationManager().Invalidate();
-//		}
 	}
-
-	/*if (!sigusr2)
-		return;
-
-	ucontext_t *uc = (ucontext_t *)unused;
-	fprintf(sigusr2, "%lx\n", uc->uc_mcontext.gregs[REG_RIP]);
-	fflush(sigusr2);*/
 }
 
 static void sigint_handler(siginfo_t *si, void *unused)
@@ -149,14 +127,6 @@ static void sigtrap_handler(siginfo_t *si, void *unused)
 {
 	for(auto sim_ctx : sim_ctxs) {
 		sim_ctx->HaltSimulation();
-
-		gensim::Processor *cpu = sim_ctx->GetEmulationModel().GetBootCore();
-		LC_ERROR(LogInfrastructure) << "Encountered trap at 0x" << std::hex << cpu->read_pc() << " (" << cpu->GetMemoryModel().Peek32Unsafe(cpu->read_pc()) << ") mode " << (uint32_t)cpu->get_cpu_mode();
-
-		if (cpu != NULL && cpu->HasTraceManager() && cpu->IsTracingEnabled()) {
-			cpu->GetTraceManager()->Trace_End_Insn();
-			cpu->GetTraceManager()->Terminate();
-		}
 	}
 
 	exit(-1);
@@ -179,33 +149,11 @@ static void sigsegv_handler(siginfo_t *si, void *unused)
 		for(auto sim_ctx : sim_ctxs) {
 
 			// Dump memory regions
-			if (sim_ctx->GetEmulationModel().GetMemoryModel().GetMappingManager())
+			if (sim_ctx->GetEmulationModel().GetMemoryModel().GetMappingManager()) {
 				sim_ctx->GetEmulationModel().GetMemoryModel().GetMappingManager()->DumpRegions();
-
-			// XXX HAX
-			gensim::Processor *cpu = nullptr; //sim_ctx->GetEmulationModel().GetBootCore();
-
-			// Make sure we've got a boot CPU.  This isn't necessarily the right thing to do
-			// here if we support multiple cores - as if the segfault was in guest code, we
-			// don't know which emulated core caused the fault.
-			if (cpu != NULL) {
-				LC_ERROR(LogSegFault) << "Memory Access Violation @ 0x" << std::hex << (unsigned long)si->si_addr;
-
-				// Print out some useful information.
-				uint32_t pc = cpu->read_pc();
-				LC_ERROR(LogSegFault) << "Current PC:       0x" << std::hex << pc;
-				LC_ERROR(LogSegFault) << "Physical Address: 0x" << std::hex << (unsigned long)si->si_addr;
-
-				archsim::abi::memory::guest_addr_t resolved_address;
-
-				// Try and get the memory model to resolve the faulting address to
-				// a guest virtual address.
-				if (sim_ctx->GetEmulationModel().GetMemoryModel().ResolveGuestAddress(si->si_addr, resolved_address)) {
-					LC_ERROR(LogSegFault) << "Virtual Address:  0x" << std::hex << (unsigned long)resolved_address;
-				} else {
-					LC_ERROR(LogSegFault) << "Faulting address did not resolve to a virtual address";
-				}
 			}
+			
+			// TODO: Figure out which thread caused the fault and print some diagnostics
 		}
 	}
 

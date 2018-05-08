@@ -25,7 +25,6 @@
 #include "system.h"
 #include "signals.h"
 
-#include "gensim/gensim.h"
 
 #include "util/ComponentManager.h"
 #include "util/CommandLine.h"
@@ -120,133 +119,139 @@ static void run_system(System *sys)
 
 static int run_verify_simulation(archsim::Session& session)
 {
-	System &interp_sys = *new System(session);
-	System &jit_sys = *new System(session);
-
-	archsim::abi::devices::timing::TickSource *ts = new archsim::abi::devices::timing::CallbackTickSource(50000);
-
-	interp_sys.SetTickSource(ts);
-	jit_sys.SetTickSource(ts);
-
-	System::InitVerify();
-
-	interp_sys.block_device_file = archsim::options::BlockDeviceFile.GetValue() + ".interp";
-	jit_sys.block_device_file = archsim::options::BlockDeviceFile.GetValue() + ".jit";
-
-	interp_sys.EnableVerify();
-	interp_sys.SetVerifyNext(&jit_sys);
-
-	jit_sys.EnableVerify();
-	jit_sys.SetVerifyNext(NULL);
-
-
-	archsim::abi::devices::generic::block::FileBackedBlockDevice master_fbbd;
-	master_fbbd.Open(archsim::options::BlockDeviceFile.GetValue());
-
-	archsim::abi::devices::generic::block::MemoryCOWBlockDevice interp_block, jit_block;
-	interp_block.Open(master_fbbd);
-	jit_block.Open(master_fbbd);
-
-	interp_sys.InstallBlockDevice("vda", &interp_block);
-	jit_sys.InstallBlockDevice("vda", &jit_block);
-
-	if(!interp_sys.Initialise() || !jit_sys.Initialise()) {
-		LC_ERROR(LogInfrastructure) << "Unable to initialise simulation system";
-		return -1;
-	}
-
-	interp_sys.SetSimulationMode(System::Interpreter);
-	jit_sys.SetSimulationMode(System::JIT);
-
-	signals_register(&interp_sys);
-	signals_register(&jit_sys);
-
-	std::thread interp_thread(run_system, &interp_sys);
-	std::thread jit_thread(run_system, &jit_sys);
-
-	interp_thread.join();
-	jit_thread.join();
-
-	interp_block.Close();
-	jit_block.Close();
-	master_fbbd.Close();
-
-	interp_sys.PrintStatistics(std::cerr);
-	jit_sys.PrintStatistics(std::cerr);
-
-	interp_sys.Destroy();
-	jit_sys.Destroy();
-
-	return 0;
+	UNIMPLEMENTED;
+//	
+//	System &interp_sys = *new System(session);
+//	System &jit_sys = *new System(session);
+//
+//	archsim::abi::devices::timing::TickSource *ts = new archsim::abi::devices::timing::CallbackTickSource(50000);
+//
+//	interp_sys.SetTickSource(ts);
+//	jit_sys.SetTickSource(ts);
+//
+//	System::InitVerify();
+//
+//	interp_sys.block_device_file = archsim::options::BlockDeviceFile.GetValue() + ".interp";
+//	jit_sys.block_device_file = archsim::options::BlockDeviceFile.GetValue() + ".jit";
+//
+//	interp_sys.EnableVerify();
+//	interp_sys.SetVerifyNext(&jit_sys);
+//
+//	jit_sys.EnableVerify();
+//	jit_sys.SetVerifyNext(NULL);
+//
+//
+//	archsim::abi::devices::generic::block::FileBackedBlockDevice master_fbbd;
+//	master_fbbd.Open(archsim::options::BlockDeviceFile.GetValue());
+//
+//	archsim::abi::devices::generic::block::MemoryCOWBlockDevice interp_block, jit_block;
+//	interp_block.Open(master_fbbd);
+//	jit_block.Open(master_fbbd);
+//
+//	interp_sys.InstallBlockDevice("vda", &interp_block);
+//	jit_sys.InstallBlockDevice("vda", &jit_block);
+//
+//	if(!interp_sys.Initialise() || !jit_sys.Initialise()) {
+//		LC_ERROR(LogInfrastructure) << "Unable to initialise simulation system";
+//		return -1;
+//	}
+//
+//	interp_sys.SetSimulationMode(System::Interpreter);
+//	jit_sys.SetSimulationMode(System::JIT);
+//
+//	signals_register(&interp_sys);
+//	signals_register(&jit_sys);
+//
+//	std::thread interp_thread(run_system, &interp_sys);
+//	std::thread jit_thread(run_system, &jit_sys);
+//
+//	interp_thread.join();
+//	jit_thread.join();
+//
+//	interp_block.Close();
+//	jit_block.Close();
+//	master_fbbd.Close();
+//
+//	interp_sys.PrintStatistics(std::cerr);
+//	jit_sys.PrintStatistics(std::cerr);
+//
+//	interp_sys.Destroy();
+//	jit_sys.Destroy();
+//
+//	return 0;
 }
 
 
 static int run_socket_verify_simulation(archsim::Session& session)
 {
-	System &sys = *new System(session);
-	if(!sys.GetModuleManager().LoadModule(archsim::options::ProcessorModel.GetValue())) {
-		LC_ERROR(LogSystem) << "Could not load processor module";
-		return 1;
-	}
-
-	archsim::abi::devices::timing::TickSource *ts = new archsim::abi::devices::timing::CallbackTickSource(50000);
-
-	archsim::abi::devices::generic::block::FileBackedBlockDevice master_fbbd;
-	master_fbbd.Open(archsim::options::BlockDeviceFile.GetValue());
-
-	archsim::abi::devices::generic::block::MemoryCOWBlockDevice cow;
-	cow.Open(master_fbbd);
-
-	sys.InstallBlockDevice("vda", &cow);
-
-	sys.SetTickSource(ts);
-
-	System::InitVerify();
-
-	sys.block_device_file = archsim::options::BlockDeviceFile.GetValue();
-	if(!sys.Initialise()) {
-		LC_ERROR(LogInfrastructure) << "Unable to initialise simulation system";
-		return -1;
-	}
-
-	sys.InitSocketVerify();
-
-	sys.EnableVerify();
-
-	signals_register(&sys);
-
-	sys.RunSimulation();
-
-	sys.Destroy();
-
-	return 0;
+	UNIMPLEMENTED;
+//	
+//	System &sys = *new System(session);
+//	if(!sys.GetModuleManager().LoadModule(archsim::options::ProcessorModel.GetValue())) {
+//		LC_ERROR(LogSystem) << "Could not load processor module";
+//		return 1;
+//	}
+//
+//	archsim::abi::devices::timing::TickSource *ts = new archsim::abi::devices::timing::CallbackTickSource(50000);
+//
+//	archsim::abi::devices::generic::block::FileBackedBlockDevice master_fbbd;
+//	master_fbbd.Open(archsim::options::BlockDeviceFile.GetValue());
+//
+//	archsim::abi::devices::generic::block::MemoryCOWBlockDevice cow;
+//	cow.Open(master_fbbd);
+//
+//	sys.InstallBlockDevice("vda", &cow);
+//
+//	sys.SetTickSource(ts);
+//
+//	System::InitVerify();
+//
+//	sys.block_device_file = archsim::options::BlockDeviceFile.GetValue();
+//	if(!sys.Initialise()) {
+//		LC_ERROR(LogInfrastructure) << "Unable to initialise simulation system";
+//		return -1;
+//	}
+//
+//	sys.InitSocketVerify();
+//
+//	sys.EnableVerify();
+//
+//	signals_register(&sys);
+//
+//	sys.RunSimulation();
+//
+//	sys.Destroy();
+//
+//	return 0;
 }
 
 static int run_verify_callback_simulation(archsim::Session& session)
 {
-	System &sys = *new System(session);
-
-	archsim::abi::devices::timing::TickSource *ts = new archsim::abi::devices::timing::CallbackTickSource(50000);
-
-	sys.SetTickSource(ts);
-
-	System::InitVerify();
-
-	sys.block_device_file = archsim::options::BlockDeviceFile.GetValue();
-	if(!sys.Initialise()) {
-		LC_ERROR(LogInfrastructure) << "Unable to initialise simulation system";
-		return -1;
-	}
-
-	sys.EnableVerify();
-
-	signals_register(&sys);
-
-	sys.RunSimulation();
-
-	sys.Destroy();
-
-	return 0;
+	UNIMPLEMENTED;
+//	
+//	System &sys = *new System(session);
+//
+//	archsim::abi::devices::timing::TickSource *ts = new archsim::abi::devices::timing::CallbackTickSource(50000);
+//
+//	sys.SetTickSource(ts);
+//
+//	System::InitVerify();
+//
+//	sys.block_device_file = archsim::options::BlockDeviceFile.GetValue();
+//	if(!sys.Initialise()) {
+//		LC_ERROR(LogInfrastructure) << "Unable to initialise simulation system";
+//		return -1;
+//	}
+//
+//	sys.EnableVerify();
+//
+//	signals_register(&sys);
+//
+//	sys.RunSimulation();
+//
+//	sys.Destroy();
+//
+//	return 0;
 }
 
 /**

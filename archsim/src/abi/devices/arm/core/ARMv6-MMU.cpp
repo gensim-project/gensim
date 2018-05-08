@@ -9,8 +9,7 @@
 #include "abi/devices/MMU.h"
 #include "abi/devices/arm/core/ArmControlCoprocessorv6.h"
 #include "abi/memory/MemoryModel.h"
-
-#include "gensim/gensim_processor.h"
+#include "core/thread/ThreadInstance.h"
 
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"

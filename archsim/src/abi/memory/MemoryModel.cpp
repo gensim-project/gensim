@@ -92,17 +92,8 @@ bool MemoryModel::InsertFile(guest_addr_t addr, std::string filename, uint32_t& 
 
 bool MemoryModel::RaiseEvent(MemoryEventType type, guest_addr_t addr, uint8_t size)
 {
-	bool okay = true;
-
-	if (UNLIKELY(HasEventHandlers())) {
-		for (auto handler : event_handlers) {
-			okay &= handler->HandleEvent(*cpu, type, addr, size);
-		}
-	}
-
-	return okay;
+	UNIMPLEMENTED;
 }
-
 
 bool MemoryModel::LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr)
 {

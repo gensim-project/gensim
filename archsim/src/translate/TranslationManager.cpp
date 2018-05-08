@@ -15,10 +15,10 @@
 #include "translate/profile/RegionTable.h"
 #include "translate/interrupts/InterruptCheckingScheme.h"
 
+#include "system.h"
+
 #include "util/LogContext.h"
 #include "util/ComponentManager.h"
-
-#include "gensim/gensim_processor.h"
 
 DeclareLogContext(LogTranslate, "Translate");
 DeclareChildLogContext(LogProfile, LogTranslate, "Profile");
@@ -159,11 +159,11 @@ bool TranslationManager::TryGetRegion(phys_addr_t phys_addr, profile::Region*& r
 	return regions.TryGet(*this, RegionArch::PageBaseOf(phys_addr), region);
 }
 
-void TranslationManager::TraceBlock(gensim::Processor& cpu, Block& block)
+void TranslationManager::TraceBlock(archsim::core::thread::ThreadInstance *thread, Block& block)
 {
-	uint32_t mode = (uint32_t)cpu.interrupt_mode;
+	uint32_t mode = (uint32_t)thread->GetExecutionRing();
 
-	LC_DEBUG4(LogProfile) << "Tracing block " << std::hex << block.GetOffset() << ", isa = " << (uint32_t)cpu.get_cpu_mode() << ", mode = " << mode;
+	LC_DEBUG4(LogProfile) << "Tracing block " << std::hex << block.GetOffset() << ", isa = " << (uint32_t)thread->GetModeID() << ", mode = " << mode;
 
 	if (prev_block[mode] && prev_block[mode]->GetParent().GetPhysicalBaseAddress() == block.GetParent().GetPhysicalBaseAddress()) {
 		prev_block[mode]->AddSuccessor(block);
@@ -174,7 +174,7 @@ void TranslationManager::TraceBlock(gensim::Processor& cpu, Block& block)
 	prev_block[mode] = &block;
 }
 
-bool TranslationManager::Profile(gensim::Processor& cpu)
+bool TranslationManager::Profile(archsim::core::thread::ThreadInstance *thread)
 {
 	LC_DEBUG3(LogProfile) << "Performing profile";
 	bool txltd_regions = false;
@@ -190,8 +190,10 @@ bool TranslationManager::Profile(gensim::Processor& cpu)
 			region->SetStatus(Region::InTranslation);
 			txltd_regions = true;
 
-			cpu.GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationPhysical, (void*)(uint64_t)region->GetPhysicalBaseAddress());
-			for(auto virt_base : region->virtual_images)cpu.GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationVirtual, (void*)(uint64_t)virt_base);
+			thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationPhysical, (void*)(uint64_t)region->GetPhysicalBaseAddress());
+			for(auto virt_base : region->virtual_images){
+				thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationVirtual, (void*)(uint64_t)virt_base);
+			}
 
 #ifdef PROTECT_CODE_REGIONS
 			host_addr_t addr;
@@ -201,7 +203,7 @@ bool TranslationManager::Profile(gensim::Processor& cpu)
 
 			assert(region->IsValid());
 
-			if (!TranslateRegion(cpu, *region, weight)) {
+			if (!TranslateRegion(thread, *region, weight)) {
 				region->SetStatus(Region::NotInTranslation);
 				LC_WARNING(LogTranslate) << "Region translation failed for region " << *region;
 			}

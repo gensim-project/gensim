@@ -8,15 +8,17 @@
 #ifndef _GENSIM_DECODE_H
 #define _GENSIM_DECODE_H
 
+#include "define.h"
+
 #include <list>
 #include <stdint.h>
 
 typedef std::list<std::pair<bool, uint8_t> > dynamic_pred_queue_t;
 
+
 namespace gensim
 {
 
-	class Processor;
 
 #pragma pack(push)
 #pragma pack(1)

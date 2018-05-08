@@ -22,7 +22,7 @@
 #include <stddef.h>
 #include <assert.h>
 
-
+#include <stdexcept>
 
 
 // TODO: SWITCH THESE TO CMAKE VARIABLES

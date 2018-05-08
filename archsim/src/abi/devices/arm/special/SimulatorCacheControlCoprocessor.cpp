@@ -1,6 +1,5 @@
 #include "abi/devices/arm/special/SimulatorCacheControlCoprocessor.h"
 
-#include "gensim/gensim_processor.h"
 #include "tracing/TraceManager.h"
 
 #include "abi/devices/PeripheralManager.h"

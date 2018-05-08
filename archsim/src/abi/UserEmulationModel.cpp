@@ -4,8 +4,6 @@
 #include "abi/user/SyscallHandler.h"
 #include "util/SimOptions.h"
 #include "util/CommandLine.h"
-#include "gensim/gensim.h"
-#include "gensim/gensim_processor.h"
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
 #include "core/MemoryInterface.h"

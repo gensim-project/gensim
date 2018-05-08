@@ -9,9 +9,10 @@
 #define SYSTEMMEMORYMODEL_H_
 
 #include "abi/memory/MemoryModel.h"
+#include "core/thread/ThreadInstance.h"
 #include "translate/profile/ProfileManager.h"
 #include "util/PubSubSync.h"
-#include "gensim/gensim_processor.h"
+#include "system.h"
 
 namespace archsim
 {

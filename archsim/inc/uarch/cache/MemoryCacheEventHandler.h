@@ -8,6 +8,7 @@
 #ifndef MEMORYCACHEEVENTHANDLER_H
 #define	MEMORYCACHEEVENTHANDLER_H
 
+#include "abi/memory/MemoryModel.h"
 #include "abi/memory/MemoryEventHandler.h"
 #include "abi/memory/MemoryEventHandlerTranslator.h"
 #include "uarch/cache/MemoryCache.h"
@@ -18,11 +19,6 @@
 namespace llvm
 {
 	class Value;
-}
-
-namespace gensim
-{
-	class Processor;
 }
 
 namespace archsim
@@ -36,7 +32,7 @@ namespace archsim
 			public:
 				MemoryCacheEventHandler();
 
-				bool HandleEvent(gensim::Processor& cpu, archsim::abi::memory::MemoryModel::MemoryEventType type, archsim::abi::memory::guest_addr_t addr, uint8_t size) override;
+				bool HandleEvent(archsim::core::thread::ThreadInstance* cpu, archsim::abi::memory::MemoryModel::MemoryEventType type, Address addr, uint8_t size) override;
 				void PrintGlobalCacheStatistics(std::ostream& stream);
 				bool IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size) override;
 

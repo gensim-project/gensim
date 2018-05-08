@@ -4,8 +4,6 @@
 #include "arch/risc-v/RiscVLinuxUserEmulationModel.h"
 #include "arch/risc-v/RiscVDecodeContext.h"
 
-#include "gensim/gensim_processor.h"
-
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
 #include "util/SimOptions.h"

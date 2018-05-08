@@ -4,7 +4,6 @@
 #include "translate/interrupts/InterruptCheckingScheme.h"
 
 #include "gensim/gensim_decode.h"
-#include "gensim/gensim_processor.h"
 #include "gensim/gensim_translate.h"
 
 #include "util/LogContext.h"
@@ -16,7 +15,7 @@ UseLogContext(LogTranslate);
 using namespace archsim::translate;
 using namespace archsim::translate::interrupts;
 
-TranslationWorkUnit::TranslationWorkUnit(gensim::Processor& cpu, profile::Region& region, uint32_t generation, uint32_t weight) : cpu(cpu), region(region), generation(generation), weight(weight), emit_trace_calls(cpu.IsTracingEnabled())
+TranslationWorkUnit::TranslationWorkUnit(archsim::core::thread::ThreadInstance *thread, profile::Region& region, uint32_t generation, uint32_t weight) : thread(thread), region(region), generation(generation), weight(weight), emit_trace_calls(thread->GetTraceSource() != nullptr)
 {
 	region.Acquire();
 }
@@ -58,14 +57,14 @@ TranslationBlockUnit *TranslationWorkUnit::AddBlock(profile::Block& block, bool 
 	return tbu;
 }
 
-TranslationWorkUnit *TranslationWorkUnit::Build(gensim::Processor& cpu, profile::Region& region, InterruptCheckingScheme& ics, uint32_t weight)
+TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadInstance *thread, profile::Region& region, InterruptCheckingScheme& ics, uint32_t weight)
 {
-	TranslationWorkUnit *twu = new TranslationWorkUnit(cpu, region, region.GetMaxGeneration(), weight);
+	TranslationWorkUnit *twu = new TranslationWorkUnit(thread, region, region.GetMaxGeneration(), weight);
 
 	twu->potential_virtual_bases.insert(region.virtual_images.begin(), region.virtual_images.end());
 
 	host_addr_t guest_page_data;
-	cpu.GetEmulationModel().GetMemoryModel().LockRegion(region.GetPhysicalBaseAddress(), profile::RegionArch::PageSize, guest_page_data);
+//	thread->GetEmulationModel().GetMemoryModel().LockRegion(region.GetPhysicalBaseAddress(), profile::RegionArch::PageSize, guest_page_data);
 
 	for (auto block : region.blocks) {
 		auto tbu = twu->AddBlock(*block.second, block.second->IsRootBlock());
@@ -75,8 +74,12 @@ TranslationWorkUnit *TranslationWorkUnit::Build(gensim::Processor& cpu, profile:
 		uint32_t insn_count = 0;
 
 		while (!end_of_block && offset < profile::RegionArch::PageSize) {
-			gensim::BaseDecode *decode = cpu.GetNewDecode();
+			gensim::BaseDecode *decode = thread->GetArch().GetISA(block.second->GetISAMode()).GetNewDecode();
 
+			UNIMPLEMENTED;
+			
+//			thread->GetArch().GetISA(block.second->GetISAMode()).DecodeInstr(region.GetPhysicalBaseAddress() + offset, );
+			
 			uint32_t data;
 			if (block.second->GetISAMode() == 1) {
 				data = *(uint16_t *)((uint8_t *)guest_page_data + offset);
@@ -86,7 +89,7 @@ TranslationWorkUnit *TranslationWorkUnit::Build(gensim::Processor& cpu, profile:
 				data = *(uint32_t *)((uint8_t *)guest_page_data + offset);
 			}
 
-			cpu.DecodeInstrIr(data, block.second->GetISAMode(), *decode);
+//			cpu.DecodeInstrIr(data, block.second->GetISAMode(), *decode);
 
 			if(decode->Instr_Code == (uint16_t)(-1)) {
 				LC_WARNING(LogTranslate) << "Invalid Instruction at " << std::hex << (uint32_t)(region.GetPhysicalBaseAddress() + offset) <<  ", ir=" << decode->ir << ", isa mode=" << (uint32_t)block.second->GetISAMode() << " whilst building " << *twu;
@@ -107,7 +110,7 @@ TranslationWorkUnit *TranslationWorkUnit::Build(gensim::Processor& cpu, profile:
 		}
 	}
 
-	cpu.GetEmulationModel().GetMemoryModel().UnlockRegion(region.GetPhysicalBaseAddress(), profile::RegionArch::PageSize, guest_page_data);
+//	cpu.GetEmulationModel().GetMemoryModel().UnlockRegion(region.GetPhysicalBaseAddress(), profile::RegionArch::PageSize, guest_page_data);
 
 	for (auto block : region.blocks) {
 		if (!twu->ContainsBlock(block.second->GetOffset()))
@@ -166,7 +169,7 @@ void TranslationBlockUnit::GetCtrlFlowInfo(bool &direct_jump, bool &indirect_jum
 {
 	uint32_t direct_target;
 
-	auto jumpinfo = twu.GetProcessor().GetJumpInfo();
+	auto jumpinfo = twu.GetThread()->GetArch().GetISA(twu.GetThread()->GetModeID()).GetNewJumpInfo();
 	jumpinfo->GetJumpInfo(&GetLastInstruction().GetDecode(), 0, indirect_jump, direct_jump, direct_target);
 	delete jumpinfo;
 

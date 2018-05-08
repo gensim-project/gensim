@@ -6,9 +6,9 @@
 
 #include "arch/arm/ARMDecodeContext.h"
 #include "blockjit/IRBuilder.h"
-#include "gensim/gensim_processor.h"
 #include "gensim/gensim_decode.h"
 #include "util/ComponentManager.h"
+#include "core/thread/ThreadInstance.h"
 
 using namespace archsim::arch::arm;
 

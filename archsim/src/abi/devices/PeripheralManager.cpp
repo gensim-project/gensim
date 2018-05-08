@@ -1,6 +1,4 @@
 
-#include "gensim/gensim_processor.h"
-
 #include "abi/devices/PeripheralManager.h"
 #include "abi/devices/Device.h"
 #include "system.h"

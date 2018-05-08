@@ -6,8 +6,8 @@
 
 #include "gensim/gensim_decode_context.h"
 #include "arch/risc-v/RiscVDecodeContext.h"
-#include "gensim/gensim_processor.h"
 #include "util/ComponentManager.h"
+#include "core/thread/ThreadInstance.h"
 
 using namespace archsim::arch::riscv;
 

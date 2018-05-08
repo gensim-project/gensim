@@ -8,6 +8,7 @@
 #ifndef REGION_H
 #define	REGION_H
 
+#include "core/thread/ThreadInstance.h"
 #include "translate/profile/RegionArch.h"
 #include "util/SimOptions.h"
 #include "util/Lifetime.h"
@@ -63,7 +64,7 @@ namespace archsim
 				 * Get a block by its VIRTUAL address. This will insert a new block if none could
 				 * be found
 				 */
-				Block& GetBlock(virt_addr_t virt_addr, uint8_t isa_mode);
+				Block& GetBlock(Address virt_addr, uint8_t isa_mode);
 
 				/**
 				 * Determines whether or not this physical region has any translations.
@@ -85,7 +86,7 @@ namespace archsim
 				 * Records the execution of a block, given its VIRTUAL address in this PHYSICAL region.
 				 * @param virt_addr The virtual address of the block that has been executed.
 				*/
-				void TraceBlock(gensim::Processor& cpu, virt_addr_t virt_addr);
+				void TraceBlock(archsim::core::thread::ThreadInstance *thread, Address virt_addr);
 
 				void Invalidate();
 

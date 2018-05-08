@@ -8,7 +8,6 @@
 #ifndef INC_BLOCKJIT_BLOCKJIT_SHUNTS_H_
 #define INC_BLOCKJIT_BLOCKJIT_SHUNTS_H_
 
-#include "gensim/gensim_processor.h"
 #include <cstdint>
 
 extern "C" {

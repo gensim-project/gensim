@@ -18,7 +18,7 @@
 #include "util/LogContext.h"
 
 #include "session.h"
-#include "gensim/gensim_processor.h"
+#include "system.h"
 #include "abi/devices/WSBlockDevice.h"
 
 extern char bootloader_start, bootloader_end;
