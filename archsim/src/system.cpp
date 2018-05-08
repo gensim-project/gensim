@@ -7,13 +7,9 @@
 #include "abi/memory/MemoryCounterEventHandler.h"
 #include "abi/devices/generic/timing/TickSource.h"
 
-#include "gensim/gensim.h"
-#include "gensim/gensim_processor.h"
-
 #include "core/thread/ThreadInstance.h"
 #include "core/thread/ThreadMetrics.h"
 
-//#include "tracing/TraceManager.h"
 #include "translate/TranslationManager.h"
 
 #include "util/ComponentManager.h"
@@ -215,8 +211,8 @@ void System::HaltSimulation()
 	_halted = true;
 	emulation_model->HaltCores();
 
-	_verify_barrier_enter.Interrupt();
-	_verify_barrier_leave.Interrupt();
+//	_verify_barrier_enter.Interrupt();
+//	_verify_barrier_leave.Interrupt();
 }
 
 void System::EnableVerify()
@@ -230,6 +226,8 @@ void System::SetVerifyNext(System *sys)
 	else _verify_tid = 0;
 	_next_verify_system = sys;
 }
+
+#if 0
 
 static void DisplayRB(gensim::Processor *cpu_x, gensim::Processor *cpu_y, int rb_idx)
 {
@@ -399,21 +397,21 @@ void System::CheckVerify()
 			}
 			*/
 
-			if(!halt_simulation) {
-				int num_regs = my_cpu->GetRegisterCount();
-				for(int i = 0; i < num_regs; ++i) {
-					if(my_cpu->GetRegisterDescriptor(i).RegisterWidth != 1) continue;
-					uint8_t my_data = *(uint8_t*)my_cpu->GetRegisterDescriptor(i).DataStart;
-					uint8_t next_data = *(uint8_t*)next_cpu->GetRegisterDescriptor(i).DataStart;
-
-					if(my_data != next_data) {
-						ReportDivergent(my_cpu, next_cpu);
-						
-						halt_simulation = true;
-						break;
-					}
-				}
-			}
+//			if(!halt_simulation) {
+//				int num_regs = my_cpu->GetRegisterCount();
+//				for(int i = 0; i < num_regs; ++i) {
+//					if(my_cpu->GetRegisterDescriptor(i).RegisterWidth != 1) continue;
+//					uint8_t my_data = *(uint8_t*)my_cpu->GetRegisterDescriptor(i).DataStart;
+//					uint8_t next_data = *(uint8_t*)next_cpu->GetRegisterDescriptor(i).DataStart;
+//
+//					if(my_data != next_data) {
+//						ReportDivergent(my_cpu, next_cpu);
+//						
+//						halt_simulation = true;
+//						break;
+//					}
+//				}
+//			}
 
 		}
 
@@ -453,24 +451,23 @@ void System::InitSocketVerify()
 		exit(1);
 	}
 
-	gensim::Processor * my_cpu;
-	my_cpu = GetEmulationModel().GetBootCore();
-
-	uint32_t bank_size = my_cpu->GetRegisterFileSize();
-
-	send(_verify_socket_fd, &bank_size, 4, 0);
-
-	uint8_t rcode;
-	recv(_verify_socket_fd, &rcode, 1, 0);
-	if(rcode) {
-		fprintf(stderr, "Bank size mismatch\n");
-		exit(1);
-	}
-
-	uint32_t chunk_size;
-	recv(_verify_socket_fd, &chunk_size, 4, 0);
-	_verify_chunk_size = chunk_size;
+	UNIMPLEMENTED;
+	
+//	send(_verify_socket_fd, &bank_size, 4, 0);
+//
+//	uint8_t rcode;
+//	recv(_verify_socket_fd, &rcode, 1, 0);
+//	if(rcode) {
+//		fprintf(stderr, "Bank size mismatch\n");
+//		exit(1);
+//	}
+//
+//	uint32_t chunk_size;
+//	recv(_verify_socket_fd, &chunk_size, 4, 0);
+//	_verify_chunk_size = chunk_size;
 }
+
+#endif
 
 bool System::HandleSegFault(uint64_t addr)
 {

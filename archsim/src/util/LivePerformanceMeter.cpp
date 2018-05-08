@@ -1,5 +1,5 @@
 #include "util/LivePerformanceMeter.h"
-#include "gensim/gensim_processor.h"
+#include "util/Counter.h"
 
 #include <chrono>
 

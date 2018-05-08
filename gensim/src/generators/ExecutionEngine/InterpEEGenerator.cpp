@@ -22,17 +22,17 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const {
 		"namespace gensim {"
 		"namespace " << Manager.GetArch().Name << "{"
 		
-		"class EE : public archsim::core::execution::BasicExecutionEngine {"
+		"class EE : public archsim::core::execution::ExecutionEngine {"
 		"public:"
 		
-		"	using decode_t = gensim::" << Manager.GetArch().Name << "::Decode;"
-		
-		"	archsim::core::execution::ExecutionResult ArchStepSingle(archsim::core::thread::ThreadInstance *thread);"
-		"	archsim::core::execution::ExecutionResult ArchStepBlock(archsim::core::thread::ThreadInstance *thread);"
-		
+		"	using decode_t = gensim::" << Manager.GetArch().Name << "::Decode;"		
 		"private:"
+		"	gensim::DecodeContext *decode_context_;"
+		"	archsim::core::execution::ExecutionResult Execute(archsim::core::execution::ExecutionEngineThreadContext *thread) override;"
+		"   archsim::core::execution::ExecutionEngineThreadContext *GetNewContext(archsim::core::thread::ThreadInstance *thread) override;"
 		"  uint32_t DecodeInstruction(archsim::core::thread::ThreadInstance *thread, decode_t &inst);"
 		"  archsim::core::execution::ExecutionResult StepInstruction(archsim::core::thread::ThreadInstance *thread, decode_t &inst);"
+		"  archsim::core::execution::ExecutionResult StepBlock(archsim::core::thread::ThreadInstance *thread);"
 		"};"
 		""
 		;
@@ -61,11 +61,18 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 	
 	GenerateDecodeInstruction(str);
 	
-	str <<
-		"archsim::core::execution::ExecutionResult EE::ArchStepSingle(archsim::core::thread::ThreadInstance *thread) { return archsim::core::execution::ExecutionResult::Abort; }"
-		"archsim::core::execution::ExecutionResult EE::ArchStepBlock(archsim::core::thread::ThreadInstance *thread) { ";
+	str << "archsim::core::execution::ExecutionEngineThreadContext *EE::GetNewContext(archsim::core::thread::ThreadInstance *thread) { return new archsim::core::execution::ExecutionEngineThreadContext(this, thread); }";
 	
+	str << "archsim::core::execution::ExecutionResult EE::StepBlock(archsim::core::thread::ThreadInstance *thread) { ";
 	GenerateBlockExecutor(str);
+	str << "}";
+	
+	str <<
+		"archsim::core::execution::ExecutionResult EE::Execute(archsim::core::execution::ExecutionEngineThreadContext *ctx) { auto thread = ctx->GetThread(); ";
+	str << "CreateThreadExecutionSafepoint(thread);";
+	str << "while(ctx->GetState() == archsim::core::execution::ExecutionState::Running) {";
+	str << "  StepBlock(thread);";
+	str << "}";
 	
 	str <<
 		"}";

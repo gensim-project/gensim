@@ -5,11 +5,10 @@
 #include "translate/llvm/LLVMAliasAnalysis.h"
 #include <llvm/IR/IRBuilder.h>
 #endif
-#include "gensim/gensim_processor.h"
 
 using namespace archsim::abi::memory;
 
-bool MemoryCounterEventHandler::HandleEvent(gensim::Processor& cpu, MemoryModel::MemoryEventType type, guest_addr_t addr, uint8_t size)
+bool MemoryCounterEventHandler::HandleEvent(archsim::core::thread::ThreadInstance *cpu, MemoryModel::MemoryEventType type, Address addr, uint8_t size)
 {
 	switch (type) {
 		case MemoryModel::MemEventRead:

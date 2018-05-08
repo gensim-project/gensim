@@ -1,6 +1,5 @@
 #include "uarch/cache/CacheGeometry.h"
 #include "util/LivePerformanceMeter.h"
-#include "gensim/gensim_processor.h"
 #include "abi/EmulationModel.h"
 #include "system.h"
 
@@ -51,17 +50,18 @@ bool CacheGeometry::Install(gensim::Processor& cpu, abi::memory::MemoryModel& mo
 
 	model.RegisterEventHandler(event_handler);
 
-	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L1-D Hits", l1d->GetHitCounter()));
-	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L1-D Misses", l1d->GetMissCounter()));
-	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L1-I Hits", l1i->GetHitCounter()));
-	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L1-I Misses", l1i->GetMissCounter()));
-	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L2 Hits", l2->GetHitCounter()));
-	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L2 Misses", l2->GetMissCounter()));
-	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("MM Hits", mm->GetHitCounter()));
-
-	cpu.GetEmulationModel().GetSystem().GetPubSub().Subscribe(PubSubType::L1ICacheFlush, cache_flush_handler, l1i);
-	cpu.GetEmulationModel().GetSystem().GetPubSub().Subscribe(PubSubType::L1DCacheFlush, cache_flush_handler, l1d);
-	cpu.GetEmulationModel().GetSystem().GetPubSub().Subscribe(PubSubType::L2CacheFlush, cache_flush_handler, l2);
+	UNIMPLEMENTED;
+//	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L1-D Hits", l1d->GetHitCounter()));
+//	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L1-D Misses", l1d->GetMissCounter()));
+//	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L1-I Hits", l1i->GetHitCounter()));
+//	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L1-I Misses", l1i->GetMissCounter()));
+//	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L2 Hits", l2->GetHitCounter()));
+//	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("L2 Misses", l2->GetMissCounter()));
+//	cpu.GetEmulationModel().GetSystem().AddPerformanceSource(*new util::CounterPerformanceSource("MM Hits", mm->GetHitCounter()));
+//
+//	cpu.GetEmulationModel().GetSystem().GetPubSub().Subscribe(PubSubType::L1ICacheFlush, cache_flush_handler, l1i);
+//	cpu.GetEmulationModel().GetSystem().GetPubSub().Subscribe(PubSubType::L1DCacheFlush, cache_flush_handler, l1d);
+//	cpu.GetEmulationModel().GetSystem().GetPubSub().Subscribe(PubSubType::L2CacheFlush, cache_flush_handler, l2);
 
 	return true;
 }

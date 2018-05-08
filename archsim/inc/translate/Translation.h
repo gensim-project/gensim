@@ -8,15 +8,11 @@
 #ifndef TRANSLATION_H
 #define	TRANSLATION_H
 
-#include "gensim/gensim_processor_state.h"
+#include "core/thread/ThreadInstance.h"
 #include "util/Lifetime.h"
+#include "blockjit/ir.h"
 
 #include <unordered_set>
-
-namespace gensim
-{
-	class Processor;
-}
 
 namespace archsim
 {
@@ -41,8 +37,8 @@ namespace archsim
 
 			Translation();
 			virtual ~Translation();
-			virtual uint32_t Execute(gensim::Processor& cpu) = 0;
-			virtual void Install(jit_region_fn_table location) = 0;
+			virtual uint32_t Execute(archsim::core::thread::ThreadInstance *thread) = 0;
+			virtual void Install(captive::shared::block_txln_fn *location) = 0;
 			virtual uint32_t GetCodeSize() const = 0;
 
 			inline void AddContainedBlock(virt_addr_t addr)

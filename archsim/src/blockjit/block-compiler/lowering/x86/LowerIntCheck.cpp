@@ -4,7 +4,6 @@
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
 #include "blockjit/blockjit-abi.h"
-#include "gensim/gensim_processor_blockjit.h"
 
 using namespace captive::arch::jit::lowering::x86;
 using namespace captive::arch::x86;

@@ -10,15 +10,11 @@
 
 #include "define.h"
 #include "util/Counter.h"
+#include "core/thread/ThreadInstance.h"
 
 #include <string>
 #include <unordered_map>
 #include <ostream>
-
-namespace gensim
-{
-	class Processor;
-}
 
 namespace archsim
 {
@@ -50,7 +46,7 @@ namespace archsim
 					nextCaches[(uint32_t)accessType] = &next;
 				}
 
-				bool Access(gensim::Processor& cpu, CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size);
+				bool Access(archsim::core::thread::ThreadInstance *cpu, CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size);
 				virtual void Flush();
 
 				void PrintStatistics(std::ostream& stream);

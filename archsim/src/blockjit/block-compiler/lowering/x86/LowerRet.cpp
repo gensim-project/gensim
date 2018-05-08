@@ -11,7 +11,6 @@
 #include "blockjit/translation-context.h"
 #include "blockjit/blockjit-abi.h"
 
-#include "gensim/gensim_processor_state.h"
 #include "util/SimOptions.h"
 
 using namespace captive::arch::jit::lowering::x86;

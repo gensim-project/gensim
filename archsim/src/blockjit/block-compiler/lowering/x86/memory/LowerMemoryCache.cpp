@@ -13,7 +13,6 @@
 #include "blockjit/blockjit-abi.h"
 #include "translate/jit_funs.h"
 
-#include "gensim/gensim_processor_state.h"
 #include "abi/memory/system/CacheBasedSystemMemoryModel.h"
 
 using namespace captive::arch::jit::lowering::x86;

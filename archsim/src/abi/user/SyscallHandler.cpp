@@ -3,7 +3,6 @@
  */
 #include "abi/user/SyscallHandler.h"
 #include "abi/UserEmulationModel.h"
-#include "gensim/gensim_processor.h"
 
 #include "util/LogContext.h"
 

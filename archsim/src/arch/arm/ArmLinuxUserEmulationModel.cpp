@@ -4,11 +4,11 @@
 #include "arch/arm/ArmLinuxUserEmulationModel.h"
 #include "arch/arm/ARMDecodeContext.h"
 
-#include "gensim/gensim_processor.h"
-
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
 #include "util/SimOptions.h"
+
+#include "system.h"
 
 #ifdef CONFIG_GFX
 #ifdef CONFIG_SDL
@@ -102,7 +102,7 @@ bool ArmLinuxUserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, Sign
 	GetMemoryModel().Poke(0xffff205c, (uint8_t *)&next_pc, 4);
 
 	// Write the PC of the signal dispatch helper into the CPU
-	GetBootCore()->write_pc(0xffff2000);
+	GetMainThread()->SetPC(Address(0xffff2000));
 
 	return false;
 }

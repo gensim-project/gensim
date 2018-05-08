@@ -11,7 +11,7 @@
 #include "abi/devices/arm/core/ArmControlCoprocessor.h"
 #include "abi/memory/MemoryModel.h"
 
-#include "gensim/gensim_processor.h"
+#include "core/thread/ThreadInstance.h"
 
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"

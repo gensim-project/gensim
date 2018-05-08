@@ -15,8 +15,6 @@
 
 #include "abi/devices/MMU.h"
 #include "abi/memory/MemoryModel.h"
-#include "gensim/gensim_processor_state.h"
-#include "gensim/gensim_processor.h"
 
 #include "core/MemoryInterface.h"
 #include "core/thread/ThreadInstance.h"
@@ -25,10 +23,16 @@
 #include "util/LogContext.h"
 
 #include "translate/jit_funs.h"
+#include "system.h"
 
 #include <cfenv>
 #include <setjmp.h>
 
+namespace gensim {
+	class Processor;
+}
+
+UseLogContext(LogCPU);
 DeclareChildLogContext(LogJitFuns, LogCPU, "LogJITFuns");
 UseLogContext(LogJitFuns)
 extern "C" {
@@ -103,28 +107,7 @@ extern "C" {
 
 	uint8_t cpuGetExecMode(gensim::Processor *cpu)
 	{
-		return cpu->interrupt_mode;
-	}
-
-	uint32_t jitChecksumPage(gensim::Processor *cpu, uint32_t page_base)
-	{
-		uint32_t checksum = 0;
-		host_addr_t page_data;
-
-		if(cpu->GetEmulationModel().GetMemoryModel().LockRegion(page_base, 4096, page_data)) {
-			uint32_t *page_words = (uint32_t*)page_data;
-			for(uint32_t i = 0; i < 1024; ++i) checksum += page_words[i];
-		}
-
-		return checksum;
-	}
-
-	void jitCheckChecksum(uint32_t expected, uint32_t actual)
-	{
-		if(expected != actual) {
-			fprintf(stderr, "CHECKSUM FAILURE! %x != %x\n", expected, actual);
-			assert(expected == actual);
-		}
+		UNIMPLEMENTED;
 	}
 
 	int jitDebug0()
@@ -153,7 +136,6 @@ extern "C" {
 
 	int jitDebugCpu(gensim::Processor *cpu)
 	{
-		fprintf(stderr, "no chain to %x\n", cpu->read_pc());
 		return 0;
 	}
 
@@ -205,7 +187,7 @@ extern "C" {
 
 	uint8_t devProbeDevice(gensim::Processor *cpu, uint32_t device_id)
 	{
-		return (uint8_t)((gensim::Processor*)cpu)->probe_device(device_id);
+		UNIMPLEMENTED;
 	}
 
 	uint8_t devWriteDevice(archsim::core::thread::ThreadInstance *cpu, uint32_t device_id, uint32_t addr, uint32_t data)
@@ -220,7 +202,7 @@ extern "C" {
 
 	void sysVerify(gensim::Processor *cpu)
 	{
-		cpu->GetEmulationModel().GetSystem().CheckVerify();
+		UNIMPLEMENTED;
 	}
 
 	void sysPublishInstruction(gensim::Processor *cpu, uint32_t pc, uint32_t type)
@@ -231,7 +213,8 @@ extern "C" {
 		data.pc = pc;
 		data.type = type;
 
-		cpu->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::InstructionExecute, &data);
+		UNIMPLEMENTED;
+//		cpu->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::InstructionExecute, &data);
 	}
 
 	void sysPublishBlock(archsim::util::PubSubContext *pubsub, uint32_t pc, uint32_t count)
@@ -272,7 +255,7 @@ extern "C" {
 
 	uint32_t cpuHandlePendingAction(gensim::Processor *cpu)
 	{
-		return ((gensim::Processor*)cpu)->handle_pending_action();
+		UNIMPLEMENTED;
 	}
 
 	void cpuReturnToSafepoint(gensim::Processor *cpu)

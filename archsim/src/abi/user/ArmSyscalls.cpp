@@ -10,7 +10,6 @@
 #include "abi/memory/MemoryModel.h"
 #include "core/MemoryInterface.h"
 
-#include "gensim/gensim_processor.h"
 
 #include "util/SimOptions.h"
 #include "util/LogContext.h"

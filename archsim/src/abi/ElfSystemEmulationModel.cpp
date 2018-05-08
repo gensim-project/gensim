@@ -10,7 +10,7 @@
 #include "abi/ElfSystemEmulationModel.h"
 #include "abi/loader/BinaryLoader.h"
 
-#include "gensim/gensim_processor.h"
+#include "core/thread/ThreadInstance.h"
 
 #include "util/ComponentManager.h"
 #include "util/SimOptions.h"
@@ -123,8 +123,9 @@ bool ElfSystemEmulationModel::PrepareCore(archsim::core::thread::ThreadInstance 
 
 bool ElfSystemEmulationModel::HandleSemihostingCall()
 {
-	archsim::arch::arm::AngelSyscallHandler angel (GetBootCore()->GetMemoryModel(), heap_base, heap_limit, stack_base, stack_limit);
-	return angel.HandleSyscall(*GetBootCore());
+	UNIMPLEMENTED;
+//	archsim::arch::arm::AngelSyscallHandler angel (main_thread_, heap_base, heap_limit, stack_base, stack_limit);
+//	return angel.HandleSyscall(*GetBootCore());
 }
 
 bool ElfSystemEmulationModel::InstallDevices()

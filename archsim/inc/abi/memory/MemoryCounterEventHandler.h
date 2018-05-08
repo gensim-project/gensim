@@ -46,7 +46,7 @@ namespace archsim
 			{
 				friend class MemoryCounterEventHandlerTranslator;
 			public:
-				bool HandleEvent(gensim::Processor& cpu, MemoryModel::MemoryEventType type, guest_addr_t addr, uint8_t size) override;
+				bool HandleEvent(archsim::core::thread::ThreadInstance *cpu, MemoryModel::MemoryEventType type, Address addr, uint8_t size) override;
 
 				void PrintStatistics(std::ostream& stream);
 

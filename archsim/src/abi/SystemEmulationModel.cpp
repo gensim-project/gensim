@@ -16,9 +16,6 @@
 
 #include "abi/memory/system/CacheBasedSystemMemoryModel.h"
 
-#include "gensim/gensim.h"
-#include "gensim/gensim_processor.h"
-
 #include "util/ComponentManager.h"
 #include "util/SimOptions.h"
 #include "util/LogContext.h"
@@ -114,26 +111,6 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 void SystemEmulationModel::Destroy()
 {
 	DestroyDevices();
-}
-
-gensim::Processor *SystemEmulationModel::GetCore(int id)
-{
-	UNIMPLEMENTED;
-	if (id != 0) return NULL;
-
-//	return cpu;
-}
-
-gensim::Processor *SystemEmulationModel::GetBootCore()
-{
-	UNIMPLEMENTED;
-//	return cpu;
-}
-
-void SystemEmulationModel::ResetCores()
-{
-	UNIMPLEMENTED;
-//	cpu->reset_exception();
 }
 
 void SystemEmulationModel::HaltCores()

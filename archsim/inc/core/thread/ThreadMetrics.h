@@ -16,6 +16,7 @@
 
 #include "util/Counter.h"
 #include "util/CounterTimer.h"
+#include "util/Histogram.h"
 
 #include <ostream>
 
@@ -28,6 +29,10 @@ namespace archsim {
 				
 				archsim::util::CounterTimer SelfRuntime;
 				archsim::util::CounterTimer TotalRuntime;
+				
+				archsim::util::Histogram PCHistogram;
+				archsim::util::Histogram OpcodeHistogram;
+				archsim::util::Histogram InstructionIRHistogram;
 			};
 			
 			class ThreadMetricPrinter {

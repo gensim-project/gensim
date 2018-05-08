@@ -21,6 +21,13 @@ DeclareLogContext(LogBlockJitCpu, "BlockJIT");
 using namespace archsim;
 using namespace archsim::core::thread;
 
+void FPState::Apply()
+{
+	// TODO: properly apply the floating point state represented by this FPState object.
+	UNIMPLEMENTED;
+}
+
+
 ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
 {
 	// Need to fill in structures based on arch descriptor info
@@ -79,13 +86,12 @@ MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface
 		}
 	}
 	
-	UNIMPLEMENTED;
+	throw std::logic_error("No memory interface found with given name " + interface_name);
 }
 MemoryInterface& ThreadInstance::GetMemoryInterface(uint32_t interface_name)
 {
 	return *memory_interfaces_.at(interface_name);
 }
-
 
 Address RegisterFileInterface::GetTaggedSlot(const std::string &tag) const
 {
@@ -138,7 +144,11 @@ archsim::abi::ExceptionAction ThreadInstance::TakeMemoryException(MemoryInterfac
 
 archsim::abi::devices::IRQLine* ThreadInstance::GetIRQLine(uint32_t irq_no)
 {
-	if(irq_lines_.count(irq_no) == 0) {
+	if(irq_lines_.size() <= irq_no) {
+		irq_lines_.resize(irq_no+1);
+	}
+	
+	if(irq_lines_[irq_no] == nullptr) {
 		irq_lines_[irq_no] = new archsim::abi::devices::CPUIRQLine(this);
 		irq_lines_[irq_no]->SetLine(irq_no);
 	}
@@ -175,9 +185,9 @@ archsim::core::execution::ExecutionResult ThreadInstance::HandleMessage()
 void ThreadInstance::HandleIRQ()
 {
 	for(auto irq : irq_lines_) {
-		if(irq.second->IsAsserted() && !irq.second->IsAcknowledged()) {
-			GetEmulationModel().HandleInterrupt(this, irq.second);
-			irq.second->Acknowledge();
+		if(irq && irq->IsAsserted() && !irq->IsAcknowledged()) {
+			GetEmulationModel().HandleInterrupt(this, irq);
+			irq->Acknowledge();
 		}
 	}
 }
@@ -186,7 +196,7 @@ void ThreadInstance::PendIRQ()
 {
 	bool should_pend_interrupts = false;
 	for (auto irq : irq_lines_) {
-		if (irq.second->IsAsserted()) {
+		if (irq && irq->IsAsserted()) {
 			should_pend_interrupts = true;
 			break;
 		}
@@ -196,7 +206,9 @@ void ThreadInstance::PendIRQ()
 		SendMessage(ThreadMessage::Interrupt);
 
 		for (auto irq : irq_lines_) {
-			irq.second->Raise();
+			if(irq) {
+				irq->Raise();
+			}
 		}
 	}
 }

@@ -70,6 +70,8 @@ namespace archsim {
 				void SetRoundingMode(RoundingMode newMode) { rounding_mode_ = newMode; }
 				RoundingMode GetRoundingMode() const { return rounding_mode_; }
 
+				void Apply();
+				
 			private:
 				RoundingMode rounding_mode_;
 				FlushMode flush_mode_;
@@ -133,10 +135,14 @@ namespace archsim {
 				uint32_t GetModeID() const { return GetStateBlock().GetEntry<uint32_t>("ModeID"); }
 				void SetModeID(uint32_t new_mode) { GetStateBlock().SetEntry<uint32_t>("ModeID", new_mode); }
 
+				// Execution ring is very frequently accessed so it's necessary 
+				// to provide an optimised implementation.
 				uint32_t GetExecutionRing() const { return *(uint32_t*)(((char*)GetStateBlock().GetData()) + ring_offset_); }
 				void SetExecutionRing(uint32_t new_ring);
 
-				// Functions to do with registers
+				// Functions to do with registers. These functions are quite slow
+				// since they have to go via the register descriptor, so if using in a loop
+				// it's recommended to use a faster method.
 				void *GetRegisterFile() { return (void*)register_file_.GetData(); }
 				Address GetPC() { return GetRegisterFileInterface().GetTaggedSlot("PC"); }
 				void SetPC(Address target) { GetRegisterFileInterface().SetTaggedSlot("PC", target); }
@@ -151,7 +157,7 @@ namespace archsim {
 				libtrace::TraceSource *GetTraceSource() { return trace_source_; }
 				void SetTraceSource(libtrace::TraceSource *source) { trace_source_ = source; }
 
-				// External functions
+				// External functions. I don't like that these are here.
 				void fn_flush_itlb_entry(Address::underlying_t entry) { pubsub_.Publish(PubSubType::FlushTranslations, 0); }
 				void fn_flush_dtlb_entry(Address::underlying_t entry) {}
 
@@ -169,6 +175,7 @@ namespace archsim {
 				// Acknowledge an IRQ and take an interrupt
 				void HandleIRQ();
 
+				// Functions to do with sending messages to a running thread
 				void SendMessage(ThreadMessage message) 
 				{
 					std::unique_lock<std::mutex> lock(message_lock_);
@@ -191,9 +198,12 @@ namespace archsim {
 				core::execution::ExecutionResult HandleMessage();
 
 				util::PubSubscriber &GetPubsub() { return pubsub_; }
-
 				archsim::core::thread::ThreadMetrics &GetMetrics() { return *metrics_; }
 				
+				// This safepoint stuff is super nasty. In theory it is used 
+				// similarly to C++ exceptions, but since we throw from within
+				// JIT'd code we can't use 'proper' exceptions. So, instead, 
+				// we have to use setjmp/longjmp to emulate exceptions.
 				jmp_buf Safepoint;
 				void ReturnToSafepoint();
 			private:
@@ -218,7 +228,7 @@ namespace archsim {
 				StateBlock state_block_;
 				libtrace::TraceSource *trace_source_;
 
-				std::map<uint32_t, archsim::abi::devices::CPUIRQLine *> irq_lines_;
+				std::vector<archsim::abi::devices::CPUIRQLine*> irq_lines_;
 
 			};
 		}

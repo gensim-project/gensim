@@ -10,11 +10,7 @@
 
 #include "abi/memory/MemoryModel.h"
 #include "util/ComponentManager.h"
-
-namespace gensim
-{
-	class Processor;
-}
+#include "core/thread/ThreadInstance.h"
 
 namespace archsim
 {
@@ -28,7 +24,7 @@ namespace archsim
 			{
 			public:
 				virtual ~MemoryEventHandler() = 0;
-				virtual bool HandleEvent(gensim::Processor& cpu, MemoryModel::MemoryEventType type, guest_addr_t addr, uint8_t size) = 0;
+				virtual bool HandleEvent(archsim::core::thread::ThreadInstance *cpu, MemoryModel::MemoryEventType type, Address addr, uint8_t size) = 0;
 				virtual MemoryEventHandlerTranslator& GetTranslator() = 0;
 			};
 		}

@@ -5,7 +5,6 @@
  *      Author: harry
  */
 
-#include "gensim/gensim_processor_blockjit.h"
 #include "gensim/gensim_decode.h"
 #include "gensim/gensim_translate.h"
 
@@ -201,11 +200,6 @@ bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstan
 	if(archsim::options::Verbose)builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
 
 
-	if(archsim::options::Profile) {
-		UNIMPLEMENTED;
-//		builder.count(IROperand::const64((uint64_t)processor->metrics.opcode_freq_hist.get_value_ptr_at_index(decode->Instr_Code)), IROperand::const64(1));
-	}
-
 	auto fault = _decode_ctx->DecodeSync(pc, GetIsaMode(), *decode);
 	assert(!fault);
 
@@ -230,13 +224,14 @@ bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstan
 		builder.call(IROperand::func((void*)cpuInstructionTick), IROperand::const64((uint64_t)(void*)processor));
 	}
 
+	if(archsim::options::Profile) {
+		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().OpcodeHistogram.get_value_ptr_at_index(decode->Instr_Code)), IROperand::const64(1));
+	}
 	if(archsim::options::ProfilePcFreq) {
-		UNIMPLEMENTED;
-//		builder.count(IROperand::const64((uint64_t)processor->metrics.pc_freq_hist.get_value_ptr_at_index(pc.Get())), IROperand::const64(1));
+		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().PCHistogram.get_value_ptr_at_index(pc.Get())), IROperand::const64(1));
 	}
 	if(archsim::options::ProfileIrFreq) {
-		UNIMPLEMENTED;
-//		builder.count(IROperand::const64((uint64_t)processor->metrics.inst_ir_freq_hist.get_value_ptr_at_index(decode->ir)), IROperand::const64(1));
+		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionIRHistogram.get_value_ptr_at_index(decode->ir)), IROperand::const64(1));
 	}
 	
 	if(processor->GetTraceSource()) {

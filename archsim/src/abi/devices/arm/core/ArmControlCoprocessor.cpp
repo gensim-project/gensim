@@ -10,8 +10,6 @@
 #include "abi/devices/PeripheralManager.h"
 #include "abi/devices/arm/core/ArmControlCoprocessor.h"
 
-#include "gensim/gensim_processor.h"
-
 #include "translate/TranslationManager.h"
 
 #include "util/LogContext.h"
@@ -32,7 +30,7 @@ RegisterComponent(archsim::abi::devices::Device, ArmControlCoprocessor,
 ;
 
 ArmControlCoprocessor::ArmControlCoprocessor() :
-	cp1_M(false), cp1_S(false), cp1_R(false), far(0), fsr(0), ttbr(0), dacr(0xffffffff), V_descriptor(NULL)
+	cp1_M(false), cp1_S(false), cp1_R(false), far(0), fsr(0), ttbr(0), dacr(0xffffffff)
 {
 
 }
@@ -222,10 +220,10 @@ bool ArmControlCoprocessor::access_cp1(bool is_read, uint32_t &data)
 
 		UNIMPLEMENTED;
 //		if(!V_descriptor) V_descriptor = &Manager->cpu.GetRegisterDescriptor("cpV");
-		uint8_t *V =
-		    (uint8_t*) V_descriptor->DataStart;
-		assert(*V == 0 || *V == 1);
-		data |= (uint32_t) ((uint32_t)*V) << 13; //V, exception vectors
+//		uint8_t *V =
+//		    (uint8_t*) V_descriptor->DataStart;
+//		assert(*V == 0 || *V == 1);
+//		data |= (uint32_t) ((uint32_t)*V) << 13; //V, exception vectors
 
 		data |= 0 << 14; //RR
 		data |= 0 << 15; //L4
