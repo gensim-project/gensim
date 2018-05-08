@@ -129,7 +129,6 @@ namespace gensim
 
 			source_str << "#include \"decode.h\"\n";
 			source_str << "#include \"disasm.h\"\n";
-			source_str << "#include <gensim/gensim_define.h>\n";
 
 			source_str << "#include <cstring>\n";
 

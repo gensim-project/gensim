@@ -304,7 +304,6 @@ namespace gensim
 			const InterpretiveExecutionEngineGenerator *interpret = (const InterpretiveExecutionEngineGenerator *)Manager.GetComponentC(GenerationManager::FnInterpret);
 			source_str << "#include <stdio.h>\n\n";
 			source_str << "#include \"decode.h\"\n\n";
-			source_str << "#include <gensim/gensim_define.h>\n\n";
 
 			if(Manager.GetComponentC(Manager.FnInterpret))
 				source_str << "#include \"processor.h\"\n";
