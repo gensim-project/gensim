@@ -40,6 +40,8 @@
 #define UNSIGNED_BITS_64(v, u, l) (((uint64_t)(v) << (63 - (u))) >> (63 - (u) + (l)))
 #define SIGNED_BITS(v, u, l) (((int32_t)(v) << (31 - (u))) >> (31 - (u) + (l)))
 #define BITSEL(v, b) (((v) >> (b)) & 1UL)
+#define BIT_LSB(i) (1 << (i))
+#define BIT_32_MSB(i) (0x80000000 >> (i))
 
 /* Pre-processor tricks to enable common definitions of data-structres to be
  * re-usable in --fast mode during code-generation of JIT code.
