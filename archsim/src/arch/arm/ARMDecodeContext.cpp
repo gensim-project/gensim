@@ -6,25 +6,24 @@
 
 #include "arch/arm/ARMDecodeContext.h"
 #include "blockjit/IRBuilder.h"
-#include "gensim/gensim_processor.h"
 #include "gensim/gensim_decode.h"
 #include "util/ComponentManager.h"
+#include "core/thread/ThreadInstance.h"
 
 using namespace archsim::arch::arm;
 
-ARMDecodeContext::ARMDecodeContext(gensim::Processor *cpu) : DecodeContext(cpu)
+ARMDecodeContext::ARMDecodeContext(archsim::core::thread::ThreadInstance *cpu) : DecodeContext(cpu)
 {
-
-	auto itstate_desc = cpu->GetRegisterDescriptor("ITSTATE");
-	assert(itstate_desc.RegisterWidth == 1);
-	_itstate = (uint8_t*)itstate_desc.DataStart;
-	_itstate_offset = itstate_desc.Offset;
+	auto itstate_desc = cpu->GetArch().GetRegisterFileDescriptor().GetEntries().at("ITSTATE");
+	
+	_itstate = (uint8_t*)cpu->GetRegisterFileInterface().GetEntry<uint8_t>("ITSTATE");
+	_itstate_offset = itstate_desc.GetOffset();
 }
 
 uint32_t ARMDecodeContext::DecodeSync(Address address, uint32_t mode, gensim::BaseDecode& target)
 {
 	auto &cpu = *GetCPU();
-	uint32_t fault = cpu.DecodeInstr(address.Get(), mode, target);
+	uint32_t fault = cpu.GetArch().GetISA(mode).DecodeInstr(address, &cpu.GetFetchMI(), target);
 	if(fault) return fault;
 
 	// TODO: have the IR for 16-bit instructions be filled into the lower 16 bits
@@ -101,4 +100,4 @@ public:
 };
 
 RegisterComponent(gensim::DecodeTranslateContext, ARMDecodeTranslateContext, "armv7a", "arm decode translate context");
-RegisterComponent(gensim::DecodeContext, ARMDecodeContext, "armv7a", "arm decode context", gensim::Processor*);
+RegisterComponent(gensim::DecodeContext, ARMDecodeContext, "armv7a", "arm decode context", archsim::core::thread::ThreadInstance*);

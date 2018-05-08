@@ -32,6 +32,7 @@ tokens
   GENC_ATTR_INLINE = 'inline';
   GENC_ATTR_NOINLINE = 'noinline';
   GENC_ATTR_GLOBAL = 'global';
+  GENC_ATTR_EXPORT = 'export';
 
   PARAM;
   PARAMS;
@@ -151,7 +152,7 @@ helper_scope : GENC_SCOPE_PRIVATE | GENC_SCOPE_PUBLIC | GENC_SCOPE_INTERNAL;
 
 helper_definition : helper_scope? 'helper'? type GENC_ID '(' param_list ')' helper_attribute* body -> ^(HELPER GENC_ID type helper_scope param_list helper_attribute*  body);
 
-helper_attribute: GENC_ATTR_FIXED | GENC_ATTR_SOMETIMES_FIXED | GENC_ATTR_INLINE | GENC_ATTR_NOINLINE | GENC_ATTR_GLOBAL;
+helper_attribute: GENC_ATTR_FIXED | GENC_ATTR_SOMETIMES_FIXED | GENC_ATTR_INLINE | GENC_ATTR_NOINLINE | GENC_ATTR_EXPORT | GENC_ATTR_GLOBAL;
 
 execution_definition : 'execute' '(' GENC_ID ')' body -> ^(EXECUTE GENC_ID body);
 

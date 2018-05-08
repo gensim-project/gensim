@@ -6,19 +6,19 @@
 
 #include "gensim/gensim_decode_context.h"
 #include "arch/risc-v/RiscVDecodeContext.h"
-#include "gensim/gensim_processor.h"
 #include "util/ComponentManager.h"
+#include "core/thread/ThreadInstance.h"
 
 using namespace archsim::arch::riscv;
 
-RiscVDecodeContext::RiscVDecodeContext(gensim::Processor *cpu) : DecodeContext(cpu)
+RiscVDecodeContext::RiscVDecodeContext(archsim::core::thread::ThreadInstance *cpu) : DecodeContext(cpu)
 {
 
 }
 
 uint32_t RiscVDecodeContext::DecodeSync(Address address, uint32_t mode, gensim::BaseDecode& target)
 {
-	return GetCPU()->DecodeInstr(address.Get(), mode, target);
+	return GetCPU()->GetArch().GetISA(mode).DecodeInstr(address, &GetCPU()->GetFetchMI(), target);
 }
 
 class RiscVDecodeTranslationContext : public gensim::DecodeTranslateContext
@@ -30,5 +30,5 @@ class RiscVDecodeTranslationContext : public gensim::DecodeTranslateContext
 
 };
 
-RegisterComponent(gensim::DecodeContext, RiscVDecodeContext, "riscv", "risc v", gensim::Processor*);
+RegisterComponent(gensim::DecodeContext, RiscVDecodeContext, "riscv", "risc v", archsim::core::thread::ThreadInstance*);
 RegisterComponent(gensim::DecodeTranslateContext, RiscVDecodeTranslationContext, "riscv", "risc v");

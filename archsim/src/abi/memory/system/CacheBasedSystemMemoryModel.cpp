@@ -13,7 +13,6 @@
 #include "abi/devices/DeviceManager.h"
 #include "abi/devices/Component.h"
 #include "abi/devices/MMU.h"
-#include "gensim/gensim_processor.h"
 #include "translate/TranslationManager.h"
 #include "translate/profile/Region.h"
 
@@ -128,12 +127,15 @@ bool CacheBasedSystemMemoryModel::Initialise()
 	translation_model->Initialise(*this);
 #endif
 
-	subscriber = new archsim::util::PubSubscriber(&GetCPU()->GetEmulationModel().GetSystem().GetPubSub());
+	subscriber = new archsim::util::PubSubscriber(GetThread()->GetEmulationModel().GetSystem().GetPubSub());
 	subscriber->Subscribe(PubSubType::RegionDispatchedForTranslationPhysical, FlushCallback, this);
 	subscriber->Subscribe(PubSubType::DTlbEntryFlush, FlushCallback, this);
 	subscriber->Subscribe(PubSubType::DTlbFullFlush, FlushCallback, this);
 	subscriber->Subscribe(PubSubType::PrivilegeLevelChange, FlushCallback, this);
 
+	GetThread()->GetStateBlock().AddBlock("smm_read_cache", sizeof(void*));
+	GetThread()->GetStateBlock().AddBlock("smm_write_cache", sizeof(void*));
+	
 	InstallCaches();
 	FlushCaches();
 	return true;
@@ -198,7 +200,7 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 	SMMCacheEntry *entry;
 	bool hit = true;
 
-	if(GetCPU()->in_kernel_mode()) {
+	if(GetThread()->GetExecutionRing()) {
 		if(!TryGetReadKernelCacheEntry(virt_addr, entry)) {
 			hit = false;
 		}
@@ -261,12 +263,12 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 
 void CacheBasedSystemMemoryModel::InstallCaches()
 {
-	if(GetCPU()->in_kernel_mode()) {
-		GetCPU()->state.smm_read_cache = _read_kernel_cache.GetCachePtr();
-		GetCPU()->state.smm_write_cache = _write_kernel_cache.GetCachePtr();
+	if(GetThread()->GetExecutionRing()) {
+		GetThread()->GetStateBlock().SetEntry<void*>("smm_read_cache", _read_kernel_cache.GetCachePtr());
+		GetThread()->GetStateBlock().SetEntry<void*>("smm_write_cache", _write_kernel_cache.GetCachePtr());
 	} else {
-		GetCPU()->state.smm_read_cache = _read_user_cache.GetCachePtr();
-		GetCPU()->state.smm_write_cache = _write_user_cache.GetCachePtr();
+		GetThread()->GetStateBlock().SetEntry<void*>("smm_read_cache", _read_user_cache.GetCachePtr());
+		GetThread()->GetStateBlock().SetEntry<void*>("smm_write_cache", _write_user_cache.GetCachePtr());
 	}
 }
 
@@ -308,7 +310,7 @@ uint32_t CacheBasedSystemMemoryModel::Fetch(guest_addr_t virt_addr, uint8_t *dat
 	}
 
 	uint32_t pa;
-	uint32_t ecause = (uint32_t)GetMMU()->Translate(GetCPU(), virt_addr, pa, MMUACCESSINFO_SE(GetCPU()->in_kernel_mode(),0,1));
+	uint32_t ecause = (uint32_t)GetMMU()->Translate(GetThread(), virt_addr, pa, MMUACCESSINFO_SE(GetThread()->GetExecutionRing(),0,1));
 	if(ecause) return ecause;
 
 	_prev_fetch_page_virt = vaddr.PageBase();
@@ -348,7 +350,7 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 	SMMCacheEntry *entry;
 	bool hit = true;
 
-	if(GetCPU()->in_kernel_mode()) {
+	if(GetThread()->GetExecutionRing()) {
 		if(!TryGetWriteKernelCacheEntry(virt_addr, entry)) {
 			hit = false;
 		}
@@ -411,7 +413,7 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 uint32_t CacheBasedSystemMemoryModel::Peek(guest_addr_t virt_addr, uint8_t *data, int size)
 {
 	guest_addr_t phys_addr;
-	uint32_t rc = (uint32_t)GetMMU()->Translate(GetCPU(), virt_addr, phys_addr, MMUACCESSINFO(GetCPU()->in_kernel_mode(), 0, 0));
+	uint32_t rc = (uint32_t)GetMMU()->Translate(GetThread(), virt_addr, phys_addr, MMUACCESSINFO(GetThread()->GetExecutionRing(), 0, 0));
 
 	if (UNLIKELY(rc)) {
 		return rc;
@@ -423,7 +425,7 @@ uint32_t CacheBasedSystemMemoryModel::Peek(guest_addr_t virt_addr, uint8_t *data
 uint32_t CacheBasedSystemMemoryModel::Poke(guest_addr_t virt_addr, uint8_t *data, int size)
 {
 	guest_addr_t phys_addr;
-	uint32_t rc = (uint32_t)GetMMU()->Translate(GetCPU(), virt_addr, phys_addr, MMUACCESSINFO(GetCPU()->in_kernel_mode(), 1, 0));
+	uint32_t rc = (uint32_t)GetMMU()->Translate(GetThread(), virt_addr, phys_addr, MMUACCESSINFO(GetThread()->GetExecutionRing(), 1, 0));
 
 	if (UNLIKELY(rc)) {
 		return rc;
@@ -439,7 +441,7 @@ uint32_t CacheBasedSystemMemoryModel::Poke(guest_addr_t virt_addr, uint8_t *data
 uint32_t CacheBasedSystemMemoryModel::Read8User(guest_addr_t guest_addr, uint32_t &data)
 {
 	guest_addr_t phys_addr;
-	uint32_t rc = (uint32_t)GetMMU()->Translate(GetCPU(), guest_addr, phys_addr, MMUACCESSINFO_SE(0,0,0));
+	uint32_t rc = (uint32_t)GetMMU()->Translate(GetThread(), guest_addr, phys_addr, MMUACCESSINFO_SE(0,0,0));
 
 	if(UNLIKELY(rc)) return rc;
 	else return GetPhysMem()->Read8_zx(phys_addr, data);
@@ -448,7 +450,7 @@ uint32_t CacheBasedSystemMemoryModel::Read8User(guest_addr_t guest_addr, uint32_
 uint32_t CacheBasedSystemMemoryModel::Read32User(guest_addr_t guest_addr, uint32_t& data)
 {
 	guest_addr_t phys_addr;
-	uint32_t rc = (uint32_t)GetMMU()->Translate(GetCPU(), guest_addr, phys_addr, MMUACCESSINFO_SE(0,0,0));
+	uint32_t rc = (uint32_t)GetMMU()->Translate(GetThread(), guest_addr, phys_addr, MMUACCESSINFO_SE(0,0,0));
 
 	if(UNLIKELY(rc)) return rc;
 	else return GetPhysMem()->Read32(phys_addr, data);
@@ -457,7 +459,7 @@ uint32_t CacheBasedSystemMemoryModel::Read32User(guest_addr_t guest_addr, uint32
 uint32_t CacheBasedSystemMemoryModel::Write8User(guest_addr_t guest_addr, uint8_t data)
 {
 	guest_addr_t phys_addr;
-	uint32_t rc = (uint32_t)GetMMU()->Translate(GetCPU(), guest_addr, phys_addr, MMUACCESSINFO_SE(0,1,0));
+	uint32_t rc = (uint32_t)GetMMU()->Translate(GetThread(), guest_addr, phys_addr, MMUACCESSINFO_SE(0,1,0));
 
 	if(UNLIKELY(rc)) return rc;
 	else {
@@ -471,7 +473,7 @@ uint32_t CacheBasedSystemMemoryModel::Write8User(guest_addr_t guest_addr, uint8_
 uint32_t CacheBasedSystemMemoryModel::Write32User(guest_addr_t guest_addr, uint32_t data)
 {
 	guest_addr_t phys_addr;
-	uint32_t rc = (uint32_t)GetMMU()->Translate(GetCPU(), guest_addr, phys_addr, MMUACCESSINFO_SE(0,1,0));
+	uint32_t rc = (uint32_t)GetMMU()->Translate(GetThread(), guest_addr, phys_addr, MMUACCESSINFO_SE(0,1,0));
 
 	if(UNLIKELY(rc)) return rc;
 	else {
@@ -504,14 +506,14 @@ uint32_t CacheBasedSystemMemoryModel::PerformTranslation(virt_addr_t virt_addr, 
 			}
 		}
 	}
-	uint32_t rc = (uint32_t)GetMMU()->Translate(GetCPU(), virt_addr, out_phys_addr, info);
+	uint32_t rc = (uint32_t)GetMMU()->Translate(GetThread(), virt_addr, out_phys_addr, info);
 	return rc;
 }
 
 uint32_t CacheBasedSystemMemoryModel::UpdateCacheEntry(guest_addr_t addr, SMMCacheEntry *entry, bool isWrite, bool allow_side_effects)
 {
 	phys_addr_t phys_addr;
-	uint32_t rc = (uint32_t)GetMMU()->Translate(GetCPU(), addr, phys_addr, MMUACCESSINFO2(GetCPU()->in_kernel_mode(), isWrite,0, allow_side_effects));
+	uint32_t rc = (uint32_t)GetMMU()->Translate(GetThread(), addr, phys_addr, MMUACCESSINFO2(GetThread()->GetExecutionRing(), isWrite,0, allow_side_effects));
 	if(rc) {
 		entry->Invalidate();
 		return rc;

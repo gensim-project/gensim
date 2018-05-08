@@ -54,7 +54,7 @@ const HelperFnDescriptionToken* HelperFnDescriptionLexer::Pop()
 const HelperFnDescriptionToken* HelperFnDescriptionLexer::ReadIdentifier()
 {
 	std::string ident;
-	while (PeekChar() && isalnum(PeekChar()) || PeekChar() == '_') {
+	while (PeekChar() && (isalnum(PeekChar()) || PeekChar() == '_')) {
 		ident += PopChar();
 	}
 

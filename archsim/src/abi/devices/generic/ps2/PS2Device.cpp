@@ -186,6 +186,7 @@ void PS2MouseDevice::SendCommand(uint32_t command)
 					QueueData(status);
 					QueueData(resolution);
 					QueueData(sample_rate);
+					break;
 
 				default:
 					LC_DEBUG1(LogPS2Mouse) << "Unhandled Mouse Command - but acknowledging anyway.";

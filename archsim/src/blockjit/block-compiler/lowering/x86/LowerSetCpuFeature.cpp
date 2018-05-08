@@ -22,7 +22,7 @@ bool LowerSetCpuFeature::Lower(const captive::shared::IRInstruction *&insn)
 {
 	GetCompiler().emit_save_reg_state(3, GetStackMap(), GetIsStackFixed());
 
-	GetCompiler().load_state_field(0, REG_RDI);
+	GetCompiler().load_state_field("thread_ptr", REG_RDI);
 	GetCompiler().encode_operand_function_argument(&insn->operands[0], REG_RSI, GetStackMap());
 	GetCompiler().encode_operand_function_argument(&insn->operands[1], REG_RDX, GetStackMap());
 

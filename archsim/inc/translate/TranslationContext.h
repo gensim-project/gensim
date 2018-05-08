@@ -44,8 +44,6 @@ namespace archsim
 
 			virtual bool Translate(Translation*& translation, TranslationTimers& timers) = 0;
 
-			abi::memory::MemoryTranslationModel& mtm;
-
 			TranslationWorkUnit& twu;
 
 		private:

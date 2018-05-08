@@ -10,7 +10,6 @@
 
 #include "abi/devices/arm/core/ArmCoprocessor.h"
 #include "abi/devices/arm/core/PMU.h"
-#include "gensim/gensim_processor.h"
 #include "util/LogContext.h"
 
 UseLogContext(LogArmCoprocessor);
@@ -113,7 +112,8 @@ namespace archsim
 				uint32_t ifsr, ifar;
 				uint32_t dfsr, dfar;
 
-				const gensim::RegisterDescriptor *V_descriptor;
+				// TODO: fix this
+//				const gensim::RegisterDescriptor *V_descriptor;
 
 				MMU *get_mmu();
 			};

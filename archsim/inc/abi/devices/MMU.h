@@ -14,7 +14,7 @@
 
 namespace archsim
 {
-	namespace abi
+	namespace abi	
 	{
 		namespace memory
 		{
@@ -27,6 +27,7 @@ namespace archsim
 			struct AccessInfo {
 				uint8_t Write:1, Kernel:1, Fetch:1, SideEffects:1;
 
+				AccessInfo() {}
 				AccessInfo(bool K, bool W, bool F, bool SE=0) : Write(W), Kernel(K), Fetch(F), SideEffects(SE) {}
 			};
 
@@ -72,15 +73,15 @@ namespace archsim
 
 				virtual ~MMU();
 
-				virtual TranslateResult Translate(gensim::Processor *cpu, uint32_t virt_addr, uint32_t &phys_addr, const struct AccessInfo info) = 0;
-				virtual TranslateResult TranslateRegion(gensim::Processor *cpu, uint32_t virt_addr, uint32_t size, uint32_t &phys_addr, const struct AccessInfo info);
+				virtual TranslateResult Translate(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr, uint32_t &phys_addr, const struct AccessInfo info) = 0;
+				virtual TranslateResult TranslateRegion(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr, uint32_t size, uint32_t &phys_addr, const struct AccessInfo info);
 
 				virtual const PageInfo GetInfo(uint32_t virt_addr) = 0;
 
 				virtual void FlushCaches();
 				virtual void Evict(virt_addr_t virt_addr);
 
-				uint32_t TranslateUnsafe(gensim::Processor *cpu, uint32_t virt_addr);
+				uint32_t TranslateUnsafe(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr);
 
 				void set_enabled(bool enabled);
 				inline bool is_enabled() const

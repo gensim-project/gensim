@@ -12,7 +12,7 @@
 #include "abi/Address.h"
 #include "util/NTZero.h"
 #include "blockjit/blockcache-defines.h"
-#include "gensim/ProcessorFeatures.h"
+#include "core/thread/ProcessorFeatures.h"
 
 #include <cstring>
 
@@ -98,7 +98,7 @@ namespace archsim
 			// XXX ARM HAX
 			static const uint32_t kInstructionShift = BLOCKCACHE_INSTRUCTION_SHIFT;
 
-		private:
+		
 
 			const BlockCacheEntry &GetEntry(Address address) const
 			{
@@ -108,6 +108,7 @@ namespace archsim
 			{
 				return cache_[(address.Get() >> kInstructionShift) % kCacheSize];
 			}
+		private:
 			const BlockFeaturesEntry &GetFeatures(Address address) const
 			{
 				return feature_cache_[(address.Get() >> kInstructionShift) % kCacheSize];

@@ -18,7 +18,7 @@
 #include "util/LogContext.h"
 
 #include "session.h"
-#include "gensim/gensim_processor.h"
+#include "system.h"
 #include "abi/devices/WSBlockDevice.h"
 
 extern char bootloader_start, bootloader_end;
@@ -75,9 +75,9 @@ bool ArmVersatileEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	return InstallBootloader(loader);
 }
 
-bool ArmVersatileEmulationModel::PrepareCore(gensim::Processor& core)
+bool ArmVersatileEmulationModel::PrepareCore(archsim::core::thread::ThreadInstance& core)
 {
-	uint32_t *regs = (uint32_t *)core.GetRegisterBankDescriptor("RB").GetBankDataStart();
+	uint32_t *regs = (uint32_t *)core.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 
 	// r0 = 0
 	regs[0] = 0;
@@ -143,8 +143,8 @@ bool ArmVersatileEmulationModel::InstallPlatformDevices()
 
 	auto pl190 = adm->GetEntry<ModuleDeviceEntry>("PL190")->Get(*this, Address(0x1014000));
 	auto irq_controller = dynamic_cast<IRQController*>(pl190->GetParameter<Component*>("IRQController"));
-	pl190->SetParameter("IRQLine", GetBootCore()->GetIRQLine(0));
-	pl190->SetParameter("FIQLine", GetBootCore()->GetIRQLine(1));
+	pl190->SetParameter("IRQLine", main_thread_->GetIRQLine(0));
+	pl190->SetParameter("FIQLine", main_thread_->GetIRQLine(1));
 	pl190->Initialise();
 
 	if(!HackyMMIORegisterDevice(*pl190)) return false;
@@ -275,22 +275,22 @@ bool ArmVersatileEmulationModel::InstallPeripheralDevices()
 
 	archsim::abi::devices::Device *coprocessor;
 	if(!GetComponentInstance("arm926coprocessor", coprocessor)) return false;
-	cpu->peripherals.RegisterDevice("coprocessor", coprocessor);
-	cpu->peripherals.AttachDevice("coprocessor", 15);
+	main_thread_->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
+	main_thread_->GetPeripherals().AttachDevice("coprocessor", 15);
 
 	if(!GetComponentInstance("armdebug", coprocessor)) return false;
-	cpu->peripherals.RegisterDevice("armdebug", coprocessor);
-	cpu->peripherals.AttachDevice("armdebug", 14);
+	main_thread_->GetPeripherals().RegisterDevice("armdebug", coprocessor);
+	main_thread_->GetPeripherals().AttachDevice("armdebug", 14);
 
 	archsim::abi::devices::Device *mmu;
 	if(!GetComponentInstance("ARM926EJSMMU", mmu)) return false;
-	cpu->peripherals.RegisterDevice("mmu", mmu);
+	main_thread_->GetPeripherals().RegisterDevice("mmu", mmu);
 
 	devices::SimulatorCacheControlCoprocessor *sccc = new devices::SimulatorCacheControlCoprocessor();
-	cpu->peripherals.RegisterDevice("sccc", sccc);
-	cpu->peripherals.AttachDevice("sccc", 13);
+	main_thread_->GetPeripherals().RegisterDevice("sccc", sccc);
+	main_thread_->GetPeripherals().AttachDevice("sccc", 13);
 
-	cpu->peripherals.InitialiseDevices();
+	main_thread_->GetPeripherals().InitialiseDevices();
 
 	return true;
 }
@@ -302,17 +302,18 @@ bool ArmVersatileEmulationModel::InstallDevices()
 
 void ArmVersatileEmulationModel::DestroyDevices()
 {
-	archsim::abi::devices::ArmCoprocessor *coproc = (archsim::abi::devices::ArmCoprocessor *)cpu->peripherals.GetDeviceByName("coprocessor");
-	fprintf(stderr, "Reads:\n");
-	coproc->dump_reads();
-
-	fprintf(stderr, "Writes:\n");
-	coproc->dump_writes();
+//	archsim::abi::devices::ArmCoprocessor *coproc = (archsim::abi::devices::ArmCoprocessor *)cpu->peripherals.GetDeviceByName("coprocessor");
+//	fprintf(stderr, "Reads:\n");
+//	coproc->dump_reads();
+//
+//	fprintf(stderr, "Writes:\n");
+//	coproc->dump_writes();
 }
 
 void ArmVersatileEmulationModel::HandleSemihostingCall()
 {
-	uint32_t *regs = (uint32_t *)cpu->GetRegisterBankDescriptor("RB").GetBankDataStart();
+	UNIMPLEMENTED;
+	uint32_t *regs = nullptr; //(uint32_t *)cpu->GetRegisterBankDescriptor("RB").GetBankDataStart();
 
 	uint32_t phys_addr = regs[1];
 	switch(regs[0]) {
@@ -331,7 +332,8 @@ void ArmVersatileEmulationModel::HandleSemihostingCall()
 			fflush(stdout);
 			break;
 		case 5:
-			cpu->Halt();
+			UNIMPLEMENTED;
+//			cpu->Halt();
 			break;
 		default:
 			LC_WARNING(LogArmVerstaileEmulationModel) << "Unhandled semihosting API call " << regs[0];
@@ -339,47 +341,48 @@ void ArmVersatileEmulationModel::HandleSemihostingCall()
 	}
 }
 
-ExceptionAction ArmVersatileEmulationModel::HandleException(gensim::Processor &cpu, unsigned int category, unsigned int data)
+ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
 {
-
-	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu.read_pc() << " mode " << (uint32_t)cpu.get_cpu_mode();
-
-	if (category == 3 && data == 0x123456) {
-		HandleSemihostingCall();
-		return archsim::abi::ResumeNext;
-	}
-
-	// XXX ARM HAX
-	if (category == 11) {
-		uint32_t insn;
-		cpu.mem_read_32(data-4, insn);
-//		GetMemoryModel().Read32(data-4, insn);
-		LC_DEBUG1(LogSystemEmulationModel) << "Undefined instruction exception! " << std::hex << (data-4) << " " << insn;
-//		exit(0);
-	}
-
-	// update ITSTATE if we have a SWI
-	if(category == 3) {
-		auto &desc = cpu.GetRegisterDescriptor("ITSTATE");
-		uint8_t* itstate_ptr = (uint8_t*)desc.DataStart;
-		uint8_t itstate = *itstate_ptr;
-		if(itstate) {
-			uint8_t cond = itstate & 0xe0;
-			uint8_t mask = itstate & 0x1f;
-			mask = (mask << 1) & 0x1f;
-			if(mask == 0x10) {
-				cond = 0;
-				mask = 0;
-			}
-			*itstate_ptr = cond | mask;
-		}
-	}
-
-	cpu.handle_exception(category, data);
-	return archsim::abi::AbortInstruction;
+	UNIMPLEMENTED;
+//	
+//	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu.read_pc() << " mode " << (uint32_t)cpu.get_cpu_mode();
+//
+//	if (category == 3 && data == 0x123456) {
+//		HandleSemihostingCall();
+//		return archsim::abi::ResumeNext;
+//	}
+//
+//	// XXX ARM HAX
+//	if (category == 11) {
+//		uint32_t insn;
+//		cpu.mem_read_32(data-4, insn);
+////		GetMemoryModel().Read32(data-4, insn);
+//		LC_DEBUG1(LogSystemEmulationModel) << "Undefined instruction exception! " << std::hex << (data-4) << " " << insn;
+////		exit(0);
+//	}
+//
+//	// update ITSTATE if we have a SWI
+//	if(category == 3) {
+//		auto &desc = cpu.GetRegisterDescriptor("ITSTATE");
+//		uint8_t* itstate_ptr = (uint8_t*)desc.DataStart;
+//		uint8_t itstate = *itstate_ptr;
+//		if(itstate) {
+//			uint8_t cond = itstate & 0xe0;
+//			uint8_t mask = itstate & 0x1f;
+//			mask = (mask << 1) & 0x1f;
+//			if(mask == 0x10) {
+//				cond = 0;
+//				mask = 0;
+//			}
+//			*itstate_ptr = cond | mask;
+//		}
+//	}
+//
+//	cpu.handle_exception(category, data);
+//	return archsim::abi::AbortInstruction;
 }
 
-gensim::DecodeContext* ArmVersatileEmulationModel::GetNewDecodeContext(gensim::Processor& cpu)
+gensim::DecodeContext* ArmVersatileEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu)
 {
 	return new archsim::arch::arm::ARMDecodeContext(&cpu);
 }

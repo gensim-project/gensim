@@ -3,6 +3,8 @@
  */
 #include "arch/arm/ArmRealviewEmulationModel.h"
 #include "arch/arm/ARMDecodeContext.h"
+#include "core/thread/ThreadInstance.h"
+#include "core/MemoryInterface.h"
 
 #include "abi/loader/BinaryLoader.h"
 #include "abi/devices/SerialPort.h"
@@ -18,7 +20,7 @@
 #include "util/LogContext.h"
 
 #include "session.h"
-#include "gensim/gensim_processor.h"
+#include "system.h"
 #include "abi/devices/WSBlockDevice.h"
 
 extern char bootloader_start, bootloader_end;
@@ -76,9 +78,12 @@ bool ArmRealviewEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	return InstallBootloader(loader);
 }
 
-bool ArmRealviewEmulationModel::PrepareCore(gensim::Processor& core)
+bool ArmRealviewEmulationModel::PrepareCore(archsim::core::thread::ThreadInstance& core)
 {
-	uint32_t *regs = (uint32_t *)core.GetRegisterBankDescriptor("RB").GetBankDataStart();
+	// invoke reset exception
+	core.GetArch().GetISA("arm").GetBehaviours().GetBehaviour("take_arm_exception").Invoke(&core, {0, 0});
+	
+	uint32_t *regs = (uint32_t *)core.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 
 	// r0 = 0
 	regs[0] = 0;
@@ -144,7 +149,7 @@ bool ArmRealviewEmulationModel::InstallPlatformDevices()
 	auto gic = adm->GetEntry<ModuleComponentEntry>("GIC.GIC")->Get(*this);
 	gic_distributor->SetParameter("Owner", gic);
 	gic_cpuinterface->SetParameter("Owner", gic);
-	gic_cpuinterface->SetParameter("IRQLine", (archsim::abi::devices::Component*)GetBootCore()->GetIRQLine(1));
+	gic_cpuinterface->SetParameter("IRQLine", (archsim::abi::devices::Component*)main_thread_->GetIRQLine(1));
 	auto irq_controller = dynamic_cast<archsim::abi::devices::IRQController*>(gic);
 
 	gic->SetParameter("CpuInterface", gic_cpuinterface);
@@ -263,13 +268,13 @@ bool ArmRealviewEmulationModel::InstallPlatformDevices()
 	if (!HackyMMIORegisterDevice(*vbda)) return false;
 
 	
-	devices::generic::net::TapInterface *tap = new devices::generic::net::TapInterface("tap0");
-	if(tap->start()) {
-		devices::virtio::VirtIONet *vnet = new devices::virtio::VirtIONet(*this, *irq_controller->RegisterSource(34), Address(0x10200000), "virtio-net-a", *tap, 0x020000000001ULL);
-		if(!HackyMMIORegisterDevice(*vnet)) return false;
-	} else {
-		LC_ERROR(LogArmSystemEmulationModel) << "Could not start tap device";
-	}
+//	devices::generic::net::TapInterface *tap = new devices::generic::net::TapInterface("tap0");
+//	if(tap->start()) {
+//		devices::virtio::VirtIONet *vnet = new devices::virtio::VirtIONet(*this, *irq_controller->RegisterSource(34), Address(0x10200000), "virtio-net-a", *tap, 0x020000000001ULL);
+//		if(!HackyMMIORegisterDevice(*vnet)) return false;
+//	} else {
+//		LC_ERROR(LogArmSystemEmulationModel) << "Could not start tap device";
+//	}
 	 
 
 //	WSBlockDevice *wsblock = new WSBlockDevice(*this, archsim::translate::profile::Address(0x10200000), *GetSystem().GetBlockDevice("vda"));
@@ -299,7 +304,7 @@ bool ArmRealviewEmulationModel::InstallPlatformDevices()
 		mali->SetParameter("GPUID", (uint64_t)0x60000000);
 		mali->SetParameter("PubSubContext", (archsim::abi::devices::Component*)(&GetSystem().GetPubSub()));
 		mali->SetParameter("PhysicalMemoryModel", (archsim::abi::devices::Component*)&GetMemoryModel());
-		mali->SetParameter("PeripheralManager", (archsim::abi::devices::Component*)(&(cpu->peripherals)));
+		mali->SetParameter("PeripheralManager", (archsim::abi::devices::Component*)(&(main_thread_->GetPeripherals())));
 		mali->Initialise();
 	}
 	return true;
@@ -311,22 +316,22 @@ bool ArmRealviewEmulationModel::InstallPeripheralDevices()
 
 	archsim::abi::devices::Device *coprocessor;
 	if(!GetComponentInstance("armcoprocessor", coprocessor)) return false;
-	cpu->peripherals.RegisterDevice("coprocessor", coprocessor);
-	cpu->peripherals.AttachDevice("coprocessor", 15);
+	main_thread_->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
+	main_thread_->GetPeripherals().AttachDevice("coprocessor", 15);
 
 	if(!GetComponentInstance("armdebug", coprocessor)) return false;
-	cpu->peripherals.RegisterDevice("armdebug", coprocessor);
-	cpu->peripherals.AttachDevice("armdebug", 14);
+	main_thread_->GetPeripherals().RegisterDevice("armdebug", coprocessor);
+	main_thread_->GetPeripherals().AttachDevice("armdebug", 14);
 
 	archsim::abi::devices::Device *mmu;
 	if(!GetComponentInstance("ARMv6MMU", mmu)) return false;
-	cpu->peripherals.RegisterDevice("mmu", mmu);
+	main_thread_->GetPeripherals().RegisterDevice("mmu", mmu);
 
 	devices::SimulatorCacheControlCoprocessor *sccc = new devices::SimulatorCacheControlCoprocessor();
-	cpu->peripherals.RegisterDevice("sccc", sccc);
-	cpu->peripherals.AttachDevice("sccc", 13);
+	main_thread_->GetPeripherals().RegisterDevice("sccc", sccc);
+	main_thread_->GetPeripherals().AttachDevice("sccc", 13);
 
-	cpu->peripherals.InitialiseDevices();
+	main_thread_->GetPeripherals().InitialiseDevices();
 
 	return true;
 }
@@ -338,18 +343,19 @@ bool ArmRealviewEmulationModel::InstallDevices()
 
 void ArmRealviewEmulationModel::DestroyDevices()
 {
-	archsim::abi::devices::ArmCoprocessor *coproc = (archsim::abi::devices::ArmCoprocessor *)cpu->peripherals.GetDeviceByName("coprocessor");
-	fprintf(stderr, "Reads:\n");
-	coproc->dump_reads();
-
-	fprintf(stderr, "Writes:\n");
-	coproc->dump_writes();
+//	archsim::abi::devices::ArmCoprocessor *coproc = (archsim::abi::devices::ArmCoprocessor *)cpu->peripherals.GetDeviceByName("coprocessor");
+//	fprintf(stderr, "Reads:\n");
+//	coproc->dump_reads();
+//
+//	fprintf(stderr, "Writes:\n");
+//	coproc->dump_writes();
 }
 
 void ArmRealviewEmulationModel::HandleSemihostingCall()
 {
-	uint32_t *regs = (uint32_t *)cpu->GetRegisterBankDescriptor("RB").GetBankDataStart();
-
+	uint32_t *regs = nullptr; //(uint32_t *)cpu->GetRegisterBankDescriptor("RB").GetBankDataStart();
+	UNIMPLEMENTED;
+	
 	uint32_t phys_addr = regs[1];
 	switch(regs[0]) {
 		case 3:
@@ -367,7 +373,8 @@ void ArmRealviewEmulationModel::HandleSemihostingCall()
 			fflush(stdout);
 			break;
 		case 5:
-			cpu->Halt();
+			UNIMPLEMENTED;
+//			cpu->Halt();
 			break;
 		default:
 			LC_WARNING(LogArmSystemEmulationModel) << "Unhandled semihosting API call " << regs[0];
@@ -375,10 +382,9 @@ void ArmRealviewEmulationModel::HandleSemihostingCall()
 	}
 }
 
-ExceptionAction ArmRealviewEmulationModel::HandleException(gensim::Processor &cpu, unsigned int category, unsigned int data)
+ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
 {
-
-	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu.read_pc() << " mode " << (uint32_t)cpu.get_cpu_mode();
+	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu->GetPC() << " mode " << (uint32_t)cpu->GetModeID();
 
 	if (category == 3 && data == 0x123456) {
 		HandleSemihostingCall();
@@ -388,7 +394,7 @@ ExceptionAction ArmRealviewEmulationModel::HandleException(gensim::Processor &cp
 	// XXX ARM HAX
 	if (category == 11) {
 		uint32_t insn;
-		cpu.mem_read_32(data-4, insn);
+		cpu->GetFetchMI().Read32(Address(data-4), insn);
 //		GetMemoryModel().Read32(data-4, insn);
 		LC_DEBUG1(LogSystemEmulationModel) << "Undefined instruction exception! " << std::hex << (data-4) << " " << insn;
 //		exit(0);
@@ -396,8 +402,7 @@ ExceptionAction ArmRealviewEmulationModel::HandleException(gensim::Processor &cp
 
 	// update ITSTATE if we have a SWI
 	if(category == 3) {
-		auto &desc = cpu.GetRegisterDescriptor("ITSTATE");
-		uint8_t* itstate_ptr = (uint8_t*)desc.DataStart;
+		auto *itstate_ptr = cpu->GetRegisterFileInterface().GetEntry<uint8_t>("ITSTATE");
 		uint8_t itstate = *itstate_ptr;
 		if(itstate) {
 			uint8_t cond = itstate & 0xe0;
@@ -411,11 +416,28 @@ ExceptionAction ArmRealviewEmulationModel::HandleException(gensim::Processor &cp
 		}
 	}
 
-	cpu.handle_exception(category, data);
+	auto &behaviour = cpu->GetArch().GetISA("arm").GetBehaviours().GetBehaviour("take_arm_exception");
+	behaviour.Invoke(cpu, {category, data});
+	
 	return archsim::abi::AbortInstruction;
 }
 
-gensim::DecodeContext* ArmRealviewEmulationModel::GetNewDecodeContext(gensim::Processor& cpu)
+archsim::abi::ExceptionAction ArmRealviewEmulationModel::HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
+{
+	if(&interface == &thread.GetFetchMI()) {
+		return HandleException(&thread, 6, thread.GetPC().Get() + 4);
+	} else {
+		return HandleException(&thread, 7, thread.GetPC().Get() + 8);
+	}
+}
+
+void ArmRealviewEmulationModel::HandleInterrupt(archsim::core::thread::ThreadInstance *thread, CPUIRQLine *irq) 
+{
+	auto &behaviour = thread->GetArch().GetISA("arm").GetBehaviours().GetBehaviour("take_interrupt");
+	behaviour.Invoke(thread, {irq->Line()});
+}
+
+gensim::DecodeContext* ArmRealviewEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu)
 {
 	return new archsim::arch::arm::ARMDecodeContext(&cpu);
 }

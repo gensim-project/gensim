@@ -70,12 +70,12 @@ public:
 
 	void VisitMemoryReadStatement(SSAMemoryReadStatement& stmt) override
 	{
-		_clone_context.add(&stmt, &SSAMemoryReadStatement::CreateRead(_block, _clone_context.get(stmt.Addr()), _clone_context.get(stmt.Target()), stmt.Width, stmt.Signed, stmt.User));
+		_clone_context.add(&stmt, &SSAMemoryReadStatement::CreateRead(_block, _clone_context.get(stmt.Addr()), _clone_context.get(stmt.Target()), stmt.Width, stmt.Signed, stmt.GetInterface()));
 	}
 
 	void VisitMemoryWriteStatement(SSAMemoryWriteStatement& stmt) override
 	{
-		_clone_context.add(&stmt, &SSAMemoryWriteStatement::CreateWrite(_block, _clone_context.get(stmt.Addr()), _clone_context.get(stmt.Value()), stmt.Width, stmt.User));
+		_clone_context.add(&stmt, &SSAMemoryWriteStatement::CreateWrite(_block, _clone_context.get(stmt.Addr()), _clone_context.get(stmt.Value()), stmt.Width, stmt.GetInterface()));
 	}
 
 	void VisitRegisterStatement(SSARegisterStatement& stmt) override

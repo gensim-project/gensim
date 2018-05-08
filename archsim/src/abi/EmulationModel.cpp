@@ -2,9 +2,8 @@
  * abi/EmulationModel.cpp
  */
 #include "abi/EmulationModel.h"
+#include "abi/memory/MemoryModel.h"
 #include "abi/devices/Device.h"
-
-#include "gensim/gensim_processor.h"
 
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
@@ -28,6 +27,17 @@ EmulationModel::EmulationModel()
 	  _function_max_size(0)
 {
 	timer_mgr.start();
+}
+
+void EmulationModel::HandleInterrupt(archsim::core::thread::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq)
+{
+	UNIMPLEMENTED;
+}
+
+ExceptionAction EmulationModel::HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
+{
+	LC_ERROR(LogEmulationModel) << "A memory fault occurred at address " << address;
+	return ExceptionAction::AbortSimulation;
 }
 
 EmulationModel::~EmulationModel()
@@ -56,87 +66,6 @@ void EmulationModel::Destroy()
 {
 	memory_model->Destroy();
 	delete memory_model;
-}
-
-std::ifstream *EmulationModel::FindDeviceConfigFile(std::string dirname, std::string devname)
-{
-	DIR *dir = opendir(dirname.c_str());
-	if (!dir)
-		return NULL;
-
-	char target_file[256];
-	snprintf(target_file, sizeof(target_file) - 1, "%s.cfg", devname.c_str());
-
-	dirent* ent;
-	while ((ent = readdir(dir)) != NULL) {
-		if (strcmp(ent->d_name, target_file) == 0) {
-			std::ifstream *stream = new std::ifstream(ent->d_name);
-			closedir(dir);
-
-			return stream;
-		}
-	}
-
-	closedir(dir);
-	return NULL;
-}
-
-bool EmulationModel::ConfigureDevice(std::string name, devices::Device *device)
-{
-	std::ifstream *config_file;
-	std::map<std::string, std::string> settings;
-
-	config_file = FindDeviceConfigFile(".", name);
-	if (!config_file) {
-		LC_WARNING(LogEmulationModel) << "No device configuration file for " << name;
-		return true;
-	}
-
-	assert(config_file->good());
-
-	std::string line;
-	while (std::getline(*config_file, line)) {
-		char *native_line = strdup(line.c_str());
-		char *name = strtok(native_line, "=");
-		char *value = strtok(NULL, "=");
-
-		settings[std::string(name)] = std::string(value);
-		free(native_line);
-	}
-
-	config_file->close();
-	delete config_file;
-
-	auto attach = settings.at("attach");
-	if (!attach.empty()) {
-		LC_DEBUG1(LogEmulationModel) << "Attaching device to: " << attach;
-		GetBootCore()->peripherals.AttachDevice(name, atoi(attach.c_str()));
-	}
-
-	return device->Configure(GetBootCore(), settings);
-}
-
-bool EmulationModel::AttachDevices()
-{
-	for (const auto requested_device : *archsim::options::EnabledDevices.GetValue()) {
-		devices::Device *device;
-
-		if (!GetComponentInstance(requested_device, device)) {
-			LC_ERROR(LogEmulationModel) << "Unable to instantiate device: " << requested_device;
-			return false;
-		}
-
-		LC_DEBUG1(LogEmulationModel) << "Initialising device: " << requested_device;
-
-		GetBootCore()->peripherals.RegisterDevice(requested_device, device);
-
-		if (!ConfigureDevice(requested_device, device)) {
-			LC_ERROR(LogEmulationModel) << "Device configuration failed for: " << requested_device;
-			return false;
-		}
-	}
-
-	return true;
 }
 
 bool EmulationModel::CaptureSignal(int signal, uint32_t pc, void *priv)

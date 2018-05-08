@@ -810,20 +810,22 @@ namespace captive
 				return IRInstruction(WRITE_REG, src, offset);
 			}
 
-			static IRInstruction ldmem(const IROperand &offset, const IROperand &dst)
+			static IRInstruction ldmem(const IROperand &interface, const IROperand &offset, const IROperand &dst)
 			{
+				assert(interface.is_constant());
 				assert(offset.is_constant() || offset.is_vreg());
 				assert(dst.is_vreg());
 
-				return IRInstruction(READ_MEM, offset, IROperand::const32(0), dst);
+				return IRInstruction(READ_MEM, interface, offset, IROperand::const32(0), dst);
 			}
 
-			static IRInstruction stmem(const IROperand &src, const IROperand &offset)
+			static IRInstruction stmem(const IROperand &interface, const IROperand &src, const IROperand &offset)
 			{
+				assert(interface.is_constant());
 				assert(offset.is_constant() || offset.is_vreg());
 				assert(src.is_constant() || src.is_vreg());
 
-				return IRInstruction(WRITE_MEM, src, IROperand::const32(0), offset);
+				return IRInstruction(WRITE_MEM, interface, src, IROperand::const32(0), offset);
 			}
 
 			static IRInstruction ldmem_user(const IROperand &offset, const IROperand &dst)

@@ -52,11 +52,6 @@ LowerType(WriteMemGeneric)
 LowerType(ReadUserMemGeneric)
 LowerType(WriteUserMemGeneric)
 
-LowerType(ReadMemFunction)
-LowerType(WriteMemFunction)
-LowerType(ReadUserMemFunction)
-LowerType(WriteUserMemFunction)
-
 LowerType(ReadMemCache)
 LowerType(WriteMemCache)
 LowerType(ReadUserMemCache)

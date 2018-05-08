@@ -95,6 +95,30 @@ namespace gensim
 			GenerationInheritanceInitializer(const char *const _sub, const char *const _super);
 		};
 
+		enum class ModuleEntryType {
+			UNKNOWN,
+			ExecutionEngine,
+			ArchDescriptor
+		};
+		
+		class ModuleEntry {
+		public:
+			ModuleEntry(const std::string &entry_name, const std::string &class_name, const std::string &class_header, ModuleEntryType entry_type) : entry_name_(entry_name), class_name_(class_name), class_header_(class_header), entry_type_(entry_type) {}
+
+			const std::string &GetClassHeader() const { return class_header_; }
+			const std::string &GetClassName() const { return class_name_; }
+			const std::string &GetEntryName() const { return entry_name_; }
+			
+			ModuleEntryType GetEntryType() const { return entry_type_; }
+			
+		private:
+			std::string class_header_;
+			std::string class_name_;
+			std::string entry_name_;
+			ModuleEntryType entry_type_;
+			
+		};
+		
 		class GenerationManager
 		{
 		public:
@@ -111,6 +135,8 @@ namespace gensim
 			const GenerationComponent *GetComponentC(const std::string) const;
 			const std::vector<GenerationComponent *> &GetComponents() const;
 			void AddComponent(GenerationComponent &component);
+			
+			void AddModuleEntry(const ModuleEntry &entry) { module_entries_.push_back(entry); }
 
 			bool Generate();
 
@@ -131,10 +157,13 @@ namespace gensim
 
 			virtual ~GenerationManager() {};
 
+			const std::vector<ModuleEntry> &GetModuleEntries() const { return module_entries_; }
+			
 		private:
 			arch::ArchDescription &arch;
 			std::string target;
 
+			std::vector<ModuleEntry> module_entries_;
 			std::map<std::string, GenerationComponent *> Components;
 			mutable bool _components_up_to_date;
 			mutable std::vector<GenerationComponent *> _components;

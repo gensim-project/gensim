@@ -27,7 +27,7 @@ namespace gensim
 	namespace generator
 	{
 
-		GenCInterpreterGenerator::GenCInterpreterGenerator(GenerationManager &man) : InterpretiveExecutionEngineGenerator(man, "genc_interpret") {}
+		GenCInterpreterGenerator::GenCInterpreterGenerator(const GenerationManager &man) : InterpretiveExecutionEngineGenerator(man, "genc_interpret") {}
 
 		bool GenCInterpreterGenerator::GenerateExecutionForBehaviour(util::cppformatstream &str, bool trace_enabled, std::string behaviourname, const isa::ISADescription &isa) const
 		{
@@ -35,6 +35,24 @@ namespace gensim
 			return true;
 		}
 
+		bool GenCInterpreterGenerator::GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action) const
+		{
+			stream << "template<bool trace=false> " << action.GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action.GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
+
+			for(auto i : action.ParamSymbols) {
+				// if we're accessing a struct, assume that it's an instruction
+				if(i->GetType().IsStruct()) {
+					stream << ", gensim::" << Manager.GetArch().Name << "::Decode &inst";
+				} else {
+					auto type_string = i->GetType().GetCType();
+					stream << ", " << type_string << " " << i->GetName();
+				}
+			}
+			stream << ")";
+			
+			return true;
+		}
+		
 		bool GenCInterpreterGenerator::GenerateExecuteBodyFor(util::cppformatstream &str, const genc::ssa::SSAFormAction &action) const
 		{
 			using namespace genc::ssa;
@@ -49,7 +67,6 @@ namespace gensim
 			for (auto *sym : action.Symbols()) {
 				if(sym->SType == genc::Symbol_Parameter) continue;
 				if (sym->IsReference()) continue;
-//		if(ci->second->Uses.size() == 0) continue;
 				str << sym->GetType().GetCType() << " " << sym->GetName() << ";";
 			}
 

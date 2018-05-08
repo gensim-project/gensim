@@ -41,16 +41,13 @@ namespace archsim
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
 			void Destroy() override;
 
-			gensim::Processor* GetCore(int id);
-			gensim::Processor* GetBootCore();
-
-			void ResetCores();
 			void HaltCores();
 
 			bool PrepareBoot(System& system) override;
 
-			virtual ExceptionAction HandleException(gensim::Processor& cpu, uint32_t category, uint32_t data) = 0;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data) = 0;
 
+			
 			void PrintStatistics(std::ostream& stream);
 
 			devices::DeviceManager& GetDeviceManager()
@@ -59,13 +56,13 @@ namespace archsim
 			}
 
 		protected:
-			gensim::Processor* cpu;
+			archsim::core::thread::ThreadInstance *main_thread_;
 
 			virtual bool InstallDevices() = 0;
 			virtual void DestroyDevices() = 0;
 
 			virtual bool InstallPlatform(loader::BinaryLoader& loader) = 0;
-			virtual bool PrepareCore(gensim::Processor& core) = 0;
+			virtual bool PrepareCore(archsim::core::thread::ThreadInstance& core) = 0;
 
 			bool RegisterMemoryComponent(abi::devices::MemoryComponent& component);
 			void RegisterCoreComponent(abi::devices::CoreComponent& component);

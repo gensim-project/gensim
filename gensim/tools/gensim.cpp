@@ -394,9 +394,6 @@ int main(int argc, char **argv)
 
 	if (Util::Verbose_Level >= 2) {
 		PrettyPrintArch(description);
-		if (description.Uarch) {
-			PrettyPrintUArch(*(description.Uarch));
-		}
 	}
 
 	DumpDiagnostics(root_context);

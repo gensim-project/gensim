@@ -44,9 +44,7 @@ namespace archsim
 
 			bool GICDistributorInterface::Read(uint32_t off, uint8_t len, uint32_t& data)
 			{
-#ifdef DEBUG_IRQ
-				printf("Distributor Read: offset: %x\n", off);
-#endif
+				LC_DEBUG2(LogGIC) << "Distributor read: offset " << off;
 				switch (off) {
 					case 0x00:
 						data = ctrl;
@@ -107,9 +105,7 @@ namespace archsim
 
 			void GICDistributorInterface::set_enabled(uint32_t base, uint8_t bits)
 			{
-#ifdef DEBUG_IRQ
-				fprintf(stderr, "Distributor set_enabled\n");
-#endif
+				LC_DEBUG2(LogGIC) << "Distributor set enabled " << (uint32_t)bits;
 				for (int i = 0; i < 8; i++) {
 					if (bits & (1 << i)) {
 						GICIRQLine& irq = GetOwner()->get_gic_irq(base + i);
@@ -124,9 +120,7 @@ namespace archsim
 
 			void GICDistributorInterface::clear_enabled(uint32_t base, uint8_t bits)
 			{
-#ifdef DEBUG_IRQ
-				fprintf(stderr, "Distributor clear_enabled\n");
-#endif
+				LC_DEBUG2(LogGIC) << "Distributor clear enabled " << (uint32_t)bits;
 				for (int i = 0; i < 8; i++) {
 					if (bits & (1 << i)) {
 						GetOwner()->get_gic_irq(base + i).enabled = false;
@@ -136,9 +130,7 @@ namespace archsim
 
 			void GICDistributorInterface::set_pending(uint32_t base, uint8_t bits)
 			{
-#ifdef DEBUG_IRQ
-				fprintf(stderr, "Distributor set_pending\n");
-#endif
+				LC_DEBUG2(LogGIC) << "Distributor set pending " << (uint32_t)bits;
 				for (int i = 0; i < 8; i++) {
 					if (bits & (1 << i)) {
 						GetOwner()->get_gic_irq(base + i).pending = true;
@@ -148,9 +140,7 @@ namespace archsim
 
 			void GICDistributorInterface::clear_pending(uint32_t base, uint8_t bits)
 			{
-#ifdef DEBUG_IRQ
-				fprintf(stderr, "Distributor clear_pending\n");
-#endif
+				LC_DEBUG2(LogGIC) << "Distributor clear pending " << (uint32_t)bits;
 				for (int i = 0; i < 8; i++) {
 					if (bits & (1 << i)) {
 						GetOwner()->get_gic_irq(base + i).pending = false;
@@ -162,9 +152,8 @@ namespace archsim
 
 			bool GICDistributorInterface::Write(uint32_t off, uint8_t len, uint32_t data)
 			{
-#ifdef DEBUG_IRQ
-				fprintf(stderr, "Distributor Write: offset: %x\n", off);
-#endif
+				LC_DEBUG2(LogGIC) << "Distributor write offset " << std::hex << (uint32_t)off << ", data: " << std::hex << data;
+
 				switch (off) {
 					case 0x00:
 						ctrl = data & 1;
@@ -272,6 +261,7 @@ namespace archsim
 
 			bool GICCPUInterface::Read(uint32_t off, uint8_t len, uint32_t& data)
 			{
+				LC_DEBUG2(LogGIC) << "CPU Interface read " << std::hex << off;
 				switch (off) {
 					case 0x00:
 						data = ctrl; // Control Register (GICC_CTLR)
@@ -306,9 +296,7 @@ namespace archsim
 
 			bool GICCPUInterface::Write(uint32_t off, uint8_t len, uint32_t data)
 			{
-#ifdef DEBUG_IRQ
-				fprintf(stderr, "GICCPUInterface Write: off: %x, len: %x, data: %x\n", off, len, data);
-#endif
+				LC_DEBUG2(LogGIC) << "CPU Interface write " << std::hex << off << ", data " << data;
 				switch (off) {
 					case 0x00:
 						ctrl = data & 1;
@@ -336,14 +324,10 @@ namespace archsim
 
 			void GICCPUInterface::update()
 			{
-#ifdef DEBUG_IRQ
-				fprintf(stderr, "GICCPUInterface::update()\n");
-#endif
+				LC_DEBUG2(LogGIC) << "CPU Interface update";
+				
 				current_pending = 1023;
 				if (!enabled() || !GetOwner()->GetDistributor()->enabled()) {
-#ifdef DEBUG_IRQ
-					fprintf(stderr, "!enabled\n");
-#endif
 					GetIRQLine()->Rescind();
 					return;
 				}
@@ -354,14 +338,6 @@ namespace archsim
 				for (int irqi = 0; irqi < 96; irqi++) {
 					GICIRQLine& irq = GetOwner()->get_gic_irq(irqi);
 
-//		fprintf(stderr, "Check priority\n");
-#ifdef DEBUG_IRQ
-//		if (irq.enabled)
-//		{
-//			fprintf(stderr, "irq: %d irq.enabled: %d irq.pending: %d, irq.edge_triggered: %d, irq.raised: %d\n",
-//			irqi, irq.enabled, irq.pending, irq.edge_triggered, irq.raised);
-//		}
-#endif
 					if (irq.enabled && (irq.pending || (!irq.edge_triggered && irq.raised))) {
 						if (irq.priority < best_prio) {
 							best_prio = irq.priority;
@@ -370,32 +346,20 @@ namespace archsim
 					}
 				}
 
-#ifdef DEBUG_IRQ
-				fprintf(stderr, "best_prio: %x, prio_mask: %x\n", best_prio, prio_mask);
-#endif
 				bool raise = false;
 				if (best_prio < prio_mask) {
-#ifdef DEBUG_IRQ
-					fprintf(stderr, "best < prio\n");
-#endif
+
 					current_pending = best_irq;
 					if (best_prio < running_priority) {
-#ifdef DEBUG_IRQ
-						fprintf(stderr, "best < running\n");
-#endif
 						raise = true;
 					}
 				}
 
 				if (raise) {
-#ifdef DEBUG_IRQ
-					fprintf(stderr, "GICCPUInterface:update: assert\n");
-#endif
+					LC_DEBUG2(LogGIC) << "CPU Interface: ASSERT IRQ";
 					GetIRQLine()->Assert();
 				} else {
-#ifdef DEBUG_IRQ
-					fprintf(stderr, "GICCPUInterface:update: rescind\n");
-#endif
+					LC_DEBUG2(LogGIC) << "CPU Interface: RESCIND IRQ";
 					GetIRQLine()->Rescind();
 				}
 			}

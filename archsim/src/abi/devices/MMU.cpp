@@ -22,7 +22,7 @@ MMU::MMU() : should_be_enabled(false) { }
 
 MMU::~MMU() {}
 
-MMU::TranslateResult MMU::TranslateRegion(gensim::Processor *cpu, uint32_t virt_addr, uint32_t size, uint32_t &phys_addr, const struct AccessInfo info)
+MMU::TranslateResult MMU::TranslateRegion(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr, uint32_t size, uint32_t &phys_addr, const struct AccessInfo info)
 {
 	return TXLN_FAULT_OTHER;
 }
@@ -49,7 +49,7 @@ void MMU::set_enabled(bool enabled)
 	}
 }
 
-uint32_t MMU::TranslateUnsafe(gensim::Processor* cpu, uint32_t virt_addr)
+uint32_t MMU::TranslateUnsafe(archsim::core::thread::ThreadInstance* cpu, uint32_t virt_addr)
 {
 	uint32_t phys_addr;
 	AccessInfo info(0, 0, 0);

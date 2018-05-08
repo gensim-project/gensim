@@ -17,7 +17,7 @@ MemoryCache::~MemoryCache()
 
 }
 
-bool MemoryCache::Access(gensim::Processor& cpu, CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size)
+bool MemoryCache::Access(archsim::core::thread::ThreadInstance *cpu, CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size)
 {
 	/*if (accessType == MemoryCache::InstructionFetch) {
 		uint32_t block = phys_addr / 16;

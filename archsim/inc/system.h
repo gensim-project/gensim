@@ -17,12 +17,14 @@
 #define _system_h_
 
 #include "define.h"
+#include "core/execution/ExecutionContextManager.h"
 #include "util/PubSubSync.h"
 #include "concurrent/Barrier.h"
 #include "translate/profile/ProfileManager.h"
 #include "abi/devices/generic/block/BlockCache.h"
 #include "abi/devices/generic/block/BlockDevice.h"
 #include "module/ModuleManager.h"
+#include "session.h"
 
 #include <ostream>
 #include <set>
@@ -228,7 +230,12 @@ public:
 
 	inline archsim::module::ModuleManager &GetModuleManager()
 	{
-		return module_manager_;
+		return GetSession().GetModuleManager();
+	}
+	
+	inline archsim::core::execution::ExecutionContextManager &GetECM()
+	{
+		return exec_ctx_mgr_;
 	}
 
 private:
@@ -238,6 +245,8 @@ private:
 	int max_fd;
 
 	archsim::Session& session;
+	archsim::core::execution::ExecutionContextManager exec_ctx_mgr_;
+	
 	static archsim::concurrent::LWBarrier2 _verify_barrier_enter;
 	static archsim::concurrent::LWBarrier2 _verify_barrier_leave;
 	bool _verify;

@@ -13,7 +13,6 @@
 #include "blockjit/blockjit-abi.h"
 #include "translate/jit_funs.h"
 
-#include "gensim/gensim_processor_state.h"
 #include "abi/memory/system/CacheBasedSystemMemoryModel.h"
 
 using namespace captive::arch::jit::lowering::x86;
@@ -38,8 +37,8 @@ extern "C" {
 class LowerMemCacheReadFinaliser : public captive::arch::jit::lowering::Finalisation
 {
 public:
-	LowerMemCacheReadFinaliser(X86Encoder &encoder, uint32_t jump_in, uint32_t alignment_in, uint32_t return_target, uint32_t access_size, const X86Register &dest_reg) :
-		_encoder(encoder), _jump_in(jump_in), _nonaligned_in(alignment_in), _return_target(return_target), _access_size(access_size), _destination(dest_reg)
+	LowerMemCacheReadFinaliser(X86Encoder &encoder, uint32_t interface_id, uint32_t jump_in, uint32_t alignment_in, uint32_t return_target, uint32_t access_size, const X86Register &dest_reg) :
+		_encoder(encoder), interface_id_(interface_id), jump_in_(jump_in), nonaligned_in_(alignment_in), return_target_(return_target), access_size_(access_size), destination_(dest_reg)
 	{
 
 	}
@@ -49,37 +48,52 @@ public:
 	{
 
 		// First, fill in the relocation from the memory instruction
-		*(uint32_t*)(Encoder().get_buffer() + _jump_in) = Encoder().current_offset() - _jump_in - 4;
-		if(_nonaligned_in)
-			*(uint32_t*)(Encoder().get_buffer() + _nonaligned_in) = Encoder().current_offset() - _nonaligned_in - 4;
+		*(uint32_t*)(Encoder().get_buffer() + jump_in_) = Encoder().current_offset() - jump_in_ - 4;
+		if(nonaligned_in_)
+			*(uint32_t*)(Encoder().get_buffer() + nonaligned_in_) = Encoder().current_offset() - nonaligned_in_ - 4;
 
 		// We need to fix the stack, since the ABI requires that (%rsp+8) is 16
 		// byte aligned.
-		Encoder().sub(8, REG_RSP);
+		if(ctx.GetStackFrameSize() % 16 == 8) {
+			Encoder().sub(8, REG_RSP);
+		}
+		Encoder().push(REG_RDI); // thread
+		Encoder().push(REG_RSI); // address
+		Encoder().push(REG_RDX); // interface
+		
+		Encoder().mov(REG_R12, BLKJIT_ARG0(8));
+		Encoder().mov(REG_R15, BLKJIT_ARG1(8));
+		Encoder().mov(interface_id_, BLKJIT_ARG2(8));
 
 		// Now, emit the memory instruction fallback
-		switch(_access_size) {
+		switch(access_size_) {
 			case 1:
-				Encoder().call((void*)blkCacheRead8Fallback, BLKJIT_ARG2(8));
+				Encoder().call((void*)blkCacheRead8Fallback, BLKJIT_RETURN(8));
 				break;
 			case 2:
-				Encoder().call((void*)blkCacheRead16Fallback, BLKJIT_ARG2(8));
+				Encoder().call((void*)blkCacheRead16Fallback, BLKJIT_RETURN(8));
 				break;
 			case 4:
-				Encoder().call((void*)blkCacheRead32Fallback, BLKJIT_ARG2(8));
+				Encoder().call((void*)blkCacheRead32Fallback, BLKJIT_RETURN(8));
 				break;
 			default:
 				assert(false);
 		}
+		
+		Encoder().pop(REG_RDX); // interface
+		Encoder().pop(REG_RSI); // address
+		Encoder().pop(REG_RDI); // thread
 
-		if(_destination != REG_RIZ) {
-			Encoder().mov(BLKJIT_RETURN(_access_size), _destination);
+		if(ctx.GetStackFrameSize() % 16 == 8) {
+			Encoder().add(8, REG_RSP);
+		}
+		
+		if(destination_ != REG_RIZ) {
+			Encoder().mov(BLKJIT_RETURN(access_size_), destination_);
 		}
 
-		Encoder().add(8, REG_RSP);
-
 		// Finally, emit a jump back to the IR lowering after the memory instruction
-		Encoder().jmp_offset(_return_target - Encoder().current_offset() - 5);
+		Encoder().jmp_offset(return_target_ - Encoder().current_offset() - 5);
 
 		return true;
 	}
@@ -93,32 +107,35 @@ private:
 	X86Encoder &_encoder;
 
 	// The offset of the relocation for the 32 bit jump into this finalisation
-	uint32_t _jump_in;
+	uint32_t jump_in_;
+	
+	// The ID of the interface of this memory access
+	uint32_t interface_id_;
 
 	// The offset of the relocation for the jump into this finalisation, for non-aligned accesses
-	uint32_t _nonaligned_in;
+	uint32_t nonaligned_in_;
 
 	// The offset of the instruction to return to once the memory fallback is complete
-	uint32_t _return_target;
+	uint32_t return_target_;
 
 	// The size in bytes of this memory access
-	uint32_t _access_size;
+	uint32_t access_size_;
 
 	// The register to use as the destination of the memory read
-	const X86Register &_destination;
+	const X86Register &destination_;
 };
 
 class LowerMemCacheWriteFinaliser : public captive::arch::jit::lowering::Finalisation
 {
 public:
-	LowerMemCacheWriteFinaliser(X86Encoder &encoder, uint32_t jump_in, uint32_t alignment_in, uint32_t return_target, uint32_t access_size, const X86Register &data) :
-		_encoder(encoder), _jump_in(jump_in), _nonaligned_in(alignment_in), _return_target(return_target), _access_size(access_size), destination_reg_(data), destination_stack_(REG_RIZ), destination_is_reg_(true)
+	LowerMemCacheWriteFinaliser(X86Encoder &encoder, uint32_t interface_id, uint32_t jump_in, uint32_t alignment_in, uint32_t return_target, uint32_t access_size, const X86Register &data) :
+		_encoder(encoder), interface_id_(interface_id), _jump_in(jump_in), _nonaligned_in(alignment_in), _return_target(return_target), _access_size(access_size), destination_reg_(data), destination_stack_(REG_RIZ), destination_is_reg_(true)
 	{
 
 	}
 
-	LowerMemCacheWriteFinaliser(X86Encoder &encoder, uint32_t jump_in, uint32_t alignment_in, uint32_t return_target, uint32_t access_size, const X86Memory &data) :
-		_encoder(encoder), _jump_in(jump_in), _nonaligned_in(alignment_in), _return_target(return_target), _access_size(access_size), destination_reg_(REG_RIZ), destination_stack_(data), destination_is_reg_(false)
+	LowerMemCacheWriteFinaliser(X86Encoder &encoder, uint32_t interface_id, uint32_t jump_in, uint32_t alignment_in, uint32_t return_target, uint32_t access_size, const X86Memory &data) :
+		_encoder(encoder), interface_id_(interface_id), _jump_in(jump_in), _nonaligned_in(alignment_in), _return_target(return_target), _access_size(access_size), destination_reg_(REG_RIZ), destination_stack_(data), destination_is_reg_(false)
 	{
 
 	}
@@ -133,15 +150,33 @@ public:
 			*(uint32_t*)(Encoder().get_buffer() + _nonaligned_in) = Encoder().current_offset() - _nonaligned_in - 4;
 
 
+		// thread
+		// interface
+		// address
+		// data
+		
+		Encoder().push(REG_RDI);
+		Encoder().push(REG_RSI);
+		Encoder().push(REG_RDX);
+		Encoder().push(REG_RCX);
+		
+		Encoder().mov(X86Memory::get(REG_R12), BLKJIT_ARG0(8));
+		Encoder().mov(BLKJIT_ARG1(8), BLKJIT_ARG2(8));
+		Encoder().mov(interface_id_, BLKJIT_ARG1(8));
+
 		if(destination_is_reg_) {
-			Encoder().mov(destination_reg_, BLKJIT_ARG2(_access_size));
+			Encoder().mov(destination_reg_, REGS_RCX(_access_size));
 		} else {
-			Encoder().mov(destination_stack_, BLKJIT_ARG2(_access_size));
+			Encoder().mov(X86Memory::get(REG_RSP, destination_stack_.displacement + 0x20), REGS_RCX(_access_size));
 		}
 
+		if(ctx.GetStackFrameSize() % 16 != 8) {
+			Encoder().sub(8, REG_RSP);
+		}
+		
 		// We need to fix the stack, since the ABI requires that (%rsp+8) is 16
 		// byte aligned.
-		Encoder().sub(8, REG_RSP);
+		Encoder().mov(interface_id_, BLKJIT_ARG1(8));
 
 		switch(_access_size) {
 			case 1:
@@ -154,8 +189,16 @@ public:
 				Encoder().call((void*)blkCacheWrite32Fallback, BLKJIT_RETURN(8));
 				break;
 		}
-		Encoder().add(8, REG_RSP);
-
+		
+		if(ctx.GetStackFrameSize() % 16 != 8) {
+			Encoder().add(8, REG_RSP);
+		}
+		Encoder().pop(REG_RCX);
+		Encoder().pop(REG_RDX);
+		Encoder().pop(REG_RSI);
+		Encoder().pop(REG_RDI);
+		
+		
 		// Finally, emit a jump back to the IR lowering after the memory instruction
 		Encoder().jmp_offset(_return_target - Encoder().current_offset() - 5);
 
@@ -174,6 +217,8 @@ private:
 
 	// The offset of the relocation for the 32 bit jump into this finalisation
 	uint32_t _jump_in;
+	
+	uint32_t interface_id_;
 
 	// The offset of the relocation for the jump into this finalisation, for non-aligned accesses
 	uint32_t _nonaligned_in;
@@ -193,12 +238,15 @@ private:
 
 bool LowerReadMemCache::Lower(const captive::shared::IRInstruction *&insn)
 {
-	const IROperand *offset = &insn->operands[0];
-	const IROperand *disp = &insn->operands[1];
-	const IROperand *dest = &insn->operands[2];
+	const IROperand *interface = &insn->operands[0];
+	const IROperand *offset = &insn->operands[1];
+	const IROperand *disp = &insn->operands[2];
+	const IROperand *dest = &insn->operands[3];
 
 	assert(disp->is_constant());
-
+	assert(interface->is_constant());
+	uint32_t interface_id = interface->value;
+	
 	// liveness is broken in some situations apparently
 	uint32_t live_regs = 0xffffffff;//host_liveness.live_out[ir_idx];
 	// Don't save/restore the destination reg
@@ -264,7 +312,7 @@ bool LowerReadMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	mask <<= 12;
 	Encoder().andd(mask, BLKJIT_ARG1(4));
 	Encoder().shr(8, BLKJIT_ARG1(4));
-	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, gensim::CpuStateOffsets::CpuState_smm_read_cache), BLKJIT_ARG1(8));
+	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetCompiler().get_cpu()->GetStateBlock().GetBlockOffset("smm_read_cache")), BLKJIT_ARG1(8));
 
 	// Check the tag
 	Encoder().andd(~archsim::translate::profile::RegionArch::PageMask, BLKJIT_ARG2(4));
@@ -282,11 +330,11 @@ bool LowerReadMemCache::Lower(const captive::shared::IRInstruction *&insn)
 		if(dest->is_alloc_reg()) {
 			// If the destination is a register, load directly into it
 			Encoder().mov(X86Memory::get(BLKJIT_RETURN(8)), dest_reg);
-			GetLoweringContext().RegisterFinalisation(new LowerMemCacheReadFinaliser(Encoder(), fallback_offset, alignment_offset, Encoder().current_offset(), dest->size, dest_reg));
+			GetLoweringContext().RegisterFinalisation(new LowerMemCacheReadFinaliser(Encoder(), interface_id, fallback_offset, alignment_offset, Encoder().current_offset(), dest->size, dest_reg));
 		} else if(dest->is_alloc_stack()) {
 			// Otherwise, load via a temporary register
 			Encoder().mov(X86Memory::get(BLKJIT_RETURN(8)), dest_reg);
-			GetLoweringContext().RegisterFinalisation(new LowerMemCacheReadFinaliser(Encoder(), fallback_offset, alignment_offset, Encoder().current_offset(), dest->size, dest_reg));
+			GetLoweringContext().RegisterFinalisation(new LowerMemCacheReadFinaliser(Encoder(), interface_id, fallback_offset, alignment_offset, Encoder().current_offset(), dest->size, dest_reg));
 			Encoder().mov(dest_reg, GetCompiler().stack_from_operand(dest));
 		} else {
 			assert(false);
@@ -299,15 +347,19 @@ bool LowerReadMemCache::Lower(const captive::shared::IRInstruction *&insn)
 
 bool LowerWriteMemCache::Lower(const captive::shared::IRInstruction *&insn)
 {
-	const IROperand *value = &insn->operands[0];
-	const IROperand *disp = &insn->operands[1];
-	const IROperand *offset = &insn->operands[2];
+	const IROperand *interface = &insn->operands[0];
+	const IROperand *value = &insn->operands[1];
+	const IROperand *disp = &insn->operands[2];
+	const IROperand *offset = &insn->operands[3];
 
+	assert(interface->is_constant());
 	assert(disp->is_constant());
 
 	assert(offset->is_vreg());
 	assert(disp->is_constant());
 
+	uint32_t interface_id = interface->value;
+	
 	Encoder().ensure_extra_buffer(128);
 	//State register will be dealt with by the shunt
 
@@ -361,7 +413,7 @@ bool LowerWriteMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	mask <<= 12;
 	Encoder().andd(mask, BLKJIT_ARG0(4));
 	Encoder().shr(8, BLKJIT_ARG0(4));
-	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, gensim::CpuStateOffsets::CpuState_smm_write_cache), BLKJIT_ARG0(8));
+	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetCompiler().get_cpu()->GetStateBlock().GetBlockOffset("smm_write_cache")), BLKJIT_ARG0(8));
 
 	// Check the tag
 	Encoder().andd(~archsim::translate::profile::RegionArch::PageMask, BLKJIT_ARG2(4));
@@ -380,11 +432,11 @@ bool LowerWriteMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	assert(value->is_vreg());
 	if(value->is_alloc_reg()) {
 		Encoder().mov(GetCompiler().get_allocable_register(value->alloc_data, value->size), X86Memory::get(BLKJIT_ARG1(8)));
-		GetLoweringContext().RegisterFinalisation(new LowerMemCacheWriteFinaliser(Encoder(), fallback_offset, alignment_offset, Encoder().current_offset(), value->size, GetCompiler().get_allocable_register(value->alloc_data, value->size)));
+		GetLoweringContext().RegisterFinalisation(new LowerMemCacheWriteFinaliser(Encoder(), interface_id, fallback_offset, alignment_offset, Encoder().current_offset(), value->size, GetCompiler().get_allocable_register(value->alloc_data, value->size)));
 	} else if(value->is_alloc_stack()) {
 		Encoder().mov(GetCompiler().stack_from_operand(value), BLKJIT_ARG0(value->size));
 		Encoder().mov(BLKJIT_ARG0(value->size), X86Memory::get(BLKJIT_ARG1(8)));
-		GetLoweringContext().RegisterFinalisation(new LowerMemCacheWriteFinaliser(Encoder(), fallback_offset, alignment_offset, Encoder().current_offset(), value->size, GetCompiler().stack_from_operand(value)));
+		GetLoweringContext().RegisterFinalisation(new LowerMemCacheWriteFinaliser(Encoder(), interface_id, fallback_offset, alignment_offset, Encoder().current_offset(), value->size, GetCompiler().stack_from_operand(value)));
 	}
 
 	insn++;
@@ -393,78 +445,10 @@ bool LowerWriteMemCache::Lower(const captive::shared::IRInstruction *&insn)
 
 bool LowerReadUserMemCache::Lower(const captive::shared::IRInstruction *&insn)
 {
-	const IROperand *offset = &insn->operands[0];
-	const IROperand *dest = &insn->operands[1];
-
-	GetCompiler().emit_save_reg_state(3, GetStackMap(), GetIsStackFixed());
-
-	switch(dest->size) {
-		case 1:
-			Encoder().mov((uint64_t)cpuRead8User, BLKJIT_RETURN(8));
-			break;
-		case 2:
-			assert(false);
-			break;
-		case 4:
-			Encoder().mov((uint64_t)cpuRead32User, BLKJIT_RETURN(8));
-			break;
-		default:
-			assert(false);
-	}
-
-	GetCompiler().load_state_field(0, REG_RDI);
-	GetCompiler().encode_operand_function_argument(offset, REG_RSI, GetStackMap());
-
-	Encoder().sub(8, REG_RSP);
-	Encoder().push(0);
-	Encoder().mov(REG_RSP, REG_RDX);
-
-	Encoder().call(BLKJIT_RETURN(8));
-	Encoder().pop(GetCompiler().get_temp(0, 8));
-	Encoder().add(8, REG_RSP);
-
-	GetCompiler().emit_restore_reg_state(3, GetStackMap(), GetIsStackFixed());
-
-	if(dest->is_alloc_reg()) {
-		Encoder().xorr(GetCompiler().register_from_operand(dest),GetCompiler().register_from_operand(dest));
-		Encoder().mov(GetCompiler().get_temp(0, dest->size), GetCompiler().register_from_operand(dest));
-	} else if(dest->is_alloc_stack()) {
-		Encoder().mov(GetCompiler().get_temp(0, dest->size), GetCompiler().stack_from_operand(dest));
-	}
-
-	insn++;
-	return true;
+	UNIMPLEMENTED;
 }
 
 bool LowerWriteUserMemCache::Lower(const captive::shared::IRInstruction *&insn)
 {
-	const IROperand *value = &insn->operands[0];
-	const IROperand *offset = &insn->operands[1];
-
-	GetCompiler().emit_save_reg_state(3, GetStackMap(), GetIsStackFixed());
-
-	switch(value->size) {
-		case 1:
-			Encoder().mov((uint64_t)cpuWrite8User, BLKJIT_RETURN(8));
-			break;
-		case 2:
-			assert(false);
-			break;
-		case 4:
-			Encoder().mov((uint64_t)cpuWrite32User, BLKJIT_RETURN(8));
-			break;
-		default:
-			assert(false);
-	}
-
-	GetCompiler().load_state_field(0, REG_RDI);
-	GetCompiler().encode_operand_function_argument(offset, REG_RSI, GetStackMap());
-	GetCompiler().encode_operand_function_argument(value, REG_RDX, GetStackMap());
-
-	Encoder().call(BLKJIT_RETURN(8));
-
-	GetCompiler().emit_restore_reg_state(3, GetStackMap(), GetIsStackFixed());
-
-	insn++;
-	return true;
+	UNIMPLEMENTED;
 }

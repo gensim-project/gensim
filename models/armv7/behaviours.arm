@@ -178,7 +178,7 @@ behaviour(fetch_exception)
 {
 	uint32_t pre_pc = read_pc();
 	//IFSR and IFAR already set up by MMU
-	take_exception(6, pre_pc+4);	take_exception(6, pre_pc+4);
+	take_exception(6, pre_pc+4);
 }
 
 behaviour(undef)

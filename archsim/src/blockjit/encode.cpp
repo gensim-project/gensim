@@ -1508,6 +1508,10 @@ void X86Encoder::setcc(uint8_t v, const X86Register& dst)
 
 void X86Encoder::setcc(uint8_t v, const X86Memory& dst)
 {
+	if(dst.base.hireg) {
+		emit8(REX_B);
+	}
+	
 	emit8(0x0f);
 	emit8(0x90 | (v & 0xf));
 	encode_mod_reg_rm(0, dst);

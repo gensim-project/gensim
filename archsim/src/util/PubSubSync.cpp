@@ -31,30 +31,32 @@ namespace PubSubType
 
 PubSubscription::PubSubscription(PubSubType::PubSubType type, PubSubCallback callback, void *ctx) : type(type), callback(callback), context(ctx) {}
 
-PubSubscriber::PubSubscriber(PubSubContext *context) : pubsubcontext(context) {}
+PubSubscriber::PubSubscriber(PubSubContext &context) : pubsubcontext(context) {}
 
 PubSubscriber::~PubSubscriber()
 {
-	while(subscriptions.size()) Unsubscribe(subscriptions.back()->GetType());
+	for(auto i : subscriptions) {
+		pubsubcontext.Unsubscribe(i);
+	}
 }
 
 void PubSubscriber::Subscribe(PubSubType::PubSubType type, PubSubCallback callback, void *context)
 {
-	pubsubcontext->Subscribe(type, callback, context);
+	auto subscription = pubsubcontext.Subscribe(type, callback, context);
+	subscriptions.push_back(subscription);
 }
 
 void PubSubscriber::Publish(PubSubType::PubSubType type, const void *data)
 {
-	pubsubcontext->Publish(type, data);
+	pubsubcontext.Publish(type, data);
 }
-
 
 void PubSubscriber::Unsubscribe(PubSubType::PubSubType type)
 {
 	for(auto i = subscriptions.begin(); i != subscriptions.end(); ++i) {
 		auto sub = *i;
 		if(sub->GetType() == type) {
-			pubsubcontext->Unsubscribe(sub);
+			pubsubcontext.Unsubscribe(sub);
 			subscriptions.erase(i);
 			return;
 		}
@@ -64,7 +66,7 @@ void PubSubscriber::Unsubscribe(PubSubType::PubSubType type)
 PubSubInstance::PubSubInstance(PubSubType::PubSubType type) : type(type), publish_count(0), publishing(0) {}
 
 
-const PubSubscription *PubSubInstance::Subscribe(PubSubCallback callback, void *context)
+PubSubscription *PubSubInstance::Subscribe(PubSubCallback callback, void *context)
 {
 	PubSubscription *subscription = new PubSubscription(type, callback, context);
 	subscriptions.push_back(subscription);
@@ -101,7 +103,7 @@ PubSubContext::PubSubContext() : _instances(PubSubType::_END, NULL), Component(p
 
 }
 
-const PubSubscription *PubSubContext::Subscribe(PubSubType::PubSubType type, PubSubCallback callback, void *context)
+PubSubscription *PubSubContext::Subscribe(PubSubType::PubSubType type, PubSubCallback callback, void *context)
 {
 	PubSubInstance *& instance = _instances[type];
 	if(!instance) instance = new PubSubInstance(type);

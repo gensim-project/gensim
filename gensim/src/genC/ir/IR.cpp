@@ -197,6 +197,7 @@ namespace gensim
 
 				if (!arg->Resolve(Context)) {
 					success = false;
+					Context.Diag().Error("Error in argument " + std::to_string(i), Diag());
 					continue;
 				}
 

@@ -7,10 +7,9 @@
 #include "abi/memory/MemoryCounterEventHandler.h"
 #include "abi/devices/generic/timing/TickSource.h"
 
-#include "gensim/gensim.h"
-#include "gensim/gensim_processor.h"
+#include "core/thread/ThreadInstance.h"
+#include "core/thread/ThreadMetrics.h"
 
-//#include "tracing/TraceManager.h"
 #include "translate/TranslationManager.h"
 
 #include "util/ComponentManager.h"
@@ -21,6 +20,7 @@
 #include "uarch/uArch.h"
 
 #include <iostream>
+#include <libtrace/TraceSink.h>
 
 DeclareLogContext(LogSystem, "System");
 
@@ -37,7 +37,7 @@ System::System(archsim::Session& session) :
 	_verify_tid(-1),
 	_halted(false),
 	_tick_source(NULL),
-	profile_manager(&pubsubctx)
+	profile_manager(pubsubctx)
 {
 	max_fd = 0;
 	OpenFD(STDIN_FILENO);
@@ -66,6 +66,27 @@ bool System::Initialise()
 	} else {
 		LC_INFO(LogSystem) << "JIT Mode Enabled";
 		mode = JIT;
+	}
+	
+	if(archsim::options::Trace) {
+		libtrace::TraceSink *sink = nullptr;
+		
+		if(archsim::options::TraceMode == "binary") {
+			if(!archsim::options::TraceFile.IsSpecified()) {
+				UNIMPLEMENTED;
+			}
+			FILE *f = fopen(archsim::options::TraceFile.GetValue().c_str(), "w");
+			if(f == nullptr) {
+				UNIMPLEMENTED;
+			}
+			
+			sink = new libtrace::BinaryFileTraceSink(f);
+			
+		} else {
+			UNIMPLEMENTED;
+		}
+		
+		GetECM().SetTraceSink(sink);
 	}
 
 	if (mode == JIT) {
@@ -137,6 +158,10 @@ void System::Destroy()
 		delete txln_mgr;
 	}
 
+	if(GetECM().GetTraceSink()) {
+		GetECM().GetTraceSink()->Flush();
+	}
+	
 	emulation_model->Destroy();
 	delete emulation_model;
 
@@ -151,6 +176,14 @@ void System::PrintStatistics(std::ostream& stream)
 	stream << "Event Statistics" << std::endl;
 	pubsubctx.PrintStatistics(stream);
 
+	stream << "Thread Statistics" << std::endl;
+	archsim::core::thread::ThreadMetricPrinter printer;
+	for(auto context : GetECM()) {
+		for(auto thread : context->GetThreads()) {
+			printer.PrintStats(thread->GetMetrics(), stream);
+		}
+	}
+	
 	stream << "Simulation Statistics" << std::endl;
 
 	// Print Emulation Model statistics
@@ -166,68 +199,9 @@ void System::PrintStatistics(std::ostream& stream)
 
 bool System::RunSimulation()
 {
-	gensim::Processor *core = emulation_model->GetBootCore();
-
-	if (!core) {
-		LC_ERROR(LogSystem) << "No processor core configured!";
-	}
-
-	// Prepare to boot the system
 	if (!emulation_model->PrepareBoot(*this)) return false;
-
-	// Resolve breakpoints
-	for (auto breakpoint_fn : *archsim::options::Breakpoints.GetValue()) {
-		unsigned long breakpoint_addr;
-
-		if (!emulation_model->ResolveSymbol(breakpoint_fn, breakpoint_addr) ) {
-			LC_WARNING(LogSystem) << "Unable to resolve function symbol: " << breakpoint_fn;
-			continue;
-		}
-
-		LC_DEBUG1(LogSystem) << "Resolved function breakpoint: " << breakpoint_fn << " @ " << std::hex << breakpoint_addr;
-		breakpoints.insert(breakpoint_addr);
-	}
-
-	// Start live performance measurement (if necessary)
-	archsim::util::LivePerformanceMeter *perf_meter = NULL;
-	if (archsim::options::LivePerformance) {
-		perf_meter = new archsim::util::LivePerformanceMeter(*core, performance_sources, "perf.dat", 1000000);
-		perf_meter->start();
-	}
-
-	bool active = true;
-
-	// TODO: Turn into a command-line option
-	uint32_t steps = 1000000;
-
-	while (active && !core->halted) {
-
-		switch (mode) {
-			case Interpreter:
-				active = core->RunInterp(steps);
-				break;
-
-			case JIT:
-				active = core->RunJIT(archsim::options::Verbose, steps);
-				break;
-
-			case SingleStep:
-				//fprintf(stderr, "[%08x] %s\n", core->read_pc(), core->GetDisasm()->DisasmInstr(*core->curr_interpreted_insn(), core->read_pc()).c_str());
-				active = core->RunSingleInstruction();
-				std::cin.ignore();
-				break;
-
-			default:
-				fprintf(stderr, "unsupported simulation mode\n");
-				active = false;
-				break;
-		}
-	}
-
-	if (perf_meter) {
-		perf_meter->stop();
-		delete perf_meter;
-	}
+	GetECM().Start();
+	GetECM().Join();
 
 	return true;
 }
@@ -237,8 +211,8 @@ void System::HaltSimulation()
 	_halted = true;
 	emulation_model->HaltCores();
 
-	_verify_barrier_enter.Interrupt();
-	_verify_barrier_leave.Interrupt();
+//	_verify_barrier_enter.Interrupt();
+//	_verify_barrier_leave.Interrupt();
 }
 
 void System::EnableVerify()
@@ -252,6 +226,8 @@ void System::SetVerifyNext(System *sys)
 	else _verify_tid = 0;
 	_next_verify_system = sys;
 }
+
+#if 0
 
 static void DisplayRB(gensim::Processor *cpu_x, gensim::Processor *cpu_y, int rb_idx)
 {
@@ -403,7 +379,7 @@ void System::CheckVerify()
 			for(uint32_t i = 0; i < my_desc.NumberOfRegistersInBank()-1; ++i) {
 				if(((uint32_t*)my_bank)[i] != ((uint32_t*)other_bank)[i]) {
 					ReportDivergent(my_cpu, next_cpu);
-					asm("int3\n");
+					
 					halt_simulation = true;
 				}
 			}
@@ -421,21 +397,21 @@ void System::CheckVerify()
 			}
 			*/
 
-			if(!halt_simulation) {
-				int num_regs = my_cpu->GetRegisterCount();
-				for(int i = 0; i < num_regs; ++i) {
-					if(my_cpu->GetRegisterDescriptor(i).RegisterWidth != 1) continue;
-					uint8_t my_data = *(uint8_t*)my_cpu->GetRegisterDescriptor(i).DataStart;
-					uint8_t next_data = *(uint8_t*)next_cpu->GetRegisterDescriptor(i).DataStart;
-
-					if(my_data != next_data) {
-						ReportDivergent(my_cpu, next_cpu);
-						asm("int3\n");
-						halt_simulation = true;
-						break;
-					}
-				}
-			}
+//			if(!halt_simulation) {
+//				int num_regs = my_cpu->GetRegisterCount();
+//				for(int i = 0; i < num_regs; ++i) {
+//					if(my_cpu->GetRegisterDescriptor(i).RegisterWidth != 1) continue;
+//					uint8_t my_data = *(uint8_t*)my_cpu->GetRegisterDescriptor(i).DataStart;
+//					uint8_t next_data = *(uint8_t*)next_cpu->GetRegisterDescriptor(i).DataStart;
+//
+//					if(my_data != next_data) {
+//						ReportDivergent(my_cpu, next_cpu);
+//						
+//						halt_simulation = true;
+//						break;
+//					}
+//				}
+//			}
 
 		}
 
@@ -446,7 +422,7 @@ void System::CheckVerify()
 
 	if(halt_simulation) {
 		if(_next_verify_system)_next_verify_system->HaltSimulation();
-		asm("int3");
+		
 		HaltSimulation();
 	}
 }
@@ -475,24 +451,23 @@ void System::InitSocketVerify()
 		exit(1);
 	}
 
-	gensim::Processor * my_cpu;
-	my_cpu = GetEmulationModel().GetBootCore();
-
-	uint32_t bank_size = my_cpu->GetRegisterFileSize();
-
-	send(_verify_socket_fd, &bank_size, 4, 0);
-
-	uint8_t rcode;
-	recv(_verify_socket_fd, &rcode, 1, 0);
-	if(rcode) {
-		fprintf(stderr, "Bank size mismatch\n");
-		exit(1);
-	}
-
-	uint32_t chunk_size;
-	recv(_verify_socket_fd, &chunk_size, 4, 0);
-	_verify_chunk_size = chunk_size;
+	UNIMPLEMENTED;
+	
+//	send(_verify_socket_fd, &bank_size, 4, 0);
+//
+//	uint8_t rcode;
+//	recv(_verify_socket_fd, &rcode, 1, 0);
+//	if(rcode) {
+//		fprintf(stderr, "Bank size mismatch\n");
+//		exit(1);
+//	}
+//
+//	uint32_t chunk_size;
+//	recv(_verify_socket_fd, &chunk_size, 4, 0);
+//	_verify_chunk_size = chunk_size;
 }
+
+#endif
 
 bool System::HandleSegFault(uint64_t addr)
 {
