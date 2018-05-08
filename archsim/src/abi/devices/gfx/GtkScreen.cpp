@@ -290,6 +290,14 @@ void archsim::abi::devices::gfx::draw_callback(GtkWidget *widget, cairo_t *cr, v
 	cairo_paint(cr);
 }
 
+static GtkScreen *local_screen = nullptr;
+
+bool delete_callback(GtkWidget *widget, GdkEvent event) {
+	local_screen->running = false;
+	
+	return false;
+}
+
 bool GtkScreen::Initialise()
 {
 	{
@@ -321,6 +329,8 @@ bool GtkScreen::Initialise()
 		g_signal_connect(window, "button-release-event", G_CALLBACK(button_press_event), this);
 
 		g_signal_connect(draw_area, "draw", G_CALLBACK(draw_callback), this);
+		
+		g_signal_connect(window, "delete-event", G_CALLBACK(delete_callback), this);
 		
 		framebuffer = (uint8_t*)malloc(3 * GetWidth() * GetHeight());
 
@@ -393,6 +403,7 @@ void GtkScreen::set_cursor_position(int x, int y)
 
 void GtkScreen::run()
 {
+	local_screen = this;
 	while(running) {
 		{
 			std::lock_guard<std::mutex> lock(gtk_lock_);
@@ -400,7 +411,11 @@ void GtkScreen::run()
 			while(gtk_events_pending()) {
 				gtk_main_iteration_do(FALSE);
 			}
-
+			
+			if(!running) {
+				return;
+			}
+			
 			draw_framebuffer();
 
 			if(grabbed_) {
@@ -427,6 +442,9 @@ void GtkScreen::run()
 
 		usleep(20000);
 	}
+	
+	// clean up if we ever exit
+	Reset();
 }
 
 class GtkScreenManager : public VirtualScreenManager<GtkScreen> {};
