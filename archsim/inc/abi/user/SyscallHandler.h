@@ -18,6 +18,11 @@ namespace gensim
 
 namespace archsim
 {
+	namespace core {
+		namespace thread {
+			class ThreadInstance;
+		}
+	}
 	namespace abi
 	{
 		struct SyscallRequest;
@@ -26,7 +31,7 @@ namespace archsim
 		namespace user
 		{
 
-			typedef unsigned int (*SYSCALL_FN_GENERIC)(gensim::Processor&, unsigned int...);
+			typedef unsigned int (*SYSCALL_FN_GENERIC)(archsim::core::thread::ThreadInstance*, unsigned int...);
 			typedef std::string arch_descriptor_t;
 
 			class SyscallHandler;

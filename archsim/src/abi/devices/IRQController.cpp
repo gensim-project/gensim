@@ -6,7 +6,8 @@
  */
 
 #include "abi/devices/IRQController.h"
-#include "gensim/gensim_processor.h"
+#include "core/thread/ThreadInstance.h"
+
 namespace archsim
 {
 	namespace abi
@@ -70,7 +71,7 @@ namespace archsim
 			}
 
 
-			CPUIRQLine::CPUIRQLine(gensim::Processor *_cpu) : CPU(_cpu), Acknowledged(false)
+			CPUIRQLine::CPUIRQLine(archsim::core::thread::ThreadInstance *_cpu) : CPU(_cpu), Acknowledged(false)
 			{
 
 			}
@@ -79,7 +80,7 @@ namespace archsim
 			{
 				if(!IsAsserted()) {
 					SetAsserted();
-					CPU->take_irq(this);
+					CPU->TakeIRQ();
 //		source->IRQ_Asserted(this);
 				}
 			}
@@ -87,7 +88,7 @@ namespace archsim
 			void CPUIRQLine::Rescind()
 			{
 				if(IsAsserted()) {
-					CPU->rescind_irq(this);
+					CPU->RescindIRQ();
 					ClearAsserted();
 					Acknowledged = false;
 //		source->IRQ_Rescinded(this);

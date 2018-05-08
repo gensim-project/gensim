@@ -2273,7 +2273,7 @@ execute(thumb2_ldrsbt1)
 {
 	uint32 offset_addr = read_register_bank(RB, inst.rn) + inst.imm12;
 	uint8 val;
-	mem_read_8(offset_addr, val);
+	mem_read_8(Mem, offset_addr, val);
 	sint8 sval = val;
 	sint32 sxval = (sint32)sval;
 	write_register_bank(RB, inst.rt, sxval);
@@ -2283,7 +2283,7 @@ execute(thumb2_ldrshit1)
 {
 	uint32 offset_addr = read_register_bank(RB, inst.rn) + inst.imm12;
 	uint16 val;
-	mem_read_16(offset_addr, val);
+	mem_read_16(Mem, offset_addr, val);
 	sint16 sval = val;
 	sint32 sxval = (sint32)sval;
 	write_register_bank(RB, inst.rt, sxval);
@@ -3856,7 +3856,7 @@ execute(thumb2_ldrext1)
 	address += (uint32)inst.imm8 << 2;
 	
 	uint32 data = 0;
-	mem_read_32(address, data);
+	mem_read_32(Mem, address, data);
 	
 	write_register_bank(RB, inst.rt, data);
 	
@@ -3871,7 +3871,7 @@ execute(thumb2_strext1)
 	
 	if(read_register(XState) && read_register(XAddr) == address) {
 		uint32 data = read_register_bank(RB, inst.rt);
-		mem_write_32(address, data);
+		mem_write_32(Mem, address, data);
 		
 		write_register_bank(RB, inst.rt2, 0);
 	} else {
@@ -3887,8 +3887,8 @@ execute(thumb2_ldrexdt1)
 	uint32 data;
 	uint32 data2;
 	// TODO: implement mem_read_64(addr, data);
-	mem_read_32(addr, data);
-	mem_read_32(addr+4, data2);
+	mem_read_32(Mem, addr, data);
+	mem_read_32(Mem, addr+4, data2);
 	
 	write_register_bank(RB, inst.rt, data);
 	write_register_bank(RB, inst.rt2, data2);
@@ -3902,8 +3902,8 @@ execute(thumb2_strexdt1)
 	uint32 addr = read_register_bank(RB, inst.rn);
 
 	if(read_register(XState) && read_register(XAddr) == addr) {
-		mem_write_32(addr, read_register_bank(RB, inst.rt));
-		mem_write_32(addr+4, read_register_bank(RB, inst.rt2));
+		mem_write_32(Mem, addr, read_register_bank(RB, inst.rt));
+		mem_write_32(Mem, addr+4, read_register_bank(RB, inst.rt2));
 	
 		write_register_bank(RB, inst.imm8, 0);
 	} else {
@@ -5772,6 +5772,11 @@ helper void update_zn_flags(uint32 val) {
 	return;
 }
 
+internal helper uint8 instruction_is_predicated(Instruction inst)
+{
+	return inst.IsPredicated;
+}
+
 helper uint8 instruction_predicate(Instruction inst) 
 {
 	if(!inst.IsPredicated) {
@@ -5852,7 +5857,7 @@ helper uint32 zero_extend(uint32 imm4, uint32 i, uint32 imm3, uint32 imm8)
 helper uint8 memory_read_32(uint32 addr, uint32 &data)
 {
 	uint32 data_out;
-	mem_read_32(addr, data);
+	mem_read_32(Mem, addr, data);
 	/*if(access) {
 	  //raise_mem_fault(access, addr, 0);
 		return 0;
@@ -5863,7 +5868,7 @@ helper uint8 memory_read_32(uint32 addr, uint32 &data)
 helper uint8 memory_read_16(uint32 addr, uint32 &data)
 {
 	uint16 inner_data;
-	mem_read_16(addr, inner_data);
+	mem_read_16(Mem, addr, inner_data);
 	data = inner_data;
 	/*if(access) {
 	  //raise_mem_fault(access, addr, 0);
@@ -5875,7 +5880,7 @@ helper uint8 memory_read_16(uint32 addr, uint32 &data)
 helper uint8 memory_read_8(uint32 addr, uint32 &data)
 {
 	uint8 inner_data;
-	mem_read_8(addr, inner_data);
+	mem_read_8(Mem, addr, inner_data);
 	data = inner_data;
 	/*if(access) {
 	  raise_mem_fault(access, addr, 0);
@@ -5891,7 +5896,7 @@ helper uint8 memory_read_8(uint32 addr, uint32 &data)
 */ 
 helper uint8 memory_write_32(uint32 addr, uint32 data)
 {
-	mem_write_32(addr, data);
+	mem_write_32(Mem, addr, data);
 	/*if(access) {
 	  //raise_mem_fault(access, addr, 1);
 		return 0;
@@ -5901,7 +5906,7 @@ helper uint8 memory_write_32(uint32 addr, uint32 data)
 
 helper uint8 memory_write_16(uint32 addr, uint32 data)
 {
-	mem_write_16(addr, data);
+	mem_write_16(Mem, addr, data);
 	/*if(access) {
 	  //	raise_mem_fault(access, addr, 1);
 		return 0;
@@ -5911,7 +5916,7 @@ helper uint8 memory_write_16(uint32 addr, uint32 data)
 
 helper uint8 memory_write_8(uint32 addr, uint32 data)
 {
-	mem_write_8(addr, data);
+	mem_write_8(Mem, addr, data);
 	/*if(access) {
 	  //	raise_mem_fault(access, addr, 1);
 		return 0;

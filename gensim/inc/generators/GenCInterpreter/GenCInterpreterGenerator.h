@@ -34,8 +34,10 @@ namespace gensim
 		class GenCInterpreterGenerator : public InterpretiveExecutionEngineGenerator
 		{
 		public:
-			GenCInterpreterGenerator(GenerationManager &manager);
+			GenCInterpreterGenerator(const GenerationManager &manager);
 
+			bool GenerateExecuteBodyFor(util::cppformatstream &str, const genc::ssa::SSAFormAction &action) const;
+			bool GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action) const;
 		protected:
 			virtual bool GenerateExecutionForBehaviour(util::cppformatstream &, bool, std::string, const isa::ISADescription &) const;
 			virtual bool GenerateExtraProcessorClassMembers(util::cppformatstream &stream) const;
@@ -43,11 +45,12 @@ namespace gensim
 			virtual bool GenerateExtraProcessorInitSource(util::cppformatstream &stream) const;
 			virtual bool GenerateExtraProcessorIncludes(util::cppformatstream &stream) const;
 			virtual bool GenerateExtraProcessorDestructorSource(util::cppformatstream &stream) const;
-
+			
+			
 			virtual bool GenerateInlineHelperFns(util::cppformatstream &) const override;
 			virtual bool GenerateExternHelperFns(util::cppformatstream &) const override;
 
-			bool GenerateExecuteBodyFor(util::cppformatstream &str, const genc::ssa::SSAFormAction &action) const;
+			
 
 		};
 	}

@@ -10,7 +10,6 @@
 
 #include "abi/devices/arm/core/ArmCoprocessor.h"
 #include "abi/devices/arm/core/PMU.h"
-#include "gensim/gensim_processor.h"
 #include "util/LogContext.h"
 
 UseLogContext(LogArmCoprocessor);
@@ -122,7 +121,7 @@ namespace archsim
 
 				bool TRE,AFE;
 
-				const gensim::RegisterDescriptor *V_descriptor;
+				uint8_t *V_ptr;
 
 				MMU *get_mmu();
 			};

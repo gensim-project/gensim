@@ -216,7 +216,7 @@ bool LowerReadMemFunction::Lower(const captive::shared::IRInstruction *&insn)
 	}
 
 	// Load function pointer
-	GetCompiler().load_state_field(gensim::CpuStateOffsets::CpuState_smm_read_cache, BLKJIT_TEMPS_2(8));
+	GetCompiler().load_state_field("smm_read_cache", BLKJIT_TEMPS_2(8));
 	Encoder().mov(BLKJIT_ARG1(4), REG_EAX);
 	Encoder().shr(12, REG_EAX);
 
@@ -336,7 +336,7 @@ bool LowerWriteMemFunction::Lower(const captive::shared::IRInstruction *&insn)
 	}
 
 	// Load function pointer
-	GetCompiler().load_state_field(gensim::CpuStateOffsets::CpuState_smm_write_cache, BLKJIT_TEMPS_2(8));
+	GetCompiler().load_state_field("smm_write_cache", BLKJIT_TEMPS_2(8));
 	Encoder().mov(BLKJIT_ARG1(4), REG_EAX);
 	Encoder().shr(12, REG_EAX);
 
@@ -401,7 +401,7 @@ bool LowerReadUserMemFunction::Lower(const captive::shared::IRInstruction *&insn
 	Encoder().mov(BLKJIT_ARG1(4), BLKJIT_RETURN(4));
 
 	// Load function pointer
-	GetCompiler().load_state_field(gensim::CpuStateOffsets::CpuState_smm_read_user_cache, BLKJIT_TEMPS_2(8));
+	GetCompiler().load_state_field("smm_read_cache", BLKJIT_TEMPS_2(8));
 	Encoder().mov(BLKJIT_ARG1(4), REG_EAX);
 	Encoder().shr(12, REG_EAX);
 

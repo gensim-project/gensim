@@ -9,8 +9,7 @@
 #include "abi/devices/MMU.h"
 #include "abi/devices/arm/core/ArmControlCoprocessorv6.h"
 #include "abi/memory/MemoryModel.h"
-
-#include "gensim/gensim_processor.h"
+#include "core/thread/ThreadInstance.h"
 
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
@@ -449,7 +448,7 @@ namespace archsim
 
 				}
 
-				TranslateResult Translate(gensim::Processor *cpu, uint32_t virt_addr, uint32_t &phys_addr, AccessInfo info) override
+				TranslateResult Translate(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr, uint32_t &phys_addr, AccessInfo info) override
 				{
 					//Canary value to catch invalid accesses
 					phys_addr = 0xf0f0f0f0;
@@ -496,12 +495,12 @@ namespace archsim
 					return result;
 				}
 
-				void handle_result(TranslateResult result, gensim::Processor *cpu, uint32_t mva, const struct AccessInfo info)
+				void handle_result(TranslateResult result, archsim::core::thread::ThreadInstance *cpu, uint32_t mva, const struct AccessInfo info)
 				{
 					uint32_t new_fsr = 0;
 
 					if(result != TXLN_OK) {
-						LC_DEBUG1(LogArmMMUv6) << "Handling result " << result << " for access to " << std::hex << std::setw(8) << std::setfill('0') << mva << " for access " << info << " " << cpu->cur_exec_mode;
+						LC_DEBUG1(LogArmMMUv6) << "Handling result " << result << " for access to " << std::hex << std::setw(8) << std::setfill('0') << mva << " for access " << info << " " << cpu->GetExecutionRing();
 					}
 
 					//		bool is_kernel = permissions & 0x2;

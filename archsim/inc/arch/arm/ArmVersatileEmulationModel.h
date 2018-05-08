@@ -26,8 +26,8 @@ namespace archsim
 				bool Initialise(System& system, uarch::uArch& uarch) override;
 				void Destroy() override;
 
-				archsim::abi::ExceptionAction HandleException(gensim::Processor& cpu, uint32_t category, uint32_t data);
-				gensim::DecodeContext* GetNewDecodeContext(gensim::Processor& cpu) override;
+				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance *thread, uint32_t category, uint32_t data);
+				gensim::DecodeContext* GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu) override;
 
 
 			protected:
@@ -35,7 +35,7 @@ namespace archsim
 				void DestroyDevices() override;
 				bool InstallPlatform(abi::loader::BinaryLoader& loader) override;
 
-				bool PrepareCore(gensim::Processor& core) override;
+				bool PrepareCore(archsim::core::thread::ThreadInstance& core) override;
 
 			private:
 				uint32_t entry_point;

@@ -1,6 +1,5 @@
 #include "abi/devices/arm/special/SimulatorCacheControlCoprocessor.h"
 
-#include "gensim/gensim_processor.h"
 #include "tracing/TraceManager.h"
 
 #include "abi/devices/PeripheralManager.h"
@@ -40,37 +39,37 @@ bool SimulatorCacheControlCoprocessor::access_cp0(bool is_read, uint32_t& data)
 {
 	if (is_read) {
 		data = 0;
-		switch (rm) {
-			case 6: // Last Duration after Timer Stop
-				data = last_duration;
-				break;
-			case 7: // Dynamic Interrupt Checks
-				if (opc2 == 0)
-					data = (uint32_t)(Manager->cpu.metrics.interrupt_checks.get_value() & 0xffffffff);
-				else if (opc2 == 1)
-					data = (uint32_t)((Manager->cpu.metrics.interrupt_checks.get_value() >> 32) & 0xffffffff);
-				break;
-			case 8: // Interrupts Serviced
-				if (opc2 == 0)
-					data = (uint32_t)(Manager->cpu.metrics.interrupts_serviced.get_value() & 0xffffffff);
-				else if (opc2 == 1)
-					data = (uint32_t)((Manager->cpu.metrics.interrupts_serviced.get_value() >> 32) & 0xffffffff);
-				break;
-			case 9: // Instruction Count
-				if (opc2 == 0)
-					data = (uint32_t)(Manager->cpu.instructions() & 0xffffffff);
-				else if (opc2 == 1)
-					data = (uint32_t)((Manager->cpu.instructions() >> 32) & 0xffffffff);
-				break;
-			case 12: // I/O
-				if(opc2 == 0)
-					data = archsim::options::SCPText.GetValue().length();
-				else {
-					if(scptext_char < archsim::options::SCPText.GetValue().length())
-						data = archsim::options::SCPText.GetValue().at(scptext_char);
-					else data = 0;
-				}
-		}
+//		switch (rm) {
+//			case 6: // Last Duration after Timer Stop
+//				data = last_duration;
+//				break;
+//			case 7: // Dynamic Interrupt Checks
+//				if (opc2 == 0)
+//					data = (uint32_t)(Manager->cpu.metrics.interrupt_checks.get_value() & 0xffffffff);
+//				else if (opc2 == 1)
+//					data = (uint32_t)((Manager->cpu.metrics.interrupt_checks.get_value() >> 32) & 0xffffffff);
+//				break;
+//			case 8: // Interrupts Serviced
+//				if (opc2 == 0)
+//					data = (uint32_t)(Manager->cpu.metrics.interrupts_serviced.get_value() & 0xffffffff);
+//				else if (opc2 == 1)
+//					data = (uint32_t)((Manager->cpu.metrics.interrupts_serviced.get_value() >> 32) & 0xffffffff);
+//				break;
+//			case 9: // Instruction Count
+//				if (opc2 == 0)
+//					data = (uint32_t)(Manager->cpu.instructions() & 0xffffffff);
+//				else if (opc2 == 1)
+//					data = (uint32_t)((Manager->cpu.instructions() >> 32) & 0xffffffff);
+//				break;
+//			case 12: // I/O
+//				if(opc2 == 0)
+//					data = archsim::options::SCPText.GetValue().length();
+//				else {
+//					if(scptext_char < archsim::options::SCPText.GetValue().length())
+//						data = archsim::options::SCPText.GetValue().at(scptext_char);
+//					else data = 0;
+//				}
+//		}
 	} else {
 		switch (rm) {
 			case 0:
@@ -90,12 +89,12 @@ bool SimulatorCacheControlCoprocessor::access_cp0(bool is_read, uint32_t& data)
 				break;
 			}
 			case 3:
-				Manager->cpu.InitialiseTracing();
+//				Manager->cpu.InitialiseTracing();
 				break;
 			case 4:
 				std::cerr << "*************************" << std::endl;
-				std::cerr << "Interrupt Checks:    " << Manager->cpu.metrics.interrupt_checks.get_value() << std::endl;
-				std::cerr << "Interrupts Serviced: " << Manager->cpu.metrics.interrupts_serviced.get_value() << std::endl;
+//				std::cerr << "Interrupt Checks:    " << Manager->cpu.metrics.interrupt_checks.get_value() << std::endl;
+//				std::cerr << "Interrupts Serviced: " << Manager->cpu.metrics.interrupts_serviced.get_value() << std::endl;
 				std::cerr << "*************************" << std::endl;
 				break;
 
@@ -127,17 +126,17 @@ bool SimulatorCacheControlCoprocessor::access_cp0(bool is_read, uint32_t& data)
 
 			case 10:
 				if (opc2 == 0) {
-					if (!Manager->cpu.HasTraceManager()) {
-						Manager->cpu.InitialiseTracing();
-					}
-
-					Manager->cpu.StartTracing();
-
-					Manager->cpu.GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::FlushAllTranslations, nullptr);
-				} else if (opc2 == 1) {
-					Manager->cpu.StopTracing();
-
-					Manager->cpu.GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::FlushAllTranslations, nullptr);
+//					if (!Manager->cpu.HasTraceManager()) {
+//						Manager->cpu.InitialiseTracing();
+//					}
+//
+//					Manager->cpu.StartTracing();
+//
+//					Manager->cpu.GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::FlushAllTranslations, nullptr);
+//				} else if (opc2 == 1) {
+//					Manager->cpu.StopTracing();
+//
+//					Manager->cpu.GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::FlushAllTranslations, nullptr);
 				}
 
 				break;
@@ -169,21 +168,21 @@ bool SimulatorCacheControlCoprocessor::access_cp1(bool is_read, uint32_t &data)
 			//Enable/Disable tracing
 			case 0:
 				if (opc2 == 0) {
-					if (!Manager->cpu.HasTraceManager()) {
-						Manager->cpu.InitialiseTracing();
-					}
-
-					Manager->cpu.StartTracing();
-
-					if (Manager->cpu.GetEmulationModel().GetSystem().HaveTranslationManager()) {
-						Manager->cpu.GetEmulationModel().GetSystem().GetTranslationManager().Invalidate();
-					}
+//					if (!Manager->cpu.HasTraceManager()) {
+//						Manager->cpu.InitialiseTracing();
+//					}
+//
+//					Manager->cpu.StartTracing();
+//
+//					if (Manager->cpu.GetEmulationModel().GetSystem().HaveTranslationManager()) {
+//						Manager->cpu.GetEmulationModel().GetSystem().GetTranslationManager().Invalidate();
+//					}
 				} else if (opc2 == 1) {
-					Manager->cpu.StopTracing();
-
-					if (Manager->cpu.GetEmulationModel().GetSystem().HaveTranslationManager()) {
-						Manager->cpu.GetEmulationModel().GetSystem().GetTranslationManager().Invalidate();
-					}
+//					Manager->cpu.StopTracing();
+//
+//					if (Manager->cpu.GetEmulationModel().GetSystem().HaveTranslationManager()) {
+//						Manager->cpu.GetEmulationModel().GetSystem().GetTranslationManager().Invalidate();
+//					}
 				}
 				break;
 

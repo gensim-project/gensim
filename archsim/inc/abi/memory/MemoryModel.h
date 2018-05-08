@@ -26,11 +26,6 @@
 
 using namespace archsim::abi::devices;
 
-namespace gensim
-{
-	class Processor;
-}
-
 namespace archsim
 {
 	namespace abi
@@ -270,13 +265,7 @@ namespace archsim
 
 				bool RaiseEvent(MemoryEventType type, guest_addr_t addr, uint8_t size);
 
-				inline void SetProcessor(gensim::Processor& cpu)
-				{
-					this->cpu = &cpu;
-				}
-
 			private:
-				gensim::Processor *cpu;
 				std::vector<MemoryEventHandler *> event_handlers;
 			};
 

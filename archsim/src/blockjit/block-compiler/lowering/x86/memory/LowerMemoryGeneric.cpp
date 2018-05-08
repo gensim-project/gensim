@@ -140,76 +140,12 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 
 bool LowerReadUserMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 {
-	const IROperand *offset = &insn->operands[0];
-	const IROperand *dest = &insn->operands[1];
-
-	GetCompiler().emit_save_reg_state(3, GetStackMap(), GetIsStackFixed());
-
-	switch(dest->size) {
-		case 1:
-			Encoder().mov((uint64_t)cpuRead8User, BLKJIT_RETURN(8));
-			break;
-		case 2:
-			assert(false);
-			break;
-		case 4:
-			Encoder().mov((uint64_t)cpuRead32User, BLKJIT_RETURN(8));
-			break;
-		default:
-			assert(false);
-	}
-
-	GetCompiler().load_state_field(0, REG_RDI);
-	GetCompiler().encode_operand_function_argument(offset, REG_RSI, GetStackMap());
-
-	Encoder().push(0);
-	Encoder().mov(REG_RSP, REG_RDX);
-
-	Encoder().call(BLKJIT_RETURN(8));
-	Encoder().pop(GetCompiler().get_temp(0, 8));
-
-	GetCompiler().emit_restore_reg_state(3, GetStackMap(), GetIsStackFixed());
-
-	if(dest->is_alloc_reg()) {
-		Encoder().xorr(GetCompiler().register_from_operand(dest),GetCompiler().register_from_operand(dest));
-		Encoder().mov(GetCompiler().get_temp(0, dest->size), GetCompiler().register_from_operand(dest));
-	} else if(dest->is_alloc_stack()) {
-		Encoder().mov(GetCompiler().get_temp(0, dest->size), GetCompiler().stack_from_operand(dest));
-	}
-
-	insn++;
-	return true;
+	UNIMPLEMENTED;
+	
 }
 
 bool LowerWriteUserMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 {
-	const IROperand *value = &insn->operands[0];
-	const IROperand *offset = &insn->operands[1];
-
-	GetCompiler().emit_save_reg_state(3, GetStackMap(), GetIsStackFixed());
-
-	switch(value->size) {
-		case 1:
-			Encoder().mov((uint64_t)cpuWrite8User, BLKJIT_RETURN(8));
-			break;
-		case 2:
-			assert(false);
-			break;
-		case 4:
-			Encoder().mov((uint64_t)cpuWrite32User, BLKJIT_RETURN(8));
-			break;
-		default:
-			assert(false);
-	}
-
-	GetCompiler().load_state_field(0, REG_RDI);
-	GetCompiler().encode_operand_function_argument(offset, REG_RSI, GetStackMap());
-	GetCompiler().encode_operand_function_argument(value, REG_RDX, GetStackMap());
-
-	Encoder().call(BLKJIT_RETURN(8));
-
-	GetCompiler().emit_restore_reg_state(3, GetStackMap(), GetIsStackFixed());
-
-	insn++;
-	return true;
+	UNIMPLEMENTED;
+	
 }

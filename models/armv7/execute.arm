@@ -924,7 +924,7 @@ execute(blx2)
 ////	MULT1 instructions
 ////////////////////////////////////////////////////////
 
-execute(swp) // Atomic Operation , mem_write(addr,value)
+execute(swp) // Atomic Operation , mem_write(Mem, addr,value)
 {
 	// Read into dest reg [rn] -> rd
 	uint32 mem_value = 0;
@@ -1282,7 +1282,7 @@ execute(strbt1)
 	addr = inst.p ? offset : addr;
 
 	uint32 val = read_register_bank(RB, inst.rd);
-	mem_write_8_user(addr, val & 0xff); //Writes the least significant byte to addr
+	mem_write_8(UserMem, addr, val & 0xff); //Writes the least significant byte to addr
 	
 	if (inst.w || !(inst.p))
 	{
@@ -2398,7 +2398,7 @@ execute(ldrex)
 	uint32 addr = read_register_bank(RB, inst.rn);
 	
 	uint32 val;
-	mem_read_32(addr, val);
+	mem_read_32(Mem, addr, val);
 
 	write_register_bank(RB, inst.rd, val);
 	
@@ -2412,7 +2412,7 @@ execute(strex)
 	uint32 val = read_register_bank(RB, inst.addr2);
 	
 	if(read_register(XState) && read_register(XAddr) == addr) {
-		mem_write_32(addr, val);
+		mem_write_32(Mem, addr, val);
 		write_register_bank(RB, inst.rd, 0);
 	} else {
 		write_register_bank(RB, inst.rd, 1);
@@ -2427,8 +2427,8 @@ execute(ldrexd)
 	
 	uint32 val1;
 	uint32 val2;
-	mem_read_32(addr, val1);
-	mem_read_32(addr + 4, val2);
+	mem_read_32(Mem, addr, val1);
+	mem_read_32(Mem, addr + 4, val2);
 
 	write_register_bank(RB, inst.rd, val1);
 	write_register_bank(RB, inst.rd+1, val2);
@@ -2444,8 +2444,8 @@ execute(strexd)
 	uint32 val2 = read_register_bank(RB, inst.addr2 + 1);
 	
 	if(read_register(XState) && read_register(XAddr) == addr) {
-		mem_write_32(addr, val1);
-		mem_write_32(addr + 4, val2);
+		mem_write_32(Mem, addr, val1);
+		mem_write_32(Mem, addr + 4, val2);
 
 		write_register_bank(RB, inst.rd, (uint32)0);
 	} else {
@@ -3499,7 +3499,25 @@ helper void set_arm_mode(uint32 mode)
 	return;
 }
 
-helper void take_arm_exception(uint32 mode, uint32 r14) noinline
+helper void take_interrupt(uint32 irq_line) noinline export
+{
+	// FIQ : irq_line == 0
+	// IRQ : irq_line == 1
+	
+	if(irq_line)
+	{
+		if(!read_register(I))
+			take_arm_exception(2, address_of_next_instruction());
+	}
+	else
+	{
+		if(!read_register(F))
+			take_arm_exception(1, address_of_next_instruction());
+	}
+	return;
+}
+
+helper void take_arm_exception(uint32 mode, uint32 r14) noinline export
 {
 	uint32 vector = 0;
 	uint32 lr_val = 0;
@@ -3656,6 +3674,11 @@ internal helper void return_from_exception() noinline
 	return;
 }
 
+internal helper uint8 instruction_is_predicated(Instruction inst)
+{
+	return (inst.ir & 0xf0000000) < 0xe0000000;
+}
+
 internal helper uint8 instruction_predicate(Instruction inst)
 {
 	uint8 cond = inst.cond >> 1;
@@ -3752,7 +3775,7 @@ helper void raise_mem_fault(uint32 code, uint32 addr, uint8 is_write)
 */ 
 helper uint8 memory_read_32(uint32 addr, uint32 &data)
 {
-	mem_read_32(addr, data);
+	mem_read_32(Mem, addr, data);
 	return 1;
 	/*
 	if(access) {
@@ -3766,7 +3789,7 @@ helper uint8 memory_read_32(uint32 addr, uint32 &data)
 helper uint8 memory_read_16(uint32 addr, uint16 &data)
 {
 	uint16 inner_data;
-	mem_read_16(addr, inner_data);
+	mem_read_16(Mem, addr, inner_data);
 	data = inner_data;
 	return 1;
 	/*
@@ -3781,7 +3804,7 @@ helper uint8 memory_read_16(uint32 addr, uint16 &data)
 helper uint8 memory_read_8(uint32 addr, uint8 &data)
 {
 	uint8 inner_data;
-	mem_read_8(addr, inner_data);
+	mem_read_8(Mem, addr, inner_data);
 	data = inner_data;
 	return 1;
 	/*
@@ -3795,7 +3818,7 @@ helper uint8 memory_read_8(uint32 addr, uint8 &data)
 
 helper uint8 memory_read_32_user(uint32 addr, uint32 &data)
 {
-	mem_read_32_user(addr, data);
+	mem_read_32(UserMem, addr, data);
 	return 1;
 	/*
 	if(access) {
@@ -3809,7 +3832,7 @@ helper uint8 memory_read_32_user(uint32 addr, uint32 &data)
 helper uint8 memory_read_8_user(uint32 addr, uint8 &data)
 {
 	uint8 inner_data;
-	mem_read_8_user(addr, inner_data);
+	mem_read_8(UserMem, addr, inner_data);
 	data = inner_data;
 	return 1;
 	/*
@@ -3828,7 +3851,7 @@ helper uint8 memory_read_8_user(uint32 addr, uint8 &data)
 */ 
 helper uint8 memory_write_32(uint32 addr, uint32 data)
 {
-	mem_write_32(addr, data);
+	mem_write_32(Mem, addr, data);
 	return 1;
 	/*
 	if(access) {
@@ -3841,7 +3864,7 @@ helper uint8 memory_write_32(uint32 addr, uint32 data)
 
 helper uint8 memory_write_16(uint32 addr, uint32 data)
 {
-	mem_write_16(addr, data);
+	mem_write_16(Mem, addr, data);
 	return 1;
 	/*
 	if(access) {
@@ -3854,7 +3877,7 @@ helper uint8 memory_write_16(uint32 addr, uint32 data)
 
 helper uint8 memory_write_8(uint32 addr, uint32 data)
 {
-	mem_write_8(addr, data);
+	mem_write_8(Mem, addr, data);
 	return 1;
 	/*
 	if(access) {
@@ -3867,7 +3890,7 @@ helper uint8 memory_write_8(uint32 addr, uint32 data)
 
 helper uint8 memory_write_32_user(uint32 addr, uint32 data)
 {
-	mem_write_32_user(addr, data);
+	mem_write_32(UserMem, addr, data);
 	return 1;
 	/*
 	if(access) {
@@ -3881,7 +3904,7 @@ helper uint8 memory_write_32_user(uint32 addr, uint32 data)
 
 helper uint8 memory_write_8_user(uint32 addr, uint32 data)
 {
-	mem_write_8_user(addr, data);
+	mem_write_8(UserMem, addr, data);
 	return 1;
 	/*
 	if(access) {

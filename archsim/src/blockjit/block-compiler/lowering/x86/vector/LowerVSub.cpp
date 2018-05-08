@@ -4,7 +4,6 @@
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
 #include "blockjit/blockjit-abi.h"
-#include "gensim/gensim_processor_blockjit.h"
 #include "util/LogContext.h"
 
 UseLogContext(LogBlockJit)

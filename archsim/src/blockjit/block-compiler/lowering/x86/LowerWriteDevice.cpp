@@ -34,7 +34,7 @@ bool LowerWriteDevice::Lower(const captive::shared::IRInstruction *&insn)
 		GetCompiler().emit_save_reg_state(4, GetStackMap(), GetIsStackFixed());
 	}
 
-	GetCompiler().load_state_field(0, REG_RDI);
+	GetCompiler().load_state_field("thread_ptr", REG_RDI);
 
 	GetCompiler().encode_operand_function_argument(dev, REG_RSI, GetStackMap());
 	GetCompiler().encode_operand_function_argument(reg, REG_RDX, GetStackMap());

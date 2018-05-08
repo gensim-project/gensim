@@ -11,7 +11,6 @@
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
 #include "blockjit/blockjit-abi.h"
-#include "gensim/gensim_processor_blockjit.h"
 
 using namespace captive::arch::jit::lowering::x86;
 using namespace captive::arch::x86;
@@ -89,11 +88,11 @@ bool LowerAdcFlags::Lower(const captive::shared::IRInstruction *&insn)
 	}
 
 	// LOL HAX XXX
-	const gensim::BlockJitProcessor *cpu = GetCompiler().get_cpu();
-	uint32_t c_o = cpu->GetRegisterDescriptor("C").Offset;
-	uint32_t v_o = cpu->GetRegisterDescriptor("V").Offset;
-	uint32_t z_o = cpu->GetRegisterDescriptor("Z").Offset;
-	uint32_t n_o = cpu->GetRegisterDescriptor("N").Offset;
+	const archsim::core::thread::ThreadInstance *cpu = GetCompiler().get_cpu();
+	uint32_t c_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C").GetOffset();
+	uint32_t v_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V").GetOffset();
+	uint32_t z_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z").GetOffset();
+	uint32_t n_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N").GetOffset();
 
 	Encoder().setc(X86Memory::get(BLKJIT_REGSTATE_REG, c_o));
 	Encoder().seto(X86Memory::get(BLKJIT_REGSTATE_REG, v_o));

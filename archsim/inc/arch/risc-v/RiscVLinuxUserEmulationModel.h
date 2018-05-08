@@ -25,12 +25,12 @@ namespace archsim
 				bool Initialise(System& system, uarch::uArch& uarch) override;
 				void Destroy() override;
 
-				archsim::abi::ExceptionAction HandleException(gensim::Processor& cpu, unsigned int category, unsigned int data);
+				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data);
 				bool InvokeSignal(int signum, uint32_t next_pc, archsim::abi::SignalData* data);
 
 				bool PrepareBoot(System& system);
 
-				gensim::DecodeContext* GetNewDecodeContext(gensim::Processor& cpu) override;
+				gensim::DecodeContext* GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu) override;
 
 
 			private:

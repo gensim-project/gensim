@@ -8,8 +8,8 @@
 #include "abi/EmulationModel.h"
 #include "abi/UserEmulationModel.h"
 #include "abi/memory/MemoryModel.h"
+#include "core/MemoryInterface.h"
 
-#include "gensim/gensim_processor.h"
 
 #include "util/SimOptions.h"
 #include "util/LogContext.h"
@@ -28,97 +28,103 @@
 
 UseLogContext(LogSyscalls);
 
-static unsigned int translate_fd(gensim::Processor& cpu, int fd)
+using archsim::Address;
+
+static unsigned int translate_fd(archsim::core::thread::ThreadInstance* cpu, int fd)
 {
-	fd = cpu.GetEmulationModel().GetSystem().GetFD(fd);
+	fd = cpu->GetEmulationModel().GetSystem().GetFD(fd);
 
 	return fd;
 }
 
-static unsigned int sys_exit(gensim::Processor& cpu, unsigned int exit_code)
+static unsigned int sys_exit(archsim::core::thread::ThreadInstance* cpu, unsigned int exit_code)
 {
-	cpu.Halt();
-	cpu.GetEmulationModel().GetSystem().exit_code = exit_code;
+//	cpu->Halt();
+	cpu->GetEmulationModel().GetSystem().exit_code = exit_code;
 
 	return 0;
 }
 
-static unsigned int sys_uname(gensim::Processor& cpu, unsigned int addr)
+static unsigned int sys_uname(archsim::core::thread::ThreadInstance* cpu, unsigned int addr)
 {
 	if (addr == 0) {
 		return -EFAULT;
 	}
-
-	cpu.GetMemoryModel().WriteString(addr, "Linux");
-
-	addr += 64;
-	cpu.GetMemoryModel().WriteString(addr, "archsim");
+	auto interface = cpu->GetMemoryInterface("Mem");
+	
+	interface.WriteString(Address(addr), "Linux");
 
 	addr += 64;
-	cpu.GetMemoryModel().WriteString(addr, "3.6.3");
+	interface.WriteString(Address(addr), "archsim");
 
 	addr += 64;
-	cpu.GetMemoryModel().WriteString(addr, "#1");
+	interface.WriteString(Address(addr), "3.6.3");
 
 	addr += 64;
-	cpu.GetMemoryModel().WriteString(addr, "arm");
+	interface.WriteString(Address(addr), "#1");
+
+	addr += 64;
+	interface.WriteString(Address(addr), "arm");
 
 	return 0;
 }
 
-static unsigned int sys_open(gensim::Processor& cpu, unsigned int filename_addr, unsigned int flags, unsigned int mode)
+static unsigned int sys_open(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int flags, unsigned int mode)
 {
 	char filename[256];
-	cpu.GetMemoryModel().ReadString(filename_addr, filename, sizeof(filename) - 1);
+	auto interface = cpu->GetMemoryInterface("Mem");
+	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	int host_fd = open(filename, flags, mode);
 	if (host_fd < 0) return -errno;
 
-	int guest_fd = cpu.GetEmulationModel().GetSystem().OpenFD(host_fd);
+	int guest_fd = cpu->GetEmulationModel().GetSystem().OpenFD(host_fd);
 
 	return guest_fd;
 }
 
-static unsigned int sys_openat(gensim::Processor& cpu, int dirfd, unsigned int filename_addr, unsigned int flags, unsigned int mode)
+static unsigned int sys_openat(archsim::core::thread::ThreadInstance* cpu, int dirfd, unsigned int filename_addr, unsigned int flags, unsigned int mode)
 {
 	if(dirfd == AT_FDCWD) {
 		return sys_open(cpu, filename_addr, flags, mode);
 	}
 
+	auto interface = cpu->GetMemoryInterface("Mem");
 	char filename[256];
-	cpu.GetMemoryModel().ReadString(filename_addr, filename, sizeof(filename) - 1);
+	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	int host_fd = openat(translate_fd(cpu, dirfd),filename, flags, mode);
 	if (host_fd < 0) return -errno;
 
-	int guest_fd = cpu.GetEmulationModel().GetSystem().OpenFD(host_fd);
+	int guest_fd = cpu->GetEmulationModel().GetSystem().OpenFD(host_fd);
 
 	return guest_fd;
 }
 
-static unsigned int sys_close(gensim::Processor& cpu, unsigned int fd)
+static unsigned int sys_close(archsim::core::thread::ThreadInstance* cpu, unsigned int fd)
 {
-	if (cpu.GetEmulationModel().GetSystem().CloseFD(fd))
+	if (cpu->GetEmulationModel().GetSystem().CloseFD(fd))
 		return -errno;
 	return 0;
 }
 
-static unsigned int sys_writev(gensim::Processor& cpu, unsigned int fd, unsigned int iov_addr, int cnt)
+static unsigned int sys_writev(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int iov_addr, int cnt)
 {
 	if (cnt < 0 || cnt > 8) return -1;
 
 	struct iovec host_vectors[cnt];
 	struct arm_iovec arm_vectors[cnt];
-
-	cpu.GetMemoryModel().Read(iov_addr, (uint8_t *)&arm_vectors, cnt * sizeof(struct arm_iovec));
+	
+	auto interface = cpu->GetMemoryInterface("Mem");
+	interface.Read(Address(iov_addr), (uint8_t *)&arm_vectors, cnt * sizeof(struct arm_iovec));
 
 	for (int i = 0; i < cnt; i++) {
 		host_vectors[i].iov_base = new char[arm_vectors[i].iov_len];
 		host_vectors[i].iov_len = arm_vectors[i].iov_len;
-		cpu.GetMemoryModel().Read(arm_vectors[i].iov_base, (uint8_t *)host_vectors[i].iov_base, arm_vectors[i].iov_len);
+		interface.Read(Address(arm_vectors[i].iov_base), (uint8_t *)host_vectors[i].iov_base, arm_vectors[i].iov_len);
 	}
 
-	fd = cpu.GetEmulationModel().GetSystem().GetFD(fd);
+	fd = cpu->GetEmulationModel().GetSystem().GetFD(fd);
 	fsync(fd);  // HACK?
 	unsigned int res = (uint32_t)writev(fd, host_vectors, cnt);
 	fsync(fd);  // HACK?
@@ -128,7 +134,7 @@ static unsigned int sys_writev(gensim::Processor& cpu, unsigned int fd, unsigned
 	return res;
 }
 
-static unsigned int sys_lseek(gensim::Processor& cpu, unsigned int fd, unsigned int offset, unsigned int whence)
+static unsigned int sys_lseek(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int offset, unsigned int whence)
 {
 	fd = translate_fd(cpu, fd);
 	int lseek_result = lseek(fd, offset, whence);
@@ -138,10 +144,12 @@ static unsigned int sys_lseek(gensim::Processor& cpu, unsigned int fd, unsigned 
 		return lseek_result;
 }
 
-static unsigned int sys_llseek(gensim::Processor& cpu, unsigned int fd, unsigned int offset_high, unsigned int offset_low, unsigned int result_addr, unsigned int whence)
+static unsigned int sys_llseek(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int offset_high, unsigned int offset_low, unsigned int result_addr, unsigned int whence)
 {
 	loff_t result;
 
+	auto interface = cpu->GetMemoryInterface("Mem");
+	
 	fd = translate_fd(cpu, fd);
 	uint64_t offset;
 	if(archsim::options::ArmOabi)
@@ -152,23 +160,24 @@ static unsigned int sys_llseek(gensim::Processor& cpu, unsigned int fd, unsigned
 	result = lseek64(fd, offset, whence);
 
 	if ((result != -1) && result_addr) {
-		cpu.GetMemoryModel().Write64(result_addr, (uint64_t)result);
+		interface.Write64(Address(result_addr), (uint64_t)result);
 	}
 
 	return result == -1 ? -errno : 0;
 }
 
-static unsigned int sys_unlink(gensim::Processor& cpu, unsigned int filename_addr)
+static unsigned int sys_unlink(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr)
 {
 	char filename[256];
-	cpu.GetMemoryModel().ReadString(filename_addr, filename, sizeof(filename) - 1);
+	auto interface = cpu->GetMemoryInterface("Mem");
+	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	if (unlink(filename)) return -errno;
 
 	return 0;
 }
 
-static unsigned int sys_mmap(gensim::Processor& cpu, unsigned int addr, unsigned int len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned int off)
+static unsigned int sys_mmap(archsim::core::thread::ThreadInstance* cpu, unsigned int addr, unsigned int len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned int off)
 {
 	if (!(flags & MAP_ANONYMOUS)) {
 		LC_ERROR(LogSyscalls) << "Unsupported usage of MMAP";
@@ -180,52 +189,56 @@ static unsigned int sys_mmap(gensim::Processor& cpu, unsigned int addr, unsigned
 		return -EINVAL;
 	}
 
-	if (!cpu.GetMemoryModel().IsAligned(len)) {
-		return -EINVAL;
-	}
+	auto interface = cpu->GetMemoryInterface("Mem");
+	
+//	if (!cpu.GetMemoryModel().IsAligned(len)) {
+//		return -EINVAL;
+//	}
 
 	archsim::abi::memory::RegionFlags reg_flags = (archsim::abi::memory::RegionFlags)(archsim::abi::memory::RegFlagRead | archsim::abi::memory::RegFlagWrite);
 	if(prot & PROT_EXEC) reg_flags = (archsim::abi::memory::RegionFlags)(reg_flags | archsim::abi::memory::RegFlagExecute);
 
+	auto &emu_model = (archsim::abi::UserEmulationModel&)cpu->GetEmulationModel();
 	if (addr == 0 && !(flags & MAP_FIXED)) {
-		addr = cpu.GetMemoryModel().GetMappingManager()->MapAnonymousRegion(len, reg_flags);
+		addr = emu_model.MapAnonymousRegion(len, reg_flags).Get();
 	} else {
-		if (!cpu.GetMemoryModel().GetMappingManager()->MapRegion(addr, len, reg_flags, ""))
+		if (!emu_model.MapRegion(Address(addr), len, reg_flags, ""))
 			return -1;
 	}
 
 	return addr;
 }
 
-static unsigned int sys_mmap2(gensim::Processor& cpu, unsigned int addr, unsigned int len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned int off)
+static unsigned int sys_mmap2(archsim::core::thread::ThreadInstance* cpu, unsigned int addr, unsigned int len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned int off)
 {
 	return sys_mmap(cpu, addr, len, prot, flags, fd, off);
 }
 
-static unsigned int sys_mremap(gensim::Processor& cpu, unsigned int old_addr, unsigned int old_size, unsigned int new_size, unsigned int flags)
+static unsigned int sys_mremap(archsim::core::thread::ThreadInstance* cpu, unsigned int old_addr, unsigned int old_size, unsigned int new_size, unsigned int flags)
 {
 	LC_ERROR(LogSyscalls) << "mremap not supported";
 	return -1;
 }
 
-static unsigned int sys_munmap(gensim::Processor& cpu, unsigned int addr, unsigned int len)
+static unsigned int sys_munmap(archsim::core::thread::ThreadInstance* cpu, unsigned int addr, unsigned int len)
 {
-	if (!cpu.GetMemoryModel().IsAligned(len)) {
-		return -EINVAL;
-	}
-
-	cpu.GetMemoryModel().GetMappingManager()->UnmapRegion(addr, len);
-	return 0;
+	UNIMPLEMENTED;
+//	if (!cpu.GetMemoryModel().IsAligned(len)) {
+//		return -EINVAL;
+//	}
+//
+//	cpu.GetMemoryModel().GetMappingManager()->UnmapRegion(addr, len);
+//	return 0;
 }
 
-static unsigned int sys_mprotect(gensim::Processor &cpu, unsigned int addr, unsigned int len, unsigned int flags)
+static unsigned int sys_mprotect(archsim::core::thread::ThreadInstance *cpu, unsigned int addr, unsigned int len, unsigned int flags)
 {
 	LC_ERROR(LogSyscalls) << "[SYSCALL] mprotect not currently supported";
 	LC_ERROR(LogSyscalls) << "[SYSCALL] " << std::hex << addr << " " << len << " " << flags;
 	return -EINVAL;
 }
 
-static unsigned int sys_read(gensim::Processor& cpu, unsigned int fd, unsigned int addr, unsigned int len)
+static unsigned int sys_read(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int addr, unsigned int len)
 {
 	char* rd_buf = new char[len];
 	ssize_t res;
@@ -233,8 +246,10 @@ static unsigned int sys_read(gensim::Processor& cpu, unsigned int fd, unsigned i
 	fd = translate_fd(cpu, fd);
 	res = read(fd, (void*)rd_buf, len);
 
+	auto interface = cpu->GetMemoryInterface("Mem");
+	
 	if (res > 0) {
-		cpu.GetMemoryModel().Write(addr, (uint8_t *)rd_buf, res);
+		interface.Write(Address(addr), (uint8_t *)rd_buf, res);
 	}
 
 	delete[] rd_buf;
@@ -245,14 +260,15 @@ static unsigned int sys_read(gensim::Processor& cpu, unsigned int fd, unsigned i
 		return res;
 }
 
-static unsigned int sys_write(gensim::Processor& cpu, unsigned int fd, unsigned int addr, unsigned int len)
+static unsigned int sys_write(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int addr, unsigned int len)
 {
 	ssize_t res;
 
 	char *buffer = (char *)malloc(len);
 	bzero(buffer, len);
 
-	if (cpu.GetMemoryModel().Read(addr, (uint8_t *)buffer, len)) {
+	auto interface = cpu->GetMemoryInterface("Mem");
+	if (interface.Read(Address(addr), (uint8_t *)buffer, len) != archsim::MemoryResult::OK) {
 		free(buffer);
 		return -EFAULT;
 	}
@@ -267,7 +283,7 @@ static unsigned int sys_write(gensim::Processor& cpu, unsigned int fd, unsigned 
 		return res;
 }
 
-static unsigned int sys_fstat64(gensim::Processor& cpu, unsigned int fd, unsigned int addr)
+static unsigned int sys_fstat64(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int addr)
 {
 	struct stat64 st;
 	struct arm_stat64 result_st;
@@ -293,12 +309,13 @@ static unsigned int sys_fstat64(gensim::Processor& cpu, unsigned int fd, unsigne
 	result_st.target_st_ctime = (uint32_t)st.st_ctime;
 	result_st.st_blksize = 4096;
 
-	cpu.GetMemoryModel().Write(addr, (uint8_t *)&result_st, sizeof(result_st));
+	auto interface = cpu->GetMemoryInterface("Mem");
+	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
 
 	return 0;
 }
 
-static unsigned int sys_fstat(gensim::Processor& cpu, unsigned int fd, unsigned int addr)
+static unsigned int sys_fstat(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int addr)
 {
 	struct stat st;
 	struct arm_stat result_st;
@@ -324,18 +341,20 @@ static unsigned int sys_fstat(gensim::Processor& cpu, unsigned int fd, unsigned 
 	result_st.target_st_ctime = (uint32_t)st.st_ctime;
 	result_st.st_blksize = 4096;
 
-	cpu.GetMemoryModel().Write(addr, (uint8_t *)&result_st, sizeof(result_st));
+	auto interface = cpu->GetMemoryInterface("Mem");
+	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
 
 	return 0;
 }
 
-static unsigned int sys_stat64(gensim::Processor& cpu, unsigned int filename_addr, unsigned int addr)
+static unsigned int sys_stat64(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int addr)
 {
 	struct stat64 st;
 	struct arm_stat64 result_st;
 
 	char filename[256];
-	cpu.GetMemoryModel().ReadString(filename_addr, filename, sizeof(filename) - 1);
+	auto interface = cpu->GetMemoryInterface("Mem");
+	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	if (stat64(filename, &st)) {
 		return -errno;
@@ -357,18 +376,19 @@ static unsigned int sys_stat64(gensim::Processor& cpu, unsigned int filename_add
 	result_st.target_st_ctime = (uint32_t)st.st_ctime;
 	result_st.st_blksize = 4096;
 
-	cpu.GetMemoryModel().Write(addr, (uint8_t *)&result_st, sizeof(result_st));
+	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
 
 	return 0;
 }
 
-static unsigned int sys_lstat64(gensim::Processor& cpu, unsigned int filename_addr, unsigned int addr)
+static unsigned int sys_lstat64(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int addr)
 {
 	struct stat64 st;
 	struct arm_stat64 result_st;
 
 	char filename[256];
-	cpu.GetMemoryModel().ReadString(filename_addr, filename, sizeof(filename) - 1);
+	auto interface = cpu->GetMemoryInterface("Mem");
+	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	if (lstat64(filename, &st)) {
 		return -errno;
@@ -390,15 +410,16 @@ static unsigned int sys_lstat64(gensim::Processor& cpu, unsigned int filename_ad
 	result_st.target_st_ctime = (uint32_t)st.st_ctime;
 	result_st.st_blksize = 4096;
 
-	cpu.GetMemoryModel().Write(addr, (uint8_t *)&result_st, sizeof(result_st));
+	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
 
 	return 0;
 }
 
-static unsigned int sys_ioctl(gensim::Processor& cpu, unsigned int fd, unsigned int request, unsigned int a0)
+static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int request, unsigned int a0)
 {
 	fd = translate_fd(cpu, fd);
-
+	auto interface = cpu->GetMemoryInterface("Mem");
+	
 	switch (request) {
 		case 0x5401: {
 			struct termio host;
@@ -408,7 +429,7 @@ static unsigned int sys_ioctl(gensim::Processor& cpu, unsigned int fd, unsigned 
 				return -errno;
 			}
 
-			cpu.GetMemoryModel().Write(a0, (uint8_t *)&host, sizeof(host));
+			interface.Write(Address(a0), (uint8_t *)&host, sizeof(host));
 			return 0;
 		}
 
@@ -418,17 +439,18 @@ static unsigned int sys_ioctl(gensim::Processor& cpu, unsigned int fd, unsigned 
 	}
 }
 
-static unsigned int sys_fcntl64(gensim::Processor& cpu, unsigned int fd, unsigned int cmd, unsigned int a0)
+static unsigned int sys_fcntl64(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int cmd, unsigned int a0)
 {
 	int rc = fcntl(translate_fd(cpu, fd), cmd, a0);
 	if (rc) return -errno;
 	return 0;
 }
 
-static unsigned int sys_mkdir(gensim::Processor& cpu, unsigned int filename_addr, unsigned int mode)
+static unsigned int sys_mkdir(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int mode)
 {
 	char filename[256];
-	cpu.GetMemoryModel().ReadString(filename_addr, filename, sizeof(filename) - 1);
+	auto interface = cpu->GetMemoryInterface("Mem");
+	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	int rc = mkdir(filename, mode);
 	if (rc) return -errno;
@@ -436,7 +458,7 @@ static unsigned int sys_mkdir(gensim::Processor& cpu, unsigned int filename_addr
 	return 0;
 }
 
-static unsigned int sys_getcwd(gensim::Processor& cpu, unsigned int buffer_addr, unsigned int size)
+static unsigned int sys_getcwd(archsim::core::thread::ThreadInstance* cpu, unsigned int buffer_addr, unsigned int size)
 {
 	const unsigned int max_size = 4096;
 	if (size == 0 || size > max_size)
@@ -450,27 +472,29 @@ static unsigned int sys_getcwd(gensim::Processor& cpu, unsigned int buffer_addr,
 	}
 
 	cwd[size] = '\0';
-	cpu.GetMemoryModel().WriteString(buffer_addr, cwd);
+	auto interface = cpu->GetMemoryInterface("Mem");
+	interface.WriteString(Address(buffer_addr), cwd);
 	free(cwd);
 
 	return 0;
 }
 
-static unsigned int sys_arm_settls(gensim::Processor& cpu, unsigned int addr)
+static unsigned int sys_arm_settls(archsim::core::thread::ThreadInstance* cpu, unsigned int addr)
 {
 	LC_DEBUG1(LogSyscalls) << "TLS Set to 0x" << std::hex << addr;
-	cpu.GetMemoryModel().Poke(0xffff0ff0, (uint8_t *)&addr, sizeof(addr));
+	
+	auto interface = cpu->GetMemoryInterface("Mem");
+	interface.Write(Address(0xffff0ff0), (uint8_t *)&addr, sizeof(addr));
 	
 	// also need to write the TPIDRURO control register which is an alternative way of accessing the TLS value
-	auto &tpidruro = cpu.GetRegisterDescriptor("TPIDRURO");
-	*(uint32_t*)tpidruro.DataStart = addr;
+	*cpu->GetRegisterFileInterface().GetEntry<uint32_t>("TPIDRURO") = addr;
 	
 	return 0;
 }
 
-static unsigned int sys_brk(gensim::Processor& cpu, unsigned int new_brk)
+static unsigned int sys_brk(archsim::core::thread::ThreadInstance* cpu, unsigned int new_brk)
 {
-	archsim::abi::UserEmulationModel& uem = static_cast<archsim::abi::UserEmulationModel&>(cpu.GetEmulationModel());
+	archsim::abi::UserEmulationModel& uem = static_cast<archsim::abi::UserEmulationModel&>(cpu->GetEmulationModel());
 	auto oldbrk = uem.GetBreak();
 	if (new_brk >= uem.GetInitialBreak()) uem.SetBreak(new_brk);
 
@@ -478,13 +502,14 @@ static unsigned int sys_brk(gensim::Processor& cpu, unsigned int new_brk)
 	return uem.GetBreak();
 }
 
-static unsigned int sys_gettimeofday(gensim::Processor& cpu, unsigned int tv_addr, unsigned int tz_addr)
+static unsigned int sys_gettimeofday(archsim::core::thread::ThreadInstance* cpu, unsigned int tv_addr, unsigned int tz_addr)
 {
 	struct timeval host_tv;
 	struct timezone host_tz;
 
 	struct arm_timeval guest_tv;
-
+	auto interface = cpu->GetMemoryInterface("Mem");
+	
 	if (tv_addr == 0) {
 		return -EFAULT;
 	}
@@ -493,7 +518,7 @@ static unsigned int sys_gettimeofday(gensim::Processor& cpu, unsigned int tv_add
 		guest_tv.tv_sec = (uint32_t)0;
 		guest_tv.tv_usec = (uint32_t)0;
 
-		cpu.GetMemoryModel().Write(tv_addr, (uint8_t *)&guest_tv, sizeof(guest_tv));
+		interface.Write(Address(tv_addr), (uint8_t *)&guest_tv, sizeof(guest_tv));
 		return 0;
 	}
 
@@ -504,34 +529,35 @@ static unsigned int sys_gettimeofday(gensim::Processor& cpu, unsigned int tv_add
 	guest_tv.tv_sec = (uint32_t)host_tv.tv_sec;
 	guest_tv.tv_usec = (uint32_t)host_tv.tv_usec;
 
-	cpu.GetMemoryModel().Write(tv_addr, (uint8_t *)&guest_tv, sizeof(guest_tv));
+	interface.Write(Address(tv_addr), (uint8_t *)&guest_tv, sizeof(guest_tv));
 
 	return 0;
 }
 
-static unsigned int sys_rt_sigprocmask(gensim::Processor& cpu, unsigned int how, unsigned int set_ptr, unsigned int oldset_ptr)
+static unsigned int sys_rt_sigprocmask(archsim::core::thread::ThreadInstance* cpu, unsigned int how, unsigned int set_ptr, unsigned int oldset_ptr)
 {
 	return 0;
 }
 
-static unsigned int sys_rt_sigaction(gensim::Processor& cpu, unsigned int signum, unsigned int act_ptr, unsigned int oldact_ptr)
+static unsigned int sys_rt_sigaction(archsim::core::thread::ThreadInstance* cpu, unsigned int signum, unsigned int act_ptr, unsigned int oldact_ptr)
 {
 	if(!archsim::options::UserPermitSignalHandling) return -EINVAL;
+	auto interface = cpu->GetMemoryInterface("Mem");
 	if (act_ptr == 0) {
 		if (oldact_ptr == 0) {
 			return -EINVAL;
 		} else {
 			archsim::abi::SignalData *data;
-			if (!cpu.GetEmulationModel().GetSignalData(signum, data))
+			if (!cpu->GetEmulationModel().GetSignalData(signum, data))
 				return 0;
 
-			cpu.GetMemoryModel().Write(oldact_ptr, (uint8_t *)data->priv, sizeof(struct arm_sigaction));
+			interface.Write(Address(oldact_ptr), (uint8_t *)data->priv, sizeof(struct arm_sigaction));
 			return 0;
 		}
 	} else {
 		archsim::abi::SignalData *data = NULL;
 		void *act = NULL;
-		if (!cpu.GetEmulationModel().GetSignalData(signum, data)) {
+		if (!cpu->GetEmulationModel().GetSignalData(signum, data)) {
 			act = malloc(sizeof(struct arm_sigaction));
 			if (act == NULL)
 				return -EFAULT;
@@ -540,20 +566,21 @@ static unsigned int sys_rt_sigaction(gensim::Processor& cpu, unsigned int signum
 			act = data->priv;
 		}
 
-		cpu.GetMemoryModel().Read(act_ptr, (uint8_t *)act, sizeof(struct arm_sigaction));
-		cpu.GetEmulationModel().CaptureSignal(signum, ((struct arm_sigaction *)act)->sa_handler, act);
+		interface.Read(Address(act_ptr), (uint8_t *)act, sizeof(struct arm_sigaction));
+		cpu->GetEmulationModel().CaptureSignal(signum, ((struct arm_sigaction *)act)->sa_handler, act);
 	}
 
 	return 0;
 }
 
-static unsigned int sys_times(gensim::Processor& cpu, unsigned int buf_addr)
+static unsigned int sys_times(archsim::core::thread::ThreadInstance* cpu, unsigned int buf_addr)
 {
 	if (buf_addr == 0)
 		return -EFAULT;
 
 	struct tms host_buf;
 	struct arm_tms guest_buf;
+	auto interface = cpu->GetMemoryInterface("Mem");
 
 	if(archsim::options::Verify) {
 		guest_buf.tms_utime = (uint32_t)0;
@@ -561,7 +588,7 @@ static unsigned int sys_times(gensim::Processor& cpu, unsigned int buf_addr)
 		guest_buf.tms_cutime = (uint32_t)0;
 		guest_buf.tms_cstime = (uint32_t)0;
 
-		cpu.GetMemoryModel().Write(buf_addr, (uint8_t *)&guest_buf, sizeof(guest_buf));
+		interface.Write(Address(buf_addr), (uint8_t *)&guest_buf, sizeof(guest_buf));
 
 		return 0;
 	}
@@ -574,7 +601,7 @@ static unsigned int sys_times(gensim::Processor& cpu, unsigned int buf_addr)
 	guest_buf.tms_cutime = (uint32_t)host_buf.tms_cutime;
 	guest_buf.tms_cstime = (uint32_t)host_buf.tms_cstime;
 
-	cpu.GetMemoryModel().Write(buf_addr, (uint8_t *)&guest_buf, sizeof(guest_buf));
+	interface.Write(Address(buf_addr), (uint8_t *)&guest_buf, sizeof(guest_buf));
 
 	return 0;
 }
@@ -591,69 +618,72 @@ static void host_timespec_to_arm(struct timespec *ts, struct arm_timespec *arm)
 	arm->tv_sec = ts->tv_sec;
 }
 
-static unsigned int sys_clock_gettime(gensim::Processor &cpu, unsigned int clk_id, unsigned int timespec_ptr)
+static unsigned int sys_clock_gettime(archsim::core::thread::ThreadInstance *cpu, unsigned int clk_id, unsigned int timespec_ptr)
 {
 	struct arm_timespec arm_ts;
 	struct timespec ts;
-
+	auto interface = cpu->GetMemoryInterface("Mem");
+	
 	if(archsim::options::Verify) {
 		arm_ts.tv_nsec = 0;
 		arm_ts.tv_sec = 0;
-		cpu.GetMemoryModel().Write(timespec_ptr, (uint8_t*)&arm_ts, sizeof(arm_ts));
+		interface.Write(Address(timespec_ptr), (uint8_t*)&arm_ts, sizeof(arm_ts));
 		return 0;
 	}
 
 	int result = clock_gettime(clk_id, &ts);
 	host_timespec_to_arm(&ts, &arm_ts);
 
-	cpu.GetMemoryModel().Write(timespec_ptr, (uint8_t*)&arm_ts, sizeof(arm_ts));
+	interface.Write(Address(timespec_ptr), (uint8_t*)&arm_ts, sizeof(arm_ts));
 
 	return -result;
 }
 
-static unsigned int sys_nanosleep(gensim::Processor& cpu, unsigned int req_ptr, unsigned int rem_ptr)
+static unsigned int sys_nanosleep(archsim::core::thread::ThreadInstance* cpu, unsigned int req_ptr, unsigned int rem_ptr)
 {
 	struct arm_timespec arm_req, arm_rem;
 	struct timespec req, rem;
 	int rc;
+	
+	auto interface = cpu->GetMemoryInterface("Mem");
 
 	bzero(&req, sizeof(req));
 	bzero(&rem, sizeof(rem));
 	bzero(&arm_req, sizeof(arm_req));
 	bzero(&arm_rem, sizeof(arm_rem));
 
-	cpu.GetMemoryModel().Read(req_ptr, (uint8_t *)&arm_req, sizeof(arm_req));
+	interface.Read(Address(req_ptr), (uint8_t *)&arm_req, sizeof(arm_req));
 	arm_timespec_to_host(&arm_req, &req);
 
 	rc = nanosleep(&req, &rem);
 
 	if (rem_ptr != 0) {
 		host_timespec_to_arm(&rem, &arm_rem);
-		cpu.GetMemoryModel().Write(rem_ptr, (uint8_t *)&arm_rem, sizeof(arm_rem));
+		interface.Write(Address(rem_ptr), (uint8_t *)&arm_rem, sizeof(arm_rem));
 	}
 
 	return rc ? -errno : rc;
 }
 
-static unsigned int sys_cacheflush(gensim::Processor &cpu, uint32_t start, uint32_t end)
+static unsigned int sys_cacheflush(archsim::core::thread::ThreadInstance *cpu, uint32_t start, uint32_t end)
 {
-	cpu.GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, (void*)(uint64_t)0);
+	cpu->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, (void*)(uint64_t)0);
 
 	return 0;
 }
 
-static unsigned int sys_dup(gensim::Processor &cpu, int oldfd)
+static unsigned int sys_dup(archsim::core::thread::ThreadInstance *cpu, int oldfd)
 {
 	int result = dup(oldfd);
 	if(result) return result;
 	else return -errno;
 }
 
-static unsigned int syscall_return_zero(gensim::Processor& cpu)
+static unsigned int syscall_return_zero(archsim::core::thread::ThreadInstance* cpu)
 {
 	return 0;
 }
-static unsigned int syscall_return_enosys(gensim::Processor& cpu)
+static unsigned int syscall_return_enosys(archsim::core::thread::ThreadInstance* cpu)
 {
 	return -ENOSYS;
 }

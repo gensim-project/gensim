@@ -9,12 +9,12 @@
 #include "abi/devices/MMU.h"
 #include "abi/memory/MemoryModel.h"
 
+#include "core/MemoryInterface.h"
+#include "core/execution/ExecutionEngine.h"
+
 #include "abi/memory/system/FunctionBasedSystemMemoryModel.h"
 
 #include "abi/memory/system/CacheBasedSystemMemoryModel.h"
-
-#include "gensim/gensim.h"
-#include "gensim/gensim_processor.h"
 
 #include "util/ComponentManager.h"
 #include "util/SimOptions.h"
@@ -27,6 +27,7 @@
 
 using namespace archsim::abi;
 using namespace archsim::abi::memory;
+using namespace archsim::core::thread;
 
 UseLogContext(LogEmulationModel);
 DeclareChildLogContext(LogSystemEmulationModel, LogEmulationModel, "System");
@@ -39,7 +40,7 @@ SystemEmulationModel::~SystemEmulationModel() { }
 
 void SystemEmulationModel::PrintStatistics(std::ostream& stream)
 {
-	cpu->PrintStatistics(stream);
+//	cpu->PrintStatistics(stream);
 }
 
 bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
@@ -49,10 +50,20 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 
 	// Acquire the CPU component
-	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleProcessorEntry>("CPU");
-	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
+	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleExecutionEngineEntry>("EE");
+	auto archentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
 
-
+	if(moduleentry == nullptr) {
+		return false;
+	}
+	if(archentry == nullptr) {
+		return false;
+	}
+	auto arch = archentry->Get();
+	auto engine = moduleentry->Get();
+	GetSystem().GetECM().AddEngine(engine);
+	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
+	
 	// Create a system memory model for this CPU
 	SystemMemoryModel *smm = NULL;
 	if(!GetComponentInstance(archsim::options::SystemMemoryModel, smm, &GetMemoryModel(), &system.GetPubSub())) {
@@ -61,25 +72,30 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 
-	if (!cpu->Initialise(*this, *smm)) {
-		delete smm;
-		return false;
-	}
-
-	// Initialise the CPU
-	cpu->reset_to_initial_state(true);
-
 	// Install Devices
 	if (!InstallDevices()) {
 		return false;
 	}
 
 	// Obtain the MMU
-	devices::MMU *mmu = (devices::MMU*)cpu->peripherals.GetDeviceByName("mmu");
+	devices::MMU *mmu = (devices::MMU*)main_thread_->GetPeripherals().GetDeviceByName("mmu");
+	
+	for(auto i : main_thread_->GetMemoryInterfaces()) {
+		if(i == &main_thread_->GetFetchMI()) {
+			i->Connect(*new archsim::LegacyFetchMemoryInterface(*smm));
+			i->ConnectTranslationProvider(*new archsim::MMUTranslationProvider(mmu, main_thread_));
+		} else {
+			i->Connect(*new archsim::LegacyMemoryInterface(*smm));
+			i->ConnectTranslationProvider(*new archsim::MMUTranslationProvider(mmu, main_thread_));
+		}
+	}
 
+	engine->AttachThread(main_thread_);
+	
+	
 	// Update the memory model with the necessary object references
 	smm->SetMMU(mmu);
-	smm->SetCPU(cpu);
+	smm->SetCPU(main_thread_);
 	smm->SetDeviceManager(&base_device_manager);
 
 	mmu->SetPhysMem(&GetMemoryModel());
@@ -95,34 +111,11 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 void SystemEmulationModel::Destroy()
 {
 	DestroyDevices();
-
-	cpu->GetMemoryModel().Destroy();
-	delete &cpu->GetMemoryModel();
-
-	cpu->Destroy();
-	delete cpu;
-}
-
-gensim::Processor *SystemEmulationModel::GetCore(int id)
-{
-	if (id != 0) return NULL;
-
-	return cpu;
-}
-
-gensim::Processor *SystemEmulationModel::GetBootCore()
-{
-	return cpu;
-}
-
-void SystemEmulationModel::ResetCores()
-{
-	cpu->reset_exception();
 }
 
 void SystemEmulationModel::HaltCores()
 {
-	cpu->Halt();
+	main_thread_->SendMessage(archsim::core::thread::ThreadMessage::Halt);
 }
 
 bool SystemEmulationModel::PrepareBoot(System &system)
@@ -157,15 +150,16 @@ bool SystemEmulationModel::PrepareBoot(System &system)
 	delete loader;
 
 	// Run platform-specific CPU boot code
-	if (!PrepareCore(*cpu)) {
+	if (!PrepareCore(*main_thread_)) {
 		LC_ERROR(LogSystemEmulationModel) << "Unable to prepare CPU for booting";
 		return false;
 	}
-
-	// Take a reset exception.
-	cpu->reset_exception();
+//
+//	// Take a reset exception.
+//	cpu->reset_exception();
 	return true;
 }
+
 
 bool SystemEmulationModel::RegisterMemoryComponent(abi::devices::MemoryComponent& component)
 {

@@ -22,14 +22,14 @@
 #include <stddef.h>
 #include <assert.h>
 
-
+#include <stdexcept>
 
 
 // TODO: SWITCH THESE TO CMAKE VARIABLES
 #define CONFIG_NO_MEMORY_EVENTS
 #define INSTRUCTION_WORD_TYPE uint32_t
 
-#define UNIMPLEMENTED do { throw std::logic_error("Not implemented"); } while(0)
+#define UNIMPLEMENTED do { throw std::logic_error("Not implemented " __FILE__ ":" + std::to_string(__LINE__)); } while(0)
 
 // Prompts for gcc's block placement algorithms
 #define LIKELY(x) __builtin_expect((x), 1)

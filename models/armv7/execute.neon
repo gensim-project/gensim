@@ -2072,11 +2072,11 @@ helper uint8 neon_memory_read_64(uint32 base, uint64 &out)
 	uint64 acc64 = 0;
 	uint32 acc = 0;
 	
-	mem_read_32(base, acc);
+	mem_read_32(Mem, base, acc);
 	base += 4;
 	acc64 |= acc;
 	
-	mem_read_32(base, acc);
+	mem_read_32(Mem, base, acc);
 	base += 4;
 	acc64 |= ((uint64)acc)<<32;
 	
@@ -2210,12 +2210,12 @@ execute(neon_memory_ld2_mul)
 				case 0:
 				{
 					uint8 data;
-					mem_read_8(address, data);
+					mem_read_8(Mem, address, data);
 					uint8[8] v1 = read_register_bank(VU8, inst.vd + r);
 					v1[e] = data;
 					write_register_bank(VU8, inst.vd + r, v1);
 					
-					mem_read_8(address+1, data);
+					mem_read_8(Mem, address+1, data);
 					uint8[8] v2 = read_register_bank(VU8, vd2 + r);
 					v2[e] = data;
 					write_register_bank(VU8, vd2 + r, v2);
@@ -2227,12 +2227,12 @@ execute(neon_memory_ld2_mul)
 				case 1:
 				{
 					uint16 data;
-					mem_read_16(address, data);
+					mem_read_16(Mem, address, data);
 					uint16[4] v1 = read_register_bank(VU16, inst.vd + r);
 					v1[e] = data;
 					write_register_bank(VU16, inst.vd + r, v1);
 					
-					mem_read_16(address+2, data);
+					mem_read_16(Mem, address+2, data);
 					uint16[4] v2 = read_register_bank(VU16, vd2 + r);
 					v2[e] = data;
 					write_register_bank(VU16, vd2 + r, v2);
@@ -2244,12 +2244,12 @@ execute(neon_memory_ld2_mul)
 				case 2:
 				{
 					uint32 data;
-					mem_read_32(address, data);
+					mem_read_32(Mem, address, data);
 					uint32[2] v1 = read_register_bank(VU32, inst.vd + r);
 					v1[e] = data;
 					write_register_bank(VU32, inst.vd + r, v1);
 					
-					mem_read_32(address+4, data);
+					mem_read_32(Mem, address+4, data);
 					uint32[2] v2 = read_register_bank(VU32, vd2 + r);
 					v2[e] = data;
 					write_register_bank(VU32, vd2 + r, v2);
@@ -2326,22 +2326,22 @@ execute(neon_memory_ld4_mul)
 			{
 				uint8 data;
 				uint8[8] v1 = read_register_bank(VU8, inst.vd);
-				mem_read_8(address, data);
+				mem_read_8(Mem, address, data);
 				v1[e] = data;
 				write_register_bank(VU8, inst.vd, v1);
 				
 				uint8[8] v2 = read_register_bank(VU8, vd2);
-				mem_read_8(address+1, data);
+				mem_read_8(Mem, address+1, data);
 				v2[e] = data;
 				write_register_bank(VU8, vd2, v2);
 				
 				uint8[8] v3 = read_register_bank(VU8, vd3);
-				mem_read_8(address+2, data);
+				mem_read_8(Mem, address+2, data);
 				v3[e] = data;
 				write_register_bank(VU8, vd3, v3);
 				
 				uint8[8] v4 = read_register_bank(VU8, vd4);
-				mem_read_8(address+3, data);
+				mem_read_8(Mem, address+3, data);
 				v4[e] = data;
 				write_register_bank(VU8, vd4, v4);
 				
@@ -2353,22 +2353,22 @@ execute(neon_memory_ld4_mul)
 			{
 				uint16 data;
 				uint16[4] v1 = read_register_bank(VU16, inst.vd);
-				mem_read_16(address, data);
+				mem_read_16(Mem, address, data);
 				v1[e] = data;
 				write_register_bank(VU16, inst.vd, v1);
 				
 				uint16[4] v2 = read_register_bank(VU16, vd2);
-				mem_read_16(address+2, data);
+				mem_read_16(Mem, address+2, data);
 				v2[e] = data;
 				write_register_bank(VU16, vd2, v2);
 				
 				uint16[4] v3 = read_register_bank(VU16, vd3);
-				mem_read_16(address+4, data);
+				mem_read_16(Mem, address+4, data);
 				v3[e] = data;
 				write_register_bank(VU16, vd3, v3);
 				
 				uint16[4] v4 = read_register_bank(VU16, vd4);
-				mem_read_16(address+6, data);
+				mem_read_16(Mem, address+6, data);
 				v4[e] = data;
 				write_register_bank(VU16, vd4, v4);
 				
@@ -2380,22 +2380,22 @@ execute(neon_memory_ld4_mul)
 			{
 				uint32 data;
 				uint32[2] v1 = read_register_bank(VU32, inst.vd);
-				mem_read_32(address, data);
+				mem_read_32(Mem, address, data);
 				v1[e] = data;
 				write_register_bank(VU32, inst.vd, v1);
 				
 				uint32[2] v2 = read_register_bank(VU32, vd2);
-				mem_read_32(address+4, data);
+				mem_read_32(Mem, address+4, data);
 				v2[e] = data;
 				write_register_bank(VU32, vd2, v2);
 				
 				uint32[2] v3 = read_register_bank(VU32, vd3);
-				mem_read_32(address+8, data);
+				mem_read_32(Mem, address+8, data);
 				v3[e] = data;
 				write_register_bank(VU32, vd3, v3);
 				
 				uint32[2] v4 = read_register_bank(VU32, vd4);
-				mem_read_32(address+12, data);
+				mem_read_32(Mem, address+12, data);
 				v4[e] = data;
 				write_register_bank(VU32, vd4, v4);
 				
@@ -2427,7 +2427,7 @@ execute(neon_memory_ld1_sol)
 			// 8 bit read
 			uint8 index = inst.index >> 1;
 			uint8 value;
-			mem_read_8(address, value);
+			mem_read_8(Mem, address, value);
 			
 			uint8[8] vector = read_register_bank(VU8, inst.vd);
 			vector[index] = value;
@@ -2442,7 +2442,7 @@ execute(neon_memory_ld1_sol)
 			// 16 bit read
 			uint8 index = inst.index >> 2;
 			uint16 value;
-			mem_read_16(address, value);
+			mem_read_16(Mem, address, value);
 			
 			uint16[4] vector = read_register_bank(VU16, inst.vd);
 			vector[index] = value;
@@ -2457,7 +2457,7 @@ execute(neon_memory_ld1_sol)
 			// 32 bit read
 			uint8 index = inst.index >> 3;
 			uint32 value;
-			mem_read_32(address, value);
+			mem_read_32(Mem, address, value);
 			
 			uint32[2] vector = read_register_bank(VU32, inst.vd);
 			vector[index] = value;
@@ -2497,7 +2497,7 @@ execute(neon_memory_ld1_sal)
 		case 0:
 		{
 			uint8 mem_value;
-			mem_read_8(address, mem_value);
+			mem_read_8(Mem, address, mem_value);
 			
 			rep_element = mem_value;
 			rep_element |= rep_element << 8;
@@ -2509,7 +2509,7 @@ execute(neon_memory_ld1_sal)
 		case 1:
 		{
 			uint16 mem_value;
-			mem_read_16(address, mem_value);
+			mem_read_16(Mem, address, mem_value);
 			
 			rep_element = mem_value;
 			rep_element |= rep_element << 16;
@@ -2520,7 +2520,7 @@ execute(neon_memory_ld1_sal)
 		case 2:
 		{
 			uint32 mem_value;
-			mem_read_32(address, mem_value);
+			mem_read_32(Mem, address, mem_value);
 			
 			rep_element = mem_value;
 			rep_element |= rep_element << 32;
@@ -2595,8 +2595,8 @@ helper void hneon_memory_st1_mul(uint8 itype, uint8 irn, uint8 irm, uint8 ivd)
 		uint64 value;
 		
 		uint32[2] vector = read_register_bank(VU32, ivd + i);
-		mem_write_32(address, vector[0]);
-		mem_write_32(address+4, vector[1]);
+		mem_write_32(Mem, address, vector[0]);
+		mem_write_32(Mem, address+4, vector[1]);
 		
 		address += 8;
 	}
@@ -2684,16 +2684,16 @@ execute(neon_memory_st4_mul)
 			case 0:
 			{
 				uint8[8] v1 = read_register_bank(VU8, inst.vd);
-				mem_write_8(address, v1[e]);
+				mem_write_8(Mem, address, v1[e]);
 				
 				uint8[8] v2 = read_register_bank(VU8, vd2);
-				mem_write_8(address+1, v2[e]);
+				mem_write_8(Mem, address+1, v2[e]);
 				
 				uint8[8] v3 = read_register_bank(VU8, vd3);
-				mem_write_8(address+2, v3[e]);
+				mem_write_8(Mem, address+2, v3[e]);
 				
 				uint8[8] v4 = read_register_bank(VU8, vd4);
-				mem_write_8(address+3, v4[e]);
+				mem_write_8(Mem, address+3, v4[e]);
 				
 				address += 4;
 				
@@ -2702,16 +2702,16 @@ execute(neon_memory_st4_mul)
 			case 1:
 			{
 				uint16[4] v1 = read_register_bank(VU16, inst.vd);
-				mem_write_16(address, v1[e]);
+				mem_write_16(Mem, address, v1[e]);
 				
 				uint16[4] v2 = read_register_bank(VU16, vd2);
-				mem_write_16(address+2, v2[e]);
+				mem_write_16(Mem, address+2, v2[e]);
 				
 				uint16[4] v3 = read_register_bank(VU16, vd3);
-				mem_write_16(address+4, v3[e]);
+				mem_write_16(Mem, address+4, v3[e]);
 				
 				uint16[4] v4 = read_register_bank(VU16, vd4);
-				mem_write_16(address+6, v4[e]);
+				mem_write_16(Mem, address+6, v4[e]);
 				
 				address += 8;
 				
@@ -2720,16 +2720,16 @@ execute(neon_memory_st4_mul)
 			case 2:
 			{
 				uint32[2] v1 = read_register_bank(VU32, inst.vd);
-				mem_write_32(address, v1[e]);
+				mem_write_32(Mem, address, v1[e]);
 				
 				uint32[2] v2 = read_register_bank(VU32, vd2);
-				mem_write_32(address+4, v2[e]);
+				mem_write_32(Mem, address+4, v2[e]);
 				
 				uint32[2] v3 = read_register_bank(VU32, vd3);
-				mem_write_32(address+8, v3[e]);
+				mem_write_32(Mem, address+8, v3[e]);
 				
 				uint32[2] v4 = read_register_bank(VU32, vd4);
-				mem_write_32(address+12, v4[e]);
+				mem_write_32(Mem, address+12, v4[e]);
 				
 				address += 16;
 				
@@ -2760,7 +2760,7 @@ execute(neon_memory_st1_sol)
 			uint8[8] vector = read_register_bank(VU8, inst.vd);
 			
 			uint8 index = inst.index >> 1;
-			mem_write_8(address, vector[index]);
+			mem_write_8(Mem, address, vector[index]);
 
 			offset = 1;
 			
@@ -2772,7 +2772,7 @@ execute(neon_memory_st1_sol)
 			uint16[4] vector = read_register_bank(VU16, inst.vd);
 			
 			uint8 index = inst.index >> 2;
-			mem_write_16(address, vector[index]);
+			mem_write_16(Mem, address, vector[index]);
 
 			offset = 2;
 			
@@ -2784,7 +2784,7 @@ execute(neon_memory_st1_sol)
 			uint32[2] vector = read_register_bank(VU32, inst.vd);
 			
 			uint8 index = inst.index >> 3;
-			mem_write_32(address, vector[index]);
+			mem_write_32(Mem, address, vector[index]);
 
 			offset = 4;
 			

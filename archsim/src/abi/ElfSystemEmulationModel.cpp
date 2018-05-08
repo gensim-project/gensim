@@ -10,7 +10,7 @@
 #include "abi/ElfSystemEmulationModel.h"
 #include "abi/loader/BinaryLoader.h"
 
-#include "gensim/gensim_processor.h"
+#include "core/thread/ThreadInstance.h"
 
 #include "util/ComponentManager.h"
 #include "util/SimOptions.h"
@@ -55,7 +55,7 @@ void ElfSystemEmulationModel::Destroy()
 	SystemEmulationModel::Destroy();
 }
 
-ExceptionAction ElfSystemEmulationModel::HandleException(gensim::Processor &cpu, uint32_t category, uint32_t data)
+ExceptionAction ElfSystemEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data)
 {
 	if(category == 3 && data == 0x123456) {
 		if(HandleSemihostingCall()) {
@@ -104,18 +104,18 @@ bool ElfSystemEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	return true;
 }
 
-bool ElfSystemEmulationModel::PrepareCore(gensim::Processor &cpu)
+bool ElfSystemEmulationModel::PrepareCore(archsim::core::thread::ThreadInstance &cpu)
 {
 	LC_DEBUG1(LogElfSystemEmulationModel) << "Binary entry point: " << std::hex << binary_entrypoint;
 
 	// Load r12 with the entry-point to the binary being executed.
-	uint32_t *regs = (uint32_t *)cpu.GetRegisterBankDescriptor("RB").GetBankDataStart();
+	uint32_t *regs = (uint32_t *)cpu.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 	regs[12] = binary_entrypoint;
 
 	LC_DEBUG1(LogElfSystemEmulationModel) << "Initial SP: " << std::hex << initial_sp;
 
 	// Load sp with the top of the stack.
-	regs = (uint32_t *)cpu.GetRegisterBankDescriptor("RB").GetBankDataStart();
+	regs = (uint32_t *)cpu.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 	regs[13] = initial_sp;
 
 	return true;
@@ -123,8 +123,9 @@ bool ElfSystemEmulationModel::PrepareCore(gensim::Processor &cpu)
 
 bool ElfSystemEmulationModel::HandleSemihostingCall()
 {
-	archsim::arch::arm::AngelSyscallHandler angel (GetBootCore()->GetMemoryModel(), heap_base, heap_limit, stack_base, stack_limit);
-	return angel.HandleSyscall(*GetBootCore());
+	UNIMPLEMENTED;
+//	archsim::arch::arm::AngelSyscallHandler angel (main_thread_, heap_base, heap_limit, stack_base, stack_limit);
+//	return angel.HandleSyscall(*GetBootCore());
 }
 
 bool ElfSystemEmulationModel::InstallDevices()
@@ -135,8 +136,8 @@ bool ElfSystemEmulationModel::InstallDevices()
 		return false;
 	}
 
-	cpu->peripherals.RegisterDevice("coprocessor", coprocessor);
-	cpu->peripherals.AttachDevice("coprocessor", 15);
+	main_thread_->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
+	main_thread_->GetPeripherals().AttachDevice("coprocessor", 15);
 
 	archsim::abi::devices::Device *mmu;
 	if (!GetComponentInstance("ARM926EJSMMU", mmu)) {
@@ -144,8 +145,8 @@ bool ElfSystemEmulationModel::InstallDevices()
 		return false;
 	}
 
-	cpu->peripherals.RegisterDevice("mmu", mmu);
-	cpu->peripherals.InitialiseDevices();
+	main_thread_->GetPeripherals().RegisterDevice("mmu", mmu);
+	main_thread_->GetPeripherals().InitialiseDevices();
 
 	return true;
 }

@@ -170,6 +170,8 @@ namespace gensim
 								return "(bitcast_double_u64(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
 							case genc::IRPlainOldDataType::INT32:
 								return "(bitcast_float_u32(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
+							default:
+								throw std::logic_error("Unhandled");
 						}
 
 					case SSACastStatement::Cast_Convert:
@@ -201,12 +203,15 @@ namespace gensim
 						case SSACastStatement::Option_RoundTowardZero:
 							output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
 							output << "{";
-							output << "auto mode = fegetround();";
-							output << "fesetround(FE_TOWARDZERO);";
+							output << "auto mode = thread->GetFPState().GetRoundingMode();";
+							output << "thread->GetFPState().SetRoundingMode(archsim::core::thread::RoundingMode::RoundTowardZero);";
 							output << stmt.GetName() << " = " << "(" << stmt.GetType().GetCType() << ")" << Factory.GetOrCreate(stmt.Expr())->GetFixedValue() << ";";
-							output << "fesetround(mode);";
+							output << "thread->GetFPState().SetRoundingMode(mode);";
 							output << "}";
 							break;
+							
+						default:
+							throw std::logic_error("Unhandled");
 					}
 				}
 
@@ -309,7 +314,7 @@ namespace gensim
 				const SSAStatement *addr = stmt.Address();
 				const SSASymbol *target = stmt.Target();
 
-				output << "uint32_t " << stmt.GetName() << " = read_device(" << Factory.GetOrCreate(dev_id)->GetFixedValue() << ", " << Factory.GetOrCreate(addr)->GetFixedValue() << ", " << target->GetName() << ");";
+				output << "uint32_t " << stmt.GetName() << " = thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(dev_id)->GetFixedValue() << ")->Read32(" << Factory.GetOrCreate(addr)->GetFixedValue() << ", " << target->GetName() << ");";
 
 				return true;
 			}
@@ -344,11 +349,10 @@ namespace gensim
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = __builtin_clz(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
-						output << "take_exception(" << (Factory.GetOrCreate(stmt.Args(0))->GetFixedValue()) << "," << (Factory.GetOrCreate(stmt.Args(1))->GetFixedValue()) << ");";
-
+						output << "thread->TakeException(" << (Factory.GetOrCreate(stmt.Args(0))->GetFixedValue()) << "," << (Factory.GetOrCreate(stmt.Args(1))->GetFixedValue()) << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
-						output << "halt_cpu();";
+						output << "UNIMPLEMENTED; // haltcpu\n";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = __builtin_popcount(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
@@ -357,35 +361,39 @@ namespace gensim
 						// nothing here
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_Trap:
-						output << "trap();";
+						output << "throw std::logic_error(\"Trap.\");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
-						output << "set_cpu_mode(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						output << "thread->SetModeID(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = write_device(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ")->Write32(" << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = probe_device(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						output << "UNIMPLEMENTED; //probedevice\n";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
+//						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = probe_device(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
-						output << "pop_interrupt();";
+//						output << "UNIMPLEMENTED; // pop_interrupt\n";
+//						output << "pop_interrupt();";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
-						output << "push_interrupt(1);";
+//						output << "push_interrupt(1);";
+//						output << "UNIMPLEMENTED; // push_interrupt\n";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = get_cpu_mode();";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetModeID();";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
-						output << "enter_kernel_mode();";
+						output << "thread->SetExecutionRing(1);";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
-						output << "enter_user_mode();";
+						output << "thread->SetExecutionRing(0);";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
-						output << "pend_interrupt();";
+						output << "thread->PendIRQ();";
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
@@ -418,10 +426,10 @@ namespace gensim
 						//SZ0A0P1C0000000V
 						output << "{";
 						output << "uint16_t flags = genc_adc_flags(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						output << "write_register_C((flags >> 8) & 1);";
-						output << "write_register_V(flags & 1);";
-						output << "write_register_Z((flags >> 14) & 1);";
-						output << "write_register_N((flags >> 15) & 1);";
+						output << "interface.write_register_C((flags >> 8) & 1);";
+						output << "interface.write_register_V(flags & 1);";
+						output << "interface.write_register_Z((flags >> 14) & 1);";
+						output << "interface.write_register_N((flags >> 15) & 1);";
 						output << "}";
 						break;
 
@@ -437,33 +445,34 @@ namespace gensim
 					 */
 
 					case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32:
-						output << "write_register_Z(!(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
-						output << "write_register_N(((" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ") & 0x80000000) != 0);";
+						output << "interface.write_register_Z(!(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
+						output << "interface.write_register_N(((" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ") & 0x80000000) != 0);";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN64:
-						output << "write_register_Z(!(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
-						output << "write_register_N(((" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ") & 0x8000000000000000ull) != 0);";
+						output << "interface.write_register_Z(!(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
+						output << "interface.write_register_N(((" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ") & 0x8000000000000000ull) != 0);";
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_GetFeature:
-						output << "uint32_t " << stmt.GetName() << " = GetFeatures().GetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+//						output << "UNIMPLEMENTED; // getfeature\n";
+//						output << "uint32_t " << stmt.GetName() << ";";
+						output << "uint32_t " << stmt.GetName() << " = thread->GetFeatures().GetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_SetFeature:
-						output << "GetFeatures().SetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ");";
+						output << "thread->GetFeatures().SetFeatureLevel(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ");";
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = cpuGetFlushMode(this);";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = (uint32_t)thread->GetFPState().GetFlushMode();";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = cpuGetRoundingMode(this);";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = (uint32_t)thread->GetFPState().GetRoundingMode();";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
-						output << "cpuSetFlushMode(this, " << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						output << "thread->GetFPState().SetFlushMode((archsim::core::thread::FlushMode)" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
-						output << "cpuSetRoundingMode(this, " << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
-						break;
+						output << "thread->GetFPState().SetRoundingMode((archsim::core::thread::RoundingMode)" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 
 					default:
@@ -477,7 +486,7 @@ namespace gensim
 				const SSAIntrinsicStatement &stmt = (const SSAIntrinsicStatement &) (Statement);
 				switch (stmt.Type) {
 					case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
-						return "read_pc()";
+						return "interface.read_pc().Get()";
 					default:
 						return stmt.GetName();
 				}
@@ -513,13 +522,20 @@ namespace gensim
 			{
 				const SSAMemoryReadStatement &stmt = (const SSAMemoryReadStatement &) (Statement);
 
+				// look up correct memory interface
+				auto interface = stmt.GetInterface();
+				
 				output << "{";
-				output << "uint32_t _value = mem_read_" << (stmt.Width * 8) << (stmt.Signed ? "s" : "") << (stmt.User ? "_user" : "") << "(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << "," << stmt.Target()->GetName() << ");";
-				output << "if(_value) {"
-				       "take_exception(7, read_pc()+8);"
-				       "longjmp(_longjmp_safepoint, 0);"
-				       "}";
+				output << "archsim::Address addr = archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ");";
+				output << "auto &interface = thread->GetMemoryInterface(" << interface->GetID() << ");";
+				output << "archsim::MemoryResult _value = interface.Read" << (stmt.Width * 8) << "(addr," << stmt.Target()->GetName() << ");";
+				output << "if(_value != archsim::MemoryResult::OK) {";
+				// trigger exception
+				output << "  thread->TakeMemoryException(interface, addr);";
 				output << "}";
+				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Read(1, " << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ", " << stmt.Target()->GetName() << ", " << (uint32_t)(stmt.Width) << "); }";
+				output << "}";
+				
 				return true;
 			}
 		};
@@ -533,16 +549,20 @@ namespace gensim
 			}
 
 			bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
-			{
+			{				
 				const SSAMemoryWriteStatement &stmt = (const SSAMemoryWriteStatement &) (Statement);
+				
+				// look up correct memory interface
+				auto interface = stmt.GetInterface();
+				
 				output << "{";
-				output << "uint32_t _value = mem_write_" << (stmt.Width * 8) << (stmt.User ? "_user" : "") << "(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ");";
-				output << "if(_value) {"
-				       "if(_value <= 1024) {"
-				       "	take_exception(7, read_pc()+8);"
-				       "}"
-				       "longjmp(_longjmp_safepoint, 0);"
-				       "}";
+				output << "auto &interface = thread->GetMemoryInterface(" << interface->GetID() << ");";
+				output << "archsim::Address addr = archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ");";
+				output << "archsim::MemoryResult _value = interface.Write" << (stmt.Width * 8) << "(addr," << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ");";
+				output << "if(_value != archsim::MemoryResult::OK) {";
+				output << "  thread->TakeMemoryException(interface, addr);";
+				output << "}";
+				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Write(1, " << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ", " << (uint32_t)stmt.Width << "); }";
 				output << "}";
 				return true;
 			}
@@ -568,7 +588,9 @@ namespace gensim
 
 				if (stmt.MemberName == "IsPredicated")
 					str << "inst.GetIsPredicated()";
-				else {
+				else if(stmt.MemberName == "PredicateInfo") {
+					str << "inst.GetPredicateInfo()";
+				} else {
 					if (Statement.Parent->Parent->Isa->IsFieldOrthogonal(stmt.MemberName))
 						str << "inst.GetField_" << Statement.Parent->Parent->Isa->ISAName << "_" << stmt.MemberName << "()";
 					else
@@ -597,19 +619,19 @@ namespace gensim
 					auto idx_node = Factory.GetOrCreate(stmt.RegNum());
 
 					if (stmt.IsRead) {
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = read_register_bank_" << reg_desc.ID << "(" << idx_node->GetFixedValue() << ");";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = interface.read_register_bank_" << reg_desc.ID << "<trace>(" << idx_node->GetFixedValue() << ");";
 					} else {
 						auto value_node = Factory.GetOrCreate(stmt.Value());
-						output << "write_register_bank_" << reg_desc.ID << "(" << idx_node->GetFixedValue() << ", " << value_node->GetFixedValue() << ");";
+						output << "interface.write_register_bank_" << reg_desc.ID << "<trace>(" << idx_node->GetFixedValue() << ", " << value_node->GetFixedValue() << ");";
 					}
 				} else {
 					auto &reg_desc = regfile.GetSlotByIdx(stmt.Bank);
 
 					if (stmt.IsRead) {
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = read_register_" << reg_desc.GetID() << "();";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = interface.read_register_" << reg_desc.GetID() << "<trace>();";
 					} else {
 						auto value_node = Factory.GetOrCreate(stmt.Value());
-						output << "write_register_" << reg_desc.GetID() << "(" << value_node->GetFixedValue() << ");";
+						output << "interface.write_register_" << reg_desc.GetID() << "<trace>(" << value_node->GetFixedValue() << ");";
 					}
 				}
 
@@ -729,9 +751,21 @@ namespace gensim
 				const SSACallStatement &stmt = (const SSACallStatement&) (Statement);
 
 				if (stmt.HasValue()) output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = ";
+				bool is_helper = stmt.Target()->GetPrototype().GetIRSignature().HasAttribute(gensim::genc::ActionAttribute::Helper);
+				bool is_external = stmt.Target()->GetPrototype().GetIRSignature().HasAttribute(gensim::genc::ActionAttribute::External);
+				if(is_helper) {
+					output << "helper_" << stmt.GetISA() << "_" ;
+				} else if(is_external) {
+					output << "thread->fn_";
+				}
 				output << stmt.Target()->GetPrototype().GetIRSignature().GetName() << "(";
 
 				bool first = true;
+				
+				if(is_helper) {
+					first = false;
+					output << "thread";
+				}
 				for (int i = 0; i < stmt.ArgCount(); ++i) {
 					if (!first) output << ",";
 					first = false;

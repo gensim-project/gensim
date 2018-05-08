@@ -136,12 +136,7 @@ bool X86LoweringContext::Prepare(const TranslationContext &ctx, BlockCompiler &c
 	A(IRInstruction::VMULF, VMulF);
 	A(IRInstruction::VMULI, VMulI);
 
-	if(archsim::options::SystemMemoryModel == "function") {
-		A(IRInstruction::READ_MEM, ReadMemFunction);
-		A(IRInstruction::READ_MEM_USER, ReadUserMemFunction);
-		A(IRInstruction::WRITE_MEM, WriteMemFunction);
-		A(IRInstruction::WRITE_MEM_USER, WriteUserMemFunction);
-	} else if(archsim::options::SystemMemoryModel == "cache") {
+	if(archsim::options::SystemMemoryModel == "cache") {
 		A(IRInstruction::READ_MEM, ReadMemCache);
 		A(IRInstruction::READ_MEM_USER, ReadUserMemCache);
 		A(IRInstruction::WRITE_MEM, WriteMemCache);
@@ -167,11 +162,18 @@ bool X86LoweringContext::Prepare(const TranslationContext &ctx, BlockCompiler &c
 bool X86LoweringContext::LowerHeader(const TranslationContext &ctx)
 {
 	uint32_t max_stack = GetStackFrameSize();
+
+	GetEncoder().push(BLKJIT_CPUSTATE_REG);
+	GetEncoder().push(BLKJIT_REGSTATE_REG);
+	
+	GetEncoder().mov(REG_RDI, BLKJIT_REGSTATE_REG);
+	GetEncoder().mov(REG_RSI, BLKJIT_CPUSTATE_REG);
+
 	if(max_stack & 15) {
 		max_stack = (max_stack & ~15) + 16;
 	}
 
-	if(max_stack) GetEncoder().sub(max_stack, REG_RSP);
+	if(max_stack) GetEncoder().sub(max_stack, REG_RSP);	
 
 	return true;
 }

@@ -1,7 +1,7 @@
 #include "translate/Translation.h"
+#include "translate/TranslationManager.h"
 #include "translate/profile/Region.h"
 #include "translate/profile/Block.h"
-#include "gensim/gensim_processor.h"
 #include "util/LogContext.h"
 
 #include <mutex>
@@ -20,21 +20,21 @@ Region::Region(TranslationManager& mgr, phys_addr_t phys_base_addr)
 	  invalid(false),
 	  txln(NULL)
 {
-//	fprintf(stderr, "*** Region Create %p 0x%08x\n", this, phys_base_addr);
+
 }
 
 Region::~Region()
 {
 	LC_DEBUG2(LogLifetime) << "Deleting Region Object: " << *this;
 
-//	fprintf(stderr, "*** Region Delete %p 0x%08x\n", this, phys_base_addr);
-
-	if(txln)mgr.RegisterTranslationForGC(*txln);
+	if(txln) {
+		mgr.RegisterTranslationForGC(*txln);
+	}
 }
 
-Block& Region::GetBlock(virt_addr_t virt_addr, uint8_t isa_mode)
+Block& Region::GetBlock(Address virt_addr, uint8_t isa_mode)
 {
-	addr_t offset = RegionArch::PageOffsetOf(virt_addr);
+	addr_t offset = virt_addr.GetPageOffset();
 
 	Block *&block = blocks[offset];
 	if (UNLIKELY(!block)) {
@@ -56,16 +56,16 @@ bool Region::HasTranslations() const
 	return (GetStatus() == InTranslation) || txln;
 }
 
-void Region::TraceBlock(gensim::Processor& cpu, virt_addr_t virt_addr)
+void Region::TraceBlock(archsim::core::thread::ThreadInstance *thread, Address virt_addr)
 {
 	if (status == InTranslation)
 		return;
 
-	virtual_images.insert(RegionArch::PageBaseOf(virt_addr));
-	block_interp_count[RegionArch::PageOffsetOf(virt_addr)]++;
+	virtual_images.insert(virt_addr.GetPageBase());
+	block_interp_count[virt_addr.GetPageOffset()]++;
 	total_interp_count++;
 
-	mgr.TraceBlock(cpu, GetBlock(virt_addr, cpu.state.isa_mode));
+	mgr.TraceBlock(thread, GetBlock(virt_addr, thread->GetModeID()));
 }
 
 void Region::Invalidate()

@@ -88,34 +88,14 @@ namespace archsim
 						typedef std::chrono::duration<uint32_t, std::ratio<1, 24000000> > tick_24MHz_t;
 
 						// default counter tick rate is 1ms
+						uint64_t tick_count = parent.GetSystem().GetTickSource()->GetCounter() - hr_begin;
+						std::chrono::milliseconds tick_time (tick_count);
 
-						if(false && archsim::options::InstructionTick) {
-							static FILE *timer_file = NULL;
-							if(!timer_file) {
-								timer_file = fopen("qemu.24mhz", "r");
-								if(!timer_file) exit(1);
-							}
-							char *line = NULL;
-							size_t len = 0;
-							ssize_t chars = getline(&line, &len, timer_file);
-							if(chars < 0) {
-								fprintf(stderr, "sp810 out of ticks\n");
-								exit(1);
-
-							} else {
-								data = strtol(line, NULL, 10);
-								free(line);
-							}
-						} else  {
-							uint64_t tick_count = parent.GetSystem().GetTickSource()->GetCounter() - hr_begin;
-							std::chrono::milliseconds tick_time (tick_count);
-
-							// If we're using an instruction ticker, scale to 500MHz
-							if(archsim::options::InstructionTick) {
-								data = (((uint64_t)tick_count) * 24000000) / 500000000;
-							} else {
-								data = (std::chrono::duration_cast<tick_24MHz_t>(tick_time)).count();
-							}
+						// If we're using an instruction ticker, scale to 500MHz
+						if(archsim::options::InstructionTick) {
+							data = (((uint64_t)tick_count) * 24000000) / 500000000;
+						} else {
+							data = (std::chrono::duration_cast<tick_24MHz_t>(tick_time)).count();
 						}
 
 //		data = (std::chrono::duration_cast<tick_24MHz_t>(tick_time)).count();

@@ -9,7 +9,7 @@ using namespace captive::shared;
 uint32_t find_run_size(uint32_t* ptr, uint32_t *end) {
 	uint32_t first_idx = ptr[0];
 	uint32_t size = 0;
-	while(ptr[size] == first_idx + size && (ptr + size) < end) {
+	while((ptr + size) < end && ptr[size] == first_idx + size) {
 		size++;
 	}
 	

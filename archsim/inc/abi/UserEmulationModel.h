@@ -9,7 +9,9 @@
 #define	USEREMULATIONMODEL_H
 
 #include "abi/EmulationModel.h"
+#include "abi/memory/MemoryModel.h"
 #include "abi/user/SyscallHandler.h"
+#include "core/thread/ThreadInstance.h"
 
 namespace archsim
 {
@@ -23,7 +25,7 @@ namespace archsim
 		struct SyscallRequest {
 			unsigned int syscall;
 
-			gensim::Processor& cpu;
+			archsim::core::thread::ThreadInstance *thread;
 
 			unsigned int arg0;
 			unsigned int arg1;
@@ -48,13 +50,18 @@ namespace archsim
 			void Destroy() override;
 
 			gensim::Processor* GetCore(int id);
-			gensim::Processor* GetBootCore();
+			
+			archsim::core::thread::ThreadInstance *GetMainThread();
+			
 			void ResetCores();
 			void HaltCores();
 
 			bool PrepareBoot(System& system);
 
 			bool EmulateSyscall(SyscallRequest& request, SyscallResponse& response);
+			
+			Address MapAnonymousRegion(size_t size, archsim::abi::memory::RegionFlags flags);
+			bool MapRegion(Address addr, size_t size, archsim::abi::memory::RegionFlags flags, const std::string &region_name);
 
 			void SetInitialBreak(unsigned int brk);
 			void SetBreak(unsigned int brk);
@@ -64,15 +71,13 @@ namespace archsim
 			bool AssertSignal(int signum, SignalData* data);
 			virtual bool InvokeSignal(int signum, uint32_t next_pc, SignalData* data);
 
-			virtual ExceptionAction HandleException(gensim::Processor& cpu, unsigned int category, unsigned int data);
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, unsigned int category, unsigned int data) override;
 			void PrintStatistics(std::ostream& stream);
 
 		private:
 			bool PrepareStack(System& system, loader::UserElfBinaryLoader& elf_loader);
 			bool InitialiseProgramArguments();
-
-			gensim::Processor* cpu;
-
+			
 			user::SyscallHandler &syscall_handler_;
 
 			int global_argc, global_envc;
@@ -83,6 +88,8 @@ namespace archsim
 			unsigned int _stack_size;
 			unsigned int _initial_program_break;
 			unsigned int _program_break;
+			
+			archsim::core::thread::ThreadInstance *main_thread_;
 		};
 	}
 }

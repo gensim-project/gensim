@@ -15,6 +15,8 @@
 #include "util/CounterTimer.h"
 #include "util/PubSubSync.h"
 
+#include "core/thread/ThreadInstance.h"
+
 #include "translate/TranslationCache.h"
 #include "translate/profile/ProfileManager.h"
 
@@ -27,11 +29,6 @@
 #include <set>
 
 #include <cstring>
-
-namespace gensim
-{
-	class Processor;
-}
 
 namespace llvm
 {
@@ -78,13 +75,13 @@ namespace archsim
 		class TranslationManager
 		{
 		public:
-			TranslationManager(util::PubSubContext *pubsubContext);
+			TranslationManager(util::PubSubContext &pubsubContext);
 			virtual ~TranslationManager();
 
 			virtual bool Initialise();
 			virtual void Destroy();
 
-			virtual bool TranslateRegion(gensim::Processor& cpu, profile::Region& rgn, uint32_t weight) = 0;
+			virtual bool TranslateRegion(archsim::core::thread::ThreadInstance *thread, profile::Region& rgn, uint32_t weight) = 0;
 
 			inline bool RegionIsDirty(phys_addr_t region_addr)
 			{
@@ -95,7 +92,7 @@ namespace archsim
 			 * Profile touched regions and dispatch some for translation if they are hot.
 			 * Returns true if regions were dispatched for translation
 			 */
-			bool Profile(gensim::Processor& cpu);
+			bool Profile(archsim::core::thread::ThreadInstance *thread);
 
 			void RegisterTranslationForGC(Translation& txln);
 			void RunGC();
@@ -126,7 +123,7 @@ namespace archsim
 
 			bool TryGetRegion(phys_addr_t phys_addr, profile::Region*& region);
 
-			void TraceBlock(gensim::Processor& cpu, profile::Block& block);
+			void TraceBlock(archsim::core::thread::ThreadInstance *thread, profile::Block& block);
 
 			inline void ResetTrace()
 			{

@@ -4,10 +4,10 @@
 #include "abi/user/SyscallHandler.h"
 #include "util/SimOptions.h"
 #include "util/CommandLine.h"
-#include "gensim/gensim.h"
-#include "gensim/gensim_processor.h"
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
+#include "core/MemoryInterface.h"
+#include "core/execution/ExecutionEngine.h"
 
 extern char **environ;
 
@@ -22,7 +22,8 @@ UserEmulationModel::~UserEmulationModel() { }
 
 void UserEmulationModel::PrintStatistics(std::ostream& stream)
 {
-	cpu->PrintStatistics(stream);
+//	cpu->PrintStatistics(stream);
+	UNIMPLEMENTED;
 }
 
 bool UserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, SignalData* data)
@@ -33,7 +34,8 @@ bool UserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, SignalData* 
 
 bool UserEmulationModel::AssertSignal(int signal, SignalData* data)
 {
-	cpu->assert_signal(signal);
+	UNIMPLEMENTED;
+//	cpu->assert_signal(signal);
 	return true;
 }
 
@@ -42,19 +44,37 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	if (!EmulationModel::Initialise(system, uarch))
 		return false;
 
-	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleProcessorEntry>("CPU");
-	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
-
-	if (!cpu->Initialise(*this, GetMemoryModel())) {
+	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleExecutionEngineEntry>("EE");
+	auto archentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
+	if(moduleentry == nullptr) {
 		return false;
 	}
+	if(archentry == nullptr) {
+		return false;
+	}
+	auto arch = archentry->Get();
+	auto engine = moduleentry->Get();
+	GetSystem().GetECM().AddEngine(engine);
+	main_thread_ = new archsim::core::thread::ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
+	
+	for(auto i : main_thread_->GetMemoryInterfaces()) {
+		i->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
+	}
+	
+	engine->AttachThread(main_thread_);
+	
+//	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
 
-	cpu->reset_to_initial_state(true);
+//	if (!cpu->Initialise(*this, GetMemoryModel())) {
+//		return false;
+//	}
+//
+//	cpu->reset_to_initial_state(true);
 
-	archsim::abi::devices::Device *coprocessor;
-	if(!GetComponentInstance("fpu", coprocessor)) return false;
-	cpu->peripherals.RegisterDevice("fpu", coprocessor);
-	cpu->peripherals.AttachDevice("fpu", 10);
+//	archsim::abi::devices::Device *coprocessor;
+//	if(!GetComponentInstance("fpu", coprocessor)) return false;
+//	cpu->peripherals.RegisterDevice("fpu", coprocessor);
+//	cpu->peripherals.AttachDevice("fpu", 10);
 
 #ifdef IO_DEVICES
 	if (system.sim_opts.virtual_screen) {
@@ -67,35 +87,33 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		cpu->peripherals.AttachDevice("kb", 13);
 	}
 #endif
-
+	
 	return true;
 }
 
 void UserEmulationModel::Destroy()
 {
-	cpu->Destroy();
-	delete cpu;
+//	UNIMPLEMENTED;
 }
 
 gensim::Processor *UserEmulationModel::GetCore(int id)
 {
-	if (id != 0) return NULL;
-	return cpu;
+	UNIMPLEMENTED;
 }
 
-gensim::Processor *UserEmulationModel::GetBootCore()
+archsim::core::thread::ThreadInstance* UserEmulationModel::GetMainThread()
 {
-	return cpu;
+	return main_thread_;
 }
 
 void UserEmulationModel::ResetCores()
 {
-	cpu->reset();
+	UNIMPLEMENTED;
 }
 
 void UserEmulationModel::HaltCores()
 {
-	cpu->Halt();
+	UNIMPLEMENTED;
 }
 
 bool UserEmulationModel::InitialiseProgramArguments()
@@ -230,17 +248,29 @@ bool UserEmulationModel::PrepareBoot(System &system)
 	}
 	 * */
 
-	cpu->write_pc(_initial_entry_point);
-	cpu->write_sp(_initial_stack_pointer);
+	GetMainThread()->SetPC(Address(_initial_entry_point));
+	GetMainThread()->SetSP(Address(_initial_stack_pointer));
+//	cpu->write_pc(_initial_entry_point);
+//	cpu->write_sp(_initial_stack_pointer);
 
 	return true;
 }
 
 bool UserEmulationModel::EmulateSyscall(SyscallRequest &request, SyscallResponse &response)
 {
-	if (archsim::options::Verbose)
-		GetBootCore()->metrics.syscalls_invoked.inc();
+//	if (archsim::options::Verbose)
+//		GetBootCore()->metrics.syscalls_invoked.inc();
 	return syscall_handler_.HandleSyscall(request, response);
+}
+
+archsim::Address UserEmulationModel::MapAnonymousRegion(size_t size, archsim::abi::memory::RegionFlags flags)
+{
+	return Address(GetMemoryModel().GetMappingManager()->MapAnonymousRegion(size, flags));
+}
+
+bool UserEmulationModel::MapRegion(archsim::Address addr, size_t size, archsim::abi::memory::RegionFlags flags, const std::string &region_name)
+{
+	return GetMemoryModel().GetMappingManager()->MapRegion(addr.Get(), size, flags, region_name);
 }
 
 void UserEmulationModel::SetInitialBreak(unsigned int brk)
@@ -272,7 +302,7 @@ unsigned int UserEmulationModel::GetInitialBreak()
 	return _initial_program_break;
 }
 
-ExceptionAction UserEmulationModel::HandleException(gensim::Processor &cpu, unsigned int category, unsigned int data)
+ExceptionAction UserEmulationModel::HandleException(archsim::core::thread::ThreadInstance *thread, unsigned int category, unsigned int data)
 {
 	LC_WARNING(LogEmulationModelUser) << "Unhandled exception " << category << ", " << data;
 	return AbortSimulation;

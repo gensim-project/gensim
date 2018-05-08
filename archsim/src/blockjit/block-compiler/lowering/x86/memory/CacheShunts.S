@@ -14,9 +14,6 @@ blkCacheRead8Fallback:
 	push %r10
 	push %r11
 
-	mov %r12, %rdi
-	mov %r15, %rsi
-
 	callq blkRead8
 
 	mov %rax, %r15
@@ -42,9 +39,6 @@ blkCacheRead16Fallback:
 	push %r10
 	push %r11
 
-	mov %r12, %rdi
-	mov %r15, %rsi
-
 	callq blkRead16
 
 	mov %rax, %r15
@@ -69,9 +63,6 @@ blkCacheRead32Fallback:
 	push %r9
 	push %r10
 	push %r11
-
-	mov %r12, %rdi
-	mov %r15, %rsi
 
 	callq blkRead32
 
@@ -100,8 +91,6 @@ blkCacheWrite8Fallback:
 	push %r10
 	push %r11
 
-	mov (%r12), %rdi
-
 	callq cpuWrite8
 
 	pop %r11
@@ -125,8 +114,6 @@ blkCacheWrite16Fallback:
 	push %r10
 	push %r11
 
-	mov (%r12), %rdi
-
 	callq cpuWrite16
 
 	pop %r11
@@ -149,8 +136,6 @@ blkCacheWrite32Fallback:
 	push %r9
 	push %r10
 	push %r11
-
-	mov (%r12), %rdi
 
 	callq cpuWrite32
 

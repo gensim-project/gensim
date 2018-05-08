@@ -39,7 +39,7 @@ bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
 	const X86Register *sysv_abi[] = { &REG_RDI, &REG_RSI, &REG_RDX, &REG_RCX, &REG_R8, &REG_R9 };
 
 	// CPU State
-	GetCompiler().load_state_field(0, *sysv_abi[0]);
+	GetCompiler().load_state_field("thread_ptr", *sysv_abi[0]);
 
 	for (int i = 1; i < 6; i++) {
 		if (insn->operands[i].type != IROperand::NONE) {

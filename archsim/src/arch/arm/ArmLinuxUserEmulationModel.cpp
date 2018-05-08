@@ -4,11 +4,11 @@
 #include "arch/arm/ArmLinuxUserEmulationModel.h"
 #include "arch/arm/ARMDecodeContext.h"
 
-#include "gensim/gensim_processor.h"
-
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
 #include "util/SimOptions.h"
+
+#include "system.h"
 
 #ifdef CONFIG_GFX
 #ifdef CONFIG_SDL
@@ -70,22 +70,22 @@ bool ArmLinuxUserEmulationModel::PrepareBoot(System& system)
 	}
 #endif
 
-	GetBootCore()->peripherals.InitialiseDevices();
+//	GetBootCore()->peripherals.InitialiseDevices();
 
 	// set up FPU
-	gensim::Processor *cpu = GetBootCore();
-	cpu->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_FPEXC", 1);
-	cpu->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 2);
-	cpu->GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 1);
+//	gensim::Processor *cpu = GetBootCore();
+//	cpu->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_FPEXC", 1);
+//	cpu->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 2);
+//	cpu->GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 1);
 
-	auto fpexc = cpu->GetRegisterDescriptor("FPEXC");
-	uint32_t *fpexc_data = (uint32_t*)fpexc.DataStart;
-	*fpexc_data = 0x40000000;
+//	auto fpexc = cpu->GetRegisterDescriptor("FPEXC");
+//	uint32_t *fpexc_data = (uint32_t*)fpexc.DataStart;
+//	*fpexc_data = 0x40000000;
 
 	return true;
 }
 
-gensim::DecodeContext* ArmLinuxUserEmulationModel::GetNewDecodeContext(gensim::Processor &cpu)
+gensim::DecodeContext* ArmLinuxUserEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance &cpu)
 {
 	return new archsim::arch::arm::ARMDecodeContext(&cpu);
 }
@@ -102,7 +102,7 @@ bool ArmLinuxUserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, Sign
 	GetMemoryModel().Poke(0xffff205c, (uint8_t *)&next_pc, 4);
 
 	// Write the PC of the signal dispatch helper into the CPU
-	GetBootCore()->write_pc(0xffff2000);
+	GetMainThread()->SetPC(Address(0xffff2000));
 
 	return false;
 }
@@ -169,13 +169,13 @@ bool ArmLinuxUserEmulationModel::InstallKernelHelpers()
 	return true;
 }
 
-archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(gensim::Processor& cpu, unsigned int category, unsigned int data)
+archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsim::core::thread::ThreadInstance* thread, unsigned int category, unsigned int data)
 {
 	if (category == 3) {
-		gensim::RegisterBankDescriptor& bank = cpu.GetRegisterBankDescriptor("RB");
-		uint32_t* registers = (uint32_t*)bank.GetBankDataStart();
+		auto bank = thread->GetRegisterFileInterface().GetEntry<uint32_t>("RB");
+		uint32_t* registers = (uint32_t*)bank;
 
-		archsim::abi::SyscallRequest request {0, cpu};
+		archsim::abi::SyscallRequest request {0, thread};
 		if(IsOABI()) {
 			request.syscall = data & 0xfffff;
 		} else if(IsEABI()) {
@@ -200,14 +200,6 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(gensim
 			registers[0] = -1;
 		}
 
-		//XXX ARM HAX
-		if(request.syscall == 0x0f0002) {
-			if(cpu.GetEmulationModel().GetSystem().HaveTranslationManager()) {
-				if(cpu.cur_exec_mode == gensim::Processor::kExecModeNative) {
-					return AbortInstruction;
-				}
-			}
-		}
 		// xxx arm hax
 		// currently a syscall cannot return an action other than resume, so
 		// we need to exit manually here.
@@ -218,7 +210,7 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(gensim
 		return response.action;
 
 	} else if (category == 11) {
-		LC_ERROR(LogEmulationModelArmLinux) << "Undefined Instruction Exception @ " << std::hex << cpu.read_pc();
+		LC_ERROR(LogEmulationModelArmLinux) << "Undefined Instruction Exception @ " << std::hex << thread->GetPC();
 		GetSystem().exit_code = 1;
 		exit(1);
 		return AbortSimulation;

@@ -6,10 +6,13 @@
  */
 
 #include "abi/memory/MemoryModel.h"
-#include "gensim/gensim_processor.h"
 
 #include "arch/arm/AngelSyscallHandler.h"
 #include "util/LogContext.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 using namespace archsim::arch::arm;
 
@@ -24,49 +27,50 @@ AngelSyscallHandler::AngelSyscallHandler(archsim::abi::memory::MemoryModel &mem,
 
 bool AngelSyscallHandler::HandleSyscall(gensim::Processor &cpu)
 {
-	const auto regs = cpu.GetRegisterBankDescriptor("RB");
-	uint32_t type = ((uint32_t*)(regs.GetBankDataStart()))[0];
-	uint32_t arg = ((uint32_t*)(regs.GetBankDataStart()))[1];
-	uint32_t &out = ((uint32_t*)(regs.GetBankDataStart()))[0];
-
-
-	switch(type) {
-		case 0x1: //SYS_OPEN
-			return HandleOpen(arg, out);
-		case 0x2: //SYS_CLOSE
-			return HandleClose(arg, out);
-		case 0x3: //SYS_WRITEC
-			return HandleWriteC(arg, out);
-		case 0x4: //SYS_WRITE0
-			return HandleWrite0(arg, out);
-		case 0x5:
-			return HandleWrite(arg, out);
-		case 0x6:
-			return HandleRead(arg, out);
-		case 0x9:
-			return HandleIsTty(arg, out);
-		case 0xa:
-			return HandleSeek(arg, out);
-		case 0xc:
-			return HandleFlen(arg, out);
-		case 0x10:
-			return HandleClock(arg, out);
-		case 0x12:
-			return HandleSystem(arg, out);
-		case 0x13:
-			return HandleErrno(arg, out);
-		case 0x15:
-			return HandleGetCmdline(arg, out);
-		case 0x16:
-			return HandleHeapInfo(arg, out);
-		case 0x18:
-			return HandleKill(arg, out);
-
-		default:
-			out = -1;
-			LC_ERROR(LogAngel) << "Could not handle unknown  request " << std::hex << type;
-			return false;
-	}
+	UNIMPLEMENTED;
+//	const auto regs = cpu.GetRegisterBankDescriptor("RB");
+//	uint32_t type = ((uint32_t*)(regs.GetBankDataStart()))[0];
+//	uint32_t arg = ((uint32_t*)(regs.GetBankDataStart()))[1];
+//	uint32_t &out = ((uint32_t*)(regs.GetBankDataStart()))[0];
+//
+//
+//	switch(type) {
+//		case 0x1: //SYS_OPEN
+//			return HandleOpen(arg, out);
+//		case 0x2: //SYS_CLOSE
+//			return HandleClose(arg, out);
+//		case 0x3: //SYS_WRITEC
+//			return HandleWriteC(arg, out);
+//		case 0x4: //SYS_WRITE0
+//			return HandleWrite0(arg, out);
+//		case 0x5:
+//			return HandleWrite(arg, out);
+//		case 0x6:
+//			return HandleRead(arg, out);
+//		case 0x9:
+//			return HandleIsTty(arg, out);
+//		case 0xa:
+//			return HandleSeek(arg, out);
+//		case 0xc:
+//			return HandleFlen(arg, out);
+//		case 0x10:
+//			return HandleClock(arg, out);
+//		case 0x12:
+//			return HandleSystem(arg, out);
+//		case 0x13:
+//			return HandleErrno(arg, out);
+//		case 0x15:
+//			return HandleGetCmdline(arg, out);
+//		case 0x16:
+//			return HandleHeapInfo(arg, out);
+//		case 0x18:
+//			return HandleKill(arg, out);
+//
+//		default:
+//			out = -1;
+//			LC_ERROR(LogAngel) << "Could not handle unknown  request " << std::hex << type;
+//			return false;
+//	}
 }
 
 

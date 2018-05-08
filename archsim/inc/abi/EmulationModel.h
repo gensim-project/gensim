@@ -9,6 +9,7 @@
 #define EMULATIONMODEL_H
 
 #include "util/TimerManager.h"
+#include "abi/Address.h"
 
 #include <fstream>
 #include <set>
@@ -24,9 +25,17 @@ namespace gensim
 }
 namespace archsim
 {
+	class MemoryInterface;
+	
 	namespace uarch
 	{
 		class uArch;
+	}
+	
+	namespace core {
+		namespace thread {
+			class ThreadInstance;
+		}
 	}
 
 	namespace abi
@@ -42,6 +51,7 @@ namespace archsim
 			class SystemComponent;
 			class CoreComponent;
 			class MemoryComponent;
+			class CPUIRQLine;
 		}
 
 		namespace loader
@@ -95,18 +105,15 @@ namespace archsim
 			virtual bool Initialise(System& system, archsim::uarch::uArch& uarch);
 			virtual void Destroy();
 
-			bool AttachDevices();
-
-			virtual gensim::Processor* GetBootCore() = 0;
-			virtual gensim::Processor* GetCore(int id) = 0;
-			virtual void ResetCores() = 0;
 			virtual void HaltCores() = 0;
 
-			virtual gensim::DecodeContext *GetNewDecodeContext(gensim::Processor &cpu) = 0;
+			virtual gensim::DecodeContext *GetNewDecodeContext(archsim::core::thread::ThreadInstance &cpu) = 0;
 
 			virtual bool PrepareBoot(System& system) = 0;
 
-			virtual ExceptionAction HandleException(gensim::Processor& cpu, uint32_t category, uint32_t data) = 0;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* thread, uint32_t category, uint32_t data) = 0;
+			virtual ExceptionAction HandleMemoryFault(archsim::core::thread::ThreadInstance &thread, archsim::MemoryInterface &interface, archsim::Address address);
+			virtual void HandleInterrupt(archsim::core::thread::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine *irq);
 
 			virtual bool LookupSymbol(unsigned long address, bool exact_match, const BinarySymbol *& symbol) const;
 			virtual bool ResolveSymbol(std::string name, unsigned long& value);
@@ -143,9 +150,6 @@ namespace archsim
 
 			abi::memory::MemoryModel *memory_model;
 			archsim::uarch::uArch *uarch;
-
-			std::ifstream *FindDeviceConfigFile(std::string dir, std::string devname);
-			bool ConfigureDevice(std::string name, devices::Device *device);
 
 			typedef std::map<int, SignalData *> SignalMap;
 			SignalMap _captured_signals;

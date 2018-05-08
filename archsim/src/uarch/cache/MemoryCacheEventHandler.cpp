@@ -11,9 +11,9 @@ MemoryCacheEventHandler::MemoryCacheEventHandler() : MemoryCache("")
 }
 
 
-bool MemoryCacheEventHandler::HandleEvent(gensim::Processor& cpu, archsim::abi::memory::MemoryModel::MemoryEventType type, archsim::abi::memory::guest_addr_t addr, uint8_t size)
+bool MemoryCacheEventHandler::HandleEvent(archsim::core::thread::ThreadInstance * cpu, archsim::abi::memory::MemoryModel::MemoryEventType type, Address addr, uint8_t size)
 {
-	virt_addr_t virt = (phys_addr_t)addr;
+	virt_addr_t virt = (phys_addr_t)addr.Get();
 	/*abi::memory::SystemMemoryModel& smm = (abi::memory::SystemMemoryModel&)cpu.GetMemoryModel();*/
 
 	phys_addr_t phys = virt;

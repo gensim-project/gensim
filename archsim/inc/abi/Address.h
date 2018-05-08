@@ -21,22 +21,24 @@ namespace archsim
 	class Address
 	{
 	public:
-		explicit Address(uint32_t address) : _address(address) {}
+		using underlying_t = uint32_t;
+		
+		explicit Address(underlying_t address) : _address(address) {}
 		Address() = delete;
-		uint32_t Get() const
+		underlying_t Get() const
 		{
 			return _address;
 		}
 
-		uint32_t GetPageBase() const
+		underlying_t GetPageBase() const
 		{
 			return RegionArch::PageBaseOf(Get());
 		}
-		uint32_t GetPageOffset() const
+		underlying_t GetPageOffset() const
 		{
 			return RegionArch::PageOffsetOf(Get());
 		}
-		uint32_t GetPageIndex() const
+		underlying_t GetPageIndex() const
 		{
 			return RegionArch::PageIndexOf(Get());
 		}
@@ -50,11 +52,15 @@ namespace archsim
 			return Address(GetPageOffset());
 		}
 
-		void operator+=(const uint32_t other)
+		Address operator+(int b) const {
+			return Address(Get() + b);
+		}
+		
+		void operator+=(const underlying_t other)
 		{
 			_address += other;
 		}
-		void operator-=(const uint32_t other)
+		void operator-=(const underlying_t other)
 		{
 			_address += other;
 		}
@@ -64,23 +70,21 @@ namespace archsim
 			return Get() == other.Get();
 		}
 
-		typedef uint32_t address_data_t;
-
 	private:
-		address_data_t _address;
+		underlying_t _address;
 	};
 
 	class PhysicalAddress : public Address
 	{
 	public:
-		explicit PhysicalAddress(uint32_t address) : Address(address) {}
+		explicit PhysicalAddress(underlying_t address) : Address(address) {}
 		PhysicalAddress() = delete;
 
-		PhysicalAddress operator+(const uint32_t other)
+		PhysicalAddress operator+(const underlying_t other)
 		{
 			return PhysicalAddress(Get()+other);
 		}
-		PhysicalAddress operator-(const uint32_t other)
+		PhysicalAddress operator-(const underlying_t other)
 		{
 			return PhysicalAddress(Get()-other);
 		}
@@ -99,14 +103,14 @@ namespace archsim
 	class VirtualAddress : public Address
 	{
 	public:
-		explicit VirtualAddress(uint32_t address) : Address(address) {}
+		explicit VirtualAddress(underlying_t address) : Address(address) {}
 		VirtualAddress() = delete;
 
-		VirtualAddress operator+(const uint32_t other)
+		VirtualAddress operator+(const underlying_t other)
 		{
 			return VirtualAddress(Get()+other);
 		}
-		VirtualAddress operator-(const uint32_t other)
+		VirtualAddress operator-(const underlying_t other)
 		{
 			return VirtualAddress(Get()-other);
 		}

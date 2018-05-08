@@ -9,9 +9,10 @@
 #define SYSTEMMEMORYMODEL_H_
 
 #include "abi/memory/MemoryModel.h"
+#include "core/thread/ThreadInstance.h"
 #include "translate/profile/ProfileManager.h"
 #include "util/PubSubSync.h"
-#include "gensim/gensim_processor.h"
+#include "system.h"
 
 namespace archsim
 {
@@ -35,7 +36,7 @@ namespace archsim
 
 				friend class SystemMemoryTranslationModel;
 
-				SystemMemoryModel(MemoryModel *phys_mem, util::PubSubContext *pubsub) : phys_mem(phys_mem), mmu(NULL), cpu(NULL), dev_man(NULL) {}
+				SystemMemoryModel(MemoryModel *phys_mem, util::PubSubContext *pubsub) : phys_mem(phys_mem), mmu(NULL), thread_(NULL), dev_man(NULL) {}
 				SystemMemoryModel() = delete;
 
 				void SetMMU(devices::MMU *mmu)
@@ -46,9 +47,9 @@ namespace archsim
 				{
 					dev_man = devman;
 				}
-				void SetCPU(gensim::Processor *cpu)
+				void SetCPU(archsim::core::thread::ThreadInstance *cpu)
 				{
-					this->cpu = cpu;
+					this->thread_ = cpu;
 				}
 
 				void MarkPageAsCode(PhysicalAddress page_base)
@@ -65,9 +66,9 @@ namespace archsim
 				{
 					return dev_man;
 				}
-				gensim::Processor *GetCPU()
+				archsim::core::thread::ThreadInstance *GetThread()
 				{
-					return cpu;
+					return thread_;
 				}
 				MemoryModel *GetPhysMem()
 				{
@@ -75,14 +76,14 @@ namespace archsim
 				}
 				translate::profile::ProfileManager &GetProfile()
 				{
-					return this->GetCPU()->GetEmulationModel().GetSystem().GetProfileManager();
+					return this->GetThread()->GetEmulationModel().GetSystem().GetProfileManager();
 				}
 
 			private:
 				MemoryModel *phys_mem;
 				devices::DeviceManager *dev_man;
 				devices::MMU *mmu;
-				gensim::Processor *cpu;
+				archsim::core::thread::ThreadInstance *thread_;
 
 			};
 

@@ -10,6 +10,7 @@
 
 #include "define.h"
 
+#include "core/thread/ThreadInstance.h"
 #include "translate/profile/RegionArch.h"
 #include "util/Zone.h"
 
@@ -20,7 +21,6 @@
 
 namespace gensim
 {
-	class Processor;
 	class BaseDecode;
 }
 
@@ -162,10 +162,10 @@ namespace archsim
 			friend std::ostream& operator<< (std::ostream& out, TranslationWorkUnit& twu);
 
 			TranslationWorkUnit(const TranslationWorkUnit&) = delete;
-			TranslationWorkUnit(gensim::Processor& cpu, profile::Region& region, uint32_t generation, uint32_t weight);
+			TranslationWorkUnit(archsim::core::thread::ThreadInstance *thread, profile::Region& region, uint32_t generation, uint32_t weight);
 			~TranslationWorkUnit();
 
-			static TranslationWorkUnit *Build(gensim::Processor& cpu, profile::Region& region, interrupts::InterruptCheckingScheme& ics, uint32_t weight);
+			static TranslationWorkUnit *Build(archsim::core::thread::ThreadInstance *thread, profile::Region& region, interrupts::InterruptCheckingScheme& ics, uint32_t weight);
 
 			inline bool ShouldEmitTracing() const
 			{
@@ -187,9 +187,9 @@ namespace archsim
 				return region;
 			}
 
-			inline gensim::Processor& GetProcessor() const
+			inline archsim::core::thread::ThreadInstance *GetThread() const
 			{
-				return cpu;
+				return thread;
 			}
 
 			inline const std::map<addr_t, TranslationBlockUnit *>& GetBlocks() const
@@ -220,7 +220,7 @@ namespace archsim
 			std::set<virt_addr_t> potential_virtual_bases;
 
 		private:
-			gensim::Processor& cpu;
+			archsim::core::thread::ThreadInstance *thread;
 			profile::Region& region;
 			uint32_t generation;
 			uint32_t weight;

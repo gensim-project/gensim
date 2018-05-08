@@ -10,8 +10,6 @@
 #include "abi/devices/PeripheralManager.h"
 #include "abi/devices/arm/core/ArmControlCoprocessor.h"
 
-#include "gensim/gensim_processor.h"
-
 #include "translate/TranslationManager.h"
 
 #include "util/LogContext.h"
@@ -32,7 +30,7 @@ RegisterComponent(archsim::abi::devices::Device, ArmControlCoprocessor,
 ;
 
 ArmControlCoprocessor::ArmControlCoprocessor() :
-	cp1_M(false), cp1_S(false), cp1_R(false), far(0), fsr(0), ttbr(0), dacr(0xffffffff), V_descriptor(NULL)
+	cp1_M(false), cp1_S(false), cp1_R(false), far(0), fsr(0), ttbr(0), dacr(0xffffffff)
 {
 
 }
@@ -188,10 +186,11 @@ bool ArmControlCoprocessor::access_cp1(bool is_read, uint32_t &data)
 		cp1_R = R;
 		get_mmu()->set_enabled(M);
 
-		if(!V_descriptor) V_descriptor = &Manager->cpu.GetRegisterDescriptor("cpV");
-		uint8_t *v_reg =
-		    (uint8_t*) V_descriptor->DataStart;
-		*v_reg = V;
+		UNIMPLEMENTED;
+//		if(!V_descriptor) V_descriptor = &Manager->cpu.GetRegisterDescriptor("cpV");
+//		uint8_t *v_reg =
+//		    (uint8_t*) V_descriptor->DataStart;
+//		*v_reg = V;
 
 		LC_DEBUG1(LogArmCoprocessor) << "CP1 Write: "
 		                             " L2:" << L2 << " EE:" << EE << " VE:" << VE << " XP:" << XP
@@ -200,7 +199,7 @@ bool ArmControlCoprocessor::access_cp1(bool is_read, uint32_t &data)
 		                             << R << " S:" << S << " B:" << B << " L:" << L << " D:" << D
 		                             << " P:" << P << " W:" << W << " C:" << C << " A:" << A << " M:"
 		                             << M << " 0x" << std::hex << std::setw(8) << std::setfill('0')
-		                             << data << " at " << this->Manager->cpu.read_pc();
+		                             << data << " at " << this->Manager->cpu.GetPC().Get();
 	} else {
 		data = 0;
 		//NIBBLE 0
@@ -219,11 +218,12 @@ bool ArmControlCoprocessor::access_cp1(bool is_read, uint32_t &data)
 		//NIBBLE 3
 		data |= 1 << 12; //I L1 I$
 
-		if(!V_descriptor) V_descriptor = &Manager->cpu.GetRegisterDescriptor("cpV");
-		uint8_t *V =
-		    (uint8_t*) V_descriptor->DataStart;
-		assert(*V == 0 || *V == 1);
-		data |= (uint32_t) ((uint32_t)*V) << 13; //V, exception vectors
+		UNIMPLEMENTED;
+//		if(!V_descriptor) V_descriptor = &Manager->cpu.GetRegisterDescriptor("cpV");
+//		uint8_t *V =
+//		    (uint8_t*) V_descriptor->DataStart;
+//		assert(*V == 0 || *V == 1);
+//		data |= (uint32_t) ((uint32_t)*V) << 13; //V, exception vectors
 
 		data |= 0 << 14; //RR
 		data |= 0 << 15; //L4
@@ -369,25 +369,21 @@ bool ArmControlCoprocessor::access_cp7(bool is_read, uint32_t &data)
 				case 0:
 					LC_DEBUG1(LogArmCoprocessorCache)
 					        << "Invalidate instruction cache";
-					Manager->cpu.purge_dcode_cache();
 					Manager->GetEmulationModel()->GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, NULL);
 					break;
 				case 1:
 					LC_DEBUG1(LogArmCoprocessorCache) << "Invalidate I$ line MVA "
 					                                  << data;
-					Manager->cpu.purge_dcode_cache();
 					Manager->GetEmulationModel()->GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, NULL);
 					break;
 				case 2:
 					LC_DEBUG1(LogArmCoprocessorCache)
 					        << "Invalidate I$ line Set/way "
 					        << data;
-					Manager->cpu.purge_dcode_cache();
 					Manager->GetEmulationModel()->GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, NULL);
 					break;
 				case 4:
 					LC_DEBUG1(LogArmCoprocessorCache) << "Flush prefetch buffer";
-					Manager->cpu.purge_dcode_cache();
 					break;
 				case 6:
 					LC_DEBUG1(LogArmCoprocessorCache)
@@ -429,7 +425,6 @@ bool ArmControlCoprocessor::access_cp7(bool is_read, uint32_t &data)
 				case 0:
 					LC_DEBUG1(LogArmCoprocessorCache)
 					        << "Invalidate all the things";
-					Manager->cpu.purge_dcode_cache();
 					Manager->GetEmulationModel()->GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, NULL);
 					Manager->GetEmulationModel()->GetSystem().GetPubSub().Publish(PubSubType::L1DCacheFlush, NULL);
 					Manager->GetEmulationModel()->GetSystem().GetPubSub().Publish(PubSubType::L2CacheFlush, NULL);
@@ -438,14 +433,12 @@ bool ArmControlCoprocessor::access_cp7(bool is_read, uint32_t &data)
 					LC_DEBUG1(LogArmCoprocessorCache)
 					        << "Invalidate Unified $ line MVA "
 					        << data;
-					Manager->cpu.purge_dcode_cache();
 					Manager->GetEmulationModel()->GetSystem().GetPubSub().Publish(PubSubType::L2CacheFlush, NULL);
 					break;
 				case 2:
 					LC_DEBUG1(LogArmCoprocessorCache)
 					        << "Invalidate Unified $ line set/way "
 					        << data;
-					Manager->cpu.purge_dcode_cache();
 					Manager->GetEmulationModel()->GetSystem().GetPubSub().Publish(PubSubType::L2CacheFlush, NULL);
 					break;
 			}
@@ -481,18 +474,15 @@ bool ArmControlCoprocessor::access_cp7(bool is_read, uint32_t &data)
 			switch (opc2) {
 				case 0:
 					LC_DEBUG1(LogArmCoprocessorCache) << "Clean unified $";
-					Manager->cpu.purge_dcode_cache();
 					break;
 				case 1:
 					LC_DEBUG1(LogArmCoprocessorCache)
 					        << "Clean unified $ line MVA " << data;
-					Manager->cpu.purge_dcode_cache();
 					break;
 				case 2:
 					LC_DEBUG1(LogArmCoprocessorCache)
 					        << "Clean unified $ line set/way "
 					        << data;
-					Manager->cpu.purge_dcode_cache();
 					break;
 				default:
 					LC_WARNING(LogArmCoprocessor) << "Unknown c11 operation";
@@ -539,19 +529,16 @@ bool ArmControlCoprocessor::access_cp7(bool is_read, uint32_t &data)
 				case 0:
 					LC_DEBUG1(LogArmCoprocessorCache)
 					        << "Clean and invalidate u$";
-					Manager->cpu.purge_dcode_cache();
 					break;
 				case 1:
 					LC_DEBUG1(LogArmCoprocessorCache)
 					        << "Clean and invalidate u$ line MVA "
 					        << data;
-					Manager->cpu.purge_dcode_cache();
 					break;
 				case 2:
 					LC_DEBUG1(LogArmCoprocessorCache)
 					        << "Clean and invalidate u$ line set/way "
 					        << data;
-					Manager->cpu.purge_dcode_cache();
 					break;
 				case 3:
 					LC_WARNING(LogArmCoprocessor) << "Unknown c15 op";
