@@ -43,5 +43,6 @@ ADD_SUBDIRECTORY(gensim)
 ADD_SUBDIRECTORY(scripts)
 
 ADD_SUBDIRECTORY(support/libtrace)
+ADD_SUBDIRECTORY(support/libgvnc)
 
 ADD_SUBDIRECTORY(models)

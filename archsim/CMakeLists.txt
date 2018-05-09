@@ -27,6 +27,7 @@ TARGET_LINK_LIBRARIES(archsim
 	${CMAKE_DL_LIBS}
 
 	trace
+	gvnc
 )
 
 TARGET_LINK_LIBRARIES(archsim-interface INTERFACE trace)

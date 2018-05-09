@@ -1,6 +1,8 @@
 archsim_add_sources(
 	VirtualScreen.cpp 
 	VirtualScreenManager.cpp
+	
+	VNCScreen.cpp
 )
 
 
