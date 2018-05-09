@@ -41,7 +41,7 @@ namespace gensim
 				output << "auto block = " << block_id_name << ";\n";
 				output << "dynamic_block_queue.push(" << block_id_name << ");\n";
 			}
-			
+
 			static std::string type_for_statement(const SSAStatement& stmt)
 			{
 				return "emitter.context().types()." + stmt.GetType().GetUnifiedType() + "()";
@@ -373,8 +373,6 @@ namespace gensim
 						}
 						
 						case IRConstant::Type_Integer:
-							break;
-							
 						case IRConstant::Type_Vector:
 							break;
 						
@@ -418,9 +416,8 @@ namespace gensim
 						case IRConstant::Type_Vector:
 							str << stmt.Constant.VGet(0).Int() << "ULL";
 							return str.str();
-							
 						default:
-							throw std::logic_error("Unhandled");
+							break;
 					}
 
 					return stmt.GetName();
@@ -907,13 +904,8 @@ namespace gensim
 
 					SSANodeWalker *address = Factory.GetOrCreate(Statement.Addr());
 
-					// TODO: this
-//					if (Statement.User) {
-//						output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
-//					} else {
-//						output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
-//					}
-
+					output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
+					
 					output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_stmt(Statement) << ");";
 
 					output << "if (TRACE) {";
@@ -952,12 +944,8 @@ namespace gensim
 					output << "emitter.trace(dbt::el::TraceEvent::STORE_MEMORY, " << operand_for_node(*address) << ", " << operand_for_node(*value) << ", emitter.const_u8(" << (uint32_t) Statement.Width << "));\n";
 					output << "}";
 
-//					if (Statement.User) {
-//						output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
-//					} else {
-						output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
-//					}
-
+					output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
+					
 					return true;
 				}
 			};
@@ -1369,13 +1357,7 @@ namespace gensim
 				bool EmitDynamicCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
 					const SSAVariableReadStatement &Statement = static_cast<const SSAVariableReadStatement &> (this->Statement);
-					
-					//if (Statement.Target()->HasDynamicUses()) {
-						output << "auto " << Statement.GetName() << " = emitter.load_local(DV_" << Statement.Target()->GetName() << ", " << type_for_symbol(*Statement.Target()) << ");";
-					/*} else {
-						output << "auto " << Statement.GetName() << " = CVR_" << Statement.Target()->GetName() << ";";
-					}*/
-					
+					output << "auto " << Statement.GetName() << " = emitter.load_local(DV_" << Statement.Target()->GetName() << ", " << type_for_symbol(*Statement.Target()) << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 					if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 						output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
@@ -1423,26 +1405,15 @@ namespace gensim
 					const SSAVariableWriteStatement &Statement = static_cast<const SSAVariableWriteStatement &> (this->Statement);
 
 					SSANodeWalker *value_node = Factory.GetOrCreate(Statement.Expr());
-					
-					//if (Statement.Target()->HasDynamicUses()) {
-						if (Statement.Target()->GetType().Size() > value_node->Statement.GetType().Size()) {
-							output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", emitter.zx(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << "));";
-						} else if (Statement.Target()->GetType().Size() < value_node->Statement.GetType().Size()) {
-							output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", emitter.truncate(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << "));";
-						} else {
-							output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_node(*value_node) << ");";
-						}
-					/*} else {
-						if (Statement.Target()->GetType().Size() > value_node->Statement.GetType().Size()) {
-							output << "CVR_" << Statement.Target()->GetName() << " = emitter.zx(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << ");";
-						} else if (Statement.Target()->GetType().Size() < value_node->Statement.GetType().Size()) {
-							output << "CVR_" << Statement.Target()->GetName() << " = emitter.truncate(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << ");";
-						} else {
-							output << "CVR_" << Statement.Target()->GetName() << " = " << operand_for_node(*value_node) << ";";
-						}
-						//output << "CVR_" << Statement.Target()->GetName() << " = " << operand_for_node(*value_node) << ";";
-					}*/
-						
+
+					if (Statement.Target()->GetType().Size() > value_node->Statement.GetType().Size()) {
+						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", emitter.zx(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << "));";
+					} else if (Statement.Target()->GetType().Size() < value_node->Statement.GetType().Size()) {
+						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", emitter.truncate(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << "));";
+					} else {
+						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_node(*value_node) << ");";
+					}
+
 					//output << "lir.mov(*lir_variables[lir_idx_" << Statement.GetTarget()->GetName() << "], " << maybe_deref(value_node) << ");";
 					return true;
 				}
