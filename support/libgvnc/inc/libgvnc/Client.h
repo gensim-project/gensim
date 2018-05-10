@@ -17,6 +17,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <cstring>
 
 #include "Framebuffer.h"
 
@@ -59,7 +60,7 @@ namespace libgvnc {
 		void SendRaw(const void *data, size_t size);
 		template<typename T> void Send(const T& data) { SendRaw(&data, sizeof(T)); }
 		
-		void Buffer(const void *data, size_t size) { buffer_.insert(buffer_.end(), (char*)data, ((char*)data) + size); }
+		void Buffer(const void *data, size_t size) { auto oldsize = buffer_.size(); buffer_.resize(buffer_.size() + size); memcpy(buffer_.data() + oldsize, (char*)data, size);  }
 		template<typename T> void Buffer(const T& data) { Buffer(&data, sizeof(T)); }
 		
 		void SendBuffer() { SendRaw(buffer_.data(), buffer_.size()); buffer_.clear(); }

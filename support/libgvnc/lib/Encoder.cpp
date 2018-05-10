@@ -20,37 +20,33 @@ RawEncoder::RawEncoder(const FB_PixelFormat& format, const RectangleShape& shape
 	
 }
 
-void RawEncoder::AddPixel(uint32_t pixel_data)
+std::vector<char> RawEncoder::Encode(const std::vector<uint32_t> &pixels)
 {
-	switch(GetFormat().bits_per_pixel) {
-		case 8:
-			data_.push_back(pixel_data);
-			break;
-		case 16:
-			data_.push_back(pixel_data >> 8);
-			data_.push_back(pixel_data);
-			break;
-		case 24:
-			data_.push_back(pixel_data >> 16);
-			data_.push_back(pixel_data >> 8);
-			data_.push_back(pixel_data);
-			break;
-		case 32:
-			data_.push_back(pixel_data);
-			data_.push_back(pixel_data >> 8);
-			data_.push_back(pixel_data >> 16);
-			data_.push_back(pixel_data >> 24);
-			
-			
-			
-			break;
-			
-		default:
-			throw std::logic_error("Unknown pixel depth");
-	}
-}
+	std::vector<char> data (GetShape().Width * GetShape().Height * GetFormat().bits_per_pixel / 8);
+	uint32_t data_ptr = 0;
+	for(auto pixel_data : pixels) {
+		switch(GetFormat().bits_per_pixel) {
+			case 8:
+				data[data_ptr++] = pixel_data;
+				break;
+			case 16:
+				data[data_ptr++] = pixel_data >> 8;
+				data[data_ptr++] = pixel_data;
+				break;
+			case 24:
+				data[data_ptr++] = pixel_data >> 16;
+				data[data_ptr++] = pixel_data >> 8;
+				data[data_ptr++] = pixel_data;
+				break;
+			case 32:
+				*(uint32_t*)(data.data() + data_ptr) = pixel_data;
+				data_ptr += 4;
+				break;
 
-std::vector<char> RawEncoder::GetData()
-{
-	return data_;
+			default:
+				throw std::logic_error("Unknown pixel depth");
+		}
+	}
+	
+	return data;
 }

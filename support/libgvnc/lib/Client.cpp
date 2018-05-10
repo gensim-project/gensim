@@ -24,7 +24,13 @@ void Client::Open()
 {
 	open_ = true;
 	state_ = State::FreshlyConnected;
-	thread_ = std::thread([this](){Run();});
+	thread_ = std::thread([this](){
+		try {
+			Run();
+		} catch(std::exception &e) {
+			delete this;
+		}
+	});
 }
 
 void Client::Close()
