@@ -24,6 +24,8 @@ libgvnc::FB_PixelFormat Format_RGB32 (32, 24, 0, 1, 255, 255, 255, 16, 8, 0);
 
 static uint32_t MapSym(uint32_t xsym) {
 	switch(xsym) {
+		case ' ': return 0x29;
+		
 		case 'a': return 0x1c;
 		case 'A': return 0x1c;
 		case 'b': return 0x32;
@@ -77,7 +79,62 @@ static uint32_t MapSym(uint32_t xsym) {
 		case 'z': return 0x1a;
 		case 'Z': return 0x1a;
 		
+		case '0': return 0x45;
+		case '1': return 0x16;
+		case '2': return 0x1E;
+		case '3': return 0x26;
+		case '4': return 0x25;
+		case '5': return 0x2E;
+		case '6': return 0x36;
+		case '7': return 0x3D;
+		case '8': return 0x3E;
+		case '9': return 0x46;
+		
+		case '`': return 0; //todo
+		case '¬': return 0; //todo
+		case '!': return 0; //todo
+		case '"': return 0; //todo
+		case '£': return 0; //todo
+		case '$': return 0; //todo
+		case '%': return 0; //todo
+		case '^': return 0; //todo
+		case '&': return 0; //todo
+		case '*': return 0; //todo
+		case '(': return 0; //todo
+		case ')': return 0; //todo
+		case '-': return 0x0c;
+		case '_': return 0; //todo
+		case '=': return 0x55;
+		case '+': return 0; //todo
+		case '[': return 0x1a; //todo
+		case ']': return 0x1b; //todo
+		case '{': return 0; //todo
+		case '}': return 0; //todo
+		case ';': return 0x4c;
+		case ':': return 0; //todo
+		case '\'': return 0x52;
+		case '@': return 0; //todo
+		case '#': return 0; //todo
+		case '~': return 0x0e;
+		case '|': return 0x5d;
+		case '\\': return 0x5d;
+		case ',': return 0x41;
+		case '<': return 0x41; //todo
+		case '.': return 0x49;
+		case '>': return 0x49; //todo
+		case '/': return 0x4a;
+		case '?': return 0x4a; //todo
+		
+		case 0xff08: return 0x66; // backspace
+		case 0xff09: return 0x0d; // tab
 		case 0xff0d: return 0x5a; // return
+		case 0xff1b: return 0x76; // escape
+		case 0xff63: return 0xe070; // insert
+		case 0xffff: return 0xe071; // delete
+		case 0xff50: return 0xe06c; // home
+		case 0xff57: return 0xe069; // end
+		case 0xff55: return 0xe07d; // page up
+		case 0xff56: return 0xe07a; // page down
 		
 		case 0xff51 : return 0xe06b; // left
 		case 0xff52 : return 0xe075; // up
