@@ -51,7 +51,6 @@ void AsynchronousTranslationManager::Destroy()
 	// No point notfiying threads here of the change to the queue, as they are
 	// about to be terminated.
 	work_unit_queue_lock.lock();
-	fprintf(stderr, "*** QUEUE ENTRIES %lu\n", work_unit_queue.size());
 
 	while(!work_unit_queue.empty()) {
 		auto i = work_unit_queue.top();

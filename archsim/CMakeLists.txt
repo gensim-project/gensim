@@ -6,6 +6,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 FIND_PACKAGE(Threads REQUIRED)
 FIND_PACKAGE(SDL2)
 FIND_PACKAGE(X11)
+FIND_PACKAGE(LLVM 6.0.0 REQUIRED CONFIG)
 
 FIND_PACKAGE(PkgConfig)
 IF(PkgConfig_FOUND)
@@ -71,6 +72,19 @@ ENDIF()
 IF(GTK3_FOUND)
 	TARGET_LINK_LIBRARIES(archsim ${GTK3_LIBRARIES})
 	TARGET_INCLUDE_DIRECTORIES(archsim PRIVATE ${GTK3_INCLUDE_DIRS})
+ENDIF()
+
+IF(LLVM_FOUND)
+	llvm_map_components_to_libnames(llvm_libs target x86desc x86info x86codegen x86asmparser runtimedyld support core irreader codegen mcjit executionengine passes )
+
+	message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+	message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+	message(STATUS "Using LLVM Libs: ${llvm_libs}")
+
+	TARGET_COMPILE_DEFINITIONS(archsim PRIVATE ${LLVM_DEFINITIONS})
+	TARGET_LINK_LIBRARIES(archsim ${llvm_libs})
+	TARGET_INCLUDE_DIRECTORIES(archsim PRIVATE ${LLVM_INCLUDE_DIRS})
 ENDIF()
 
 # Include helper functions

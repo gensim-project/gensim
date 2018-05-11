@@ -1,6 +1,5 @@
 #include "translate/llvm/LLVMTranslation.h"
 #include "translate/llvm/LLVMMemoryManager.h"
-#include "gensim/gensim_processor.h"
 
 
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
@@ -8,7 +7,7 @@
 using namespace archsim::translate;
 using namespace archsim::translate::llvm;
 
-static uint32_t InvalidTxln(void*)
+static uint32_t InvalidTxln(void*, void*)
 {
 	fprintf(stderr, "Attempted to execute invalid txln\n");
 	abort();
@@ -28,14 +27,14 @@ LLVMTranslation::~LLVMTranslation()
 	fnp = InvalidTxln;
 }
 
-uint32_t LLVMTranslation::Execute(gensim::Processor& cpu)
+uint32_t LLVMTranslation::Execute(archsim::core::thread::ThreadInstance* cpu)
 {
-	return fnp((void*)&cpu.state);
+	return fnp(nullptr, nullptr);
 }
 
-void LLVMTranslation::Install(jit_region_fn_table location)
+void LLVMTranslation::Install(translation_fn *location)
 {
-	*location = *(jit_region_fn_table)&fnp;
+	*location = (translation_fn)fnp;
 }
 
 uint32_t LLVMTranslation::GetCodeSize() const

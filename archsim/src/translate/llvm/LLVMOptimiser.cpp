@@ -5,7 +5,7 @@
 #include "util/LogContext.h"
 
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/PassManager.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/DataLayout.h>
 
 #include <llvm/IR/Verifier.h>
@@ -15,6 +15,7 @@
 #include <llvm/Analysis/MemoryDependenceAnalysis.h>
 #include <llvm/Analysis/Passes.h>
 #include <llvm/Analysis/ScalarEvolution.h>
+#include <llvm/Analysis/TypeBasedAliasAnalysis.h>
 
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/MDBuilder.h>
@@ -28,8 +29,6 @@
 #include <llvm/Transforms/Vectorize.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Utils/PromoteMemToReg.h>
-
-#include <llvm/Target/TargetLibraryInfo.h>
 
 UseLogContext(LogTranslate);
 DeclareChildLogContext(LogAliasAnalysis, LogTranslate, "AliasAnalysis");
@@ -70,7 +69,7 @@ static bool IsConstVal(const ::llvm::Value *v)
 {
 	return (v->getValueID() == ::llvm::Instruction::ConstantIntVal);
 }
-
+/*
 class ArcSimAA : public llvm::FunctionPass, public llvm::AliasAnalysis
 {
 public:
@@ -480,7 +479,7 @@ llvm::FunctionPass *createArcSimAliasAnalysisPass()
 {
 	return new ArcSimAA();
 }
-
+*/
 LLVMOptimiser::LLVMOptimiser() : isInitialised(false)
 {
 
@@ -493,7 +492,7 @@ LLVMOptimiser::~LLVMOptimiser()
 bool LLVMOptimiser::Initialise(const ::llvm::DataLayout *datalayout)
 {
 	isInitialised = true;
-	pm.add(::llvm::createTypeBasedAliasAnalysisPass());
+	pm.add(::llvm::createTypeBasedAAWrapperPass());
 	//AddPass(new ::llvm::DataLayout(*datalayout));
 
 	if (archsim::options::JitOptLevel.GetValue() == 0)
@@ -504,9 +503,9 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout *datalayout)
 	AddPass(::llvm::createCFGSimplificationPass());
 	AddPass(::llvm::createLowerSwitchPass());
 	AddPass(::llvm::createGlobalOptimizerPass());
-	AddPass(::llvm::createSROAPass(false));
+	AddPass(::llvm::createSROAPass());
 	AddPass(::llvm::createDeadArgEliminationPass());
-	AddPass(::llvm::createFunctionAttrsPass());
+//	AddPass(::llvm::createFunctionAttrsPass());
 	AddPass(::llvm::createConstantPropagationPass());
 	AddPass(::llvm::createCFGSimplificationPass());
 	AddPass(::llvm::createArgumentPromotionPass());
@@ -525,7 +524,7 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout *datalayout)
 	AddPass(::llvm::createBreakCriticalEdgesPass());
 	AddPass(::llvm::createDeadArgEliminationPass());
 	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createGVNPass(false));
+//	AddPass(::llvm::createGVNPass(false));
 	AddPass(::llvm::createPruneEHPass());
 	AddPass(::llvm::createDeadInstEliminationPass());
 	AddPass(::llvm::createConstantMergePass());
@@ -673,7 +672,7 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout *datalayout)
 bool LLVMOptimiser::AddPass(::llvm::Pass *pass)
 {
 	if (!archsim::options::JitDisableAA) {
-		pm.add(createArcSimAliasAnalysisPass());
+//		pm.add(createArcSimAliasAnalysisPass());
 	}
 
 	pm.add(pass);

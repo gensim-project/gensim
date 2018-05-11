@@ -47,7 +47,6 @@ bool LLVMMemoryManager::finalizeMemory(std::string *ErrMsg)
 	return false;
 }
 
-
 std::vector<archsim::util::PageReference*> LLVMMemoryManager::ReleasePages()
 {
 	std::vector<archsim::util::PageReference*> pages;

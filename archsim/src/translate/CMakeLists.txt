@@ -9,3 +9,4 @@ archsim_add_sources(
 
 ADD_SUBDIRECTORY(profile)
 ADD_SUBDIRECTORY(interrupts)
+ADD_SUBDIRECTORY(llvm)
