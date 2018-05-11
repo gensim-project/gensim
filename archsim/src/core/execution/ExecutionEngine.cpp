@@ -68,7 +68,7 @@ ExecutionEngineThreadContext::~ExecutionEngineThreadContext()
 }
 
 
-ExecutionEngine::ExecutionEngine() : state_(ExecutionState::Ready), trace_sink_(nullptr)
+ExecutionEngine::ExecutionEngine() : state_(ExecutionState::Ready), trace_sink_(nullptr), region_profile_(nullptr), enable_profiling_(false)
 {
 
 }
@@ -136,6 +136,15 @@ void ExecutionEngine::Join()
 		i.second->Join();
 	}
 }
+
+archsim::translate::profile::RegionTable& ExecutionEngine::GetRegionTable()
+{
+	if(region_profile_ == nullptr) {
+		region_profile_ = new RegionTable();
+	}
+	return *region_profile_;
+}
+
 
 void ExecutionEngine::Halt()
 {
