@@ -8,7 +8,7 @@
 #ifndef LLVMOPTIMISER_H
 #define	LLVMOPTIMISER_H
 
-#include <llvm/PassManager.h>
+#include <llvm/IR/LegacyPassManager.h>
 
 namespace llvm
 {
@@ -36,7 +36,7 @@ namespace archsim
 
 				bool AddPass(::llvm::Pass*);
 
-				::llvm::PassManager pm;
+				::llvm::legacy::PassManager pm;
 				bool isInitialised;
 			};
 		}
