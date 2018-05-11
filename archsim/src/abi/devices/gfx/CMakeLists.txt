@@ -7,6 +7,9 @@ archsim_add_sources(
 
 
 FIND_PACKAGE(PkgConfig)
+
+
+
 IF(PkgConfig_FOUND)
 	PKG_CHECK_MODULES(GTK3 gtk+-3.0)
 ENDIF()
