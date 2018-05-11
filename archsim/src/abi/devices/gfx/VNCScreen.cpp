@@ -102,7 +102,7 @@ static uint32_t MapSym(uint32_t xsym) {
 		case '*': return 0; //todo
 		case '(': return 0; //todo
 		case ')': return 0; //todo
-		case '-': return 0x0c;
+		case '-': return 0x4e;
 		case '_': return 0; //todo
 		case '=': return 0x55;
 		case '+': return 0; //todo
