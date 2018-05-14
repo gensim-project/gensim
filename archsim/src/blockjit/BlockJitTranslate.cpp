@@ -52,7 +52,7 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 	// Initialise the translation context
 	_should_be_dumped = false;
 	
-	_decode_ctx = processor->GetEmulationModel().GetNewDecodeContext(*processor);
+	SetDecodeContext(processor->GetEmulationModel().GetNewDecodeContext(*processor));
 	
 	TranslationContext ctx;
 	captive::shared::IRBuilder builder;

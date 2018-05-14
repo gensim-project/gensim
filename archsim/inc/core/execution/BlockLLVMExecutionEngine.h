@@ -15,21 +15,29 @@
 #define BLOCKLLVMEXECUTIONENGINE_H
 
 #include "core/execution/ExecutionEngine.h"
+#include "BlockJITExecutionEngine.h"
+
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
 
 namespace archsim {
 	namespace core {
 		namespace execution {
-			class BlockLLVMExecutionEngine : public ExecutionEngine {
+			class BlockLLVMExecutionEngine : public BlockJITExecutionEngine {
 			public:
+                            
+				BlockLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator);
+                            
 				virtual ~BlockLLVMExecutionEngine()
 				{
 
 				}
 				
 			private:
-				ExecutionResult Execute(ExecutionEngineThreadContext* thread) override;
-				ExecutionEngineThreadContext* GetNewContext(thread::ThreadInstance* thread) override;
+				bool translateBlock(thread::ThreadInstance* thread, archsim::Address block_pc, bool support_chaining, bool support_profiling) override;	
 				
+				llvm::LLVMContext llvm_ctx_;
+				llvm::ExecutionEngine *engine_;
 			};
 		}
 	}

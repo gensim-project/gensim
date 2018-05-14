@@ -32,9 +32,9 @@ bool LowerWriteMemUser::TxlnStart(captive::arch::jit::BlockCompiler *compiler, c
 
 bool LowerReadMemUser::Lower(const captive::shared::IRInstruction*& insn)
 {
-	const IROperand *offset = &insn->operands[0];
-	const IROperand *disp = &insn->operands[1];
-	const IROperand *dest = &insn->operands[2];
+	const IROperand *offset = &insn->operands[1];
+	const IROperand *disp = &insn->operands[2];
+	const IROperand *dest = &insn->operands[3];
 
 	assert(disp->is_constant());
 	// We can have the situation where dest is not allocated because the intervening register write has been eliminated
@@ -74,9 +74,9 @@ bool LowerReadMemUser::Lower(const captive::shared::IRInstruction*& insn)
 
 bool LowerWriteMemUser::Lower(const captive::shared::IRInstruction*& insn)
 {
-	const IROperand *value = &insn->operands[0];
-	const IROperand *disp = &insn->operands[1];
-	const IROperand *offset = &insn->operands[2];
+	const IROperand *value = &insn->operands[1];
+	const IROperand *disp = &insn->operands[2];
+	const IROperand *offset = &insn->operands[3];
 
 	assert(disp->is_constant());
 
