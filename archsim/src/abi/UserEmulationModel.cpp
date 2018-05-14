@@ -8,6 +8,8 @@
 #include "util/LogContext.h"
 #include "core/MemoryInterface.h"
 #include "core/execution/ExecutionEngine.h"
+#include "core/execution/BlockJITExecutionEngine.h"
+#include "core/execution/BlockLLVMExecutionEngine.h"
 
 extern char **environ;
 
@@ -44,7 +46,7 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	if (!EmulationModel::Initialise(system, uarch))
 		return false;
 
-	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleExecutionEngineEntry>("EE");
+	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleBlockJITTranslatorEntry>("BlockJITTranslator");
 	auto archentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
 	if(moduleentry == nullptr) {
 		return false;
@@ -53,12 +55,14 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 	auto arch = archentry->Get();
-	auto engine = moduleentry->Get();
+	auto translator = moduleentry->Get();
+	auto engine = new archsim::core::execution::BlockLLVMExecutionEngine(translator);
 	GetSystem().GetECM().AddEngine(engine);
 	main_thread_ = new archsim::core::thread::ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 	
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
 		i->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
+		i->ConnectTranslationProvider(*new archsim::IdentityTranslationProvider());
 	}
 	
 	engine->AttachThread(main_thread_);

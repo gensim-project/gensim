@@ -269,8 +269,8 @@ size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
 //	analyses::HostRegLivenessAnalysis liveness_analysis;
 //	auto liveness = liveness_analysis.Run(ctx);
 
-	lowering::x86::X86LoweringContext lowering(max_stack, encoder);
-	lowering.Prepare(ctx, *this);
+	lowering::x86::X86LoweringContext lowering(max_stack, encoder, *this);
+	lowering.Prepare(ctx);
 //	lowering.SetLivenessData(liveness);
 
 	if(!lowering.Lower(ctx)) {

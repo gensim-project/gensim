@@ -7,6 +7,7 @@ archsim_add_sources(
 	TranslationCache.cpp
 )
 
+ADD_SUBDIRECTORY(adapt)
 ADD_SUBDIRECTORY(profile)
 ADD_SUBDIRECTORY(interrupts)
 ADD_SUBDIRECTORY(llvm)

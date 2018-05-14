@@ -14,13 +14,21 @@ using namespace gensim::generator;
 BlockJITExecutionEngineGenerator::BlockJITExecutionEngineGenerator(GenerationManager &man) : EEGenerator(man, "blockjit")
 {
 	man.AddModuleEntry(ModuleEntry("EE", "gensim::" + man.GetArch().Name + "::BlockJITEE", "ee_blockjit.h", ModuleEntryType::ExecutionEngine));
+	man.AddModuleEntry(ModuleEntry("BlockJITTranslator", "captive::arch::" + man.GetArch().Name + "::JIT", "ee_blockjit.h", ModuleEntryType::BlockJITTranslator));
 	sources = {"ee_blockjit.cpp"};
 }
 
 
 bool BlockJITExecutionEngineGenerator::GenerateHeader(util::cppformatstream& str) const
 {
+	str << "#ifndef GENSIM_" << Manager.GetArch().Name << "_BLOCKJIT\n";
+	str << "#define GENSIM_" << Manager.GetArch().Name << "_BLOCKJIT\n";
 	str << "#include <core/execution/BlockJITExecutionEngine.h>\n";
+	str << "#include \"decode.h\"\n";
+	str << "#include \"arch.h\"\n";
+	
+	JitGenerator jitgen (Manager);
+	jitgen.GenerateClass(str);
 	
 	str << "namespace gensim {";
 	str << "namespace " << Manager.GetArch().Name << "{";
@@ -32,6 +40,8 @@ bool BlockJITExecutionEngineGenerator::GenerateHeader(util::cppformatstream& str
 	
 	str << "}";
 	str << "}";
+	
+	str << "#endif\n\n";
 	
 	return true;
 }
@@ -48,7 +58,6 @@ bool BlockJITExecutionEngineGenerator::GenerateSource(util::cppformatstream& str
 	str << "using namespace gensim::" << Manager.GetArch().Name << ";";
 	
 	JitGenerator jitgen (Manager);
-	jitgen.GenerateClass(str);
 	jitgen.GenerateTranslation(str);
 	
 	str << "BlockJITEE::BlockJITEE() : archsim::core::execution::BlockJITExecutionEngine(new captive::arch::" << Manager.GetArch().Name << "::JIT) {}";

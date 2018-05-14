@@ -6,12 +6,16 @@
  */
 
 #include "blockjit/block-compiler/lowering/Finalisation.h"
+#include "blockjit/block-compiler/lowering/LoweringContext.h"
+#include "blockjit/block-compiler/lowering/x86/X86LoweringContext.h"
 
-using captive::arch::jit::lowering::Finalisation;
+using namespace captive::arch::jit::lowering;
 
 Finalisation::~Finalisation()
 {
 
 }
 
-
+bool X86Finalisation::Finalise(LoweringContext& context) {
+	return FinaliseX86(static_cast<x86::X86LoweringContext&>(context));
+}
