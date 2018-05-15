@@ -14,8 +14,8 @@
 #ifndef BLOCKJITADAPTORLOWERINGCONTEXT_H
 #define BLOCKJITADAPTORLOWERINGCONTEXT_H
 
+#include "core/arch/RegisterFileDescriptor.h"
 #include "blockjit/block-compiler/lowering/LoweringContext.h"
-#include "BlockJITAdaptorLowering.h"
 
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Function.h>
@@ -28,10 +28,16 @@ namespace archsim {
             using namespace captive::arch::jit;
             using namespace captive::shared;
             
+			class BlockJITValues {
+			public:
+				BlockJITValues(llvm::Module *module);
+				llvm::Function *cpuTakeExceptionPtr;
+			};
+			
             class BlockJITLoweringContext : public captive::arch::jit::lowering::LoweringContext {
             public:
 				// Don't need to give a stack frame size since LLVM will be managing that
-				BlockJITLoweringContext(llvm::Module *module, llvm::Function *target_fun) : LoweringContext(), target_fun_(target_fun), target_module_(module) {}
+				BlockJITLoweringContext(archsim::core::thread::ThreadInstance *thread, ::llvm::Module *module, ::llvm::Function *target_fun) : LoweringContext(), values_(module), thread_(thread), target_fun_(target_fun), target_module_(module) { builder_ = new ::llvm::IRBuilder<>(module->getContext()); }
 
 				virtual bool Prepare(const TranslationContext &ctx);
 
@@ -50,15 +56,39 @@ namespace archsim {
 						return 0;
 				}
 
-				llvm::IRBuilder<> &GetBuilder() { return *builder_; }
+				::llvm::IRBuilder<> &GetBuilder() { return *builder_; }
 
-				llvm::Value *GetValueFor(const IROperand &operand);
-				void SetValueFor(const IROperand &operand, llvm::Value *value);
+				::llvm::Value *GetValueFor(const IROperand &operand);
+				void SetValueFor(const IROperand &operand, ::llvm::Value *value);
+				llvm::Value *GetThreadPtr();
 	    
+				::llvm::BasicBlock *GetLLVMBlock(IRBlockId block_id);
+				archsim::core::thread::ThreadInstance *GetThread() { return thread_; }
+				
+				::llvm::Value *GetRegisterPointer(const archsim::RegisterFileEntryDescriptor &reg, int index);
+				::llvm::Value *GetRegisterPointer(int offset, int size);
+				::llvm::Value *GetRegfilePointer();
+				
+				BlockJITValues &GetValues() { return values_; }
+				
+				::llvm::Type *GetLLVMType(uint32_t bytes);
+				::llvm::Type *GetLLVMType(const IROperand &op);
+				
             private:
-				llvm::Module *target_module_;
-				llvm::Function *target_fun_;
-				llvm::IRBuilder<> *builder_;
+				BlockJITValues values_;
+				
+				archsim::core::thread::ThreadInstance *thread_;
+				
+				::llvm::Type *GetPointerIntType();
+				::llvm::Value *GetRegPtr(const IROperand &op);
+				::llvm::LLVMContext &GetLLVMContext() { return target_module_->getContext(); }
+				
+				std::map<IRBlockId, ::llvm::BasicBlock*> block_ptrs_;
+				std::map<IRRegId, ::llvm::Value*> reg_ptrs_;
+				
+				::llvm::Module *target_module_;
+				::llvm::Function *target_fun_;
+				::llvm::IRBuilder<> *builder_;
             };
 
 

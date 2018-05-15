@@ -24,3 +24,8 @@ llvm::Value* BlockJITAdaptorLowerer::GetValueFor(const captive::shared::IROperan
 void BlockJITAdaptorLowerer::SetValueFor(const captive::shared::IROperand& operand, llvm::Value* value) {
 	GetContext().SetValueFor(operand, value);
 }
+
+llvm::Value* BlockJITAdaptorLowerer::GetThreadPtr()
+{
+	return GetContext().GetThreadPtr();
+}

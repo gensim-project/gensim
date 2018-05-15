@@ -8,9 +8,12 @@
 #include "translate/adapt/BlockJITToLLVM.h"
 #include "core/MemoryInterface.h"
 #include "system.h"
+#include "translate/jit_funs.h"
 
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/ExecutionEngine/SectionMemoryManager.h>
+#include <llvm/ExecutionEngine/JITSymbol.h>
 
 using namespace archsim;
 using namespace archsim::core::execution;
@@ -65,7 +68,7 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	}
 	
 	archsim::translate::adapt::BlockJITToLLVMAdaptor adaptor (llvm_ctx_);
-	auto function = adaptor.AdaptIR(module, "fn_" + std::to_string(block_pc.Get()), txln_ctx);
+	auto function = adaptor.AdaptIR(thread, module, "fn_" + std::to_string(block_pc.Get()), txln_ctx);
 	if(function == nullptr) {
 		return false;
 	}
@@ -74,14 +77,18 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	target_opts.EnableFastISel = false;
 	target_opts.PrintMachineCode = false;
 	
-	llvm::ExecutionEngine *engine = llvm::EngineBuilder(std::unique_ptr<llvm::Module>(module))
+	engine_ = llvm::EngineBuilder(std::unique_ptr<llvm::Module>(module))
 		.setEngineKind(::llvm::EngineKind::JIT)
 		.setOptLevel(::llvm::CodeGenOpt::Aggressive)
 		.setRelocationModel(::llvm::Reloc::Static)
 		.setCodeModel(::llvm::CodeModel::Large)
 		.setTargetOptions(target_opts).create();
 	
-	assert(engine != nullptr);
+	assert(engine_ != nullptr);
+	
+	engine_->addGlobalMapping("cpuTakeException", (uint64_t)(void*)cpuTakeException);
+	
+	engine_->finalizeObject();
 	
 	if(function) {
 		block_txln_fn fn = (block_txln_fn)engine_->getPointerToFunction(function);

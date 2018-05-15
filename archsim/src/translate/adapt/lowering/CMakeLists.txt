@@ -1,4 +1,15 @@
 archsim_add_sources(
 	LoweringAdd.cpp
+	LoweringAnd.cpp
 	LoweringBarrier.cpp
+	LoweringException.cpp
+	LoweringIncPC.cpp
+	LoweringJmp.cpp
+	LoweringLdPC.cpp
+	LoweringMem.cpp
+	LoweringMov.cpp
+	LoweringReg.cpp
+	LoweringRet.cpp
+	LoweringTrunc.cpp
+	LoweringZx.cpp
 )
