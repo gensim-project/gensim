@@ -103,6 +103,7 @@ DefineLongFlag(AggressiveCodeInvalidation, "aggressive-code-invalidation");
 
 // GPU Simulation Options
 DefineLongRequiredArgument(uint32_t, GPUSimNumHostThreads, "gpu-num-host-threads");
+DefineLongRequiredArgument(uint32_t, GPUSimNumShaderCores, "gpu-num-shader-cores");
 DefineLongFlag(GPU, "gpu");
 DefineLongFlag(GPUMetrics, "gpu-metrics");
 DefineLongFlag(GPUTracing, "gpu-tracing");

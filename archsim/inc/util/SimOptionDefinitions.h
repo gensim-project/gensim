@@ -138,6 +138,7 @@ DefineFlag(GPU, GPUSpecialLog, "Enable special logging of GPU execution, use --g
 DefineFlag(GPU, GPUTiming, "Enable timing of GPU Shaders, use --gpu-timing", false);
 DefineFlag(GPU, GPUReplayInstructions, "Enable dumping of instruction information with inputs to verify, use --gpu-replay.", false);
 DefineIntSetting(GPU, GPUSimNumHostThreads, "Select number of host threads on which to map GPU shader program, default is set automatically based on core count. Use --gpu-num-host-threads.", 0xffffffff);
+DefineIntSetting(GPU, GPUSimNumShaderCores, "Select number of shader cores to execute model with, Use --gpu-num-shader-cores.", 1);
 
 #endif	/* SIMOPTIONDEFINITIONS_H */
 
