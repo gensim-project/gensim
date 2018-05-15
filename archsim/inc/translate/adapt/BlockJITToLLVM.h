@@ -27,12 +27,11 @@ namespace archsim {
         namespace adapt {
 			
 			::llvm::FunctionType *GetBlockFunctionType(::llvm::LLVMContext &ctx);
-			::llvm::FunctionType *GetIRBlockFunctionType(::llvm::LLVMContext &ctx);
 			
             class BlockJITToLLVMAdaptor {
             public:	
 				BlockJITToLLVMAdaptor(::llvm::LLVMContext &ctx);
-                ::llvm::Function *AdaptIR(::llvm::Module *target_module, const std::string &name, const captive::arch::jit::TranslationContext &ctx);
+                ::llvm::Function *AdaptIR(archsim::core::thread::ThreadInstance *thread, ::llvm::Module *target_module, const std::string &name, const captive::arch::jit::TranslationContext &ctx);
 				
 			private:
 				::llvm::LLVMContext &ctx_;
