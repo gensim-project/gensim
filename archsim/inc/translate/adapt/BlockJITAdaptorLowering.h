@@ -38,9 +38,11 @@ namespace archsim {
             };
             
 #define DEFINE_LOWERING(x) class BlockJIT ## x ## Lowering : public BlockJITAdaptorLowerer { public: bool Lower(const captive::shared::IRInstruction*& insn) override; };
+            DEFINE_LOWERING(ADCFLAGS);
             DEFINE_LOWERING(ADD);
             DEFINE_LOWERING(AND);
             DEFINE_LOWERING(BARRIER);
+            DEFINE_LOWERING(BRANCH);
             DEFINE_LOWERING(EXCEPTION);
             DEFINE_LOWERING(INCPC);
             DEFINE_LOWERING(JMP);
@@ -49,9 +51,13 @@ namespace archsim {
             DEFINE_LOWERING(LDMEM);
 			DEFINE_LOWERING(MOV);
             DEFINE_LOWERING(RET);
+            DEFINE_LOWERING(SHL);
+            DEFINE_LOWERING(SHR);
             DEFINE_LOWERING(STREG);
             DEFINE_LOWERING(STMEM);
+            DEFINE_LOWERING(SUB);
             DEFINE_LOWERING(TRUNC);
+            DEFINE_LOWERING(XOR);
             DEFINE_LOWERING(ZX);
 #undef DEFINE_LOWERING
         }
