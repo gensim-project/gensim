@@ -88,6 +88,10 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	
 	engine_->addGlobalMapping("cpuTakeException", (uint64_t)(void*)cpuTakeException);
 	
+	engine_->addGlobalMapping("blkRead8", (uint64_t)(void*)blkRead8);
+	engine_->addGlobalMapping("blkRead16", (uint64_t)(void*)blkRead16);
+	engine_->addGlobalMapping("blkRead32", (uint64_t)(void*)blkRead32);
+	
 	engine_->finalizeObject();
 	
 	if(function) {

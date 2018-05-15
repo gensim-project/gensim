@@ -5,10 +5,35 @@
  */
 
 #include "translate/adapt/BlockJITAdaptorLowering.h"
+#include "translate/adapt/BlockJITAdaptorLoweringContext.h"
 
 using namespace archsim::translate::adapt;
 
 bool BlockJITLDMEMLowering::Lower(const captive::shared::IRInstruction*& insn) {
+	
+	const auto &interface = insn->operands[0];
+	const auto &offset = insn->operands[1];
+	const auto &disp = insn->operands[2];
+	const auto &dest = insn->operands[3];
+	
+	llvm::Value *target_fn = nullptr;
+	switch(dest.size) {
+		case 1:
+			target_fn = GetContext().GetValues().blkRead8Ptr; break;
+		case 2:
+			target_fn = GetContext().GetValues().blkRead16Ptr; break;
+		case 4:
+			target_fn = GetContext().GetValues().blkRead32Ptr; break;
+		case 8:
+		default:
+			UNIMPLEMENTED;
+	}
+	
+	auto address_value = GetBuilder().CreateAdd(GetValueFor(offset), GetValueFor(disp));
+	auto interface_value = GetValueFor(interface);
+	
+	auto data = GetBuilder().CreateCall(target_fn, { GetContext().GetThreadPtrPtr(), address_value, interface_value });
+	SetValueFor(dest, data);
 	
 	insn++;
 	

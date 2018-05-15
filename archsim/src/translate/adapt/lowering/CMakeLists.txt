@@ -1,7 +1,8 @@
 archsim_add_sources(
-	LoweringAdd.cpp
-	LoweringAnd.cpp
+	LoweringArithmetic.cpp
 	LoweringBarrier.cpp
+	LoweringBitwise.cpp
+	LoweringBranch.cpp
 	LoweringException.cpp
 	LoweringIncPC.cpp
 	LoweringJmp.cpp

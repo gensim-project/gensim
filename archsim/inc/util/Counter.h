@@ -25,13 +25,6 @@
 
 namespace archsim
 {
-	namespace translate
-	{
-		namespace llvm
-		{
-			class LLVMTranslationContext;
-		}
-	}
 	namespace util
 	{
 		class Counter
