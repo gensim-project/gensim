@@ -19,6 +19,7 @@
 #include <vector>
 #include <cstring>
 
+#include "net/Socket.h"
 #include "Framebuffer.h"
 
 namespace libgvnc {
@@ -49,7 +50,7 @@ namespace libgvnc {
 			Closed	
 		};
 		
-		Client(Server *server, int socket_fd);
+		Client(Server *server, net::Socket *client_socket);
 		
 		void Open();
 		void Close();
@@ -88,7 +89,7 @@ namespace libgvnc {
 		struct FB_PixelFormat pixel_format_;
 		std::thread thread_;
 		std::mutex lock_;
-		int socket_fd_;
+		net::Socket *client_socket_;
 		bool open_;
 		State state_;
 		int subversion_;

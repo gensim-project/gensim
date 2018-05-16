@@ -10,13 +10,10 @@
 
 #include <arpa/inet.h>
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-
 using namespace libgvnc;
+using namespace libgvnc::net;
 
-Client::Client(Server *server, int socket_fd) : socket_fd_(socket_fd), state_(State::Invalid), server_(server)
+Client::Client(Server *server, Socket *client_socket) : client_socket_(client_socket), state_(State::Invalid), server_(server)
 {
 }
 
@@ -36,9 +33,9 @@ void Client::Open()
 void Client::Close()
 {
 	state_ = State::Closed;
-	close(socket_fd_);
+	client_socket_->Close();
+	delete client_socket_;
 }
-
 
 void Client::Run() 
 {
@@ -60,7 +57,7 @@ struct packet_protocolversion {
 
 void Client::SendRaw(const void* data, size_t size)
 {
-	if(write(socket_fd_, data, size) != size) {
+	if(client_socket_->Write(data, size) != size) {
 		throw std::logic_error("Something went wrong: " + std::string(strerror(errno)));
 	}
 }
@@ -70,7 +67,7 @@ void Client::ReceiveRaw(void* data, size_t size)
 	int total_bytes = 0;
 	char *cdata = (char*)data;
 	while(total_bytes < size) {
-		int bytes = read(socket_fd_, cdata + total_bytes, size - total_bytes);
+		int bytes = client_socket_->Read(cdata + total_bytes, size - total_bytes);
 		if(bytes < 0) {
 			throw std::logic_error("Something went wrong: " + std::string(strerror(errno)));
 		}

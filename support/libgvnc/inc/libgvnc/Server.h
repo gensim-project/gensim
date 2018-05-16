@@ -2,6 +2,7 @@
 #define LIBGVNC_SERVER_H_
 
 #include <mutex>
+#include <condition_variable>
 #include <thread>
 #include <set>
 
@@ -9,18 +10,21 @@
 #include "Framebuffer.h"
 #include "Keyboard.h"
 #include "Pointer.h"
+#include "net/Socket.h"
 
 namespace libgvnc {
 	
 	class Server {
 		enum class State {
 			INVALID,
+                        Starting,
 			Closed,
 			Open
 		};
 		
 	public:
 		Server(Framebuffer *fb);
+                ~Server();
 		
 		bool Open(int listen_port);
 		void AddClient(Client *client);
@@ -30,11 +34,14 @@ namespace libgvnc {
 		Pointer &GetPointer() { return pointer_; }
 		
 	private:
-		static void server_thread(Server *server);
+		static void *server_thread_tramp(Server *server) { return server->ServerThread(); }
+		void *ServerThread();
+                void NotifyServerReady();
 		
 		State state_;
 		std::mutex lock_;
-		int listen_socket_;
+                std::condition_variable ready_cv_;
+		net::Socket *listen_socket_;
 		std::thread server_thread_;
 		std::set<Client*> clients_;
 		Framebuffer *fb_;
