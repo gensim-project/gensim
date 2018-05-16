@@ -33,9 +33,15 @@ namespace archsim {
 				BlockJITValues(llvm::Module *module);
 				
 				llvm::Function *cpuTakeExceptionPtr;
+				
 				llvm::Function *blkRead8Ptr;
 				llvm::Function *blkRead16Ptr;
 				llvm::Function *blkRead32Ptr;
+				
+				llvm::Function *blkWrite8Ptr;
+				llvm::Function *blkWrite16Ptr;
+				llvm::Function *blkWrite32Ptr;
+				
 				llvm::Function *genc_adc_flags_ptr;
 			};
 			
@@ -65,6 +71,8 @@ namespace archsim {
 
 				::llvm::Value *GetValueFor(const IROperand &operand);
 				void SetValueFor(const IROperand &operand, ::llvm::Value *value);
+				llvm::Value *GetStateBlockEntryPtr(const std::string& entry, llvm::Type *type);
+				
 				llvm::Value *GetThreadPtr();
 				llvm::Value *GetThreadPtrPtr();
 	    
@@ -75,12 +83,14 @@ namespace archsim {
 				::llvm::Value *GetRegisterPointer(const archsim::RegisterFileEntryDescriptor &reg, int index);
 				::llvm::Value *GetRegisterPointer(int offset, int size);
 				::llvm::Value *GetRegfilePointer();
+				::llvm::Value *GetStateBlockPtr();
 				
 				BlockJITValues &GetValues() { return values_; }
 				
 				::llvm::Type *GetLLVMType(uint32_t bytes);
 				::llvm::Type *GetLLVMType(const IROperand &op);
 				::llvm::LLVMContext &GetLLVMContext() { return target_module_->getContext(); }
+				::llvm::Module *GetModule() { return target_module_; }
 				
             private:
 				BlockJITValues values_;
@@ -93,6 +103,7 @@ namespace archsim {
 				
 				std::map<IRBlockId, ::llvm::BasicBlock*> block_ptrs_;
 				std::map<IRRegId, ::llvm::Value*> reg_ptrs_;
+				std::map<std::pair<uint32_t, uint32_t>, ::llvm::Value*> greg_ptrs_;
 				
 				::llvm::Module *target_module_;
 				::llvm::Function *target_fun_;

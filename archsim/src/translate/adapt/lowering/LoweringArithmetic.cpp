@@ -13,11 +13,11 @@ using namespace archsim::translate::adapt;
 bool BlockJITADCFLAGSLowering::Lower(const captive::shared::IRInstruction*& insn) {
 	auto lhs = GetValueFor(insn->operands[0]);
 	auto rhs = GetValueFor(insn->operands[1]);
-	auto carry = GetValueFor(insn->operands[1]);
+	auto carry = GetValueFor(insn->operands[2]);
 	
 	lhs = GetBuilder().CreateZExtOrTrunc(lhs, GetContext().GetLLVMType(4));
 	rhs = GetBuilder().CreateZExtOrTrunc(rhs, GetContext().GetLLVMType(4));
-	carry = GetBuilder().CreateZExtOrTrunc(rhs, GetContext().GetLLVMType(1));
+	carry = GetBuilder().CreateZExtOrTrunc(carry, GetContext().GetLLVMType(1));
 	
 	llvm::Value *packedword = GetBuilder().CreateCall(GetContext().GetValues().genc_adc_flags_ptr, {lhs, rhs, carry});
 	
@@ -65,12 +65,27 @@ bool BlockJITADDLowering::Lower(const captive::shared::IRInstruction*& insn) {
 }
 
 bool BlockJITSUBLowering::Lower(const captive::shared::IRInstruction*& insn) {
-	auto lhs = GetValueFor(insn->operands[0]);
-	auto rhs = GetValueFor(insn->operands[1]);
+	auto lhs = GetValueFor(insn->operands[1]);
+	auto rhs = GetValueFor(insn->operands[0]);
 	
 	auto &dest = insn->operands[1];
 	
 	auto value = GetBuilder().CreateSub(lhs, rhs);
+	
+	SetValueFor(dest, value);
+	
+	insn++;
+	
+	return true;
+}
+
+bool BlockJITUMULLLowering::Lower(const captive::shared::IRInstruction*& insn) {
+	auto lhs = GetValueFor(insn->operands[1]);
+	auto rhs = GetValueFor(insn->operands[0]);
+	
+	auto &dest = insn->operands[1];
+	
+	auto value = GetBuilder().CreateMul(lhs, rhs);
 	
 	SetValueFor(dest, value);
 	

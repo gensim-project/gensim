@@ -25,7 +25,7 @@ UserEmulationModel::~UserEmulationModel() { }
 void UserEmulationModel::PrintStatistics(std::ostream& stream)
 {
 //	cpu->PrintStatistics(stream);
-	UNIMPLEMENTED;
+	
 }
 
 bool UserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, SignalData* data)

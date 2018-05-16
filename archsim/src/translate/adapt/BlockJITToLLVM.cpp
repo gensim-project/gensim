@@ -9,6 +9,7 @@
 #include "blockjit/block-compiler/lowering/LoweringContext.h"
 #include "translate/TranslationContext.h"
 #include "blockjit/block-compiler/lowering/InstructionLowerer.h"
+#include "blockjit/IRPrinter.h"
 
 #include "util/SimOptions.h"
 
@@ -58,7 +59,27 @@ llvm::Function* BlockJITToLLVMAdaptor::AdaptIR(archsim::core::thread::ThreadInst
 	
 	// TODO: jump from entry block to first instruction block
 	llvm::BranchInst::Create(lowerer.GetLLVMBlock(0), entry_block);
+	
+
+	if(archsim::options::Debug) {
+		std::stringstream filename;
+		filename << "llvm-" << std::hex << name << ".ll";
+
+		std::ofstream os_stream(filename.str().c_str(), std::ios_base::out);
+		::llvm::raw_os_ostream str(os_stream);
 		
+		llvm::legacy::PassManager mpm;
+		mpm.add(llvm::createPrintModulePass(str));
+		
+		mpm.run(*target_module);
+		
+		filename.str("");
+		filename << "blockjit-" << std::hex << name << ".blockjit";
+		std::ofstream blockjit_file(filename.str(), std::ios_base::out);
+		archsim::blockjit::IRPrinter printer;
+		printer.DumpIR(blockjit_file, ctx);
+	}	
+	
 	{
 		llvm::legacy::PassManager pm;
 //		pm.add(new llvm::DataLayout(engine_->getDataLayout()));
@@ -66,6 +87,7 @@ llvm::Function* BlockJITToLLVMAdaptor::AdaptIR(archsim::core::thread::ThreadInst
 		pm.add(llvm::createPromoteMemoryToRegisterPass());
 		pm.add(llvm::createInstructionCombiningPass(false));
 		pm.add(llvm::createReassociatePass());
+		pm.add(llvm::createCFGSimplificationPass());
 
 		pm.run(*target_module);
 	}

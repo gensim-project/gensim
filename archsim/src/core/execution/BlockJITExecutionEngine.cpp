@@ -167,6 +167,12 @@ ExecutionResult BlockJITExecutionEngine::Execute(ExecutionEngineThreadContext* c
 	pubsub.Subscribe(PubSubType::FeatureChange, flush_txlns_callback, this);
 	pubsub.Subscribe(PubSubType::RegionInvalidatePhysical, flush_txlns_callback, this);
 	
+	std::unique_ptr<util::CounterTimerContext> timer_ctx;
+	
+	if(archsim::options::Verbose) {
+		timer_ctx = std::unique_ptr<util::CounterTimerContext>(new util::CounterTimerContext(thread->GetMetrics().SelfRuntime));
+	}
+	
 	const auto &pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
 	void *pc_ptr = (uint8_t*)thread->GetRegisterFile() + pc_desc.GetOffset();
 	

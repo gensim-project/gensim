@@ -22,6 +22,7 @@
 #include "abi/devices/MMU.h"
 #include "util/wutils/tick-timer.h"
 #include "blockjit/PerfMap.h"
+#include "blockjit/IRPrinter.h"
 
 #include <stdio.h>
 
@@ -462,7 +463,9 @@ bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance 
 		str << "blkjit-" << std::hex << block_address.Get() << ".txt";
 		outfile = fopen(str.str().c_str(), "w");
 		str.str("");
-		compiler.dump_ir(str);
+		
+		archsim::blockjit::IRPrinter printer;
+		printer.DumpIR(str, ctx);
 		std::string ir_str = str.str();
 		fwrite(ir_str.c_str(), ir_str.length(), 1, outfile);
 		fclose(outfile);
