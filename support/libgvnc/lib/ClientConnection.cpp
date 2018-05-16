@@ -1,10 +1,22 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2018 Harry Wagstaff
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+ * and associated documentation files (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+ * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
-#include "libgvnc/Client.h"
+#include "libgvnc/ClientConnection.h"
 #include "libgvnc/Framebuffer.h"
 #include "libgvnc/Server.h"
 
@@ -13,11 +25,11 @@
 using namespace libgvnc;
 using namespace libgvnc::net;
 
-Client::Client(Server *server, Socket *client_socket) : client_socket_(client_socket), state_(State::Invalid), server_(server)
+ClientConnection::ClientConnection(Server *server, Socket *client_socket) : client_socket_(client_socket), state_(State::Invalid), server_(server)
 {
 }
 
-void Client::Open()
+void ClientConnection::Open()
 {
 	open_ = true;
 	state_ = State::FreshlyConnected;
@@ -30,14 +42,14 @@ void Client::Open()
 	});
 }
 
-void Client::Close()
+void ClientConnection::Close()
 {
 	state_ = State::Closed;
 	client_socket_->Close();
 	delete client_socket_;
 }
 
-void Client::Run() 
+void ClientConnection::Run() 
 {
 	if(!Handshake() || !Initialise()) {
 		Close();
@@ -55,14 +67,14 @@ struct packet_protocolversion {
 	char data[12];
 };
 
-void Client::SendRaw(const void* data, size_t size)
+void ClientConnection::SendRaw(const void* data, size_t size)
 {
 	if(client_socket_->Write(data, size) != size) {
 		throw std::logic_error("Something went wrong: " + std::string(strerror(errno)));
 	}
 }
 
-void Client::ReceiveRaw(void* data, size_t size)
+void ClientConnection::ReceiveRaw(void* data, size_t size)
 {
 	int total_bytes = 0;
 	char *cdata = (char*)data;
@@ -76,7 +88,7 @@ void Client::ReceiveRaw(void* data, size_t size)
 }
 
 
-bool Client::Handshake()
+bool ClientConnection::Handshake()
 {
 	// send a protocolversion packet
 	const char * const protocol_version = "RFB 003.008\n";
@@ -131,7 +143,7 @@ struct serverinit_message {
 	struct FB_PixelFormat pixelformat;
 };
 
-bool Client::Initialise()
+bool ClientConnection::Initialise()
 {
 	// wait for ClientInit message
 	uint8_t clientinit = 0;
@@ -173,7 +185,7 @@ bool Client::Initialise()
 	return true;
 }
 
-bool Client::ServeClientMessage()
+bool ClientConnection::ServeClientMessage()
 {
 	uint8_t message_type;
 	Receive(message_type);
@@ -190,7 +202,7 @@ bool Client::ServeClientMessage()
 	}
 }
 
-bool Client::ServeSetPixelFormat()
+bool ClientConnection::ServeSetPixelFormat()
 {
 	uint8_t padding[3];
 	ReceiveRaw(padding, 3);
@@ -220,7 +232,7 @@ bool Client::ServeSetPixelFormat()
 	return true;
 }
 
-bool Client::ServeSetEncodings()
+bool ClientConnection::ServeSetEncodings()
 {
 	uint8_t padding;
 	Receive(padding);
@@ -236,7 +248,7 @@ bool Client::ServeSetEncodings()
 	return true;
 }
 
-bool Client::ServeFramebufferUpdateRequest()
+bool ClientConnection::ServeFramebufferUpdateRequest()
 {
 	struct fb_update_request request;
 	Receive(request.incremental);
@@ -256,7 +268,7 @@ bool Client::ServeFramebufferUpdateRequest()
 	return true;
 }
 
-void Client::UpdateFB(const struct fb_update_request& request)
+void ClientConnection::UpdateFB(const struct fb_update_request& request)
 {
 	// Message type
 	Buffer((uint8_t)0);
@@ -279,7 +291,7 @@ void Client::UpdateFB(const struct fb_update_request& request)
 	SendBuffer();
 }
 
-bool Client::ServeKeyEvent()
+bool ClientConnection::ServeKeyEvent()
 {
 	uint16_t padding;
 	struct KeyEvent event;
@@ -293,7 +305,7 @@ bool Client::ServeKeyEvent()
 	return true;
 }
 
-bool Client::ServePointerEvent()
+bool ClientConnection::ServePointerEvent()
 {
 	struct PointerEvent event;
 	Receive(event.ButtonMask);
@@ -307,7 +319,7 @@ bool Client::ServePointerEvent()
 	return true;
 }
 
-bool Client::ServeClientCutText()
+bool ClientConnection::ServeClientCutText()
 {
 	uint8_t padding[3];
 	ReceiveRaw(padding, 3);
