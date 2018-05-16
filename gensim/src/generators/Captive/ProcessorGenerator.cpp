@@ -112,7 +112,7 @@ namespace gensim
 					str << "void dump_state(bool show_hidden) const override;";
 
 					str << "bool handle_irq(uint32_t isr) override;";
-					str << "bool handle_mmu_fault(const MMU::resolution_context& ctx) override;";
+					str << "bool handle_mmu_fault(gva_t va, const captive::arch::mmu::AddressTranslationContext& ctx) override;";
 					str << "bool handle_single_step() override;";
 					str << "void handle_undefined_instruction() override;";
 
@@ -386,7 +386,7 @@ namespace gensim
 					str << *(arch.ISAs.front()->BehaviourActions.at("irq"));
 					str << "}";
 
-					str << "bool " << ClassNameForCPU() << "::handle_mmu_fault(const MMU::resolution_context& ctx)";
+					str << "bool " << ClassNameForCPU() << "::handle_mmu_fault(gva_t va, const captive::arch::mmu::AddressTranslationContext& ctx)";
 					str << "{";
 					str << *(arch.ISAs.front()->BehaviourActions.at("mmu_fault"));
 					str << "}";
