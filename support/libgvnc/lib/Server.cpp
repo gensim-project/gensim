@@ -5,30 +5,21 @@
  */
 
 #include "libgvnc/Server.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+#include "libgvnc/net/EndPoint.h"
 
 #include <stdexcept>
 
 using namespace libgvnc;
-
-void Server::server_thread(Server *server) {
-	server->state_ = State::Open;
-	
-	listen(server->listen_socket_, 5);
-	
-	while(server->state_ == State::Open) {
-		int sock_fd = accept(server->listen_socket_, nullptr, nullptr);
-		server->AddClient(new Client(server, sock_fd));
-	}
-}
+using namespace libgvnc::net;
 
 Server::Server(Framebuffer *fb) : state_(State::Closed), fb_(fb)
 {
 	
+}
+
+Server::~Server()
+{
+
 }
 
 void Server::AddClient(Client* client)
@@ -37,33 +28,52 @@ void Server::AddClient(Client* client)
 	client->Open();
 }
 
-
 bool Server::Open(int listen_port)
 {
-	std::lock_guard<std::mutex> lg(lock_);
+	std::unique_lock<std::mutex> lg(lock_);
 	
 	if(state_ == State::Open) {
 		throw std::logic_error("Server is already running");
 	}
 	
-	listen_socket_ = socket(AF_INET, SOCK_STREAM, 0);
-	struct sockaddr_in sa;
-	bzero(&sa, sizeof(sa));
-	sa.sin_family = AF_INET;
-	sa.sin_addr.s_addr = INADDR_ANY;
-	sa.sin_port = htons(listen_port);
+	listen_socket_ = new net::Socket(AddressFamily::INET, SocketType::STREAM, ProtocolType::NONE);
 	
-	int pingpong = 1;
-	setsockopt(listen_socket_, SOL_SOCKET, SO_REUSEADDR, &pingpong, sizeof(pingpong));
-	
-	if(bind(listen_socket_, (sockaddr*)&sa, sizeof(sa)) < 0) {
-		throw std::logic_error(std::string("Could not bind socket: ") + std::string(strerror(errno)));
-	}
+	IPEndPoint listenEndPoint(IPAddress::Any, listen_port);
+	listen_socket_->Bind(listenEndPoint);
+	listen_socket_->Listen(5);
+		
+	//int pingpong = 1;
+	//setsockopt(listen_socket_, SOL_SOCKET, SO_REUSEADDR, &pingpong, sizeof(pingpong));
 	
 	// start a new thread to listen for and service connections
-	server_thread_ = std::thread([this](){server_thread(this);});
+	state_ = State::Starting;
+	server_thread_ = std::thread(server_thread_tramp, this);
 	
-	state_ = State::Open;
+	while (state_ != State::Open) {
+		ready_cv_.wait(lg);
+	}
 	
 	return true;
+}
+
+void *Server::ServerThread()
+{
+	NotifyServerReady();
+
+	while (state_ == State::Open) {
+		Socket *client_socket = listen_socket_->Accept();
+		
+		if (client_socket != nullptr) {
+			AddClient(new Client(this, client_socket));
+		}
+	}
+	
+	return nullptr;
+}
+
+void Server::NotifyServerReady()
+{
+	std::lock_guard<std::mutex> lg(lock_);
+	state_ = State::Open;
+	ready_cv_.notify_all();
 }
