@@ -7,6 +7,7 @@ archsim_add_sources(
 	blockjit-funs.cpp
 	PerfMap.cpp
 	BlockCache.cpp
+	IRPrinter.cpp
 
 	blockjit-shunts.S
 )

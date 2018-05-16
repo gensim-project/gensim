@@ -2,6 +2,9 @@ archsim_add_sources(
 	LoweringArithmetic.cpp
 	LoweringBarrier.cpp
 	LoweringBitwise.cpp
+	LoweringCall.cpp
+	LoweringCmp.cpp
+	LoweringCount.cpp
 	LoweringBranch.cpp
 	LoweringException.cpp
 	LoweringIncPC.cpp
@@ -11,6 +14,8 @@ archsim_add_sources(
 	LoweringMov.cpp
 	LoweringReg.cpp
 	LoweringRet.cpp
+	LoweringScm.cpp
 	LoweringTrunc.cpp
+	LoweringZNFlags.cpp
 	LoweringZx.cpp
 )

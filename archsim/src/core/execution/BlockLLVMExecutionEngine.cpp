@@ -54,8 +54,7 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	translator->InitialiseFeatures(thread);
 	translator->InitialiseIsaMode(thread);
 	translator->SetDecodeContext(thread->GetEmulationModel().GetNewDecodeContext(*thread));
-	
-	
+		
 	captive::arch::jit::TranslationContext txln_ctx;
 	captive::shared::IRBuilder builder;
 	builder.SetContext(&txln_ctx);
@@ -74,7 +73,7 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	}
 	
 	::llvm::TargetOptions target_opts;
-	target_opts.EnableFastISel = false;
+	target_opts.EnableFastISel = true;
 	target_opts.PrintMachineCode = false;
 	
 	engine_ = llvm::EngineBuilder(std::unique_ptr<llvm::Module>(module))
@@ -91,6 +90,9 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	engine_->addGlobalMapping("blkRead8", (uint64_t)(void*)blkRead8);
 	engine_->addGlobalMapping("blkRead16", (uint64_t)(void*)blkRead16);
 	engine_->addGlobalMapping("blkRead32", (uint64_t)(void*)blkRead32);
+	engine_->addGlobalMapping("blkWrite8", (uint64_t)(void*)cpuWrite8);
+	engine_->addGlobalMapping("blkWrite16", (uint64_t)(void*)cpuWrite16);
+	engine_->addGlobalMapping("blkWrite32", (uint64_t)(void*)cpuWrite32);
 	
 	engine_->finalizeObject();
 	
@@ -100,6 +102,8 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 		
 		phys_block_profile_.Insert(physaddr, txln);
 		virt_block_cache_.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
+		
+		return true;
 	} else {
 		// if we failed to produce a translation, then try and stop the simulation
 //		LC_ERROR(LogBlockJitCpu) << "Failed to compile block! Aborting.";

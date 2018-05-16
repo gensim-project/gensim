@@ -29,6 +29,10 @@ BlockJITValues::BlockJITValues(::llvm::Module* module)
 	blkRead16Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead16", i16Ty, i8PtrPtrTy, i32Ty, i32Ty);
 	blkRead32Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead32", i32Ty, i8PtrPtrTy, i32Ty, i32Ty);
 	
+	blkWrite8Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite8", voidTy, i8PtrTy, i32Ty, i32Ty, i8Ty);
+	blkWrite16Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite16", voidTy, i8PtrTy, i32Ty, i32Ty, i16Ty);
+	blkWrite32Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite32", voidTy, i8PtrTy, i32Ty, i32Ty, i32Ty);
+	
 	genc_adc_flags_ptr = (llvm::Function*)module->getOrInsertFunction("genc_adc_flags", i16Ty, i32Ty, i32Ty, i8Ty);
 }
 
@@ -40,21 +44,38 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx) {
 	AddLowerer(IRInstruction::AND, new BlockJITANDLowering());
 	AddLowerer(IRInstruction::BARRIER, new BlockJITBARRIERLowering());
 	AddLowerer(IRInstruction::BRANCH, new BlockJITBRANCHLowering());
+	AddLowerer(IRInstruction::CALL, new BlockJITCALLLowering());
+	AddLowerer(IRInstruction::CMPEQ, new BlockJITCMPLowering(IRInstruction::CMPEQ));
+	AddLowerer(IRInstruction::CMPNE, new BlockJITCMPLowering(IRInstruction::CMPNE));
+	AddLowerer(IRInstruction::CMPGT, new BlockJITCMPLowering(IRInstruction::CMPGT));
+	AddLowerer(IRInstruction::CMPGTE, new BlockJITCMPLowering(IRInstruction::CMPGTE));
+	AddLowerer(IRInstruction::CMPLT, new BlockJITCMPLowering(IRInstruction::CMPLT));
+	AddLowerer(IRInstruction::CMPLTE, new BlockJITCMPLowering(IRInstruction::CMPLTE));
+	AddLowerer(IRInstruction::CMPSGT, new BlockJITCMPLowering(IRInstruction::CMPSGT));
+	AddLowerer(IRInstruction::CMPSGTE, new BlockJITCMPLowering(IRInstruction::CMPSGTE));
+	AddLowerer(IRInstruction::CMPSLT, new BlockJITCMPLowering(IRInstruction::CMPSLT));
+	AddLowerer(IRInstruction::CMPSLTE, new BlockJITCMPLowering(IRInstruction::CMPSLTE));
+	AddLowerer(IRInstruction::COUNT, new BlockJITCOUNTLowering());
 	AddLowerer(IRInstruction::INCPC, new BlockJITINCPCLowering());
 	AddLowerer(IRInstruction::JMP, new BlockJITJMPLowering());
-	AddLowerer(IRInstruction::MOV, new BlockJITMOVLowering());
 	AddLowerer(IRInstruction::LDPC, new BlockJITLDPCLowering());
+	AddLowerer(IRInstruction::MOV, new BlockJITMOVLowering());
+	AddLowerer(IRInstruction::OR, new BlockJITORLowering());
 	AddLowerer(IRInstruction::READ_REG, new BlockJITLDREGLowering());
 	AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMLowering());
 	AddLowerer(IRInstruction::RET, new BlockJITRETLowering());
+	AddLowerer(IRInstruction::SET_CPU_MODE, new BlockJITSCMLowering());
 	AddLowerer(IRInstruction::SHL, new BlockJITSHLLowering());
+	AddLowerer(IRInstruction::SAR, new BlockJITSARLowering());
 	AddLowerer(IRInstruction::SHR, new BlockJITSHRLowering());
 	AddLowerer(IRInstruction::SUB, new BlockJITSUBLowering());
 	AddLowerer(IRInstruction::TAKE_EXCEPTION, new BlockJITEXCEPTIONLowering());
 	AddLowerer(IRInstruction::TRUNC, new BlockJITTRUNCLowering());
+	AddLowerer(IRInstruction::MUL, new BlockJITUMULLLowering());
 	AddLowerer(IRInstruction::WRITE_REG, new BlockJITSTREGLowering());
 	AddLowerer(IRInstruction::WRITE_MEM, new BlockJITSTMEMLowering());
 	AddLowerer(IRInstruction::XOR, new BlockJITXORLowering());
+	AddLowerer(IRInstruction::SET_ZN_FLAGS, new BlockJITZNFLAGSLowering());
 	AddLowerer(IRInstruction::ZX, new BlockJITZXLowering());
 
 	return true;
@@ -83,22 +104,24 @@ llvm::BasicBlock* BlockJITLoweringContext::GetLLVMBlock(IRBlockId block_id)
 
 ::llvm::Value* BlockJITLoweringContext::GetRegisterPointer(const archsim::RegisterFileEntryDescriptor& reg, int index)
 {
-	auto ptr = GetRegfilePointer();
-	ptr = GetBuilder().CreatePtrToInt(ptr, GetPointerIntType());
-	ptr = GetBuilder().CreateAdd(ptr, ::llvm::ConstantInt::get(GetPointerIntType(), reg.GetOffset() + (reg.GetEntryStride() * index)));
-	ptr = GetBuilder().CreateIntToPtr(ptr, GetLLVMType(reg.GetEntrySize())->getPointerTo(0));
-	return ptr;
+	return GetRegisterPointer(reg.GetOffset() + (reg.GetEntryStride()*index), reg.GetEntrySize());
 }
 
 ::llvm::Value *BlockJITLoweringContext::GetRegisterPointer(int offset, int size)
 {
-	auto ptr = GetRegfilePointer();
+	if(!greg_ptrs_.count({offset, size})) {
+		::llvm::IRBuilder<> builder (GetLLVMContext());
+		builder.SetInsertPoint(&*target_fun_->begin(), target_fun_->begin()->begin());
+		
+		auto ptr = GetRegfilePointer();
+		ptr = builder.CreatePtrToInt(ptr, GetPointerIntType());
+		ptr = builder.CreateAdd(ptr, ::llvm::ConstantInt::get(GetPointerIntType(), offset));
+		ptr = builder.CreateIntToPtr(ptr, GetLLVMType(size)->getPointerTo(0));
+		ptr->setName("reg_" + std::to_string(offset) + "_" + std::to_string(size));
+		greg_ptrs_[{offset, size}] = ptr;
+	}
 	
-	ptr = GetBuilder().CreatePtrToInt(ptr, GetPointerIntType());
-	ptr = GetBuilder().CreateAdd(ptr, ::llvm::ConstantInt::get(GetPointerIntType(), offset));
-	ptr = GetBuilder().CreateIntToPtr(ptr, GetLLVMType(size)->getPointerTo(0));
-	
-	return ptr;
+	return greg_ptrs_.at({offset, size});
 }
 
 ::llvm::Value* BlockJITLoweringContext::GetRegfilePointer()
@@ -106,6 +129,26 @@ llvm::BasicBlock* BlockJITLoweringContext::GetLLVMBlock(IRBlockId block_id)
 	// arg 0 is reg file ptr
 	auto first_arg = target_fun_->arg_begin();	
 	return static_cast<::llvm::Value*>(&*first_arg);
+}
+
+::llvm::Value* BlockJITLoweringContext::GetStateBlockPtr()
+{
+	// arg 1 is reg file ptr
+	auto arg = target_fun_->arg_begin();
+	arg++;
+	return static_cast<::llvm::Value*>(&*arg);
+}
+
+
+llvm::Value* BlockJITLoweringContext::GetStateBlockEntryPtr(const std::string& entry, llvm::Type *type)
+{
+	auto offset = GetThread()->GetStateBlock().GetBlockOffset(entry);
+	llvm::Value *ptr = GetStateBlockPtr();
+	ptr = GetBuilder().CreatePtrToInt(ptr, GetPointerIntType());
+	ptr = GetBuilder().CreateAdd(ptr, llvm::ConstantInt::get(GetPointerIntType(), offset, false));
+	ptr = GetBuilder().CreateIntToPtr(ptr, type->getPointerTo(0));
+	
+	return ptr;	
 }
 
 
@@ -116,13 +159,7 @@ llvm::Value* BlockJITLoweringContext::GetThreadPtr()
 
 llvm::Value* BlockJITLoweringContext::GetThreadPtrPtr()
 {
-	// arg 1 is state block ptr
-	auto arg = target_fun_->arg_begin();
-	arg++;
-	::llvm::Value *control_block_ptr = static_cast<::llvm::Value*>(&*arg);
-	
-	::llvm::Value *thread_ptr_ptr = GetBuilder().CreateBitOrPointerCast(control_block_ptr, GetLLVMType(1)->getPointerTo(0)->getPointerTo(0));
-	return thread_ptr_ptr;
+	return GetStateBlockEntryPtr("thread_ptr", llvm::Type::getInt8PtrTy(GetLLVMContext()));
 }
 
 bool BlockJITLoweringContext::LowerBlock(const TranslationContext& ctx, captive::shared::IRBlockId block_id, uint32_t block_start) {	
@@ -142,6 +179,7 @@ bool BlockJITLoweringContext::LowerBlock(const TranslationContext& ctx, captive:
 
 llvm::Value* BlockJITLoweringContext::GetValueFor(const IROperand& operand) {
 	switch(operand.type) {
+		case IROperand::FUNC:
 		case IROperand::CONSTANT:
 			return ::llvm::ConstantInt::get(GetLLVMType(operand), operand.value);
 		case IROperand::VREG:
@@ -169,6 +207,9 @@ void BlockJITLoweringContext::SetValueFor(const IROperand& operand, ::llvm::Valu
 
 ::llvm::Type* BlockJITLoweringContext::GetLLVMType(const IROperand& op)
 {
+	if(op.type == IROperand::FUNC) {
+		return ::llvm::Type::getInt64Ty(GetLLVMContext());
+	}
 	return GetLLVMType(op.size);
 }
 
