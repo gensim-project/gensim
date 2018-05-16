@@ -80,19 +80,34 @@ static bool GtkKeyToScancode(uint32_t gtk, uint16_t &scancode)
 			MAP(Z, 0x1a);
 
 			MAP(0, 0x45);
+			MAP(parenright, 0x45);
 			MAP(1, 0x16);
+			MAP(exclam, 0x16);
 			MAP(2, 0x1E);
+			MAP(quotedbl, 0x1E);
 			MAP(3, 0x26);
+			MAP(sterling, 0x26);
 			MAP(4, 0x25);
+			MAP(dollar, 0x25);
 			MAP(5, 0x2E);
+			MAP(percent, 0x2E);
 			MAP(6, 0x36);
+			MAP(asciicircum, 0x36);
 			MAP(7, 0x3D);
+			MAP(ampersand, 0x3D);
 			MAP(8, 0x3E);
+			MAP(asterisk, 0x3E);
 			MAP(9, 0x46);
+			MAP(parenleft, 0x46);
 			MAP(asciitilde, 0x0e);
+			MAP(numbersign, 0x0e);
+			MAP(minus, 0x4e);
+			MAP(underscore, 0x4e);
 			MAP(hyphen, 0x2d);
 			MAP(equal, 0x55);
+			MAP(plus, 0x55);
 			MAP(backslash, 0x5d);
+			MAP(bar, 0x5d);
 			MAP(BackSpace, 0x66);
 			MAP(space, 0x29);
 			MAP(Tab, 0x0d);
@@ -120,6 +135,7 @@ static bool GtkKeyToScancode(uint32_t gtk, uint16_t &scancode)
 			//Print Screen
 			MAP(Scroll_Lock, 0x7e);
 			MAP(bracketleft, 0x54);
+			MAP(braceleft, 0x54);
 			MAP(Insert, 0xe070);
 			MAP(Home, 0xe06c);
 			MAP(Page_Up, 0xe07d);
@@ -148,12 +164,17 @@ static bool GtkKeyToScancode(uint32_t gtk, uint16_t &scancode)
 			MAP(KP_8, 0x75);
 			MAP(KP_9, 0x7D);
 			MAP(bracketright, 0x5B);
+			MAP(braceright, 0x5B);
 			MAP(semicolon, 0x4c);
+			MAP(colon, 0x4c);
 			MAP(apostrophe, 0x52);
+			MAP(at, 0x52);
 			MAP(comma, 0x41);
+			MAP(less, 0x41);
 			MAP(period, 0x49);
+			MAP(greater, 0x49);
 			MAP(slash, 0x4a);
-
+			MAP(question, 0x4a);
 		default:
 			return false;
 	}
