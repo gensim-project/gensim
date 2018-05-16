@@ -7,6 +7,9 @@ ADD_LIBRARY(gvnc
 	lib/Server.cpp
 	lib/Framebuffer.cpp
 	lib/Encoder.cpp
+        lib/net/EndPoint.cpp
+        lib/net/SockAddr.cpp
+        lib/net/Socket.cpp
 )
 
 standard_flags(gvnc)
