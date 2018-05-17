@@ -56,6 +56,7 @@ namespace archsim {
             DEFINE_LOWERING(BARRIER);
             DEFINE_LOWERING(BRANCH);
             DEFINE_LOWERING(CALL);
+            DEFINE_LOWERING(CLZ);
             DEFINE_LOWERING(COUNT);
             DEFINE_LOWERING(EXCEPTION);
             DEFINE_LOWERING(INCPC);
@@ -64,6 +65,8 @@ namespace archsim {
             DEFINE_LOWERING(LDREG);
             DEFINE_LOWERING(LDMEM);
 			DEFINE_LOWERING(MOV);
+			DEFINE_LOWERING(MOVSX);
+			DEFINE_LOWERING(NOP);
 			DEFINE_LOWERING(OR);
             DEFINE_LOWERING(RET);
             DEFINE_LOWERING(SCM);

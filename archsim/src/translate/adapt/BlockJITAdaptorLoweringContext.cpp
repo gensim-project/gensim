@@ -45,6 +45,7 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx) {
 	AddLowerer(IRInstruction::BARRIER, new BlockJITBARRIERLowering());
 	AddLowerer(IRInstruction::BRANCH, new BlockJITBRANCHLowering());
 	AddLowerer(IRInstruction::CALL, new BlockJITCALLLowering());
+	AddLowerer(IRInstruction::CLZ, new BlockJITCLZLowering());
 	AddLowerer(IRInstruction::CMPEQ, new BlockJITCMPLowering(IRInstruction::CMPEQ));
 	AddLowerer(IRInstruction::CMPNE, new BlockJITCMPLowering(IRInstruction::CMPNE));
 	AddLowerer(IRInstruction::CMPGT, new BlockJITCMPLowering(IRInstruction::CMPGT));
@@ -57,9 +58,11 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx) {
 	AddLowerer(IRInstruction::CMPSLTE, new BlockJITCMPLowering(IRInstruction::CMPSLTE));
 	AddLowerer(IRInstruction::COUNT, new BlockJITCOUNTLowering());
 	AddLowerer(IRInstruction::INCPC, new BlockJITINCPCLowering());
+	AddLowerer(IRInstruction::IMUL, new BlockJITUMULLLowering());
 	AddLowerer(IRInstruction::JMP, new BlockJITJMPLowering());
 	AddLowerer(IRInstruction::LDPC, new BlockJITLDPCLowering());
 	AddLowerer(IRInstruction::MOV, new BlockJITMOVLowering());
+	AddLowerer(IRInstruction::NOP, new BlockJITNOPLowering());
 	AddLowerer(IRInstruction::OR, new BlockJITORLowering());
 	AddLowerer(IRInstruction::READ_REG, new BlockJITLDREGLowering());
 	AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMLowering());
@@ -69,6 +72,7 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx) {
 	AddLowerer(IRInstruction::SAR, new BlockJITSARLowering());
 	AddLowerer(IRInstruction::SHR, new BlockJITSHRLowering());
 	AddLowerer(IRInstruction::SUB, new BlockJITSUBLowering());
+	AddLowerer(IRInstruction::SX, new BlockJITMOVSXLowering());
 	AddLowerer(IRInstruction::TAKE_EXCEPTION, new BlockJITEXCEPTIONLowering());
 	AddLowerer(IRInstruction::TRUNC, new BlockJITTRUNCLowering());
 	AddLowerer(IRInstruction::MUL, new BlockJITUMULLLowering());
@@ -122,6 +126,19 @@ llvm::BasicBlock* BlockJITLoweringContext::GetLLVMBlock(IRBlockId block_id)
 	}
 	
 	return greg_ptrs_.at({offset, size});
+}
+
+::llvm::Value *BlockJITLoweringContext::GetRegisterPointer(llvm::Value *offset, int size)
+{
+	auto &builder = GetBuilder();
+	
+	auto ptr = GetRegfilePointer();
+	ptr = builder.CreatePtrToInt(ptr, GetPointerIntType());
+	offset = builder.CreateZExtOrTrunc(offset, GetPointerIntType());
+	ptr = builder.CreateAdd(ptr, offset);
+	ptr = builder.CreateIntToPtr(ptr, GetLLVMType(size)->getPointerTo(0));
+	
+	return ptr;
 }
 
 ::llvm::Value* BlockJITLoweringContext::GetRegfilePointer()

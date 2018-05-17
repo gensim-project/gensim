@@ -12,6 +12,8 @@ archsim_add_sources(
 	LoweringLdPC.cpp
 	LoweringMem.cpp
 	LoweringMov.cpp
+	LoweringMovSx.cpp
+	LoweringNop.cpp
 	LoweringReg.cpp
 	LoweringRet.cpp
 	LoweringScm.cpp
