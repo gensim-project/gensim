@@ -9,6 +9,27 @@
 
 using namespace archsim::translate::adapt;
 
+bool BlockJITCLZLowering::Lower(const captive::shared::IRInstruction*& insn) {
+	auto lhs = insn->operands[0];
+	auto &dest = insn->operands[1];
+	
+	auto lhs_value = GetValueFor(lhs);
+	
+	auto i1_type = llvm::Type::getIntNTy(GetContext().GetLLVMContext(), 1);
+	auto param_type = llvm::Type::getIntNTy(GetContext().GetLLVMContext(), lhs.size*8);
+	std::string function_name = "llvm.ctlz." + std::to_string(lhs.size * 8);
+	
+	auto is_zero_undef = llvm::ConstantInt::get(i1_type, 0, false);
+	auto function = GetContext().GetModule()->getOrInsertFunction(function_name, param_type, param_type, i1_type);
+	auto value = GetBuilder().CreateCall(function, {lhs_value, is_zero_undef});
+	
+	SetValueFor(dest, value);
+	
+	insn++;
+	
+	return true;
+}
+
 bool BlockJITANDLowering::Lower(const captive::shared::IRInstruction*& insn) {
 	auto lhs = GetValueFor(insn->operands[0]);
 	auto rhs = GetValueFor(insn->operands[1]);

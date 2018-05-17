@@ -82,6 +82,7 @@ namespace archsim {
 				::llvm::Value *GetTaggedRegisterPointer(const std::string &tag);
 				::llvm::Value *GetRegisterPointer(const archsim::RegisterFileEntryDescriptor &reg, int index);
 				::llvm::Value *GetRegisterPointer(int offset, int size);
+				::llvm::Value *GetRegisterPointer(llvm::Value*, int size);
 				::llvm::Value *GetRegfilePointer();
 				::llvm::Value *GetStateBlockPtr();
 				
