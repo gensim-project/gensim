@@ -86,6 +86,9 @@ namespace archsim {
 				::llvm::Value *GetRegfilePointer();
 				::llvm::Value *GetStateBlockPtr();
 				
+				::llvm::MDNode *GetRegAccessMetadata(int offset, int size);
+				::llvm::MDNode *GetRegAccessMetadata();
+				
 				BlockJITValues &GetValues() { return values_; }
 				
 				::llvm::Type *GetLLVMType(uint32_t bytes);

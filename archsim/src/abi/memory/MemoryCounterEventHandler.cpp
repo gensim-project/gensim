@@ -34,7 +34,7 @@ void MemoryCounterEventHandler::PrintStatistics(std::ostream& stream)
 }
 
 #if CONFIG_LLVM
-bool MemoryCounterEventHandlerTranslator::EmitEventHandler(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, MemoryEventHandler& handler, MemoryModel::MemoryEventType event_type, ::llvm::Value *address, uint8_t width)
+bool MemoryCounterEventHandlerTranslator::EmitEventHandler(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, MemoryEventHandler& handler, MemoryModel::MemoryEventType event_type, ::llvm::Value *address, uint8_t width)
 {
 	MemoryCounterEventHandler& mce = (MemoryCounterEventHandler &)handler;
 
@@ -50,7 +50,7 @@ bool MemoryCounterEventHandlerTranslator::EmitEventHandler(archsim::translate::l
 	}
 }
 
-bool MemoryCounterEventHandlerTranslator::EmitCounterUpdate(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, archsim::util::Counter64& counter, int64_t increment)
+bool MemoryCounterEventHandlerTranslator::EmitCounterUpdate(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, archsim::util::Counter64& counter, int64_t increment)
 {
 	auto& txln = insn_ctx.block.region.txln;
 	auto& builder = insn_ctx.block.region.builder;
@@ -63,7 +63,7 @@ bool MemoryCounterEventHandlerTranslator::EmitCounterUpdate(archsim::translate::
 		builder.Insert((::llvm::Instruction *)counter_ptr);
 	}
 
-	txln.AddAliasAnalysisNode((::llvm::Instruction *)counter_ptr, archsim::translate::llvm::TAG_METRIC);
+	txln.AddAliasAnalysisNode((::llvm::Instruction *)counter_ptr, archsim::translate::translate_llvm::TAG_METRIC);
 	::llvm::Value *loaded_val = builder.CreateLoad((::llvm::Instruction *)counter_ptr);
 	::llvm::Value *added_val = builder.CreateAdd(loaded_val, txln.GetConstantInt64(increment));
 	builder.CreateStore(added_val, counter_ptr);

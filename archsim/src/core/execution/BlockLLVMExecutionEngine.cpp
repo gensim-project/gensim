@@ -27,8 +27,8 @@ static llvm::TargetMachine *GetNativeMachine() {
 		llvm::InitializeNativeTargetAsmPrinter();
 		llvm::InitializeNativeTargetAsmParser();
 		machine = llvm::EngineBuilder().selectTarget();
-		machine->setOptLevel(llvm::CodeGenOpt::None);
-		machine->setFastISel(true);
+		machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
+		machine->setFastISel(false);
 	}
 	return machine;
 }

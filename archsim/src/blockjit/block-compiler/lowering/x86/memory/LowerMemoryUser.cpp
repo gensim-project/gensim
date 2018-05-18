@@ -36,37 +36,46 @@ bool LowerReadMemUser::Lower(const captive::shared::IRInstruction*& insn)
 	const IROperand *disp = &insn->operands[2];
 	const IROperand *dest = &insn->operands[3];
 
-	assert(disp->is_constant());
 	// We can have the situation where dest is not allocated because the intervening register write has been eliminated
 	const auto &dest_reg = dest->is_allocated() && !dest->is_alloc_stack() ? GetCompiler().register_from_operand(dest) : GetCompiler().get_temp(0, dest->size);
 
 	assert(!dest->is_alloc_stack());
 
-	if(disp->value != 0) {
+	if(disp->is_constant()) {
+		if(disp->value != 0) {
+			if(offset->is_alloc_reg()) {
+				Encoder().mov(X86Memory::get(GetCompiler().register_from_operand(offset, 8), disp->value).withSegment(1), dest_reg);
+				insn++;
+				return true;
+			} else if(offset->is_alloc_stack()) {
+				Encoder().mov(GetCompiler().stack_from_operand(offset), BLKJIT_ARG1(4));
+				Encoder().mov(X86Memory::get(BLKJIT_ARG1(8), disp->value).withSegment(1), dest_reg);
+			} else {
+				assert(false);
+			}
+
+		} else {
+			if(offset->is_alloc_reg()) {
+				Encoder().mov(X86Memory::get(GetCompiler().register_from_operand(offset, 8)).withSegment(1), dest_reg);
+			} else if(offset->is_alloc_stack()) {
+				Encoder().mov(GetCompiler().stack_from_operand(offset), BLKJIT_ARG1(4));
+				Encoder().mov(X86Memory::get(BLKJIT_ARG1(8)).withSegment(1), dest_reg);
+			} else {
+				return false;
+			}
+		}
+	} else if(disp->is_alloc_reg()) {
 		if(offset->is_alloc_reg()) {
-			Encoder().mov(X86Memory::get(GetCompiler().register_from_operand(offset, 8), disp->value).withSegment(1), dest_reg);
+			Encoder().mov(X86Memory::get(GetCompiler().register_from_operand(offset, 8), GetCompiler().register_from_operand(disp, 8), 1).withSegment(1), dest_reg);
 			insn++;
 			return true;
 		} else if(offset->is_alloc_stack()) {
 			Encoder().mov(GetCompiler().stack_from_operand(offset), BLKJIT_ARG1(4));
-			Encoder().mov(X86Memory::get(BLKJIT_ARG1(8), disp->value).withSegment(1), dest_reg);
+			Encoder().mov(X86Memory::get(BLKJIT_ARG1(8), GetCompiler().register_from_operand(disp, 8), 1).withSegment(1), dest_reg);
 		} else {
 			assert(false);
 		}
-
-	} else {
-		if(offset->is_alloc_reg()) {
-			Encoder().mov(X86Memory::get(GetCompiler().register_from_operand(offset, 8)).withSegment(1), dest_reg);
-		} else if(offset->is_alloc_stack()) {
-			Encoder().mov(GetCompiler().stack_from_operand(offset), BLKJIT_ARG1(4));
-			Encoder().mov(X86Memory::get(BLKJIT_ARG1(8)).withSegment(1), dest_reg);
-		} else {
-			return false;
-		}
-
-
 	}
-
 
 	insn++;
 	return true;

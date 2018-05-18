@@ -5,7 +5,7 @@
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 
 using namespace archsim::translate;
-using namespace archsim::translate::llvm;
+using namespace archsim::translate::translate_llvm;
 
 static uint32_t InvalidTxln(void*, void*)
 {

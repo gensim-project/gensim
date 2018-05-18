@@ -5,6 +5,7 @@
  */
 
 #include "translate/adapt/BlockJITToLLVM.h"
+#include "translate/llvm/LLVMOptimiser.h"
 #include "translate/adapt/BlockJITAdaptorLoweringContext.h"
 #include "blockjit/block-compiler/lowering/LoweringContext.h"
 #include "translate/TranslationContext.h"
@@ -19,9 +20,10 @@
 #include <llvm/IR/IRPrintingPasses.h>
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IR/LegacyPassManager.h>
-#include "llvm/Analysis/Passes.h"
-#include "llvm/Analysis/BasicAliasAnalysis.h"
-#include "llvm/Transforms/Scalar.h"
+#include <llvm/Analysis/Passes.h>
+#include <llvm/Analysis/BasicAliasAnalysis.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
 
 #include <sstream>
 #include <fstream>
@@ -54,7 +56,7 @@ llvm::Function* BlockJITToLLVMAdaptor::AdaptIR(archsim::core::thread::ThreadInst
 	lowerer.Prepare(ctx);
 	lowerer.PrepareLowerers(ctx);
 	if(!lowerer.Lower(ctx)) {
-		return nullptr;
+		throw std::logic_error("Failed to translate block");
 	}
 	
 	// TODO: jump from entry block to first instruction block
@@ -84,10 +86,18 @@ llvm::Function* BlockJITToLLVMAdaptor::AdaptIR(archsim::core::thread::ThreadInst
 		llvm::legacy::PassManager pm;
 //		pm.add(new llvm::DataLayout(engine_->getDataLayout()));
 		pm.add(llvm::createBasicAAWrapperPass());
+		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
 		pm.add(llvm::createPromoteMemoryToRegisterPass());
+//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
 		pm.add(llvm::createInstructionCombiningPass(false));
+//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
 		pm.add(llvm::createReassociatePass());
+//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
 		pm.add(llvm::createCFGSimplificationPass());
+//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
+		pm.add(llvm::createGVNPass(false));
+//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
+		pm.add(llvm::createDeadStoreEliminationPass());
 
 		pm.run(*target_module);
 	}

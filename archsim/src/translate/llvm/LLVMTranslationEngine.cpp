@@ -5,7 +5,7 @@
 #include <llvm/Support/TargetSelect.h>
 
 using namespace archsim::translate;
-using namespace archsim::translate::llvm;
+using namespace archsim::translate::translate_llvm;
 
 RegisterComponent(TranslationEngine, LLVMTranslationEngine, "llvm", "LLVM-based translation engine");
 
