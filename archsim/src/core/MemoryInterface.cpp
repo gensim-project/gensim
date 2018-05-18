@@ -37,7 +37,21 @@ MemoryResult MemoryInterface::WriteString(Address address, const char *data) {
 }
 
 MemoryResult MemoryInterface::ReadString(Address address, char *data, size_t max_size) {
-	UNIMPLEMENTED;
+	if(max_size == 0) {
+		return MemoryResult::OK;
+	}
+	
+	uint8_t cdata;
+	do {
+		Read8(address, cdata);
+		*data = cdata;
+		
+		data++;
+		address += 1;
+		max_size--;
+	} while(cdata && max_size != 0);
+	
+	return MemoryResult::OK;
 }
 
 MemoryResult MemoryInterface::Read(Address address, unsigned char *data, size_t size) {
