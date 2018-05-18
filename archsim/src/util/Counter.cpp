@@ -27,7 +27,7 @@ Counter64::Counter64() : count_(0)
 }
 
 #if CONFIG_LLVM
-void Counter64::emit_inc(archsim::translate::llvm::LLVMTranslationContext &ctx, llvm::IRBuilder<> &bldr)
+void Counter64::emit_inc(archsim::translate::translate_llvm::LLVMTranslationContext &ctx, llvm::IRBuilder<> &bldr)
 {
 	assert(false);
 #if 0

@@ -36,6 +36,8 @@ namespace captive
 			uint16_t alloc_data : 14;
 			IRAllocationMode alloc_mode : 2;
 			IROperandType type : 4;
+			
+			// size in BYTES
 			uint8_t size : 4;
 
 			IROperand() : value(0), alloc_data(0), alloc_mode(NOT_ALLOCATED), type(NONE), size(0) { }

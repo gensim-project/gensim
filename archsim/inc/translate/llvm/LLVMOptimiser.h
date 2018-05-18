@@ -8,7 +8,8 @@
 #ifndef LLVMOPTIMISER_H
 #define	LLVMOPTIMISER_H
 
-#include <llvm/PassManager.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/Analysis/AliasAnalysis.h>
 
 namespace llvm
 {
@@ -21,8 +22,25 @@ namespace archsim
 {
 	namespace translate
 	{
-		namespace llvm
+		namespace translate_llvm
 		{
+			class ArchSimAA : public llvm::AliasAnalysis, llvm::FunctionPass
+			{
+			public:
+				static char ID;
+
+				ArchSimAA() : FunctionPass(ID) {}
+
+				bool runOnFunction(llvm::Function &F) override;
+				
+				
+				void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;				
+				virtual llvm::AliasResult alias(const llvm::MemoryLocation &L1, const llvm::MemoryLocation &L2);
+
+			private:
+				llvm::AliasResult do_alias(const llvm::MemoryLocation &L1, const llvm::MemoryLocation &L2);
+			};
+			
 			class LLVMOptimiser
 			{
 			public:
@@ -36,7 +54,7 @@ namespace archsim
 
 				bool AddPass(::llvm::Pass*);
 
-				::llvm::PassManager pm;
+				::llvm::legacy::PassManager pm;
 				bool isInitialised;
 			};
 		}

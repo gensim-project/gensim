@@ -28,12 +28,12 @@ namespace captive
 				namespace x86
 				{
 
-					class X86LoweringContext : public LoweringContext
+					class X86LoweringContext : public MCLoweringContext
 					{
 					public:
 						typedef captive::arch::x86::X86Encoder encoder_t;
 
-						X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder);
+						X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, BlockCompiler &compiler);
 						virtual ~X86LoweringContext();
 
 						encoder_t &GetEncoder()
@@ -43,7 +43,7 @@ namespace captive
 
 						virtual offset_t GetEncoderOffset() override;
 
-						virtual bool Prepare(const TranslationContext &ctx, BlockCompiler &compiler) override;
+						virtual bool Prepare(const TranslationContext &ctx) override;
 
 						typedef std::map<const captive::arch::x86::X86Register*, uint32_t> stack_map_t;
 
@@ -55,7 +55,7 @@ namespace captive
 						{
 							return _stack_fixed;
 						}
-
+						
 					protected:
 						virtual bool LowerHeader(const TranslationContext &ctx) override;
 						virtual bool PerformRelocations(const TranslationContext &ctx) override;

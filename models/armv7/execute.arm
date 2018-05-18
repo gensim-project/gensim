@@ -838,7 +838,7 @@ execute(b)
 	//uint32 imm32 = (signed_bits(inst.imm32, 23, 0) << 2) + 8;
 
 	pc_var += inst.imm32;
-	pc_var &= 0xfffffffe; //which will be this instruction
+	pc_var &= (uint32)0xfffffffe; //which will be this instruction
 
 	write_register_bank(RB,15,pc_var);
 }
@@ -851,7 +851,7 @@ execute(bl)
 	write_register_bank(RB, 14, pc_var + 4);
 	
 	pc_var += inst.imm32;
-	pc_var &= 0xfffffffe;
+	pc_var &= (uint32)0xfffffffe;
 	
 	write_register_bank(RB, 15, pc_var);
 }
@@ -871,7 +871,7 @@ execute(blx1)
 	write_register(T, (uint8)1);
 	
 	pc_var += inst.imm32;
-	pc_var &= 0xfffffffe;
+	pc_var &= (uint32)0xfffffffe;
 	write_register_bank(RB,15,pc_var);
 }
 
@@ -886,7 +886,7 @@ execute(bx)
 	set_cpu_mode((uint8)(target & 1));
 	write_register(T, (uint8)(target & 1));
 
-	target &= 0xfffffffe;
+	target &= (uint32)0xfffffffe;
 	write_register_bank(RB, 15, target);
 }
 
@@ -897,7 +897,7 @@ execute(bxj)
 	set_cpu_mode((uint8)(target & 1));
 	write_register(T, target & 1);
 	
-	target &= 0xfffffffe;
+	target &= (uint32)0xfffffffe;
 	write_register_bank(RB, 15, target);
 }
 
@@ -911,7 +911,7 @@ execute(blx2)
 	set_cpu_mode((uint8)(target & 1));
 	write_register(T, (uint8)(target & 1));
 
-	target &= 0xfffffffe;	
+	target &= (uint32)0xfffffffe;	
 	write_register_bank(RB, 15, target);
 }
 

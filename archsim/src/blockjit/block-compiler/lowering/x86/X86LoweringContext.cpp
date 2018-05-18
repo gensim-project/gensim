@@ -18,7 +18,7 @@ using namespace captive::arch::jit::lowering;
 using namespace captive::arch::jit::lowering::x86;
 using namespace captive::arch::x86;
 
-X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder) : LoweringContext(stack_frame_size), _encoder(encoder), _stack_fixed(false)
+X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, BlockCompiler &compiler) : MCLoweringContext(compiler, stack_frame_size), _encoder(encoder), _stack_fixed(false)
 {
 
 }
@@ -36,7 +36,7 @@ X86LoweringContext::~X86LoweringContext()
 
 NOPInstructionLowerer Singleton_LowerNop;
 
-bool X86LoweringContext::Prepare(const TranslationContext &ctx, BlockCompiler &compiler)
+bool X86LoweringContext::Prepare(const TranslationContext &ctx)
 {
 	using captive::shared::IRInstruction;
 
@@ -154,7 +154,7 @@ bool X86LoweringContext::Prepare(const TranslationContext &ctx, BlockCompiler &c
 	}
 #undef A
 
-	PrepareLowerers(ctx, compiler);
+	PrepareLowerers(ctx);
 
 	return true;
 }
@@ -192,7 +192,7 @@ bool X86LoweringContext::PerformRelocations(const TranslationContext &ctx)
 	return true;
 }
 
-LoweringContext::offset_t X86LoweringContext::GetEncoderOffset()
+MCLoweringContext::offset_t X86LoweringContext::GetEncoderOffset()
 {
 	return GetEncoder().current_offset();
 }
