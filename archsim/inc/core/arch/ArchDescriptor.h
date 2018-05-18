@@ -19,7 +19,6 @@
 #include "core/arch/RegisterFileDescriptor.h"
 #include "core/arch/MemoryInterfaceDescriptor.h"
 
-#include "gensim/gensim_translate.h"
 #include "gensim/gensim_decode_context.h"
 
 #include <functional>
@@ -32,6 +31,7 @@
 namespace gensim {
 	class DecodeContext;
 	class BaseDecode;
+	class BaseJumpInfo;
 }
 
 namespace archsim {

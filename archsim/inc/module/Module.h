@@ -24,6 +24,10 @@
 namespace gensim
 {
 	class Processor;
+	
+	namespace blockjit {
+		class BaseBlockJITTranslate;
+	}
 }
 
 namespace archsim
@@ -47,6 +51,7 @@ namespace archsim
 				ModuleEntry_Device,
 				ModuleEntry_Processor,
 				ModuleEntry_ExecutionEngine,
+				ModuleEntry_BlockJITTranslator,
 				ModuleEntry_ArchDescriptor,
 			};
 
@@ -64,6 +69,7 @@ namespace archsim
 		template<> struct ModuleEntryTypeForClass<abi::devices::MemoryComponent*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Device; };
 		template<> struct ModuleEntryTypeForClass<gensim::Processor*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Processor; };
 		template<> struct ModuleEntryTypeForClass<archsim::core::execution::ExecutionEngine*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ExecutionEngine; };
+		template<> struct ModuleEntryTypeForClass<gensim::blockjit::BaseBlockJITTranslate*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_BlockJITTranslator; };
 		template<> struct ModuleEntryTypeForClass<archsim::ArchDescriptor*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ArchDescriptor; };
 		
 		template<ModuleEntry::ModuleEntryType> struct FactoryForModuleEntry {};
@@ -71,6 +77,7 @@ namespace archsim
 		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Device> { using factory_t = std::function<abi::devices::MemoryComponent*(archsim::abi::EmulationModel& model, archsim::Address base_address)>; };
 		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Processor> { using factory_t = std::function<gensim::Processor*(const std::string &name, int _core_id, archsim::util::PubSubContext* pubsub)>; };
 		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ExecutionEngine> { using factory_t = std::function<archsim::core::execution::ExecutionEngine*()>; };
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_BlockJITTranslator> { using factory_t = std::function<gensim::blockjit::BaseBlockJITTranslate*()>; };
 		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ArchDescriptor> { using factory_t = std::function<archsim::ArchDescriptor*()>; };
 		
 		template<typename T> class TypedModuleEntry : public ModuleEntry {
@@ -86,6 +93,7 @@ namespace archsim
 		using ModuleDeviceEntry = TypedModuleEntry<abi::devices::MemoryComponent*>;
 		using ModuleProcessorEntry = TypedModuleEntry<gensim::Processor*>;
 		using ModuleExecutionEngineEntry = TypedModuleEntry<archsim::core::execution::ExecutionEngine*>;
+		using ModuleBlockJITTranslatorEntry = TypedModuleEntry<gensim::blockjit::BaseBlockJITTranslate*>;
 		using ModuleArchDescriptorEntry = TypedModuleEntry<archsim::ArchDescriptor*>;
 		
 		class ModuleInfo
@@ -131,6 +139,7 @@ namespace archsim
 #define ARCHSIM_COMPONENTFACTORY(x) [](archsim::abi::EmulationModel& model) { static_assert(std::is_base_of<archsim::abi::devices::Component,x>::value, "Component must be a Component"); return new x(model); }
 #define ARCHSIM_PROCESSORFACTORY(x) [](const std::string &name, int _core_id, archsim::util::PubSubContext* pubsub) { static_assert(std::is_base_of<gensim::Processor,x>::value, "Component must be a Processor"); return new x(name, _core_id, pubsub); }
 #define ARCHSIM_EEFACTORY(x) []() { static_assert(std::is_base_of<archsim::core::execution::ExecutionEngine,x>::value, "Component must be a EE"); return new x(); }
+#define ARCHSIM_BLOCKJITTRANSLATEFACTORY(x) []() { static_assert(std::is_base_of<gensim::blockjit::BaseBlockJITTranslate,x>::value, "Component must be a Blockjit Translator"); return new x(); }
 #define ARCHSIM_ARCHDESCRIPTORFACTORY(x) []() { static_assert(std::is_base_of<archsim::ArchDescriptor,x>::value, "Component must be a AD"); return new x(); }
 
 #endif /* MODULE_H */

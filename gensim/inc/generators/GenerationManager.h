@@ -98,6 +98,7 @@ namespace gensim
 		enum class ModuleEntryType {
 			UNKNOWN,
 			ExecutionEngine,
+			BlockJITTranslator,
 			ArchDescriptor
 		};
 		
