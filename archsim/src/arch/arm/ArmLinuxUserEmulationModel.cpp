@@ -204,6 +204,7 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsi
 		// currently a syscall cannot return an action other than resume, so
 		// we need to exit manually here.
 		if(request.syscall == 0x1) {
+			thread->SendMessage(archsim::core::thread::ThreadMessage::Halt);
 			return AbortSimulation;
 		}
 		

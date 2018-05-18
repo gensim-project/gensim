@@ -50,6 +50,18 @@ namespace archsim {
 		FnType function_;
 	};
 	
+	class IdentityTranslationProvider : public MemoryTranslationProvider {
+	public:
+		virtual ~IdentityTranslationProvider() {
+
+		}
+		TranslationResult Translate(Address virt_addr, Address& phys_addr, bool is_write, bool is_fetch, bool side_effects) override {
+			phys_addr = virt_addr;
+			return TranslationResult::OK;
+		}
+
+	};
+	
 	class MMUTranslationProvider : public MemoryTranslationProvider {
 	public:
 		MMUTranslationProvider(archsim::abi::devices::MMU *mmu, archsim::core::thread::ThreadInstance *thread) : mmu_(mmu), thread_(thread) {}

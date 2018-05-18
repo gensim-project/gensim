@@ -59,6 +59,7 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
 		i->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
+		i->ConnectTranslationProvider(*new archsim::IdentityTranslationProvider());
 	}
 	
 	engine->AttachThread(main_thread_);
