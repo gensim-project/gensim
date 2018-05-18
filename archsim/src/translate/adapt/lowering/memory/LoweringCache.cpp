@@ -9,7 +9,7 @@
 
 using namespace archsim::translate::adapt;
 
-bool BlockJITLDMEMLowering::Lower(const captive::shared::IRInstruction*& insn) {	
+bool BlockJITLDMEMCacheLowering::Lower(const captive::shared::IRInstruction*& insn) {	
 	const auto &interface = insn->operands[0];
 	const auto &offset = insn->operands[1];
 	const auto &disp = insn->operands[2];
@@ -39,7 +39,7 @@ bool BlockJITLDMEMLowering::Lower(const captive::shared::IRInstruction*& insn) {
 	return true;
 }
 
-bool BlockJITSTMEMLowering::Lower(const captive::shared::IRInstruction*& insn) {
+bool BlockJITSTMEMCacheLowering::Lower(const captive::shared::IRInstruction*& insn) {
 	const auto &interface = insn->operands[0];
 	const auto &value = insn->operands[1];
 	const auto &disp = insn->operands[2];

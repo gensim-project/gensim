@@ -12,7 +12,7 @@ namespace archsim
 {
 	namespace translate
 	{
-		namespace llvm
+		namespace translate_llvm
 		{
 			enum AliasAnalysisTag {
 				TAG_REG_ACCESS = 0,

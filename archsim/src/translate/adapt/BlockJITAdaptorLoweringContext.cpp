@@ -4,6 +4,7 @@
  * and open the template in the editor.
  */
 
+#include "translate/llvm/LLVMAliasAnalysis.h"
 #include "translate/adapt/BlockJITAdaptorLoweringContext.h"
 #include "translate/adapt/BlockJITAdaptorLowering.h"
 #include "core/thread/ThreadInstance.h"
@@ -65,7 +66,6 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx) {
 	AddLowerer(IRInstruction::NOP, new BlockJITNOPLowering());
 	AddLowerer(IRInstruction::OR, new BlockJITORLowering());
 	AddLowerer(IRInstruction::READ_REG, new BlockJITLDREGLowering());
-	AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMLowering());
 	AddLowerer(IRInstruction::RET, new BlockJITRETLowering());
 	AddLowerer(IRInstruction::SET_CPU_MODE, new BlockJITSCMLowering());
 	AddLowerer(IRInstruction::SHL, new BlockJITSHLLowering());
@@ -77,11 +77,12 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx) {
 	AddLowerer(IRInstruction::TRUNC, new BlockJITTRUNCLowering());
 	AddLowerer(IRInstruction::MUL, new BlockJITUMULLLowering());
 	AddLowerer(IRInstruction::WRITE_REG, new BlockJITSTREGLowering());
-	AddLowerer(IRInstruction::WRITE_MEM, new BlockJITSTMEMLowering());
 	AddLowerer(IRInstruction::XOR, new BlockJITXORLowering());
 	AddLowerer(IRInstruction::SET_ZN_FLAGS, new BlockJITZNFLAGSLowering());
 	AddLowerer(IRInstruction::ZX, new BlockJITZXLowering());
 
+	AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMUserLowering());
+	AddLowerer(IRInstruction::WRITE_MEM, new BlockJITSTMEMUserLowering());
 	return true;
 }
 
@@ -120,9 +121,15 @@ llvm::BasicBlock* BlockJITLoweringContext::GetLLVMBlock(IRBlockId block_id)
 		auto ptr = GetRegfilePointer();
 		ptr = builder.CreatePtrToInt(ptr, GetPointerIntType());
 		ptr = builder.CreateAdd(ptr, ::llvm::ConstantInt::get(GetPointerIntType(), offset));
-		ptr = builder.CreateIntToPtr(ptr, GetLLVMType(size)->getPointerTo(0));
-		ptr->setName("reg_" + std::to_string(offset) + "_" + std::to_string(size));
-		greg_ptrs_[{offset, size}] = ptr;
+		
+		llvm::CastInst *inttoptr = builder.Insert(llvm::CastInst::Create(llvm::CastInst::IntToPtr, ptr, GetLLVMType(size)->getPointerTo(0)));
+		inttoptr->setName("reg_" + std::to_string(offset) + "_" + std::to_string(size));
+		
+		llvm::MDNode *aa_metadata = GetRegAccessMetadata(offset, size);
+		
+		inttoptr->setMetadata("archsim_aa", aa_metadata);
+		
+		greg_ptrs_[{offset, size}] = inttoptr;
 	}
 	
 	return greg_ptrs_.at({offset, size});
@@ -154,6 +161,20 @@ llvm::BasicBlock* BlockJITLoweringContext::GetLLVMBlock(IRBlockId block_id)
 	auto arg = target_fun_->arg_begin();
 	arg++;
 	return static_cast<::llvm::Value*>(&*arg);
+}
+
+::llvm::MDNode* BlockJITLoweringContext::GetRegAccessMetadata(int offset, int size)
+{
+	return llvm::MDNode::get(GetLLVMContext(), {
+		llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(GetLLVMType(4), archsim::translate::translate_llvm::TAG_REG_ACCESS, 0)),// Tag
+		llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(GetLLVMType(4), offset, 0)),// Offset
+		llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(GetLLVMType(4), size, 0))// Size
+	});
+}
+
+::llvm::MDNode* BlockJITLoweringContext::GetRegAccessMetadata()
+{
+
 }
 
 

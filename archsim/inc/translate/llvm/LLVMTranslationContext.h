@@ -48,7 +48,7 @@ namespace archsim
 	}
 	namespace translate
 	{
-		namespace llvm
+		namespace translate_llvm
 		{
 
 			class LLVMTranslationContext;

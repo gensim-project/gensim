@@ -11,7 +11,7 @@
 #include <sys/mman.h>
 
 using namespace archsim::util;
-using namespace archsim::translate::llvm;
+using namespace archsim::translate::translate_llvm;
 
 LLVMMemoryManager::LLVMMemoryManager(util::PagePool &code_pool, util::PagePool &data_pool) : code_pool(code_pool), data_pool(data_pool), code_size(0),data_size(0)
 {

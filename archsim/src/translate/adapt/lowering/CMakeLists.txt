@@ -10,7 +10,6 @@ archsim_add_sources(
 	LoweringIncPC.cpp
 	LoweringJmp.cpp
 	LoweringLdPC.cpp
-	LoweringMem.cpp
 	LoweringMov.cpp
 	LoweringMovSx.cpp
 	LoweringNop.cpp
@@ -21,3 +20,5 @@ archsim_add_sources(
 	LoweringZNFlags.cpp
 	LoweringZx.cpp
 )
+
+add_subdirectory(memory)

@@ -68,19 +68,19 @@ namespace archsim
 	namespace translate
 	{
 		template<>
-		archsim::translate::RegionTranslationContext<archsim::translate::llvm::LLVMTranslationContext>::RegionTranslationContext(archsim::translate::llvm::LLVMTranslationContext& parent) : txln(parent) { }
+		archsim::translate::RegionTranslationContext<archsim::translate::translate_llvm::LLVMTranslationContext>::RegionTranslationContext(archsim::translate::translate_llvm::LLVMTranslationContext& parent) : txln(parent) { }
 
 		template<>
-		archsim::translate::BlockTranslationContext<archsim::translate::llvm::LLVMRegionTranslationContext>::BlockTranslationContext(archsim::translate::llvm::LLVMRegionTranslationContext& parent, archsim::translate::TranslationBlockUnit& tbu) : region(parent), tbu(tbu) { }
+		archsim::translate::BlockTranslationContext<archsim::translate::translate_llvm::LLVMRegionTranslationContext>::BlockTranslationContext(archsim::translate::translate_llvm::LLVMRegionTranslationContext& parent, archsim::translate::TranslationBlockUnit& tbu) : region(parent), tbu(tbu) { }
 
 		template<>
-		archsim::translate::BlockTranslationContext<archsim::translate::llvm::LLVMRegionTranslationContext>::~BlockTranslationContext() {}
+		archsim::translate::BlockTranslationContext<archsim::translate::translate_llvm::LLVMRegionTranslationContext>::~BlockTranslationContext() {}
 
 		template<>
-		archsim::translate::InstructionTranslationContext<archsim::translate::llvm::LLVMBlockTranslationContext>::InstructionTranslationContext(archsim::translate::llvm::LLVMBlockTranslationContext& parent, archsim::translate::TranslationInstructionUnit& tiu) : block(parent), tiu(tiu) { }
+		archsim::translate::InstructionTranslationContext<archsim::translate::translate_llvm::LLVMBlockTranslationContext>::InstructionTranslationContext(archsim::translate::translate_llvm::LLVMBlockTranslationContext& parent, archsim::translate::TranslationInstructionUnit& tiu) : block(parent), tiu(tiu) { }
 
 		template<>
-		archsim::translate::InstructionTranslationContext<archsim::translate::llvm::LLVMBlockTranslationContext>::~InstructionTranslationContext() {}
+		archsim::translate::InstructionTranslationContext<archsim::translate::translate_llvm::LLVMBlockTranslationContext>::~InstructionTranslationContext() {}
 
 
 	}
@@ -88,7 +88,7 @@ namespace archsim
 
 
 
-archsim::translate::llvm::LLVMTranslationContext::LLVMTranslationContext(archsim::translate::TranslationManager& tmgr, archsim::translate::TranslationWorkUnit& twu, ::llvm::LLVMContext& llvm_ctx, LLVMOptimiser &opt, archsim::util::PagePool &code_pool)
+archsim::translate::translate_llvm::LLVMTranslationContext::LLVMTranslationContext(archsim::translate::TranslationManager& tmgr, archsim::translate::TranslationWorkUnit& twu, ::llvm::LLVMContext& llvm_ctx, LLVMOptimiser &opt, archsim::util::PagePool &code_pool)
 	: archsim::translate::TranslationContext(tmgr, twu),
 	  llvm_ctx(llvm_ctx),
 	  optimiser(opt),
@@ -100,23 +100,23 @@ archsim::translate::llvm::LLVMTranslationContext::LLVMTranslationContext(archsim
 	Initialise();
 }
 
-archsim::translate::llvm::LLVMTranslationContext::~LLVMTranslationContext()
+archsim::translate::translate_llvm::LLVMTranslationContext::~LLVMTranslationContext()
 {
 	delete gensim_translate;
 }
 
-archsim::translate::llvm::LLVMRegionTranslationContext::LLVMRegionTranslationContext(archsim::translate::llvm::LLVMTranslationContext& parent, ::llvm::IRBuilder<>& builder) : RegionTranslationContext(parent), builder(builder) { }
+archsim::translate::translate_llvm::LLVMRegionTranslationContext::LLVMRegionTranslationContext(archsim::translate::translate_llvm::LLVMTranslationContext& parent, ::llvm::IRBuilder<>& builder) : RegionTranslationContext(parent), builder(builder) { }
 
-archsim::translate::llvm::LLVMBlockTranslationContext::LLVMBlockTranslationContext(archsim::translate::llvm::LLVMRegionTranslationContext& parent, archsim::translate::TranslationBlockUnit& tbu, ::llvm::BasicBlock *llvm_block) : BlockTranslationContext(parent, tbu), llvm_block(llvm_block) { }
+archsim::translate::translate_llvm::LLVMBlockTranslationContext::LLVMBlockTranslationContext(archsim::translate::translate_llvm::LLVMRegionTranslationContext& parent, archsim::translate::TranslationBlockUnit& tbu, ::llvm::BasicBlock *llvm_block) : BlockTranslationContext(parent, tbu), llvm_block(llvm_block) { }
 
-archsim::translate::llvm::LLVMInstructionTranslationContext::LLVMInstructionTranslationContext(archsim::translate::llvm::LLVMBlockTranslationContext& parent, archsim::translate::TranslationInstructionUnit& tiu) : InstructionTranslationContext(parent, tiu) { }
+archsim::translate::translate_llvm::LLVMInstructionTranslationContext::LLVMInstructionTranslationContext(archsim::translate::translate_llvm::LLVMBlockTranslationContext& parent, archsim::translate::TranslationInstructionUnit& tiu) : InstructionTranslationContext(parent, tiu) { }
 
-void archsim::translate::llvm::LLVMInstructionTranslationContext::AddAliasAnalysisNode(::llvm::Instruction* insn, archsim::translate::llvm::AliasAnalysisTag tag)
+void archsim::translate::translate_llvm::LLVMInstructionTranslationContext::AddAliasAnalysisNode(::llvm::Instruction* insn, archsim::translate::translate_llvm::AliasAnalysisTag tag)
 {
 	block.region.txln.AddAliasAnalysisNode(insn, tag);
 }
 
-using namespace archsim::translate::llvm;
+using namespace archsim::translate::translate_llvm;
 
 void LLVMTranslationContext::Initialise()
 {
@@ -1441,13 +1441,14 @@ bool LLVMTranslationContext::Optimise(::llvm::ExecutionEngine *engine, ::llvm::F
 
 	if (archsim::options::JitDebugAA)
 		fprintf(stderr, "Starting optimisation");
-	bool result = optimiser.Optimise(llvm_module, &engine->getDataLayout());
+//	bool result = optimiser.Optimise(llvm_module, &engine->getDataLayout());
 	if (archsim::options::JitDebugAA)
 		fprintf(stderr, "Completed optimisation");
 
 //	if (archsim::options::Verbose) timers.optimisation.Stop();
 
-	return result;
+//	return result;
+	return false;
 }
 
 ::llvm::Function *LLVMTranslationContext::GetMemReadFunction(uint32_t width)

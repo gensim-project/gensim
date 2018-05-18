@@ -63,7 +63,6 @@ namespace archsim {
             DEFINE_LOWERING(JMP);
             DEFINE_LOWERING(LDPC);
             DEFINE_LOWERING(LDREG);
-            DEFINE_LOWERING(LDMEM);
 			DEFINE_LOWERING(MOV);
 			DEFINE_LOWERING(MOVSX);
 			DEFINE_LOWERING(NOP);
@@ -74,13 +73,19 @@ namespace archsim {
             DEFINE_LOWERING(SAR);
             DEFINE_LOWERING(SHR);
             DEFINE_LOWERING(STREG);
-            DEFINE_LOWERING(STMEM);
             DEFINE_LOWERING(SUB);
             DEFINE_LOWERING(TRUNC);
             DEFINE_LOWERING(UMULL);
             DEFINE_LOWERING(XOR);
             DEFINE_LOWERING(ZNFLAGS);
             DEFINE_LOWERING(ZX);
+			
+			DEFINE_LOWERING(LDMEMGeneric);
+			DEFINE_LOWERING(STMEMGeneric);
+			DEFINE_LOWERING(LDMEMCache);
+			DEFINE_LOWERING(STMEMCache);
+			DEFINE_LOWERING(LDMEMUser);
+			DEFINE_LOWERING(STMEMUser);
 #undef DEFINE_LOWERING
         }
     }
