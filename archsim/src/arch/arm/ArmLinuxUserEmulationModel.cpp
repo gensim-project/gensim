@@ -51,7 +51,12 @@ bool ArmLinuxUserEmulationModel::PrepareBoot(System& system)
 		return false;
 	}
 
-
+	GetMainThread()->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_FPEXC", 1);
+	GetMainThread()->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 2);
+	GetMainThread()->GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 1);
+	
+	*GetMainThread()->GetRegisterFileInterface().GetEntry<uint32_t>("FPEXC") = 0x40000000;
+	
 #ifdef CONFIG_GFX
 	if (archsim::options::Doom) {
 		fprintf(stderr, "Installing doomvice\n");
@@ -71,16 +76,6 @@ bool ArmLinuxUserEmulationModel::PrepareBoot(System& system)
 #endif
 
 //	GetBootCore()->peripherals.InitialiseDevices();
-
-	// set up FPU
-//	gensim::Processor *cpu = GetBootCore();
-//	cpu->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_FPEXC", 1);
-//	cpu->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 2);
-//	cpu->GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 1);
-
-//	auto fpexc = cpu->GetRegisterDescriptor("FPEXC");
-//	uint32_t *fpexc_data = (uint32_t*)fpexc.DataStart;
-//	*fpexc_data = 0x40000000;
 
 	return true;
 }
