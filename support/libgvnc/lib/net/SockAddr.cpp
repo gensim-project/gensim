@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Harry Wagstaff
+ * Copyright (C) 2018 Harry Wagstaff, Tom Spink
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
  * and associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -16,42 +16,28 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#pragma once
+#include <libgvnc/net/SockAddr.h>
+#include <malloc.h>
+#include <cstring>
 
-#include "Framebuffer.h"
+using namespace libgvnc::net;
 
-namespace libgvnc {
+SockAddrContainer::SockAddrContainer(size_t size) : data_(malloc(size)), size_(size)
+{
 
-    class Encoder {
-    public:
-        Encoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
+}
 
-        virtual ~Encoder() {
-        }
+SockAddrContainer::SockAddrContainer(const SockAddrContainer& other) : data_(malloc(other.size_)), size_(other.size_)
+{
+	::memcpy(data_, other.data_, size_);
+}
 
-        virtual std::vector<char> Encode(const std::vector<uint32_t> &data) = 0;
+SockAddrContainer::SockAddrContainer(SockAddrContainer&& other) : data_(other.data_), size_(other.size_)
+{
+	other.data_ = nullptr;
+}
 
-        const RectangleShape &GetShape() const {
-            return shape_;
-        }
-
-        const struct FB_PixelFormat &GetFormat() const {
-            return encoded_format_;
-        }
-
-    private:
-        struct FB_PixelFormat encoded_format_;
-        RectangleShape shape_;
-    };
-
-    class RawEncoder : public Encoder {
-    public:
-        RawEncoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
-
-        virtual ~RawEncoder() {
-
-        }
-
-        virtual std::vector<char> Encode(const std::vector<uint32_t> &data);
-    };
+SockAddrContainer::~SockAddrContainer()
+{
+	::free(data_);
 }

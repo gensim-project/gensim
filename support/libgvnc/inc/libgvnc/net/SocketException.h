@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Harry Wagstaff
+ * Copyright (C) 2018 Harry Wagstaff, Tom Spink
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
  * and associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -18,40 +18,20 @@
  */
 #pragma once
 
-#include "Framebuffer.h"
+#include <stdexcept>
+#include <string>
 
 namespace libgvnc {
-
-    class Encoder {
-    public:
-        Encoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
-
-        virtual ~Encoder() {
-        }
-
-        virtual std::vector<char> Encode(const std::vector<uint32_t> &data) = 0;
-
-        const RectangleShape &GetShape() const {
-            return shape_;
-        }
-
-        const struct FB_PixelFormat &GetFormat() const {
-            return encoded_format_;
-        }
-
-    private:
-        struct FB_PixelFormat encoded_format_;
-        RectangleShape shape_;
-    };
-
-    class RawEncoder : public Encoder {
-    public:
-        RawEncoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
-
-        virtual ~RawEncoder() {
-
-        }
-
-        virtual std::vector<char> Encode(const std::vector<uint32_t> &data);
-    };
+    namespace net {
+        class SocketException : public std::exception
+        {
+        public:
+            SocketException(const std::string& message) : message_(message) { }
+            
+            const char* what() const noexcept override { return message_.c_str(); }
+            
+        private:
+            const std::string message_;
+        };
+    }
 }

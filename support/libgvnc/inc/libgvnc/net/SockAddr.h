@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Harry Wagstaff
+ * Copyright (C) 2018 Harry Wagstaff, Tom Spink
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
  * and associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -18,40 +18,27 @@
  */
 #pragma once
 
-#include "Framebuffer.h"
+#include <cstddef>
+
+struct sockaddr;
 
 namespace libgvnc {
-
-    class Encoder {
-    public:
-        Encoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
-
-        virtual ~Encoder() {
-        }
-
-        virtual std::vector<char> Encode(const std::vector<uint32_t> &data) = 0;
-
-        const RectangleShape &GetShape() const {
-            return shape_;
-        }
-
-        const struct FB_PixelFormat &GetFormat() const {
-            return encoded_format_;
-        }
-
-    private:
-        struct FB_PixelFormat encoded_format_;
-        RectangleShape shape_;
-    };
-
-    class RawEncoder : public Encoder {
-    public:
-        RawEncoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
-
-        virtual ~RawEncoder() {
-
-        }
-
-        virtual std::vector<char> Encode(const std::vector<uint32_t> &data);
-    };
+    namespace net {
+        class SockAddrContainer {
+        public:
+            SockAddrContainer(const SockAddrContainer& other);
+            SockAddrContainer(SockAddrContainer&& other);
+            SockAddrContainer(size_t size);
+            ~SockAddrContainer();
+            
+            const struct sockaddr *GetSockAddr() const { return (const struct sockaddr *)data_; }
+            struct sockaddr *GetSockAddr() { return (struct sockaddr *)data_; }
+            
+            size_t GetSize() const { return size_; }
+            
+        private:
+            void *data_;
+            size_t size_;
+        };
+    }
 }

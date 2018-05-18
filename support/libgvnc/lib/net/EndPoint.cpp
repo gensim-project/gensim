@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Harry Wagstaff
+ * Copyright (C) 2018 Harry Wagstaff, Tom Spink
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
  * and associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -16,42 +16,25 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#pragma once
+#include <libgvnc/net/EndPoint.h>
 
-#include "Framebuffer.h"
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
-namespace libgvnc {
+using namespace libgvnc::net;
 
-    class Encoder {
-    public:
-        Encoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
+IPAddress IPAddress::Any(0);
+IPAddress IPAddress::Broadcast(0xffffffff);
+IPAddress IPAddress::Loopback(0x7f000001);
 
-        virtual ~Encoder() {
-        }
-
-        virtual std::vector<char> Encode(const std::vector<uint32_t> &data) = 0;
-
-        const RectangleShape &GetShape() const {
-            return shape_;
-        }
-
-        const struct FB_PixelFormat &GetFormat() const {
-            return encoded_format_;
-        }
-
-    private:
-        struct FB_PixelFormat encoded_format_;
-        RectangleShape shape_;
-    };
-
-    class RawEncoder : public Encoder {
-    public:
-        RawEncoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
-
-        virtual ~RawEncoder() {
-
-        }
-
-        virtual std::vector<char> Encode(const std::vector<uint32_t> &data);
-    };
+SockAddrContainer IPEndPoint::GetSockAddr() const
+{
+	auto ctr = SockAddrContainer(sizeof(struct sockaddr_in));
+	
+	struct sockaddr_in *sin = (struct sockaddr_in *)ctr.GetSockAddr();
+	sin->sin_family = AF_INET;
+	sin->sin_port = htons(port_);
+	sin->sin_addr.s_addr = htonl(address_.GetAddress());
+	
+	return ctr;
 }
