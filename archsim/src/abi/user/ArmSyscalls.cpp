@@ -692,6 +692,7 @@ DEFINE_SYSCALL("arm", __NR_exit, sys_exit, "exit()");
 DEFINE_SYSCALL("arm", __NR_exit_group, sys_exit, "exit_group()");
 
 DEFINE_SYSCALL("arm", __NR_open, sys_open, "open(path=%p, mode=%d, flags=%d)");
+DEFINE_SYSCALL("arm", __NR_openat, sys_openat, "open(dirfd=%u, path=%p, mode=%d, flags=%d)");
 DEFINE_SYSCALL("arm", __NR_close, sys_close, "close(fd=%d)");
 DEFINE_SYSCALL("arm", __NR_read, sys_read, "read(fd=%d, addr=%p, len=%d)");
 DEFINE_SYSCALL("arm", __NR_write, sys_write, "write(fd=%d, addr=%p, len=%d)");
