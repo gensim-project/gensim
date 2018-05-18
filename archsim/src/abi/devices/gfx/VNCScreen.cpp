@@ -103,7 +103,7 @@ static uint32_t MapSym(uint32_t xsym) {
 		case '(': return 0; //todo
 		case ')': return 0; //todo
 		case '-': return 0x4e;
-		case '_': return 0; //todo
+		case '_': return 0x4e; //todo
 		case '=': return 0x55;
 		case '+': return 0; //todo
 		case '[': return 0x1a; //todo
@@ -111,7 +111,7 @@ static uint32_t MapSym(uint32_t xsym) {
 		case '{': return 0; //todo
 		case '}': return 0; //todo
 		case ';': return 0x4c;
-		case ':': return 0; //todo
+		case ':': return 0x4c; //todo
 		case '\'': return 0x52;
 		case '@': return 0; //todo
 		case '#': return 0; //todo
