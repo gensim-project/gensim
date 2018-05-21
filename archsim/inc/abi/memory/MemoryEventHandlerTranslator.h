@@ -20,7 +20,7 @@ namespace archsim
 {
 	namespace translate
 	{
-		namespace llvm
+		namespace translate_llvm
 		{
 			class LLVMInstructionTranslationContext;
 		}
@@ -33,13 +33,13 @@ namespace archsim
 			class MemoryEventHandlerTranslator
 			{
 			public:
-				virtual bool EmitEventHandler(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, MemoryEventHandler& handler, MemoryModel::MemoryEventType event_type, ::llvm::Value *address, uint8_t width) = 0;
+				virtual bool EmitEventHandler(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, MemoryEventHandler& handler, MemoryModel::MemoryEventType event_type, ::llvm::Value *address, uint8_t width) = 0;
 			};
 
 			class DefaultMemoryEventHandlerTranslator : public MemoryEventHandlerTranslator
 			{
 			public:
-				bool EmitEventHandler(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, MemoryEventHandler& handler, MemoryModel::MemoryEventType event_type, ::llvm::Value *address, uint8_t width) override;
+				bool EmitEventHandler(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, MemoryEventHandler& handler, MemoryModel::MemoryEventType event_type, ::llvm::Value *address, uint8_t width) override;
 			};
 		}
 	}

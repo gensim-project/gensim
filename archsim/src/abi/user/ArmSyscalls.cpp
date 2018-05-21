@@ -74,7 +74,7 @@ static unsigned int sys_open(archsim::core::thread::ThreadInstance* cpu, unsigne
 	char filename[256];
 	auto interface = cpu->GetMemoryInterface("Mem");
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
-
+	
 	int host_fd = open(filename, flags, mode);
 	if (host_fd < 0) return -errno;
 

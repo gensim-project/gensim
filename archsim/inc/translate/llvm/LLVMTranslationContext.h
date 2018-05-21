@@ -8,8 +8,6 @@
 #ifndef LLVMTRANSLATIONCONTEXT_H
 #define	LLVMTRANSLATIONCONTEXT_H
 
-#if CONFIG_LLVM
-
 #include "define.h"
 
 #include "translate/TranslationContext.h"
@@ -50,7 +48,7 @@ namespace archsim
 	}
 	namespace translate
 	{
-		namespace llvm
+		namespace translate_llvm
 		{
 
 			class LLVMTranslationContext;
@@ -78,7 +76,7 @@ namespace archsim
 
 				struct {
 					::llvm::Value *cpu_ctx_val;
-					::llvm::Value *state_val;
+					::llvm::Argument *state_val;
 					::llvm::Value *reg_state_val;
 					::llvm::Value *region_txln_cache_ptr_val;
 
@@ -358,6 +356,5 @@ namespace archsim
 	}
 }
 
-#endif
 #endif	/* LLVMTRANSLATIONCONTEXT_H */
 
