@@ -73,8 +73,6 @@ namespace captive
 				bool analyse(uint32_t& max_stack);
 				bool build_cfg(block_list_t& blocks, cfg_t& succs, cfg_t& preds, block_list_t& exits);
 				bool post_allocate_peephole();
-				bool lower(uint32_t max_stack, analyses::HostRegLivenessData &host_liveness);
-				bool peeplower(uint32_t max_stack);
 				bool lower_stack_to_reg();
 				bool reg_value_reuse();
 

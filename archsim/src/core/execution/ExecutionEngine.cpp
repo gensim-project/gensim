@@ -68,7 +68,7 @@ ExecutionEngineThreadContext::~ExecutionEngineThreadContext()
 }
 
 
-ExecutionEngine::ExecutionEngine() : state_(ExecutionState::Ready), trace_sink_(nullptr)
+ExecutionEngine::ExecutionEngine() : state_(ExecutionState::Ready), trace_sink_(nullptr), region_profile_(nullptr), enable_profiling_(false)
 {
 
 }
@@ -82,6 +82,12 @@ void ExecutionEngine::AttachThread(thread::ThreadInstance* thread)
 	
 	if(thread_contexts_.count(thread)) {
 		throw std::logic_error("Thread already attached to this engine");
+	}
+	
+	if(GetTraceSink()) {
+		auto source = new libtrace::TraceSource(1024);
+		source->SetSink(GetTraceSink());
+		thread->SetTraceSource(source);
 	}
 	
 	thread_contexts_[thread] = GetNewContext(thread);
@@ -136,6 +142,15 @@ void ExecutionEngine::Join()
 		i.second->Join();
 	}
 }
+
+archsim::translate::profile::RegionTable& ExecutionEngine::GetRegionTable()
+{
+	if(region_profile_ == nullptr) {
+		region_profile_ = new RegionTable();
+	}
+	return *region_profile_;
+}
+
 
 void ExecutionEngine::Halt()
 {

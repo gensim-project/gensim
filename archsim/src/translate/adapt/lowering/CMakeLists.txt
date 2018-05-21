@@ -1,0 +1,24 @@
+archsim_add_sources(
+	LoweringArithmetic.cpp
+	LoweringBarrier.cpp
+	LoweringBitwise.cpp
+	LoweringCall.cpp
+	LoweringCmp.cpp
+	LoweringCount.cpp
+	LoweringBranch.cpp
+	LoweringException.cpp
+	LoweringIncPC.cpp
+	LoweringJmp.cpp
+	LoweringLdPC.cpp
+	LoweringMov.cpp
+	LoweringMovSx.cpp
+	LoweringNop.cpp
+	LoweringReg.cpp
+	LoweringRet.cpp
+	LoweringScm.cpp
+	LoweringTrunc.cpp
+	LoweringZNFlags.cpp
+	LoweringZx.cpp
+)
+
+add_subdirectory(memory)

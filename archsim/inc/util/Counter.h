@@ -25,13 +25,6 @@
 
 namespace archsim
 {
-	namespace translate
-	{
-		namespace llvm
-		{
-			class LLVMTranslationContext;
-		}
-	}
 	namespace util
 	{
 		class Counter
@@ -140,7 +133,7 @@ namespace archsim
 			}
 
 #if CONFIG_LLVM
-			void emit_inc(archsim::translate::llvm::LLVMTranslationContext& ctx, llvm::IRBuilder<>& bldr);
+			void emit_inc(archsim::translate::translate_llvm::LLVMTranslationContext& ctx, llvm::IRBuilder<>& bldr);
 #endif
 
 		private:

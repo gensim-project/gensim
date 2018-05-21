@@ -40,6 +40,10 @@ namespace captive
 						{
 							return ((X86LoweringContext&)GetLoweringContext()).GetStackMap();
 						}
+						
+						BlockCompiler &GetCompiler() {
+							return GetLoweringContext().GetCompiler();
+						}
 					protected:
 						X86LoweringContext& GetLoweringContext()
 						{
