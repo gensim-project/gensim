@@ -41,68 +41,22 @@ extern "C" {
 		cpu->GetFeatures().SetFeatureLevel(feature, level);
 	}
 
-	uint32_t cpuGetRoundingMode(gensim::Processor *cpu)
+	uint32_t cpuGetRoundingMode(archsim::core::thread::ThreadInstance *cpu)
 	{
-		uint32_t rounding_mode = fegetround();
-		LC_DEBUG1(LogJitFuns) << "Got host rounding mode " << rounding_mode;
-		switch(rounding_mode) {
-			case FE_TONEAREST:
-				return 0;
-			case FE_UPWARD:
-				return 1;
-			case FE_DOWNWARD:
-				return 2;
-			case FE_TOWARDZERO:
-				return 3;
-		}
-
-		//Unknown mode!
-		LC_ERROR(LogJitFuns) << "Unknown host rounding mode " << rounding_mode << "!";
-		return 0;
+		return (uint32_t)cpu->GetFPState().GetRoundingMode();
 	}
-	void cpuSetRoundingMode(gensim::Processor *cpu, uint32_t mode)
+	void cpuSetRoundingMode(archsim::core::thread::ThreadInstance *cpu, uint32_t mode)
 	{
-		LC_DEBUG1(LogJitFuns) << "Set rounding mode to mode " << mode;
-		uint32_t rounding_mode = 0;
-		switch(mode) {
-			case 0:
-				rounding_mode = FE_TONEAREST;
-				break;
-			case 1:
-				rounding_mode = FE_UPWARD;
-				break;
-			case 2:
-				rounding_mode = FE_DOWNWARD;
-				break;
-			case 3:
-				rounding_mode = FE_TOWARDZERO;
-				break;
-			default:
-				LC_ERROR(LogJitFuns) << "Unknown guest rounding mode " << mode << "!";
-				break;
-		}
-		fesetround(rounding_mode);
+		return cpu->GetFPState().SetRoundingMode((archsim::core::thread::RoundingMode)mode);
 	}
 
-	uint32_t cpuGetFlushMode(gensim::Processor *cpu)
+	uint32_t cpuGetFlushMode(archsim::core::thread::ThreadInstance *cpu)
 	{
-		uint32_t mxcsr;
-		asm volatile("stmxcsr %0" : "=m"(mxcsr));
-		return (mxcsr >> 6) & 1;
+		return (uint32_t)cpu->GetFPState().GetFlushMode();
 	}
-	void cpuSetFlushMode(gensim::Processor *cpu, uint32_t mode)
+	void cpuSetFlushMode(archsim::core::thread::ThreadInstance *cpu, uint32_t mode)
 	{
-		uint32_t mxcsr;
-		uint32_t flags = (1 << 6 | 1 << 11 | 1 << 15); // DAZ, UM, FTZ
-		
-		asm volatile ("stmxcsr %0" : "=m"(mxcsr));
-		if(mode) {
-			mxcsr |= flags;
-		} else {
-			mxcsr &= ~flags;
-			mxcsr |= 1 << 11; // always leave UM set to avoid underflow exceptions
-		}
-		asm volatile ("ldmxcsr %0" :: "m"(mxcsr));
+		return cpu->GetFPState().SetFlushMode((archsim::core::thread::FlushMode)mode);
 	}
 
 	uint8_t cpuGetExecMode(gensim::Processor *cpu)

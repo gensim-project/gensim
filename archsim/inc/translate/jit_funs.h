@@ -14,10 +14,10 @@ struct cpuContext;
 extern "C" {
 
 	void cpuSetFeature(archsim::core::thread::ThreadInstance *cpu, uint32_t feature, uint32_t level);
-	uint32_t cpuGetRoundingMode(gensim::Processor *cpu);
-	void cpuSetRoundingMode(gensim::Processor *cpu, uint32_t mode);
-	uint32_t cpuGetFlushMode(gensim::Processor *cpu);
-	void cpuSetFlushMode(gensim::Processor *cpu, uint32_t mode);
+	uint32_t cpuGetRoundingMode(archsim::core::thread::ThreadInstance *cpu);
+	void cpuSetRoundingMode(archsim::core::thread::ThreadInstance *cpu, uint32_t mode);
+	uint32_t cpuGetFlushMode(archsim::core::thread::ThreadInstance *cpu);
+	void cpuSetFlushMode(archsim::core::thread::ThreadInstance *cpu, uint32_t mode);
 
 	uint32_t genc_adc_flags(uint32_t lhs, uint32_t rhs, uint32_t carry_in);
 
