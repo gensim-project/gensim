@@ -464,6 +464,9 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 			uint8_t v;
 			uint32_t rhs_i = rhs.Int();
 
+			// TODO: fix this
+			abort();
+			/*
 			asm volatile(
 			    "movb $0xff, %%al;"
 			    "addb %3, %%al;"
@@ -472,7 +475,7 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 			    "mov %%ax, %0;"
 			    "seto %1;"
 			    : "=r"(flags), "=r"(v), "+r"(rhs_i)  : "r"((uint8_t)carry_in.Int()), "r"((uint32_t)lhs.Int()) : "cc"
-			);
+			);*/
 
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(result));
 
