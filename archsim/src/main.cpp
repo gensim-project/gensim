@@ -266,21 +266,24 @@ int main(int argc, char *argv[])
 	init_timer.Start();
 
 	archsim::Session session;
-	session.GetModuleManager().LoadStandardModuleDirectory();
 	
-	archsim::util::CommandLineManager command_line;
-
 	int rc;
-
-	// By default, we only show errors;
-	archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_ERROR);
-
+	
 	// First thing to do is parse the command-line.  This will print out any problems
 	// with the input, so we can just exit with an error if parsing failed.
+	archsim::util::CommandLineManager command_line;
 	if (!command_line.Parse(argc, argv)) {
 		rc = -1;
 		goto out;
 	}
+
+	// Now, load modules. We still haven't initialised logging, so any messages
+	// will go to the early log.
+	session.GetModuleManager().LoadStandardModuleDirectory();
+
+
+	// By default, we only show errors;
+	archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_ERROR);
 
 	// Update the reporting level.  If verbose is specified, then we show information messages.
 	if (archsim::options::Verbose && (archsim::options::LogLevel > archsim::util::LogEvent::LL_INFO)) {
