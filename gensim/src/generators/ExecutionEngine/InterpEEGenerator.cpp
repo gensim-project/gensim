@@ -67,16 +67,25 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 	GenerateBlockExecutor(str);
 	str << "}";
 	
-	str <<
-		"archsim::core::execution::ExecutionResult EE::Execute(archsim::core::execution::ExecutionEngineThreadContext *ctx) { auto thread = ctx->GetThread(); ";
+	str << "archsim::core::execution::ExecutionResult EE::Execute(archsim::core::execution::ExecutionEngineThreadContext *ctx) { ";
+	str << "auto thread = ctx->GetThread();";
+	str << "if(archsim::options::Verbose) { thread->GetMetrics().SelfRuntime.Start(); }";
 	str << "CreateThreadExecutionSafepoint(thread);";
 	str << "if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) { thread->GetTraceSource()->Trace_End_Insn(); }";
-	str << "while(ctx->GetState() == archsim::core::execution::ExecutionState::Running) {";
-	str << "  StepBlock(thread);";
-	str << "}";
+	str << "while(ctx->GetState() == archsim::core::execution::ExecutionState::Running) {"
+			"auto result = StepBlock(thread);"
+			"switch(result) {"
+				"case archsim::core::execution::ExecutionResult::Continue: "
+				"case archsim::core::execution::ExecutionResult::Exception:"
+					"break;"
+				"default:"
+					"if(archsim::options::Verbose) { thread->GetMetrics().SelfRuntime.Stop(); }"
+					"return result;"
+			"}"
+		"}"; 
 	
-	str <<
-		"}";
+	str << "if(archsim::options::Verbose) { thread->GetMetrics().SelfRuntime.Stop(); }";
+	str << "}";
 
 	GenerateHelperFunctions(str);
 	GenerateStepInstruction(str);
@@ -234,7 +243,7 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 	
 	str << "template<bool trace=false> archsim::core::execution::ExecutionResult StepInstruction_" << isa.ISAName << "(archsim::core::thread::ThreadInstance *thread, EE::decode_t &decode) {";
 	str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
-	str << "archsim::core::execution::ExecutionResult interp_result;";
+	str << "archsim::core::execution::ExecutionResult interp_result = archsim::core::execution::ExecutionResult::Continue;";
 	str << "bool should_execute = true;";
 	
 	str << "if(trace) { if(thread->GetTraceSource() == nullptr) { throw std::logic_error(\"\"); } thread->GetTraceSource()->Trace_Insn(thread->GetPC().Get(), decode.ir, false, thread->GetModeID(), thread->GetExecutionRing(), 1); }";
