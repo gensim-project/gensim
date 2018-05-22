@@ -132,7 +132,7 @@ namespace archsim {
 				archsim::abi::EmulationModel &GetEmulationModel() { return emu_model_; }
 
 				// Functions to do with execution modes
-				uint32_t GetModeID() const { return GetStateBlock().GetEntry<uint32_t>("ModeID"); }
+				uint32_t GetModeID() const { return *(uint32_t*)(((char*)GetStateBlock().GetData()) + mode_offset_); }
 				void SetModeID(uint32_t new_mode) { GetStateBlock().SetEntry<uint32_t>("ModeID", new_mode); }
 
 				// Execution ring is very frequently accessed so it's necessary 
@@ -218,6 +218,7 @@ namespace archsim {
 				util::PubSubscriber pubsub_;
 				archsim::core::thread::ThreadMetrics *metrics_;
 				
+				uint32_t mode_offset_;
 				uint32_t ring_offset_;
 
 				std::mutex message_lock_;
