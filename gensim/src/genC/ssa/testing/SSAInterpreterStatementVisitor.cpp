@@ -464,35 +464,27 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 			uint8_t v;
 			uint32_t rhs_i = rhs.Int();
 
-			// TODO: fix this
-			abort();
-			/*
-			asm volatile(
-			    "movb $0xff, %%al;"
-			    "addb %3, %%al;"
-			    "adc %4, %2;"
-			    "lahf;"
-			    "mov %%ax, %0;"
-			    "seto %1;"
-			    : "=r"(flags), "=r"(v), "+r"(rhs_i)  : "r"((uint8_t)carry_in.Int()), "r"((uint32_t)lhs.Int()) : "cc"
-			);*/
 
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(result));
 
 			if (stmt.Type == SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags) {
-				uint8_t c = (flags >> 8) & 1;
-				uint8_t z = (flags >> 14) & 1;
-				uint8_t n = (flags >> 15) & 1;
+				uint32_t N = (result & 0x80000000) != 0;
+				uint32_t Z = ((uint32_t)result) == 0;
+				uint32_t C = result > 0xffffffff;
+
+				uint32_t V = ((lhs.Int() & 0x80000000) == (rhs.Int() & 0x80000000)) && ((lhs.Int() & 0x80000000) != (result & 0x80000000));
 
 				uint32_t c_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("C")->GetRegFileOffset();
 				uint32_t v_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("V")->GetRegFileOffset();
 				uint32_t z_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("Z")->GetRegFileOffset();
 				uint32_t n_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("N")->GetRegFileOffset();
 
-				_machine_state.RegisterFile().Write8(c_offset, c);
-				_machine_state.RegisterFile().Write8(v_offset, v);
-				_machine_state.RegisterFile().Write8(z_offset, z);
-				_machine_state.RegisterFile().Write8(n_offset, n);
+				_machine_state.RegisterFile().Write8(c_offset, C);
+				_machine_state.RegisterFile().Write8(v_offset, V);
+				_machine_state.RegisterFile().Write8(z_offset, Z);
+				_machine_state.RegisterFile().Write8(n_offset, N);
+			} else if(stmt.Type == SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags) {
+				UNIMPLEMENTED;
 			}
 
 			break;
