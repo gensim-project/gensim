@@ -24,12 +24,13 @@ namespace archsim
 	{
 		namespace translate_llvm
 		{
+			
 			class ArchSimAA : public llvm::AliasAnalysis, llvm::FunctionPass
 			{
-			public:
 				static char ID;
-
-				ArchSimAA() : FunctionPass(ID) {}
+			public:
+				
+				ArchSimAA();
 
 				bool runOnFunction(llvm::Function &F) override;
 				

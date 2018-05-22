@@ -107,6 +107,35 @@ bool BlockJITSHRLowering::Lower(const captive::shared::IRInstruction*& insn) {
 	return true;
 }
 
+bool BlockJITRORLowering::Lower(const captive::shared::IRInstruction*& insn) {
+	auto lhs = GetValueFor(insn->operands[1]);
+	auto rhs = GetValueFor(insn->operands[0]);
+	auto output = insn->operands[1];
+	
+	// No built in ROR instruction or intrinsic, so we need to output IR which
+	// implements the following:
+	// 
+	// rotation = rotation & (bits(T)-1)
+	// if(rotation == 0) { return input; }
+	// else { return (input >> (rotation)) | (input << (bits(T) - rotation)); }
+	
+	auto zero = ::llvm::ConstantInt::get(lhs->getType(), 0, false);
+	auto max_shift = ::llvm::ConstantInt::get(lhs->getType(), (insn->operands[0].size * 8), false);
+	auto rotation = GetBuilder().CreateAnd(rhs, (insn->operands[0].size * 8) - 1);
+	auto comparison = GetBuilder().CreateICmpEQ(rotation, zero);
+	
+	auto shift_1 = GetBuilder().CreateLShr(lhs, rotation);
+	auto shift_2 = GetBuilder().CreateShl(lhs, GetBuilder().CreateSub(max_shift, rotation));
+	auto result = GetBuilder().CreateOr(shift_1, shift_2);
+	auto selected_shift = GetBuilder().CreateSelect(comparison, lhs, result);
+	
+	SetValueFor(output, selected_shift);
+		
+	insn++;
+	
+	return true;
+}
+
 bool BlockJITSARLowering::Lower(const captive::shared::IRInstruction*& insn) {
 	auto lhs = GetValueFor(insn->operands[1]);
 	auto rhs = GetValueFor(insn->operands[0]);

@@ -9,7 +9,11 @@
 
 using namespace archsim::translate::adapt;
 
-bool BlockJITBARRIERLowering::Lower(const captive::shared::IRInstruction*& insn) {
+bool BlockJITSETFEATURELowering::Lower(const captive::shared::IRInstruction*& insn) {
+	const auto &feature  = insn->operands[0];
+	const auto &value  = insn->operands[1];
+	
+	GetBuilder().CreateCall(GetContext().GetValues().cpuSetFeaturePtr, {GetThreadPtr(), GetValueFor(feature), GetValueFor(value)});
 	
 	insn++;
 	

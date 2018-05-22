@@ -30,6 +30,18 @@
 namespace archsim {
 	namespace core {
 		namespace execution {
+			class BlockJITLLVMMemoryManager : public llvm::RTDyldMemoryManager {
+			public:
+				BlockJITLLVMMemoryManager(wulib::MemAllocator &allocator);
+				
+				uint8_t* allocateCodeSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, llvm::StringRef SectionName) override;
+				uint8_t* allocateDataSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, llvm::StringRef SectionName, bool IsReadOnly) override;
+				
+				bool finalizeMemory(std::string* ErrMsg) override;
+			private:
+				wulib::MemAllocator &allocator_;
+			};
+			
 			class BlockLLVMExecutionEngine : public BlockJITExecutionEngine {
 			public:
                             
@@ -42,7 +54,7 @@ namespace archsim {
 				
 			private:
 				bool translateBlock(thread::ThreadInstance* thread, archsim::Address block_pc, bool support_chaining, bool support_profiling) override;	
-				bool buildBlockJITIR(thread::ThreadInstance *thread, archsim::Address block_pc, captive::arch::jit::TranslationContext &ctx);
+				bool buildBlockJITIR(thread::ThreadInstance *thread, archsim::Address block_pc, captive::arch::jit::TranslationContext &ctx, archsim::blockjit::BlockTranslation &txln);
 				
 				llvm::LLVMContext llvm_ctx_;
 				

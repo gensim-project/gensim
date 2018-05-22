@@ -8,6 +8,7 @@
 #include "translate/adapt/BlockJITAdaptorLoweringContext.h"
 #include "translate/adapt/BlockJITAdaptorLowering.h"
 #include "core/thread/ThreadInstance.h"
+#include "util/SimOptions.h"
 
 #include <llvm/IR/Constants.h>
 
@@ -23,18 +24,47 @@ BlockJITValues::BlockJITValues(::llvm::Module* module)
 	auto i8Ty = llvm::Type::getInt8Ty(ctx);
 	auto i16Ty = llvm::Type::getInt16Ty(ctx);
 	auto i32Ty = llvm::Type::getInt32Ty(ctx);
+	auto i32PtrTy = llvm::Type::getInt32Ty(ctx)->getPointerTo(0);
 	
 	cpuTakeExceptionPtr = (llvm::Function*)module->getOrInsertFunction("cpuTakeException", voidTy, i8PtrTy, i32Ty, i32Ty);
+	cpuTakeExceptionPtr->setLinkage(llvm::Function::ExternalLinkage);
+	
+	cpuReadDevicePtr = (llvm::Function*)module->getOrInsertFunction("cpuReadDevice", voidTy, i8PtrTy, i32Ty, i32Ty, i32PtrTy);
+	cpuReadDevicePtr->setLinkage(llvm::Function::ExternalLinkage);
+	
+	cpuWriteDevicePtr = (llvm::Function*)module->getOrInsertFunction("cpuWriteDevice", voidTy, i8PtrTy, i32Ty, i32Ty, i32Ty);
+	cpuWriteDevicePtr->setLinkage(llvm::Function::ExternalLinkage);
+	
+	cpuSetFeaturePtr = (llvm::Function*)module->getOrInsertFunction("cpuSetFeature", voidTy, i8PtrTy, i32Ty, i32Ty);
+	cpuSetFeaturePtr->setLinkage(llvm::Function::ExternalLinkage);
+	
+	cpuSetRoundingModePtr = (llvm::Function*)module->getOrInsertFunction("cpuSetRoundingMode", voidTy, i8PtrTy, i32Ty);
+	cpuSetRoundingModePtr->setLinkage(llvm::Function::ExternalLinkage);
+	
+	cpuGetRoundingModePtr = (llvm::Function*)module->getOrInsertFunction("cpuGetRoundingMode", voidTy, i8PtrTy);
+	cpuGetRoundingModePtr->setLinkage(llvm::Function::ExternalLinkage);
+	
+	cpuSetFlushModePtr = (llvm::Function*)module->getOrInsertFunction("cpuSetFlushMode", voidTy, i8PtrTy, i32Ty);
+	cpuSetFlushModePtr->setLinkage(llvm::Function::ExternalLinkage);
+	cpuGetFlushModePtr = (llvm::Function*)module->getOrInsertFunction("cpuGetFlushMode", voidTy, i8PtrTy);
+	cpuGetFlushModePtr->setLinkage(llvm::Function::ExternalLinkage);
 	
 	blkRead8Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead8", i8Ty, i8PtrPtrTy, i32Ty, i32Ty);
+	blkRead8Ptr->setLinkage(llvm::Function::ExternalLinkage);
 	blkRead16Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead16", i16Ty, i8PtrPtrTy, i32Ty, i32Ty);
+	blkRead16Ptr->setLinkage(llvm::Function::ExternalLinkage);
 	blkRead32Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead32", i32Ty, i8PtrPtrTy, i32Ty, i32Ty);
+	blkRead32Ptr->setLinkage(llvm::Function::ExternalLinkage);
 	
 	blkWrite8Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite8", voidTy, i8PtrTy, i32Ty, i32Ty, i8Ty);
+	blkWrite8Ptr->setLinkage(llvm::Function::ExternalLinkage);
 	blkWrite16Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite16", voidTy, i8PtrTy, i32Ty, i32Ty, i16Ty);
+	blkWrite16Ptr->setLinkage(llvm::Function::ExternalLinkage);
 	blkWrite32Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite32", voidTy, i8PtrTy, i32Ty, i32Ty, i32Ty);
+	blkWrite32Ptr->setLinkage(llvm::Function::ExternalLinkage);
 	
 	genc_adc_flags_ptr = (llvm::Function*)module->getOrInsertFunction("genc_adc_flags", i16Ty, i32Ty, i32Ty, i8Ty);
+	genc_adc_flags_ptr->setLinkage(llvm::Function::ExternalLinkage);
 }
 
 
@@ -47,6 +77,7 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx) {
 	AddLowerer(IRInstruction::BRANCH, new BlockJITBRANCHLowering());
 	AddLowerer(IRInstruction::CALL, new BlockJITCALLLowering());
 	AddLowerer(IRInstruction::CLZ, new BlockJITCLZLowering());
+	AddLowerer(IRInstruction::CMOV, new BlockJITCMOVLowering());
 	AddLowerer(IRInstruction::CMPEQ, new BlockJITCMPLowering(IRInstruction::CMPEQ));
 	AddLowerer(IRInstruction::CMPNE, new BlockJITCMPLowering(IRInstruction::CMPNE));
 	AddLowerer(IRInstruction::CMPGT, new BlockJITCMPLowering(IRInstruction::CMPGT));
@@ -62,12 +93,16 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx) {
 	AddLowerer(IRInstruction::IMUL, new BlockJITUMULLLowering());
 	AddLowerer(IRInstruction::JMP, new BlockJITJMPLowering());
 	AddLowerer(IRInstruction::LDPC, new BlockJITLDPCLowering());
+	AddLowerer(IRInstruction::MOD, new BlockJITMODLowering());
 	AddLowerer(IRInstruction::MOV, new BlockJITMOVLowering());
 	AddLowerer(IRInstruction::NOP, new BlockJITNOPLowering());
 	AddLowerer(IRInstruction::OR, new BlockJITORLowering());
 	AddLowerer(IRInstruction::READ_REG, new BlockJITLDREGLowering());
 	AddLowerer(IRInstruction::RET, new BlockJITRETLowering());
+	AddLowerer(IRInstruction::ROR, new BlockJITRORLowering());
+	AddLowerer(IRInstruction::SDIV, new BlockJITSDIVLowering());
 	AddLowerer(IRInstruction::SET_CPU_MODE, new BlockJITSCMLowering());
+	AddLowerer(IRInstruction::SET_CPU_FEATURE, new BlockJITSETFEATURELowering());
 	AddLowerer(IRInstruction::SHL, new BlockJITSHLLowering());
 	AddLowerer(IRInstruction::SAR, new BlockJITSARLowering());
 	AddLowerer(IRInstruction::SHR, new BlockJITSHRLowering());
@@ -81,8 +116,24 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx) {
 	AddLowerer(IRInstruction::SET_ZN_FLAGS, new BlockJITZNFLAGSLowering());
 	AddLowerer(IRInstruction::ZX, new BlockJITZXLowering());
 
-	AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMUserLowering());
-	AddLowerer(IRInstruction::WRITE_MEM, new BlockJITSTMEMUserLowering());
+	const auto &sys_model = archsim::options::SystemMemoryModel.GetValue();
+	if(sys_model == "user") {
+		AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMUserLowering());
+		AddLowerer(IRInstruction::WRITE_MEM, new BlockJITSTMEMUserLowering());
+	} else if(sys_model == "cache") {
+		AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMGenericLowering());
+		AddLowerer(IRInstruction::WRITE_MEM, new BlockJITSTMEMGenericLowering());
+	} else {
+		AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMGenericLowering());
+		AddLowerer(IRInstruction::WRITE_MEM, new BlockJITSTMEMGenericLowering());
+	}
+	AddLowerer(IRInstruction::READ_DEVICE, new BlockJITLDDEVLowering());
+	AddLowerer(IRInstruction::WRITE_DEVICE, new BlockJITSTDEVLowering());
+	
+	AddLowerer(IRInstruction::FCTRL_GET_ROUND, new BlockJITFCNTL_GETROUNDLowering());
+	AddLowerer(IRInstruction::FCTRL_SET_ROUND, new BlockJITFCNTL_SETROUNDLowering());
+	AddLowerer(IRInstruction::FCTRL_GET_FLUSH_DENORMAL, new BlockJITFCNTL_GETFLUSHLowering());
+	AddLowerer(IRInstruction::FCTRL_SET_FLUSH_DENORMAL, new BlockJITFCNTL_SETFLUSHLowering());
 	return true;
 }
 

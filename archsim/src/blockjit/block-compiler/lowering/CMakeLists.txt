@@ -3,5 +3,6 @@ archsim_add_sources(
 	InstructionLowerer.cpp
 	LoweringContext.cpp
 )
-
-ADD_SUBDIRECTORY(x86)
+IF("${ARCHSIM_SIMULATION_HOST}" STREQUAL "x86_64")
+	ADD_SUBDIRECTORY(x86)
+ENDIF()

@@ -6,7 +6,9 @@ archsim_add_sources(
 	LoweringCmp.cpp
 	LoweringCount.cpp
 	LoweringBranch.cpp
+	LoweringDevice.cpp
 	LoweringException.cpp
+	LoweringFeature.cpp
 	LoweringIncPC.cpp
 	LoweringJmp.cpp
 	LoweringLdPC.cpp
@@ -21,4 +23,5 @@ archsim_add_sources(
 	LoweringZx.cpp
 )
 
+add_subdirectory(fp)
 add_subdirectory(memory)

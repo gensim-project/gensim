@@ -108,6 +108,8 @@ static int run_simple_simulation(archsim::Session& session)
 
 	// Destroy System after simulation to clean up resources
 	simsys->Destroy();
+	
+	delete simsys;
 
 	return rc;
 }

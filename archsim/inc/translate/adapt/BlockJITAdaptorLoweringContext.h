@@ -33,6 +33,14 @@ namespace archsim {
 				BlockJITValues(llvm::Module *module);
 				
 				llvm::Function *cpuTakeExceptionPtr;
+				llvm::Function *cpuReadDevicePtr;
+				llvm::Function *cpuWriteDevicePtr;
+				llvm::Function *cpuSetFeaturePtr;
+				
+				llvm::Function *cpuSetRoundingModePtr;
+				llvm::Function *cpuGetRoundingModePtr;
+				llvm::Function *cpuSetFlushModePtr;
+				llvm::Function *cpuGetFlushModePtr;
 				
 				llvm::Function *blkRead8Ptr;
 				llvm::Function *blkRead16Ptr;
@@ -49,7 +57,8 @@ namespace archsim {
             public:
 				// Don't need to give a stack frame size since LLVM will be managing that
 				BlockJITLoweringContext(archsim::core::thread::ThreadInstance *thread, ::llvm::Module *module, ::llvm::Function *target_fun) : LoweringContext(), values_(module), thread_(thread), target_fun_(target_fun), target_module_(module) { builder_ = new ::llvm::IRBuilder<>(module->getContext()); }
-
+				~BlockJITLoweringContext() { if(builder_!= nullptr) { delete builder_; } }
+				
 				virtual bool Prepare(const TranslationContext &ctx);
 
 				bool LowerHeader(const TranslationContext& ctx) override {

@@ -38,6 +38,8 @@ DeclareChildLogContext(LogAliasAnalysis, LogTranslate, "AliasAnalysis");
 #define CONSTVAL(a) (llvm::mdconst::extract<llvm::ConstantInt>(a)->getZExtValue())
 #define ISCONSTVAL(a) (a->getValueID() == ::llvm::Instruction::ConstantIntVal)
 
+#if 0
+
 using namespace archsim::translate::translate_llvm;
 
 static bool IsInstr(const ::llvm::Value *v)
@@ -294,24 +296,24 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 	return llvm::AAResultBase<ArchSimAA>::alias(L1, L2);
 }
 
-char ArchsimAAPass::ID = 0;
+char ArchsimAA::ID = 0;
 
-ArchsimAAPass::ArchsimAAPass() : llvm::FunctionPass(ID)
+ArchSimAA::ArchSimAA() : FunctionPass(ID)
 {
-	
 }
 
-void ArchsimAAPass::getAnalysisUsage(llvm::AnalysisUsage& AU) const
+
+void ArchsimAA::getAnalysisUsage(llvm::AnalysisUsage& AU) const
 {
 	AU.setPreservesAll();
 }
 
-bool ArchsimAAPass::runOnFunction(llvm::Function& F)
+bool ArchsimAA::runOnFunction(llvm::Function& F)
 {
-  Result.reset(new ArchSimAA());
   return false;
 }
 
+#endif
 
 #if 0
 LLVMOptimiser::LLVMOptimiser() : isInitialised(false)
