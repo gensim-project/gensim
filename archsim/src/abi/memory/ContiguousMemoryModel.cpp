@@ -5,8 +5,11 @@
 #include "util/LogContext.h"
 
 #include <sys/mman.h>
+
+#if ARCHSIM_SIMULATION_HOST == x86_64
 #include <asm/prctl.h>
 #include <sys/prctl.h>
+#endif
 
 extern "C" int arch_prctl(int code, unsigned long addr);
 
@@ -51,24 +54,29 @@ bool ContiguousMemoryModel::Initialise()
 {
 	if (is_initialised) return true;
 
-//#define MEM_BASE_HACK 0x100000000ULL
 	// try to map the memory base pointer to somewhere sensible
 	mem_base = (host_addr_t)mmap((void*)0x80000000, (size_t)CONTIGUOUS_MEMORY_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE | MAP_FIXED, -1, 0);
+
+#ifdef MAP_32BIT
 	if(mem_base == MAP_FAILED) {
 		mem_base = (host_addr_t)mmap((void*)nullptr, (size_t)CONTIGUOUS_MEMORY_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE | MAP_32BIT, -1, 0);
 	}
+#endif
+	
 	if(mem_base == MAP_FAILED) {
 		mem_base = (host_addr_t)mmap((void*)nullptr, (size_t)CONTIGUOUS_MEMORY_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
 	}
-//	assert(mem_base == (void*)MEM_BASE_HACK);
+
 	if (mem_base == MAP_FAILED) {
 		return false;
 	}
 
 	is_initialised = true;
-
+	
+#if ARCHSIM_SIMULATION_HOST == x86_64
 	arch_prctl(ARCH_SET_GS, (unsigned long)mem_base);
-
+#endif
+	
 #if CONFIG_LLVM
 	((ContiguousMemoryTranslationModel*)translation_model)->SetContiguousMemoryBase(mem_base);
 #endif
