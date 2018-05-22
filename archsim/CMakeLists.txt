@@ -70,6 +70,7 @@ IF(NOT ARCHSIM_SIMULATION_HOST)
 	ENDIF()
 ENDIF()
 MESSAGE(STATUS "ArchSim simulation host: ${ARCHSIM_SIMULATION_HOST}")
+TARGET_COMPILE_DEFINITIONS(archsim PUBLIC "-DARCHSIM_SIMULATION_HOST_IS_${ARCHSIM_SIMULATION_HOST}")
 
 # Depending on the version of SDL2 which is available, they might be 
 # using the old system of xxx_LIBRARIES or the new imported target
