@@ -56,7 +56,7 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 	state_block_.SetEntry<ThreadInstance*>("thread_ptr", this);
 	
 	// Set up ISA Mode ID
-	state_block_.AddBlock("ModeID", sizeof(uint32_t));
+	mode_offset_ = state_block_.AddBlock("ModeID", sizeof(uint32_t));
 	state_block_.SetEntry<uint32_t>("ModeID", 0);
 	
 	// Set up Ring ID
