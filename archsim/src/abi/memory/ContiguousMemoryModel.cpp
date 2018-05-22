@@ -6,7 +6,7 @@
 
 #include <sys/mman.h>
 
-#if ARCHSIM_SIMULATION_HOST == x86_64
+#if ARCHSIM_SIMULATION_HOST_IS_x86_64
 #include <asm/prctl.h>
 #include <sys/prctl.h>
 #endif
@@ -73,7 +73,7 @@ bool ContiguousMemoryModel::Initialise()
 
 	is_initialised = true;
 	
-#if ARCHSIM_SIMULATION_HOST == x86_64
+#if ARCHSIM_SIMULATION_HOST_IS_x86_64
 	arch_prctl(ARCH_SET_GS, (unsigned long)mem_base);
 #endif
 	
