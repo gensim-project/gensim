@@ -18,17 +18,22 @@ using namespace archsim::module;
 
 DeclareLogContext(LogModule, "Module");
 
+// Logging is not enabled until after modules are loaded, so we need to be a bit clever here
+#define EARLYLOG_INFO if(!archsim::options::Verbose); else std::cout 
+#define EARLYLOG_ERROR if(!archsim::options::Verbose); else std::cerr
+
 bool ModuleManager::LoadModule(const std::string& module_filename)
 {
+	EARLYLOG_INFO << "[Module] Loading module " << module_filename << std::endl;
 	void *lib = dlopen(module_filename.c_str(), RTLD_NOW | RTLD_GLOBAL);
 	if(lib == nullptr) {
-		LC_ERROR(LogModule) << "Failed to load library '" << module_filename << "': " << dlerror();
+		EARLYLOG_ERROR << "[Module] Failed to load library '" << module_filename << "': " << dlerror() << std::endl;;
 		return false;
 	}
 
 	module_loader_t module_init = (module_loader_t)dlsym(lib, "archsim_module_");
 	if(module_init == nullptr) {
-		LC_ERROR(LogModule) << "Failed to initialise library '" << module_filename << "': " << dlerror();
+		EARLYLOG_ERROR << "[Module] Failed to initialise library '" << module_filename << "': " << dlerror() << std::endl;;
 		return false;
 	}
 
@@ -37,6 +42,7 @@ bool ModuleManager::LoadModule(const std::string& module_filename)
 
 bool ModuleManager::LoadModuleDirectory(const std::string& module_directory)
 {
+	EARLYLOG_INFO << "[Module] Loading module directory " << module_directory << std::endl;
 	DIR *dir = opendir(module_directory.c_str());
 	struct dirent *ent;
 	bool success = true;
