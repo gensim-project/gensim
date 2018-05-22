@@ -4,10 +4,10 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
 # Dependencies
 FIND_PACKAGE(Threads REQUIRED)
-FIND_PACKAGE(SDL2)
-FIND_PACKAGE(X11)
+FIND_PACKAGE(SDL2 QUIET)
+FIND_PACKAGE(X11 QUIET)
 
-FIND_PACKAGE(PkgConfig)
+FIND_PACKAGE(PkgConfig QUIET)
 IF(PkgConfig_FOUND)
 	PKG_CHECK_MODULES(GTK3 gtk+-3.0)
 ENDIF()
@@ -56,6 +56,20 @@ TARGET_COMPILE_DEFINITIONS(archsim PUBLIC "-DARCHSIM_MODULE_DIRECTORY=${ARCHSIM_
 # Process the configuration files
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-config.h)
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-scm.h.in ${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-scm.h)
+
+# Determing the simulation host that we're building for
+IF(NOT ARCHSIM_SIMULATION_HOST)
+
+	# What simulation hosts are supported? This actually depends on what features
+	# are desired (blockjit, llvm, interpreter, etc) but for now we're either
+	# x86 or we're generic
+	IF("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+		SET(ARCHSIM_SIMULATION_HOST "${CMAKE_SYSTEM_PROCESSOR}")
+	ELSE()
+		SET(ARCHSIM_SIMULATION_HOST "generic")
+	ENDIF()
+ENDIF()
+MESSAGE(STATUS "ArchSim simulation host: ${ARCHSIM_SIMULATION_HOST}")
 
 # Depending on the version of SDL2 which is available, they might be 
 # using the old system of xxx_LIBRARIES or the new imported target
