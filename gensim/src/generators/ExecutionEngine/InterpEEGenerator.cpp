@@ -70,6 +70,7 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 	str <<
 		"archsim::core::execution::ExecutionResult EE::Execute(archsim::core::execution::ExecutionEngineThreadContext *ctx) { auto thread = ctx->GetThread(); ";
 	str << "CreateThreadExecutionSafepoint(thread);";
+	str << "if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) { thread->GetTraceSource()->Trace_End_Insn(); }";
 	str << "while(ctx->GetState() == archsim::core::execution::ExecutionState::Running) {";
 	str << "  StepBlock(thread);";
 	str << "}";

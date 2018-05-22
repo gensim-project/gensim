@@ -84,6 +84,12 @@ void ExecutionEngine::AttachThread(thread::ThreadInstance* thread)
 		throw std::logic_error("Thread already attached to this engine");
 	}
 	
+	if(GetTraceSink()) {
+		auto source = new libtrace::TraceSource(1024);
+		source->SetSink(GetTraceSink());
+		thread->SetTraceSource(source);
+	}
+	
 	thread_contexts_[thread] = GetNewContext(thread);
 	threads_.insert(thread);
 }
