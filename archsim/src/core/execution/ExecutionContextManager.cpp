@@ -10,7 +10,7 @@ using namespace archsim;
 using namespace archsim::core::execution;
 using namespace archsim::core::thread;
 
-ExecutionContextManager::ExecutionContextManager() : state_(ExecutionState::Ready)
+ExecutionContextManager::ExecutionContextManager() : state_(ExecutionState::Ready), trace_sink_(nullptr)
 {
 
 }
