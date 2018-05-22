@@ -2,13 +2,17 @@ archsim_add_sources(
 	encode.cpp 
 	ir-sorter.cpp
 	translation-context.cpp
-	BlockJitTranslate.cpp
 	BlockProfile.cpp
 	blockjit-funs.cpp
 	PerfMap.cpp
 	BlockCache.cpp
-
-	blockjit-shunts.S
 )
 
-ADD_SUBDIRECTORY(block-compiler)
+IF(ARCHSIM_SIMULATION_HOST STREQUAL "x86_64")
+	ADD_SUBDIRECTORY(block-compiler)
+
+	archsim_add_sources(
+		BlockJitTranslate.cpp
+		blockjit-shunts.S
+	)
+ENDIF()
