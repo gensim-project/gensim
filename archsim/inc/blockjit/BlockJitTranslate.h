@@ -65,6 +65,7 @@ namespace gensim
 			uint32_t GetFeatureLevel(uint32_t feature);
 			void InvalidateFeatures();
 			archsim::ProcessorFeatureSet GetProcessorFeatures() const;
+			void AttachFeaturesTo(archsim::blockjit::BlockTranslation &txln) const;
 
 			void InitialiseIsaMode(const archsim::core::thread::ThreadInstance *cpu);
 			void SetIsaMode(const captive::shared::IROperand&, captive::shared::IRBuilder& builder);

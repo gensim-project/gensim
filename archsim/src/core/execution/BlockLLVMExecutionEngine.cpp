@@ -19,6 +19,28 @@
 using namespace archsim;
 using namespace archsim::core::execution;
 
+BlockJITLLVMMemoryManager::BlockJITLLVMMemoryManager(wulib::MemAllocator& allocator) : allocator_(allocator)
+{
+
+}
+
+uint8_t* BlockJITLLVMMemoryManager::allocateCodeSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, llvm::StringRef SectionName)
+{
+	return (uint8_t*)allocator_.Allocate(Size);
+}
+
+uint8_t* BlockJITLLVMMemoryManager::allocateDataSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, llvm::StringRef SectionName, bool IsReadOnly)
+{
+	return (uint8_t*)allocator_.Allocate(Size);
+}
+
+bool BlockJITLLVMMemoryManager::finalizeMemory(std::string* ErrMsg)
+{
+	return true;
+}
+
+
+
 static llvm::TargetMachine *GetNativeMachine() {
 	llvm::TargetMachine *machine = nullptr;
 	
@@ -27,8 +49,8 @@ static llvm::TargetMachine *GetNativeMachine() {
 		llvm::InitializeNativeTargetAsmPrinter();
 		llvm::InitializeNativeTargetAsmParser();
 		machine = llvm::EngineBuilder().selectTarget();
-		machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
-		machine->setFastISel(false);
+		machine->setOptLevel(llvm::CodeGenOpt::None);
+		machine->setFastISel(true);
 	}
 	return machine;
 }
@@ -36,26 +58,30 @@ static llvm::TargetMachine *GetNativeMachine() {
 BlockLLVMExecutionEngine::BlockLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) : 
 	BlockJITExecutionEngine(translator),
 	target_machine_(GetNativeMachine()),
-	linker_([]() { return std::make_shared<llvm::SectionMemoryManager>(); }),
+	linker_([&]() { return std::make_shared<BlockJITLLVMMemoryManager>(mem_allocator_); }),
 	compiler_(linker_, llvm::orc::SimpleCompiler(*target_machine_))
 {
 	
 }
 
-bool BlockLLVMExecutionEngine::buildBlockJITIR(thread::ThreadInstance* thread, archsim::Address block_pc, captive::arch::jit::TranslationContext& ctx)
+bool BlockLLVMExecutionEngine::buildBlockJITIR(thread::ThreadInstance* thread, archsim::Address block_pc, captive::arch::jit::TranslationContext& ctx, archsim::blockjit::BlockTranslation &txln)
 {
 	auto translator = GetTranslator();
 	translator->InitialiseFeatures(thread);
 	translator->InitialiseIsaMode(thread);
-	translator->SetDecodeContext(thread->GetEmulationModel().GetNewDecodeContext(*thread));
+	auto decode_ctx = thread->GetEmulationModel().GetNewDecodeContext(*thread);
+	translator->SetDecodeContext(decode_ctx);
 	
 	captive::shared::IRBuilder builder;
 	builder.SetContext(&ctx);
 	builder.SetBlock(ctx.alloc_block());
 	
 	if(!translator->build_block(thread, block_pc, builder)) {
+		delete decode_ctx;
 		return false;
 	}
+	
+	translator->AttachFeaturesTo(txln);
 	
 	// optimise ir
 	captive::arch::jit::transforms::SortIRTransform().Apply(ctx);
@@ -68,6 +94,8 @@ bool BlockLLVMExecutionEngine::buildBlockJITIR(thread::ThreadInstance* thread, a
 	captive::arch::jit::transforms::RegValueReuseTransform().Apply(ctx);
 	captive::arch::jit::transforms::RegStoreEliminationTransform().Apply(ctx);
 	captive::arch::jit::transforms::SortIRTransform().Apply(ctx);
+	
+	delete decode_ctx;
 	
 	return true;
 }
@@ -102,7 +130,9 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	module->setDataLayout(target_machine_->createDataLayout());
 	
 	captive::arch::jit::TranslationContext txln_ctx;
-	buildBlockJITIR(thread, block_pc, txln_ctx);
+	if(!buildBlockJITIR(thread, block_pc, txln_ctx, txln)) {
+		return false;
+	}
 	
 	archsim::translate::adapt::BlockJITToLLVMAdaptor adaptor (llvm_ctx_);
 	std::string fn_name = "fn_" + std::to_string(block_pc.Get());
@@ -112,7 +142,17 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	}
 	
 	std::map<std::string, void *> jit_symbols;
+	
 	jit_symbols["cpuTakeException"] = (void*)cpuTakeException;
+	jit_symbols["cpuReadDevice"] = (void*)devReadDevice;
+	jit_symbols["cpuWriteDevice"] = (void*)devWriteDevice;
+	jit_symbols["cpuSetFeature"] = (void*)cpuSetFeature;
+	
+	jit_symbols["cpuSetRoundingMode"] = (void*)cpuSetRoundingMode;
+	jit_symbols["cpuGetRoundingMode"] = (void*)cpuGetRoundingMode;
+	jit_symbols["cpuSetFlushMode"] = (void*)cpuSetFlushMode;
+	jit_symbols["cpuGetFlushMode"] = (void*)cpuGetFlushMode;
+	
 	jit_symbols["genc_adc_flags"] = (void*)genc_adc_flags;
 	jit_symbols["blkRead8"] = (void*)blkRead8;
 	jit_symbols["blkRead16"] = (void*)blkRead16;
@@ -123,7 +163,14 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	
 	auto resolver = llvm::orc::createLambdaResolver(
 		[&](const std::string &name){
-			if(auto sym = compiler_.findSymbol(name, false)) { return sym; } else { return llvm::JITSymbol(nullptr); }
+			// first, check our internal symbols
+			if(jit_symbols.count(name)) { return llvm::JITSymbol((intptr_t)jit_symbols.at(name), llvm::JITSymbolFlags::Exported); }
+
+			// then check more generally
+			if(auto sym = compiler_.findSymbol(name, false)) { return sym; } 
+			
+			// we couldn't find the symbol
+			return llvm::JITSymbol(nullptr);
 		},
 		[jit_symbols](const std::string &name) {
 			if(jit_symbols.count(name)) { return llvm::JITSymbol((intptr_t)jit_symbols.at(name), llvm::JITSymbolFlags::Exported); }

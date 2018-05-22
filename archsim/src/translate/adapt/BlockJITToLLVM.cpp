@@ -86,7 +86,7 @@ llvm::Function* BlockJITToLLVMAdaptor::AdaptIR(archsim::core::thread::ThreadInst
 		llvm::legacy::PassManager pm;
 //		pm.add(new llvm::DataLayout(engine_->getDataLayout()));
 		pm.add(llvm::createBasicAAWrapperPass());
-		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
+//		pm.add(new archsim::translate::translate_llvm::ArchSimAA());
 		pm.add(llvm::createPromoteMemoryToRegisterPass());
 //		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
 		pm.add(llvm::createInstructionCombiningPass(false));

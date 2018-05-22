@@ -24,7 +24,11 @@ LoweringContext::LoweringContext()
 
 LoweringContext::~LoweringContext()
 {
-
+	for(auto i : _lowerers) {
+		if(i) {
+			delete i;
+		}
+	}
 }
 
 bool LoweringContext::PrepareLowerers(const TranslationContext &tctx)

@@ -47,7 +47,7 @@ void flush_txlns_callback(PubSubType::PubSubType type, void *context, const void
 	}
 }
 
-BlockJITExecutionEngine::BlockJITExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) : phys_block_profile_(mem_allocator_), translator_(translator), subscribed_(false)
+BlockJITExecutionEngine::BlockJITExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) : phys_block_profile_(mem_allocator_), translator_(translator), subscribed_(false), flush_txlns_(0), flush_all_txlns_(0)
 {
 	
 }
@@ -118,10 +118,18 @@ template<typename PC_t> ExecutionResult BlockJITExecutionEngine::ExecuteLoop(Exe
 		}
 		
 		block_txln_fn fn = virt_block_cache_.Lookup(Address(*pc_ptr));
-		if(fn || translateBlock(thread, Address(*pc_ptr), true, false)) {
-			ExecuteInnerLoop(ctx, pc_ptr);
+		
+		if(!fn) {
+			if(!translateBlock(thread, Address(*pc_ptr), true, false)) {
+				// Failed to translate a block so halt
+				break;
+			}
+			fn = virt_block_cache_.Lookup(Address(*pc_ptr));
+			assert(fn != nullptr);
 		}
-
+		
+		ExecuteInnerLoop(ctx, pc_ptr);
+		
 		if(thread->GetTraceSource() != nullptr && thread->GetTraceSource()->IsPacketOpen()) {
 			thread->GetTraceSource()->Trace_End_Insn();
 		}

@@ -86,23 +86,25 @@ extern "C" {
 
 	uint32_t cpuGetFlushMode(gensim::Processor *cpu)
 	{
-		uint32_t mxcsr;
-		asm volatile("stmxcsr %0" : "=m"(mxcsr));
-		return (mxcsr >> 6) & 1;
+		UNIMPLEMENTED;
+//		uint32_t mxcsr;
+//		asm volatile("stmxcsr %0" : "=m"(mxcsr));
+//		return (mxcsr >> 6) & 1;
 	}
 	void cpuSetFlushMode(gensim::Processor *cpu, uint32_t mode)
 	{
-		uint32_t mxcsr;
-		uint32_t flags = (1 << 6 | 1 << 11 | 1 << 15); // DAZ, UM, FTZ
-		
-		asm volatile ("stmxcsr %0" : "=m"(mxcsr));
-		if(mode) {
-			mxcsr |= flags;
-		} else {
-			mxcsr &= ~flags;
-			mxcsr |= 1 << 11; // always leave UM set to avoid underflow exceptions
-		}
-		asm volatile ("ldmxcsr %0" :: "m"(mxcsr));
+		UNIMPLEMENTED;
+//		uint32_t mxcsr;
+//		uint32_t flags = (1 << 6 | 1 << 11 | 1 << 15); // DAZ, UM, FTZ
+//		
+//		asm volatile ("stmxcsr %0" : "=m"(mxcsr));
+//		if(mode) {
+//			mxcsr |= flags;
+//		} else {
+//			mxcsr &= ~flags;
+//			mxcsr |= 1 << 11; // always leave UM set to avoid underflow exceptions
+//		}
+//		asm volatile ("ldmxcsr %0" :: "m"(mxcsr));
 	}
 
 	uint8_t cpuGetExecMode(gensim::Processor *cpu)

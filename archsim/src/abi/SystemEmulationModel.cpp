@@ -9,6 +9,8 @@
 #include "abi/devices/MMU.h"
 #include "abi/memory/MemoryModel.h"
 
+#include "core/execution/BlockLLVMExecutionEngine.h"
+
 #include "core/MemoryInterface.h"
 #include "core/execution/ExecutionEngine.h"
 
@@ -50,7 +52,7 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 
 	// Acquire the CPU component
-	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleExecutionEngineEntry>("EE");
+	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleBlockJITTranslatorEntry>("BlockJITTranslator");
 	auto archentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
 
 	if(moduleentry == nullptr) {
@@ -60,7 +62,8 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 	auto arch = archentry->Get();
-	auto engine = moduleentry->Get();
+	auto translator = moduleentry->Get();
+	auto engine = new archsim::core::execution::BlockLLVMExecutionEngine(translator);
 	GetSystem().GetECM().AddEngine(engine);
 	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 	

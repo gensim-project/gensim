@@ -91,9 +91,8 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 	// function and feature vector
 	out_txln.Invalidate();
 	out_txln.SetFn(fn);
-	for(auto i : _read_feature_levels) {
-		out_txln.AddRequiredFeature(i, _initial_feature_levels.at(i));
-	}
+	
+	AttachFeaturesTo(out_txln);
 
 	timer.tick("compile");
 
@@ -158,6 +157,15 @@ archsim::ProcessorFeatureSet BaseBlockJITTranslate::GetProcessorFeatures() const
 
 	return features;
 }
+
+void BaseBlockJITTranslate::AttachFeaturesTo(archsim::blockjit::BlockTranslation& txln) const
+{
+	for(auto i : _read_feature_levels) {
+		txln.AddRequiredFeature(i, _initial_feature_levels.at(i));
+	}
+}
+
+
 
 void BaseBlockJITTranslate::InitialiseIsaMode(const archsim::core::thread::ThreadInstance* cpu)
 {
