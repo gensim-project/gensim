@@ -33,7 +33,7 @@ namespace captive
 				namespace x86
 				{
 
-					class X86LoweringContext : public LoweringContext
+					class X86LoweringContext : public MCLoweringContext
 					{
 					public:
 						typedef X86Encoder encoder_t;
@@ -60,7 +60,7 @@ namespace captive
 						{
 							return _stack_fixed;
 						}
-
+						
 						const archsim::core::thread::ThreadInstance *GetThread() { return thread_; }
 						
 						inline void load_state_field(const std::string &entry, const X86Register& reg)

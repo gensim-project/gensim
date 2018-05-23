@@ -26,19 +26,19 @@ namespace archsim
 {
 	namespace translate
 	{
-		namespace llvm
+		namespace translate_llvm
 		{
 			class LLVMMemoryManager;
 			class LLVMTranslation : public Translation
 			{
 			public:
-				typedef uint32_t (*translation_fn)(void *);
-
+				using translation_fn = captive::shared::block_txln_fn;
+				
 				LLVMTranslation(translation_fn fnp, LLVMMemoryManager *mem_mgr);
 				~LLVMTranslation();
 
-				uint32_t Execute(gensim::Processor& cpu);
-				void Install(jit_region_fn_table loc) override;
+				uint32_t Execute(archsim::core::thread::ThreadInstance* cpu);
+				void Install(translation_fn *location) override;
 				uint32_t GetCodeSize() const override;
 
 			private:

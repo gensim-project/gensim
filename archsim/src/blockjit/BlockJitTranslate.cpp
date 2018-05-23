@@ -23,6 +23,7 @@
 #include "abi/devices/MMU.h"
 #include "util/wutils/tick-timer.h"
 #include "blockjit/PerfMap.h"
+#include "blockjit/IRPrinter.h"
 
 #include <stdio.h>
 
@@ -53,7 +54,7 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 	// Initialise the translation context
 	_should_be_dumped = false;
 	
-	_decode_ctx = processor->GetEmulationModel().GetNewDecodeContext(*processor);
+	SetDecodeContext(processor->GetEmulationModel().GetNewDecodeContext(*processor));
 	
 	TranslationContext ctx;
 	captive::shared::IRBuilder builder;
@@ -91,9 +92,8 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 	// function and feature vector
 	out_txln.Invalidate();
 	out_txln.SetFn(fn);
-	for(auto i : _read_feature_levels) {
-		out_txln.AddRequiredFeature(i, _initial_feature_levels.at(i));
-	}
+	
+	AttachFeaturesTo(out_txln);
 
 	timer.tick("compile");
 
@@ -158,6 +158,15 @@ archsim::ProcessorFeatureSet BaseBlockJITTranslate::GetProcessorFeatures() const
 
 	return features;
 }
+
+void BaseBlockJITTranslate::AttachFeaturesTo(archsim::blockjit::BlockTranslation& txln) const
+{
+	for(auto i : _read_feature_levels) {
+		txln.AddRequiredFeature(i, _initial_feature_levels.at(i));
+	}
+}
+
+
 
 void BaseBlockJITTranslate::InitialiseIsaMode(const archsim::core::thread::ThreadInstance* cpu)
 {

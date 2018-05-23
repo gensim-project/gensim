@@ -58,6 +58,8 @@ bool ModuleManager::LoadModuleDirectory(const std::string& module_directory)
 			success &= LoadModule(module_directory + "/" + std::string(ent->d_name));
 		}
 	}
+	
+	closedir(dir);
 	return success;
 }
 

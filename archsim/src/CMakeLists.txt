@@ -7,7 +7,7 @@ archsim_add_sources(
 	session.cpp
 )
 
-archsim_add_sources(translate/jit_funs.cpp)
+
 
 ADD_SUBDIRECTORY(abi)
 ADD_SUBDIRECTORY(arch)
