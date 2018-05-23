@@ -38,7 +38,8 @@ namespace archsim {
 				void FlushAllTxlns();
 				void InvalidateRegion(Address addr);
 				
-			private:
+				gensim::blockjit::BaseBlockJITTranslate *GetTranslator() { return translator_; }
+				
 				ExecutionEngineThreadContext* GetNewContext(thread::ThreadInstance* thread) override;
 				ExecutionResult Execute(ExecutionEngineThreadContext* thread) override;
 
@@ -46,7 +47,7 @@ namespace archsim {
 				template<typename PC_t> void ExecuteInnerLoop(ExecutionEngineThreadContext *ctx, PC_t* pc_ptr);
 				
 				void checkFlushTxlns();
-				bool translateBlock(thread::ThreadInstance *thread, archsim::Address block_pc, bool support_chaining, bool support_profiling);
+				virtual bool translateBlock(thread::ThreadInstance *thread, archsim::Address block_pc, bool support_chaining, bool support_profiling);
 				
 				wulib::SimpleZoneMemAllocator mem_allocator_;
 				

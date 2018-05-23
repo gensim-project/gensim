@@ -18,7 +18,7 @@ using namespace captive::arch::jit::lowering;
 using namespace captive::arch::jit::lowering::x86;
 using namespace captive::shared;
 
-X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, const archsim::core::thread::ThreadInstance *thread, const archsim::util::vbitset &used_regs) : LoweringContext(stack_frame_size), _encoder(encoder), _stack_fixed(false), thread_(thread), used_phys_regs(used_regs)
+X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, const archsim::core::thread::ThreadInstance *thread, const archsim::util::vbitset &used_regs) : MCLoweringContext(stack_frame_size), _encoder(encoder), _stack_fixed(false), thread_(thread), used_phys_regs(used_regs)
 {
 	int i = 0;
 #define ASSIGN_REGS(x) assign(i++, x(8), x(4), x(2), x(1))
@@ -203,7 +203,7 @@ bool X86LoweringContext::PerformRelocations(const TranslationContext &ctx)
 	return true;
 }
 
-LoweringContext::offset_t X86LoweringContext::GetEncoderOffset()
+MCLoweringContext::offset_t X86LoweringContext::GetEncoderOffset()
 {
 	return GetEncoder().current_offset();
 }

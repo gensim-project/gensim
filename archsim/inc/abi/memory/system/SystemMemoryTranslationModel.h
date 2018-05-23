@@ -41,8 +41,8 @@ namespace archsim
 			public:
 				virtual bool Initialise(SystemMemoryModel &mem_model) = 0;
 
-				virtual bool EmitMemoryRead(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination) override = 0;
-				virtual bool EmitMemoryWrite(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value) override = 0;
+				virtual bool EmitMemoryRead(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination) override = 0;
+				virtual bool EmitMemoryWrite(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value) override = 0;
 
 				virtual void Flush() = 0;
 				virtual void Evict(virt_addr_t virt_addr) = 0;
@@ -56,10 +56,10 @@ namespace archsim
 
 				virtual bool Initialise(SystemMemoryModel &mem_model) override;
 
-				bool EmitMemoryRead(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination) override;
-				bool EmitMemoryWrite(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value) override;
+				bool EmitMemoryRead(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination) override;
+				bool EmitMemoryWrite(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value) override;
 
-				bool EmitPerformTranslation(archsim::translate::llvm::LLVMRegionTranslationContext& insn_ctx, llvm::Value *virt_address, llvm::Value *&phys_address, llvm::Value *&fault) override;
+				bool EmitPerformTranslation(archsim::translate::translate_llvm::LLVMRegionTranslationContext& insn_ctx, llvm::Value *virt_address, llvm::Value *&phys_address, llvm::Value *&fault) override;
 
 				void Flush() override;
 				void Evict(virt_addr_t virt_addr) override;
@@ -74,8 +74,8 @@ namespace archsim
 
 				virtual bool Initialise(SystemMemoryModel &mem_model) override;
 
-				bool EmitMemoryRead(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination) override;
-				bool EmitMemoryWrite(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value) override;
+				bool EmitMemoryRead(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination) override;
+				bool EmitMemoryWrite(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value) override;
 
 				void Flush() override;
 				void Evict(virt_addr_t virt_addr) override;
@@ -83,8 +83,8 @@ namespace archsim
 			private:
 				::llvm::Value *GetCpuInKernelMode(::llvm::IRBuilder<> builder, ::llvm::Value *cpu_state);
 
-				::llvm::Value *GetOrCreateMemReadFn(archsim::translate::llvm::LLVMTranslationContext &llvm_ctx, int width, bool sx);
-				::llvm::Value *GetOrCreateMemWriteFn(archsim::translate::llvm::LLVMTranslationContext &llvm_ctx, int width);
+				::llvm::Value *GetOrCreateMemReadFn(archsim::translate::translate_llvm::LLVMTranslationContext &llvm_ctx, int width, bool sx);
+				::llvm::Value *GetOrCreateMemWriteFn(archsim::translate::translate_llvm::LLVMTranslationContext &llvm_ctx, int width);
 
 			};
 
@@ -94,8 +94,8 @@ namespace archsim
 			public:
 				virtual bool Initialise(SystemMemoryModel &mem_model) override;
 
-				bool EmitMemoryRead(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination) override;
-				bool EmitMemoryWrite(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value) override;
+				bool EmitMemoryRead(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination) override;
+				bool EmitMemoryWrite(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value) override;
 
 				void Flush() override;
 				void Evict(virt_addr_t virt_addr) override;

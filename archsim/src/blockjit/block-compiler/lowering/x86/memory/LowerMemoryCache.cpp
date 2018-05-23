@@ -33,7 +33,7 @@ extern "C" {
 // Physical address (20 bits) + Flags (12 bits)
 // Data (64 bits)
 
-class LowerMemCacheReadFinaliser : public captive::arch::jit::lowering::Finalisation
+class LowerMemCacheReadFinaliser : public captive::arch::jit::lowering::X86Finalisation
 {
 public:
 	LowerMemCacheReadFinaliser(X86Encoder &encoder, uint32_t interface_id, uint32_t jump_in, uint32_t alignment_in, uint32_t return_target, uint32_t access_size, const X86Register &dest_reg) :
@@ -43,7 +43,7 @@ public:
 	}
 
 	virtual ~LowerMemCacheReadFinaliser() {}
-	bool Finalise(captive::arch::jit::lowering::LoweringContext &ctx)
+	bool FinaliseX86(captive::arch::jit::lowering::x86::X86LoweringContext &ctx)
 	{
 
 		// First, fill in the relocation from the memory instruction
@@ -124,7 +124,7 @@ private:
 	const X86Register &destination_;
 };
 
-class LowerMemCacheWriteFinaliser : public captive::arch::jit::lowering::Finalisation
+class LowerMemCacheWriteFinaliser : public captive::arch::jit::lowering::X86Finalisation
 {
 public:
 	LowerMemCacheWriteFinaliser(X86Encoder &encoder, uint32_t interface_id, uint32_t jump_in, uint32_t alignment_in, uint32_t return_target, uint32_t access_size, const X86Register &data) :
@@ -140,7 +140,7 @@ public:
 	}
 
 	virtual ~LowerMemCacheWriteFinaliser() {}
-	bool Finalise(captive::arch::jit::lowering::LoweringContext &ctx)
+	bool FinaliseX86(captive::arch::jit::lowering::x86::X86LoweringContext &ctx)
 	{
 
 		// First, fill in the relocation from the memory instruction

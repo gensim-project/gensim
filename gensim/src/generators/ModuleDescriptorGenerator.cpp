@@ -39,6 +39,9 @@ bool ModuleDescriptorGenerator::Generate() const
 			case ModuleEntryType::ArchDescriptor:
 				stream << "archsim::module::ModuleArchDescriptorEntry(\"" << entry.GetEntryName() << "\", ARCHSIM_ARCHDESCRIPTORFACTORY(" << entry.GetClassName() << "));";
 				break;
+			case ModuleEntryType::BlockJITTranslator:
+				stream << "archsim::module::ModuleBlockJITTranslatorEntry(\"" << entry.GetEntryName() << "\", ARCHSIM_BLOCKJITTRANSLATEFACTORY(" << entry.GetClassName() << "));";
+				break;
 			default:
 				UNIMPLEMENTED;
 		}

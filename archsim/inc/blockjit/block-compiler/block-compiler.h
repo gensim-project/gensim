@@ -66,7 +66,6 @@ namespace captive
 
 				bool build_cfg(block_list_t& blocks, cfg_t& succs, cfg_t& preds, block_list_t& exits);
 				bool post_allocate_peephole();
-				bool lower(uint32_t max_stack, analyses::HostRegLivenessData &host_liveness);
 
 
 			public:

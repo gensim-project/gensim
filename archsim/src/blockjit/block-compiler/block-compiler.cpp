@@ -4,6 +4,7 @@
 #include "blockjit/ir-sorter.h"
 #include "blockjit/IRInstruction.h"
 #include "blockjit/IROperand.h"
+#include "blockjit/IRPrinter.h"
 
 #include <algorithm>
 #include <set>
