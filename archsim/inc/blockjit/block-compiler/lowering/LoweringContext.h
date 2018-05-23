@@ -36,8 +36,8 @@ namespace captive
 					LoweringContext(uint32_t stack_frame_size);
 					virtual ~LoweringContext();
 
-					virtual bool Prepare(const TranslationContext &ctx, BlockCompiler &compiler) = 0;
-					bool PrepareLowerers(const TranslationContext &ctx, BlockCompiler &compiler);
+					virtual bool Prepare(const TranslationContext &ctx) = 0;
+					bool PrepareLowerers(const TranslationContext &ctx);
 
 					bool Lower(const TranslationContext &ctx);
 

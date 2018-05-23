@@ -48,7 +48,7 @@ namespace captive
 
 						virtual offset_t GetEncoderOffset() override;
 
-						virtual bool Prepare(const TranslationContext &ctx, BlockCompiler &compiler) override;
+						virtual bool Prepare(const TranslationContext &ctx) override;
 
 						typedef std::map<const X86Register*, uint32_t> stack_map_t;
 
@@ -89,7 +89,6 @@ namespace captive
 							regs.b8 = &r8;
 						}
 
-						
 						inline const X86Register &get_allocable_register(int index, int size) const
 						{
 							auto &regs = register_assignments.at(index);

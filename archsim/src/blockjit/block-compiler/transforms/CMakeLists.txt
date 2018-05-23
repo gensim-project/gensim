@@ -14,4 +14,5 @@ archsim_add_sources(
 	Transform.cpp
 	ValueRenumberingTransform.cpp
 	RegisterAllocationTransform.cpp
+	StackToRegTransform.cpp
 )

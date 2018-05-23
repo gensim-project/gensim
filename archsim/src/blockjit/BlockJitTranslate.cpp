@@ -13,6 +13,7 @@
 #include "blockjit/BlockJitTranslate.h"
 #include "blockjit/BlockProfile.h"
 #include "blockjit/block-compiler/block-compiler.h"
+#include "blockjit/block-compiler/lowering/NativeLowering.h"
 #include "blockjit/translation-context.h"
 
 #include "translate/jit_funs.h"
@@ -445,36 +446,42 @@ bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *pr
 bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, captive::shared::block_txln_fn &fn, wulib::MemAllocator &allocator)
 {
 	BlockCompiler compiler (ctx, block_address.Get(), allocator, false, true);
-	compiler.set_cpu(cpu);
 
 	bool dump = (archsim::options::Debug) || _should_be_dumped;
 
-	size_t size = compiler.compile(fn, dump);
+	auto result = compiler.compile(dump);
 
+	if(!result.Success) {
+		return false;
+	}
+	
+	auto lowering = captive::arch::jit::lowering::NativeLowering(ctx, allocator, cpu, result);
+	fn = lowering.Function;
+	
 	if(dump) {
 		std::ostringstream str;
 		str << "blkjit-" << std::hex << block_address.Get() << ".bin";
 		FILE *outfile = fopen(str.str().c_str(), "w");
-		fwrite((void*)fn, size, 1, outfile);
+		fwrite((void*)fn, lowering.Size, 1, outfile);
 		fclose(outfile);
 
-		str.str("");
-		str << "blkjit-" << std::hex << block_address.Get() << ".txt";
-		outfile = fopen(str.str().c_str(), "w");
-		str.str("");
-		compiler.dump_ir(str);
-		std::string ir_str = str.str();
-		fwrite(ir_str.c_str(), ir_str.length(), 1, outfile);
-		fclose(outfile);
+//		str.str("");
+//		str << "blkjit-" << std::hex << block_address.Get() << ".txt";
+//		outfile = fopen(str.str().c_str(), "w");
+//		str.str("");
+//		compiler.dump_ir(str);
+//		std::string ir_str = str.str();
+//		fwrite(ir_str.c_str(), ir_str.length(), 1, outfile);
+//		fclose(outfile);
 	}
 
 
 	PerfMap &pmap = PerfMap::Singleton;
 	if(pmap.Enabled()) {
 		pmap.Acquire();
-		pmap.Stream() << std::hex << (size_t)fn << " " << size << " JIT_" << std::hex << block_address.Get() << std::endl;
+		pmap.Stream() << std::hex << (size_t)fn << " " << lowering.Size << " JIT_" << std::hex << block_address.Get() << std::endl;
 		pmap.Release();
 	}
 
-	return size != 0;
+	return lowering.Size != 0;
 }

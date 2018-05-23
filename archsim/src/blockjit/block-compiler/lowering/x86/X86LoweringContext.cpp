@@ -37,7 +37,6 @@ X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &enc
 
 X86LoweringContext::~X86LoweringContext()
 {
-
 }
 
 
@@ -48,7 +47,7 @@ X86LoweringContext::~X86LoweringContext()
 
 NOPInstructionLowerer Singleton_LowerNop;
 
-bool X86LoweringContext::Prepare(const TranslationContext &ctx, BlockCompiler &compiler)
+bool X86LoweringContext::Prepare(const TranslationContext &ctx)
 {
 	using captive::shared::IRInstruction;
 
@@ -166,7 +165,7 @@ bool X86LoweringContext::Prepare(const TranslationContext &ctx, BlockCompiler &c
 	}
 #undef A
 
-	PrepareLowerers(ctx, compiler);
+	PrepareLowerers(ctx);
 
 	return true;
 }
@@ -185,7 +184,7 @@ bool X86LoweringContext::LowerHeader(const TranslationContext &ctx)
 		max_stack = (max_stack & ~15) + 16;
 	}
 
-	if(max_stack) GetEncoder().sub(max_stack, REG_RSP);	
+	if(max_stack) GetEncoder().sub(max_stack, REG_RSP);
 
 	return true;
 }

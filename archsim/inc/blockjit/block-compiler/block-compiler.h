@@ -33,26 +33,24 @@ namespace captive
 	{
 		namespace jit
 		{
+			class CompileResult {
+			public:
+				CompileResult(bool Success) : Success(Success), UsedPhysRegs(0) {}
+				CompileResult(bool Success, uint32_t StackFrameSize, const archsim::util::vbitset &bitset) : Success(Success), StackFrameSize(StackFrameSize), UsedPhysRegs(bitset) {}
+				
+				bool Success;
+				archsim::util::vbitset UsedPhysRegs;
+				uint32_t StackFrameSize;
+			};
+			
 			class BlockCompiler
 			{
 			public:
 				BlockCompiler(TranslationContext& ctx, uint32_t pa, wulib::MemAllocator &allocator, bool emit_interrupt_check = false, bool emit_chaining_logic = false);
-				size_t compile(shared::block_txln_fn& fn, bool dump_intermediates = false);
-
-				void dump_ir(std::ostringstream &ostr);
-				void dump_ir();
+				CompileResult compile(bool dump_intermediates = false);
 
 				bool emit_interrupt_check;
 				bool emit_chaining_logic;
-
-				void set_cpu(archsim::core::thread::ThreadInstance *cpu)
-				{
-					_cpu = cpu;
-				}
-				const archsim::core::thread::ThreadInstance *get_cpu()
-				{
-					return _cpu;
-				}
 
 				uint32_t GetBlockPA() const
 				{
@@ -61,21 +59,14 @@ namespace captive
 			private:
 				wulib::MemAllocator &_allocator;
 				TranslationContext& ctx;
-				captive::arch::jit::lowering::x86::X86Encoder encoder;
-				archsim::core::thread::ThreadInstance *_cpu;
 				uint32_t pa;
-
-
-//				PopulatedSet<BLKJIT_NUM_ALLOCABLE> used_phys_regs;
 
 				typedef std::map<shared::IRBlockId, std::vector<shared::IRBlockId>> cfg_t;
 				typedef std::vector<shared::IRBlockId> block_list_t;
 
-				bool analyse(uint32_t& max_stack);
 				bool build_cfg(block_list_t& blocks, cfg_t& succs, cfg_t& preds, block_list_t& exits);
 				bool post_allocate_peephole();
 				bool lower(uint32_t max_stack, analyses::HostRegLivenessData &host_liveness);
-				bool lower_stack_to_reg(archsim::util::vbitset &used_phys_regs);
 
 
 			public:

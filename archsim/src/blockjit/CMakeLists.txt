@@ -5,13 +5,7 @@ archsim_add_sources(
 	blockjit-funs.cpp
 	PerfMap.cpp
 	BlockCache.cpp
+	BlockJitTranslate.cpp
 )
 
-IF(ARCHSIM_SIMULATION_HOST STREQUAL "x86_64")
-	ADD_SUBDIRECTORY(block-compiler)
-
-	archsim_add_sources(
-		BlockJitTranslate.cpp
-		blockjit-shunts.S
-	)
-ENDIF()
+ADD_SUBDIRECTORY(block-compiler)
