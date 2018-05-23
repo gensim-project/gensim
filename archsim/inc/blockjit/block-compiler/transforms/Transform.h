@@ -46,6 +46,19 @@ namespace captive
 					archsim::util::vbitset used_phys_regs_;
 				};
 				
+				class StackToRegTransform : public Transform
+				{
+				public:
+					StackToRegTransform(archsim::util::vbitset used_phys_regs);
+					virtual ~StackToRegTransform();
+					
+					virtual bool Apply(TranslationContext &ctx) override;
+					archsim::util::vbitset GetUsedPhysRegs() const;
+					
+				private:
+					archsim::util::vbitset used_phys_regs_;
+				};
+				
 				class ReorderBlocksTransform : public Transform
 				{
 				public:

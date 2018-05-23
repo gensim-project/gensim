@@ -34,16 +34,10 @@ namespace captive
 					virtual bool TxlnStart(captive::arch::jit::BlockCompiler *compiler, captive::arch::jit::TranslationContext *ctx);
 					virtual bool Lower(const captive::shared::IRInstruction *&insn) = 0;
 
-					void SetContexts(LoweringContext &lctx, const TranslationContext &txctx, BlockCompiler &compiler)
+					void SetContexts(LoweringContext &lctx, const TranslationContext &txctx)
 					{
 						_lctx = &lctx;
 						_txctx = &txctx;
-						_compiler = &compiler;
-					}
-
-					BlockCompiler& GetCompiler()
-					{
-						return *_compiler;
 					}
 
 				protected:
@@ -60,7 +54,6 @@ namespace captive
 				private:
 					LoweringContext *_lctx;
 					const TranslationContext *_txctx;
-					BlockCompiler *_compiler;
 				};
 
 				class NOPInstructionLowerer : public InstructionLowerer

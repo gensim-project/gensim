@@ -37,6 +37,9 @@ archsim_add_sources(
 
 	X86Encoder.cpp
 	X86LoweringContext.cpp
+	NativeLowering.cpp
+
+	blockjit-shunts.S
 )
 
 ADD_SUBDIRECTORY(fp)

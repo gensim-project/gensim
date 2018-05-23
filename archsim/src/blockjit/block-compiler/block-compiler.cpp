@@ -67,213 +67,65 @@ BlockCompiler::BlockCompiler(TranslationContext& ctx, uint32_t pa, wulib::MemAll
 	  pa(pa),
 	  emit_interrupt_check(emit_interrupt_check),
 	  emit_chaining_logic(emit_chaining_logic),
-	  encoder(allocator),
 	  _allocator(allocator)
 {
 
 }
 
-size_t BlockCompiler::compile(block_txln_fn& fn, bool dump_intermediates)
+CompileResult BlockCompiler::compile(bool dump_intermediates)
 {
 	uint32_t max_stack = 0;
 
-	tick_timer timer(0, stderr);
-
 	transforms::SortIRTransform sorter;
-	if(dump_intermediates) {
-		std::ostringstream str;
-		str << "blkjit-preopt-" << std::hex << this->pa << ".txt";
-		std::ofstream of (str.str());
-		str.str("");
-		dump_ir(str);
-		of << str.str();
-		of.close();
-	}
 
-	timer.reset();
 	transforms::ReorderBlocksTransform reorder;
 	if (!reorder.Apply(ctx)) return false;
-	timer.tick("Reorder");
 
 	transforms::ThreadJumpsTransform threadjumps;
 	if (!threadjumps.Apply(ctx)) return false;
-	timer.tick("JT");
-
-	if(dump_intermediates) {
-		std::ostringstream str;
-		str << "blkjit-reorder-jt-" << std::hex << this->pa << ".txt";
-		std::ofstream of (str.str());
-		str.str("");
-		dump_ir(str);
-		of << str.str();
-		of.close();
-	}
 
 	transforms::DeadBlockEliminationTransform dbe;
 	if (!dbe.Apply(ctx)) return false;
-	timer.tick("DBE");
-
-	if(dump_intermediates) {
-		std::ostringstream str;
-		str << "blkjit-reorder-jt-dbe-" << std::hex << this->pa << ".txt";
-		std::ofstream of (str.str());
-		str.str("");
-		dump_ir(str);
-		of << str.str();
-		of.close();
-	}
 
 	transforms::MergeBlocksTransform mergeblocks;
 	if (!mergeblocks.Apply(ctx)) return false;
-	timer.tick("MB");
-
-	if(dump_intermediates) {
-		std::ostringstream str;
-		str << "blkjit-o0-" << std::hex << this->pa << ".txt";
-		std::ofstream of (str.str());
-		str.str("");
-		dump_ir(str);
-		of << str.str();
-		of.close();
-	}
 
 	transforms::ConstantPropTransform cpt;
 	if (!cpt.Apply(ctx)) return false;
-	timer.tick("Cprop");
-
-	if(dump_intermediates) {
-		std::ostringstream str;
-		str << "blkjit-o1-" << std::hex << this->pa << ".txt";
-		std::ofstream of (str.str());
-		str.str("");
-		dump_ir(str);
-		of << str.str();
-		of.close();
-	}
 
 	transforms::PeepholeTransform peephole;
 	if (!peephole.Apply(ctx)) return false;
-	timer.tick("Peep");
-
-	if(dump_intermediates) {
-		std::ostringstream str;
-		str << "blkjit-o2-" << std::hex << this->pa << ".txt";
-		std::ofstream of (str.str());
-		str.str("");
-		dump_ir(str);
-		of << str.str();
-		of.close();
-	}
-
-//	if (!value_merging()) return false;
-	timer.tick("VM");
-
-	if(dump_intermediates) {
-		std::ostringstream str;
-		str << "blkjit-o3-" << std::hex << this->pa << ".txt";
-		std::ofstream of (str.str());
-		str.str("");
-		dump_ir(str);
-		of << str.str();
-		of.close();
-	}
 
 	sorter.Apply(ctx);
 	transforms::RegValueReuseTransform rvr;
 //	if(!rvr.Apply(ctx)) return false;
-	timer.tick("RVR");
 
 	transforms::RegStoreEliminationTransform rse;
 	if(!rse.Apply(ctx)) return false;
-	timer.tick("RSE");
-
-	if(dump_intermediates) {
-		std::ostringstream str;
-		str << "blkjit-o4-" << std::hex << this->pa << ".txt";
-		std::ofstream of (str.str());
-		str.str("");
-		dump_ir(str);
-		of << str.str();
-		of.close();
-	}
 
 	if (!sorter.Apply(ctx)) return false;
-	timer.tick("Sort");
 
 	transforms::ValueRenumberingTransform vrt;
 	if(!vrt.Apply(ctx)) return false;
 
-	timer.tick("VRT");
-
 	transforms::RegisterAllocationTransform reg_alloc(BLKJIT_NUM_ALLOCABLE);
 	if(!reg_alloc.Apply(ctx)) return false;
 
-	if(dump_intermediates) {
-		std::ostringstream str;
-		str << "blkjit-o5-" << std::hex << this->pa << ".txt";
-		std::ofstream of (str.str());
-		str.str("");
-		dump_ir(str);
-		of << str.str();
-		of.close();
-	}
-
-	timer.tick("Analyse");
 	if( !post_allocate_peephole()) return false;
-	timer.tick("PAP");
 
 	transforms::PostAllocatePeephole pap;
 	if(!pap.Apply(ctx)) return false;
 	
-	auto used_phys_regs = reg_alloc.GetUsedPhysRegs();
-
-	if( !lower_stack_to_reg(used_phys_regs)) return false;
-	timer.tick("LSTR");
-
-	if(dump_intermediates) {
-		std::ostringstream str;
-		str << "blkjit-o6-" << std::hex << this->pa << ".txt";
-		std::ofstream of (str.str());
-		str.str("");
-		dump_ir(str);
-		of << str.str();
-		of.close();
-	}
-
+	transforms::StackToRegTransform str (reg_alloc.GetUsedPhysRegs());
+	if(!str.Apply(ctx)) return false;
+	
 	sorter.Apply(ctx);
 	transforms::Peephole2Transform p2;
 	if(!p2.Apply(ctx)) return false;
 
-	if(dump_intermediates) {
-		std::ostringstream str;
-		str << "blkjit-o7-" << std::hex << this->pa << ".txt";
-		std::ofstream of (str.str());
-		str.str("");
-		dump_ir(str);
-		of << str.str();
-		of.close();
-	}
-
 	sorter.Apply(ctx);
 
-
-	lowering::x86::X86LoweringContext lowering(reg_alloc.GetStackFrameSize(), encoder, get_cpu(), used_phys_regs);
-	lowering.Prepare(ctx, *this);
-
-	
-	if(!lowering.Lower(ctx)) {
-		LC_ERROR(LogBlockJit) << "Failed to lower block";
-		return false;
-	}
-
-	timer.tick("Lower");
-
-	timer.dump("blockcompiler ");
-
-	fn = (block_txln_fn)encoder.get_buffer();
-	fn = (block_txln_fn)_allocator.Reallocate(encoder.get_buffer(), encoder.get_buffer_size());
-
-	return encoder.get_buffer_size();
+	return CompileResult(true, reg_alloc.GetStackFrameSize(), str.GetUsedPhysRegs());
 }
 
 static void make_instruction_nop(IRInstruction *insn, bool set_block)
@@ -411,11 +263,6 @@ exit:
 	return true;
 }
 
-bool BlockCompiler::analyse(uint32_t& max_stack)
-{
-	return true;
-}
-
 bool BlockCompiler::build_cfg(block_list_t& blocks, cfg_t& succs, cfg_t& preds, block_list_t& exits)
 {
 	IRBlockId current_block_id = INVALID_BLOCK_ID;
@@ -466,104 +313,6 @@ bool BlockCompiler::build_cfg(block_list_t& blocks, cfg_t& succs, cfg_t& preds, 
 
 			default:
 				continue;
-		}
-	}
-
-	return true;
-}
-
-
-
-static void dump_insn(IRInstruction *insn, std::ostringstream &str)
-{
-	assert(insn->type < captive::shared::num_descriptors);
-	const struct insn_descriptor *descr = &insn_descriptors[insn->type];
-
-	str << " " << std::left << std::setw(12) << std::setfill(' ') << descr->mnemonic;
-
-	for (int op_idx = 0; op_idx < 6; op_idx++) {
-		IROperand *oper = &insn->operands[op_idx];
-
-		if (descr->format[op_idx] != 'X') {
-			if (descr->format[op_idx] == 'M' && !oper->is_valid()) continue;
-
-			if (op_idx > 0) str << ", ";
-
-			if (oper->is_vreg()) {
-				char alloc_char = oper->alloc_mode == IROperand::NOT_ALLOCATED ? 'N' : (oper->alloc_mode == IROperand::ALLOCATED_REG ? 'R' : (oper->alloc_mode == IROperand::ALLOCATED_STACK ? 'S' : '?'));
-				str << "i" << (uint32_t)oper->size << " r" << std::dec << oper->value << "(" << alloc_char << oper->alloc_data << ")";
-			} else if (oper->is_constant()) {
-				str << "i" << (uint32_t)oper->size << " $0x" << std::hex << oper->value;
-			} else if (oper->is_pc()) {
-				str << "i4 pc (" << std::hex << oper->value << ")";
-			} else if (oper->is_block()) {
-				str << "b" << std::dec << oper->value;
-			} else if (oper->is_func()) {
-				str << "&" << std::hex << oper->value;
-			} else {
-				str << "<invalid>";
-			}
-		}
-	}
-}
-
-void BlockCompiler::dump_ir(std::ostringstream &ostr)
-{
-	IRBlockId current_block_id = INVALID_BLOCK_ID;
-
-	for (uint32_t ir_idx = 0; ir_idx < ctx.count(); ir_idx++) {
-		IRInstruction *insn = ctx.at(ir_idx);
-
-		if (current_block_id != insn->ir_block) {
-			current_block_id = insn->ir_block;
-			ostr << "block " << std::hex << current_block_id << ":\n";
-		}
-
-		dump_insn(insn, ostr);
-
-		ostr << std::endl;
-	}
-}
-
-void BlockCompiler::dump_ir()
-{
-	std::ostringstream str;
-	dump_ir(str);
-	std::cout << str.str();
-}
-
-
-bool BlockCompiler::lower_stack_to_reg(archsim::util::vbitset &used_phys_regs)
-{
-	std::map<uint32_t, uint32_t> lowered_entries;
-	archsim::util::vbitset avail_phys_regs = used_phys_regs;
-	avail_phys_regs.invert();
-
-	for(unsigned int ir_idx = 0; ir_idx < ctx.count(); ++ir_idx) {
-		IRInstruction *insn = ctx.at(ir_idx);
-
-		// Don't need to do any clever allocation here since the stack entries should already be re-used
-
-		for(unsigned int op_idx = 0; op_idx < 6; ++op_idx) {
-			IROperand &op = insn->operands[op_idx];
-			if(!op.is_valid()) break;
-
-			if(op.is_alloc_stack()) {
-				int32_t selected_reg;
-				if(!lowered_entries.count(op.alloc_data)) {
-					if(avail_phys_regs.all_clear()) continue;
-
-					selected_reg = avail_phys_regs.get_lowest_set();
-					avail_phys_regs.set(selected_reg, 0);
-					assert(selected_reg != -1);
-					lowered_entries[op.alloc_data] = selected_reg;
-					used_phys_regs.set(selected_reg, 1);
-
-				} else {
-					selected_reg = lowered_entries[op.alloc_data];
-				}
-				op.allocate(IROperand::ALLOCATED_REG, selected_reg);
-			}
 		}
 	}
 

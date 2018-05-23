@@ -87,7 +87,7 @@ bool LowerAdcFlags::Lower(const captive::shared::IRInstruction *&insn)
 	}
 
 	// LOL HAX XXX
-	const archsim::core::thread::ThreadInstance *cpu = GetCompiler().get_cpu();
+	const archsim::core::thread::ThreadInstance *cpu = GetLoweringContext().GetThread();
 	uint32_t c_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C").GetOffset();
 	uint32_t v_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V").GetOffset();
 	uint32_t z_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z").GetOffset();

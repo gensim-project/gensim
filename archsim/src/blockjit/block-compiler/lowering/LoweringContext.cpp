@@ -27,9 +27,9 @@ LoweringContext::~LoweringContext()
 
 }
 
-bool LoweringContext::PrepareLowerers(const TranslationContext &tctx, BlockCompiler &compiler)
+bool LoweringContext::PrepareLowerers(const TranslationContext &tctx)
 {
-	for(auto i : _lowerers) if(i) i->SetContexts(*this, tctx, compiler);
+	for(auto i : _lowerers) if(i) i->SetContexts(*this, tctx);
 	return true;
 }
 
