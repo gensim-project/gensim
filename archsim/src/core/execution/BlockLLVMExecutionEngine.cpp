@@ -26,7 +26,11 @@ BlockJITLLVMMemoryManager::BlockJITLLVMMemoryManager(wulib::MemAllocator& alloca
 
 uint8_t* BlockJITLLVMMemoryManager::allocateCodeSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, llvm::StringRef SectionName)
 {
-	return (uint8_t*)allocator_.Allocate(Size);
+	auto section = (uint8_t*)allocator_.Allocate(Size);
+	
+	outstanding_code_sections_.push_back({section, Size});
+	
+	return section;
 }
 
 uint8_t* BlockJITLLVMMemoryManager::allocateDataSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, llvm::StringRef SectionName, bool IsReadOnly)
@@ -36,6 +40,11 @@ uint8_t* BlockJITLLVMMemoryManager::allocateDataSection(uintptr_t Size, unsigned
 
 bool BlockJITLLVMMemoryManager::finalizeMemory(std::string* ErrMsg)
 {
+	for(auto i : outstanding_code_sections_) {
+		__builtin___clear_cache(i.first, i.first + i.second);
+	}
+	outstanding_code_sections_.clear();
+	
 	return true;
 }
 
