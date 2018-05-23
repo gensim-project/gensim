@@ -40,6 +40,9 @@ namespace archsim {
 				bool finalizeMemory(std::string* ErrMsg) override;
 			private:
 				wulib::MemAllocator &allocator_;
+				
+				std::vector<std::pair<uint8_t*, uintptr_t>> outstanding_code_sections_;
+				
 			};
 			
 			class BlockLLVMExecutionEngine : public BlockJITExecutionEngine {
