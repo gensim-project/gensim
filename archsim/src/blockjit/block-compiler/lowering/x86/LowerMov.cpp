@@ -21,33 +21,33 @@ bool LowerMov::Lower(const captive::shared::IRInstruction *&insn)
 	if (source->type == IROperand::VREG) {
 		// mov vreg -> vreg
 		if (source->is_alloc_reg()) {
-			auto& src_reg = GetCompiler().register_from_operand(source);
+			auto& src_reg = GetLoweringContext().register_from_operand(source);
 
 			if (dest->is_alloc_reg()) {
 				// mov reg -> reg
 
 				if (source->alloc_data != dest->alloc_data) {
-					Encoder().mov(src_reg, GetCompiler().register_from_operand(dest));
+					Encoder().mov(src_reg, GetLoweringContext().register_from_operand(dest));
 				}
 			} else if (dest->is_alloc_stack()) {
 				// mov reg -> stack
-				Encoder().mov(src_reg, GetCompiler().stack_from_operand(dest));
+				Encoder().mov(src_reg, GetLoweringContext().stack_from_operand(dest));
 			} else {
 				assert(false);
 			}
 		} else if (source->is_alloc_stack()) {
-			const arch::x86::X86Memory src_mem = GetCompiler().stack_from_operand(source);
+			const X86Memory src_mem = GetLoweringContext().stack_from_operand(source);
 
 			if (dest->is_alloc_reg()) {
 				// mov stack -> reg
-				Encoder().mov(src_mem, GetCompiler().register_from_operand(dest));
+				Encoder().mov(src_mem, GetLoweringContext().register_from_operand(dest));
 			} else if (dest->is_alloc_stack()) {
 				// mov stack -> stack
 
 				if (source->alloc_data != dest->alloc_data) {
-					auto& tmp = GetCompiler().get_temp(0, source->size);
+					auto& tmp = GetLoweringContext().get_temp(0, source->size);
 					Encoder().mov(src_mem, tmp);
-					Encoder().mov(tmp, GetCompiler().stack_from_operand(dest));
+					Encoder().mov(tmp, GetLoweringContext().stack_from_operand(dest));
 				}
 			} else {
 				assert(false);
@@ -62,30 +62,30 @@ bool LowerMov::Lower(const captive::shared::IRInstruction *&insn)
 			// mov imm -> reg
 
 			if (source->value == 0) {
-				Encoder().xorr(GetCompiler().register_from_operand(dest), GetCompiler().register_from_operand(dest));
+				Encoder().xorr(GetLoweringContext().register_from_operand(dest), GetLoweringContext().register_from_operand(dest));
 			} else {
-				Encoder().mov(source->value, GetCompiler().register_from_operand(dest));
+				Encoder().mov(source->value, GetLoweringContext().register_from_operand(dest));
 			}
 		} else if (dest->is_alloc_stack()) {
 			if(source->value == 0) {
-				auto temp_reg = GetCompiler().get_temp(0, dest->size);
+				auto temp_reg = GetLoweringContext().get_temp(0, dest->size);
 				Encoder().xorr(temp_reg, temp_reg);
-				Encoder().mov(temp_reg, GetCompiler().stack_from_operand(dest));
+				Encoder().mov(temp_reg, GetLoweringContext().stack_from_operand(dest));
 			} else {
 				// mov imm -> stack
 				switch (dest->size) {
 					case 1:
-						Encoder().mov1(source->value, GetCompiler().stack_from_operand(dest));
+						Encoder().mov1(source->value, GetLoweringContext().stack_from_operand(dest));
 						break;
 					case 2:
-						Encoder().mov2(source->value, GetCompiler().stack_from_operand(dest));
+						Encoder().mov2(source->value, GetLoweringContext().stack_from_operand(dest));
 						break;
 					case 4:
-						Encoder().mov4(source->value, GetCompiler().stack_from_operand(dest));
+						Encoder().mov4(source->value, GetLoweringContext().stack_from_operand(dest));
 						break;
 					case 8:
 						Encoder().mov(source->value, BLKJIT_TEMPS_0(8));
-						Encoder().mov(BLKJIT_TEMPS_0(8), GetCompiler().stack_from_operand(dest));
+						Encoder().mov(BLKJIT_TEMPS_0(8), GetLoweringContext().stack_from_operand(dest));
 						break;
 					default:
 						assert(false);

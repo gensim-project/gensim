@@ -3,13 +3,12 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 #include "util/LogContext.h"
 
 UseLogContext(LogBlockJit)
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerVSubI::Lower(const captive::shared::IRInstruction*& insn)
@@ -25,16 +24,16 @@ bool LowerVSubI::Lower(const captive::shared::IRInstruction*& insn)
 
 	//TODO: make stack based accesses more efficient (movq from memory)
 	if(lhs.is_alloc_reg())
-		Encoder().movq(GetCompiler().register_from_operand(&lhs), BLKJIT_FP_1);
+		Encoder().movq(GetLoweringContext().register_from_operand(&lhs), BLKJIT_FP_1);
 	else {
-		Encoder().mov(GetCompiler().stack_from_operand(&lhs), BLKJIT_TEMPS_1(lhs.size));
+		Encoder().mov(GetLoweringContext().stack_from_operand(&lhs), BLKJIT_TEMPS_1(lhs.size));
 		Encoder().movq(BLKJIT_TEMPS_0(lhs.size), BLKJIT_FP_1);
 	}
 
 	if(rhs.is_alloc_reg())
-		Encoder().movq(GetCompiler().register_from_operand(&rhs), BLKJIT_FP_0);
+		Encoder().movq(GetLoweringContext().register_from_operand(&rhs), BLKJIT_FP_0);
 	else {
-		Encoder().mov(GetCompiler().stack_from_operand(&rhs), BLKJIT_TEMPS_0(rhs.size));
+		Encoder().mov(GetLoweringContext().stack_from_operand(&rhs), BLKJIT_TEMPS_0(rhs.size));
 		Encoder().movq(BLKJIT_TEMPS_0(lhs.size), BLKJIT_FP_0);
 	}
 
@@ -52,10 +51,10 @@ bool LowerVSubI::Lower(const captive::shared::IRInstruction*& insn)
 	}
 
 	if(dest.is_alloc_reg())
-		Encoder().movq(BLKJIT_FP_1, GetCompiler().register_from_operand(&dest));
+		Encoder().movq(BLKJIT_FP_1, GetLoweringContext().register_from_operand(&dest));
 	else  {
 		Encoder().movq(BLKJIT_FP_1, BLKJIT_TEMPS_0(dest.size));
-		Encoder().mov(BLKJIT_TEMPS_0(dest.size), GetCompiler().stack_from_operand(&dest));
+		Encoder().mov(BLKJIT_TEMPS_0(dest.size), GetLoweringContext().stack_from_operand(&dest));
 	}
 
 	insn++;

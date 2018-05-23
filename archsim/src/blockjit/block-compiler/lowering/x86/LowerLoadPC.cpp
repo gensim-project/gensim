@@ -9,10 +9,9 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerLoadPC::Lower(const captive::shared::IRInstruction *&insn)
@@ -21,15 +20,15 @@ bool LowerLoadPC::Lower(const captive::shared::IRInstruction *&insn)
 
 	assert(target->is_vreg());
 
-	const auto *cpu = GetCompiler().get_cpu();
+	const auto *cpu = GetLoweringContext().GetThread();
 	uint32_t pc_offset = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC").GetOffset();
 
 	if (target->is_alloc_reg()) {
 		// TODO: FIXME: XXX: HACK HACK HACK
-		Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, pc_offset), GetCompiler().register_from_operand(target));
+		Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, pc_offset), GetLoweringContext().register_from_operand(target));
 	} else if(target->is_alloc_stack()) {
 		Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, pc_offset), BLKJIT_TEMPS_0(4));
-		Encoder().mov(BLKJIT_TEMPS_0(4), GetCompiler().stack_from_operand(target));
+		Encoder().mov(BLKJIT_TEMPS_0(4), GetLoweringContext().stack_from_operand(target));
 	}
 
 	insn++;

@@ -1,5 +1,4 @@
 archsim_add_sources(
-	encode.cpp 
 	ir-sorter.cpp
 	translation-context.cpp
 	BlockProfile.cpp

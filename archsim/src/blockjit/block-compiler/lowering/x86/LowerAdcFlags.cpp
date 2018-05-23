@@ -10,10 +10,9 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerAdcFlags::Lower(const captive::shared::IRInstruction *&insn)
@@ -22,7 +21,7 @@ bool LowerAdcFlags::Lower(const captive::shared::IRInstruction *&insn)
 	const IROperand *rhs = &insn->operands[1];
 	const IROperand *carry_in = &insn->operands[2];
 
-	auto& tmp = GetCompiler().get_temp(0, 4);
+	auto& tmp = GetLoweringContext().get_temp(0, 4);
 
 	bool just_do_an_add = false;
 
@@ -35,11 +34,11 @@ bool LowerAdcFlags::Lower(const captive::shared::IRInstruction *&insn)
 		}
 	} else if (carry_in->is_vreg()) {
 		if (carry_in->is_alloc_reg()) {
-			Encoder().mov(0xff, GetCompiler().get_temp(0, 1));
-			Encoder().add(GetCompiler().register_from_operand(carry_in, 1), GetCompiler().get_temp(0, 1));
+			Encoder().mov(0xff, GetLoweringContext().get_temp(0, 1));
+			Encoder().add(GetLoweringContext().register_from_operand(carry_in, 1), GetLoweringContext().get_temp(0, 1));
 		} else {
-			Encoder().mov(0xff, GetCompiler().get_temp(0, 1));
-			Encoder().add(GetCompiler().stack_from_operand(carry_in), GetCompiler().get_temp(0, 1));
+			Encoder().mov(0xff, GetLoweringContext().get_temp(0, 1));
+			Encoder().add(GetLoweringContext().stack_from_operand(carry_in), GetLoweringContext().get_temp(0, 1));
 		}
 	} else {
 		assert(false);
@@ -50,9 +49,9 @@ bool LowerAdcFlags::Lower(const captive::shared::IRInstruction *&insn)
 		Encoder().mov(lhs->value, tmp);
 	} else if (lhs->is_vreg()) {
 		if (lhs->is_alloc_reg()) {
-			Encoder().mov(GetCompiler().register_from_operand(lhs, 4), tmp);
+			Encoder().mov(GetLoweringContext().register_from_operand(lhs, 4), tmp);
 		} else if (lhs->is_alloc_stack()) {
-			Encoder().mov(GetCompiler().stack_from_operand(lhs), tmp);
+			Encoder().mov(GetLoweringContext().stack_from_operand(lhs), tmp);
 		} else {
 			assert(false);
 		}
@@ -70,15 +69,15 @@ bool LowerAdcFlags::Lower(const captive::shared::IRInstruction *&insn)
 	} else if (rhs->is_vreg()) {
 		if (rhs->is_alloc_reg()) {
 			if (just_do_an_add) {
-				Encoder().add(GetCompiler().register_from_operand(rhs, 4), tmp);
+				Encoder().add(GetLoweringContext().register_from_operand(rhs, 4), tmp);
 			} else {
-				Encoder().adc(GetCompiler().register_from_operand(rhs, 4), tmp);
+				Encoder().adc(GetLoweringContext().register_from_operand(rhs, 4), tmp);
 			}
 		} else if (rhs->is_alloc_stack()) {
 			if (just_do_an_add) {
-				Encoder().add(GetCompiler().stack_from_operand(rhs), tmp);
+				Encoder().add(GetLoweringContext().stack_from_operand(rhs), tmp);
 			} else {
-				Encoder().adc(GetCompiler().stack_from_operand(rhs), tmp);
+				Encoder().adc(GetLoweringContext().stack_from_operand(rhs), tmp);
 			}
 		} else {
 			assert(false);

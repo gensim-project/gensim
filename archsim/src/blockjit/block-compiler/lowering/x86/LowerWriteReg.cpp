@@ -10,10 +10,9 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerWriteReg::Lower(const captive::shared::IRInstruction *&insn)
@@ -42,10 +41,10 @@ bool LowerWriteReg::Lower(const captive::shared::IRInstruction *&insn)
 			}
 		} else if (value->is_vreg()) {
 			if (value->is_alloc_reg()) {
-				Encoder().mov(GetCompiler().register_from_operand(value), X86Memory::get(BLKJIT_REGSTATE_REG, offset->value));
+				Encoder().mov(GetLoweringContext().register_from_operand(value), X86Memory::get(BLKJIT_REGSTATE_REG, offset->value));
 			} else if (value->is_alloc_stack()) {
-				auto& tmp = GetCompiler().get_temp(0, value->size);
-				Encoder().mov(GetCompiler().stack_from_operand(value), tmp);
+				auto& tmp = GetLoweringContext().get_temp(0, value->size);
+				Encoder().mov(GetLoweringContext().stack_from_operand(value), tmp);
 				Encoder().mov(tmp, X86Memory::get(BLKJIT_REGSTATE_REG, offset->value));
 			} else {
 				CANTLOWER;
@@ -57,10 +56,10 @@ bool LowerWriteReg::Lower(const captive::shared::IRInstruction *&insn)
 		if(value->is_constant()) {
 			CANTLOWER;
 		} else if(value->is_vreg()) {
-			auto &tmp_value = GetCompiler().get_temp(0, value->size);
-			auto &tmp_offset = GetCompiler().get_temp(1, offset->size);
+			auto &tmp_value = GetLoweringContext().get_temp(0, value->size);
+			auto &tmp_offset = GetLoweringContext().get_temp(1, offset->size);
 			if(offset->is_alloc_reg()) {
-				Encoder().mov(GetCompiler().register_from_operand(offset), tmp_offset);
+				Encoder().mov(GetLoweringContext().register_from_operand(offset), tmp_offset);
 			} else {
 				CANTLOWER;
 			}

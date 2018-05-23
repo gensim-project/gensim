@@ -10,13 +10,12 @@
 #include "blockjit/block-compiler/lowering/Finalisation.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 #include "translate/jit_funs.h"
 
 #include "abi/memory/system/CacheBasedSystemMemoryModel.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 extern "C" {
@@ -257,22 +256,22 @@ bool LowerReadMemCache::Lower(const captive::shared::IRInstruction *&insn)
 
 
 	// We can have the situation where dest is not allocated because the intervening register write has been eliminated
-	const auto &dest_reg = dest->is_allocated() && !dest->is_alloc_stack() ? GetCompiler().register_from_operand(dest) : GetCompiler().get_temp(0, dest->size);
+	const auto &dest_reg = dest->is_allocated() && !dest->is_alloc_stack() ? GetLoweringContext().register_from_operand(dest) : GetLoweringContext().get_temp(0, dest->size);
 
 	if(disp->value != 0) {
 		if(offset->is_alloc_reg()) {
-			Encoder().lea(X86Memory::get(GetCompiler().register_from_operand(offset, 4), disp->value), BLKJIT_ARG1(4));
+			Encoder().lea(X86Memory::get(GetLoweringContext().register_from_operand(offset, 4), disp->value), BLKJIT_ARG1(4));
 		} else if(offset->is_alloc_stack()) {
-			Encoder().mov(GetCompiler().stack_from_operand(offset), BLKJIT_ARG1(4));
+			Encoder().mov(GetLoweringContext().stack_from_operand(offset), BLKJIT_ARG1(4));
 			Encoder().add(disp->value, BLKJIT_ARG1(4));
 		} else {
 			assert(false);
 		}
 	} else {
 		if(offset->is_alloc_reg())
-			Encoder().mov(GetCompiler().register_from_operand(offset, 4), BLKJIT_ARG1(4));
+			Encoder().mov(GetLoweringContext().register_from_operand(offset, 4), BLKJIT_ARG1(4));
 		else
-			Encoder().mov(GetCompiler().stack_from_operand(offset), BLKJIT_ARG1(4));
+			Encoder().mov(GetLoweringContext().stack_from_operand(offset), BLKJIT_ARG1(4));
 	}
 
 	// Back up address
@@ -312,7 +311,7 @@ bool LowerReadMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	mask <<= 12;
 	Encoder().andd(mask, BLKJIT_ARG1(4));
 	Encoder().shr(8, BLKJIT_ARG1(4));
-	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetCompiler().get_cpu()->GetStateBlock().GetBlockOffset("smm_read_cache")), BLKJIT_ARG1(8));
+	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetLoweringContext().GetThread()->GetStateBlock().GetBlockOffset("smm_read_cache")), BLKJIT_ARG1(8));
 
 	// Check the tag
 	Encoder().andd(~archsim::translate::profile::RegionArch::PageMask, BLKJIT_ARG2(4));
@@ -335,7 +334,7 @@ bool LowerReadMemCache::Lower(const captive::shared::IRInstruction *&insn)
 			// Otherwise, load via a temporary register
 			Encoder().mov(X86Memory::get(BLKJIT_RETURN(8)), dest_reg);
 			GetLoweringContext().RegisterFinalisation(new LowerMemCacheReadFinaliser(Encoder(), interface_id, fallback_offset, alignment_offset, Encoder().current_offset(), dest->size, dest_reg));
-			Encoder().mov(dest_reg, GetCompiler().stack_from_operand(dest));
+			Encoder().mov(dest_reg, GetLoweringContext().stack_from_operand(dest));
 		} else {
 			assert(false);
 		}
@@ -364,12 +363,12 @@ bool LowerWriteMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	//State register will be dealt with by the shunt
 
 	if(offset->is_alloc_reg()) {
-		Encoder().mov(GetCompiler().get_allocable_register(offset->alloc_data, 4), BLKJIT_ARG0(4));
+		Encoder().mov(GetLoweringContext().get_allocable_register(offset->alloc_data, 4), BLKJIT_ARG0(4));
 	} else if(offset->is_alloc_stack()) {
-		Encoder().mov(GetCompiler().stack_from_operand(offset), BLKJIT_ARG0(4));
+		Encoder().mov(GetLoweringContext().stack_from_operand(offset), BLKJIT_ARG0(4));
 	}
 	if(disp->is_alloc_reg()) {
-		Encoder().add(GetCompiler().get_allocable_register(disp->alloc_data, 4), BLKJIT_ARG0(4));
+		Encoder().add(GetLoweringContext().get_allocable_register(disp->alloc_data, 4), BLKJIT_ARG0(4));
 	} else if(disp->is_constant()) {
 		if(disp->value != 0)
 			Encoder().add(disp->value, BLKJIT_ARG0(4));
@@ -413,7 +412,7 @@ bool LowerWriteMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	mask <<= 12;
 	Encoder().andd(mask, BLKJIT_ARG0(4));
 	Encoder().shr(8, BLKJIT_ARG0(4));
-	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetCompiler().get_cpu()->GetStateBlock().GetBlockOffset("smm_write_cache")), BLKJIT_ARG0(8));
+	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetLoweringContext().GetThread()->GetStateBlock().GetBlockOffset("smm_write_cache")), BLKJIT_ARG0(8));
 
 	// Check the tag
 	Encoder().andd(~archsim::translate::profile::RegionArch::PageMask, BLKJIT_ARG2(4));
@@ -431,12 +430,12 @@ bool LowerWriteMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	// perform memory access
 	assert(value->is_vreg());
 	if(value->is_alloc_reg()) {
-		Encoder().mov(GetCompiler().get_allocable_register(value->alloc_data, value->size), X86Memory::get(BLKJIT_ARG1(8)));
-		GetLoweringContext().RegisterFinalisation(new LowerMemCacheWriteFinaliser(Encoder(), interface_id, fallback_offset, alignment_offset, Encoder().current_offset(), value->size, GetCompiler().get_allocable_register(value->alloc_data, value->size)));
+		Encoder().mov(GetLoweringContext().get_allocable_register(value->alloc_data, value->size), X86Memory::get(BLKJIT_ARG1(8)));
+		GetLoweringContext().RegisterFinalisation(new LowerMemCacheWriteFinaliser(Encoder(), interface_id, fallback_offset, alignment_offset, Encoder().current_offset(), value->size, GetLoweringContext().get_allocable_register(value->alloc_data, value->size)));
 	} else if(value->is_alloc_stack()) {
-		Encoder().mov(GetCompiler().stack_from_operand(value), BLKJIT_ARG0(value->size));
+		Encoder().mov(GetLoweringContext().stack_from_operand(value), BLKJIT_ARG0(value->size));
 		Encoder().mov(BLKJIT_ARG0(value->size), X86Memory::get(BLKJIT_ARG1(8)));
-		GetLoweringContext().RegisterFinalisation(new LowerMemCacheWriteFinaliser(Encoder(), interface_id, fallback_offset, alignment_offset, Encoder().current_offset(), value->size, GetCompiler().stack_from_operand(value)));
+		GetLoweringContext().RegisterFinalisation(new LowerMemCacheWriteFinaliser(Encoder(), interface_id, fallback_offset, alignment_offset, Encoder().current_offset(), value->size, GetLoweringContext().stack_from_operand(value)));
 	}
 
 	insn++;

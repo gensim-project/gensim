@@ -27,11 +27,11 @@ bool LowerCMov::Lower(const captive::shared::IRInstruction *&insn)
 	if(yes->is_constant()) {
 		Encoder().mov(yes->value, BLKJIT_TEMPS_0(yes->size));
 	} else {
-		yes_reg = &GetCompiler().register_from_operand(yes);
+		yes_reg = &GetLoweringContext().register_from_operand(yes);
 	}
 
-	Encoder().test(GetCompiler().register_from_operand(predicate), GetCompiler().register_from_operand(predicate));
-	Encoder().cmovne(*yes_reg, GetCompiler().register_from_operand(no));
+	Encoder().test(GetLoweringContext().register_from_operand(predicate), GetLoweringContext().register_from_operand(predicate));
+	Encoder().cmovne(*yes_reg, GetLoweringContext().register_from_operand(no));
 
 	insn++;
 	return true;

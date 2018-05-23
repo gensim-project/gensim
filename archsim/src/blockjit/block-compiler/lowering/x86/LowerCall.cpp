@@ -10,10 +10,9 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
@@ -27,10 +26,10 @@ bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
 		if (prev_insn->type == IRInstruction::CALL && insn->count_operands() == prev_insn->count_operands()) {
 			// Don't save the state, because the previous instruction was a call and it is already saved.
 		} else {
-			GetCompiler().emit_save_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
+			GetLoweringContext().emit_save_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
 		}
 	} else {
-		GetCompiler().emit_save_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
+		GetLoweringContext().emit_save_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
 	}
 
 	//emit_save_reg_state();
@@ -39,11 +38,11 @@ bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
 	const X86Register *sysv_abi[] = { &REG_RDI, &REG_RSI, &REG_RDX, &REG_RCX, &REG_R8, &REG_R9 };
 
 	// CPU State
-	GetCompiler().load_state_field("thread_ptr", *sysv_abi[0]);
+	GetLoweringContext().load_state_field("thread_ptr", *sysv_abi[0]);
 
 	for (int i = 1; i < 6; i++) {
 		if (insn->operands[i].type != IROperand::NONE) {
-			GetCompiler().encode_operand_function_argument(&insn->operands[i], *sysv_abi[i], GetStackMap());
+			GetLoweringContext().encode_operand_function_argument(&insn->operands[i], *sysv_abi[i], GetStackMap());
 		}
 	}
 
@@ -55,10 +54,10 @@ bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
 		if (next_insn->type == IRInstruction::CALL && insn->count_operands() == next_insn->count_operands()) {
 			// Don't restore the state, because the next instruction is a call and it will use it.
 		} else {
-			GetCompiler().emit_restore_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
+			GetLoweringContext().emit_restore_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
 		}
 	} else {
-		GetCompiler().emit_restore_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
+		GetLoweringContext().emit_restore_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
 	}
 
 

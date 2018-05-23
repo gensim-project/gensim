@@ -10,10 +10,9 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerBitwise::Lower(const captive::shared::IRInstruction *&insn)
@@ -27,18 +26,18 @@ bool LowerBitwise::Lower(const captive::shared::IRInstruction *&insn)
 			switch (insn->type) {
 				case IRInstruction::AND:
 					if (source->alloc_data != dest->alloc_data) {
-						Encoder().andd(GetCompiler().register_from_operand(source), GetCompiler().register_from_operand(dest));
+						Encoder().andd(GetLoweringContext().register_from_operand(source), GetLoweringContext().register_from_operand(dest));
 					}
 
 					break;
 				case IRInstruction::OR:
 					if (source->alloc_data != dest->alloc_data) {
-						Encoder().orr(GetCompiler().register_from_operand(source), GetCompiler().register_from_operand(dest));
+						Encoder().orr(GetLoweringContext().register_from_operand(source), GetLoweringContext().register_from_operand(dest));
 					}
 
 					break;
 				case IRInstruction::XOR:
-					Encoder().xorr(GetCompiler().register_from_operand(source), GetCompiler().register_from_operand(dest));
+					Encoder().xorr(GetLoweringContext().register_from_operand(source), GetLoweringContext().register_from_operand(dest));
 					break;
 				default:
 					assert(false);
@@ -48,13 +47,13 @@ bool LowerBitwise::Lower(const captive::shared::IRInstruction *&insn)
 			// OPER stack -> reg
 			switch (insn->type) {
 				case IRInstruction::AND:
-					Encoder().andd(GetCompiler().stack_from_operand(source), GetCompiler().register_from_operand(dest));
+					Encoder().andd(GetLoweringContext().stack_from_operand(source), GetLoweringContext().register_from_operand(dest));
 					break;
 				case IRInstruction::OR:
-					Encoder().orr(GetCompiler().stack_from_operand(source), GetCompiler().register_from_operand(dest));
+					Encoder().orr(GetLoweringContext().stack_from_operand(source), GetLoweringContext().register_from_operand(dest));
 					break;
 				case IRInstruction::XOR:
-					Encoder().xorr(GetCompiler().stack_from_operand(source), GetCompiler().register_from_operand(dest));
+					Encoder().xorr(GetLoweringContext().stack_from_operand(source), GetLoweringContext().register_from_operand(dest));
 					break;
 				default:
 					assert(false);
@@ -64,13 +63,13 @@ bool LowerBitwise::Lower(const captive::shared::IRInstruction *&insn)
 			// OPER reg -> stack
 			switch (insn->type) {
 				case IRInstruction::AND:
-					Encoder().andd(GetCompiler().register_from_operand(source), GetCompiler().stack_from_operand(dest));
+					Encoder().andd(GetLoweringContext().register_from_operand(source), GetLoweringContext().stack_from_operand(dest));
 					break;
 				case IRInstruction::OR:
-					Encoder().orr(GetCompiler().register_from_operand(source), GetCompiler().stack_from_operand(dest));
+					Encoder().orr(GetLoweringContext().register_from_operand(source), GetLoweringContext().stack_from_operand(dest));
 					break;
 				case IRInstruction::XOR:
-					Encoder().xorr(GetCompiler().register_from_operand(source), GetCompiler().stack_from_operand(dest));
+					Encoder().xorr(GetLoweringContext().register_from_operand(source), GetLoweringContext().stack_from_operand(dest));
 					break;
 				default:
 					assert(false);
@@ -78,17 +77,17 @@ bool LowerBitwise::Lower(const captive::shared::IRInstruction *&insn)
 			}
 		} else if (source->is_alloc_stack() && dest->is_alloc_stack()) {
 			// OPER stack -> stack
-			const X86Register &temp = GetCompiler().get_temp(0, source->size);
-			Encoder().mov(GetCompiler().stack_from_operand(source), temp);
+			const X86Register &temp = GetLoweringContext().get_temp(0, source->size);
+			Encoder().mov(GetLoweringContext().stack_from_operand(source), temp);
 			switch (insn->type) {
 				case IRInstruction::AND:
-					Encoder().andd(temp, GetCompiler().stack_from_operand(dest));
+					Encoder().andd(temp, GetLoweringContext().stack_from_operand(dest));
 					break;
 				case IRInstruction::OR:
-					Encoder().orr(temp, GetCompiler().stack_from_operand(dest));
+					Encoder().orr(temp, GetLoweringContext().stack_from_operand(dest));
 					break;
 				case IRInstruction::XOR:
-					Encoder().xorr(temp, GetCompiler().stack_from_operand(dest));
+					Encoder().xorr(temp, GetLoweringContext().stack_from_operand(dest));
 					break;
 				default:
 					assert(false);
@@ -102,18 +101,18 @@ bool LowerBitwise::Lower(const captive::shared::IRInstruction *&insn)
 			// OPER const -> reg
 
 			if (source->size == 8) {
-				auto& tmp = GetCompiler().get_temp(0, 8);
+				auto& tmp = GetLoweringContext().get_temp(0, 8);
 				Encoder().mov(source->value, tmp);
 
 				switch (insn->type) {
 					case IRInstruction::AND:
-						Encoder().andd(tmp, GetCompiler().register_from_operand(dest));
+						Encoder().andd(tmp, GetLoweringContext().register_from_operand(dest));
 						break;
 					case IRInstruction::OR:
-						Encoder().orr(tmp, GetCompiler().register_from_operand(dest));
+						Encoder().orr(tmp, GetLoweringContext().register_from_operand(dest));
 						break;
 					case IRInstruction::XOR:
-						Encoder().xorr(tmp, GetCompiler().register_from_operand(dest));
+						Encoder().xorr(tmp, GetLoweringContext().register_from_operand(dest));
 						break;
 					default:
 						assert(false);
@@ -122,13 +121,13 @@ bool LowerBitwise::Lower(const captive::shared::IRInstruction *&insn)
 			} else {
 				switch (insn->type) {
 					case IRInstruction::AND:
-						Encoder().andd(source->value, GetCompiler().register_from_operand(dest));
+						Encoder().andd(source->value, GetLoweringContext().register_from_operand(dest));
 						break;
 					case IRInstruction::OR:
-						Encoder().orr(source->value, GetCompiler().register_from_operand(dest));
+						Encoder().orr(source->value, GetLoweringContext().register_from_operand(dest));
 						break;
 					case IRInstruction::XOR:
-						Encoder().xorr(source->value, GetCompiler().register_from_operand(dest));
+						Encoder().xorr(source->value, GetLoweringContext().register_from_operand(dest));
 						break;
 					default:
 						assert(false);
@@ -141,13 +140,13 @@ bool LowerBitwise::Lower(const captive::shared::IRInstruction *&insn)
 			if(source->size < 8) {
 				switch (insn->type) {
 					case IRInstruction::AND:
-						Encoder().andd(source->value, dest->size, GetCompiler().stack_from_operand(dest));
+						Encoder().andd(source->value, dest->size, GetLoweringContext().stack_from_operand(dest));
 						break;
 					case IRInstruction::OR:
-						Encoder().orr(source->value, dest->size, GetCompiler().stack_from_operand(dest));
+						Encoder().orr(source->value, dest->size, GetLoweringContext().stack_from_operand(dest));
 						break;
 					case IRInstruction::XOR:
-						Encoder().xorr(source->value, dest->size, GetCompiler().stack_from_operand(dest));
+						Encoder().xorr(source->value, dest->size, GetLoweringContext().stack_from_operand(dest));
 						break;
 					default:
 						assert(false);
@@ -157,13 +156,13 @@ bool LowerBitwise::Lower(const captive::shared::IRInstruction *&insn)
 				Encoder().mov(source->value, BLKJIT_TEMPS_0(8));
 				switch(insn->type) {
 					case IRInstruction::AND:
-						Encoder().andd(BLKJIT_TEMPS_0(8), GetCompiler().stack_from_operand(dest));
+						Encoder().andd(BLKJIT_TEMPS_0(8), GetLoweringContext().stack_from_operand(dest));
 						break;
 					case IRInstruction::OR:
-						Encoder().orr(BLKJIT_TEMPS_0(8), GetCompiler().stack_from_operand(dest));
+						Encoder().orr(BLKJIT_TEMPS_0(8), GetLoweringContext().stack_from_operand(dest));
 						break;
 					case IRInstruction::XOR:
-						Encoder().xorr(BLKJIT_TEMPS_0(8), GetCompiler().stack_from_operand(dest));
+						Encoder().xorr(BLKJIT_TEMPS_0(8), GetLoweringContext().stack_from_operand(dest));
 						break;
 					default:
 						assert(false);

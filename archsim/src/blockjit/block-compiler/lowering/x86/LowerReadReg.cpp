@@ -10,10 +10,9 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 // This is complicated - register reads are frequent, so we want to emit them as efficiently as possible.
@@ -87,7 +86,7 @@ bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 						if(modify_source->is_constant()) {
 							Encoder().add(modify_source->value, modify_source->size, X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
 						} else if(modify_source->is_vreg()) {
-							Encoder().add(GetCompiler().register_from_operand(modify_source), X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
+							Encoder().add(GetLoweringContext().register_from_operand(modify_source), X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
 						} else {
 							assert(false);
 						}
@@ -97,7 +96,7 @@ bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 						if(modify_source->is_constant()) {
 							Encoder().sub(modify_source->value, modify_source->size, X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
 						} else if(modify_source->is_vreg()) {
-							Encoder().sub(GetCompiler().register_from_operand(modify_source), X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
+							Encoder().sub(GetLoweringContext().register_from_operand(modify_source), X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
 						} else {
 							assert(false);
 						}
@@ -107,7 +106,7 @@ bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 						if(modify_source->is_constant()) {
 							Encoder().orr(modify_source->value, modify_source->size, X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
 						} else if(modify_source->is_vreg()) {
-							Encoder().orr(GetCompiler().register_from_operand(modify_source), X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
+							Encoder().orr(GetLoweringContext().register_from_operand(modify_source), X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
 						} else {
 							assert(false);
 						}
@@ -117,7 +116,7 @@ bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 						if(modify_source->is_constant()) {
 							Encoder().andd(modify_source->value, modify_source->size, X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
 						} else if(modify_source->is_vreg()) {
-							Encoder().andd(GetCompiler().register_from_operand(modify_source), X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
+							Encoder().andd(GetLoweringContext().register_from_operand(modify_source), X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
 						} else {
 							assert(false);
 						}
@@ -127,7 +126,7 @@ bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 						if(modify_source->is_constant()) {
 							Encoder().xorr(modify_source->value, modify_source->size, X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
 						} else if(modify_source->is_vreg()) {
-							Encoder().xorr(GetCompiler().register_from_operand(modify_source), X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
+							Encoder().xorr(GetLoweringContext().register_from_operand(modify_source), X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset));
 						} else {
 							assert(false);
 						}
@@ -197,7 +196,7 @@ bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 
 					// If the killer DOES kill the instruction, then we DO NOT need the move
 					if(!kills_value) {
-						Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset), GetCompiler().register_from_operand(store_source));
+						Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, reg_offset), GetLoweringContext().register_from_operand(store_source));
 					}
 					return true;
 				}
@@ -209,20 +208,20 @@ bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 	if (offset->is_constant()) {
 		// Load a constant offset guest register into the storage location
 		if (target->is_alloc_reg()) {
-			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, offset->value), GetCompiler().register_from_operand(target));
+			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, offset->value), GetLoweringContext().register_from_operand(target));
 		} else if (target->is_alloc_stack()) {
-			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, offset->value), GetCompiler().get_temp(0, target->size));
-			Encoder().mov(GetCompiler().get_temp(0, target->size), GetCompiler().stack_from_operand(target));
+			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, offset->value), GetLoweringContext().get_temp(0, target->size));
+			Encoder().mov(GetLoweringContext().get_temp(0, target->size), GetLoweringContext().stack_from_operand(target));
 		} else {
 			assert(false);
 		}
 	} else if (offset->is_alloc_reg()) {
 		// Load a constant offset guest register into the storage location
 		if (target->is_alloc_reg()) {
-			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, GetCompiler().register_from_operand(offset), 1), GetCompiler().register_from_operand(target));
+			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, GetLoweringContext().register_from_operand(offset), 1), GetLoweringContext().register_from_operand(target));
 		} else if (target->is_alloc_stack()) {
-			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, GetCompiler().register_from_operand(offset), 1), GetCompiler().get_temp(0, target->size));
-			Encoder().mov(GetCompiler().get_temp(0, target->size), GetCompiler().stack_from_operand(target));
+			Encoder().mov(X86Memory::get(BLKJIT_REGSTATE_REG, GetLoweringContext().register_from_operand(offset), 1), GetLoweringContext().get_temp(0, target->size));
+			Encoder().mov(GetLoweringContext().get_temp(0, target->size), GetLoweringContext().stack_from_operand(target));
 		} else {
 			assert(false);
 		}

@@ -1,109 +1,115 @@
-#include "blockjit/encode.h"
+#include "blockjit/block-compiler/lowering/x86/X86Encoder.h"
 
-using namespace captive::arch::x86;
+using namespace captive::arch::jit::lowering::x86;
 
 namespace captive
 {
 	namespace arch
 	{
-		namespace x86
+		namespace jit 
 		{
-			namespace raw_regs
+			namespace lowering 
 			{
-				const X86Register REG_RAX("rax", 8, 0), REG_EAX("eax", 4, 0), REG_AX("ax", 2, 0), REG_AL("al", 1, 0), REG_AH("ah", 1, 4);
-				const X86Register REG_RCX("rcx", 8, 1), REG_ECX("ecx", 4, 1), REG_CX("cx", 2, 1), REG_CL("cl", 1, 1), REG_CH("ch", 1, 5);
-				const X86Register REG_RDX("rdx", 8, 2), REG_EDX("edx", 4, 2), REG_DX("dx", 2, 2), REG_DL("dl", 1, 2), REG_DH("dh", 1, 6);
-				const X86Register REG_RBX("rbx", 8, 3), REG_EBX("ebx", 4, 3), REG_BX("bx", 2, 3), REG_BL("bl", 1, 3), REG_BH("bh", 1, 7);
-				const X86Register REG_RSP("rsp", 8, 4), REG_ESP("esp", 4, 4), REG_SP("sp", 2, 4), REG_SPL("spl", 1, 4, false, true);
-				const X86Register REG_RBP("rbp", 8, 5), REG_EBP("ebp", 4, 5), REG_BP("bp", 2, 5), REG_BPL("bpl", 1, 5, false, true);
-				const X86Register REG_RSI("rsi", 8, 6), REG_ESI("esi", 4, 6), REG_SI("si", 2, 6), REG_SIL("sil", 1, 6, false, true);
-				const X86Register REG_RDI("rdi", 8, 7), REG_EDI("edi", 4, 7), REG_DI("di", 2, 7), REG_DIL("dil", 1, 7, false, true);
+				namespace x86
+				{
+					namespace raw_regs
+					{
+						const X86Register REG_RAX("rax", 8, 0), REG_EAX("eax", 4, 0), REG_AX("ax", 2, 0), REG_AL("al", 1, 0), REG_AH("ah", 1, 4);
+						const X86Register REG_RCX("rcx", 8, 1), REG_ECX("ecx", 4, 1), REG_CX("cx", 2, 1), REG_CL("cl", 1, 1), REG_CH("ch", 1, 5);
+						const X86Register REG_RDX("rdx", 8, 2), REG_EDX("edx", 4, 2), REG_DX("dx", 2, 2), REG_DL("dl", 1, 2), REG_DH("dh", 1, 6);
+						const X86Register REG_RBX("rbx", 8, 3), REG_EBX("ebx", 4, 3), REG_BX("bx", 2, 3), REG_BL("bl", 1, 3), REG_BH("bh", 1, 7);
+						const X86Register REG_RSP("rsp", 8, 4), REG_ESP("esp", 4, 4), REG_SP("sp", 2, 4), REG_SPL("spl", 1, 4, false, true);
+						const X86Register REG_RBP("rbp", 8, 5), REG_EBP("ebp", 4, 5), REG_BP("bp", 2, 5), REG_BPL("bpl", 1, 5, false, true);
+						const X86Register REG_RSI("rsi", 8, 6), REG_ESI("esi", 4, 6), REG_SI("si", 2, 6), REG_SIL("sil", 1, 6, false, true);
+						const X86Register REG_RDI("rdi", 8, 7), REG_EDI("edi", 4, 7), REG_DI("di", 2, 7), REG_DIL("dil", 1, 7, false, true);
 
-				const X86Register REG_R8("r8", 8, 0, true), REG_R8D("r8d", 4, 0, true), REG_R8W("r8w", 2, 0, true), REG_R8B("r8b", 1, 0, true);
-				const X86Register REG_R9("r9", 8, 1, true), REG_R9D("r9d", 4, 1, true), REG_R9W("r9w", 2, 1, true), REG_R9B("r9b", 1, 1, true);
-				const X86Register REG_R10("r10", 8, 2, true), REG_R10D("r10d", 4, 2, true), REG_R10W("r10w", 2, 2, true), REG_R10B("r10b", 1, 2, true);
-				const X86Register REG_R11("r11", 8, 3, true), REG_R11D("r11d", 4, 3, true), REG_R11W("r11w", 2, 3, true), REG_R11B("r11b", 1, 3, true);
-				const X86Register REG_R12("r12", 8, 4, true), REG_R12D("r12d", 4, 4, true), REG_R12W("r12w", 2, 4, true), REG_R12B("r12b", 1, 4, true);
-				const X86Register REG_R13("r13", 8, 5, true), REG_R13D("r13d", 4, 5, true), REG_R13W("r13w", 2, 5, true), REG_R13B("r13b", 1, 5, true);
-				const X86Register REG_R14("r14", 8, 6, true), REG_R14D("r14d", 4, 6, true), REG_R14W("r14w", 2, 6, true), REG_R14B("r14b", 1, 6, true);
-				const X86Register REG_R15("r15", 8, 7, true), REG_R15D("r15d", 4, 7, true), REG_R15W("r15w", 2, 7, true), REG_R15B("r15b", 1, 7, true);
+						const X86Register REG_R8("r8", 8, 0, true), REG_R8D("r8d", 4, 0, true), REG_R8W("r8w", 2, 0, true), REG_R8B("r8b", 1, 0, true);
+						const X86Register REG_R9("r9", 8, 1, true), REG_R9D("r9d", 4, 1, true), REG_R9W("r9w", 2, 1, true), REG_R9B("r9b", 1, 1, true);
+						const X86Register REG_R10("r10", 8, 2, true), REG_R10D("r10d", 4, 2, true), REG_R10W("r10w", 2, 2, true), REG_R10B("r10b", 1, 2, true);
+						const X86Register REG_R11("r11", 8, 3, true), REG_R11D("r11d", 4, 3, true), REG_R11W("r11w", 2, 3, true), REG_R11B("r11b", 1, 3, true);
+						const X86Register REG_R12("r12", 8, 4, true), REG_R12D("r12d", 4, 4, true), REG_R12W("r12w", 2, 4, true), REG_R12B("r12b", 1, 4, true);
+						const X86Register REG_R13("r13", 8, 5, true), REG_R13D("r13d", 4, 5, true), REG_R13W("r13w", 2, 5, true), REG_R13B("r13b", 1, 5, true);
+						const X86Register REG_R14("r14", 8, 6, true), REG_R14D("r14d", 4, 6, true), REG_R14W("r14w", 2, 6, true), REG_R14B("r14b", 1, 6, true);
+						const X86Register REG_R15("r15", 8, 7, true), REG_R15D("r15d", 4, 7, true), REG_R15W("r15w", 2, 7, true), REG_R15B("r15b", 1, 7, true);
 
-				const X86Register REG_RIZ("riz", 0, 8);
-				const X86Register REG_RIP("rip", 0, 9);
+						const X86Register REG_RIZ("riz", 0, 8);
+						const X86Register REG_RIP("rip", 0, 9);
+					}
+
+					const X86Register &REG_RAX (raw_regs::REG_RAX);
+					const X86Register &REG_EAX (raw_regs::REG_EAX);
+					const X86Register &REG_AX (raw_regs::REG_AX);
+					const X86Register &REG_AL (raw_regs::REG_AL);
+
+					const X86Register &REG_RBX (raw_regs::REG_RBX);
+					const X86Register &REG_EBX (raw_regs::REG_EBX);
+					const X86Register &REG_BX (raw_regs::REG_BX);
+					const X86Register &REG_BL (raw_regs::REG_BL);
+
+					const X86Register &REG_RCX (raw_regs::REG_RCX);
+					const X86Register &REG_ECX (raw_regs::REG_ECX);
+					const X86Register &REG_CX (raw_regs::REG_CX);
+					const X86Register &REG_CL (raw_regs::REG_CL);
+
+					const X86Register &REG_RDX (raw_regs::REG_RDX);
+					const X86Register &REG_EDX (raw_regs::REG_EDX);
+					const X86Register &REG_DX (raw_regs::REG_DX);
+					const X86Register &REG_DL (raw_regs::REG_DL);
+
+					const X86Register &REG_RSP (raw_regs::REG_RSP);
+					const X86Register &REG_ESP (raw_regs::REG_ESP);
+					const X86Register &REG_SP (raw_regs::REG_SP);
+					const X86Register &REG_SPL (raw_regs::REG_SPL);
+
+					const X86Register &REG_RBP (raw_regs::REG_RBP);
+					const X86Register &REG_EBP (raw_regs::REG_EBP);
+					const X86Register &REG_BP (raw_regs::REG_BP);
+					const X86Register &REG_BPL (raw_regs::REG_BPL);
+
+					const X86Register &REG_RSI (raw_regs::REG_RSI);
+					const X86Register &REG_ESI (raw_regs::REG_ESI);
+					const X86Register &REG_SI (raw_regs::REG_SI);
+					const X86Register &REG_SIL (raw_regs::REG_SIL);
+
+					const X86Register &REG_RDI (raw_regs::REG_RDI);
+					const X86Register &REG_EDI (raw_regs::REG_EDI);
+					const X86Register &REG_DI (raw_regs::REG_DI);
+					const X86Register &REG_DIL (raw_regs::REG_DIL);
+
+		#define DEFINE_REGS(x) const X86Register &REG_R##x(raw_regs::REG_R##x), &REG_R##x##D(raw_regs::REG_R##x##D), &REG_R##x##W(raw_regs::REG_R##x##W), &REG_R##x##B(raw_regs::REG_R##x##B)
+
+					DEFINE_REGS(8);
+					DEFINE_REGS(9);
+					DEFINE_REGS(10);
+					DEFINE_REGS(11);
+					DEFINE_REGS(12);
+					DEFINE_REGS(13);
+					DEFINE_REGS(14);
+					DEFINE_REGS(15);
+
+					const X86Register &REG_RIZ (raw_regs::REG_RIZ);
+					const X86Register &REG_RIP (raw_regs::REG_RIZ);
+
+		#undef DEFINE_REGS
+
+					X86VectorRegister REG_XMM0("xmm0", 16, 0, 0);
+					X86VectorRegister REG_XMM1("xmm1", 16, 1, 0);
+					X86VectorRegister REG_XMM2("xmm2", 16, 2, 0);
+					X86VectorRegister REG_XMM3("xmm3", 16, 3, 0);
+					X86VectorRegister REG_XMM4("xmm4", 16, 4, 0);
+					X86VectorRegister REG_XMM5("xmm5", 16, 5, 0);
+					X86VectorRegister REG_XMM6("xmm6", 16, 6, 0);
+					X86VectorRegister REG_XMM7("xmm7", 16, 7, 0);
+					X86VectorRegister REG_XMM8("xmm8", 16, 0, 1);
+					X86VectorRegister REG_XMM9("xmm9", 16, 1, 1);
+					X86VectorRegister REG_XMM10("xmm10", 16, 2, 1);
+					X86VectorRegister REG_XMM11("xmm11", 16, 3, 1);
+					X86VectorRegister REG_XMM12("xmm12", 16, 4, 1);
+					X86VectorRegister REG_XMM13("xmm13", 16, 5, 1);
+					X86VectorRegister REG_XMM14("xmm14", 16, 6, 1);
+					X86VectorRegister REG_XMM15("xmm15", 16, 7, 1);
+				}
 			}
-
-			const X86Register &REG_RAX (raw_regs::REG_RAX);
-			const X86Register &REG_EAX (raw_regs::REG_EAX);
-			const X86Register &REG_AX (raw_regs::REG_AX);
-			const X86Register &REG_AL (raw_regs::REG_AL);
-
-			const X86Register &REG_RBX (raw_regs::REG_RBX);
-			const X86Register &REG_EBX (raw_regs::REG_EBX);
-			const X86Register &REG_BX (raw_regs::REG_BX);
-			const X86Register &REG_BL (raw_regs::REG_BL);
-
-			const X86Register &REG_RCX (raw_regs::REG_RCX);
-			const X86Register &REG_ECX (raw_regs::REG_ECX);
-			const X86Register &REG_CX (raw_regs::REG_CX);
-			const X86Register &REG_CL (raw_regs::REG_CL);
-
-			const X86Register &REG_RDX (raw_regs::REG_RDX);
-			const X86Register &REG_EDX (raw_regs::REG_EDX);
-			const X86Register &REG_DX (raw_regs::REG_DX);
-			const X86Register &REG_DL (raw_regs::REG_DL);
-
-			const X86Register &REG_RSP (raw_regs::REG_RSP);
-			const X86Register &REG_ESP (raw_regs::REG_ESP);
-			const X86Register &REG_SP (raw_regs::REG_SP);
-			const X86Register &REG_SPL (raw_regs::REG_SPL);
-
-			const X86Register &REG_RBP (raw_regs::REG_RBP);
-			const X86Register &REG_EBP (raw_regs::REG_EBP);
-			const X86Register &REG_BP (raw_regs::REG_BP);
-			const X86Register &REG_BPL (raw_regs::REG_BPL);
-
-			const X86Register &REG_RSI (raw_regs::REG_RSI);
-			const X86Register &REG_ESI (raw_regs::REG_ESI);
-			const X86Register &REG_SI (raw_regs::REG_SI);
-			const X86Register &REG_SIL (raw_regs::REG_SIL);
-
-			const X86Register &REG_RDI (raw_regs::REG_RDI);
-			const X86Register &REG_EDI (raw_regs::REG_EDI);
-			const X86Register &REG_DI (raw_regs::REG_DI);
-			const X86Register &REG_DIL (raw_regs::REG_DIL);
-
-#define DEFINE_REGS(x) const X86Register &REG_R##x(raw_regs::REG_R##x), &REG_R##x##D(raw_regs::REG_R##x##D), &REG_R##x##W(raw_regs::REG_R##x##W), &REG_R##x##B(raw_regs::REG_R##x##B)
-
-			DEFINE_REGS(8);
-			DEFINE_REGS(9);
-			DEFINE_REGS(10);
-			DEFINE_REGS(11);
-			DEFINE_REGS(12);
-			DEFINE_REGS(13);
-			DEFINE_REGS(14);
-			DEFINE_REGS(15);
-
-			const X86Register &REG_RIZ (raw_regs::REG_RIZ);
-			const X86Register &REG_RIP (raw_regs::REG_RIZ);
-
-#undef DEFINE_REGS
-
-			X86VectorRegister REG_XMM0("xmm0", 16, 0, 0);
-			X86VectorRegister REG_XMM1("xmm1", 16, 1, 0);
-			X86VectorRegister REG_XMM2("xmm2", 16, 2, 0);
-			X86VectorRegister REG_XMM3("xmm3", 16, 3, 0);
-			X86VectorRegister REG_XMM4("xmm4", 16, 4, 0);
-			X86VectorRegister REG_XMM5("xmm5", 16, 5, 0);
-			X86VectorRegister REG_XMM6("xmm6", 16, 6, 0);
-			X86VectorRegister REG_XMM7("xmm7", 16, 7, 0);
-			X86VectorRegister REG_XMM8("xmm8", 16, 0, 1);
-			X86VectorRegister REG_XMM9("xmm9", 16, 1, 1);
-			X86VectorRegister REG_XMM10("xmm10", 16, 2, 1);
-			X86VectorRegister REG_XMM11("xmm11", 16, 3, 1);
-			X86VectorRegister REG_XMM12("xmm12", 16, 4, 1);
-			X86VectorRegister REG_XMM13("xmm13", 16, 5, 1);
-			X86VectorRegister REG_XMM14("xmm14", 16, 6, 1);
-			X86VectorRegister REG_XMM15("xmm15", 16, 7, 1);
 		}
 	}
 }

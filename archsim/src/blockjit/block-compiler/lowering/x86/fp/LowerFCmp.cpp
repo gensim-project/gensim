@@ -2,14 +2,13 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 #include "util/LogContext.h"
 
 UseLogContext(LogBlockJit)
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerFCmp::Lower(const captive::shared::IRInstruction *&insn)
@@ -29,18 +28,18 @@ bool LowerFCmp::Lower(const captive::shared::IRInstruction *&insn)
 
 	// Move operands into registers
 	if(op1.is_alloc_reg()) {
-		Encoder().movq(GetCompiler().register_from_operand(&op1), BLKJIT_FP_0);
+		Encoder().movq(GetLoweringContext().register_from_operand(&op1), BLKJIT_FP_0);
 	} else if(op1.is_alloc_stack()) {
-		Encoder().mov(GetCompiler().stack_from_operand(&op1), BLKJIT_TEMPS_0(op1.size));
+		Encoder().mov(GetLoweringContext().stack_from_operand(&op1), BLKJIT_TEMPS_0(op1.size));
 		Encoder().movq(BLKJIT_TEMPS_0(op1.size), BLKJIT_FP_0);
 	} else {
 		assert(false);
 	}
 
 	if(op2.is_alloc_reg()) {
-		Encoder().movq(GetCompiler().register_from_operand(&op2), BLKJIT_FP_1);
+		Encoder().movq(GetLoweringContext().register_from_operand(&op2), BLKJIT_FP_1);
 	} else if(op2.is_alloc_stack()) {
-		Encoder().mov(GetCompiler().stack_from_operand(&op2), BLKJIT_TEMPS_0(op2.size));
+		Encoder().mov(GetLoweringContext().stack_from_operand(&op2), BLKJIT_TEMPS_0(op2.size));
 		Encoder().movq(BLKJIT_TEMPS_0(op2.size), BLKJIT_FP_1);
 	} else if(op2.is_constant()) {
 		Encoder().mov(op2.value, BLKJIT_TEMPS_0(op2.size));
@@ -109,7 +108,7 @@ bool LowerFCmp::Lower(const captive::shared::IRInstruction *&insn)
 
 	// Mask out destination
 	Encoder().andd(1, BLKJIT_TEMPS_0(4));
-	Encoder().mov(BLKJIT_TEMPS_0(dest.size), GetCompiler().register_from_operand(&dest));
+	Encoder().mov(BLKJIT_TEMPS_0(dest.size), GetLoweringContext().register_from_operand(&dest));
 
 	insn++;
 

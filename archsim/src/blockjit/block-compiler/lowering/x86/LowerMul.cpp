@@ -9,10 +9,9 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerIMul::Lower(const captive::shared::IRInstruction *&insn)
@@ -20,21 +19,21 @@ bool LowerIMul::Lower(const captive::shared::IRInstruction *&insn)
 	const IROperand *source = &insn->operands[0];
 	const IROperand *dest = &insn->operands[1];
 
-	auto &dest_reg = dest->is_alloc_reg() ? GetCompiler().register_from_operand(dest) : BLKJIT_TEMPS_1(source->size);
+	auto &dest_reg = dest->is_alloc_reg() ? GetLoweringContext().register_from_operand(dest) : BLKJIT_TEMPS_1(source->size);
 
 	assert(dest->is_vreg());
 
 	if(dest->is_alloc_stack()) {
-		Encoder().mov(GetCompiler().stack_from_operand(dest), dest_reg);
+		Encoder().mov(GetLoweringContext().stack_from_operand(dest), dest_reg);
 	}
 
 	if(source->is_constant()) {
 		Encoder().mov(source->value, BLKJIT_TEMPS_0(source->size));
 		Encoder().imul(BLKJIT_TEMPS_0(source->size), dest_reg);
 	} else if(source->is_alloc_reg()) {
-		Encoder().imul(GetCompiler().register_from_operand(source), dest_reg);
+		Encoder().imul(GetLoweringContext().register_from_operand(source), dest_reg);
 	} else if(source->is_alloc_stack()) {
-		Encoder().mov(GetCompiler().stack_from_operand(source), BLKJIT_TEMPS_0(source->size));
+		Encoder().mov(GetLoweringContext().stack_from_operand(source), BLKJIT_TEMPS_0(source->size));
 
 		Encoder().imul(BLKJIT_TEMPS_0(source->size), dest_reg);
 	} else {
@@ -42,7 +41,7 @@ bool LowerIMul::Lower(const captive::shared::IRInstruction *&insn)
 	}
 
 	if(dest->is_alloc_stack()) {
-		Encoder().mov(BLKJIT_TEMPS_1(source->size), GetCompiler().stack_from_operand(dest));
+		Encoder().mov(BLKJIT_TEMPS_1(source->size), GetLoweringContext().stack_from_operand(dest));
 	}
 
 	insn++;
@@ -63,8 +62,8 @@ bool LowerUMul::Lower(const captive::shared::IRInstruction *&insn)
 	// 4. is RAX neither?
 
 	// if RAX is not the destination, then back it up to RDI
-	bool rax_is_source = source->is_alloc_reg() && GetCompiler().register_from_operand(source) == REGS_RAX(source->size);
-	bool rax_is_dest = dest->is_alloc_reg() && GetCompiler().register_from_operand(dest) == REGS_RAX(dest->size);
+	bool rax_is_source = source->is_alloc_reg() && GetLoweringContext().register_from_operand(source) == REGS_RAX(source->size);
+	bool rax_is_dest = dest->is_alloc_reg() && GetLoweringContext().register_from_operand(dest) == REGS_RAX(dest->size);
 	if(!rax_is_dest) {
 		Encoder().mov(REG_RAX, REG_RDI);
 	}
@@ -74,36 +73,36 @@ bool LowerUMul::Lower(const captive::shared::IRInstruction *&insn)
 	if(rax_is_source && !rax_is_dest) {
 		// source is already in RAX, so mul by destination
 		if(dest->is_alloc_reg()) {
-			mul_reg = &GetCompiler().register_from_operand(dest);
+			mul_reg = &GetLoweringContext().register_from_operand(dest);
 		} else {
 			mul_reg = &BLKJIT_TEMPS_1(dest->size);
-			GetCompiler().encode_operand_to_reg(dest, *mul_reg);
+			GetLoweringContext().encode_operand_to_reg(dest, *mul_reg);
 		}
 	} else if(rax_is_dest && !rax_is_source) {
 		// dest is already in RAX, so mul by source
 		if(source->is_alloc_reg()) {
-			mul_reg = &GetCompiler().register_from_operand(source);
+			mul_reg = &GetLoweringContext().register_from_operand(source);
 		} else {
 			mul_reg = &BLKJIT_TEMPS_1(source->size);
-			GetCompiler().encode_operand_to_reg(source, *mul_reg);
+			GetLoweringContext().encode_operand_to_reg(source, *mul_reg);
 		}
 	} else if(rax_is_source && rax_is_dest) {
 		// doesn't matter, mul by source
 		if(source->is_alloc_reg()) {
-			mul_reg = &GetCompiler().register_from_operand(source);
+			mul_reg = &GetLoweringContext().register_from_operand(source);
 		} else {
 			mul_reg = &BLKJIT_TEMPS_1(source->size);
-			GetCompiler().encode_operand_to_reg(source, *mul_reg);
+			GetLoweringContext().encode_operand_to_reg(source, *mul_reg);
 		}
 	} else {
 		// move source into RAX, then multiply
-		GetCompiler().encode_operand_to_reg(source, REGS_RAX(source->size));
+		GetLoweringContext().encode_operand_to_reg(source, REGS_RAX(source->size));
 
 		if(dest->is_alloc_reg()) {
-			mul_reg = &GetCompiler().register_from_operand(dest);
+			mul_reg = &GetLoweringContext().register_from_operand(dest);
 		} else {
 			mul_reg = &BLKJIT_TEMPS_1(dest->size);
-			GetCompiler().encode_operand_to_reg(dest, *mul_reg);
+			GetLoweringContext().encode_operand_to_reg(dest, *mul_reg);
 		}
 	}
 
@@ -116,9 +115,9 @@ bool LowerUMul::Lower(const captive::shared::IRInstruction *&insn)
 	// put result into destination register
 	if(!rax_is_dest) {
 		if(dest->is_alloc_reg()) {
-			Encoder().mov(REGS_RAX(dest->size), GetCompiler().register_from_operand(dest));
+			Encoder().mov(REGS_RAX(dest->size), GetLoweringContext().register_from_operand(dest));
 		} else if(dest->is_alloc_stack()) {
-			Encoder().mov(REGS_RAX(dest->size), GetCompiler().stack_from_operand(dest));
+			Encoder().mov(REGS_RAX(dest->size), GetLoweringContext().stack_from_operand(dest));
 		}
 
 		// also restore RAX
