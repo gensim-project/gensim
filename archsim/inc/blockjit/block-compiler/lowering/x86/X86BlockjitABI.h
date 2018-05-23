@@ -8,9 +8,9 @@
 #ifndef INC_BLOCKJIT_BLOCKJIT_ABI_H_
 #define INC_BLOCKJIT_BLOCKJIT_ABI_H_
 
-#define X86Reg(X) captive::arch::x86::X
+#define X86Reg(X) captive::arch::jit::lowering::x86::X
 
-#define BLKJIT_REGS_BUILD_LAMBDA(q,l,w,b) [](unsigned i) -> const captive::arch::x86::X86Register& { switch(i) { case 8: return q; case 4: return l; case 2: return w; case 1: return b; default: assert(false); return X86Reg(REG_RIZ); } }
+#define BLKJIT_REGS_BUILD_LAMBDA(q,l,w,b) [](unsigned i) -> const captive::arch::jit::lowering::x86::X86Register& { switch(i) { case 8: return q; case 4: return l; case 2: return w; case 1: return b; default: assert(false); return X86Reg(REG_RIZ); } }
 #define REGS_RAX BLKJIT_REGS_BUILD_LAMBDA(X86Reg(REG_RAX), X86Reg(REG_EAX), X86Reg(REG_AX), X86Reg(REG_AL))
 #define REGS_RBX BLKJIT_REGS_BUILD_LAMBDA(X86Reg(REG_RBX), X86Reg(REG_EBX), X86Reg(REG_BX), X86Reg(REG_BL))
 #define REGS_RCX BLKJIT_REGS_BUILD_LAMBDA(X86Reg(REG_RCX), X86Reg(REG_ECX), X86Reg(REG_CX), X86Reg(REG_CL))

@@ -10,10 +10,9 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerClz::Lower(const captive::shared::IRInstruction *&insn)
@@ -28,21 +27,21 @@ bool LowerClz::Lower(const captive::shared::IRInstruction *&insn)
 			auto dest_reg = &BLKJIT_TEMPS_1(dest->size);
 			
 			if(source->is_alloc_reg()) {
-				source_reg = &GetCompiler().register_from_operand(source);
+				source_reg = &GetLoweringContext().register_from_operand(source);
 			} else {
-				GetCompiler().encode_operand_to_reg(source, *source_reg);
+				GetLoweringContext().encode_operand_to_reg(source, *source_reg);
 			}
 			if(dest->is_alloc_reg()) {
-				dest_reg = &GetCompiler().register_from_operand(dest);
+				dest_reg = &GetLoweringContext().register_from_operand(dest);
 			} else {
-				GetCompiler().encode_operand_to_reg(dest, *dest_reg);
+				GetLoweringContext().encode_operand_to_reg(dest, *dest_reg);
 			}
 			
 			Encoder().bsr(*source_reg, *dest_reg);
 			Encoder().xorr(0x1f, *dest_reg);
 			
 			if(dest->is_alloc_stack()) {
-				Encoder().mov(*dest_reg, GetCompiler().stack_from_operand(dest));
+				Encoder().mov(*dest_reg, GetLoweringContext().stack_from_operand(dest));
 			}
 		} else {
 			assert(false);

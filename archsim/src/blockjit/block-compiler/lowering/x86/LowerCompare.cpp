@@ -7,17 +7,16 @@
 
 
 #include "blockjit/block-compiler/lowering/x86/X86LoweringContext.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
 
 #include "util/LogContext.h"
 
 UseLogContext(LogBlockJit)
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 // This class lowers compare instructions, and fuses compare-and-branch pairs where possible.
@@ -35,22 +34,22 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 			switch (rhs->type) {
 				case IROperand::VREG: {
 					if (lhs->is_alloc_reg() && rhs->is_alloc_reg()) {
-						Encoder().cmp(GetCompiler().register_from_operand(rhs), GetCompiler().register_from_operand(lhs));
+						Encoder().cmp(GetLoweringContext().register_from_operand(rhs), GetLoweringContext().register_from_operand(lhs));
 					} else if (lhs->is_alloc_stack() && rhs->is_alloc_reg()) {
-						Encoder().cmp(GetCompiler().register_from_operand(rhs), GetCompiler().stack_from_operand(lhs));
+						Encoder().cmp(GetLoweringContext().register_from_operand(rhs), GetLoweringContext().stack_from_operand(lhs));
 					} else if (lhs->is_alloc_reg() && rhs->is_alloc_stack()) {
 						// Apparently we can't yet encode cmp (stack), (reg) so encode cmp (reg), (stack) instead
 						// and invert the result
 						invert = true;
 
-						Encoder().cmp(GetCompiler().register_from_operand(lhs), GetCompiler().stack_from_operand(rhs));
+						Encoder().cmp(GetLoweringContext().register_from_operand(lhs), GetLoweringContext().stack_from_operand(rhs));
 					} else if (lhs->is_alloc_stack() && rhs->is_alloc_stack()) {
 						// Apparently we can't yet encode cmp (stack), (reg) so encode cmp (reg), (stack) instead
 						// and invert the result
 						invert = true;
 
-						auto& tmp = GetCompiler().unspill_temp(lhs, 0);
-						Encoder().cmp(tmp, GetCompiler().stack_from_operand(rhs));
+						auto& tmp = GetLoweringContext().unspill_temp(lhs, 0);
+						Encoder().cmp(tmp, GetLoweringContext().stack_from_operand(rhs));
 					} else {
 						assert(false);
 					}
@@ -60,20 +59,20 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 
 				case IROperand::CONSTANT: {
 					if (lhs->is_alloc_reg()) {
-						Encoder().cmp(rhs->value, GetCompiler().register_from_operand(lhs));
+						Encoder().cmp(rhs->value, GetLoweringContext().register_from_operand(lhs));
 					} else if (lhs->is_alloc_stack()) {
 						switch (rhs->size) {
 							case 1:
-								Encoder().cmp1(rhs->value, GetCompiler().stack_from_operand(lhs));
+								Encoder().cmp1(rhs->value, GetLoweringContext().stack_from_operand(lhs));
 								break;
 							case 2:
-								Encoder().cmp2(rhs->value, GetCompiler().stack_from_operand(lhs));
+								Encoder().cmp2(rhs->value, GetLoweringContext().stack_from_operand(lhs));
 								break;
 							case 4:
-								Encoder().cmp4(rhs->value, GetCompiler().stack_from_operand(lhs));
+								Encoder().cmp4(rhs->value, GetLoweringContext().stack_from_operand(lhs));
 								break;
 							case 8:
-								Encoder().cmp8(rhs->value, GetCompiler().stack_from_operand(lhs));
+								Encoder().cmp8(rhs->value, GetLoweringContext().stack_from_operand(lhs));
 								break;
 							default:
 								assert(false);
@@ -98,20 +97,20 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 			switch (rhs->type) {
 				case IROperand::VREG: {
 					if (rhs->is_alloc_reg()) {
-						Encoder().cmp(lhs->value, GetCompiler().register_from_operand(rhs));
+						Encoder().cmp(lhs->value, GetLoweringContext().register_from_operand(rhs));
 					} else if (rhs->is_alloc_stack()) {
 						switch (lhs->size) {
 							case 1:
-								Encoder().cmp1(lhs->value, GetCompiler().stack_from_operand(rhs));
+								Encoder().cmp1(lhs->value, GetLoweringContext().stack_from_operand(rhs));
 								break;
 							case 2:
-								Encoder().cmp2(lhs->value, GetCompiler().stack_from_operand(rhs));
+								Encoder().cmp2(lhs->value, GetLoweringContext().stack_from_operand(rhs));
 								break;
 							case 4:
-								Encoder().cmp4(lhs->value, GetCompiler().stack_from_operand(rhs));
+								Encoder().cmp4(lhs->value, GetLoweringContext().stack_from_operand(rhs));
 								break;
 							case 8:
-								Encoder().cmp8(lhs->value, GetCompiler().stack_from_operand(rhs));
+								Encoder().cmp8(lhs->value, GetLoweringContext().stack_from_operand(rhs));
 								break;
 						}
 					} else {
@@ -121,9 +120,9 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 					break;
 				}
 				case IROperand::CONSTANT: {
-					LC_WARNING(LogBlockJit) << "Constant compared against constant in block " << std::hex << GetCompiler().GetBlockPA();
-					Encoder().mov(rhs->value, GetCompiler().get_temp(0, rhs->size));
-					Encoder().cmp(lhs->value, GetCompiler().get_temp(0, rhs->size));
+//					LC_WARNING(LogBlockJit) << "Constant compared against constant in block " << std::hex << GetLoweringContext().GetBlockPA();
+					Encoder().mov(rhs->value, GetLoweringContext().get_temp(0, rhs->size));
+					Encoder().cmp(lhs->value, GetLoweringContext().get_temp(0, rhs->size));
 					break;
 				}
 				default:
@@ -156,9 +155,9 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 
 	auto dest_reg = &BLKJIT_TEMPS_0(dest->size);
 	if(dest->is_alloc_stack()) {
-		GetCompiler().encode_operand_to_reg(dest, *dest_reg);
+		GetLoweringContext().encode_operand_to_reg(dest, *dest_reg);
 	} else if(dest->is_alloc_reg()) {
-		dest_reg = &GetCompiler().register_from_operand(dest);
+		dest_reg = &GetLoweringContext().register_from_operand(dest);
 	}
 	
 	switch (insn->type) {
@@ -255,7 +254,7 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 	}
 	
 	if(dest->is_alloc_stack()) {
-		Encoder().mov(*dest_reg, GetCompiler().stack_from_operand(dest));
+		Encoder().mov(*dest_reg, GetLoweringContext().stack_from_operand(dest));
 	}
 
 	insn++;

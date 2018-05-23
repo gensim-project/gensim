@@ -10,10 +10,9 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool ShiftInsn(const IRInstruction *insn, X86Encoder &encoder, const X86Register &operand)
@@ -39,7 +38,7 @@ bool ShiftInsn(const IRInstruction *insn, X86Encoder &encoder, const X86Register
 	return true;
 }
 
-static bool ShiftSituation1(const captive::shared::IRInstruction *insn, captive::arch::x86::X86Encoder &encoder, const X86Register &shift_amount, const X86Register &bits)
+static bool ShiftSituation1(const captive::shared::IRInstruction *insn, X86Encoder &encoder, const X86Register &shift_amount, const X86Register &bits)
 {
 	encoder.mov(REG_RCX, BLKJIT_TEMPS_2(8));
 	encoder.mov(shift_amount, REGS_RCX(shift_amount.size));
@@ -49,7 +48,7 @@ static bool ShiftSituation1(const captive::shared::IRInstruction *insn, captive:
 	return true;
 }
 
-static bool ShiftSituation2(const captive::shared::IRInstruction *insn, captive::arch::x86::X86Encoder &encoder, const X86Register &shift_amount, const X86Register &bits)
+static bool ShiftSituation2(const captive::shared::IRInstruction *insn, X86Encoder &encoder, const X86Register &shift_amount, const X86Register &bits)
 {
 	assert(shift_amount != REGS_RCX(shift_amount.size));
 	assert(bits == REGS_RCX(bits.size));
@@ -61,7 +60,7 @@ static bool ShiftSituation2(const captive::shared::IRInstruction *insn, captive:
 	return true;
 }
 
-static bool ShiftSituation3(const captive::shared::IRInstruction *insn, captive::arch::x86::X86Encoder &encoder, const X86Register &shift_amount, const X86Register &bits)
+static bool ShiftSituation3(const captive::shared::IRInstruction *insn, X86Encoder &encoder, const X86Register &shift_amount, const X86Register &bits)
 {
 	assert(shift_amount == REGS_RCX(shift_amount.size));
 	assert(bits != REGS_RCX(bits.size));
@@ -78,7 +77,7 @@ bool LowerShift::Lower(const captive::shared::IRInstruction *&insn)
 
 	if (amount->is_constant()) {
 		if (dest->is_alloc_reg()) {
-			auto& operand = GetCompiler().register_from_operand(dest);
+			auto& operand = GetLoweringContext().register_from_operand(dest);
 
 			switch (insn->type) {
 				case IRInstruction::SHL:
@@ -98,7 +97,7 @@ bool LowerShift::Lower(const captive::shared::IRInstruction *&insn)
 					break;
 			}
 		} else if(dest->is_alloc_stack()) {
-			auto operand = GetCompiler().stack_from_operand(dest);
+			auto operand = GetLoweringContext().stack_from_operand(dest);
 
 			switch (insn->type) {
 				case IRInstruction::SHL:
@@ -133,15 +132,15 @@ bool LowerShift::Lower(const captive::shared::IRInstruction *&insn)
 
 		if(amount->is_alloc_stack()) {
 			amount_reg = &BLKJIT_TEMPS_0(amount->size);
-			Encoder().mov(GetCompiler().stack_from_operand(amount), *amount_reg);
+			Encoder().mov(GetLoweringContext().stack_from_operand(amount), *amount_reg);
 		} else {
-			amount_reg = &GetCompiler().register_from_operand(amount);
+			amount_reg = &GetLoweringContext().register_from_operand(amount);
 		}
 		if(dest->is_alloc_stack()) {
 			bits_reg = &BLKJIT_TEMPS_1(amount->size);
-			Encoder().mov(GetCompiler().stack_from_operand(dest), *bits_reg);
+			Encoder().mov(GetLoweringContext().stack_from_operand(dest), *bits_reg);
 		} else {
-			bits_reg = &GetCompiler().register_from_operand(dest);
+			bits_reg = &GetLoweringContext().register_from_operand(dest);
 		}
 
 		if(amount_reg != &REGS_RCX(amount->size) && bits_reg != &REGS_RCX(dest->size)) {
@@ -156,7 +155,7 @@ bool LowerShift::Lower(const captive::shared::IRInstruction *&insn)
 		}
 
 		if(dest->is_alloc_stack()) {
-			Encoder().mov(*bits_reg, GetCompiler().stack_from_operand(dest));
+			Encoder().mov(*bits_reg, GetLoweringContext().stack_from_operand(dest));
 		}
 
 	} else {

@@ -9,6 +9,9 @@
 #define BLOCKJIT_BLOCK_COMPILER_TRANSFORM_H_
 
 #include "blockjit/translation-context.h"
+#include "util/vbitset.h"
+
+#include <vector>
 
 namespace captive
 {
@@ -27,6 +30,22 @@ namespace captive
 					virtual bool Apply(TranslationContext& ctx) = 0;
 				};
 
+				class RegisterAllocationTransform : public Transform
+				{
+				public:
+					RegisterAllocationTransform(uint32_t num_allocable_registers);
+					virtual ~RegisterAllocationTransform();
+					virtual bool Apply(TranslationContext &ctx) override;
+					
+					uint32_t GetStackFrameSize() const;
+					archsim::util::vbitset GetUsedPhysRegs() const;
+					
+				private:
+					uint32_t stack_frame_size_;
+					uint32_t number_allocable_registers_;
+					archsim::util::vbitset used_phys_regs_;
+				};
+				
 				class ReorderBlocksTransform : public Transform
 				{
 				public:

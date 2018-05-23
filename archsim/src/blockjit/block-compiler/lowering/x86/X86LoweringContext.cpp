@@ -8,7 +8,7 @@
 #include "blockjit/block-compiler/lowering/InstructionLowerer.h"
 #include "blockjit/block-compiler/lowering/x86/X86LoweringContext.h"
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 #include "util/LogContext.h"
 
@@ -16,11 +16,23 @@ UseLogContext(LogLower);
 
 using namespace captive::arch::jit::lowering;
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
+using namespace captive::shared;
 
-X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder) : LoweringContext(stack_frame_size), _encoder(encoder), _stack_fixed(false)
+X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, const archsim::core::thread::ThreadInstance *thread, const archsim::util::vbitset &used_regs) : LoweringContext(stack_frame_size), _encoder(encoder), _stack_fixed(false), thread_(thread), used_phys_regs(used_regs)
 {
+	int i = 0;
+#define ASSIGN_REGS(x) assign(i++, x(8), x(4), x(2), x(1))
+	ASSIGN_REGS(REGS_RAX);
+	ASSIGN_REGS(REGS_RBX);
+	ASSIGN_REGS(REGS_RCX);
+	ASSIGN_REGS(REGS_R8);
+	ASSIGN_REGS(REGS_R9);
+	ASSIGN_REGS(REGS_R10);
+	ASSIGN_REGS(REGS_R11);
+	ASSIGN_REGS(REGS_R13);
+	ASSIGN_REGS(REGS_R14);
 
+#undef ASSIGN_REGS
 }
 
 X86LoweringContext::~X86LoweringContext()
@@ -197,3 +209,113 @@ LoweringContext::offset_t X86LoweringContext::GetEncoderOffset()
 	return GetEncoder().current_offset();
 }
 
+void X86LoweringContext::emit_save_reg_state(int num_operands, stack_map_t &stack_map, bool &fix_stack, uint32_t live_regs)
+{
+	uint32_t stack_offset = 0;
+	// XXX host architecture dependent
+	// On X86-64, the stack pointer on entry to a function must have an offset
+	// of 0x8 (such that %rsp + 8 is 16 byte aligned). Since the call instruction
+	// will push 8 bytes onto the stack, plus we save 2 more regs (CPUState, Regstate),
+	fix_stack = true;
+
+	stack_map.clear();
+
+	//First, count required stack slots
+	for(int i = used_phys_regs.size()-1; i >= 0; i--) {
+		if(used_phys_regs.get(i) && (live_regs & (1 << i))) {
+			stack_offset += 8;
+			fix_stack = !fix_stack;
+		}
+	}
+
+	if(fix_stack) {
+		GetEncoder().sub(8, REG_RSP);
+//		GetEncoder().push(REG_RAX);
+	}
+
+	for(int i = used_phys_regs.size()-1; i >= 0; i--) {
+		if(used_phys_regs.get(i) && (live_regs & (1 << i))) {
+			auto& reg = get_allocable_register(i, 8);
+
+			stack_offset -= 8;
+			stack_map[&reg] = stack_offset;
+			GetEncoder().push(reg);
+
+		}
+	}
+}
+
+void X86LoweringContext::emit_restore_reg_state(int num_operands, stack_map_t &stack_map, bool fix_stack, uint32_t live_regs)
+{
+
+	for(unsigned int i = 0; i < used_phys_regs.size(); ++i) {
+		if(used_phys_regs.get(i) && (live_regs & (1 << i))) {
+			GetEncoder().pop(get_allocable_register(i, 8));
+		}
+	}
+	if(fix_stack) {
+		GetEncoder().add(8, REG_RSP);
+//		GetEncoder().pop(REG_RAX);
+	}
+}
+
+void X86LoweringContext::encode_operand_function_argument(const IROperand *oper, const X86Register& target_reg, stack_map_t &stack_map)
+{	
+	uint8_t stack_offset_adjust = 8;
+	if(stack_map.size() % 2) {
+		stack_offset_adjust = 0;
+	}
+	
+	if (oper->is_constant() == IROperand::CONSTANT) {
+		if(oper->value == 0) GetEncoder().xorr(target_reg, target_reg);
+		else GetEncoder().mov(oper->value, target_reg);
+	} else if (oper->is_vreg()) {
+//		if(get_allocable_register(oper->alloc_data, 8) == REG_RBX) {
+//			GetEncoder().mov(REGS_RBX(oper->size), target_reg);
+//		} else
+		if (oper->is_alloc_reg()) {
+			auto &reg = get_allocable_register(oper->alloc_data, 8);
+			GetEncoder().mov(X86Memory::get(REG_RSP, stack_map.at(&reg)), target_reg);
+		} else {
+			int64_t stack_offset = (stack_offset_adjust + oper->alloc_data + (8*stack_map.size()));
+			GetEncoder().mov(X86Memory::get(REG_RSP, stack_offset), target_reg);
+		}
+	} else {
+		assert(false);
+	}
+}
+
+void X86LoweringContext::encode_operand_to_reg(const shared::IROperand *operand, const X86Register& reg)
+{
+	switch (operand->type) {
+		case IROperand::CONSTANT: {
+			if (operand->value == 0) {
+				GetEncoder().xorr(reg, reg);
+			} else {
+				GetEncoder().mov(operand->value, reg);
+			}
+
+			break;
+		}
+
+		case IROperand::VREG: {
+			switch (operand->alloc_mode) {
+				case IROperand::ALLOCATED_STACK:
+					GetEncoder().mov(stack_from_operand(operand), reg);
+					break;
+
+				case IROperand::ALLOCATED_REG:
+					GetEncoder().mov(register_from_operand(operand, reg.size), reg);
+					break;
+
+				default:
+					assert(false);
+			}
+
+			break;
+		}
+
+		default:
+			assert(false);
+	}
+}

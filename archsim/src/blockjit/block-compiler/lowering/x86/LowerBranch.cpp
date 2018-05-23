@@ -10,10 +10,9 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerBranch::Lower(const captive::shared::IRInstruction *&insn)
@@ -24,11 +23,11 @@ bool LowerBranch::Lower(const captive::shared::IRInstruction *&insn)
 
 	if (cond->is_vreg()) {
 		if (cond->is_alloc_reg()) {
-			Encoder().test(GetCompiler().register_from_operand(cond), GetCompiler().register_from_operand(cond));
+			Encoder().test(GetLoweringContext().register_from_operand(cond), GetLoweringContext().register_from_operand(cond));
 		} else {
-			auto& tmp = GetCompiler().get_temp(0, 1);
+			auto& tmp = GetLoweringContext().get_temp(0, 1);
 
-			Encoder().mov(GetCompiler().stack_from_operand(cond), tmp);
+			Encoder().mov(GetLoweringContext().stack_from_operand(cond), tmp);
 			Encoder().test(tmp, tmp);
 		}
 	} else {

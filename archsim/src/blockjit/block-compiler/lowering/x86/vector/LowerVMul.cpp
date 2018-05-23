@@ -3,13 +3,12 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 #include "util/LogContext.h"
 
 UseLogContext(LogBlockJit)
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerVMulI::Lower(const captive::shared::IRInstruction*& insn)
@@ -24,9 +23,9 @@ bool LowerVMulI::Lower(const captive::shared::IRInstruction*& insn)
 	assert(lhs.size == 8);
 	assert(width.value == 2);
 
-	const auto &lhsr = GetCompiler().register_from_operand(&lhs);
-	const auto &rhsr = GetCompiler().register_from_operand(&rhs);
-	const auto &destr = GetCompiler().register_from_operand(&dest);
+	const auto &lhsr = GetLoweringContext().register_from_operand(&lhs);
+	const auto &rhsr = GetLoweringContext().register_from_operand(&rhs);
+	const auto &destr = GetLoweringContext().register_from_operand(&dest);
 
 	// start with top multiply
 	Encoder().mov(lhsr, BLKJIT_TEMPS_0(8));
@@ -37,8 +36,8 @@ bool LowerVMulI::Lower(const captive::shared::IRInstruction*& insn)
 	Encoder().shl(32, destr);
 
 	// now do bottom multiply
-	Encoder().mov(GetCompiler().register_from_operand(&rhs, 4), BLKJIT_TEMPS_0(4));
-	Encoder().imul(GetCompiler().register_from_operand(&lhs, 4), BLKJIT_TEMPS_0(4));
+	Encoder().mov(GetLoweringContext().register_from_operand(&rhs, 4), BLKJIT_TEMPS_0(4));
+	Encoder().imul(GetLoweringContext().register_from_operand(&lhs, 4), BLKJIT_TEMPS_0(4));
 	Encoder().orr(BLKJIT_TEMPS_0(8), destr);
 
 	insn++;
@@ -53,18 +52,18 @@ bool LowerVMulF::Lower(const captive::shared::IRInstruction*& insn)
 	const IROperand &dest = insn->operands[3];
 
 	if(lhs.is_alloc_reg()) {
-		Encoder().movq(GetCompiler().register_from_operand(&lhs), BLKJIT_FP_0);
+		Encoder().movq(GetLoweringContext().register_from_operand(&lhs), BLKJIT_FP_0);
 	} else  if(lhs.is_alloc_stack()) {
-		Encoder().mov(GetCompiler().stack_from_operand(&lhs), BLKJIT_TEMPS_0(lhs.size));
+		Encoder().mov(GetLoweringContext().stack_from_operand(&lhs), BLKJIT_TEMPS_0(lhs.size));
 		Encoder().movq(BLKJIT_TEMPS_0(lhs.size), BLKJIT_FP_0);
 	} else {
 		assert(false);
 	}
 
 	if(rhs.is_alloc_reg()) {
-		Encoder().movq(GetCompiler().register_from_operand(&rhs), BLKJIT_FP_1);
+		Encoder().movq(GetLoweringContext().register_from_operand(&rhs), BLKJIT_FP_1);
 	} else  if(rhs.is_alloc_stack()) {
-		Encoder().mov(GetCompiler().stack_from_operand(&rhs), BLKJIT_TEMPS_0(rhs.size));
+		Encoder().mov(GetLoweringContext().stack_from_operand(&rhs), BLKJIT_TEMPS_0(rhs.size));
 		Encoder().movq(BLKJIT_TEMPS_0(rhs.size), BLKJIT_FP_1);
 	} else {
 		assert(false);
@@ -84,10 +83,10 @@ bool LowerVMulF::Lower(const captive::shared::IRInstruction*& insn)
 	}
 
 	if(dest.is_alloc_reg()) {
-		Encoder().movq(BLKJIT_FP_1, GetCompiler().register_from_operand(&dest));
+		Encoder().movq(BLKJIT_FP_1, GetLoweringContext().register_from_operand(&dest));
 	} else if(dest.is_alloc_stack()) {
 		Encoder().movq(BLKJIT_FP_1, BLKJIT_TEMPS_0(dest.size));
-		Encoder().mov(BLKJIT_TEMPS_0(dest.size), GetCompiler().stack_from_operand(&dest));
+		Encoder().mov(BLKJIT_TEMPS_0(dest.size), GetLoweringContext().stack_from_operand(&dest));
 	}
 
 	insn++;

@@ -13,4 +13,5 @@ archsim_add_sources(
 	ThreadJumpsTransform.cpp
 	Transform.cpp
 	ValueRenumberingTransform.cpp
+	RegisterAllocationTransform.cpp
 )

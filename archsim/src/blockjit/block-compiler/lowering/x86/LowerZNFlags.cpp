@@ -9,22 +9,21 @@
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/translation-context.h"
-#include "blockjit/blockjit-abi.h"
+#include "blockjit/block-compiler/lowering/x86/X86BlockjitABI.h"
 
 using namespace captive::arch::jit::lowering::x86;
-using namespace captive::arch::x86;
 using namespace captive::shared;
 
 bool LowerZNFlags::Lower(const captive::shared::IRInstruction *&insn)
 {
 	const IROperand &value = insn->operands[0];
 
-	const auto *cpu = GetCompiler().get_cpu();
+	const auto *cpu = GetLoweringContext().GetThread();
 	uint32_t z_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z").GetOffset();
 	uint32_t n_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N").GetOffset();
 	
 	if(value.is_alloc_reg()) {
-		auto &input_reg = GetCompiler().register_from_operand(&value);
+		auto &input_reg = GetLoweringContext().register_from_operand(&value);
 		Encoder().test(input_reg, input_reg);
 
 		Encoder().setz(X86Memory::get(BLKJIT_REGSTATE_REG, z_o));

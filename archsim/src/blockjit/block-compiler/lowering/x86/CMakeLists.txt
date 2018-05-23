@@ -34,6 +34,8 @@ archsim_add_sources(
 	LowerWriteDevice.cpp
 	LowerWriteReg.cpp
 	LowerZNFlags.cpp
+
+	X86Encoder.cpp
 	X86LoweringContext.cpp
 )
 

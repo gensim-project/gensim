@@ -27,7 +27,7 @@ namespace captive
 					class X86InstructionLowerer : public InstructionLowerer
 					{
 					public:
-						arch::x86::X86Encoder &Encoder()
+						X86Encoder &Encoder()
 						{
 							return ((X86LoweringContext&)GetLoweringContext()).GetEncoder();
 						}
@@ -40,7 +40,6 @@ namespace captive
 						{
 							return ((X86LoweringContext&)GetLoweringContext()).GetStackMap();
 						}
-					protected:
 						X86LoweringContext& GetLoweringContext()
 						{
 							return (X86LoweringContext&)InstructionLowerer::GetLoweringContext();
