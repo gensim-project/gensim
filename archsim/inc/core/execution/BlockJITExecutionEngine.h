@@ -22,6 +22,7 @@
 #include "blockjit/BlockJitTranslate.h"
 #include "blockjit/BlockProfile.h"
 #include "blockjit/BlockCache.h"
+#include "module/ModuleManager.h"
 
 namespace archsim {
 	namespace core {
@@ -61,6 +62,8 @@ namespace archsim {
 				bool flush_txlns_;
 				bool flush_all_txlns_;
 				bool subscribed_;
+				
+				static ExecutionEngine *Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix);
 			};
 		}
 	}

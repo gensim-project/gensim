@@ -220,3 +220,13 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	
 	return false;
 }
+
+ExecutionEngine *BlockLLVMExecutionEngine::Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix) {
+	std::string entry_name = cpu_prefix + "BlockJITTranslator";
+	if(!module->HasEntry(entry_name)) {
+		return nullptr;
+	}
+	
+	auto translator_entry = module->GetEntry<archsim::module::ModuleBlockJITTranslatorEntry>(entry_name)->Get();
+	return new BlockLLVMExecutionEngine(translator_entry);
+}

@@ -9,7 +9,7 @@
 #include "abi/devices/MMU.h"
 #include "abi/memory/MemoryModel.h"
 
-#include "core/execution/BlockLLVMExecutionEngine.h"
+#include "core/execution/ExecutionEngineFactory.h"
 
 #include "core/MemoryInterface.h"
 #include "core/execution/ExecutionEngine.h"
@@ -52,18 +52,15 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 
 	// Acquire the CPU component
-	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleBlockJITTranslatorEntry>("BlockJITTranslator");
-	auto archentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
+	auto module = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName);
+	auto archentry = module->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
 
-	if(moduleentry == nullptr) {
-		return false;
-	}
 	if(archentry == nullptr) {
 		return false;
 	}
 	auto arch = archentry->Get();
-	auto translator = moduleentry->Get();
-	auto engine = new archsim::core::execution::BlockLLVMExecutionEngine(translator);
+	
+	auto engine = archsim::core::execution::ExecutionEngineFactory().Get(module, "");
 	GetSystem().GetECM().AddEngine(engine);
 	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 	

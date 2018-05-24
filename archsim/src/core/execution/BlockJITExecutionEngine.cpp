@@ -250,3 +250,13 @@ bool BlockJITExecutionEngine::translateBlock(ThreadInstance *thread, archsim::Ad
 
 	return success;
 }
+
+ExecutionEngine *archsim::core::execution::BlockJITExecutionEngine::Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix) {
+	std::string entry_name = cpu_prefix + "BlockJITTranslator";
+	if(!module->HasEntry(entry_name)) {
+		return nullptr;
+	}
+	
+	auto translator_entry = module->GetEntry<archsim::module::ModuleBlockJITTranslatorEntry>(entry_name)->Get();
+	return new BlockJITExecutionEngine(translator_entry);
+}
