@@ -30,10 +30,10 @@ namespace archsim
 			 * This class is in charge of keeping track of which pages contain translated code, and generating invalidation events
 			 * when these pages are invalidated.
 			 */
-			class ProfileManager
+			class CodeRegionTracker
 			{
 			public:
-				ProfileManager(archsim::util::PubSubContext &pubsub) : pubsub(pubsub)
+				CodeRegionTracker(archsim::util::PubSubContext &pubsub) : pubsub(pubsub)
 				{
 					Invalidate();
 				}

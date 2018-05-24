@@ -18,6 +18,7 @@
 #include "core/execution/ExecutionResult.h"
 #include "core/execution/ExecutionState.h"
 #include "translate/profile/RegionTable.h"
+#include "translate/profile/CodeRegionTracker.h"
 #include <libtrace/TraceSink.h>
 
 
@@ -84,8 +85,6 @@ namespace archsim {
 				void SetTraceSink(libtrace::TraceSink *sink) { trace_sink_ = sink; }
 				libtrace::TraceSink *GetTraceSink() { return trace_sink_; }
 				
-				archsim::translate::profile::RegionTable &GetRegionTable();
-				
 			private:
 				friend class ExecutionEngineThreadContext;
 				virtual ExecutionResult Execute(ExecutionEngineThreadContext *thread) = 0;
@@ -99,9 +98,6 @@ namespace archsim {
 				std::map<thread::ThreadInstance *, ExecutionEngineThreadContext *> thread_contexts_;
 				std::mutex lock_;
 				ExecutionState state_;
-				
-				archsim::translate::profile::RegionTable *region_profile_;
-				bool enable_profiling_;
 			};
 		}
 	}

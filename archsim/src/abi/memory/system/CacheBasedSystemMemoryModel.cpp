@@ -388,8 +388,8 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 		}
 	}
 
-	if (GetProfile().IsRegionCode(PhysicalAddress(entry->GetPhysAddr()))) {
-		GetProfile().InvalidateRegion(PhysicalAddress(entry->GetPhysAddr()));
+	if (GetCodeRegions().IsRegionCode(PhysicalAddress(entry->GetPhysAddr()))) {
+		GetCodeRegions().InvalidateRegion(PhysicalAddress(entry->GetPhysAddr()));
 	}
 
 	uint8_t *page_base = (uint8_t*)entry->GetMemory() + entry->GetTag();
@@ -430,8 +430,8 @@ uint32_t CacheBasedSystemMemoryModel::Poke(guest_addr_t virt_addr, uint8_t *data
 	if (UNLIKELY(rc)) {
 		return rc;
 	} else {
-		if (GetProfile().IsRegionCode(PhysicalAddress(phys_addr))) {
-			GetProfile().InvalidateRegion(PhysicalAddress(phys_addr));
+		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr))) {
+			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr));
 		}
 
 		return GetPhysMem()->Poke(phys_addr, data, size);
@@ -463,8 +463,8 @@ uint32_t CacheBasedSystemMemoryModel::Write8User(guest_addr_t guest_addr, uint8_
 
 	if(UNLIKELY(rc)) return rc;
 	else {
-		if (GetProfile().IsRegionCode(PhysicalAddress(phys_addr))) {
-			GetProfile().InvalidateRegion(PhysicalAddress(phys_addr));
+		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr))) {
+			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr));
 		}
 		return GetPhysMem()->Write8(phys_addr, data);
 	}
@@ -477,8 +477,8 @@ uint32_t CacheBasedSystemMemoryModel::Write32User(guest_addr_t guest_addr, uint3
 
 	if(UNLIKELY(rc)) return rc;
 	else {
-		if (GetProfile().IsRegionCode(PhysicalAddress(phys_addr))) {
-			GetProfile().InvalidateRegion(PhysicalAddress(phys_addr));
+		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr))) {
+			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr));
 		}
 		return GetPhysMem()->Write32(phys_addr, data);
 	}

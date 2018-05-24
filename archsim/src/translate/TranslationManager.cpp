@@ -149,7 +149,7 @@ void TranslationManager::Destroy()
 
 Region& TranslationManager::GetRegion(phys_addr_t phys_addr)
 {
-	GetManager().MarkRegionAsCode(PhysicalAddress(phys_addr).PageBase());
+	GetCodeRegions().MarkRegionAsCode(PhysicalAddress(phys_addr).PageBase());
 	return regions.Get(*this, RegionArch::PageBaseOf(phys_addr));
 }
 

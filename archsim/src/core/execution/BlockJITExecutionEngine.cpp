@@ -223,7 +223,7 @@ bool BlockJITExecutionEngine::translateBlock(ThreadInstance *thread, archsim::Ad
 	}
 
 	// we couldn't find the block in the physical profile, so create a new translation
-	thread->GetEmulationModel().GetSystem().GetProfileManager().MarkRegionAsCode(PhysicalAddress(physaddr.PageBase().Get()));
+	thread->GetEmulationModel().GetSystem().GetCodeRegions().MarkRegionAsCode(PhysicalAddress(physaddr.PageBase().Get()));
 
 	LC_DEBUG4(LogBlockJitCpu) << "Translating block " << std::hex << block_pc.Get();
 	auto *translate = translator_;
