@@ -11,6 +11,8 @@
 #include "util/NTZero.h"
 #include "util/LogContext.h"
 
+#include <fstream>
+
 //TODO: this should probably have a parent
 DeclareLogContext(LogBlockProfile, "BlockProfile");
 
@@ -28,6 +30,13 @@ bool BlockTranslation::FeaturesValid(const archsim::ProcessorFeatureSet& feature
 
 	return true;
 }
+
+void BlockTranslation::Dump(const std::string &filename)
+{
+	std::ofstream f(filename);
+	f.write((char*)_fn, GetSize());
+}
+
 
 BlockPageProfile::BlockPageProfile(wulib::MemAllocator &allocator) : _allocator(allocator)
 {

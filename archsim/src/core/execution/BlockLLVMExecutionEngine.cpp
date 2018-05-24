@@ -29,6 +29,7 @@ uint8_t* BlockJITLLVMMemoryManager::allocateCodeSection(uintptr_t Size, unsigned
 	auto section = (uint8_t*)allocator_.Allocate(Size);
 	
 	outstanding_code_sections_.push_back({section, Size});
+	section_sizes_[section] = Size;
 	
 	return section;
 }
@@ -67,7 +68,8 @@ static llvm::TargetMachine *GetNativeMachine() {
 BlockLLVMExecutionEngine::BlockLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) : 
 	BlockJITExecutionEngine(translator),
 	target_machine_(GetNativeMachine()),
-	linker_([&]() { return std::make_shared<BlockJITLLVMMemoryManager>(mem_allocator_); }),
+	memory_manager_(std::make_shared<BlockJITLLVMMemoryManager>(mem_allocator_)),
+	linker_([&]() { return memory_manager_; }),
 	compiler_(linker_, llvm::orc::SimpleCompiler(*target_machine_))
 {
 	
@@ -199,6 +201,11 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	if(address) {
 		block_txln_fn fn = (block_txln_fn)address.get();
 		txln.SetFn(fn);
+		txln.SetSize(memory_manager_->GetSectionSize((uint8_t*)fn));
+		
+		if(archsim::options::Debug) {
+			txln.Dump("llvm-bin-" + std::to_string(physaddr.Get()));
+		}
 		
 		phys_block_profile_.Insert(physaddr, txln);
 		virt_block_cache_.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
