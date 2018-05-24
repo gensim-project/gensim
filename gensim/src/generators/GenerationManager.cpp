@@ -47,13 +47,8 @@ namespace gensim
 
 		void GenerationManager::AddComponent(GenerationComponent& component)
 		{
-			if (Components.find(component.GetFunction()) != Components.end()) {
-				fprintf(stderr, "Attempted to insert a component with function %s when such a component already exists.\n", component.GetFunction().c_str());
-				exit(1);
-			} else {
-				Components.insert(std::pair<std::string, GenerationComponent*>(component.GetFunction(), &component));
-				_components.push_back(&component);
-			}
+			Components.insert(std::pair<std::string, GenerationComponent*>(component.GetFunction(), &component));
+			_components.push_back(&component);
 		}
 
 		GenerationComponent* GenerationManager::GetComponent(const std::string str)

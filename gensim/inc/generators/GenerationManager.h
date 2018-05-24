@@ -99,6 +99,7 @@ namespace gensim
 			UNKNOWN,
 			ExecutionEngine,
 			BlockJITTranslator,
+			Interpreter,
 			ArchDescriptor
 		};
 		
@@ -165,7 +166,7 @@ namespace gensim
 			std::string target;
 
 			std::vector<ModuleEntry> module_entries_;
-			std::map<std::string, GenerationComponent *> Components;
+			std::multimap<std::string, GenerationComponent *> Components;
 			mutable bool _components_up_to_date;
 			mutable std::vector<GenerationComponent *> _components;
 
