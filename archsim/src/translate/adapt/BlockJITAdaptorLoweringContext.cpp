@@ -121,8 +121,8 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx) {
 		AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMUserLowering());
 		AddLowerer(IRInstruction::WRITE_MEM, new BlockJITSTMEMUserLowering());
 	} else if(sys_model == "cache") {
-		AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMGenericLowering());
-		AddLowerer(IRInstruction::WRITE_MEM, new BlockJITSTMEMGenericLowering());
+		AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMCacheLowering());
+		AddLowerer(IRInstruction::WRITE_MEM, new BlockJITSTMEMCacheLowering());
 	} else {
 		AddLowerer(IRInstruction::READ_MEM, new BlockJITLDMEMGenericLowering());
 		AddLowerer(IRInstruction::WRITE_MEM, new BlockJITSTMEMGenericLowering());
