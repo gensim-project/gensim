@@ -73,10 +73,16 @@ namespace archsim
 					return *_features_required;
 				else return archsim::ProcessorFeatureSet();
 			}
+			
+			void SetSize(size_t newsize) { size_ = newsize; }
+			size_t GetSize() const { return size_; }
+			
+			void Dump(const std::string &filename);
 
 		private:
 			block_txln_fn _fn;
 			archsim::ProcessorFeatureSet *_features_required;
+			size_t size_;
 		};
 
 		class BlockPageProfile

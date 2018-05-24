@@ -38,10 +38,13 @@ namespace archsim {
 				uint8_t* allocateDataSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, llvm::StringRef SectionName, bool IsReadOnly) override;
 				
 				bool finalizeMemory(std::string* ErrMsg) override;
+				
+				uintptr_t GetSectionSize(uint8_t* ptr) const { return section_sizes_.at(ptr); }
 			private:
 				wulib::MemAllocator &allocator_;
 				
 				std::vector<std::pair<uint8_t*, uintptr_t>> outstanding_code_sections_;
+				std::map<uint8_t*, uintptr_t> section_sizes_;
 				
 			};
 			
@@ -61,6 +64,7 @@ namespace archsim {
 				
 				llvm::LLVMContext llvm_ctx_;
 				
+				std::shared_ptr<BlockJITLLVMMemoryManager> memory_manager_;
 				std::unique_ptr<llvm::TargetMachine> target_machine_;
 				llvm::orc::RTDyldObjectLinkingLayer linker_;
 				llvm::orc::IRCompileLayer<decltype(linker_), llvm::orc::SimpleCompiler> compiler_;
