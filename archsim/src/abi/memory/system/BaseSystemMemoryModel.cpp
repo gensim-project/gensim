@@ -226,8 +226,8 @@ uint32_t BaseSystemMemoryModel::DoWrite(guest_addr_t virt_addr, uint8_t *data, i
 				break;
 		}
 
-		if (GetProfile().IsRegionCode(PhysicalAddress(phys_addr))) {
-			GetProfile().InvalidateRegion(PhysicalAddress(phys_addr));
+		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr))) {
+			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr));
 		}
 
 		return 0;

@@ -37,7 +37,7 @@ System::System(archsim::Session& session) :
 	_verify_tid(-1),
 	_halted(false),
 	_tick_source(NULL),
-	profile_manager(pubsubctx)
+	code_region_tracker_(pubsubctx)
 {
 	max_fd = 0;
 	OpenFD(STDIN_FILENO);
@@ -141,7 +141,7 @@ bool System::Initialise()
 		return false;
 	}
 
-	if(txln_mgr)txln_mgr->SetManager(profile_manager);
+	if(txln_mgr)txln_mgr->SetManager(code_region_tracker_);
 
 	return true;
 }

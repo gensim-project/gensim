@@ -20,7 +20,7 @@
 #include "core/execution/ExecutionContextManager.h"
 #include "util/PubSubSync.h"
 #include "concurrent/Barrier.h"
-#include "translate/profile/ProfileManager.h"
+#include "translate/profile/CodeRegionTracker.h"
 #include "abi/devices/generic/block/BlockCache.h"
 #include "abi/devices/generic/block/BlockDevice.h"
 #include "module/ModuleManager.h"
@@ -197,9 +197,9 @@ public:
 		return session;
 	}
 
-	inline archsim::translate::profile::ProfileManager &GetProfileManager()
+	inline archsim::translate::profile::CodeRegionTracker &GetCodeRegions()
 	{
-		return profile_manager;
+		return code_region_tracker_;
 	}
 
 	//TODO: move this into user mode emulation model
@@ -260,7 +260,7 @@ private:
 	bool _halted;
 
 	archsim::util::PubSubContext pubsubctx;
-	archsim::translate::profile::ProfileManager profile_manager;
+	archsim::translate::profile::CodeRegionTracker code_region_tracker_;
 
 	archsim::module::ModuleManager module_manager_;
 

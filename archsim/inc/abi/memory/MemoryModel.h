@@ -10,7 +10,7 @@
 
 #include "define.h"
 
-#include "translate/profile/ProfileManager.h"
+#include "translate/profile/CodeRegionTracker.h"
 #include "abi/devices/Component.h"
 
 #include <string.h>

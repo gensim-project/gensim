@@ -18,7 +18,7 @@
 #include "core/thread/ThreadInstance.h"
 
 #include "translate/TranslationCache.h"
-#include "translate/profile/ProfileManager.h"
+#include "translate/profile/CodeRegionTracker.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -148,12 +148,12 @@ namespace archsim
 			virtual void PrintStatistics(std::ostream& stream);
 			size_t ApproximateRegionMemoryUsage() const;
 
-			profile::ProfileManager &GetManager()
+			profile::CodeRegionTracker &GetCodeRegions()
 			{
 				assert(manager);
 				return *manager;
 			}
-			void SetManager(profile::ProfileManager &manager)
+			void SetManager(profile::CodeRegionTracker &manager)
 			{
 				this->manager = &manager;
 			}
@@ -162,7 +162,7 @@ namespace archsim
 			profile::RegionTable regions;
 
 			// ProfileManager keeps track of which pages are code and notifies when pages are invalidated
-			profile::ProfileManager *manager;
+			profile::CodeRegionTracker *manager;
 
 			TranslationCache *txln_cache;
 
