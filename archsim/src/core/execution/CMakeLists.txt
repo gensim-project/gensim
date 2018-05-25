@@ -1,5 +1,4 @@
 archsim_add_sources(
-	BlockLLVMExecutionEngine.cpp
 	ExecutionContextManager.cpp
 	ExecutionEngine.cpp
 	BlockJITExecutionEngine.cpp
@@ -7,3 +6,10 @@ archsim_add_sources(
 
 	ExecutionEngineFactory.cpp
 )
+
+IF(ARCHSIM_ENABLE_LLVM)
+archsim_add_sources(
+	LLVMRegionJITExecutionEngine.cpp
+	BlockLLVMExecutionEngine.cpp
+)
+ENDIF()

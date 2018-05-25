@@ -14,6 +14,10 @@
 #ifndef BLOCKLLVMEXECUTIONENGINE_H
 #define BLOCKLLVMEXECUTIONENGINE_H
 
+#ifndef ARCHSIM_ENABLE_LLVM
+#error "This file should only be included if ARCHSIM_ENABLE_LLVM is ON"
+#endif
+
 #include "core/execution/ExecutionEngine.h"
 #include "BlockJITExecutionEngine.h"
 

@@ -5,6 +5,7 @@
  */
 
 #include "core/execution/BlockJITExecutionEngine.h"
+#include "core/execution/ExecutionEngineFactory.h"
 #include "core/thread/ThreadInstance.h"
 #include "core/MemoryInterface.h"
 #include "util/LogContext.h"
@@ -260,3 +261,5 @@ ExecutionEngine *archsim::core::execution::BlockJITExecutionEngine::Factory(cons
 	auto translator_entry = module->GetEntry<archsim::module::ModuleBlockJITTranslatorEntry>(entry_name)->Get();
 	return new BlockJITExecutionEngine(translator_entry);
 }
+
+static archsim::core::execution::ExecutionEngineFactoryRegistration registration("BlockJIT", 100, archsim::core::execution::BlockJITExecutionEngine::Factory);

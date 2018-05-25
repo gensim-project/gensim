@@ -10,6 +10,7 @@
 #include "core/MemoryInterface.h"
 #include "system.h"
 #include "translate/jit_funs.h"
+#include "core/execution/ExecutionEngineFactory.h"
 
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/Support/TargetSelect.h>
@@ -230,3 +231,5 @@ ExecutionEngine *BlockLLVMExecutionEngine::Factory(const archsim::module::Module
 	auto translator_entry = module->GetEntry<archsim::module::ModuleBlockJITTranslatorEntry>(entry_name)->Get();
 	return new BlockLLVMExecutionEngine(translator_entry);
 }
+
+static archsim::core::execution::ExecutionEngineFactoryRegistration registration("LLVMBlockJIT", 200, archsim::core::execution::BlockLLVMExecutionEngine::Factory);
