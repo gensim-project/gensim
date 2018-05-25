@@ -6,6 +6,7 @@
 
 #include "core/execution/InterpreterExecutionEngine.h"
 #include "core/thread/ThreadInstance.h"
+#include "core/execution/ExecutionEngineFactory.h"
 
 using namespace archsim::core::execution;
 
@@ -61,3 +62,5 @@ ExecutionEngine* InterpreterExecutionEngine::Factory(const archsim::module::Modu
 	auto interpreter = module->GetEntry<archsim::module::ModuleInterpreterEntry>(entry_name)->Get();
 	return new InterpreterExecutionEngine(interpreter);
 }
+
+static archsim::core::execution::ExecutionEngineFactoryRegistration registration("Interpreter", 10, archsim::core::execution::InterpreterExecutionEngine::Factory);

@@ -9,21 +9,30 @@
 #define LLVMREGIONJITEXECUTIONENGINE_H
 
 #include "core/execution/ExecutionEngine.h"
+#include "interpret/Interpreter.h"
+#include "blockjit/BlockJitTranslate.h"
+#include "translate/AsynchronousTranslationManager.h"
+#include "translate/profile/RegionProfile.h"
+#include "module/Module.h"
 
 namespace archsim {
 	namespace core {
-		namespace execution {
+		namespace execution {			
 			class LLVMRegionJITExecutionEngine : public ExecutionEngine {
 			public:
-				LLVMRegionJITExecutionEngine(Interpreter *interp, BlockJitTranslate *translate);
+				LLVMRegionJITExecutionEngine(interpret::Interpreter *interp, gensim::blockjit::BaseBlockJITTranslate *translate);
+				~LLVMRegionJITExecutionEngine();
 				
 				ExecutionResult Execute(ExecutionEngineThreadContext* thread) override;
 				ExecutionEngineThreadContext* GetNewContext(thread::ThreadInstance* thread) override;
 
-			private:
-				Interpreter *interpreter_;
-				BlockJitTranslate *translator_;
+				static ExecutionEngine *Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix);
 				
+			private:
+				interpret::Interpreter *interpreter_;
+				gensim::blockjit::BaseBlockJITTranslate *translator_;
+				
+				translate::profile::RegionProfile regions_;
 			};
 		}
 	}

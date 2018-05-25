@@ -19,16 +19,12 @@ using namespace captive::arch::jit::lowering;
 
 LoweringContext::LoweringContext() 
 {
-	_lowerers.resize(IRInstruction::_END, NULL);
+	_lowerers.resize(IRInstruction::_END, nullptr);
 }
 
 LoweringContext::~LoweringContext()
 {
-	for(auto i : _lowerers) {
-		if(i) {
-			delete i;
-		}
-	}
+
 }
 
 bool LoweringContext::PrepareLowerers(const TranslationContext &tctx)

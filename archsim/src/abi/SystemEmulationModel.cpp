@@ -15,7 +15,6 @@
 #include "core/execution/ExecutionEngine.h"
 
 #include "abi/memory/system/FunctionBasedSystemMemoryModel.h"
-
 #include "abi/memory/system/CacheBasedSystemMemoryModel.h"
 
 #include "util/ComponentManager.h"
@@ -60,7 +59,7 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	}
 	auto arch = archentry->Get();
 	
-	auto engine = archsim::core::execution::ExecutionEngineFactory().Get(module, "");
+	auto engine = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
 	GetSystem().GetECM().AddEngine(engine);
 	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 	

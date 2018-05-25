@@ -25,13 +25,31 @@ namespace archsim {
 		namespace execution {
 			class ExecutionEngineFactory {
 			public:
+				
 				using EEFactory = std::function<ExecutionEngine*(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix)>;
 				
-				ExecutionEngineFactory();
+				static ExecutionEngineFactory &GetSingleton();
+				
 				ExecutionEngine *Get(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix);
+				void Register(const std::string &name, int priority, EEFactory factory);
 				
 			private:
-				std::multimap<uint32_t, EEFactory, std::greater<uint32_t>> factories_;
+				ExecutionEngineFactory();
+				static ExecutionEngineFactory *singleton_;
+				
+				class Entry {
+				public:
+					EEFactory Factory;
+					uint32_t Priority;
+					std::string Name;
+				};
+				
+				std::multimap<uint32_t, Entry, std::greater<uint32_t>> factories_;
+			};
+			
+			class ExecutionEngineFactoryRegistration {
+			public:
+				ExecutionEngineFactoryRegistration(const std::string &name, int priority, ExecutionEngineFactory::EEFactory factory);
 			};
 		}
 	}

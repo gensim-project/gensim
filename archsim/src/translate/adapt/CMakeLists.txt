@@ -1,7 +1,3 @@
-archsim_add_sources(
-	BlockJITToLLVM.cpp
-	BlockJITAdaptorLowering.cpp
-	BlockJITAdaptorLoweringContext.cpp
-)
-
-ADD_SUBDIRECTORY(lowering)
+IF(ARCHSIM_ENABLE_LLVM)
+	ADD_SUBDIRECTORY(llvm)
+ENDIF()
