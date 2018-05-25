@@ -8,7 +8,7 @@ TranslationContext::TranslationContext(TranslationManager& tmgr, TranslationWork
 	:	twu(twu),
 	  tmgr(tmgr)
 {
-	UNIMPLEMENTED;
+	
 }
 
 TranslationContext::~TranslationContext()

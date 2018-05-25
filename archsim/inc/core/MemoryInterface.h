@@ -129,7 +129,7 @@ namespace archsim {
 	 * This is connected to an underlying device (which may be a bus).
 	 */
 	class MemoryInterface {
-	public:			
+	public:
 		MemoryInterface(const MemoryInterfaceDescriptor &descriptor) : descriptor_(descriptor) {}
 		const MemoryInterfaceDescriptor &GetDescriptor() { return descriptor_; }
 

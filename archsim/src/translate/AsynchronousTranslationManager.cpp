@@ -23,7 +23,7 @@ using namespace archsim::translate;
 
 RegisterComponent(TranslationManager, AsynchronousTranslationManager, "async", "Asynchronous", archsim::util::PubSubContext*);
 
-AsynchronousTranslationManager::AsynchronousTranslationManager(util::PubSubContext *psctx) : TranslationManager(psctx) { }
+AsynchronousTranslationManager::AsynchronousTranslationManager(util::PubSubContext *psctx) : TranslationManager(*psctx) { }
 
 AsynchronousTranslationManager::~AsynchronousTranslationManager() { }
 
@@ -32,13 +32,13 @@ bool WorkUnitQueueComparator::operator()(const TranslationWorkUnit* lhs, const T
 	return lhs->GetWeight() < rhs->GetWeight();
 }
 
-bool AsynchronousTranslationManager::Initialise()
+bool AsynchronousTranslationManager::Initialise(gensim::blockjit::BaseBlockJITTranslate *translate)
 {
 	if (!TranslationManager::Initialise())
 		return false;
 
 	for (unsigned int i = 0; i < archsim::options::JitThreads; i++) {
-		auto worker = new AsynchronousTranslationWorker(*this, i);
+		auto worker = new AsynchronousTranslationWorker(*this, i, translate);
 		workers.push_back(worker);
 		worker->start();
 	}
@@ -93,8 +93,10 @@ void AsynchronousTranslationManager::UpdateThreshold()
 	assert(curr_hotspot_threshold > 0);
 }
 
-bool AsynchronousTranslationManager::TranslateRegion(gensim::Processor& cpu, profile::Region& region, uint32_t weight)
+bool AsynchronousTranslationManager::TranslateRegion(archsim::core::thread::ThreadInstance *cpu, profile::Region& region, uint32_t weight)
 {
+	fprintf(stderr, "*** Translating %x\n", region.GetPhysicalBaseAddress());
+	
 	if (!region.IsValid()) return false;
 
 	// Create the translation work unit for this region.

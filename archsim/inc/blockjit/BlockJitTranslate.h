@@ -74,7 +74,10 @@ namespace gensim
 
 			bool build_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::shared::IRBuilder &builder);
 			virtual bool translate_instruction(const BaseDecode* decode_obj, captive::shared::IRBuilder& builder, bool trace) = 0;
-
+			
+			bool emit_instruction(archsim::core::thread::ThreadInstance *cpu, archsim::Address pc, gensim::BaseDecode *insn, captive::shared::IRBuilder &builder);
+			bool emit_instruction_decoded(archsim::core::thread::ThreadInstance *cpu, archsim::Address pc, const gensim::BaseDecode *insn, captive::shared::IRBuilder &builder);
+			
 			void SetDecodeContext(gensim::DecodeContext *dec) { _decode_ctx = dec; }
 			
 		private:
@@ -103,7 +106,6 @@ namespace gensim
 			bool compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, captive::shared::block_txln_fn &fn, wulib::MemAllocator &allocator);
 
 			bool emit_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::shared::IRBuilder &ctx, std::unordered_set<archsim::Address> &block_heads);
-			bool emit_instruction(archsim::core::thread::ThreadInstance *cpu, archsim::Address pc, gensim::BaseDecode *insn, captive::shared::IRBuilder &builder);
 			bool emit_chain(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, gensim::BaseDecode *insn, captive::shared::IRBuilder &ctx);
 
 			bool can_merge_jump(archsim::core::thread::ThreadInstance *cpu, gensim::BaseDecode *decode, archsim::Address pc);

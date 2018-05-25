@@ -81,7 +81,7 @@ namespace archsim
 			virtual bool Initialise();
 			virtual void Destroy();
 
-			virtual bool TranslateRegion(archsim::core::thread::ThreadInstance *thread, profile::Region& rgn, uint32_t weight) = 0;
+			virtual bool TranslateRegion(archsim::core::thread::ThreadInstance *thread, profile::Region& rgn, uint32_t weight);
 
 			inline bool RegionIsDirty(phys_addr_t region_addr)
 			{

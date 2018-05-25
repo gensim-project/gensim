@@ -75,7 +75,7 @@ uint32_t ARMDecodeContext::DecodeSync(Address address, uint32_t mode, gensim::Ba
 class ARMDecodeTranslateContext : public gensim::DecodeTranslateContext
 {
 public:
-	void Translate(gensim::BaseDecode &insn, gensim::DecodeContext &dcode, captive::shared::IRBuilder &builder) override
+	void Translate(const gensim::BaseDecode &insn, gensim::DecodeContext &dcode, captive::shared::IRBuilder &builder) override
 	{
 		using namespace captive::shared;
 		ARMDecodeContext &decode = (ARMDecodeContext&)dcode;

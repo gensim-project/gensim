@@ -12,5 +12,10 @@ ADD_SUBDIRECTORY(profile)
 ADD_SUBDIRECTORY(interrupts)
 
 IF(ARCHSIM_ENABLE_LLVM)
-	ADD_SUBDIRECTORY(llvm)
+	archsim_add_sources(
+		AsynchronousTranslationManager.cpp
+		AsynchronousTranslationWorker.cpp
+	)
+
+ADD_SUBDIRECTORY(llvm)
 ENDIF()

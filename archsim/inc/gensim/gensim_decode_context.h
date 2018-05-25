@@ -58,7 +58,7 @@ namespace gensim
 	class DecodeTranslateContext
 	{
 	public:
-		virtual void Translate(gensim::BaseDecode &insn, DecodeContext &decode, captive::shared::IRBuilder &builder) = 0;
+		virtual void Translate(const gensim::BaseDecode &insn, DecodeContext &decode, captive::shared::IRBuilder &builder) = 0;
 	};
 }
 
