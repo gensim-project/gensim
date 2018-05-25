@@ -225,7 +225,7 @@ llvm::BasicBlock* BlockJITLoweringContext::GetLLVMBlock(IRBlockId block_id)
 
 ::llvm::MDNode* BlockJITLoweringContext::GetRegAccessMetadata()
 {
-
+	return nullptr;
 }
 
 
@@ -276,6 +276,7 @@ llvm::Value* BlockJITLoweringContext::GetValueFor(const IROperand& operand) {
 		default:
 			UNIMPLEMENTED;
 	}
+	return nullptr;
 }
 
 void BlockJITLoweringContext::SetValueFor(const IROperand& operand, ::llvm::Value* value) {
@@ -292,6 +293,7 @@ void BlockJITLoweringContext::SetValueFor(const IROperand& operand, ::llvm::Valu
 		default:
 			UNIMPLEMENTED;
 	}
+	return nullptr;
 }
 
 ::llvm::Type* BlockJITLoweringContext::GetLLVMType(const IROperand& op)

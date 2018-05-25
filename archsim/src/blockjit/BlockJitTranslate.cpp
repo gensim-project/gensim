@@ -205,21 +205,26 @@ bool BaseBlockJITTranslate::build_block(archsim::core::thread::ThreadInstance *p
 	return emit_block(processor, block_address, builder, block_heads);
 }
 
-bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstance *processor, Address pc, gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
+bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstance* cpu, archsim::Address pc, gensim::BaseDecode* insn, captive::shared::IRBuilder& builder)
 {
-	if(archsim::options::Verbose)builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
-
-
-	auto fault = _decode_ctx->DecodeSync(pc, GetIsaMode(), *decode);
+	auto fault = _decode_ctx->DecodeSync(pc, GetIsaMode(), *insn);
 	assert(!fault);
 
-	LC_DEBUG4(LogBlockJit) << "Translating instruction " << std::hex << pc.Get() << " " << decode->Instr_Code << " " << decode->ir;
-
-	if(decode->Instr_Code == 65535) {
-		LC_DEBUG1(LogBlockJit) << "Invalid instruction! 0x" << std::hex << decode->ir;
-		std::cout << "Invalid instruction! PC:" << std::hex << pc.Get() << ": IR:" << std::hex << decode->ir << " ISAMODE:" << (uint32_t)decode->isa_mode << "\n";
+	if(insn->Instr_Code == 65535) {
+		LC_DEBUG1(LogBlockJit) << "Invalid instruction! 0x" << std::hex << insn->ir;
+		std::cout << "Invalid instruction! PC:" << std::hex << pc.Get() << ": IR:" << std::hex << insn->ir << " ISAMODE:" << (uint32_t)insn->isa_mode << "\n";
 		return false;
 	}
+	
+	return emit_instruction_decoded(cpu, pc, insn, builder);
+}
+
+
+bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::ThreadInstance *processor, Address pc, const gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
+{
+	LC_DEBUG4(LogBlockJit) << "Translating instruction " << std::hex << pc.Get() << " " << decode->Instr_Code << " " << decode->ir;
+	
+	if(archsim::options::Verbose)builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
 
 	IRInstruction b = IRInstruction::barrier();
 	b.operands[0] = IROperand::const32(decode->GetIR());

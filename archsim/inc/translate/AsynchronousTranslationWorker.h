@@ -12,6 +12,7 @@
 #include "util/Counter.h"
 #include "translate/llvm/LLVMOptimiser.h"
 #include "translate/TranslationManager.h"
+#include "blockjit/BlockJitTranslate.h"
 #include "util/PagePool.h"
 
 namespace llvm
@@ -30,7 +31,7 @@ namespace archsim
 		{
 			friend class AsynchronousTranslationManager;
 		public:
-			AsynchronousTranslationWorker(AsynchronousTranslationManager& mgr, uint8_t id);
+			AsynchronousTranslationWorker(AsynchronousTranslationManager& mgr, uint8_t id, gensim::blockjit::BaseBlockJITTranslate *translate);
 
 			void run();
 			void stop();
@@ -43,11 +44,13 @@ namespace archsim
 			util::Counter64 txlns;
 			util::Counter64 blocks;
 
+			gensim::blockjit::BaseBlockJITTranslate *translate_;
+			
 			uint8_t id;
 			AsynchronousTranslationManager& mgr;
 			volatile bool terminate;
 
-			llvm::LLVMOptimiser *optimiser;
+			translate_llvm::LLVMOptimiser *optimiser;
 
 			util::PagePool code_pool;
 

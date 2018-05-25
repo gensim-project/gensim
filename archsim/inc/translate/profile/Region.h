@@ -146,7 +146,8 @@ namespace archsim
 					return !invalid;
 				}
 
-
+				void dump();
+				void dump_dot();
 
 			public:
 				size_t GetApproximateMemoryUsage() const;

@@ -2,6 +2,9 @@
 #include "translate/AsynchronousTranslationManager.h"
 #include "translate/TranslationWorkUnit.h"
 #include "translate/llvm/LLVMTranslationContext.h"
+#include "translate/adapt/BlockJITToLLVM.h"
+#include "blockjit/BlockJitTranslate.h"
+
 
 #include "util/LogContext.h"
 #include "translate/profile/Block.h"
@@ -17,9 +20,9 @@ UseLogContext(LogTranslate);
 UseLogContext(LogWorkQueue);
 
 using namespace archsim::translate;
-using namespace archsim::translate::llvm;
+using namespace archsim::translate::translate_llvm;
 
-AsynchronousTranslationWorker::AsynchronousTranslationWorker(AsynchronousTranslationManager& mgr, uint8_t id) : Thread("Txln Worker"), mgr(mgr), terminate(false), id(id), optimiser(NULL)
+AsynchronousTranslationWorker::AsynchronousTranslationWorker(AsynchronousTranslationManager& mgr, uint8_t id, gensim::blockjit::BaseBlockJITTranslate *translate) : Thread("Txln Worker"), mgr(mgr), terminate(false), id(id), optimiser(NULL), translate_(translate)
 {
 
 }
@@ -113,6 +116,20 @@ void AsynchronousTranslationWorker::stop()
 	join();
 }
 
+static void BuildDispatchFunction(llvm::Module *module, const std::map<uint32_t, llvm::Function*> *fn) {
+	llvm::FunctionType *ftype = llvm::FunctionType::get(voidTy, {i8PtrTy, i8PtrTy});
+	llvm::Function *fn = module->getOrInsertFunction("region", ftype);
+	llvm::BasicBlock *entryblock = llvm::BasicBlock::Create(module->getContext(), "", fn);
+	
+	llvm::IRBuilder<> builder(entryblock);
+	
+	// load PC
+	
+	// mask page offset
+	
+	// switch statement
+}
+
 /**
  * Translates the given translation work unit.
  * @param llvm_ctx The LLVM context to perform the translation with.
@@ -134,13 +151,41 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 
 	// Create a new LLVM translation context.
 	LLVMOptimiser opt;
-	LLVMTranslationContext tctx(mgr, unit, llvm_ctx, opt, code_pool);
-
-	// Prepare a variable for holding the new translation, and perform the translation.
-	Translation *txln = NULL;
-	bool result = tctx.Translate(txln, timers);
-
-//	bool result = false;
+	
+	// Create a new llvm module to contain the translation
+	llvm::Module *module = new llvm::Module("region_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress()), llvm_ctx);
+	
+	translate::adapt::BlockJITToLLVMAdaptor adaptor(llvm_ctx);
+	
+	gensim::blockjit::BaseBlockJITTranslate *translate = translate_;
+	translate->InitialiseFeatures(unit.GetThread());
+	translate->InitialiseIsaMode(unit.GetThread());
+	// create a function for each block in the region
+	
+	std::map<uint32_t, llvm::Function *> block_map;
+	
+	for(auto block : unit.GetBlocks()) {
+		captive::arch::jit::TranslationContext blockjit_ctx;
+		captive::shared::IRBuilder builder;
+		builder.SetBlock(blockjit_ctx.alloc_block());
+		builder.SetContext(&blockjit_ctx);
+		
+		for(auto insn : block.second->GetInstructions()) {
+			translate->emit_instruction_decoded(unit.GetThread(), Address(unit.GetRegion().GetPhysicalBaseAddress() + insn->GetOffset()), &insn->GetDecode(), builder);
+		}
+		builder.ret();
+		
+		auto fn = adaptor.AdaptIR(unit.GetThread(), module, "block_" + std::to_string(block.first), blockjit_ctx);
+		block_map[block.first] = fn;
+	}
+	
+	// build a dispatch function
+	bool result = false;
+	BuildDispatchFunction(module, block_map);
+	
+	// compile the constructed module
+	
+	
 	if (terminate || !result) {
 		LC_ERROR(LogTranslate) << "[" << (uint32_t)id << "] Translation Failed: " << unit;
 	} else {
@@ -150,9 +195,9 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 			txlns.inc();
 		}
 
-		if (!mgr.MarkTranslationAsComplete(unit.GetRegion(), *txln)) {
-			delete txln;
-		}
+//		if (!mgr.MarkTranslationAsComplete(unit.GetRegion(), *txln)) {
+//			delete txln;
+//		}
 	}
 }
 

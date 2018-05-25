@@ -38,9 +38,9 @@ DeclareChildLogContext(LogAliasAnalysis, LogTranslate, "AliasAnalysis");
 #define CONSTVAL(a) (llvm::mdconst::extract<llvm::ConstantInt>(a)->getZExtValue())
 #define ISCONSTVAL(a) (a->getValueID() == ::llvm::Instruction::ConstantIntVal)
 
-#if 0
-
 using namespace archsim::translate::translate_llvm;
+
+#if 0
 
 static bool IsInstr(const ::llvm::Value *v)
 {
@@ -315,7 +315,7 @@ bool ArchsimAA::runOnFunction(llvm::Function& F)
 
 #endif
 
-#if 0
+
 LLVMOptimiser::LLVMOptimiser() : isInitialised(false)
 {
 
@@ -327,55 +327,55 @@ LLVMOptimiser::~LLVMOptimiser()
 
 bool LLVMOptimiser::Initialise(const ::llvm::DataLayout *datalayout)
 {
-	isInitialised = true;
-	pm.add(::llvm::createTypeBasedAAWrapperPass());
-	//AddPass(new ::llvm::DataLayout(*datalayout));
-
-	if (archsim::options::JitOptLevel.GetValue() == 0)
-		return true;
-
-	//-constmerge -simplifycfg -lowerswitch  -globalopt -scalarrepl -deadargelim -functionattrs -constprop  -simplifycfg -argpromotion -inline -mem2reg -deadargelim
-	AddPass(::llvm::createConstantMergePass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createLowerSwitchPass());
-	AddPass(::llvm::createGlobalOptimizerPass());
-	AddPass(::llvm::createSROAPass());
-	AddPass(::llvm::createDeadArgEliminationPass());
-//	AddPass(::llvm::createFunctionAttrsPass());
-	AddPass(::llvm::createConstantPropagationPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createArgumentPromotionPass());
-	AddPass(::llvm::createFunctionInliningPass());
-	AddPass(::llvm::createPromoteMemoryToRegisterPass());
-	AddPass(::llvm::createDeadArgEliminationPass());
-
-	//-argpromotion -loop-deletion -adce -loop-deletion -dse -break-crit-edges -ipsccp -break-crit-edges -deadargelim -simplifycfg -gvn -prune-eh -die -constmerge
-	AddPass(::llvm::createArgumentPromotionPass());
-	AddPass(::llvm::createLoopDeletionPass());
-	AddPass(::llvm::createAggressiveDCEPass());
-	AddPass(::llvm::createLoopDeletionPass());
-	AddPass(::llvm::createDeadStoreEliminationPass());
-	AddPass(::llvm::createBreakCriticalEdgesPass());
-	AddPass(::llvm::createIPSCCPPass());
-	AddPass(::llvm::createBreakCriticalEdgesPass());
-	AddPass(::llvm::createDeadArgEliminationPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-//	AddPass(::llvm::createGVNPass(false));
-	AddPass(::llvm::createPruneEHPass());
-	AddPass(::llvm::createDeadInstEliminationPass());
-	AddPass(::llvm::createConstantMergePass());
-
-	//-tailcallelim -simplifycfg -dse -globalopt  -loop-unswitch -memcpyopt -loop-unswitch -ipconstprop -deadargelim -jump-threading
-	AddPass(::llvm::createTailCallEliminationPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createDeadStoreEliminationPass());
-	AddPass(::llvm::createGlobalOptimizerPass());
-	AddPass(::llvm::createLoopUnswitchPass());
-	AddPass(::llvm::createMemCpyOptPass());
-	AddPass(::llvm::createLoopUnswitchPass());
-	AddPass(::llvm::createIPConstantPropagationPass());
-	AddPass(::llvm::createDeadArgEliminationPass());
-	AddPass(::llvm::createJumpThreadingPass());
+//	isInitialised = true;
+//	pm.add(::llvm::createTypeBasedAAWrapperPass());
+//	//AddPass(new ::llvm::DataLayout(*datalayout));
+//
+//	if (archsim::options::JitOptLevel.GetValue() == 0)
+//		return true;
+//
+//	//-constmerge -simplifycfg -lowerswitch  -globalopt -scalarrepl -deadargelim -functionattrs -constprop  -simplifycfg -argpromotion -inline -mem2reg -deadargelim
+//	AddPass(::llvm::createConstantMergePass());
+//	AddPass(::llvm::createCFGSimplificationPass());
+//	AddPass(::llvm::createLowerSwitchPass());
+//	AddPass(::llvm::createGlobalOptimizerPass());
+//	AddPass(::llvm::createSROAPass());
+//	AddPass(::llvm::createDeadArgEliminationPass());
+////	AddPass(::llvm::createFunctionAttrsPass());
+//	AddPass(::llvm::createConstantPropagationPass());
+//	AddPass(::llvm::createCFGSimplificationPass());
+//	AddPass(::llvm::createArgumentPromotionPass());
+//	AddPass(::llvm::createFunctionInliningPass());
+//	AddPass(::llvm::createPromoteMemoryToRegisterPass());
+//	AddPass(::llvm::createDeadArgEliminationPass());
+//
+//	//-argpromotion -loop-deletion -adce -loop-deletion -dse -break-crit-edges -ipsccp -break-crit-edges -deadargelim -simplifycfg -gvn -prune-eh -die -constmerge
+//	AddPass(::llvm::createArgumentPromotionPass());
+//	AddPass(::llvm::createLoopDeletionPass());
+//	AddPass(::llvm::createAggressiveDCEPass());
+//	AddPass(::llvm::createLoopDeletionPass());
+//	AddPass(::llvm::createDeadStoreEliminationPass());
+//	AddPass(::llvm::createBreakCriticalEdgesPass());
+//	AddPass(::llvm::createIPSCCPPass());
+//	AddPass(::llvm::createBreakCriticalEdgesPass());
+//	AddPass(::llvm::createDeadArgEliminationPass());
+//	AddPass(::llvm::createCFGSimplificationPass());
+////	AddPass(::llvm::createGVNPass(false));
+//	AddPass(::llvm::createPruneEHPass());
+//	AddPass(::llvm::createDeadInstEliminationPass());
+//	AddPass(::llvm::createConstantMergePass());
+//
+//	//-tailcallelim -simplifycfg -dse -globalopt  -loop-unswitch -memcpyopt -loop-unswitch -ipconstprop -deadargelim -jump-threading
+//	AddPass(::llvm::createTailCallEliminationPass());
+//	AddPass(::llvm::createCFGSimplificationPass());
+//	AddPass(::llvm::createDeadStoreEliminationPass());
+//	AddPass(::llvm::createGlobalOptimizerPass());
+//	AddPass(::llvm::createLoopUnswitchPass());
+//	AddPass(::llvm::createMemCpyOptPass());
+//	AddPass(::llvm::createLoopUnswitchPass());
+//	AddPass(::llvm::createIPConstantPropagationPass());
+//	AddPass(::llvm::createDeadArgEliminationPass());
+//	AddPass(::llvm::createJumpThreadingPass());
 	/*
 	AddPass(::llvm::createGlobalOptimizerPass());
 	AddPass(::llvm::createIPSCCPPass());
@@ -522,10 +522,9 @@ bool LLVMOptimiser::Optimise(::llvm::Module* module, const ::llvm::DataLayout *d
 	if(archsim::options::Debug && ::llvm::verifyModule(*module, &::llvm::outs())) assert(false);
 
 	if(!isInitialised)Initialise(data_layout);
-	pm.run(*module);
+//	pm.run(*module);
 
 
 
 	return true;
 }
-#endif

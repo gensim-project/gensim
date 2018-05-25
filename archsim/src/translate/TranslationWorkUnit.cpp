@@ -5,6 +5,7 @@
 
 #include "gensim/gensim_decode.h"
 #include "gensim/gensim_translate.h"
+#include "core/MemoryInterface.h"
 
 #include "util/LogContext.h"
 
@@ -66,6 +67,10 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	host_addr_t guest_page_data;
 //	thread->GetEmulationModel().GetMemoryModel().LockRegion(region.GetPhysicalBaseAddress(), profile::RegionArch::PageSize, guest_page_data);
 
+	auto phys_device = new archsim::LegacyMemoryInterface(thread->GetEmulationModel().GetMemoryModel());
+	auto phys_interface = new archsim::MemoryInterface(thread->GetArch().GetMemoryInterfaceDescriptor().GetFetchInterface());
+	phys_interface->Connect(*phys_device);
+	
 	for (auto block : region.blocks) {
 		auto tbu = twu->AddBlock(*block.second, block.second->IsRootBlock());
 
@@ -75,22 +80,9 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 
 		while (!end_of_block && offset < profile::RegionArch::PageSize) {
 			gensim::BaseDecode *decode = thread->GetArch().GetISA(block.second->GetISAMode()).GetNewDecode();
-
-			UNIMPLEMENTED;
 			
-//			thread->GetArch().GetISA(block.second->GetISAMode()).DecodeInstr(region.GetPhysicalBaseAddress() + offset, );
+			thread->GetArch().GetISA(block.second->GetISAMode()).DecodeInstr(Address(region.GetPhysicalBaseAddress() + offset), phys_interface, *decode);
 			
-			uint32_t data;
-			if (block.second->GetISAMode() == 1) {
-				data = *(uint16_t *)((uint8_t *)guest_page_data + offset);
-				data <<= 16;
-				data |= *(uint16_t *)((uint8_t *)guest_page_data + offset + 2);
-			} else {
-				data = *(uint32_t *)((uint8_t *)guest_page_data + offset);
-			}
-
-//			cpu.DecodeInstrIr(data, block.second->GetISAMode(), *decode);
-
 			if(decode->Instr_Code == (uint16_t)(-1)) {
 				LC_WARNING(LogTranslate) << "Invalid Instruction at " << std::hex << (uint32_t)(region.GetPhysicalBaseAddress() + offset) <<  ", ir=" << decode->ir << ", isa mode=" << (uint32_t)block.second->GetISAMode() << " whilst building " << *twu;
 				delete decode;

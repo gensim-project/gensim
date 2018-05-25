@@ -32,6 +32,29 @@ Region::~Region()
 	}
 }
 
+void Region::dump()
+{
+	std::cerr << *this;
+}
+
+void Region::dump_dot()
+{
+	std::cerr << "graph {" << std::endl;;
+	
+	for(auto i : blocks) {
+		std::cerr << "block_" << std::hex << i.first << ";" << std::endl;
+	}
+	
+	for(auto i : blocks) {
+		for(auto j : i.second->GetSuccessors()) {
+			std::cerr << "block_" << std::hex << i.first << " -> block_" << std::hex << j->GetOffset() << ";" << std::endl;
+		}
+	}
+	
+	std::cerr << "}" << std::endl;;
+}
+
+
 Block& Region::GetBlock(Address virt_addr, uint8_t isa_mode)
 {
 	addr_t offset = virt_addr.GetPageOffset();

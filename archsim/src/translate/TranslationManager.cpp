@@ -117,6 +117,12 @@ TranslationManager::~TranslationManager()
 
 }
 
+bool TranslationManager::TranslateRegion(archsim::core::thread::ThreadInstance* thread, profile::Region& rgn, uint32_t weight)
+{
+	return false;
+}
+
+
 bool TranslationManager::Initialise()
 {
 	// Attempt to acquire the translation engine
@@ -191,7 +197,7 @@ bool TranslationManager::Profile(archsim::core::thread::ThreadInstance *thread)
 			txltd_regions = true;
 
 			thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationPhysical, (void*)(uint64_t)region->GetPhysicalBaseAddress());
-			for(auto virt_base : region->virtual_images){
+			for(auto virt_base : region->virtual_images) {
 				thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationVirtual, (void*)(uint64_t)virt_base);
 			}
 
