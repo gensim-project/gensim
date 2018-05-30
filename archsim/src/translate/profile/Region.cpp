@@ -17,7 +17,7 @@ Region::Region(TranslationManager& mgr, phys_addr_t phys_base_addr)
 	  current_generation(0),
 	  max_generation(0),
 	  status(NotInTranslation),
-	  invalid(false),
+	  invalid_(false),
 	  txln(NULL)
 {
 
@@ -93,7 +93,7 @@ void Region::TraceBlock(archsim::core::thread::ThreadInstance *thread, Address v
 
 void Region::Invalidate()
 {
-	invalid = true;
+	invalid_ = true;
 }
 
 size_t Region::GetApproximateMemoryUsage() const
@@ -119,7 +119,7 @@ namespace archsim
 			{
 				out << "[Region " << std::hex << rgn.phys_base_addr << "(" << &rgn << "), generation=" << std::dec << rgn.current_generation << "/" << rgn.max_generation;
 
-				if (rgn.invalid)
+				if (rgn.invalid_)
 					out << " INVALID";
 
 //	out << ", Heat = " << rgn.TotalBlockHeat() << "/" << rgn.TotalRegionHeat();

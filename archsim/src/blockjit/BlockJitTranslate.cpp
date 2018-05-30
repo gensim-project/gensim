@@ -207,7 +207,9 @@ bool BaseBlockJITTranslate::build_block(archsim::core::thread::ThreadInstance *p
 
 bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstance* cpu, archsim::Address pc, gensim::BaseDecode* insn, captive::shared::IRBuilder& builder)
 {
-	auto fault = _decode_ctx->DecodeSync(pc, GetIsaMode(), *insn);
+	_decode_ctx->Reset(cpu);
+	auto fault = _decode_ctx->DecodeSync(cpu->GetFetchMI(), pc, GetIsaMode(), *insn);
+	_decode_ctx->WriteBackState(cpu);
 	assert(!fault);
 
 	if(insn->Instr_Code == 65535) {
@@ -265,7 +267,7 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 		}
 	}
 	
-	decode_txlt_ctx->Translate(*decode, *_decode_ctx, builder);
+	decode_txlt_ctx->Translate(processor, *decode, *_decode_ctx, builder);
 
 	if(processor->GetTraceSource()) {
 		builder.call(IROperand::func((void*)cpuTraceInsnEnd));

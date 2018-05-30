@@ -82,7 +82,7 @@ bool ArmLinuxUserEmulationModel::PrepareBoot(System& system)
 
 gensim::DecodeContext* ArmLinuxUserEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance &cpu)
 {
-	return new archsim::arch::arm::ARMDecodeContext(&cpu);
+	return new archsim::arch::arm::ARMDecodeContext(cpu.GetArch());
 }
 
 

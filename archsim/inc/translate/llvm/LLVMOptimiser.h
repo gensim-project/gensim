@@ -48,10 +48,10 @@ namespace archsim
 				LLVMOptimiser();
 				~LLVMOptimiser();
 
-				bool Optimise(::llvm::Module *module, const ::llvm::DataLayout *data_layout);
+				bool Optimise(::llvm::Module *module, const ::llvm::DataLayout &data_layout);
 
 			private:
-				bool Initialise(const ::llvm::DataLayout*);
+				bool Initialise(const ::llvm::DataLayout&);
 
 				bool AddPass(::llvm::Pass*);
 

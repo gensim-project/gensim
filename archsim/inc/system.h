@@ -80,12 +80,6 @@ public:
 
 	typedef bool (*segfault_handler_t)(void *ctx, const segfault_data& data);
 
-	enum SimulationMode {
-		Interpreter,
-		IJ,
-		JIT,
-		SingleStep,
-	};
 
 	uint32_t exit_code;
 
@@ -108,39 +102,9 @@ public:
 
 	void PrintStatistics(std::ostream& stream);
 
-	inline bool HaveTranslationManager() const
-	{
-		return txln_mgr != NULL;
-	}
-
-	inline archsim::translate::TranslationManager& GetTranslationManager() const
-	{
-		return *txln_mgr;
-	}
-
-	inline bool HaveIJManager() const
-	{
-		return ij_mgr != NULL;
-	}
-
-	inline archsim::ij::IJManager& GetIJManager() const
-	{
-		return *ij_mgr;
-	}
-
 	inline archsim::abi::EmulationModel& GetEmulationModel() const
 	{
 		return *emulation_model;
-	}
-
-	inline SimulationMode GetSimulationMode() const
-	{
-		return mode;
-	}
-
-	inline void SetSimulationMode(SimulationMode mode)
-	{
-		this->mode = mode;
 	}
 
 	inline bool HasBreakpoints() const
@@ -280,11 +244,8 @@ private:
 	bool Simulate(bool trace);
 
 	archsim::abi::EmulationModel *emulation_model;
-	archsim::translate::TranslationManager *txln_mgr;
-	archsim::ij::IJManager *ij_mgr;
 	archsim::uarch::uArch *uarch;
 
-	SimulationMode mode;
 
 	archsim::abi::devices::timing::TickSource *_tick_source;
 };

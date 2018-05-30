@@ -62,7 +62,7 @@ bool RiscVLinuxUserEmulationModel::PrepareBoot(System& system)
 
 gensim::DecodeContext* RiscVLinuxUserEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu)
 {
-	return new arch::riscv::RiscVDecodeContext(&cpu);
+	return new arch::riscv::RiscVDecodeContext(cpu.GetArch());
 }
 
 

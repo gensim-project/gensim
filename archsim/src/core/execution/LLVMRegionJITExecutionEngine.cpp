@@ -8,6 +8,7 @@
 #include "core/execution/ExecutionEngineFactory.h"
 #include "core/MemoryInterface.h"
 #include "system.h"
+#include "translate/Translation.h"
 
 using namespace archsim::core::execution;
 
@@ -61,8 +62,15 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 			Address phys_pc(0);
 			auto txln = thread->GetFetchMI().PerformTranslation(virt_pc, phys_pc, false, true, false);
 			auto &region = ctx->TxlnMgr.GetRegion(phys_pc.Get());
-			region.TraceBlock(thread, virt_pc);
 
+			if(region.HasTranslations()) {
+				if(region.txln != nullptr && region.txln->ContainsBlock(virt_pc.GetPageOffset())) {
+					region.txln->Execute(thread);
+					continue;
+				}
+			}
+			
+			region.TraceBlock(thread, virt_pc);
 			auto result = interpreter_->StepBlock(thread);
 
 			switch(result) {
@@ -74,6 +82,8 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 			}
 		}
 		ctx->TxlnMgr.Profile(thread);
+		ctx->TxlnMgr.RegisterCompletedTranslations();
+		
 	}
 	return ExecutionResult::Halt;
 }

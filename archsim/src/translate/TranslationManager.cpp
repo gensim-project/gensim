@@ -283,6 +283,7 @@ void TranslationManager::InvalidateRegionTxlnCacheEntry(virt_addr_t virt_addr)
 bool TranslationManager::MarkTranslationAsComplete(Region &unit, Translation &txln)
 {
 	completed_translations_lock.lock();
+	unit.Acquire();
 	completed_translations.push_back({&unit, &txln});
 	completed_translations_lock.unlock();
 
@@ -298,6 +299,7 @@ void TranslationManager::RegisterCompletedTranslations()
 	for(auto &txln : completed_translations) {
 		registered |= RegisterTranslation(*txln.first, *txln.second);
 		InvalidateRegionTxlnCacheEntry(txln.first->GetPhysicalBaseAddress());
+		txln.first->Release();
 	}
 	completed_translations.clear();
 	completed_translations_lock.unlock();

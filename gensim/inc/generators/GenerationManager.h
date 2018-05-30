@@ -118,7 +118,26 @@ namespace gensim
 			std::string class_name_;
 			std::string entry_name_;
 			ModuleEntryType entry_type_;
+		};
+		
+		class FunctionEntry {
+		public:
+			FunctionEntry(const std::string prototype, const std::string &body, const std::vector<std::string> &local_headers={}, const std::vector<std::string> &sys_headers={}, const std::vector<std::string> &specialisations={}, bool global=false);
 			
+			std::string Format() const;
+			std::string FormatPrototype() const;
+			std::string FormatIncludes() const;
+			size_t GetBodySize() const;
+			bool IsGlobal() const;
+			
+		private:
+			std::string prototype_;
+			std::string body_;
+			std::vector<std::string> local_headers_;
+			std::vector<std::string> system_headers_;
+			std::vector<std::string> specialisations_;
+			
+			bool is_global_;
 		};
 		
 		class GenerationManager
@@ -139,6 +158,7 @@ namespace gensim
 			void AddComponent(GenerationComponent &component);
 			
 			void AddModuleEntry(const ModuleEntry &entry) { module_entries_.push_back(entry); }
+			void AddFunctionEntry(const FunctionEntry &entry) { function_entries_.push_back(entry); }
 
 			bool Generate();
 
@@ -160,12 +180,15 @@ namespace gensim
 			virtual ~GenerationManager() {};
 
 			const std::vector<ModuleEntry> &GetModuleEntries() const { return module_entries_; }
+			const std::vector<FunctionEntry> &GetFunctionEntries() const { return function_entries_; }
 			
 		private:
 			arch::ArchDescription &arch;
 			std::string target;
 
 			std::vector<ModuleEntry> module_entries_;
+			std::vector<FunctionEntry> function_entries_;
+			
 			std::multimap<std::string, GenerationComponent *> Components;
 			mutable bool _components_up_to_date;
 			mutable std::vector<GenerationComponent *> _components;
@@ -235,7 +258,7 @@ namespace gensim
 			const virtual std::vector<std::string> GetSources() const = 0;
 
 		protected:
-			const GenerationManager &Manager;
+			GenerationManager &Manager;
 
 			void WriteOutputFile(const std::string filename, const util::cppformatstream &contents) const;
 			void WriteOutputFile(const std::string filename, const std::stringstream &contents) const;
@@ -247,7 +270,7 @@ namespace gensim
 
 			std::string name;
 
-			GenerationComponent(const GenerationManager &man, std::string _name) : Manager(man), name(_name) {}
+			GenerationComponent(GenerationManager &man, std::string _name) : Manager(man), name(_name) {}
 
 		private:
 			std::map<std::string, std::string> Properties;

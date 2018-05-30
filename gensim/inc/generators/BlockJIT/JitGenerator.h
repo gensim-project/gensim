@@ -35,7 +35,7 @@ namespace gensim
 		class JitGenerator : public GenerationComponent
 		{
 		public:
-			JitGenerator(const GenerationManager &man);
+			JitGenerator(GenerationManager &man);
 
 			bool Generate() const override;
 			const std::vector<std::string> GetSources() const override
@@ -58,11 +58,11 @@ namespace gensim
 			mutable std::vector<std::string> sources;
 
 			bool GeneratePredicateFunction(util::cppformatstream &, const isa::ISADescription& isa, const isa::InstructionFormatDescription& fmt) const;
-			bool GenerateJITFunction(util::cppformatstream &, const isa::ISADescription& isa, const isa::InstructionDescription& insn) const;
+			bool RegisterJITFunction(const isa::ISADescription& isa, const isa::InstructionDescription& insn) const;
 			bool EmitJITFunction(util::cppformatstream &, const genc::ssa::SSAFormAction& action) const;
 
 			bool GenerateJitChunks(int count) const;
-			bool GenerateHelpers(util::cppformatstream &str, const isa::ISADescription*) const;
+			bool RegisterHelpers(const isa::ISADescription*) const;
 		};
 	}
 }

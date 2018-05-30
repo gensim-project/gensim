@@ -384,5 +384,5 @@ ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::core::threa
 
 gensim::DecodeContext* ArmVersatileEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu)
 {
-	return new archsim::arch::arm::ARMDecodeContext(&cpu);
+	return new archsim::arch::arm::ARMDecodeContext(cpu.GetArch());
 }

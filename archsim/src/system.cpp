@@ -27,9 +27,6 @@ DeclareLogContext(LogSystem, "System");
 System::System(archsim::Session& session) :
 	session(session),
 	exit_code(EXIT_SUCCESS),
-	mode(Interpreter),
-	txln_mgr(NULL),
-	ij_mgr(NULL),
 	uarch(NULL),
 	emulation_model(NULL),
 	_verify(false),
@@ -56,17 +53,6 @@ System::~System()
 bool System::Initialise()
 {
 	LC_DEBUG1(LogSystem) << "Initialising System";
-
-	if (archsim::options::Mode == "interp") {
-		LC_INFO(LogSystem) << "Interpretive Mode Enabled";
-		mode = Interpreter;
-	} else if (archsim::options::Mode == "single-step") {
-		LC_INFO(LogSystem) << "Single-step Mode Enabled";
-		mode = SingleStep;
-	} else {
-		LC_INFO(LogSystem) << "JIT Mode Enabled";
-		mode = JIT;
-	}
 	
 	if(archsim::options::Trace) {
 		libtrace::TraceSink *sink = nullptr;
@@ -89,25 +75,8 @@ bool System::Initialise()
 		GetECM().SetTraceSink(sink);
 	}
 
-	if (mode == JIT) {
-		// Create and initialise the translation manager
-		if (!GetComponentInstance(archsim::options::JitTranslationManager, txln_mgr, &pubsubctx)) {
-			LC_ERROR(LogSystem) << "Unable to create translation manager '" << archsim::options::JitTranslationManager.GetValue() << "'";
-			return false;
-		}
-
-		if (!txln_mgr->Initialise()) {
-			LC_ERROR(LogSystem) << "Unable to initialise translation manager '" << archsim::options::JitTranslationManager.GetValue() << "'";
-			return false;
-		}
-	}
-
 	// Create and initialise the emulation model
 	if (!GetComponentInstance(archsim::options::EmulationModel, emulation_model)) {
-		if(txln_mgr) {
-			txln_mgr->Destroy();
-			delete txln_mgr;
-		}
 
 		LC_ERROR(LogSystem) << "Unable to create emulation model '" << archsim::options::EmulationModel.GetValue() << "'";
 		LC_ERROR(LogSystem) << GetRegisteredComponents(emulation_model);
@@ -119,9 +88,6 @@ bool System::Initialise()
 	if (!uarch->Initialise()) {
 		delete uarch;
 
-		txln_mgr->Destroy();
-		delete txln_mgr;
-
 		LC_ERROR(LogSystem) << "Unable to initialise uArch model";
 		return false;
 	}
@@ -132,16 +98,9 @@ bool System::Initialise()
 			delete uarch;
 		}
 
-		if(txln_mgr != nullptr) {
-			txln_mgr->Destroy();
-			delete txln_mgr;
-		}
-
 		LC_ERROR(LogSystem) << "Unable to initialise emulation model '" << archsim::options::EmulationModel.GetValue() << "'";
 		return false;
 	}
-
-	if(txln_mgr)txln_mgr->SetManager(code_region_tracker_);
 
 	return true;
 }
@@ -149,14 +108,6 @@ bool System::Initialise()
 void System::Destroy()
 {
 	LC_DEBUG1(LogSystem) << "Destroying system";
-
-	// We have to destroy the translation manager here, although it upsets me that
-	// it's breaking symmetry, because if we're using the async model, it needs to
-	// have released all references to the CPU, before we destroy it.
-	if(txln_mgr) {
-		txln_mgr->Destroy();
-		delete txln_mgr;
-	}
 
 	if(GetECM().GetTraceSink()) {
 		GetECM().GetTraceSink()->Flush();
@@ -190,9 +141,6 @@ void System::PrintStatistics(std::ostream& stream)
 	emulation_model->PrintStatistics(stream);
 
 	stream << std::endl;
-
-	// Print translation manager statistics
-	if(txln_mgr)txln_mgr->PrintStatistics(stream);
 
 	stream << std::endl;
 }

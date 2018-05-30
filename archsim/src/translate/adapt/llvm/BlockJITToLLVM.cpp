@@ -23,6 +23,7 @@
 #include <llvm/Analysis/Passes.h>
 #include <llvm/Analysis/BasicAliasAnalysis.h>
 #include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Scalar/GVN.h>
 
 #include <sstream>
@@ -98,7 +99,19 @@ llvm::Function* BlockJITToLLVMAdaptor::AdaptIR(archsim::core::thread::ThreadInst
 		pm.add(llvm::createGVNPass(false));
 //		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
 		pm.add(llvm::createDeadStoreEliminationPass());
+		
+		pm.add(llvm::createFunctionInliningPass(INT_MAX));
 
+		pm.add(llvm::createInstructionCombiningPass(false));
+//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
+		pm.add(llvm::createReassociatePass());
+//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
+		pm.add(llvm::createCFGSimplificationPass());
+//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
+		pm.add(llvm::createGVNPass(false));
+//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
+		pm.add(llvm::createDeadStoreEliminationPass());
+		
 		pm.run(*target_module);
 	}
 	

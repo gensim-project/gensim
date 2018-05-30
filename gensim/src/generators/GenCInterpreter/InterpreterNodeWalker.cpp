@@ -426,10 +426,10 @@ namespace gensim
 						//SZ0A0P1C0000000V
 						output << "{";
 						output << "uint16_t flags = genc_adc_flags(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						output << "interface.write_register_C((flags >> 8) & 1);";
-						output << "interface.write_register_V(flags & 1);";
-						output << "interface.write_register_Z((flags >> 14) & 1);";
-						output << "interface.write_register_N((flags >> 15) & 1);";
+						output << "interface.write_register_C<trace>((flags >> 8) & 1);";
+						output << "interface.write_register_V<trace>(flags & 1);";
+						output << "interface.write_register_Z<trace>((flags >> 14) & 1);";
+						output << "interface.write_register_N<trace>((flags >> 15) & 1);";
 						output << "}";
 						break;
 

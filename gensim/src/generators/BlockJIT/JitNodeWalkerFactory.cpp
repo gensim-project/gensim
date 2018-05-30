@@ -1847,7 +1847,7 @@ namespace gensim
 						output << "builder.call";
 						output << "(IROperand::func((void *)&helper_" << Statement.Target()->GetContext().GetIsaDescription().ISAName << "_" << Statement.Target()->GetPrototype().GetIRSignature().GetName() << "<false>)";
 
-						for(int i = 0; i < Statement.ArgCount(); ++i) {
+						for(unsigned i = 0; i < Statement.ArgCount(); ++i) {
 							auto arg = Statement.Arg(i);
 							SSANodeWalker *argWalker = Factory.GetOrCreate(dynamic_cast<const SSAStatement*>(arg));
 							output << ", " << operand_for_node(*argWalker);

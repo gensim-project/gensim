@@ -30,6 +30,23 @@ ExecutionEngine *ExecutionEngineFactory::Get(const archsim::module::ModuleInfo *
 		LC_DEBUG1(LogEEFactory) << "  " << i.second.Name;
 	}
 	
+	if(archsim::options::Mode.IsSpecified()) {
+		// try and find the specified mode
+		for(auto i : factories_) {
+			if(i.second.Name == archsim::options::Mode.GetValue()) {
+				auto result = i.second.Factory(module, cpu_prefix);
+				if(result) {
+					return result;
+				} else {
+					LC_ERROR(LogEEFactory) << "Tried to use specified mode " << archsim::options::Mode.GetValue() << ", but it returned an error";
+				}
+			}
+		}
+		
+		LC_ERROR(LogEEFactory) << "Tried to use specified mode " << archsim::options::Mode.GetValue() << ", but it could not be found";
+		return nullptr;
+	}
+	
 	for(auto i : factories_) {
 		auto result = i.second.Factory(module, cpu_prefix);
 		LC_DEBUG1(LogEEFactory) << "For module " << module->GetName() << ", trying EEFactory " << i.second.Name;

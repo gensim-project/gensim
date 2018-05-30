@@ -26,6 +26,8 @@ namespace gensim {
 			bool GenerateHeader(util::cppformatstream& str) const override;
 			bool GenerateSource(util::cppformatstream& str) const override;
 			const std::vector<std::string> GetSources() const override;
+			void Setup(GenerationSetupManager& Setup) override;
+			
 
 		private:
 			mutable std::vector<std::string> sources;
