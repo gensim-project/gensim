@@ -27,7 +27,7 @@ namespace gensim
 	namespace generator
 	{
 
-		GenCInterpreterGenerator::GenCInterpreterGenerator(const GenerationManager &man) : InterpretiveExecutionEngineGenerator(man, "genc_interpret") {}
+		GenCInterpreterGenerator::GenCInterpreterGenerator(GenerationManager &man) : InterpretiveExecutionEngineGenerator(man, "genc_interpret") {}
 
 		bool GenCInterpreterGenerator::GenerateExecutionForBehaviour(util::cppformatstream &str, bool trace_enabled, std::string behaviourname, const isa::ISADescription &isa) const
 		{

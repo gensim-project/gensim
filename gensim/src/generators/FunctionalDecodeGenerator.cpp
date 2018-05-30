@@ -96,12 +96,14 @@ namespace gensim
 
 						bool first = true;
 						for (std::list<isa::InstructionFormatChunk>::const_iterator ifc = i->second->GetChunks().begin(); ifc != i->second->GetChunks().end(); ++ifc) {
-							if (!ifc->generate_field && !ifc->is_constrained)
+							if (!ifc->generate_field && !ifc->is_constrained) {
 								if (first) {
 									header_str << util::Util::TypeString(ifc->length);
 									first = false;
-								} else
+								} else {
 									header_str << ", " << util::Util::TypeString(ifc->length);
+								}
+							}
 						}
 
 						header_str << ");\n";

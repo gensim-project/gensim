@@ -24,6 +24,57 @@ namespace gensim
 		std::string GenerationManager::FnPipeline = "pipeline";
 		std::string GenerationManager::FnJumpInfo = "jumpinfo";
 
+		FunctionEntry::FunctionEntry(const std::string prototype, const std::string& body, const std::vector<std::string> &local_headers, const std::vector<std::string> &sys_headers, const std::vector<std::string> &specialisations, bool global) : prototype_(prototype), body_(body), local_headers_(local_headers), system_headers_(sys_headers), specialisations_(specialisations), is_global_(global)
+		{
+			
+		}
+		
+		size_t FunctionEntry::GetBodySize() const
+		{
+			return body_.size();
+		}
+		
+		bool FunctionEntry::IsGlobal() const
+		{
+			return is_global_;
+		}
+
+		std::string FunctionEntry::Format() const
+		{
+			// We could be smart with figuring out which headers we need to 
+			// re-include but for now just blast them all out for every function
+			// and let the preprocessor deal with it
+			std::stringstream str;
+			str << FormatIncludes();
+			
+			str << FormatPrototype() << "{" << body_ << "}";
+			
+			// If that was a template, then emit any specialisations that should be instantiated
+			for(auto i : specialisations_) {
+				str << i << ";";
+			}
+			
+			return str.str();
+		}
+		std::string FunctionEntry::FormatPrototype() const
+		{
+			return prototype_;
+		}
+		
+		std::string FunctionEntry::FormatIncludes() const
+		{
+			std::stringstream str;
+			for(auto i : local_headers_) {
+				str << "#include \"" << i << "\"\n";
+			}
+			for(auto i : system_headers_) {
+				str << "#include <" << i << ">\n";
+			}
+			return str.str();
+		}
+
+
+		
 		std::map<std::string, std::map<std::string, GenerationOption*> > GenerationComponent::Options __attribute__((init_priority(101)));
 		std::map<std::string, std::string> GenerationComponent::Inheritance __attribute__((init_priority(102)));
 

@@ -232,7 +232,6 @@ bool BlockJITExecutionEngine::translateBlock(ThreadInstance *thread, archsim::Ad
 
 	if(support_profiling) {
 		translate->setSupportProfiling(true);
-		translate->setTranslationMgr(&thread->GetEmulationModel().GetSystem().GetTranslationManager());
 	}
 
 	bool success = translate->translate_block(thread, block_pc, txln, mem_allocator_);

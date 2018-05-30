@@ -12,19 +12,31 @@
 
 using namespace archsim::arch::arm;
 
-ARMDecodeContext::ARMDecodeContext(archsim::core::thread::ThreadInstance *cpu) : DecodeContext(cpu)
+ARMDecodeContext::ARMDecodeContext(const archsim::ArchDescriptor &arch) : arch_(arch)
 {
-	auto itstate_desc = cpu->GetArch().GetRegisterFileDescriptor().GetEntries().at("ITSTATE");
-	
-	_itstate = (uint8_t*)cpu->GetRegisterFileInterface().GetEntry<uint8_t>("ITSTATE");
-	_itstate_offset = itstate_desc.GetOffset();
+
 }
 
-uint32_t ARMDecodeContext::DecodeSync(Address address, uint32_t mode, gensim::BaseDecode& target)
+ARMDecodeContext::~ARMDecodeContext()
 {
-	auto &cpu = *GetCPU();
-	uint32_t fault = cpu.GetArch().GetISA(mode).DecodeInstr(address, &cpu.GetFetchMI(), target);
-	if(fault) return fault;
+
+}
+
+void ARMDecodeContext::Reset(archsim::core::thread::ThreadInstance* thread)
+{
+	itstate_ = *thread->GetRegisterFileInterface().GetEntry<uint8_t>("ITSTATE");
+}
+
+void ARMDecodeContext::WriteBackState(archsim::core::thread::ThreadInstance* thread)
+{
+	*thread->GetRegisterFileInterface().GetEntry<uint8_t>("ITSTATE") = itstate_;
+}
+
+uint32_t ARMDecodeContext::DecodeSync(archsim::MemoryInterface &interface, Address address, uint32_t mode, gensim::BaseDecode& target)
+{
+//	auto &cpu = *GetCPU();
+	uint32_t fault = arch_.GetISA(mode).DecodeInstr(address, &interface, target);
+//	if(fault) return fault;
 
 	// TODO: have the IR for 16-bit instructions be filled into the lower 16 bits
 	uint32_t ir = target.ir;
@@ -32,13 +44,13 @@ uint32_t ARMDecodeContext::DecodeSync(Address address, uint32_t mode, gensim::Ba
 
 	target.ClearIsPredicated();
 
-	if(*_itstate) {
+	if(itstate_) {
 		// Extract the cond and mask fields from ITSTATE
-		uint8_t cond = *_itstate >> 5;
-		uint8_t mask = *_itstate & 0x1f;
+		uint8_t cond = itstate_ >> 5;
+		uint8_t mask = itstate_ & 0x1f;
 
 		// We need the whole ITSTATE field in case an exception occurs
-		target.SetPredicateInfo(*_itstate);
+		target.SetPredicateInfo(itstate_);
 		target.SetIsPredicated();
 
 		// Update ITSTATE
@@ -50,7 +62,7 @@ uint32_t ARMDecodeContext::DecodeSync(Address address, uint32_t mode, gensim::Ba
 
 		// We need to update the real ITSTATE field as we go along in case
 		// an instruction abort or interrupt occurs
-		*_itstate = (cond << 5) | mask;
+		itstate_ = (cond << 5) | mask;
 	} else {
 		target.ClearIsPredicated();
 	}
@@ -58,7 +70,7 @@ uint32_t ARMDecodeContext::DecodeSync(Address address, uint32_t mode, gensim::Ba
 	// If we're in THUMB mode
 	if(mode) {
 		if((target.Instr_Length == 2) && ((ir & 0xff00) == 0xbf00)) {
-			*_itstate = ir & 0xff;
+			itstate_ = ir & 0xff;
 		}
 	} else {
 		if((ir & 0xf0000000) < 0xe0000000) {
@@ -75,10 +87,9 @@ uint32_t ARMDecodeContext::DecodeSync(Address address, uint32_t mode, gensim::Ba
 class ARMDecodeTranslateContext : public gensim::DecodeTranslateContext
 {
 public:
-	void Translate(const gensim::BaseDecode &insn, gensim::DecodeContext &dcode, captive::shared::IRBuilder &builder) override
+	void Translate(archsim::core::thread::ThreadInstance *cpu, const gensim::BaseDecode &insn, gensim::DecodeContext &dcode, captive::shared::IRBuilder &builder) override
 	{
 		using namespace captive::shared;
-		ARMDecodeContext &decode = (ARMDecodeContext&)dcode;
 
 		if(insn.isa_mode) {
 			if(insn.GetIsPredicated()) {
@@ -93,11 +104,11 @@ public:
 				}
 				itstate = cond | mask;
 
-				builder.streg(IROperand::const8(itstate), IROperand::const32(decode.GetITSTATEOffset()));
+				builder.streg(IROperand::const8(itstate), IROperand::const32(cpu->GetArch().GetRegisterFileDescriptor().GetEntries().at("ITSTATE").GetOffset()));
 			}
 		}
 	}
 };
 
 RegisterComponent(gensim::DecodeTranslateContext, ARMDecodeTranslateContext, "armv7a", "arm decode translate context");
-RegisterComponent(gensim::DecodeContext, ARMDecodeContext, "armv7a", "arm decode context", archsim::core::thread::ThreadInstance*);
+//RegisterComponent(gensim::DecodeContext, ARMDecodeContext, "armv7a", "arm decode context", archsim::core::thread::ThreadInstance*);

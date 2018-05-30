@@ -61,31 +61,6 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	
 	engine->AttachThread(main_thread_);
 	
-//	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
-
-//	if (!cpu->Initialise(*this, GetMemoryModel())) {
-//		return false;
-//	}
-//
-//	cpu->reset_to_initial_state(true);
-
-//	archsim::abi::devices::Device *coprocessor;
-//	if(!GetComponentInstance("fpu", coprocessor)) return false;
-//	cpu->peripherals.RegisterDevice("fpu", coprocessor);
-//	cpu->peripherals.AttachDevice("fpu", 10);
-
-#ifdef IO_DEVICES
-	if (system.sim_opts.virtual_screen) {
-		archsim::abi::devices::VirtualScreenDevice *vsd = new archsim::abi::devices::VirtualScreenDevice(*this);
-		if (!vsd->Attach())
-			return false;
-
-		archsim::abi::devices::VirtualScreenDeviceKeyboardController *cont /* what did you call me */ = new archsim::abi::devices::VirtualScreenDeviceKeyboardController(*vsd);
-		cpu->peripherals.RegisterDevice("kb", cont);
-		cpu->peripherals.AttachDevice("kb", 13);
-	}
-#endif
-	
 	return true;
 }
 

@@ -325,7 +325,7 @@ LLVMOptimiser::~LLVMOptimiser()
 {
 }
 
-bool LLVMOptimiser::Initialise(const ::llvm::DataLayout *datalayout)
+bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 {
 //	isInitialised = true;
 //	pm.add(::llvm::createTypeBasedAAWrapperPass());
@@ -516,7 +516,7 @@ bool LLVMOptimiser::AddPass(::llvm::Pass *pass)
 	return true;
 }
 
-bool LLVMOptimiser::Optimise(::llvm::Module* module, const ::llvm::DataLayout *data_layout)
+bool LLVMOptimiser::Optimise(::llvm::Module* module, const ::llvm::DataLayout &data_layout)
 {
 	//std::ostringstream str;
 	if(archsim::options::Debug && ::llvm::verifyModule(*module, &::llvm::outs())) assert(false);

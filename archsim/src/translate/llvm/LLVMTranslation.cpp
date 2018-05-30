@@ -15,10 +15,10 @@ static uint32_t InvalidTxln(void*, void*)
 
 LLVMTranslation::LLVMTranslation(translation_fn fnp, LLVMMemoryManager *mem_mgr) : fnp(fnp)
 {
-	if(mem_mgr) {
-		code_size = mem_mgr->getAllocatedCodeSize();
-		zones = mem_mgr->ReleasePages();
-	}
+//	if(mem_mgr) {
+//		code_size = mem_mgr->getAllocatedCodeSize();
+//		zones = mem_mgr->ReleasePages();
+//	}
 }
 
 LLVMTranslation::~LLVMTranslation()
@@ -29,7 +29,7 @@ LLVMTranslation::~LLVMTranslation()
 
 uint32_t LLVMTranslation::Execute(archsim::core::thread::ThreadInstance* cpu)
 {
-	return fnp(nullptr, nullptr);
+	return fnp(cpu->GetRegisterFile(), cpu->GetStateBlock().GetData());
 }
 
 void LLVMTranslation::Install(translation_fn *location)

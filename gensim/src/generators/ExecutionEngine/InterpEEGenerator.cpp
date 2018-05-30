@@ -13,8 +13,20 @@
 
 using namespace gensim::generator;
 
+void InterpEEGenerator::Setup(GenerationSetupManager& Setup)
+{
+	for(auto i : Manager.GetArch().ISAs) {
+		for(auto j : i->Instructions) {
+			RegisterStepInstruction(*j.second);
+		}
+	}
+}
+
+
 bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const {
 	str << 
+		"#ifndef " << Manager.GetArch().Name << "_INTERP_H\n"
+		"#define " << Manager.GetArch().Name << "_INTERP_H\n"
 		"#include \"decode.h\"\n"
 		"#include <interpret/Interpreter.h>\n"
 		"#include <cstdint>\n"
@@ -37,6 +49,7 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const {
 
 	str << "}";
 	str << "}";
+	str << "#endif";
 		
 	return true;
 }
@@ -44,6 +57,7 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const {
 bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const {
 	str <<
 		"#include \"ee_interpreter.h\"\n"
+		"#include \"function_header.h\"\n"
 		"#include \"arch.h\"\n"
 		"#include \"decode.h\"\n"
 		"#include <module/Module.h>\n"
@@ -130,7 +144,7 @@ bool InterpEEGenerator::GenerateDecodeInstruction(util::cppformatstream& str) co
 	str << "uint32_t Interpreter::DecodeInstruction(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &inst) {";
 	str << "  if(decode_context_ == nullptr) { decode_context_ = thread->GetEmulationModel().GetNewDecodeContext(*thread); }";
 	str << "  gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
-	str << "  auto result = decode_context_->DecodeSync(archsim::Address(interface.read_pc()), thread->GetModeID(), inst);";
+	str << "  auto result = decode_context_->DecodeSync(thread->GetFetchMI(), archsim::Address(interface.read_pc()), thread->GetModeID(), inst);";
 	str << "  return result;";
 	str << "}";
 	
@@ -183,26 +197,31 @@ bool InterpEEGenerator::GenerateStepInstruction(util::cppformatstream& str) cons
 	return true;
 }
 
-bool InterpEEGenerator::GenerateStepInstructionInsn(util::cppformatstream& str, isa::InstructionDescription& insn) const
+bool InterpEEGenerator::RegisterStepInstruction(isa::InstructionDescription& insn) const
 {
-	str << "template<bool trace=false> archsim::core::execution::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &inst) {";
-	str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
+	std::stringstream prototype_str;
+	prototype_str << "template<bool trace=false> archsim::core::execution::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(archsim::core::thread::ThreadInstance *thread, gensim::" << Manager.GetArch().Name << "::Interpreter::decode_t &inst)";
+	
+	util::cppformatstream body_str;
+	body_str << "{";
+	body_str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 	
 	gensim::generator::GenCInterpreterGenerator gci (Manager);
-	gci.GenerateExecuteBodyFor(str, *static_cast<const gensim::genc::ssa::SSAFormAction*>(insn.ISA.GetSSAContext().GetAction(insn.BehaviourName)));
+	gci.GenerateExecuteBodyFor(body_str, *static_cast<const gensim::genc::ssa::SSAFormAction*>(insn.ISA.GetSSAContext().GetAction(insn.BehaviourName)));
 	
-	str << "return archsim::core::execution::ExecutionResult::Continue;";
-	str << "}";
+	body_str << "return archsim::core::execution::ExecutionResult::Continue;";
+	body_str << "}";
+	
+	// specialisations
+	std::string spec_1 = "template archsim::core::execution::ExecutionResult StepInstruction_" + insn.ISA.ISAName + "_" + insn.Name + "<false>(archsim::core::thread::ThreadInstance *thread, gensim::" + Manager.GetArch().Name + "::Interpreter::decode_t &inst);";
+	std::string spec_2 = "template archsim::core::execution::ExecutionResult StepInstruction_" + insn.ISA.ISAName + "_" + insn.Name + "<true>(archsim::core::thread::ThreadInstance *thread, gensim::" + Manager.GetArch().Name + "::Interpreter::decode_t &inst);";
+	Manager.AddFunctionEntry(FunctionEntry(prototype_str.str(), body_str.str(), {"arch.h","ee_interpreter.h"}, {"math.h", "core/execution/ExecutionResult.h", "core/thread/ThreadInstance.h"}, {spec_1, spec_2}, true));
 	
 	return true;
 }
 
 bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, isa::ISADescription& isa) const
-{
-	for(auto i : isa.Instructions) {
-		GenerateStepInstructionInsn(str, *i.second);
-	}
-	
+{	
 	// predicate stuff
 	bool has_is_predicated = isa.GetSSAContext().HasAction("instruction_is_predicated");
 	bool has_instruction_predicate = isa.GetSSAContext().HasAction("instruction_predicate");

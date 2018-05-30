@@ -78,6 +78,8 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 		addr_t offset = tbu->GetOffset();
 		uint32_t insn_count = 0;
 
+		auto decode_ctx = twu->GetThread()->GetEmulationModel().GetNewDecodeContext(*twu->GetThread());
+		
 		while (!end_of_block && offset < profile::RegionArch::PageSize) {
 			gensim::BaseDecode *decode = thread->GetArch().GetISA(block.second->GetISAMode()).GetNewDecode();
 			

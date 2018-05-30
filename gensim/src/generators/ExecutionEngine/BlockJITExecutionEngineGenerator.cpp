@@ -46,6 +46,21 @@ bool BlockJITExecutionEngineGenerator::GenerateHeader(util::cppformatstream& str
 	return true;
 }
 
+void BlockJITExecutionEngineGenerator::Setup(GenerationSetupManager& Setup)
+{
+	JitGenerator jitgen (Manager);
+	for(auto &isa : Manager.GetArch().ISAs) {		
+		for(auto &insn : isa->Instructions) {
+			jitgen.RegisterJITFunction(*isa, *insn.second);
+		}	
+	}
+	
+	for(auto &isa : Manager.GetArch().ISAs) {
+		jitgen.RegisterHelpers(isa);
+	}
+}
+
+
 bool BlockJITExecutionEngineGenerator::GenerateSource(util::cppformatstream& str) const
 {
 	str << "#include \"ee_blockjit.h\"\n";
@@ -63,13 +78,7 @@ bool BlockJITExecutionEngineGenerator::GenerateSource(util::cppformatstream& str
 	str << "BlockJITEE::BlockJITEE() : archsim::core::execution::BlockJITExecutionEngine(new captive::arch::" << Manager.GetArch().Name << "::JIT) {}";
 	
 	
-	for(auto &isa : Manager.GetArch().ISAs) {
-		jitgen.GenerateHelpers(str, isa);
-		
-		for(auto &insn : isa->Instructions) {
-			jitgen.GenerateJITFunction(str, *isa, *insn.second);
-		}	
-	}
+	
 
 
 	

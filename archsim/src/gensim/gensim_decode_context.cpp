@@ -4,7 +4,7 @@
 
 using namespace gensim;
 
-DecodeContext::DecodeContext(archsim::core::thread::ThreadInstance* cpu) : cpu_(cpu)
+DecodeContext::DecodeContext()
 {
 
 }
@@ -15,5 +15,16 @@ DecodeContext::~DecodeContext()
 
 }
 
-DefineComponentType(gensim::DecodeContext, archsim::core::thread::ThreadInstance *);
+void DecodeContext::Reset(archsim::core::thread::ThreadInstance* thread)
+{
+
+}
+
+void DecodeContext::WriteBackState(archsim::core::thread::ThreadInstance* thread)
+{
+
+}
+
+
+DefineComponentType(gensim::DecodeContext);
 DefineComponentType(gensim::DecodeTranslateContext);

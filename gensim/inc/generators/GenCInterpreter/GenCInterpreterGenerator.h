@@ -34,7 +34,7 @@ namespace gensim
 		class GenCInterpreterGenerator : public InterpretiveExecutionEngineGenerator
 		{
 		public:
-			GenCInterpreterGenerator(const GenerationManager &manager);
+			GenCInterpreterGenerator(GenerationManager &manager);
 
 			bool GenerateExecuteBodyFor(util::cppformatstream &str, const genc::ssa::SSAFormAction &action) const;
 			bool GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action) const;

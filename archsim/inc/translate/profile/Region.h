@@ -143,7 +143,7 @@ namespace archsim
 
 				inline bool IsValid() const
 				{
-					return !invalid;
+					return !invalid_;
 				}
 
 				void dump();
@@ -184,7 +184,7 @@ namespace archsim
 
 				RegionStatus status;
 
-				bool invalid;
+				bool invalid_;
 
 			};
 		}

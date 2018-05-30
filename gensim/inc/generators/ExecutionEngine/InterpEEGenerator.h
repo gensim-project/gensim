@@ -28,6 +28,8 @@ namespace gensim {
 			
 			virtual bool GenerateHeader(util::cppformatstream &str) const;
 			virtual bool GenerateSource(util::cppformatstream &str) const;
+			
+			void Setup(GenerationSetupManager& Setup) override;
 
 			~InterpEEGenerator();
 		private:
@@ -38,7 +40,7 @@ namespace gensim {
 			bool GenerateHelperFunction(util::cppformatstream &str, const isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction*) const;
 			bool GenerateStepInstruction(util::cppformatstream &str) const;
 			bool GenerateStepInstructionISA(util::cppformatstream &str, isa::ISADescription &isa) const;
-			bool GenerateStepInstructionInsn(util::cppformatstream &str, isa::InstructionDescription &insn) const;
+			bool RegisterStepInstruction(isa::InstructionDescription &insn) const;
 			
 			bool GenerateBehavioursDescriptors(util::cppformatstream &str) const;
 		};
