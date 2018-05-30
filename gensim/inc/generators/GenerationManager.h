@@ -130,6 +130,9 @@ namespace gensim
 			size_t GetBodySize() const;
 			bool IsGlobal() const;
 			
+			const std::vector<std::string> &GetLocalHeaders() const;
+			const std::vector<std::string> &GetSystemHeaders() const;
+			
 		private:
 			std::string prototype_;
 			std::string body_;

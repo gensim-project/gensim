@@ -45,7 +45,6 @@ namespace gensim
 			// re-include but for now just blast them all out for every function
 			// and let the preprocessor deal with it
 			std::stringstream str;
-			str << FormatIncludes();
 			
 			str << FormatPrototype() << "{" << body_ << "}";
 			
@@ -72,6 +71,18 @@ namespace gensim
 			}
 			return str.str();
 		}
+
+		const std::vector<std::string>& FunctionEntry::GetLocalHeaders() const
+		{
+			return local_headers_;
+		}
+
+		const std::vector<std::string>& FunctionEntry::GetSystemHeaders() const
+		{
+			return system_headers_;
+		}
+
+
 
 
 		

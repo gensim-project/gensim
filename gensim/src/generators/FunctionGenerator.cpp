@@ -7,6 +7,7 @@
 #include "generators/GenerationManager.h"
 
 #include <vector>
+#include <set>
 
 using namespace gensim::generator;
 
@@ -43,6 +44,25 @@ public:
 			
 			str << "#include \"function_header.h\"\n";
 			
+			std::set<std::string> local_headers;
+			std::set<std::string> system_headers;
+			
+			for(auto &fn_entry : file_descriptors[file_idx]) {
+				for(auto local_header : fn_entry.GetLocalHeaders()) {
+					local_headers.insert(local_header);
+				}
+				for(auto system_header : fn_entry.GetSystemHeaders()) {
+					system_headers.insert(system_header);
+				}
+			}
+			
+			for(auto i : local_headers) {
+				str << "#include \"" << i << "\"\n";
+			}
+			for(auto i : system_headers) {
+				str << "#include <" << i << ">\n";
+			}
+			
 			for(auto &fn_entry : file_descriptors[file_idx]) {
 				str << fn_entry.Format() << "\n";
 			}
@@ -52,11 +72,26 @@ public:
 		
 		// also need to produce a header file containing declarations
 		std::stringstream str;
-		for(auto &fn_entry : Manager.GetFunctionEntries()) {
-			// include dependent headers
-			if(fn_entry.IsGlobal()){
-				str << fn_entry.FormatIncludes();
+		std::set<std::string> local_headers;
+		std::set<std::string> system_headers;
 
+		for(auto &fn_entry : Manager.GetFunctionEntries()) {
+			for(auto local_header : fn_entry.GetLocalHeaders()) {
+				local_headers.insert(local_header);
+			}
+			for(auto system_header : fn_entry.GetSystemHeaders()) {
+				system_headers.insert(system_header);
+			}
+		}
+		// include dependent headers
+		for(auto i : local_headers) {
+			str << "#include \"" << i << "\"\n";
+		}
+		for(auto i : system_headers) {
+			str << "#include <" << i << ">\n";
+		}
+		for(auto &fn_entry : Manager.GetFunctionEntries()) {	
+			if(fn_entry.IsGlobal()){
 				str << fn_entry.FormatPrototype() << ";\n";
 			}
 		}
