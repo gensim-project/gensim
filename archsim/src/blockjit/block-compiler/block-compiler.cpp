@@ -132,12 +132,7 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 static void make_instruction_nop(IRInstruction *insn, bool set_block)
 {
 	insn->type = IRInstruction::NOP;
-	insn->operands[0].type = IROperand::NONE;
-	insn->operands[1].type = IROperand::NONE;
-	insn->operands[2].type = IROperand::NONE;
-	insn->operands[3].type = IROperand::NONE;
-	insn->operands[4].type = IROperand::NONE;
-	insn->operands[5].type = IROperand::NONE;
+	insn->operands.clear();
 	if(set_block) insn->ir_block = NOP_BLOCK;
 }
 
@@ -206,7 +201,7 @@ static bool is_breaker(IRInstruction *add, IRInstruction *test)
 	// If the instruction under test touches the target of the add, then it is a breaker
 	if(test->type != IRInstruction::READ_MEM) {
 		IROperand *add_target = &add->operands[1];
-		for(int op_idx = 0; op_idx < 6; ++op_idx) {
+		for(int op_idx = 0; op_idx < test->operands.size(); ++op_idx) {
 			if((test->operands[op_idx].alloc_mode == add_target->alloc_mode) && (test->operands[op_idx].alloc_data == add_target->alloc_data)) return true;
 		}
 	}

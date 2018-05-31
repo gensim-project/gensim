@@ -20,12 +20,7 @@ using namespace captive::arch::jit::transforms;
 static void make_instruction_nop(IRInstruction *insn, bool set_block)
 {
 	insn->type = IRInstruction::NOP;
-	insn->operands[0].type = IROperand::NONE;
-	insn->operands[1].type = IROperand::NONE;
-	insn->operands[2].type = IROperand::NONE;
-	insn->operands[3].type = IROperand::NONE;
-	insn->operands[4].type = IROperand::NONE;
-	insn->operands[5].type = IROperand::NONE;
+	insn->operands.clear();
 	if(set_block) insn->ir_block = NOP_BLOCK;
 }
 

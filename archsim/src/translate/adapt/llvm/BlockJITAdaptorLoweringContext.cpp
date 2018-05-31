@@ -271,8 +271,13 @@ llvm::Value* BlockJITLoweringContext::GetValueFor(const IROperand& operand) {
 		case IROperand::FUNC:
 		case IROperand::CONSTANT:
 			return ::llvm::ConstantInt::get(GetLLVMType(operand), operand.value);
-		case IROperand::VREG:
-			return builder_->CreateLoad(GetRegPtr(operand));
+		case IROperand::VREG: {
+//			if(builder_->GetInsertBlock() != cached_reg_blocks_[operand.value] || cached_reg_ptrs_[operand.value] == nullptr) {
+//				cached_reg_blocks_[operand.value] = builder_->GetInsertBlock();
+				cached_reg_ptrs_[operand.value] = builder_->CreateLoad(GetRegPtr(operand));
+//			}
+			return cached_reg_ptrs_.at(operand.value);
+		}
 		default:
 			UNIMPLEMENTED;
 	}
@@ -281,7 +286,19 @@ llvm::Value* BlockJITLoweringContext::GetValueFor(const IROperand& operand) {
 
 void BlockJITLoweringContext::SetValueFor(const IROperand& operand, ::llvm::Value* value) {
 	auto ptr = GetRegPtr(operand);
-	builder_->CreateStore(value, ptr);
+	
+	// If we have a previous store for this IRReg in this block, then delete it
+//	if(cached_reg_blocks_[operand.value] == builder_->GetInsertBlock() && cached_reg_stores_[operand.value] != nullptr) {
+//		auto store = cached_reg_stores_[operand.value];
+//		store->removeFromParent();
+//		delete store; 
+//	}
+	
+	auto new_store = builder_->CreateStore(value, ptr);
+	
+//	cached_reg_blocks_[operand.value] = builder_->GetInsertBlock();
+//	cached_reg_stores_[operand.value] = new_store;
+//	cached_reg_ptrs_[operand.value] = value;
 }
 
 ::llvm::Type* BlockJITLoweringContext::GetLLVMType(uint32_t bytes) {

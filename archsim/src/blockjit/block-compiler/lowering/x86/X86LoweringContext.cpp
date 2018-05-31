@@ -149,19 +149,13 @@ bool X86LoweringContext::Prepare(const TranslationContext &ctx)
 
 	if(archsim::options::SystemMemoryModel == "cache") {
 		A(IRInstruction::READ_MEM, ReadMemCache);
-		A(IRInstruction::READ_MEM_USER, ReadUserMemCache);
 		A(IRInstruction::WRITE_MEM, WriteMemCache);
-		A(IRInstruction::WRITE_MEM_USER, WriteUserMemCache);
 	} else if(archsim::options::SystemMemoryModel == "user") {
 		A(IRInstruction::READ_MEM, ReadMemUser);
-		A(IRInstruction::READ_MEM_USER, ReadUserMemGeneric);
 		A(IRInstruction::WRITE_MEM, WriteMemUser);
-		A(IRInstruction::WRITE_MEM_USER, WriteUserMemGeneric);
 	} else {
 		A(IRInstruction::READ_MEM, ReadMemGeneric);
-		A(IRInstruction::READ_MEM_USER, ReadUserMemGeneric);
 		A(IRInstruction::WRITE_MEM, WriteMemGeneric);
-		A(IRInstruction::WRITE_MEM_USER, WriteUserMemGeneric);
 	}
 #undef A
 

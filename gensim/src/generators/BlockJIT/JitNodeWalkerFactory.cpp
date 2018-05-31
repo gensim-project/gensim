@@ -1133,7 +1133,7 @@ namespace gensim
 
 					SSANodeWalker *address = Factory.GetOrCreate(Statement.Addr());
 
-					output << "builder.ldmem(IROperand::const32(" << Statement.GetInterface()->GetID() << ")," << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");\n";
+					output << "builder.ldmem(IROperand::const32(" << Statement.GetInterface()->GetID() << ")," << operand_for_node(*address) << ", IROperand::const32(0), " << operand_for_symbol(*Statement.Target()) << ");\n";
 
 					output << "if(trace) {";
 					output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemRead" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");";
@@ -1170,7 +1170,7 @@ namespace gensim
 //					if (Statement.User) {
 //						output << "builder.stmem_user(" << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
 //					} else {
-						output << "builder.stmem(IROperand::const32(" << Statement.GetInterface()->GetID() << "), " << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
+						output << "builder.stmem(IROperand::const32(" << Statement.GetInterface()->GetID() << "), " << operand_for_node(*value) << ", IROperand::const32(0), " << operand_for_node(*address) << ");\n";
 						output << "if(trace)";
 						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemWrite" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_node(*value) << ");";
 //					}

@@ -21,6 +21,8 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 
+#include <unordered_map>
+
 namespace archsim {
     namespace translate {
         namespace adapt {
@@ -114,8 +116,11 @@ namespace archsim {
 				::llvm::Value *GetRegPtr(const IROperand &op);
 				
 				
-				std::map<IRBlockId, ::llvm::BasicBlock*> block_ptrs_;
-				std::map<IRRegId, ::llvm::Value*> reg_ptrs_;
+				std::unordered_map<IRBlockId, ::llvm::BasicBlock*> block_ptrs_;
+				std::unordered_map<IRRegId, ::llvm::Value*> reg_ptrs_;
+				std::unordered_map<IRRegId, ::llvm::Value*> cached_reg_ptrs_;
+				std::unordered_map<IRRegId, ::llvm::StoreInst*> cached_reg_stores_;
+				std::unordered_map<IRRegId, ::llvm::BasicBlock*> cached_reg_blocks_;
 				std::map<std::pair<uint32_t, uint32_t>, ::llvm::Value*> greg_ptrs_;
 				
 				::llvm::Module *target_module_;

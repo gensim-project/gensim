@@ -59,8 +59,6 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "streg",		.format = "IIXXXX", .has_side_effects = true },
 	{ .mnemonic = "ldmem",		.format = "NIIOXX", .has_side_effects = true },
 	{ .mnemonic = "stmem",		.format = "NIIIXX", .has_side_effects = true },
-	{ .mnemonic = "ldumem",		.format = "IOXXXX", .has_side_effects = true },
-	{ .mnemonic = "stumem",		.format = "IIXXXX", .has_side_effects = true },
 
 	{ .mnemonic = "call",		.format = "NIIIII", .has_side_effects = true },
 	{ .mnemonic = "jmp",		.format = "NXXXXX", .has_side_effects = true },

@@ -40,7 +40,7 @@ bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
 	// CPU State
 	GetLoweringContext().load_state_field("thread_ptr", *sysv_abi[0]);
 
-	for (int i = 1; i < 6; i++) {
+	for (int i = 1; i < insn->operands.size(); i++) {
 		if (insn->operands[i].type != IROperand::NONE) {
 			GetLoweringContext().encode_operand_function_argument(&insn->operands[i], *sysv_abi[i], GetStackMap());
 		}

@@ -16,6 +16,7 @@
 #include <llvm/Analysis/Passes.h>
 #include <llvm/Analysis/ScalarEvolution.h>
 #include <llvm/Analysis/TypeBasedAliasAnalysis.h>
+#include <llvm/Analysis/BasicAliasAnalysis.h>
 
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/MDBuilder.h>
@@ -26,6 +27,7 @@
 
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/Vectorize.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Utils/PromoteMemToReg.h>
@@ -327,7 +329,7 @@ LLVMOptimiser::~LLVMOptimiser()
 
 bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 {
-//	isInitialised = true;
+	isInitialised = true;
 //	pm.add(::llvm::createTypeBasedAAWrapperPass());
 //	//AddPass(new ::llvm::DataLayout(*datalayout));
 //
@@ -335,48 +337,49 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 //		return true;
 //
 //	//-constmerge -simplifycfg -lowerswitch  -globalopt -scalarrepl -deadargelim -functionattrs -constprop  -simplifycfg -argpromotion -inline -mem2reg -deadargelim
-//	AddPass(::llvm::createConstantMergePass());
-//	AddPass(::llvm::createCFGSimplificationPass());
-//	AddPass(::llvm::createLowerSwitchPass());
-//	AddPass(::llvm::createGlobalOptimizerPass());
-//	AddPass(::llvm::createSROAPass());
-//	AddPass(::llvm::createDeadArgEliminationPass());
-////	AddPass(::llvm::createFunctionAttrsPass());
-//	AddPass(::llvm::createConstantPropagationPass());
-//	AddPass(::llvm::createCFGSimplificationPass());
-//	AddPass(::llvm::createArgumentPromotionPass());
-//	AddPass(::llvm::createFunctionInliningPass());
-//	AddPass(::llvm::createPromoteMemoryToRegisterPass());
-//	AddPass(::llvm::createDeadArgEliminationPass());
+	AddPass(::llvm::createPromoteMemoryToRegisterPass());
+	AddPass(::llvm::createConstantMergePass());
+	AddPass(::llvm::createCFGSimplificationPass());
+	AddPass(::llvm::createLowerSwitchPass());
+	AddPass(::llvm::createGlobalOptimizerPass());
+	AddPass(::llvm::createSROAPass());
+	AddPass(::llvm::createDeadArgEliminationPass());
+//	AddPass(::llvm::createFunctionAttrsPass());
+	AddPass(::llvm::createConstantPropagationPass());
+	AddPass(::llvm::createCFGSimplificationPass());
+	AddPass(::llvm::createArgumentPromotionPass());
+	AddPass(::llvm::createFunctionInliningPass());
+	AddPass(::llvm::createPromoteMemoryToRegisterPass());
+	AddPass(::llvm::createDeadArgEliminationPass());
 //
 //	//-argpromotion -loop-deletion -adce -loop-deletion -dse -break-crit-edges -ipsccp -break-crit-edges -deadargelim -simplifycfg -gvn -prune-eh -die -constmerge
-//	AddPass(::llvm::createArgumentPromotionPass());
-//	AddPass(::llvm::createLoopDeletionPass());
-//	AddPass(::llvm::createAggressiveDCEPass());
-//	AddPass(::llvm::createLoopDeletionPass());
-//	AddPass(::llvm::createDeadStoreEliminationPass());
-//	AddPass(::llvm::createBreakCriticalEdgesPass());
-//	AddPass(::llvm::createIPSCCPPass());
-//	AddPass(::llvm::createBreakCriticalEdgesPass());
-//	AddPass(::llvm::createDeadArgEliminationPass());
-//	AddPass(::llvm::createCFGSimplificationPass());
-////	AddPass(::llvm::createGVNPass(false));
-//	AddPass(::llvm::createPruneEHPass());
-//	AddPass(::llvm::createDeadInstEliminationPass());
-//	AddPass(::llvm::createConstantMergePass());
+	AddPass(::llvm::createArgumentPromotionPass());
+	AddPass(::llvm::createLoopDeletionPass());
+	AddPass(::llvm::createAggressiveDCEPass());
+	AddPass(::llvm::createLoopDeletionPass());
+	AddPass(::llvm::createDeadStoreEliminationPass());
+	AddPass(::llvm::createBreakCriticalEdgesPass());
+	AddPass(::llvm::createIPSCCPPass());
+	AddPass(::llvm::createBreakCriticalEdgesPass());
+	AddPass(::llvm::createDeadArgEliminationPass());
+	AddPass(::llvm::createCFGSimplificationPass());
+	AddPass(::llvm::createGVNPass(false));
+	AddPass(::llvm::createPruneEHPass());
+	AddPass(::llvm::createDeadInstEliminationPass());
+	AddPass(::llvm::createConstantMergePass());
 //
 //	//-tailcallelim -simplifycfg -dse -globalopt  -loop-unswitch -memcpyopt -loop-unswitch -ipconstprop -deadargelim -jump-threading
-//	AddPass(::llvm::createTailCallEliminationPass());
-//	AddPass(::llvm::createCFGSimplificationPass());
-//	AddPass(::llvm::createDeadStoreEliminationPass());
-//	AddPass(::llvm::createGlobalOptimizerPass());
-//	AddPass(::llvm::createLoopUnswitchPass());
-//	AddPass(::llvm::createMemCpyOptPass());
-//	AddPass(::llvm::createLoopUnswitchPass());
-//	AddPass(::llvm::createIPConstantPropagationPass());
-//	AddPass(::llvm::createDeadArgEliminationPass());
-//	AddPass(::llvm::createJumpThreadingPass());
-	/*
+	AddPass(::llvm::createTailCallEliminationPass());
+	AddPass(::llvm::createCFGSimplificationPass());
+	AddPass(::llvm::createDeadStoreEliminationPass());
+	AddPass(::llvm::createGlobalOptimizerPass());
+	AddPass(::llvm::createLoopUnswitchPass());
+	AddPass(::llvm::createMemCpyOptPass());
+	AddPass(::llvm::createLoopUnswitchPass());
+	AddPass(::llvm::createIPConstantPropagationPass());
+	AddPass(::llvm::createDeadArgEliminationPass());
+	AddPass(::llvm::createJumpThreadingPass());
+	
 	AddPass(::llvm::createGlobalOptimizerPass());
 	AddPass(::llvm::createIPSCCPPass());
 	AddPass(::llvm::createDeadArgEliminationPass());
@@ -388,120 +391,120 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 	if (archsim::options::JitOptLevel.GetValue() == 1)
 		return true;
 
-	AddPass(::llvm::createPruneEHPass());
-	AddPass(::llvm::createFunctionInliningPass());
+//	AddPass(::llvm::createPruneEHPass());
+//	AddPass(::llvm::createFunctionInliningPass());
+//
+////	AddPass(::llvm::createFunctionAttrsPass());
+//	AddPass(::llvm::createAggressiveDCEPass());
+//
+//	AddPass(::llvm::createArgumentPromotionPass());
+//
+//	AddPass(::llvm::createPromoteMemoryToRegisterPass());
+//	//	AddPass(::llvm::createSROAPass(false));
+//
+//	AddPass(::llvm::createEarlyCSEPass());
+//	AddPass(::llvm::createJumpThreadingPass());
+//	AddPass(::llvm::createCorrelatedValuePropagationPass());
+//	AddPass(::llvm::createCFGSimplificationPass());
+//	AddPass(::llvm::createInstructionCombiningPass());
+//
+//	AddPass(::llvm::createTailCallEliminationPass());
+//	AddPass(::llvm::createCFGSimplificationPass());
+//
+//	AddPass(::llvm::createReassociatePass());
+//	//AddPass(::llvm::createLoopRotatePass());
+//
+//	AddPass(::llvm::createInstructionCombiningPass());
+//	AddPass(::llvm::createIndVarSimplifyPass());
+//	//AddPass(::llvm::createLoopIdiomPass());
+//	//AddPass(::llvm::createLoopDeletionPass());
+//
+//	//AddPass(::llvm::createLoopUnrollPass());
+//
+//	AddPass(::llvm::createGVNPass(false));
+//	AddPass(::llvm::createMemCpyOptPass());
+//	AddPass(::llvm::createSCCPPass());
+//
+//	AddPass(::llvm::createInstructionCombiningPass());
+//	AddPass(::llvm::createJumpThreadingPass());
+//	AddPass(::llvm::createCorrelatedValuePropagationPass());
+//
+//	if (archsim::options::JitOptLevel.GetValue() == 2)
+//		return true;
+//
+//	AddPass(::llvm::createDeadStoreEliminationPass());
+//	//AddPass(::llvm::createSLPVectorizerPass());
+//	AddPass(::llvm::createAggressiveDCEPass());
+//	AddPass(::llvm::createCFGSimplificationPass());
+//	AddPass(::llvm::createInstructionCombiningPass());
+//	AddPass(::llvm::createBarrierNoopPass());
+//	//AddPass(::llvm::createLoopVectorizePass(false));
+//	AddPass(::llvm::createInstructionCombiningPass());
+//	AddPass(::llvm::createCFGSimplificationPass());
+//	AddPass(::llvm::createDeadStoreEliminationPass());
+//	AddPass(::llvm::createStripDeadPrototypesPass());
+//	AddPass(::llvm::createGlobalDCEPass());
+//	AddPass(::llvm::createConstantMergePass());
+//
+//	if(archsim::options::JitOptLevel.GetValue() == 4) {
+//		AddPass(::llvm::createFunctionInliningPass(1000));
+//
+//		AddPass(::llvm::createGlobalOptimizerPass());
+//		AddPass(::llvm::createIPSCCPPass());
+//		AddPass(::llvm::createDeadArgEliminationPass());
+//
+//		AddPass(::llvm::createInstructionCombiningPass());
+//		AddPass(::llvm::createCFGSimplificationPass());
+//
+//		AddPass(::llvm::createPruneEHPass());
+//
+//
+////		AddPass(::llvm::createFunctionAttrsPass());
+//		AddPass(::llvm::createAggressiveDCEPass());
+//
+//		AddPass(::llvm::createArgumentPromotionPass());
+//
+//		AddPass(::llvm::createPromoteMemoryToRegisterPass());
+//	//		AddPass(::llvm::createSROAPass(false));
+//
+//		AddPass(::llvm::createEarlyCSEPass());
+//		AddPass(::llvm::createJumpThreadingPass());
+//		AddPass(::llvm::createCorrelatedValuePropagationPass());
+//		AddPass(::llvm::createCFGSimplificationPass());
+//		AddPass(::llvm::createInstructionCombiningPass());
+//
+//		AddPass(::llvm::createTailCallEliminationPass());
+//		AddPass(::llvm::createCFGSimplificationPass());
+//
+//		AddPass(::llvm::createReassociatePass());
+//
+//		AddPass(::llvm::createInstructionCombiningPass());
+//		AddPass(::llvm::createIndVarSimplifyPass());
+//
+//		AddPass(::llvm::createGVNPass(false));
+//		AddPass(::llvm::createMemCpyOptPass());
+//		AddPass(::llvm::createSCCPPass());
+//
+//		AddPass(::llvm::createInstructionCombiningPass());
+//		AddPass(::llvm::createJumpThreadingPass());
+//		AddPass(::llvm::createCorrelatedValuePropagationPass());
+//
+//		AddPass(::llvm::createDeadStoreEliminationPass());
+//		//AddPass(::llvm::createSLPVectorizerPass());
+//		AddPass(::llvm::createAggressiveDCEPass());
+//		AddPass(::llvm::createCFGSimplificationPass());
+//		AddPass(::llvm::createInstructionCombiningPass());
+//		AddPass(::llvm::createBarrierNoopPass());
+//		//AddPass(::llvm::createLoopVectorizePass(false));
+//		AddPass(::llvm::createInstructionCombiningPass());
+//		AddPass(::llvm::createCFGSimplificationPass());
+//		AddPass(::llvm::createDeadStoreEliminationPass());
+//		AddPass(::llvm::createStripDeadPrototypesPass());
+//		AddPass(::llvm::createGlobalDCEPass());
+//		AddPass(::llvm::createConstantMergePass());
 
-	AddPass(::llvm::createFunctionAttrsPass());
-	AddPass(::llvm::createAggressiveDCEPass());
-
-	AddPass(::llvm::createArgumentPromotionPass());
-
-	AddPass(::llvm::createPromoteMemoryToRegisterPass());
-	//	AddPass(::llvm::createSROAPass(false));
-
-	AddPass(::llvm::createEarlyCSEPass());
-	AddPass(::llvm::createJumpThreadingPass());
-	AddPass(::llvm::createCorrelatedValuePropagationPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createInstructionCombiningPass());
-
-	AddPass(::llvm::createTailCallEliminationPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-
-	AddPass(::llvm::createReassociatePass());
-	//AddPass(::llvm::createLoopRotatePass());
-
-	AddPass(::llvm::createInstructionCombiningPass());
-	AddPass(::llvm::createIndVarSimplifyPass());
-	//AddPass(::llvm::createLoopIdiomPass());
-	//AddPass(::llvm::createLoopDeletionPass());
-
-	//AddPass(::llvm::createLoopUnrollPass());
-
-	AddPass(::llvm::createGVNPass());
-	AddPass(::llvm::createMemCpyOptPass());
-	AddPass(::llvm::createSCCPPass());
-
-	AddPass(::llvm::createInstructionCombiningPass());
-	AddPass(::llvm::createJumpThreadingPass());
-	AddPass(::llvm::createCorrelatedValuePropagationPass());
-
-	if (archsim::options::JitOptLevel.GetValue() == 2)
-		return true;
-
-	AddPass(::llvm::createDeadStoreEliminationPass());
-	//AddPass(::llvm::createSLPVectorizerPass());
-	AddPass(::llvm::createAggressiveDCEPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createInstructionCombiningPass());
-	AddPass(::llvm::createBarrierNoopPass());
-	//AddPass(::llvm::createLoopVectorizePass(false));
-	AddPass(::llvm::createInstructionCombiningPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createDeadStoreEliminationPass());
-	AddPass(::llvm::createStripDeadPrototypesPass());
-	AddPass(::llvm::createGlobalDCEPass());
-	AddPass(::llvm::createConstantMergePass());
-
-	if(archsim::options::JitOptLevel.GetValue() == 4) {
-		AddPass(::llvm::createFunctionInliningPass(1000));
-
-		AddPass(::llvm::createGlobalOptimizerPass());
-		AddPass(::llvm::createIPSCCPPass());
-		AddPass(::llvm::createDeadArgEliminationPass());
-
-		AddPass(::llvm::createInstructionCombiningPass());
-		AddPass(::llvm::createCFGSimplificationPass());
-
-		AddPass(::llvm::createPruneEHPass());
-
-
-		AddPass(::llvm::createFunctionAttrsPass());
-		AddPass(::llvm::createAggressiveDCEPass());
-
-		AddPass(::llvm::createArgumentPromotionPass());
-
-		AddPass(::llvm::createPromoteMemoryToRegisterPass());
-	//		AddPass(::llvm::createSROAPass(false));
-
-		AddPass(::llvm::createEarlyCSEPass());
-		AddPass(::llvm::createJumpThreadingPass());
-		AddPass(::llvm::createCorrelatedValuePropagationPass());
-		AddPass(::llvm::createCFGSimplificationPass());
-		AddPass(::llvm::createInstructionCombiningPass());
-
-		AddPass(::llvm::createTailCallEliminationPass());
-		AddPass(::llvm::createCFGSimplificationPass());
-
-		AddPass(::llvm::createReassociatePass());
-
-		AddPass(::llvm::createInstructionCombiningPass());
-		AddPass(::llvm::createIndVarSimplifyPass());
-
-		AddPass(::llvm::createGVNPass());
-		AddPass(::llvm::createMemCpyOptPass());
-		AddPass(::llvm::createSCCPPass());
-
-		AddPass(::llvm::createInstructionCombiningPass());
-		AddPass(::llvm::createJumpThreadingPass());
-		AddPass(::llvm::createCorrelatedValuePropagationPass());
-
-		AddPass(::llvm::createDeadStoreEliminationPass());
-		//AddPass(::llvm::createSLPVectorizerPass());
-		AddPass(::llvm::createAggressiveDCEPass());
-		AddPass(::llvm::createCFGSimplificationPass());
-		AddPass(::llvm::createInstructionCombiningPass());
-		AddPass(::llvm::createBarrierNoopPass());
-		//AddPass(::llvm::createLoopVectorizePass(false));
-		AddPass(::llvm::createInstructionCombiningPass());
-		AddPass(::llvm::createCFGSimplificationPass());
-		AddPass(::llvm::createDeadStoreEliminationPass());
-		AddPass(::llvm::createStripDeadPrototypesPass());
-		AddPass(::llvm::createGlobalDCEPass());
-		AddPass(::llvm::createConstantMergePass());
-
-	}
-	*/
+//	}
+	
 	return true;
 }
 
@@ -510,7 +513,7 @@ bool LLVMOptimiser::AddPass(::llvm::Pass *pass)
 	if (!archsim::options::JitDisableAA) {
 //		pm.add(createArcSimAliasAnalysisPass());
 	}
-
+	pm.add(::llvm::createBasicAAWrapperPass());
 	pm.add(pass);
 
 	return true;
@@ -522,9 +525,7 @@ bool LLVMOptimiser::Optimise(::llvm::Module* module, const ::llvm::DataLayout &d
 	if(archsim::options::Debug && ::llvm::verifyModule(*module, &::llvm::outs())) assert(false);
 
 	if(!isInitialised)Initialise(data_layout);
-//	pm.run(*module);
-
-
+	pm.run(*module);
 
 	return true;
 }

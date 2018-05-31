@@ -229,14 +229,14 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 	if(archsim::options::Verbose)builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
 
 	IRInstruction b = IRInstruction::barrier();
-	b.operands[0] = IROperand::const32(decode->GetIR());
+//	b.operands[0] = IROperand::const32(decode->GetIR());
 	builder.add_instruction(b);
+//
+//	b = IRInstruction::barrier();
+//	b.operands[0] = IROperand::const32(pc.Get());
+//	builder.add_instruction(b);
 
-	b = IRInstruction::barrier();
-	b.operands[0] = IROperand::const32(pc.Get());
-	builder.add_instruction(b);
-
-	if(archsim::options::Verify && !archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
+//	if(archsim::options::Verify && !archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
 	if(archsim::options::InstructionTick) {
 		builder.call(IROperand::func((void*)cpuInstructionTick), IROperand::const64((uint64_t)(void*)processor));
 	}
@@ -366,7 +366,7 @@ bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *pr
 				Address target = get_jump_target(processor, _decode, pc);
 				if(!block_heads.count(target)) {
 					block_heads.insert(target);
-					if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
+//					if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
 					return emit_block(processor, target, builder, block_heads);
 				}
 			}
@@ -377,7 +377,7 @@ bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *pr
 		}
 	}
 
-	if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
+//	if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
 
 	// attempt to chain (otherwise return)
 	emit_chain(processor, pc, _decode, builder);
