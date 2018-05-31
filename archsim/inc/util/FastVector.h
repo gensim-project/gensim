@@ -103,10 +103,46 @@ namespace util
 		typedef const T &const_reference;
 		typedef FastVectorIterator iterator;
 		typedef FastVectorConstIterator const_iterator;
+		typedef FastVector<T, Num, OverflowType> this_t;
 
 		FastVector() : count(0) {}
+		
+		FastVector(const std::initializer_list<T> &vals) : count(0) {
+			for(auto &i : vals) {
+				push_back(i);
+			}
+		}
+		
 		~FastVector()
 		{
+			if(using_vector()) {
+				vector.~OverflowType();
+			}
+		}
+		
+		FastVector(const this_t &other) {
+			count = other.count;
+			if(other.using_vector()) {
+				switch_to_vector();
+				vector = other.vector;
+			} else {
+				for(int i = 0; i < Num; ++i) {
+					values[i] = other.values[i];
+				}
+			}
+		}
+		
+		void operator=(const this_t &other) {
+			clear();
+			count = other.count;
+			if(other.using_vector()) {
+				switch_to_vector();
+				vector = other.vector;
+			} else {
+				for(int i = 0; i < Num; ++i) {
+					values[i] = other.values[i];
+				}
+			}
 		}
 
 		void push_back(const value_type &val)
@@ -138,9 +174,23 @@ namespace util
 				vector.reserve(reserve_size);
 			}
 		}
+		
+		reference operator[](unsigned int i)
+		{
+			return at(i);
+		}
+		
+		const_reference operator[](unsigned int i) const
+		{
+			return at(i);
+		}
 
 		const_reference at(const size_t i) const
 		{
+			if(i >= count) {
+				throw std::logic_error("Out of range");
+			}
+			
 			if(using_values()) return values[i];
 			else return vector.at(i);
 
@@ -149,6 +199,10 @@ namespace util
 
 		reference at(const size_t i)
 		{
+			if(i >= count) {
+				throw std::logic_error("Out of range");
+			}
+			
 			if(using_values()) return values[i];
 			else return vector.at(i);
 
@@ -209,7 +263,7 @@ namespace util
 		void clear()
 		{
 			if(using_vector()) {
-				vector.clear();
+				vector.~OverflowType();
 			}
 			count = 0;
 		}
@@ -226,7 +280,7 @@ namespace util
 			OverflowType v;
 			v.reserve(count);
 			for(int i = 0; i < Num; ++i) v.push_back(values[i]);
-			vector = v;
+			new(&vector) OverflowType(v);
 		}
 
 		void push_back_values(const value_type &v)

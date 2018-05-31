@@ -21,6 +21,7 @@
 
 #include "blockjit/translation-context.h"
 #include "blockjit/IRInstruction.h"
+#include "translate/llvm/LLVMOptimiser.h"
 
 namespace archsim {
     namespace translate {
@@ -35,6 +36,7 @@ namespace archsim {
 				
 			private:
 				::llvm::LLVMContext &ctx_;
+				translate_llvm::LLVMOptimiser optimiser_;
             };
         }
     }

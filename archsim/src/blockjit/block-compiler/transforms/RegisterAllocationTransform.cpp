@@ -19,12 +19,7 @@ using namespace captive::arch::jit::transforms;
 static void make_instruction_nop(IRInstruction *insn, bool set_block)
 {
 	insn->type = IRInstruction::NOP;
-	insn->operands[0].type = IROperand::NONE;
-	insn->operands[1].type = IROperand::NONE;
-	insn->operands[2].type = IROperand::NONE;
-	insn->operands[3].type = IROperand::NONE;
-	insn->operands[4].type = IROperand::NONE;
-	insn->operands[5].type = IROperand::NONE;
+	insn->operands.clear();
 	if(set_block) insn->ir_block = NOP_BLOCK;
 }
 
@@ -63,7 +58,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 		if(insn->ir_block == NOP_BLOCK) break;
 		if(insn->type == IRInstruction::BARRIER) next_global = 0;
 
-		for (int op_idx = 0; op_idx < 6; op_idx++) {
+		for (int op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
 			IROperand *oper = &insn->operands[op_idx];
 			if(!oper->is_valid()) break;
 
@@ -115,7 +110,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 		live_outs.copy(live_ins);
 
 		// Loop over the VREG operands and update the live-in set accordingly.
-		for (int o = 0; o < 6; o++) {
+		for (int o = 0; o < insn->operands.size(); o++) {
 			if (!insn->operands[o].is_valid()) break;
 			if (insn->operands[o].type != IROperand::VREG) continue;
 
@@ -172,7 +167,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 		bool can_be_dead = !descr->has_side_effects;
 
 		// Loop over operands to update the allocation information on VREG operands.
-		for (int op_idx = 0; op_idx < 6; op_idx++) {
+		for (unsigned op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
 			IROperand *oper = &insn->operands[op_idx];
 			if(!oper->is_valid()) break;
 

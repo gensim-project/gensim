@@ -16,6 +16,7 @@
 
 #include "core/execution/ExecutionEngine.h"
 #include "BlockJITExecutionEngine.h"
+#include "translate/adapt/BlockJITToLLVM.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
@@ -65,6 +66,7 @@ namespace archsim {
 				bool buildBlockJITIR(thread::ThreadInstance *thread, archsim::Address block_pc, captive::arch::jit::TranslationContext &ctx, archsim::blockjit::BlockTranslation &txln);
 				
 				llvm::LLVMContext llvm_ctx_;
+				archsim::translate::adapt::BlockJITToLLVMAdaptor adaptor_;
 				
 				std::shared_ptr<BlockJITLLVMMemoryManager> memory_manager_;
 				std::unique_ptr<llvm::TargetMachine> target_machine_;

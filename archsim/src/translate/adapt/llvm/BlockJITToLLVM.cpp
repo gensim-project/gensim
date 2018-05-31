@@ -83,37 +83,7 @@ llvm::Function* BlockJITToLLVMAdaptor::AdaptIR(archsim::core::thread::ThreadInst
 		printer.DumpIR(blockjit_file, ctx);
 	}	
 	
-	{
-		llvm::legacy::PassManager pm;
-//		pm.add(new llvm::DataLayout(engine_->getDataLayout()));
-		pm.add(llvm::createBasicAAWrapperPass());
-//		pm.add(new archsim::translate::translate_llvm::ArchSimAA());
-		pm.add(llvm::createPromoteMemoryToRegisterPass());
-//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
-		pm.add(llvm::createInstructionCombiningPass(false));
-//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
-		pm.add(llvm::createReassociatePass());
-//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
-		pm.add(llvm::createCFGSimplificationPass());
-//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
-		pm.add(llvm::createGVNPass(false));
-//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
-		pm.add(llvm::createDeadStoreEliminationPass());
-		
-		pm.add(llvm::createFunctionInliningPass(INT_MAX));
-
-		pm.add(llvm::createInstructionCombiningPass(false));
-//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
-		pm.add(llvm::createReassociatePass());
-//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
-		pm.add(llvm::createCFGSimplificationPass());
-//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
-		pm.add(llvm::createGVNPass(false));
-//		pm.add(new archsim::translate::translate_llvm::ArchsimAAPass());
-		pm.add(llvm::createDeadStoreEliminationPass());
-		
-		pm.run(*target_module);
-	}
+	optimiser_.Optimise(target_module, target_module->getDataLayout());
 	
 	if(archsim::options::Debug) {
 		std::stringstream filename;

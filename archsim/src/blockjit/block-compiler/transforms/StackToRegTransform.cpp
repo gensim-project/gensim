@@ -38,7 +38,7 @@ bool StackToRegTransform::Apply(TranslationContext& ctx)
 
 		// Don't need to do any clever allocation here since the stack entries should already be re-used
 
-		for(unsigned int op_idx = 0; op_idx < 6; ++op_idx) {
+		for(unsigned int op_idx = 0; op_idx < insn->operands.size(); ++op_idx) {
 			IROperand &op = insn->operands[op_idx];
 			if(!op.is_valid()) break;
 

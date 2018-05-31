@@ -60,8 +60,9 @@ static llvm::TargetMachine *GetNativeMachine() {
 		llvm::InitializeNativeTargetAsmPrinter();
 		llvm::InitializeNativeTargetAsmParser();
 		machine = llvm::EngineBuilder().selectTarget();
-		machine->setOptLevel(llvm::CodeGenOpt::None);
-		machine->setFastISel(true);
+		machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
+		machine->setFastISel(false);
+		machine->setO0WantsFastISel(false);
 	}
 	return machine;
 }
@@ -71,7 +72,8 @@ BlockLLVMExecutionEngine::BlockLLVMExecutionEngine(gensim::blockjit::BaseBlockJI
 	target_machine_(GetNativeMachine()),
 	memory_manager_(std::make_shared<BlockJITLLVMMemoryManager>(mem_allocator_)),
 	linker_([&]() { return memory_manager_; }),
-	compiler_(linker_, llvm::orc::SimpleCompiler(*target_machine_))
+	compiler_(linker_, llvm::orc::SimpleCompiler(*target_machine_)),
+	adaptor_(llvm_ctx_)
 {
 	
 }
@@ -146,9 +148,8 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 		return false;
 	}
 	
-	archsim::translate::adapt::BlockJITToLLVMAdaptor adaptor (llvm_ctx_);
 	std::string fn_name = "fn_" + std::to_string(block_pc.Get());
-	auto function = adaptor.AdaptIR(thread, module.get(), fn_name, txln_ctx);
+	auto function = adaptor_.AdaptIR(thread, module.get(), fn_name, txln_ctx);
 	if(function == nullptr) {
 		return false;
 	}

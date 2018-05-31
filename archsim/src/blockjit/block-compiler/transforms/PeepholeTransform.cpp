@@ -102,12 +102,7 @@ static bool peephole_shift(IRInstruction &insn)
 static void make_instruction_nop(IRInstruction *insn, bool set_block)
 {
 	insn->type = IRInstruction::NOP;
-	insn->operands[0].type = IROperand::NONE;
-	insn->operands[1].type = IROperand::NONE;
-	insn->operands[2].type = IROperand::NONE;
-	insn->operands[3].type = IROperand::NONE;
-	insn->operands[4].type = IROperand::NONE;
-	insn->operands[5].type = IROperand::NONE;
+	insn->operands.clear();
 	if(set_block) insn->ir_block = NOP_BLOCK;
 }
 
@@ -214,8 +209,6 @@ bool PeepholeTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::DISPATCH:
 			case IRInstruction::READ_MEM:
 			case IRInstruction::WRITE_MEM:
-			case IRInstruction::READ_MEM_USER:
-			case IRInstruction::WRITE_MEM_USER:
 			case IRInstruction::LDPC:
 			case IRInstruction::READ_DEVICE:
 			case IRInstruction::WRITE_DEVICE:

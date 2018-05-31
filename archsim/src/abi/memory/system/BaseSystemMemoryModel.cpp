@@ -21,7 +21,7 @@ RegisterComponent(SystemMemoryModel, BaseSystemMemoryModel, "base", "Basic naive
 UseLogContext(LogMemoryModel);
 DeclareChildLogContext(LogSystemMemoryModel, LogMemoryModel, "System");
 
-BaseSystemMemoryModel::BaseSystemMemoryModel(MemoryModel *phys_mem, util::PubSubContext *pubsub) : SystemMemoryModel(phys_mem, pubsub), txln_model(NULL), _unaligned_behaviour(Unaligned_TRAP)
+BaseSystemMemoryModel::BaseSystemMemoryModel(MemoryModel *phys_mem, util::PubSubContext *pubsub) : SystemMemoryModel(phys_mem, pubsub), txln_model(NULL), _unaligned_behaviour(Unaligned_EMULATE)
 {
 }
 

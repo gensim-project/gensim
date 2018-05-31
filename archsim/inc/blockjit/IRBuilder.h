@@ -27,9 +27,9 @@ namespace captive {
 			void SetBlock(IRBlockId block) { current_block_ = block; }
 			
 			void add_instruction(const IRInstruction &inst) {
-				auto &insn = next_insn();
-				insn = inst;
-				insn.ir_block = current_block_;
+				auto *insn = ctx_->get_next_instruction_ptr();
+				new (insn) IRInstruction(inst);
+				insn->ir_block = current_block_;
 			}
 			
 			IRRegId alloc_reg(int size) {
@@ -44,113 +44,118 @@ namespace captive {
 				return current_block_;
 			}
 			
-#define INSN0(x) void x() { auto &insn = next_insn(); insn = IRInstruction::x(); insn.ir_block = GetBlock(); }
-#define INSN1(x) void x(const IROperand &op1) { auto &insn = next_insn(); insn = IRInstruction::x(op1); insn.ir_block = GetBlock(); }
-#define INSN2(x) void x(const IROperand &op1, const IROperand &op2) { auto &insn = next_insn(); insn = IRInstruction::x(op1, op2); insn.ir_block = GetBlock(); }
-#define INSN3(x) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3) { auto &insn = next_insn(); insn = IRInstruction::x(op1, op2, op3); insn.ir_block = GetBlock(); }
-#define INSN4(x) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3, const IROperand &op4) { auto &insn = next_insn(); insn = IRInstruction::x(op1, op2, op3, op4); insn.ir_block = GetBlock(); }
-#define INSN5(x) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3, const IROperand &op4, const IROperand &op5) { auto &insn = next_insn(); insn = IRInstruction::x(op1, op2, op3, op4, op5); insn.ir_block = GetBlock(); }
+//#define INSN0(x) void x() { auto &insn = next_insn(); insn = IRInstruction::x(); insn.ir_block = GetBlock(); }
+//#define INSN1(x) void x(const IROperand &op1) { auto &insn = next_insn(); insn = IRInstruction::x(op1); insn.ir_block = GetBlock(); }
+//#define INSN2(x) void x(const IROperand &op1, const IROperand &op2) { auto &insn = next_insn(); insn = IRInstruction::x(op1, op2); insn.ir_block = GetBlock(); }
+//#define INSN3(x) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3) { auto &insn = next_insn(); insn = IRInstruction::x(op1, op2, op3); insn.ir_block = GetBlock(); }
+//#define INSN4(x) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3, const IROperand &op4) { auto &insn = next_insn(); insn = IRInstruction::x(op1, op2, op3, op4); insn.ir_block = GetBlock(); }
+//#define INSN5(x) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3, const IROperand &op4, const IROperand &op5) { auto &insn = next_insn(); insn = IRInstruction::x(op1, op2, op3, op4, op5); insn.ir_block = GetBlock(); }
+
+#define INSN0(x, y) void x() { auto insn = new(ctx_->get_next_instruction_ptr()) IRInstruction(IRInstruction::y);  insn->ir_block = GetBlock(); }
+#define INSN1(x, y) void x(const IROperand &op1) { auto insn = new(ctx_->get_next_instruction_ptr()) IRInstruction(IRInstruction::y, op1);  insn->ir_block = GetBlock(); }
+#define INSN2(x, y) void x(const IROperand &op1, const IROperand &op2) { auto insn = new(ctx_->get_next_instruction_ptr()) IRInstruction(IRInstruction::y, op1,op2);  insn->ir_block = GetBlock(); }
+#define INSN3(x, y) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3) { auto insn = new(ctx_->get_next_instruction_ptr()) IRInstruction(IRInstruction::y, op1,op2,op3);  insn->ir_block = GetBlock(); }
+#define INSN4(x, y) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3, const IROperand &op4) { auto insn = new(ctx_->get_next_instruction_ptr()) IRInstruction(IRInstruction::y, op1,op2,op3,op4);  insn->ir_block = GetBlock(); }
+#define INSN5(x, y) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3, const IROperand &op4, const IROperand &op5) { auto insn = new(ctx_->get_next_instruction_ptr()) IRInstruction(IRInstruction::y, op1,op2,op3,op4,op5);  insn->ir_block = GetBlock(); }
+
+			INSN0(nop, NOP);
+			INSN0(ret, RET);
+			INSN0(trap, TRAP);
 			
-			INSN0(nop);
-			INSN0(ret);
-			INSN0(trap);
+			INSN2(mov, MOV);
+			INSN2(sx, SX);
+			INSN2(zx, ZX);
+			INSN2(trunc, TRUNC);
 			
-			INSN2(mov);
-			INSN2(sx);
-			INSN2(zx);
-			INSN2(trunc);
+			INSN3(cmov, CMOV);
 			
-			INSN3(cmov);
+			INSN2(count, COUNT);
+//			INSN2(profile);
+//			INSN1(verify);
+			INSN1(ldpc, LDPC);
 			
-			INSN2(count);
-			INSN2(profile);
-			INSN1(verify);
-			INSN1(ldpc);
+			INSN2(add, ADD);
+			INSN2(sub, SUB);
+			INSN2(imul, IMUL);
+			INSN2(sdiv, SDIV);
+			INSN2(udiv, UDIV);
+			INSN2(mul, MUL);
+			INSN2(mod, MOD);
+			INSN2(shl, SHL);
+			INSN2(shr, SHR);
+			INSN2(sar, SAR);
+			INSN2(ror, ROR);
+			INSN2(clz, CLZ);
+			INSN2(bitwise_and, AND);
+			INSN2(bitwise_or, OR);
+			INSN2(bitwise_xor, XOR);
+			INSN3(adc_with_flags, ADC_WITH_FLAGS);
 			
-			INSN2(add);
-			INSN2(sub);
-			INSN2(imul);
-			INSN2(sdiv);
-			INSN2(udiv);
-			INSN2(mul);
-			INSN2(mod);
-			INSN2(shl);
-			INSN2(shr);
-			INSN2(sar);
-			INSN2(ror);
-			INSN2(clz);
-			INSN2(bitwise_and);
-			INSN2(bitwise_or);
-			INSN2(bitwise_xor);
-			INSN3(adc_with_flags);
+			INSN4(vaddi, VADDI);
+			INSN4(vaddf, VADDF);
+			INSN4(vsubi, VSUBI);
+			INSN4(vsubf, VSUBF);
+			INSN4(vmulf, VMULF);
 			
-			INSN4(vaddi);
-			INSN4(vaddf);
-			INSN4(vsubi);
-			INSN4(vsubf);
-			INSN4(vmulf);
+			INSN1(fctrl_set_round, FCTRL_SET_ROUND);
+			INSN1(fctrl_get_round, FCTRL_GET_ROUND);
+			INSN1(fctrl_set_flush, FCTRL_SET_FLUSH_DENORMAL);
+			INSN1(fctrl_get_flush, FCTRL_GET_FLUSH_DENORMAL);
+			INSN3(fcmp_eq, FCMP_EQ);
+			INSN3(fcmp_lt, FCMP_LT);
+			INSN3(fcmp_gt, FCMP_GT);
+			INSN2(fcvt_single_to_double, FCVT_S_TO_D);
+			INSN2(fcvt_double_to_single, FCVT_D_TO_S);
+			INSN2(fcvt_float_to_si, FCVT_F_TO_SI);
+			INSN2(fcvtt_float_to_si, FCVTT_F_TO_SI);
+			INSN2(fcvt_float_to_ui, FCVT_F_TO_UI);
+			INSN2(fcvtt_float_to_ui, FCVTT_F_TO_UI);
+			INSN2(fcvt_si_to_float, FCVT_SI_TO_F);
+			INSN2(fcvt_ui_to_float, FCVT_UI_TO_F);
+			INSN3(fdiv, FDIV);
+			INSN3(fadd, FADD);
+			INSN3(fsub, FSUB);
+			INSN3(fmul, FMUL);
+			INSN2(fsqrt, FSQRT);
 			
-			INSN1(fctrl_set_round);
-			INSN1(fctrl_get_round);
-			INSN1(fctrl_set_flush);
-			INSN1(fctrl_get_flush);
-			INSN3(fcmp_eq);
-			INSN3(fcmp_lt);
-			INSN3(fcmp_gt);
-			INSN2(fcvt_single_to_double);
-			INSN2(fcvt_double_to_single);
-			INSN2(fcvt_float_to_si);
-			INSN2(fcvtt_float_to_si);
-			INSN2(fcvt_float_to_ui);
-			INSN2(fcvtt_float_to_ui);
-			INSN2(fcvt_si_to_float);
-			INSN2(fcvt_ui_to_float);
-			INSN3(fdiv);
-			INSN3(fadd);
-			INSN3(fsub);
-			INSN3(fmul);
-			INSN2(fsqrt);
+			INSN3(read_device, READ_DEVICE);
+			INSN3(write_device, WRITE_DEVICE);
 			
-			INSN3(read_device);
-			INSN3(write_device);
+			INSN1(updatezn, SET_ZN_FLAGS);
+			INSN3(cmpeq, CMPEQ);
+			INSN3(cmpne, CMPNE);
+			INSN3(cmplt, CMPLT);
+			INSN3(cmpslt, CMPSLT);
+			INSN3(cmplte, CMPLTE);
+			INSN3(cmpgt, CMPGT);
+			INSN3(cmpsgt, CMPSGT);
+			INSN3(cmpgte, CMPGTE);
+			INSN3(cmpsgte, CMPSGTE);
 			
-			INSN1(updatezn);
-			INSN3(cmpeq);
-			INSN3(cmpne);
-			INSN3(cmplt);
-			INSN3(cmpslt);
-			INSN3(cmplte);
-			INSN3(cmpgt);
-			INSN3(cmpsgt);
-			INSN3(cmpgte);
-			INSN3(cmpsgte);
+			INSN2(streg, WRITE_REG);
+			INSN2(ldreg, READ_REG);
+			INSN4(ldmem, READ_MEM);
+			INSN4(stmem, WRITE_MEM);
 			
-			INSN2(streg);
-			INSN2(ldreg);
-			INSN3(ldmem);
-			INSN3(stmem);
-			INSN2(ldmem_user);
-			INSN2(stmem_user);
+			INSN1(jump, JMP);
+			INSN3(branch, BRANCH);
 			
-			INSN1(jump);
-			INSN3(branch);
-			
-			INSN0(flush_itlb);
-			INSN1(flush_itlb_entry);
-			INSN1(flush_dtlb_entry);
-			INSN2(take_exception);
+			INSN0(flush_itlb, FLUSH_ITLB);
+			INSN1(flush_itlb_entry, FLUSH_ITLB_ENTRY);
+			INSN1(flush_dtlb_entry, FLUSH_DTLB_ENTRY);
+			INSN2(take_exception, TAKE_EXCEPTION);
 			
 			void increment_pc(uint32_t amt) { auto &insn = next_insn(); insn = IRInstruction::incpc(IROperand::const32(amt)); insn.ir_block = current_block_; }
 			
-			INSN1(call);
-			INSN2(call);
-			INSN3(call);
-			INSN4(call);
-			INSN5(call);
+			INSN1(call, CALL);
+			INSN2(call, CALL);
+			INSN3(call, CALL);
+			INSN4(call, CALL);
+			INSN5(call, CALL);
 
-			INSN4(dispatch);
-			INSN2(set_cpu_feature);
-			INSN1(set_cpu_mode);
+			INSN4(dispatch, DISPATCH);
+			INSN2(set_cpu_feature, SET_CPU_FEATURE);
+			INSN1(set_cpu_mode, SET_CPU_MODE);
 			
 #undef INSN0
 #undef INSN1

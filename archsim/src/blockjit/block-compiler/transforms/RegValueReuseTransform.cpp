@@ -57,9 +57,7 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::JMP:
 			case IRInstruction::BRANCH:
 			case IRInstruction::READ_MEM:
-			case IRInstruction::READ_MEM_USER:
 			case IRInstruction::WRITE_MEM:
-			case IRInstruction::WRITE_MEM_USER:
 			case IRInstruction::LDPC:
 			case IRInstruction::INCPC:
 			case IRInstruction::TAKE_EXCEPTION:
@@ -69,7 +67,7 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::READ_DEVICE:
 			case IRInstruction::WRITE_DEVICE:
 			case IRInstruction::ADC_WITH_FLAGS:
-                        case IRInstruction::SET_ZN_FLAGS:
+			case IRInstruction::SET_ZN_FLAGS:
 
 				offset_to_vreg.clear();
 				vreg_to_offset.clear();

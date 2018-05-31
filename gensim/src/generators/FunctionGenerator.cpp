@@ -115,9 +115,6 @@ public:
 
 	virtual void Setup(GenerationSetupManager& Setup) {}
 
-
-
-
 };
 
 DEFINE_COMPONENT(FunctionGenerator, function);

@@ -92,9 +92,7 @@ bool RegStoreEliminationTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::JMP:
 			case IRInstruction::BRANCH:
 			case IRInstruction::READ_MEM:
-			case IRInstruction::READ_MEM_USER:
 			case IRInstruction::WRITE_MEM:
-			case IRInstruction::WRITE_MEM_USER:
 			case IRInstruction::LDPC:
 			case IRInstruction::INCPC:
 			case IRInstruction::TAKE_EXCEPTION:

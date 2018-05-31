@@ -6,6 +6,7 @@ archsim/inc/cmake-config.h
 archsim/inc/cmake-scm.h
 
 ^build/
+^build_debug/
 nbproject/
 
 CMakeFiles
