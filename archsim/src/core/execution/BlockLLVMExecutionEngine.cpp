@@ -131,8 +131,8 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 		return false;
 	}
 
-	archsim::blockjit::BlockTranslation txln;
-	if(phys_block_profile_.Get(physaddr, thread->GetFeatures(), txln)) {
+	archsim::blockjit::BlockTranslation txln = phys_block_profile_.Get(physaddr, thread->GetFeatures());
+	if(txln.IsValid(thread->GetFeatures())) {
 		virt_block_cache_.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
 		return true;
 	}

@@ -77,8 +77,8 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 	timer.tick("build");
 
 	// Optimise the IR and lower it to instructions
-	block_txln_fn fn;
-	if(!compile_block(processor, block_address, ctx, fn, allocator)) {
+	out_txln.Invalidate();
+	if(!compile_block(processor, block_address, ctx, out_txln, allocator)) {
 		LC_ERROR(LogBlockJit) << "Failed to compile block";
 		delete _decode_ctx;
 		return false;
@@ -90,9 +90,6 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 
 	// Fill in the output translation data structure with the translated
 	// function and feature vector
-	out_txln.Invalidate();
-	out_txln.SetFn(fn);
-	
 	AttachFeaturesTo(out_txln);
 
 	timer.tick("compile");
@@ -459,7 +456,7 @@ bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *pr
 	return true;
 }
 
-bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, captive::shared::block_txln_fn &fn, wulib::MemAllocator &allocator)
+bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, archsim::blockjit::BlockTranslation &fn, wulib::MemAllocator &allocator)
 {
 	BlockCompiler compiler (ctx, block_address.Get(), allocator, false, true);
 
@@ -472,13 +469,13 @@ bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance 
 	}
 	
 	auto lowering = captive::arch::jit::lowering::NativeLowering(ctx, allocator, cpu, result);
-	fn = lowering.Function;
+	fn.SetFn(lowering.Function);
 	
 	if(dump) {
 		std::ostringstream str;
 		str << "blkjit-" << std::hex << block_address.Get() << ".bin";
 		FILE *outfile = fopen(str.str().c_str(), "w");
-		fwrite((void*)fn, lowering.Size, 1, outfile);
+		fwrite((void*)lowering.Function, lowering.Size, 1, outfile);
 		fclose(outfile);
 
 //		str.str("");
@@ -495,9 +492,10 @@ bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance 
 	PerfMap &pmap = PerfMap::Singleton;
 	if(pmap.Enabled()) {
 		pmap.Acquire();
-		pmap.Stream() << std::hex << (size_t)fn << " " << lowering.Size << " JIT_" << std::hex << block_address.Get() << std::endl;
+		pmap.Stream() << std::hex << (size_t)lowering.Function << " " << lowering.Size << " JIT_" << std::hex << block_address.Get() << std::endl;
 		pmap.Release();
 	}
 
+	fn.SetSize(lowering.Size);
 	return lowering.Size != 0;
 }

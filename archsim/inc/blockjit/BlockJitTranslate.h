@@ -103,7 +103,7 @@ namespace gensim
 
 			bool _should_be_dumped;
 
-			bool compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, captive::shared::block_txln_fn &fn, wulib::MemAllocator &allocator);
+			bool compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, archsim::blockjit::BlockTranslation &fn, wulib::MemAllocator &allocator);
 
 			bool emit_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::shared::IRBuilder &ctx, std::unordered_set<archsim::Address> &block_heads);
 			bool emit_chain(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, gensim::BaseDecode *insn, captive::shared::IRBuilder &ctx);
