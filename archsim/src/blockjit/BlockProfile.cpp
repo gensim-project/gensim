@@ -22,9 +22,9 @@ using namespace archsim::blockjit;
 
 bool BlockTranslation::FeaturesValid(const archsim::ProcessorFeatureSet& features) const
 {
-	if(_features_required == nullptr) return true;
+	if(features_required_ == nullptr) return true;
 
-	for(auto i = _features_required->begin(); i != _features_required->end(); ++i) {
+	for(auto i = features_required_->begin(); i != features_required_->end(); ++i) {
 		if(features.GetFeatureLevel(i->first) != i->second) return false;
 	}
 
@@ -34,7 +34,7 @@ bool BlockTranslation::FeaturesValid(const archsim::ProcessorFeatureSet& feature
 void BlockTranslation::Dump(const std::string &filename)
 {
 	std::ofstream f(filename);
-	f.write((char*)_fn, GetSize());
+	f.write((char*)fn_, GetSize());
 }
 
 
@@ -105,7 +105,7 @@ void BlockPageProfile::Invalidate()
 	_txlns.clear();
 }
 
-BlockProfile::BlockProfile(wulib::MemAllocator &allocator) : _allocator(allocator)
+BlockProfile::BlockProfile(wulib::MemAllocator &allocator) : _allocator(allocator), code_size_(0)
 {
 	_table_pages_dirty.set();
 	for(auto &i : _page_profiles) {
@@ -117,11 +117,11 @@ BlockProfile::BlockProfile(wulib::MemAllocator &allocator) : _allocator(allocato
 void BlockProfile::Insert(Address address, const BlockTranslation &txln)
 {
 	// Get the page index of the address
-	uint32_t index = address.GetPageIndex();
-
 	LC_DEBUG2(LogBlockProfile) << "Inserting " << std::hex << address.Get() << " into the block profile";
+	
+	code_size_ += txln.GetSize();
+	
 	getProfile(address).Insert(address, txln);
-
 }
 
 void BlockProfile::Invalidate()
@@ -133,6 +133,7 @@ void BlockProfile::Invalidate()
 		}
 	}
 
+	code_size_ = 0;
 	_table_pages_dirty.reset();
 }
 

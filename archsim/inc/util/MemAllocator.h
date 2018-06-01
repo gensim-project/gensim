@@ -42,7 +42,6 @@ namespace wulib
 	class StandardMemAllocator : public MemAllocator
 	{
 	public:
-		static StandardMemAllocator singleton;
 		virtual ~StandardMemAllocator();
 
 		void *Allocate(size_t size_bytes) override;

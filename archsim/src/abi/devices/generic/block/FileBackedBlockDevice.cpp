@@ -26,6 +26,8 @@ bool FileBackedBlockDevice::Open(std::string filename, bool read_only)
 {
 	assert(file_data == NULL);
 
+	cache.reset(new BlockCache());
+	
 	LC_DEBUG1(LogBlockDevice) << "Opening file " << filename;
 
 	this->read_only = read_only;
@@ -143,11 +145,11 @@ bool FileBackedBlockDevice::ReadBlocks(uint64_t block_idx, uint32_t count, uint8
 		memcpy(buffer, data_ptr, GetBlockSize() * count);
 	} else {
 		for(uint32_t i = 0; i < count; ++i) {
-			if(cache.HasBlock(block_idx + i)) {
-				cache.ReadBlock(block_idx + i, buffer);
+			if(cache->HasBlock(block_idx + i)) {
+				cache->ReadBlock(block_idx + i, buffer);
 			} else {
 				ReadBlock(block_idx+i, buffer);
-				cache.WriteBlock(block_idx + i, buffer);
+				cache->WriteBlock(block_idx + i, buffer);
 			}
 
 			buffer += GetBlockSize();
@@ -206,7 +208,7 @@ bool FileBackedBlockDevice::WriteBlocks(uint64_t block_idx, uint32_t count, cons
 		memcpy(data_ptr, buffer, GetBlockSize() * count);
 	} else {
 		for(uint32_t i = 0; i < count; ++i) {
-			cache.WriteBlock(block_idx+i, buffer);
+			cache->WriteBlock(block_idx+i, buffer);
 			WriteBlock(block_idx+i, buffer);
 			buffer += GetBlockSize();
 		}

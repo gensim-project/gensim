@@ -50,7 +50,7 @@ namespace archsim {
 				void checkFlushTxlns();
 				virtual bool translateBlock(thread::ThreadInstance *thread, archsim::Address block_pc, bool support_chaining, bool support_profiling);
 				
-				wulib::SimpleZoneMemAllocator mem_allocator_;
+				wulib::StandardMemAllocator mem_allocator_;
 				
 				gensim::DecodeContext *decode_context_;
 				gensim::DecodeTranslateContext *decode_translation_context_;

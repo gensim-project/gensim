@@ -35,8 +35,6 @@ void StandardMemAllocator::Free(void *buffer)
 	free(buffer);
 }
 
-StandardMemAllocator StandardMemAllocator::singleton;
-
 SimpleZoneMemAllocator::SimpleZoneMemAllocator() : _active_chunk(NULL), _last_buffer(NULL)
 {
 

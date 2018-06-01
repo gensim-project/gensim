@@ -202,6 +202,12 @@ ExecutionEngineThreadContext* BlockJITExecutionEngine::GetNewContext(thread::Thr
 
 bool BlockJITExecutionEngine::translateBlock(ThreadInstance *thread, archsim::Address block_pc, bool support_chaining, bool support_profiling)
 {
+	if(phys_block_profile_.GetTotalCodeSize() > 1024 * 1024 * 32) {
+		phys_block_profile_.Invalidate();
+		virt_block_cache_.Invalidate();
+		fprintf(stderr, "\n\n\nFlushing because big!\n\n\n");
+	}
+	
 	// Look up the block in the cache, just in case we already have it translated
 	captive::shared::block_txln_fn fn;
 	if((fn = virt_block_cache_.Lookup(block_pc))) return true;
@@ -217,8 +223,8 @@ bool BlockJITExecutionEngine::translateBlock(ThreadInstance *thread, archsim::Ad
 		return false;
 	}
 
-	archsim::blockjit::BlockTranslation txln;
-	if(phys_block_profile_.Get(physaddr, thread->GetFeatures(), txln)) {
+	archsim::blockjit::BlockTranslation txln = phys_block_profile_.Get(physaddr, thread->GetFeatures());
+	if(txln.IsValid(thread->GetFeatures())) {
 		virt_block_cache_.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
 		return true;
 	}
