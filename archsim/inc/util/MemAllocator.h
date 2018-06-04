@@ -18,7 +18,7 @@
 
 #ifndef NDEBUG
 #ifdef CONFIG_VALGRIND
-#include <valgrind/memcheck.h>7
+#include <valgrind/memcheck.h>
 #endif
 #endif
 
