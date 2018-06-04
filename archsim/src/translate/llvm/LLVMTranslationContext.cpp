@@ -16,7 +16,6 @@
 #include "gensim/gensim_translate.h"
 
 #include "util/LogContext.h"
-#include "util/PatchPoints.h"
 
 #include "translate/jit_funs.h"
 #include "system.h"

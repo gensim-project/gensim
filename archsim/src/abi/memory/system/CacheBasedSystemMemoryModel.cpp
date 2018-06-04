@@ -17,7 +17,6 @@
 #include "translate/profile/Region.h"
 
 #include "util/LogContext.h"
-#include "util/NTZero.h"
 
 UseLogContext(LogSystemMemoryModel);
 

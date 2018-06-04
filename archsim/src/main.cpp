@@ -30,8 +30,6 @@
 #include "util/CommandLine.h"
 #include "util/SimOptions.h"
 #include "util/LogContext.h"
-#include "util/ModuleManager.h"
-#include "util/PatchPoints.h"
 #include "util/CounterTimer.h"
 
 #include "arch/arm/ArmSystemEmulationModel.h"
