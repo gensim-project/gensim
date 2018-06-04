@@ -205,7 +205,6 @@ bool BlockJITExecutionEngine::translateBlock(ThreadInstance *thread, archsim::Ad
 	if(phys_block_profile_.GetTotalCodeSize() > 1024 * 1024 * 32) {
 		phys_block_profile_.Invalidate();
 		virt_block_cache_.Invalidate();
-		fprintf(stderr, "\n\n\nFlushing because big!\n\n\n");
 	}
 	
 	// Look up the block in the cache, just in case we already have it translated

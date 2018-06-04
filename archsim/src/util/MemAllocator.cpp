@@ -22,12 +22,18 @@ StandardMemAllocator::~StandardMemAllocator()
 
 void *StandardMemAllocator::Allocate(size_t size_bytes)
 {
-	return malloc(size_bytes);
+	auto ptr = malloc(size_bytes);
+	auto result = mprotect((void*)((intptr_t)(ptr) & ~0xfffULL), size_bytes + 4096, PROT_READ|PROT_WRITE|PROT_EXEC);
+	assert(result == 0);
+	return ptr;
 }
 
 void *StandardMemAllocator::Reallocate(void *buffer, size_t new_size_bytes)
 {
-	return realloc(buffer, new_size_bytes);
+	auto ptr = realloc(buffer, new_size_bytes);
+	auto result = mprotect((void*)((intptr_t)(ptr) & ~0xfffULL), new_size_bytes + 4096, PROT_READ|PROT_WRITE|PROT_EXEC);
+	assert(result == 0);
+	return ptr;
 }
 
 void StandardMemAllocator::Free(void *buffer)
@@ -83,7 +89,7 @@ void *SimpleZoneMemAllocator::Reallocate(void *buffer, size_t new_size_bytes)
 
 			if(hdr->parent->RemainingSpace() >= extra_space) {
 
-#ifndef NDEBU
+#ifndef NDEBUG
 #ifdef CONFIG_VALGRIND
 				VALGRIND_MEMPOOL_FREE(hdr->parent->Data(), buffer);
 				VALGRIND_MEMPOOL_ALLOC(hdr->parent->Data(), buffer, new_size_bytes);

@@ -12,11 +12,23 @@ IF(PkgConfig_FOUND)
 	PKG_CHECK_MODULES(GTK3 gtk+-3.0)
 ENDIF()
 
+IF(PkgConfig_FOUND)
+	PKG_CHECK_MODULES(Valgrind valgrind)
+	IF(Valgrind_FOUND)
+		SET(archsim_extra_options ${archsim_extra_options} ${Valgrind_CFLAGS} -DCONFIG_VALGRIND=1)
+		SET(archsim_libs "${archsim_extra_libs};${Valgrind_LIBRARIES}")
+		LINK_DIRECTORIES(${Valgrind_LIBRARY_DIRS})
+	ENDIF()
+ENDIF()
+
+
 # Add the main ArchSim executable to the build, along with its dependencies
 ADD_EXECUTABLE(archsim src/main.cpp)
 ADD_LIBRARY(archsim-interface INTERFACE)
 
-TARGET_COMPILE_OPTIONS(archsim PRIVATE "-fomit-frame-pointer")
+
+TARGET_LINK_LIBRARIES(archsim PRIVATE ${archsim_extra_libs})
+TARGET_COMPILE_OPTIONS(archsim PRIVATE ${archsim_extra_options} -fomit-frame-pointer)
 
 standard_flags(archsim)
 
