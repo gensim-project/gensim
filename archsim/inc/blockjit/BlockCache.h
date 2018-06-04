@@ -10,7 +10,6 @@
 
 #include "blockjit/ir.h"
 #include "abi/Address.h"
-#include "util/NTZero.h"
 #include "blockjit/blockcache-defines.h"
 #include "core/thread/ProcessorFeatures.h"
 

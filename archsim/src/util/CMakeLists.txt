@@ -10,10 +10,8 @@ archsim_add_sources(
 	LogSpecParser.cpp
 	LogTargets.cpp
 	MemAllocator.cpp
-	ModuleManager.cpp
 	MultiHistogram.cpp
 	PagePool.cpp
-	PatchPoints.cpp
 	PubSubSync.cpp
 	string_util.cpp
 	TimerManager.cpp

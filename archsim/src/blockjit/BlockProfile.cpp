@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "blockjit/BlockProfile.h"
-#include "util/NTZero.h"
 #include "util/LogContext.h"
 
 #include <fstream>
