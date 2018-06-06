@@ -28,8 +28,38 @@ namespace captive
 				public:
 					virtual ~Transform();
 					virtual bool Apply(TranslationContext& ctx) = 0;
-				};
+				}; 
 
+				class MovEliminationTransform : public Transform
+				{
+				public:
+					virtual ~MovEliminationTransform();
+					virtual bool Apply(TranslationContext &ctx) override;
+					
+				};
+				
+				class DeadStoreElimination : public Transform
+				{
+				public:
+					virtual ~DeadStoreElimination();
+					virtual bool Apply(TranslationContext &ctx) override;
+				};
+				
+				class GlobalRegisterAllocationTransform : public Transform
+				{
+				public:
+					GlobalRegisterAllocationTransform(uint32_t num_allocable_registers);
+					virtual ~GlobalRegisterAllocationTransform();
+					virtual bool Apply(TranslationContext &ctx) override;
+					
+					uint32_t GetStackFrameSize() const;
+					archsim::util::vbitset GetUsedPhysRegs() const;
+				private:
+					uint32_t stack_frame_size_;
+					uint32_t num_allocable_registers_;
+//					archsim::util::vbitset used_phys_regs_;
+				};
+				
 				class RegisterAllocationTransform : public Transform
 				{
 				public:

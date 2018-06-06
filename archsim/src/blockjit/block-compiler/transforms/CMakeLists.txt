@@ -1,7 +1,10 @@
 archsim_add_sources(
 	ConstantPropTransform.cpp
 	DeadBlockEliminationTransform.cpp
+	DeadStoreEliminationTransform.cpp
+	GlobalRegisterAllocationTransform.cpp
 	MergeBlocksTransform.cpp
+	MovEliminationTransform.cpp
 	Peephole2Transform.cpp
 	PeepholeTransform.cpp
 	PostAllocateDCE.cpp

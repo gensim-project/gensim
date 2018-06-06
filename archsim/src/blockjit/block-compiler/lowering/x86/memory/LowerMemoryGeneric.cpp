@@ -62,7 +62,8 @@ bool LowerReadMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 	if(dest->is_alloc_reg()) {
 		Encoder().mov(REGS_RAX(dest->size), GetLoweringContext().register_from_operand(dest, dest->size));
 	}
-	GetLoweringContext().emit_restore_reg_state(2, GetStackMap(), GetIsStackFixed(), live_regs);
+	
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 
 	insn++;
 	return true;
@@ -131,7 +132,7 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 
 	Encoder().call(BLKJIT_RETURN(8));
 
-	GetLoweringContext().emit_restore_reg_state(3, GetStackMap(), GetIsStackFixed());
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 
 	insn++;
 	return true;

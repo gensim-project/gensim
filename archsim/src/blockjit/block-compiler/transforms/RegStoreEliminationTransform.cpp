@@ -18,18 +18,6 @@ using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;
 
-static void make_instruction_nop(IRInstruction *insn, bool set_block)
-{
-	insn->type = IRInstruction::NOP;
-	insn->operands[0].type = IROperand::NONE;
-	insn->operands[1].type = IROperand::NONE;
-	insn->operands[2].type = IROperand::NONE;
-	insn->operands[3].type = IROperand::NONE;
-	insn->operands[4].type = IROperand::NONE;
-	insn->operands[5].type = IROperand::NONE;
-	if(set_block) insn->ir_block = NOP_BLOCK;
-}
-
 RegStoreEliminationTransform::~RegStoreEliminationTransform()
 {
 
@@ -74,7 +62,7 @@ static void NopPreviousWrites(std::map<uint32_t, RegWriteInfo>& writes, uint32_t
 	}
 	
 	for(auto i : offsets) {
-		make_instruction_nop(writes.at(i).Write, true);
+		writes.at(i).Write->make_nop();
 		writes.erase(i);
 	}
 }

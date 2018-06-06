@@ -211,16 +211,6 @@ private:
 	archsim::Session& session;
 	archsim::core::execution::ExecutionContextManager exec_ctx_mgr_;
 	
-	static archsim::concurrent::LWBarrier2 _verify_barrier_enter;
-	static archsim::concurrent::LWBarrier2 _verify_barrier_leave;
-	bool _verify;
-	System *_next_verify_system;
-	uint32_t _verify_tid;
-	struct sockaddr_un _verify_socket;
-	int _verify_socket_fd;
-	int _verify_bundle_index;
-	int _verify_chunk_size;
-
 	bool _halted;
 
 	archsim::util::PubSubContext pubsubctx;

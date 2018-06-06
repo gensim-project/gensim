@@ -97,15 +97,6 @@ static bool peephole_shift(IRInstruction &insn)
 	return true;
 }
 
-
-
-static void make_instruction_nop(IRInstruction *insn, bool set_block)
-{
-	insn->type = IRInstruction::NOP;
-	insn->operands.clear();
-	if(set_block) insn->ir_block = NOP_BLOCK;
-}
-
 static void peephole_and(IRInstruction *insn)
 {
 	IROperand &constant = insn->operands[0];
@@ -131,7 +122,7 @@ static void peephole_and(IRInstruction *insn)
 			insn->operands[0] = insn->operands[1];
 			insn->operands[0].size = op_size;
 		} else {
-			make_instruction_nop(insn, true);
+			insn->make_nop();
 		}
 	}
 }
@@ -162,7 +153,7 @@ bool PeepholeTransform::Apply(TranslationContext &ctx)
 		switch (insn->type) {
 			case IRInstruction::ADD:
 				if (insn->operands[0].is_constant() && insn->operands[0].value == 0) {
-					make_instruction_nop(insn, true);
+					insn->make_nop();
 				} else {
 					peephole_add(*insn);
 				}
@@ -172,7 +163,7 @@ bool PeepholeTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::SHR:
 			case IRInstruction::SHL:
 				if (insn->operands[0].is_constant() && insn->operands[0].value == 0) {
-					make_instruction_nop(insn, true);
+					insn->make_nop();
 				} else {
 					peephole_shift(*insn);
 				}
@@ -183,7 +174,7 @@ bool PeepholeTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::OR:
 			case IRInstruction::XOR:
 				if (insn->operands[0].is_constant() && insn->operands[0].value == 0) {
-					make_instruction_nop(insn, true);
+					insn->make_nop();
 				}
 				break;
 
@@ -191,7 +182,7 @@ bool PeepholeTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::INCPC:
 				if(prev_pc_inc) {
 					insn->operands[0].value += prev_pc_inc->operands[0].value;
-					prev_pc_inc->type = IRInstruction::NOP;
+					prev_pc_inc->make_nop();
 				}
 				prev_pc_inc = insn;
 

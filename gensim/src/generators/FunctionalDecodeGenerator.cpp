@@ -41,7 +41,6 @@ namespace gensim
 			header_str << "#include <gensim/gensim_decode.h>\n";
 			header_str << "#include <core/MemoryInterface.h>\n";
 			header_str << "#include <core/thread/ThreadInstance.h>\n";
-			header_str << "#include <util/HashMap.h>\n";
 			header_str << "#include <queue>\n";
 			header_str << "#include <utility>\n";
 

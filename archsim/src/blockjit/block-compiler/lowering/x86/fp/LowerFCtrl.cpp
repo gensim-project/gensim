@@ -26,7 +26,7 @@ bool LowerFCtrl_GetRound::Lower(const captive::shared::IRInstruction *&insn)
 
 	Encoder().mov(REG_RAX, BLKJIT_RETURN(8));
 
-	GetLoweringContext().emit_restore_reg_state(1, GetStackMap(), GetIsStackFixed());
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 
 	// Pop the reference argument value into the destination register
 	if (dest->is_alloc_reg()) {
@@ -53,7 +53,7 @@ bool LowerFCtrl_SetRound::Lower(const captive::shared::IRInstruction *&insn)
 	Encoder().mov((uint64_t)&cpuSetRoundingMode, BLKJIT_RETURN(8));
 	Encoder().call(BLKJIT_RETURN(8));
 
-	GetLoweringContext().emit_restore_reg_state(2, GetStackMap(), GetIsStackFixed());
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 
 	insn++;
 	return true;
@@ -73,7 +73,7 @@ bool LowerFCtrl_GetFlush::Lower(const captive::shared::IRInstruction *&insn)
 
 	Encoder().mov(REG_RAX, BLKJIT_RETURN(8));
 
-	GetLoweringContext().emit_restore_reg_state(1, GetStackMap(), GetIsStackFixed());
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 
 	// Pop the reference argument value into the destination register
 	if (dest->is_alloc_reg()) {
@@ -100,7 +100,7 @@ bool LowerFCtrl_SetFlush::Lower(const captive::shared::IRInstruction *&insn)
 	Encoder().mov((uint64_t)&cpuSetFlushMode, BLKJIT_RETURN(8));
 	Encoder().call(BLKJIT_RETURN(8));
 
-	GetLoweringContext().emit_restore_reg_state(2, GetStackMap(), GetIsStackFixed());
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 
 	insn++;
 	return true;

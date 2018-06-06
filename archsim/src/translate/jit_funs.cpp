@@ -18,7 +18,6 @@
 
 #include "core/MemoryInterface.h"
 #include "core/thread/ThreadInstance.h"
-#include "tracing/TraceManager.h"
 
 #include "util/LogContext.h"
 

@@ -18,7 +18,7 @@ static void dump_insn(const IRInstruction *insn, std::ostream &str)
 
 	str << " " << std::left << std::setw(12) << std::setfill(' ') << descr->mnemonic;
 
-	for (int op_idx = 0; op_idx < 6; op_idx++) {
+	for (int op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
 		const IROperand *oper = &insn->operands[op_idx];
 
 		if (descr->format[op_idx] != 'X') {
@@ -53,7 +53,7 @@ void IRPrinter::DumpIR(std::ostream& ostr, const captive::arch::jit::Translation
 
 		if (current_block_id != insn->ir_block) {
 			current_block_id = insn->ir_block;
-			ostr << "block " << std::hex << current_block_id << ":\n";
+			ostr << "block " << std::dec << current_block_id << ":\n";
 		}
 
 		dump_insn(insn, ostr);

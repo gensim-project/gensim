@@ -11,7 +11,6 @@
 
 #include <vector>
 
-
 using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;

@@ -1818,6 +1818,10 @@ void X86Encoder::encode_opcode_mod_rm(uint16_t opcode, const X86Register& reg, c
 		rex |= REX_B;
 	}
 
+	if(rm.index.hireg) {
+		rex |= REX_X;
+	}
+	
 	// If we are to emit a REX prefix, do that now.
 	if (rex) {
 		emit8(rex);

@@ -84,6 +84,8 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 		return false;
 	}
 
+//	ctx.trim();
+//	fprintf(stderr, "*** %08x = %u %u\n", block_address.Get(), (uint32_t)ctx.size_bytes(), out_txln.GetSize());
 	ctx.free_ir_buffer();
 
 	delete _decode_ctx;
@@ -225,15 +227,6 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 	
 	if(archsim::options::Verbose)builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
 
-	IRInstruction b = IRInstruction::barrier();
-//	b.operands[0] = IROperand::const32(decode->GetIR());
-	builder.add_instruction(b);
-//
-//	b = IRInstruction::barrier();
-//	b.operands[0] = IROperand::const32(pc.Get());
-//	builder.add_instruction(b);
-
-//	if(archsim::options::Verify && !archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
 	if(archsim::options::InstructionTick) {
 		builder.call(IROperand::func((void*)cpuInstructionTick), IROperand::const64((uint64_t)(void*)processor));
 	}
@@ -472,20 +465,19 @@ bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance 
 	fn.SetFn(lowering.Function);
 	
 	if(dump) {
+		ctx.trim();
+		
+		std::ostringstream ir_filename;
+		ir_filename << "blkjit-" << std::hex << block_address.Get() << ".txt";
+		std::ofstream ir_file (ir_filename.str().c_str());
+		archsim::blockjit::IRPrinter printer;
+		printer.DumpIR(ir_file, ctx);
+		
 		std::ostringstream str;
 		str << "blkjit-" << std::hex << block_address.Get() << ".bin";
 		FILE *outfile = fopen(str.str().c_str(), "w");
 		fwrite((void*)lowering.Function, lowering.Size, 1, outfile);
 		fclose(outfile);
-
-//		str.str("");
-//		str << "blkjit-" << std::hex << block_address.Get() << ".txt";
-//		outfile = fopen(str.str().c_str(), "w");
-//		str.str("");
-//		compiler.dump_ir(str);
-//		std::string ir_str = str.str();
-//		fwrite(ir_str.c_str(), ir_str.length(), 1, outfile);
-//		fclose(outfile);
 	}
 
 

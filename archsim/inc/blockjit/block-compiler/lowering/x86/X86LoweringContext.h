@@ -75,7 +75,7 @@ namespace captive
 						
 
 						void emit_save_reg_state(int num_operands, stack_map_t&, bool &fixed_stack, uint32_t live_regs = 0xffffffff);
-						void emit_restore_reg_state(int num_operands, stack_map_t&, bool fixed_stack, uint32_t live_regs = 0xffffffff);
+						void emit_restore_reg_state(bool fixed_stack, uint32_t live_regs = 0xffffffff);
 						void encode_operand_function_argument(const shared::IROperand *oper, const X86Register& reg, stack_map_t&);
 						void encode_operand_to_reg(const shared::IROperand *operand, const X86Register& reg);
 
@@ -145,6 +145,16 @@ namespace captive
 							return tmp;
 						}
 						
+						archsim::util::vbitset used_phys_regs;
+						
+						// Get a list of registers which should be saved on entry
+						// and restored on exit (i.e. pushed in prologue and
+						// popped in epilogue
+						std::vector<const X86Register*> GetSavedRegisters();
+						void EmitPrologue();
+						void EmitEpilogue();
+						
+						bool ABICalleeSave(const X86Register &reg);
 					protected:
 						virtual bool LowerHeader(const TranslationContext &ctx) override;
 						virtual bool PerformRelocations(const TranslationContext &ctx) override;
@@ -154,8 +164,6 @@ namespace captive
 						X86Encoder &_encoder;
 						bool _stack_fixed;
 						const archsim::core::thread::ThreadInstance *thread_;
-						
-						archsim::util::vbitset used_phys_regs;
 						
 						struct reg_assignment {
 							const x86::X86Register *b1;

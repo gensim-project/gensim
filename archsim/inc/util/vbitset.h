@@ -37,6 +37,8 @@ namespace archsim {
 			void invert() { for(int i = 0; i < size(); ++i) { set(i, !get(i)); } }
 			void clear() { for(int i = 0; i < size(); ++i) { set(i, false); } }
 			
+			int count() { int count = 0; for(int i = 0; i < size(); ++i) { count += get(i); } return count; }
+			
 		private:
 			std::vector<bool> storage_;
 		};

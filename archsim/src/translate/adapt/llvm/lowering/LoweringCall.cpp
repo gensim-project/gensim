@@ -24,7 +24,7 @@ bool BlockJITCALLLowering::Lower(const captive::shared::IRInstruction*& insn) {
 	arg_values.push_back(thread_ptr);
 	arg_types.push_back(thread_ptr_type);
 	
-	for(int i = 1; i < 6; ++i) {
+	for(int i = 1; i < insn->operands.size(); ++i) {
 		if(insn->operands[i].type == IROperand::NONE) {
 			break;
 		}

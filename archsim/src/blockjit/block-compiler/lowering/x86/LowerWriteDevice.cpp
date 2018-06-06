@@ -46,7 +46,7 @@ bool LowerWriteDevice::Lower(const captive::shared::IRInstruction *&insn)
 	if (next_insn && next_insn->type == IRInstruction::WRITE_DEVICE) {
 		//
 	} else {
-		GetLoweringContext().emit_restore_reg_state(4, GetStackMap(), GetIsStackFixed());
+		GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 	}
 
 	insn++;

@@ -55,8 +55,7 @@ bool Peephole2Transform::Apply(TranslationContext &ctx)
 //					fprintf(stderr, "LOL\n");
 					ldreg1_dest.alloc_data = mov_dest.alloc_data;
 
-					mov->type = IRInstruction::NOP;
-					mov->ir_block = NOP_BLOCK;
+					mov->make_nop();
 				}
 
 			}

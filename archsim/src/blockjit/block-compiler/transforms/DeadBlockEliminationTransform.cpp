@@ -17,13 +17,6 @@ using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;
 
-static void make_instruction_nop(IRInstruction *insn, bool set_block)
-{
-	insn->type = IRInstruction::NOP;
-	insn->operands.clear();
-	if(set_block) insn->ir_block = NOP_BLOCK;
-}
-
 DeadBlockEliminationTransform::~DeadBlockEliminationTransform()
 {
 
@@ -59,7 +52,9 @@ bool DeadBlockEliminationTransform::Apply(TranslationContext &ctx)
 
 	for(unsigned int ir_idx = 0; ir_idx < ctx.count(); ir_idx++) {
 		IRInstruction *insn = ctx.at(ir_idx);
-		if(!live_blocks[insn->ir_block]) make_instruction_nop(insn, true);
+		if(!live_blocks[insn->ir_block]) {
+			insn->make_nop();
+		}
 	}
 
 	timer.tick("Killing");
