@@ -73,6 +73,17 @@ BlockCompiler::BlockCompiler(TranslationContext& ctx, uint32_t pa, wulib::MemAll
 
 }
 
+void dump_ir(const std::string &name, uint32_t block_pc, TranslationContext &ctx)
+{
+	if(archsim::options::Debug) {
+		archsim::blockjit::IRPrinter printer;
+		std::ostringstream filename_str;
+		filename_str << "blkjit-" << std::hex << block_pc << "-" << name << ".txt";
+		std::ofstream file_stream(filename_str.str().c_str());
+		printer.DumpIR(file_stream, ctx);
+	}
+}
+
 CompileResult BlockCompiler::compile(bool dump_intermediates)
 {
 	uint32_t max_stack = 0;
@@ -90,16 +101,9 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 
 	transforms::MergeBlocksTransform mergeblocks;
 	if (!mergeblocks.Apply(ctx)) return false;
-
-	transforms::ConstantPropTransform cpt;
-	if (!cpt.Apply(ctx)) return false;
-
+	
 	transforms::PeepholeTransform peephole;
 	if (!peephole.Apply(ctx)) return false;
-
-	sorter.Apply(ctx);
-	transforms::RegValueReuseTransform rvr;
-//	if(!rvr.Apply(ctx)) return false;
 
 	transforms::RegStoreEliminationTransform rse;
 	if(!rse.Apply(ctx)) return false;
@@ -110,16 +114,15 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 	if(!vrt.Apply(ctx)) return false;
 
 		// dump before register allocation
-	if(archsim::options::Debug) {
-		archsim::blockjit::IRPrinter printer;
-		std::ostringstream filename_str;
-		filename_str << "blkjit-" << std::hex << GetBlockPA() << "-premovelimination.txt";
-		std::ofstream file_stream(filename_str.str().c_str());
-		printer.DumpIR(file_stream, ctx);
-	}
+	dump_ir("premovelimination", GetBlockPA(), ctx);
 	
 	transforms::MovEliminationTransform mov_elimination;
 	if(!mov_elimination.Apply(ctx)) return false;
+	
+	dump_ir("preconstantprop", GetBlockPA(), ctx);
+	transforms::ConstantPropTransform cpt;
+	if (!cpt.Apply(ctx)) return false;
+	dump_ir("postconstantprop", GetBlockPA(), ctx);
 	
 	transforms::DeadStoreElimination dse;
 	if(!dse.Apply((ctx))) return false;
@@ -127,24 +130,21 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 	sorter.Apply(ctx);
 	
 	// dump before register allocation
-	if(archsim::options::Debug) {
-		archsim::blockjit::IRPrinter printer;
-		std::ostringstream filename_str;
-		filename_str << "blkjit-" << std::hex << GetBlockPA() << "-prealloc.txt";
-		std::ofstream file_stream(filename_str.str().c_str());
-		printer.DumpIR(file_stream, ctx);
-	}
+	dump_ir("prealloc", GetBlockPA(), ctx);
 		
 	transforms::GlobalRegisterAllocationTransform reg_alloc(BLKJIT_NUM_ALLOCABLE);
 	if(!reg_alloc.Apply(ctx)) return false;
-
+	dump_ir("postalloc", GetBlockPA(), ctx);
+	
+//	transforms::GlobalRegisterReuseTransform reg_reuse(reg_alloc.GetUsedPhysRegs());
+//	if(!reg_alloc.Apply(ctx)) return false;
+//	dump_ir("postgrr", GetBlockPA(), ctx);
+	
 	if( !post_allocate_peephole()) return false;
 
 	transforms::PostAllocatePeephole pap;
 	if(!pap.Apply(ctx)) return false;
 	
-//	transforms::StackToRegTransform str (reg_alloc.GetUsedPhysRegs());
-//	if(!str.Apply(ctx)) return false;
 	
 	sorter.Apply(ctx);
 	transforms::Peephole2Transform p2;
@@ -153,13 +153,7 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 	sorter.Apply(ctx);
 	
 	// dump before register allocation
-	if(archsim::options::Debug) {
-		archsim::blockjit::IRPrinter printer;
-		std::ostringstream filename_str;
-		filename_str << "blkjit-" << std::hex << GetBlockPA() << "-final.txt";
-		std::ofstream file_stream(filename_str.str().c_str());
-		printer.DumpIR(file_stream, ctx);
-	}
+	dump_ir("final", GetBlockPA(), ctx);
 
 	return CompileResult(true, reg_alloc.GetStackFrameSize(), reg_alloc.GetUsedPhysRegs());
 }
