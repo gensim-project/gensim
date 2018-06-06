@@ -35,6 +35,7 @@ namespace archsim {
 			bool all_clear() const { for(int i = 0; i < size(); ++i) { if(get(i)) { return false; } } return true; }
 			
 			void invert() { for(int i = 0; i < size(); ++i) { set(i, !get(i)); } }
+			vbitset inverted() const { auto other = *this; other.invert(); return other; }
 			void clear() { for(int i = 0; i < size(); ++i) { set(i, false); } }
 			
 			int count() { int count = 0; for(int i = 0; i < size(); ++i) { count += get(i); } return count; }

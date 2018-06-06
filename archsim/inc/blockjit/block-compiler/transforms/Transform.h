@@ -45,6 +45,17 @@ namespace captive
 					virtual bool Apply(TranslationContext &ctx) override;
 				};
 				
+				class GlobalRegisterReuseTransform : public Transform
+				{
+				public:
+					GlobalRegisterReuseTransform(const archsim::util::vbitset &used_registers, int max_regs);
+					virtual ~GlobalRegisterReuseTransform();
+					virtual bool Apply(TranslationContext &ctx) override;
+				private:
+					archsim::util::vbitset used_pregs_;
+					int max_regs_;
+				};
+				
 				class GlobalRegisterAllocationTransform : public Transform
 				{
 				public:
@@ -57,7 +68,7 @@ namespace captive
 				private:
 					uint32_t stack_frame_size_;
 					uint32_t num_allocable_registers_;
-//					archsim::util::vbitset used_phys_regs_;
+					archsim::util::vbitset used_phys_regs_;
 				};
 				
 				class RegisterAllocationTransform : public Transform

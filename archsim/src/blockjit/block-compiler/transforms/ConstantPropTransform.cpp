@@ -55,7 +55,7 @@ bool ConstantPropTransform::Apply(TranslationContext &ctx)
 						constant_operands[insn->operands[1].value].value -= insn->operands[0].value;
 					}
 				}
-			}
+			} 
 		}
 
 		struct insn_descriptor &descr = insn_descriptors[insn->type];
@@ -67,7 +67,9 @@ bool ConstantPropTransform::Apply(TranslationContext &ctx)
 					*operand = constant_operands[operand->value];
 				}
 			} else {
-				if(operand->is_vreg()) constant_operands.erase(operand->value);
+				if(operand->is_vreg()) {
+					constant_operands.erase(operand->value);
+				}
 			}
 		}
 	}

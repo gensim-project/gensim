@@ -8,9 +8,9 @@ using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;
 
-GlobalRegisterAllocationTransform::GlobalRegisterAllocationTransform(uint32_t num_allocable_registers) : num_allocable_registers_(num_allocable_registers)
+GlobalRegisterAllocationTransform::GlobalRegisterAllocationTransform(uint32_t num_allocable_registers) : num_allocable_registers_(num_allocable_registers), used_phys_regs_(num_allocable_registers)
 {
-
+	used_phys_regs_.clear();
 }
 
 
@@ -96,6 +96,7 @@ bool GlobalRegisterAllocationTransform::Apply(TranslationContext& ctx)
 		
 		if(regs_left) {
 			allocation = std::make_pair(IROperand::ALLOCATED_REG, num_allocable_registers_-regs_left);
+			used_phys_regs_.set(num_allocable_registers_-regs_left, 1);
 			regs_left--;
 		} else {
 			allocation = std::make_pair(IROperand::ALLOCATED_STACK, next_stack_frame);
@@ -126,8 +127,5 @@ uint32_t GlobalRegisterAllocationTransform::GetStackFrameSize() const
 
 archsim::util::vbitset GlobalRegisterAllocationTransform::GetUsedPhysRegs() const
 {
-	// TODO: this properly
-	archsim::util::vbitset bits(num_allocable_registers_);
-	bits.set_all();
-	return bits;
+	return used_phys_regs_;
 }
