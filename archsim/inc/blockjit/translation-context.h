@@ -12,6 +12,7 @@
 #include <malloc.h>
 #include "blockjit/ir.h"
 #include "blockjit/IRInstruction.h"
+#include "util/linked-vector.h"
 
 #include <algorithm>
 
