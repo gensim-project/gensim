@@ -23,16 +23,26 @@ StandardMemAllocator::~StandardMemAllocator()
 void *StandardMemAllocator::Allocate(size_t size_bytes)
 {
 	auto ptr = malloc(size_bytes);
-	auto result = mprotect((void*)((intptr_t)(ptr) & ~0xfffULL), size_bytes + 4096, PROT_READ|PROT_WRITE|PROT_EXEC);
-	assert(result == 0);
+	auto bytes = ((size_bytes + 4096) / 4096) * 4096;
+	auto result = mprotect((void*)((intptr_t)(ptr) & ~0xfffULL), bytes, PROT_READ|PROT_WRITE|PROT_EXEC);
+	
+	if(result != 0) {
+		throw std::logic_error("Invalid mprotect: " + std::string(strerror(errno)));
+	}
+	
 	return ptr;
 }
 
 void *StandardMemAllocator::Reallocate(void *buffer, size_t new_size_bytes)
 {
 	auto ptr = realloc(buffer, new_size_bytes);
-	auto result = mprotect((void*)((intptr_t)(ptr) & ~0xfffULL), new_size_bytes + 4096, PROT_READ|PROT_WRITE|PROT_EXEC);
-	assert(result == 0);
+	auto bytes = ((new_size_bytes + 4096) / 4096) * 4096;
+	auto result = mprotect((void*)((intptr_t)(ptr) & ~0xfffULL), bytes, PROT_READ|PROT_WRITE|PROT_EXEC);
+	
+	if(result != 0) {
+		throw std::logic_error("Invalid mprotect: " + std::string(strerror(errno)));
+	}
+	
 	return ptr;
 }
 

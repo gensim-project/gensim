@@ -152,10 +152,13 @@ namespace captive
 				_END
 			};
 			
+			util::FastVector<IROperand, 2> operands;
 			IRBlockId ir_block;
 			IRInstructionType type;
-			util::FastVector<IROperand, 2> operands;
-
+			
+			const insn_descriptor &descriptor() const { return insn_descriptors[type]; }
+			void make_nop() { ir_block = NOP_BLOCK; type = NOP; operands.clear(); }
+			
 			template<class... args> IRInstruction(IRInstructionType type, const args&... arg)
 				: type(type), operands{arg...} {}
 			

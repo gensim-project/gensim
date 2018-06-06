@@ -41,7 +41,7 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 		auto &descr = insn_descriptors[insn->type];
 
 		// First, check to see if the vregs containing any live values have been killed
-		for(unsigned int op_idx = 0; op_idx < 6; ++op_idx) {
+		for(unsigned int op_idx = 0; op_idx < insn->operands.size(); ++op_idx) {
 			const IROperand &op = insn->operands[op_idx];
 
 			// If this operand is written to

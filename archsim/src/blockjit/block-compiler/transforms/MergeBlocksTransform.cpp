@@ -17,12 +17,6 @@ using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;
 
-static void make_instruction_nop(IRInstruction *insn, bool set_block)
-{
-	insn->type = IRInstruction::NOP;
-	insn->operands.clear();
-	if(set_block) insn->ir_block = NOP_BLOCK;
-}
 
 MergeBlocksTransform::~MergeBlocksTransform()
 {
@@ -41,7 +35,7 @@ bool MergeBlocksTransform::merge_block(TranslationContext &ctx, IRBlockId merge_
 
 		// We can only merge if the terminator is a jmp
 		if(insn->ir_block == merge_into && insn->type == IRInstruction::JMP) {
-			make_instruction_nop(insn, true);
+			insn->make_nop();
 			break;
 		}
 	}

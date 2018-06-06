@@ -154,7 +154,6 @@ template<typename PC_t> void BlockJITExecutionEngine::ExecuteInnerLoop(Execution
 
 		if(entry.virt_tag == pc) {
 			entry.ptr(regfile, thread->GetStateBlock().GetData());
-			asm volatile ("":::"r15", "r14", "r13", "rbx", "rbp");
 		} else {
 			return;
 		}
@@ -175,6 +174,9 @@ ExecutionResult BlockJITExecutionEngine::Execute(ExecutionEngineThreadContext* c
 	pubsub.Subscribe(PubSubType::L1ICacheFlush, flush_txlns_callback, this);
 	pubsub.Subscribe(PubSubType::FeatureChange, flush_txlns_callback, this);
 	pubsub.Subscribe(PubSubType::RegionInvalidatePhysical, flush_txlns_callback, this);
+	
+	ctx->GetThread()->GetStateBlock().AddBlock("BlockCache", sizeof(void*));
+	ctx->GetThread()->GetStateBlock().SetEntry<archsim::blockjit::BlockCacheEntry*>("BlockCache", virt_block_cache_.GetPtr());
 	
 	std::unique_ptr<util::CounterTimerContext> timer_ctx;
 	
@@ -202,7 +204,7 @@ ExecutionEngineThreadContext* BlockJITExecutionEngine::GetNewContext(thread::Thr
 
 bool BlockJITExecutionEngine::translateBlock(ThreadInstance *thread, archsim::Address block_pc, bool support_chaining, bool support_profiling)
 {
-	if(phys_block_profile_.GetTotalCodeSize() > 1024 * 1024 * 32) {
+	if(phys_block_profile_.GetTotalCodeSize() > 1024 * 1024 * 64) {
 		phys_block_profile_.Invalidate();
 		virt_block_cache_.Invalidate();
 	}

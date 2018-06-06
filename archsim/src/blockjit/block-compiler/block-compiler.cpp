@@ -109,7 +109,33 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 	transforms::ValueRenumberingTransform vrt;
 	if(!vrt.Apply(ctx)) return false;
 
-	transforms::RegisterAllocationTransform reg_alloc(BLKJIT_NUM_ALLOCABLE);
+		// dump before register allocation
+	if(archsim::options::Debug) {
+		archsim::blockjit::IRPrinter printer;
+		std::ostringstream filename_str;
+		filename_str << "blkjit-" << std::hex << GetBlockPA() << "-premovelimination.txt";
+		std::ofstream file_stream(filename_str.str().c_str());
+		printer.DumpIR(file_stream, ctx);
+	}
+	
+	transforms::MovEliminationTransform mov_elimination;
+	if(!mov_elimination.Apply(ctx)) return false;
+	
+	transforms::DeadStoreElimination dse;
+	if(!dse.Apply((ctx))) return false;
+	
+	sorter.Apply(ctx);
+	
+	// dump before register allocation
+	if(archsim::options::Debug) {
+		archsim::blockjit::IRPrinter printer;
+		std::ostringstream filename_str;
+		filename_str << "blkjit-" << std::hex << GetBlockPA() << "-prealloc.txt";
+		std::ofstream file_stream(filename_str.str().c_str());
+		printer.DumpIR(file_stream, ctx);
+	}
+		
+	transforms::GlobalRegisterAllocationTransform reg_alloc(BLKJIT_NUM_ALLOCABLE);
 	if(!reg_alloc.Apply(ctx)) return false;
 
 	if( !post_allocate_peephole()) return false;
@@ -117,16 +143,25 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 	transforms::PostAllocatePeephole pap;
 	if(!pap.Apply(ctx)) return false;
 	
-	transforms::StackToRegTransform str (reg_alloc.GetUsedPhysRegs());
-	if(!str.Apply(ctx)) return false;
+//	transforms::StackToRegTransform str (reg_alloc.GetUsedPhysRegs());
+//	if(!str.Apply(ctx)) return false;
 	
 	sorter.Apply(ctx);
 	transforms::Peephole2Transform p2;
 	if(!p2.Apply(ctx)) return false;
 
 	sorter.Apply(ctx);
+	
+	// dump before register allocation
+	if(archsim::options::Debug) {
+		archsim::blockjit::IRPrinter printer;
+		std::ostringstream filename_str;
+		filename_str << "blkjit-" << std::hex << GetBlockPA() << "-final.txt";
+		std::ofstream file_stream(filename_str.str().c_str());
+		printer.DumpIR(file_stream, ctx);
+	}
 
-	return CompileResult(true, reg_alloc.GetStackFrameSize(), str.GetUsedPhysRegs());
+	return CompileResult(true, reg_alloc.GetStackFrameSize(), reg_alloc.GetUsedPhysRegs());
 }
 
 static void make_instruction_nop(IRInstruction *insn, bool set_block)

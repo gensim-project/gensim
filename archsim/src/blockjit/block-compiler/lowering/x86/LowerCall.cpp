@@ -54,10 +54,10 @@ bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
 		if (next_insn->type == IRInstruction::CALL && insn->count_operands() == next_insn->count_operands()) {
 			// Don't restore the state, because the next instruction is a call and it will use it.
 		} else {
-			GetLoweringContext().emit_restore_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
+			GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 		}
 	} else {
-		GetLoweringContext().emit_restore_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
+		GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 	}
 
 

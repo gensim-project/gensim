@@ -28,7 +28,7 @@ bool LowerSetCpuFeature::Lower(const captive::shared::IRInstruction *&insn)
 	Encoder().mov((uint64_t)(cpuSetFeature), BLKJIT_RETURN(8));
 	Encoder().call(BLKJIT_RETURN(8));
 
-	GetLoweringContext().emit_restore_reg_state(3, GetStackMap(), GetIsStackFixed());
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 
 	insn++;
 	return true;

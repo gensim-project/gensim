@@ -1,7 +1,5 @@
 #include "abi/devices/arm/special/SimulatorCacheControlCoprocessor.h"
 
-#include "tracing/TraceManager.h"
-
 #include "abi/devices/PeripheralManager.h"
 #include "abi/devices/DeviceManager.h"
 

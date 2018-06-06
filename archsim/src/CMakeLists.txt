@@ -6,8 +6,6 @@ archsim_add_sources(
 	session.cpp
 )
 
-
-
 ADD_SUBDIRECTORY(abi)
 ADD_SUBDIRECTORY(arch)
 ADD_SUBDIRECTORY(blockjit)
@@ -16,7 +14,6 @@ ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(gensim)
 ADD_SUBDIRECTORY(interpret)
 ADD_SUBDIRECTORY(module)
-ADD_SUBDIRECTORY(tracing)
 ADD_SUBDIRECTORY(translate)
 ADD_SUBDIRECTORY(uarch)
 ADD_SUBDIRECTORY(util)

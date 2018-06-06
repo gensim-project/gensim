@@ -104,6 +104,7 @@ namespace util
 		typedef FastVectorIterator iterator;
 		typedef FastVectorConstIterator const_iterator;
 		typedef FastVector<T, Num, OverflowType> this_t;
+		typedef OverflowType overflow_t;
 
 		FastVector() : count(0) {}
 		

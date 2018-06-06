@@ -38,7 +38,7 @@ bool LowerProbeDevice::Lower(const captive::shared::IRInstruction *&insn)
 
 	Encoder().push(REG_RAX);
 
-	GetLoweringContext().emit_restore_reg_state(4, GetStackMap(), GetIsStackFixed());
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 
 	// Pop the reference argument value into the destination register
 	if (reg->is_alloc_reg()) {

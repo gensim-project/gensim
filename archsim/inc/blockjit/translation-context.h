@@ -26,7 +26,7 @@ namespace captive
 			public:
 				TranslationContext();
 				~TranslationContext();
-
+				
 				inline void add_instruction(shared::IRBlockId block_id, const shared::IRInstruction& instruction)
 				{
 					ensure_buffer(_ir_insn_count + 1);
@@ -146,6 +146,29 @@ namespace captive
 				void recount_regs(uint32_t max_reg)
 				{
 					_ir_reg_count = max_reg;
+				}
+				
+				size_t size_bytes() const
+				{
+					return sizeof(*_ir_insns) * _ir_insn_count;
+				}
+				
+				void trim()
+				{
+					int64_t nop_block_start = -1;
+					for(uint32_t i = 0; i < _ir_insn_count; ++i) {
+						if(_ir_insns[i].ir_block == NOP_BLOCK) {
+							nop_block_start = i;
+							break;
+						}
+					}
+					if(nop_block_start == -1) {
+						return;
+					}
+					
+					_ir_insn_count = nop_block_start;
+					_ir_insns = (shared::IRInstruction*)realloc(_ir_insns, sizeof(shared::IRInstruction) * _ir_insn_count);
+					_ir_insn_buffer_size = _ir_insn_count;
 				}
 
 			private:
