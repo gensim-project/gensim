@@ -4,6 +4,7 @@
  * and open the template in the editor.
  */
 
+#include "core/thread/ThreadInstance.h"
 #include "translate/adapt/BlockJITToLLVM.h"
 #include "translate/llvm/LLVMOptimiser.h"
 #include "translate/adapt/BlockJITAdaptorLoweringContext.h"
@@ -53,7 +54,7 @@ llvm::Function* BlockJITToLLVMAdaptor::AdaptIR(archsim::core::thread::ThreadInst
 	// add an entry block to the function
 	auto entry_block = llvm::BasicBlock::Create(target_module->getContext(), "entry_block", fun);
 	
-	BlockJITLoweringContext lowerer (thread, target_module, fun);
+	BlockJITLoweringContext lowerer (thread->GetArch(), thread->GetStateBlock().GetDescriptor(), target_module, fun);
 	lowerer.Prepare(ctx);
 	lowerer.PrepareLowerers(ctx);
 	if(!lowerer.Lower(ctx)) {

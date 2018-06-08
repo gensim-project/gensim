@@ -92,27 +92,31 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 		}
 
 		case IROperand::CONSTANT: {
-			invert = true;
+			// can't encode cmp (reg), (const) so encode (reg), (const) and 
+			// invert the condition
+			auto &temp_reg = GetLoweringContext().get_temp(0, lhs->size);
+			Encoder().mov(lhs->value, temp_reg);
 
 			switch (rhs->type) {
 				case IROperand::VREG: {
 					if (rhs->is_alloc_reg()) {
-						Encoder().cmp(lhs->value, GetLoweringContext().register_from_operand(rhs));
+						Encoder().cmp(GetLoweringContext().register_from_operand(rhs), temp_reg);
 					} else if (rhs->is_alloc_stack()) {
-						switch (lhs->size) {
-							case 1:
-								Encoder().cmp1(lhs->value, GetLoweringContext().stack_from_operand(rhs));
-								break;
-							case 2:
-								Encoder().cmp2(lhs->value, GetLoweringContext().stack_from_operand(rhs));
-								break;
-							case 4:
-								Encoder().cmp4(lhs->value, GetLoweringContext().stack_from_operand(rhs));
-								break;
-							case 8:
-								Encoder().cmp8(lhs->value, GetLoweringContext().stack_from_operand(rhs));
-								break;
-						}
+						Encoder().cmp(GetLoweringContext().stack_from_operand(rhs), temp_reg);
+//						switch (lhs->size) {
+//							case 1:
+//								
+//								break;
+//							case 2:
+//								Encoder().cmp2(GetLoweringContext().stack_from_operand(rhs), temp_reg);
+//								break;
+//							case 4:
+//								Encoder().cmp4(GetLoweringContext().stack_from_operand(rhs), temp_reg);
+//								break;
+//							case 8:
+//								Encoder().cmp8(GetLoweringContext().stack_from_operand(rhs), temp_reg);
+//								break;
+//						}
 					} else {
 						assert(false);
 					}
@@ -121,8 +125,8 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 				}
 				case IROperand::CONSTANT: {
 //					LC_WARNING(LogBlockJit) << "Constant compared against constant in block " << std::hex << GetLoweringContext().GetBlockPA();
-					Encoder().mov(rhs->value, GetLoweringContext().get_temp(0, rhs->size));
-					Encoder().cmp(lhs->value, GetLoweringContext().get_temp(0, rhs->size));
+					Encoder().mov(rhs->value, GetLoweringContext().get_temp(1, rhs->size));
+					Encoder().cmp(GetLoweringContext().get_temp(1, rhs->size), temp_reg);
 					break;
 				}
 				default:

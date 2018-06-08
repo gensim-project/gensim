@@ -17,7 +17,7 @@ using namespace captive::shared;
 using namespace captive::arch::jit;
 using namespace captive::arch::jit::lowering;
 
-LoweringContext::LoweringContext() 
+LoweringContext::LoweringContext(const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd) : arch_descriptor_(arch), sb_descriptor_(sbd)
 {
 	_lowerers.resize(IRInstruction::_END, nullptr);
 }
@@ -47,7 +47,7 @@ bool LoweringContext::Lower(const TranslationContext &ctx)
 	return true;
 }
 
-MCLoweringContext::MCLoweringContext(uint32_t stack_frame_size) : _stack_frame_size(stack_frame_size) {
+MCLoweringContext::MCLoweringContext(uint32_t stack_frame_size, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd) : LoweringContext(arch, sbd), _stack_frame_size(stack_frame_size) {
 
 }
 

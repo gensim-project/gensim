@@ -255,7 +255,7 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 		str << "case INST_" << isa.ISAName << "_" << i.second->Name << ": interp_result = StepInstruction_" << isa.ISAName << "_" << i.first << "<trace>(thread, decode); break;";
 	}
 	
-	str << " default: LC_ERROR(LogInterpreter) << \"Unknown instruction\"; return archsim::core::execution::ExecutionResult::Abort;";
+	str << " default: LC_ERROR(LogInterpreter) << \"Unknown instruction at PC \" << std::hex << thread->GetPC(); return archsim::core::execution::ExecutionResult::Abort;";
 	
 	str << "}";
 	str << "}";

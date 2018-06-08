@@ -14,7 +14,8 @@ blkCacheRead8Fallback:
 	push %r10
 	push %r11
 
-	callq blkRead8
+	mov blkRead8@GOTPCREL(%rip), %rax
+	callq *%rax
 
 	mov %rax, %r15
 
@@ -39,7 +40,8 @@ blkCacheRead16Fallback:
 	push %r10
 	push %r11
 
-	callq blkRead16
+	mov blkRead16@GOTPCREL(%rip), %rax
+	callq *%rax
 
 	mov %rax, %r15
 
@@ -64,7 +66,8 @@ blkCacheRead32Fallback:
 	push %r10
 	push %r11
 
-	callq blkRead32
+	mov blkRead32@GOTPCREL(%rip), %rax
+	callq *%rax
 
 	mov %rax, %r15
 
@@ -91,7 +94,8 @@ blkCacheWrite8Fallback:
 	push %r10
 	push %r11
 
-	callq cpuWrite8
+	mov cpuWrite8@GOTPCREL(%rip), %rax
+	callq *%rax
 
 	pop %r11
 	pop %r10
@@ -114,7 +118,8 @@ blkCacheWrite16Fallback:
 	push %r10
 	push %r11
 
-	callq cpuWrite16
+	mov cpuWrite16@GOTPCREL(%rip), %rax
+	callq *%rax
 
 	pop %r11
 	pop %r10
@@ -137,7 +142,8 @@ blkCacheWrite32Fallback:
 	push %r10
 	push %r11
 
-	callq cpuWrite32
+	mov cpuWrite32@GOTPCREL(%rip), %rax
+	callq *%rax
 
 	pop %r11
 	pop %r10

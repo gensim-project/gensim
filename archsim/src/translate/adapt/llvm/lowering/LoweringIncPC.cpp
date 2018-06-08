@@ -13,8 +13,7 @@ using namespace archsim::translate::adapt;
 bool BlockJITINCPCLowering::Lower(const captive::shared::IRInstruction*& insn) {
 	const auto &amount = insn->operands[0];
 
-	const auto *cpu = GetContext().GetThread();
-	auto &PC = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
+	auto &PC = GetContext().GetArchDescriptor().GetRegisterFileDescriptor().GetTaggedEntry("PC");
 
 	auto pc_ptr = GetContext().GetRegisterPointer(PC, 0);
 	llvm::Value* pc_value = GetBuilder().CreateLoad(pc_ptr);

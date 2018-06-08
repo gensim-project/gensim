@@ -50,20 +50,27 @@ bool LowerSDiv::Lower(const captive::shared::IRInstruction *&insn)
 	const IROperand *dest = &insn->operands[1];
 
 	auto &temp = GetLoweringContext().get_temp(0, 4);
+	auto &dest_reg = GetLoweringContext().register_from_operand(dest);
 	// back up EAX
-	Encoder().mov(REG_RAX, BLKJIT_TEMPS_1(8));
+	
+	if(dest_reg != REGS_RAX(dest->size)) {
+		Encoder().mov(REG_RAX, BLKJIT_TEMPS_1(8));
+	}
 
-	GetLoweringContext().encode_operand_to_reg(dest, REG_EAX);
 	GetLoweringContext().encode_operand_to_reg(source, temp);
+	GetLoweringContext().encode_operand_to_reg(dest, REG_EAX);
+	
 
 	Encoder().cltd();
 	Encoder().idiv(temp);
 	Encoder().mov(REG_EAX, temp);
 
-	Encoder().mov(BLKJIT_TEMPS_1(8), REG_RAX);
+	if(dest_reg != REGS_RAX(dest->size)) {
+		Encoder().mov(BLKJIT_TEMPS_1(8), REG_RAX);
+	}
 
 	if (dest->is_alloc_reg()) {
-		Encoder().mov(temp, GetLoweringContext().register_from_operand(dest, 4));
+		Encoder().mov(temp, dest_reg);
 	} else {
 		assert(false);
 	}

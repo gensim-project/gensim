@@ -18,10 +18,12 @@ using namespace captive::shared;
 
 bool LowerReadMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 {
-	const IROperand *offset = &insn->operands[0];
-	const IROperand *disp = &insn->operands[1];
-	const IROperand *dest = &insn->operands[2];
+	const IROperand *interface = &insn->operands[0];
+	const IROperand *offset = &insn->operands[1];
+	const IROperand *disp = &insn->operands[2];
+	const IROperand *dest = &insn->operands[3];
 
+	assert(interface->is_constant());
 	assert(offset->is_alloc_reg());
 	assert(disp->is_constant());
 
@@ -30,7 +32,7 @@ bool LowerReadMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 	// Don't save/restore the destination reg
 	if(dest->is_alloc_reg()) live_regs &= ~(1 << dest->alloc_data);
 
-	GetLoweringContext().emit_save_reg_state(2, GetStackMap(), GetIsStackFixed(), live_regs);
+	GetLoweringContext().emit_save_reg_state(3, GetStackMap(), GetIsStackFixed(), live_regs);
 
 	//TODO: support these things coming in on the stack
 	assert(disp->is_constant());
@@ -46,6 +48,7 @@ bool LowerReadMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 	} else {
 		Encoder().mov(GetLoweringContext().register_from_operand(offset, 4), BLKJIT_ARG1(4));
 	}
+	Encoder().mov(interface->value, BLKJIT_ARG2(4));
 
 	// Call the appropriate blockjit-CC function
 	switch(dest->size) {
@@ -63,7 +66,7 @@ bool LowerReadMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 		Encoder().mov(REGS_RAX(dest->size), GetLoweringContext().register_from_operand(dest, dest->size));
 	}
 	
-	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed(), live_regs);
 
 	insn++;
 	return true;
@@ -71,9 +74,10 @@ bool LowerReadMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 
 bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 {
-	const IROperand *value = &insn->operands[0];
-	const IROperand *disp = &insn->operands[1];
-	const IROperand *offset = &insn->operands[2];
+	const IROperand *interface = &insn->operands[0];
+	const IROperand *value = &insn->operands[1];
+	const IROperand *disp = &insn->operands[2];
+	const IROperand *offset = &insn->operands[3];
 
 	assert(disp->is_constant());
 
@@ -81,15 +85,17 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 	assert(disp->is_constant());
 
 	if(value->is_alloc_stack()) {
-		Encoder().mov(GetLoweringContext().stack_from_operand(value), BLKJIT_ARG2(4));
+		Encoder().mov(GetLoweringContext().stack_from_operand(value), BLKJIT_ARG3(4));
 	}
 
-	GetLoweringContext().emit_save_reg_state(3, GetStackMap(), GetIsStackFixed());
+	GetLoweringContext().emit_save_reg_state(4, GetStackMap(), GetIsStackFixed());
 
 	//State register will be dealt with by the shunt
-	auto &address_reg = BLKJIT_ARG1(4);
+	auto &address_reg = BLKJIT_ARG2(4);
 
-	GetLoweringContext().load_state_field(0, BLKJIT_ARG0(8));
+	Encoder().mov(interface->value, BLKJIT_ARG1(4));
+	
+	GetLoweringContext().load_state_field("thread_ptr", BLKJIT_ARG0(8));
 	if(offset->is_alloc_reg()) {
 		Encoder().mov(GetLoweringContext().get_allocable_register(offset->alloc_data, 4), address_reg);
 	} else {
@@ -106,14 +112,14 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 
 	//finally, value
 	if(value->is_alloc_reg()) {
-		Encoder().mov(GetLoweringContext().get_allocable_register(value->alloc_data, 4), BLKJIT_ARG2(4));
+		Encoder().mov(GetLoweringContext().get_allocable_register(value->alloc_data, 4), BLKJIT_ARG3(4));
 	} else if(value->is_alloc_stack()) {
 		// already loaded
 	} else if(value->is_constant()) {
 		if(value->size != 4) {
 			assert(false);
 		}
-		Encoder().mov(value->value, BLKJIT_ARG2(4));
+		Encoder().mov(value->value, BLKJIT_ARG3(4));
 	} else {
 		assert(false);
 	}
@@ -128,7 +134,7 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 		case 4:
 			Encoder().mov((uint64_t)cpuWrite32, BLKJIT_RETURN(8));
 			break;
-	}
+	}	
 
 	Encoder().call(BLKJIT_RETURN(8));
 

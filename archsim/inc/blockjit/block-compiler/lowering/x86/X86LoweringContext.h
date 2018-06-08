@@ -38,7 +38,7 @@ namespace captive
 					public:
 						typedef X86Encoder encoder_t;
 
-						X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, const archsim::core::thread::ThreadInstance *thread, const archsim::util::vbitset &used_regs);
+						X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder,  const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd, const archsim::util::vbitset &used_regs);
 						virtual ~X86LoweringContext();
 
 						encoder_t &GetEncoder()
@@ -61,16 +61,14 @@ namespace captive
 							return _stack_fixed;
 						}
 						
-						const archsim::core::thread::ThreadInstance *GetThread() { return thread_; }
-						
 						inline void load_state_field(const std::string &entry, const X86Register& reg)
 						{
-							GetEncoder().mov(X86Memory::get(BLKJIT_CPUSTATE_REG,  GetThread()->GetStateBlock().GetBlockOffset(entry)), reg);
+							GetEncoder().mov(X86Memory::get(BLKJIT_CPUSTATE_REG,  GetStateBlockDescriptor().GetBlockOffset(entry)), reg);
 						}
 
 						inline void lea_state_field(const std::string &entry, const X86Register& reg)
 						{
-							GetEncoder().lea(X86Memory::get(BLKJIT_CPUSTATE_REG, GetThread()->GetStateBlock().GetBlockOffset(entry)), reg);
+							GetEncoder().lea(X86Memory::get(BLKJIT_CPUSTATE_REG, GetStateBlockDescriptor().GetBlockOffset(entry)), reg);
 						}
 						
 
@@ -163,7 +161,6 @@ namespace captive
 						stack_map_t _stack_map;
 						X86Encoder &_encoder;
 						bool _stack_fixed;
-						const archsim::core::thread::ThreadInstance *thread_;
 						
 						struct reg_assignment {
 							const x86::X86Register *b1;

@@ -7,6 +7,7 @@
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
 #include "util/SimOptions.h"
+#include "system.h"
 
 #ifdef CONFIG_GFX
 #ifdef CONFIG_SDL
@@ -78,39 +79,44 @@ bool RiscVLinuxUserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, Si
 
 archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
 {
-	UNIMPLEMENTED;
-//	
-//	if(category == 1024) {
-//		GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, (void*)(uint64_t)0);
-//		return archsim::abi::ResumeNext;
-//	}
-//
-//	if(category == 0) {
-//		gensim::RegisterBankDescriptor& bank = cpu.GetRegisterBankDescriptor("GPR");
-//		uint32_t* registers = (uint32_t*)bank.GetBankDataStart();
-//
-//		archsim::abi::SyscallRequest request {0, cpu};
-//		request.syscall = registers[17];
-//
-//		archsim::abi::SyscallResponse response;
-//		response.action = ResumeNext;
-//
-//		request.arg0 = registers[10];
-//		request.arg1 = registers[11];
-//		request.arg2 = registers[12];
-//		request.arg3 = registers[13];
-//		request.arg4 = registers[14];
-//		request.arg5 = registers[15];
-//
-//		if(EmulateSyscall(request, response)) {
-//			registers[10] = response.result;
-//		} else {
-//			LC_ERROR(LogEmulationModelRiscVLinux) << "Syscall not supported: " << std::hex << "0x" << request.syscall << "(" << std::dec << request.syscall << ")";
-//			registers[0] = -1;
-//		}
-//
-//		return response.action;
-//	}
-//
-//	return AbortSimulation;
+	if(category == 1024) {
+		GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, (void*)(uint64_t)0);
+		return archsim::abi::ResumeNext;
+	}
+
+	if(category == 0) {
+		uint32_t* registers = (uint32_t*)cpu->GetRegisterFile();
+
+		archsim::abi::SyscallRequest request {0, cpu};
+		request.syscall = registers[17];
+		
+		archsim::abi::SyscallResponse response;
+		response.action = ResumeNext;
+
+		request.arg0 = registers[10];
+		request.arg1 = registers[11];
+		request.arg2 = registers[12];
+		request.arg3 = registers[13];
+		request.arg4 = registers[14];
+		request.arg5 = registers[15];
+
+		if(EmulateSyscall(request, response)) {
+			registers[10] = response.result;
+		} else {
+			LC_ERROR(LogEmulationModelRiscVLinux) << "Syscall not supported: " << std::hex << "0x" << request.syscall << "(" << std::dec << request.syscall << ")";
+			registers[0] = -1;
+		}
+		
+		// xxx arm hax
+		// currently a syscall cannot return an action other than resume, so
+		// we need to exit manually here.
+		if(request.syscall == 93) {
+			cpu->SendMessage(archsim::core::thread::ThreadMessage::Halt);
+			return AbortSimulation;
+		}
+
+		return response.action;
+	}
+
+	return AbortSimulation;
 }

@@ -58,7 +58,7 @@ namespace archsim {
             class BlockJITLoweringContext : public captive::arch::jit::lowering::LoweringContext {
             public:
 				// Don't need to give a stack frame size since LLVM will be managing that
-				BlockJITLoweringContext(archsim::core::thread::ThreadInstance *thread, ::llvm::Module *module, ::llvm::Function *target_fun) : LoweringContext(), values_(module), thread_(thread), target_fun_(target_fun), target_module_(module) { builder_ = new ::llvm::IRBuilder<>(module->getContext()); }
+				BlockJITLoweringContext(const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd, ::llvm::Module *module, ::llvm::Function *target_fun) : LoweringContext(arch, sbd), values_(module), target_fun_(target_fun), target_module_(module) { builder_ = new ::llvm::IRBuilder<>(module->getContext()); }
 				~BlockJITLoweringContext() { if(builder_!= nullptr) { delete builder_; } }
 				
 				virtual bool Prepare(const TranslationContext &ctx);
@@ -88,7 +88,6 @@ namespace archsim {
 				llvm::Value *GetThreadPtrPtr();
 	    
 				::llvm::BasicBlock *GetLLVMBlock(IRBlockId block_id);
-				archsim::core::thread::ThreadInstance *GetThread() { return thread_; }
 				
 				::llvm::Value *GetTaggedRegisterPointer(const std::string &tag);
 				::llvm::Value *GetRegisterPointer(const archsim::RegisterFileEntryDescriptor &reg, int index);
@@ -110,11 +109,8 @@ namespace archsim {
             private:
 				BlockJITValues values_;
 				
-				archsim::core::thread::ThreadInstance *thread_;
-				
 				::llvm::Type *GetPointerIntType();
 				::llvm::Value *GetRegPtr(const IROperand &op);
-				
 				
 				std::unordered_map<IRBlockId, ::llvm::BasicBlock*> block_ptrs_;
 				std::unordered_map<IRRegId, ::llvm::Value*> reg_ptrs_;

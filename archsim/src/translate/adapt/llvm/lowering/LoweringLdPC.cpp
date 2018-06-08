@@ -15,8 +15,7 @@ bool BlockJITLDPCLowering::Lower(const captive::shared::IRInstruction*& insn) {
 
 	assert(target.is_vreg());
 
-	const auto *cpu = GetContext().GetThread();
-	auto &PC = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
+	auto &PC = GetContext().GetArchDescriptor().GetRegisterFileDescriptor().GetTaggedEntry("PC");
 	
 	GetContext().SetValueFor(target, GetBuilder().CreateLoad(GetContext().GetRegisterPointer(PC, 0)));
 	
