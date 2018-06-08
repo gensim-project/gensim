@@ -23,6 +23,7 @@
 #include <libtrace/TraceSink.h>
 
 DeclareLogContext(LogSystem, "System");
+DeclareLogContext(LogInfrastructure, "Infrastructure");
 
 System::System(archsim::Session& session) :
 	session(session),
