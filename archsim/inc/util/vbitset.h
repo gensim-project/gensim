@@ -21,6 +21,12 @@ namespace archsim {
 		class vbitset {
 		public:
 			vbitset(unsigned int size) : storage_(size, false) {}
+			vbitset(unsigned int size, uint64_t value) : storage_(size, false) 
+			{
+				for(int i = 0; i < size; ++i) {
+					set(i, value & (1 << i));
+				}
+			}
 			
 			bool get(unsigned int i) const { return storage_.at(i); }
 			void set(unsigned int i, bool value) { storage_[i] = value; }
