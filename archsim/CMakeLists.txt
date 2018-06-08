@@ -124,6 +124,8 @@ ADD_SUBDIRECTORY("src")
 # Recursively build modules
 ADD_SUBDIRECTORY("modules")
 
+# Build tests
+ADD_SUBDIRECTORY("tests")
 
 # Add extra objects, dependency targets, and extra source files (which might be generated)
 TARGET_LINK_LIBRARIES(archsim-core
