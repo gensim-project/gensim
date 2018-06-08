@@ -1,6 +1,5 @@
 
 archsim_add_sources(
-	main.cpp 
 	system.cpp 
 	signals.cpp 
 	session.cpp

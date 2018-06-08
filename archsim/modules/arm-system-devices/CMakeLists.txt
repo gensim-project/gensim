@@ -32,4 +32,4 @@ SET_TARGET_PROPERTIES(arm-system-devices
 )
 
 
-TARGET_LINK_LIBRARIES(arm-system-devices archsim-interface)
+TARGET_LINK_LIBRARIES(arm-system-devices archsim-core)

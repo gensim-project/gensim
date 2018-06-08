@@ -1262,17 +1262,26 @@ void X86Encoder::cmp(const X86Register& src, const X86Memory& dst)
 	}
 }
 
+void X86Encoder::cmp(const X86Memory& src, const X86Register& dst)
+{
+	if (dst.size == 1) {
+		encode_opcode_mod_rm(0x3a, dst, src);
+	} else {
+		encode_opcode_mod_rm(0x3b, dst, src);
+	}
+}
+
 void X86Encoder::cmp(uint32_t val, const X86Register& dst)
 {
-	if(val == 0) {
-		if(dst.size == 1) {
-			encode_opcode_mod_rm(0x84, dst, dst);
-		} else {
-			encode_opcode_mod_rm(0x85, dst, dst);
-		}
-	} else {
-		encode_arithmetic(7, val, dst);
-	}
+//	if(val == 0) {
+//		if(dst.size == 1) {
+//			encode_opcode_mod_rm(0x84, dst, dst);
+//		} else {
+//			encode_opcode_mod_rm(0x85, dst, dst);
+//		}
+//	} else {
+	encode_arithmetic(7, val, dst);
+//	}
 }
 
 void X86Encoder::cmp1(uint8_t val, const X86Memory& dst)

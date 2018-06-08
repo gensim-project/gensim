@@ -36,24 +36,38 @@ namespace archsim {
 		 * offsets.
 		 */
 	
-		class StateBlock {
-		public:			
+		class StateBlockDescriptor {
+		public:
+			StateBlockDescriptor();
+			
 			uint32_t AddBlock(const std::string &name, size_t size_in_bytes);
 			size_t GetBlockOffset(const std::string &name) const;
 			bool HasEntry(const std::string &name) const { return block_offsets_.count(name); }
 			
+		private:
+			std::map<std::string, uint64_t> block_offsets_;
+			uint32_t total_size_;
+		};
+		
+		class StateBlock {
+		public:			
+			uint32_t AddBlock(const std::string &name, size_t size_in_bytes);
+			
+			StateBlockDescriptor &GetDescriptor() { return descriptor_; }
+			
+			uint32_t GetBlockOffset(const std::string &name) const { return descriptor_.GetBlockOffset(name); }
 			void *GetData() { return data_.data(); }
 			const void *GetData() const { return data_.data(); }
 			
-			template<typename T> T GetEntry(const std::string &entryname) const { return *(T*)(data_.data() + GetBlockOffset(entryname)); }
+			template<typename T> T GetEntry(const std::string &entryname) const { return *(T*)(data_.data() + descriptor_.GetBlockOffset(entryname)); }
 			template<typename T> void GetEntry(const std::string &entryname, T* target) const { memcpy(target, GetEntryPointer<T>(entryname), sizeof(T)); }
 			template<typename T> void SetEntry(const std::string &entryname, const T& t) { memcpy(GetEntryPointer<T>(entryname), &t, sizeof(t)); }
 			
 		private:
-			template<typename T> T* GetEntryPointer(const std::string &entryname) { return (T*)(((char*)GetData()) + GetBlockOffset(entryname)); }
-			template<typename T> const T* GetEntryPointer(const std::string &entryname) const { return (T*)(((char*)GetData()) + GetBlockOffset(entryname)); }
+			template<typename T> T* GetEntryPointer(const std::string &entryname) { return (T*)(((char*)GetData()) + descriptor_.GetBlockOffset(entryname)); }
+			template<typename T> const T* GetEntryPointer(const std::string &entryname) const { return (T*)(((char*)GetData()) + descriptor_.GetBlockOffset(entryname)); }
 			
-			std::map<std::string, uint64_t> block_offsets_;
+			StateBlockDescriptor descriptor_;
 			std::vector<unsigned char> data_;
 		};
 		

@@ -26,7 +26,8 @@ blkFnRead8Fallback:
 	push %r11
 
 	mov %r12, %rdi
-	callq blkRead8
+	mov blkRead8@GOTPCREL(%rip), %rax
+	callq *%rax
 	movzbl %al, %eax
 	
 	lea blkFnFallbackSlotAddr(%rip), %rdx
@@ -58,7 +59,8 @@ blkFnRead16Fallback:
 	push %r11
 
 	mov %r12, %rdi
-	callq blkRead16
+	mov blkRead16@GOTPCREL(%rip), %rax
+	callq *%rax
 	movzwl %ax, %eax
 	
 	lea blkFnFallbackSlotAddr(%rip), %rdx
@@ -90,7 +92,8 @@ blkFnRead32Fallback:
 	push %r11
 
 	mov %r12, %rdi
-	callq blkRead32
+	mov blkRead32@GOTPCREL(%rip), %rax
+	callq *%rax
 	
 	lea blkFnFallbackSlotAddr(%rip), %rdx
 	mov (%rdx), %rdx

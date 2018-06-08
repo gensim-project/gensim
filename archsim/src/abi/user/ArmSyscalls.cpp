@@ -277,10 +277,13 @@ static unsigned int sys_write(archsim::core::thread::ThreadInstance* cpu, unsign
 	res = write(fd, buffer, len);
 	free(buffer);
 
-	if (res < 0)
-		return -errno;
-	else
-		return res;
+	
+	
+	if (res < 0) {
+		res = -errno;
+	}
+	
+	return res;
 }
 
 static unsigned int sys_fstat64(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int addr)

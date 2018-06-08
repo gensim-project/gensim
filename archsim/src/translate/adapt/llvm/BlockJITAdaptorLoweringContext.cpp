@@ -155,7 +155,7 @@ llvm::BasicBlock* BlockJITLoweringContext::GetLLVMBlock(IRBlockId block_id)
 
 ::llvm::Value* BlockJITLoweringContext::GetTaggedRegisterPointer(const std::string& tag)
 {
-	return GetRegisterPointer(thread_->GetArch().GetRegisterFileDescriptor().GetTaggedEntry(tag), 0);
+	return GetRegisterPointer(GetArchDescriptor().GetRegisterFileDescriptor().GetTaggedEntry(tag), 0);
 }
 
 ::llvm::Value* BlockJITLoweringContext::GetRegisterPointer(const archsim::RegisterFileEntryDescriptor& reg, int index)
@@ -231,7 +231,7 @@ llvm::BasicBlock* BlockJITLoweringContext::GetLLVMBlock(IRBlockId block_id)
 
 llvm::Value* BlockJITLoweringContext::GetStateBlockEntryPtr(const std::string& entry, llvm::Type *type)
 {
-	auto offset = GetThread()->GetStateBlock().GetBlockOffset(entry);
+	auto offset = GetStateBlockDescriptor().GetBlockOffset(entry);
 	llvm::Value *ptr = GetStateBlockPtr();
 	ptr = GetBuilder().CreatePtrToInt(ptr, GetPointerIntType());
 	ptr = GetBuilder().CreateAdd(ptr, llvm::ConstantInt::get(GetPointerIntType(), offset, false));

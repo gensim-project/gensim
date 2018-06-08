@@ -68,13 +68,20 @@ bool ContiguousMemoryModel::Initialise()
 	}
 
 	if (mem_base == MAP_FAILED) {
+		LC_ERROR(LogMemoryModel) << "Failed to map memory.";
 		return false;
 	}
 
 	is_initialised = true;
 	
 #if ARCHSIM_SIMULATION_HOST_IS_x86_64
-	arch_prctl(ARCH_SET_GS, (unsigned long)mem_base);
+	if(arch_prctl(ARCH_SET_GS, (unsigned long)mem_base) == -1) {
+		LC_ERROR(LogMemoryModel) << "Failed to set GS register: " << strerror(errno);
+	}
+	
+	unsigned long l;
+	arch_prctl(ARCH_GET_GS, (unsigned long)&l);
+	assert(l == (unsigned long)mem_base);
 #endif
 	
 #if CONFIG_LLVM

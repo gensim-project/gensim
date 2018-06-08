@@ -18,8 +18,8 @@ using namespace captive::shared;
 bool LowerIncPC::Lower(const captive::shared::IRInstruction *&insn)
 {
 	const IROperand *amount = &insn->operands[0];
-	const auto *cpu = GetLoweringContext().GetThread();
-	uint32_t pc_offset = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC").GetOffset();
+	const auto &rfd = GetLoweringContext().GetArchDescriptor().GetRegisterFileDescriptor();
+	uint32_t pc_offset = rfd.GetTaggedEntry("PC").GetOffset();
 
 	if (amount->is_constant()) {
 		Encoder().add4(amount->value, X86Memory::get(BLKJIT_REGSTATE_REG, pc_offset));

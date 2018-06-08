@@ -118,7 +118,9 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 	unsigned long argv_ptrs[global_argc + 1];
 
 	uint32_t sp = _initial_stack_pointer;
-
+	
+//	printf("Start (%08x)\n", sp);
+	
 #define PUSH32(_val)   do { sp -= 4; GetMemoryModel().Write32(sp, _val); } while (0)
 #define PUSHSTR(_str)  do { sp -= (strlen(_str) + 1); GetMemoryModel().WriteString(sp, _str); } while (0)
 #define ALIGN_STACK(v) do { sp -= ((unsigned long)sp & (v - 1)); } while (0)
@@ -135,6 +137,8 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 			PUSHSTR(environ[i]);
 		envp_ptrs[i] = sp;
 	}
+	
+//	printf("Pushed env values (%08x)\n", sp);
 
 	PUSHSTR(archsim::options::TargetBinary.GetValue().c_str());  // The real arg0
 	argv_ptrs[0] = sp;
@@ -143,6 +147,8 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 		PUSHSTR(global_argv[i]);
 		argv_ptrs[i+1] = sp;
 	}
+	
+//	printf("Pushed arg values (%08x)\n", sp);
 
 	ALIGN_STACK(4);
 
@@ -182,6 +188,7 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 
 	PUSH32(global_argc + 1);
 
+//	printf("Finished. (%08x)\n", sp);
 	_initial_stack_pointer = sp;
 
 	return true;
@@ -220,6 +227,8 @@ bool UserEmulationModel::PrepareBoot(System &system)
 		cpu->write_register_T(0);
 	}
 	 * */
+	
+	LC_DEBUG1(LogEmulationModelUser) << "Initial stack pointer: " << std::hex << _initial_stack_pointer;
 
 	GetMainThread()->SetPC(Address(_initial_entry_point));
 	GetMainThread()->SetSP(Address(_initial_stack_pointer));

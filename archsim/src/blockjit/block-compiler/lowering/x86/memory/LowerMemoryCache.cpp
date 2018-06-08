@@ -311,7 +311,7 @@ bool LowerReadMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	mask <<= 12;
 	Encoder().andd(mask, BLKJIT_ARG1(4));
 	Encoder().shr(8, BLKJIT_ARG1(4));
-	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetLoweringContext().GetThread()->GetStateBlock().GetBlockOffset("smm_read_cache")), BLKJIT_ARG1(8));
+	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetLoweringContext().GetStateBlockDescriptor().GetBlockOffset("smm_read_cache")), BLKJIT_ARG1(8));
 
 	// Check the tag
 	Encoder().andd(~archsim::translate::profile::RegionArch::PageMask, BLKJIT_ARG2(4));
@@ -412,7 +412,7 @@ bool LowerWriteMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	mask <<= 12;
 	Encoder().andd(mask, BLKJIT_ARG0(4));
 	Encoder().shr(8, BLKJIT_ARG0(4));
-	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetLoweringContext().GetThread()->GetStateBlock().GetBlockOffset("smm_write_cache")), BLKJIT_ARG0(8));
+	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetLoweringContext().GetStateBlockDescriptor().GetBlockOffset("smm_write_cache")), BLKJIT_ARG0(8));
 
 	// Check the tag
 	Encoder().andd(~archsim::translate::profile::RegionArch::PageMask, BLKJIT_ARG2(4));

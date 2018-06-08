@@ -18,7 +18,7 @@ using namespace captive::arch::jit::lowering;
 using namespace captive::arch::jit::lowering::x86;
 using namespace captive::shared;
 
-X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, const archsim::core::thread::ThreadInstance *thread, const archsim::util::vbitset &used_regs) : MCLoweringContext(stack_frame_size), _encoder(encoder), _stack_fixed(false), thread_(thread), used_phys_regs(used_regs)
+X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd, const archsim::util::vbitset &used_regs) : MCLoweringContext(stack_frame_size, arch, sbd), _encoder(encoder), _stack_fixed(false), used_phys_regs(used_regs)
 {
 	int i = 0;
 #define ASSIGN_REGS(x) assign(i++, x(8), x(4), x(2), x(1))

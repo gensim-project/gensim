@@ -14,6 +14,11 @@
 #include <map>
 #include <vector>
 
+namespace archsim {
+	class ArchDescriptor;
+	class StateBlockDescriptor;
+}
+
 namespace captive
 {
 	namespace arch
@@ -33,13 +38,16 @@ namespace captive
 				class LoweringContext
 				{
 				public:
-					LoweringContext();
+					LoweringContext(const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd);
 					virtual ~LoweringContext();
 					
 					virtual bool Prepare(const TranslationContext &ctx) = 0;
 					bool PrepareLowerers(const TranslationContext &ctx);
 
 					virtual bool Lower(const TranslationContext &ctx);
+					
+					const archsim::ArchDescriptor &GetArchDescriptor() const { return arch_descriptor_; }
+					const archsim::StateBlockDescriptor &GetStateBlockDescriptor() const { return sb_descriptor_; }
 					
 				protected:
 					virtual bool LowerHeader(const TranslationContext &ctx) = 0;
@@ -51,12 +59,15 @@ namespace captive
 					
 				private:
 					std::vector<InstructionLowerer*> _lowerers;
+					
+					const archsim::ArchDescriptor &arch_descriptor_;
+					const archsim::StateBlockDescriptor &sb_descriptor_;
 				};
 				
 				class MCLoweringContext : public LoweringContext
 				{
 				public:
-					MCLoweringContext(uint32_t stack_frame_size);
+					MCLoweringContext(uint32_t stack_frame_size, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd);
 					virtual ~MCLoweringContext();
 
 					typedef size_t offset_t;
