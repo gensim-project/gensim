@@ -68,3 +68,28 @@ TEST_F(ArchSimBlockJITTest, WriteReg)
 	
 	ASSERT_EQ(*(uint32_t*)regfile_mock.data(), 0xffffffff);
 }
+
+TEST_F(ArchSimBlockJITTest, WriteRegFromStack)
+{
+	using namespace captive::shared;
+
+	TranslationContext tc;
+	tc.alloc_block();
+	
+	IROperand written_value = IROperand::vreg(tc.alloc_reg(4), 4);
+	written_value.allocate(IROperand::ALLOCATED_STACK, 0);
+	
+	tc.add_instruction(0, captive::shared::IRInstruction::mov(IROperand::const32(0xffffffff), written_value));
+	tc.add_instruction(0, captive::shared::IRInstruction::streg(written_value, IROperand::const32(0)));
+	tc.add_instruction(0, captive::shared::IRInstruction::ret());
+	
+	CompileResult cr(true, 8, archsim::util::vbitset(8, 0xff));
+
+	auto fn = Lower(tc, cr);
+	ASSERT_NE(nullptr, fn);
+	
+	std::vector<char> regfile_mock(128, 0);
+	fn(regfile_mock.data(), nullptr);
+	
+	ASSERT_EQ(*(uint32_t*)regfile_mock.data(), 0xffffffff);
+}
