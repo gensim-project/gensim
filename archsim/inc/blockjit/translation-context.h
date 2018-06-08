@@ -32,6 +32,7 @@ namespace captive
 				{
 					ensure_buffer(_ir_insn_count + 1);
 
+					new(&_ir_insns[_ir_insn_count]) shared::IRInstruction(shared::IRInstruction::NOP);
 					_ir_insns[_ir_insn_count] = instruction;
 					_ir_insns[_ir_insn_count].ir_block = block_id;
 					_ir_insn_count++;

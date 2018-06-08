@@ -18,9 +18,9 @@ using namespace captive::arch::jit::lowering;
 using namespace captive::arch::jit;
 using namespace captive::shared;
 
-LoweringResult captive::arch::jit::lowering::NativeLowering(TranslationContext &ctx, wulib::MemAllocator &allocator, archsim::core::thread::ThreadInstance *thread, const CompileResult &compile_result) {
+LoweringResult captive::arch::jit::lowering::NativeLowering(TranslationContext &ctx, wulib::MemAllocator &allocator, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &state, const CompileResult &compile_result) {
 	lowering::x86::X86Encoder encoder(allocator);
-	lowering::x86::X86LoweringContext lowering(compile_result.StackFrameSize, encoder, thread->GetArch(), thread->GetStateBlock().GetDescriptor(), compile_result.UsedPhysRegs);
+	lowering::x86::X86LoweringContext lowering(compile_result.StackFrameSize, encoder, arch, state, compile_result.UsedPhysRegs);
 	lowering.Prepare(ctx);
 	
 	if(!lowering.Lower(ctx)) {

@@ -461,7 +461,7 @@ bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance 
 		return false;
 	}
 	
-	auto lowering = captive::arch::jit::lowering::NativeLowering(ctx, allocator, cpu, result);
+	auto lowering = captive::arch::jit::lowering::NativeLowering(ctx, allocator, cpu->GetArch(), cpu->GetStateBlock().GetDescriptor(), result);
 	fn.SetFn(lowering.Function);
 	
 	if(dump) {

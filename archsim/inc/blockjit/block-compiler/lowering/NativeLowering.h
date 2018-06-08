@@ -35,7 +35,7 @@ namespace captive {
 					size_t Size;
 				};
 				
-				LoweringResult NativeLowering(TranslationContext &ctx, wulib::MemAllocator &allocator, archsim::core::thread::ThreadInstance *thread, const CompileResult &compile_result);
+				LoweringResult NativeLowering(TranslationContext &ctx, wulib::MemAllocator &allocator, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &state, const CompileResult &compile_result);
 			}
 		}
 	}
