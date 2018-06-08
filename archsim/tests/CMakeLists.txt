@@ -22,6 +22,7 @@ SET(GTEST_INCLUDE_DIR "${source_dir}/googletest/include")
 FILE(GLOB_RECURSE TEST_SRCS ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 
 ADD_EXECUTABLE(archsim-tests ${TEST_SRCS})
+standard_flags(archsim-tests)
 
 ADD_TEST(
 	NAME archsim-tests 

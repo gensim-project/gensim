@@ -28,7 +28,7 @@ bool Peephole2Transform::Apply(TranslationContext &ctx)
 	IRInstruction *prev_pc_inc = NULL;
 	IRBlockId prev_block = INVALID_BLOCK_ID;
 
-	for (unsigned int ir_idx = 0; ir_idx < ctx.count()-3; ++ir_idx) {
+	for (int ir_idx = 0; ir_idx < ((int)ctx.count())-3; ++ir_idx) {
 
 		// Check for an instruction combination of the form
 		// ldreg XXX, (r0)

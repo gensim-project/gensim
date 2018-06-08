@@ -43,7 +43,7 @@ namespace captive
 
 		struct IRInstruction;
 
-		typedef uint32_t (*block_txln_fn)(void *, void *);
+		typedef uint32_t (*block_txln_fn)(void *regptr, void *stateblock);
 
 
 	}
