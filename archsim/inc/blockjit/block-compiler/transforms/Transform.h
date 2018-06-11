@@ -11,6 +11,7 @@
 #include "blockjit/translation-context.h"
 #include "util/vbitset.h"
 
+#include <map>
 #include <vector>
 
 namespace captive
@@ -29,6 +30,19 @@ namespace captive
 					virtual ~Transform();
 					virtual bool Apply(TranslationContext& ctx) = 0;
 				}; 
+				
+				class AllocationWriterTransform : public Transform
+				{
+				public:
+					typedef std::map<captive::shared::IRRegId, std::pair<captive::shared::IROperand::IRAllocationMode, uint16_t>> allocations_t;
+					
+					AllocationWriterTransform(const allocations_t &allocations);
+					virtual ~AllocationWriterTransform();
+					virtual bool Apply(TranslationContext &ctx) override;
+					
+				private:
+					allocations_t allocations_;
+				};
 
 				class MovEliminationTransform : public Transform
 				{

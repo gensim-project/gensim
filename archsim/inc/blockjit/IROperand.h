@@ -93,6 +93,11 @@ namespace captive
 				return IROperand(NONE, 0, 0);
 			}
 
+			static IROperand constant(uint64_t value, uint8_t size)
+			{
+				return IROperand(CONSTANT, value, size);
+			}
+			
 			static IROperand const8(uint8_t value)
 			{
 				return IROperand(CONSTANT, value, 1);

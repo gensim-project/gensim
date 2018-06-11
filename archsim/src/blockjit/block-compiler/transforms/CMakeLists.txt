@@ -1,4 +1,5 @@
 archsim_add_sources(
+	AllocationWriterTransform.cpp
 	ConstantPropTransform.cpp
 	DeadBlockEliminationTransform.cpp
 	DeadStoreEliminationTransform.cpp

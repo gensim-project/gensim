@@ -159,7 +159,7 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 
 	auto dest_reg = &BLKJIT_TEMPS_0(dest->size);
 	if(dest->is_alloc_stack()) {
-		GetLoweringContext().encode_operand_to_reg(dest, *dest_reg);
+//		GetLoweringContext().encode_operand_to_reg(dest, *dest_reg);
 	} else if(dest->is_alloc_reg()) {
 		dest_reg = &GetLoweringContext().register_from_operand(dest);
 	}

@@ -105,7 +105,7 @@ namespace captive
 						
 						inline const X86Register& register_from_operand(const captive::shared::IROperand *oper, int force_width = 0) const
 						{
-							assert(oper->alloc_mode == captive::shared::IROperand::ALLOCATED_REG);
+							ASSERT(oper->alloc_mode == captive::shared::IROperand::ALLOCATED_REG);
 
 							if (!force_width) force_width = oper->size;
 
@@ -114,8 +114,8 @@ namespace captive
 
 						inline X86Memory stack_from_operand(const captive::shared::IROperand *oper) const
 						{
-							assert(oper->alloc_mode == captive::shared::IROperand::ALLOCATED_STACK);
-							assert(oper->size <= 8);
+							ASSERT(oper->alloc_mode == captive::shared::IROperand::ALLOCATED_STACK);
+							ASSERT(oper->size <= 8);
 
 							return X86Memory(REG_RSP, oper->alloc_data);
 						}
