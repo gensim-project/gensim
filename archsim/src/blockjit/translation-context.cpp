@@ -135,6 +135,16 @@ TranslationContext::TranslationContext()
 	
 }
 
+void TranslationContext::clear()
+{
+	free_ir_buffer();
+	_ir_block_count = 0;
+	_ir_reg_count = 0;
+	_ir_insn_count = 0;
+	_ir_insn_buffer_size = 0;
+}
+
+
 TranslationContext::~TranslationContext()
 {
 	free(_ir_insns);

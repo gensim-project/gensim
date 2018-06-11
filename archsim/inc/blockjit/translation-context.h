@@ -28,6 +28,8 @@ namespace captive
 				TranslationContext();
 				~TranslationContext();
 				
+				void clear();
+				
 				inline void add_instruction(shared::IRBlockId block_id, const shared::IRInstruction& instruction)
 				{
 					ensure_buffer(_ir_insn_count + 1);
