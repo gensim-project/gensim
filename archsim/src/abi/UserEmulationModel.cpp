@@ -86,7 +86,7 @@ void UserEmulationModel::ResetCores()
 
 void UserEmulationModel::HaltCores()
 {
-	UNIMPLEMENTED;
+	main_thread_->SendMessage(core::thread::ThreadMessage::Halt);
 }
 
 bool UserEmulationModel::InitialiseProgramArguments()

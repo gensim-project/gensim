@@ -27,7 +27,19 @@ bool LowerCompareSigned::Lower(const captive::shared::IRInstruction *&insn)
 	const IROperand *rhs = &insn->operands[1];
 	const IROperand *dest = &insn->operands[2];
 
-	bool invert = false;
+	// This should be true if the OPERANDS are reversed, not if the CONDITION
+	// should be inverted. 
+	// This is important since:
+	// LH >= RH
+	// is the same as 
+	// RH <= LH
+	
+	// and
+	
+	// LH > RH
+	// is the same as 
+	// RH < LH
+	bool reverse_operands = false;
 
 	switch (lhs->type) {
 		case IROperand::VREG: {
@@ -40,13 +52,13 @@ bool LowerCompareSigned::Lower(const captive::shared::IRInstruction *&insn)
 					} else if (lhs->is_alloc_reg() && rhs->is_alloc_stack()) {
 						// Apparently we can't yet encode cmp (stack), (reg) so encode cmp (reg), (stack) instead
 						// and invert the result
-						invert = true;
+						reverse_operands = true;
 
 						Encoder().cmp(GetLoweringContext().register_from_operand(lhs), GetLoweringContext().stack_from_operand(rhs));
 					} else if (lhs->is_alloc_stack() && rhs->is_alloc_stack()) {
 						// Apparently we can't yet encode cmp (stack), (reg) so encode cmp (reg), (stack) instead
 						// and invert the result
-						invert = true;
+						reverse_operands = true;
 
 						auto& tmp = GetLoweringContext().unspill_temp(lhs, 0);
 						Encoder().cmp(tmp, GetLoweringContext().stack_from_operand(rhs));
@@ -92,7 +104,7 @@ bool LowerCompareSigned::Lower(const captive::shared::IRInstruction *&insn)
 		}
 
 		case IROperand::CONSTANT: {
-			invert = true;
+			reverse_operands = true;
 
 			switch (rhs->type) {
 				case IROperand::VREG: {
@@ -155,29 +167,29 @@ bool LowerCompareSigned::Lower(const captive::shared::IRInstruction *&insn)
 
 	switch (insn->type) {
 		case IRInstruction::CMPSLT:
-			if (invert)
-				Encoder().setnl(GetLoweringContext().register_from_operand(dest));
+			if (reverse_operands)
+				Encoder().setg(GetLoweringContext().register_from_operand(dest));
 			else
 				Encoder().setl(GetLoweringContext().register_from_operand(dest));
 			break;
 
 		case IRInstruction::CMPSLTE:
-			if (invert)
-				Encoder().setnle(GetLoweringContext().register_from_operand(dest));
+			if (reverse_operands)
+				Encoder().setge(GetLoweringContext().register_from_operand(dest));
 			else
 				Encoder().setle(GetLoweringContext().register_from_operand(dest));
 			break;
 
 		case IRInstruction::CMPSGT:
-			if (invert)
-				Encoder().setng(GetLoweringContext().register_from_operand(dest));
+			if (reverse_operands)
+				Encoder().setl(GetLoweringContext().register_from_operand(dest));
 			else
 				Encoder().setg(GetLoweringContext().register_from_operand(dest));
 			break;
 
 		case IRInstruction::CMPSGTE:
-			if (invert)
-				Encoder().setnge(GetLoweringContext().register_from_operand(dest));
+			if (reverse_operands)
+				Encoder().setle(GetLoweringContext().register_from_operand(dest));
 			else
 				Encoder().setge(GetLoweringContext().register_from_operand(dest));
 			break;
