@@ -448,26 +448,22 @@ execute(bltu)
 
 execute(bge)
 {
-        uint32 imm4 = inst.imm4;
-        uint32 imm3 = inst.imm3;
-        uint32 imm2 = inst.imm2;
-        uint32 imm1 = inst.imm1;
-        
-        sint32 imm = (imm4<<11) | (imm3 << 10) | (imm2 << 4) | imm1;
-        imm <<= 20;
-        imm >>= 20;
-        
-        sint32 rs1 = read_gpr(inst.rs1);
+	uint32 imm4 = inst.imm4;
+	uint32 imm3 = inst.imm3;
+	uint32 imm2 = inst.imm2;
+	uint32 imm1 = inst.imm1;
 	
+	sint32 imm = (imm4<<11) | (imm3 << 10) | (imm2 << 4) | imm1;
+	imm <<= 20;
+	imm >>= 20;
 	
-        sint32 rs2 = read_gpr(inst.rs2);
+	sint32 rs1 = read_gpr(inst.rs1);
+	sint32 rs2 = read_gpr(inst.rs2);
 	
-	
-        
-        uint32 pc = read_pc();
-        uint32 addr = pc + imm * 2;
+	uint32 pc = read_pc();
+	uint32 addr = pc + imm * 2;
 
-        pc = (rs1 >= rs2) ? addr : (pc + 4);
+	pc = (rs1 >= rs2) ? addr : (pc + 4);
 
 	write_register(PC, pc);
 

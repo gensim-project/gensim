@@ -27,7 +27,7 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 	const IROperand *rhs = &insn->operands[1];
 	const IROperand *dest = &insn->operands[2];
 
-	bool invert = false;
+	bool reverse_operands = false;
 
 	switch (lhs->type) {
 		case IROperand::VREG: {
@@ -40,13 +40,13 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 					} else if (lhs->is_alloc_reg() && rhs->is_alloc_stack()) {
 						// Apparently we can't yet encode cmp (stack), (reg) so encode cmp (reg), (stack) instead
 						// and invert the result
-						invert = true;
+						reverse_operands = true;
 
 						Encoder().cmp(GetLoweringContext().register_from_operand(lhs), GetLoweringContext().stack_from_operand(rhs));
 					} else if (lhs->is_alloc_stack() && rhs->is_alloc_stack()) {
 						// Apparently we can't yet encode cmp (stack), (reg) so encode cmp (reg), (stack) instead
 						// and invert the result
-						invert = true;
+						reverse_operands = true;
 
 						auto& tmp = GetLoweringContext().unspill_temp(lhs, 0);
 						Encoder().cmp(tmp, GetLoweringContext().stack_from_operand(rhs));
@@ -92,8 +92,6 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 		}
 
 		case IROperand::CONSTANT: {
-			// can't encode cmp (reg), (const) so encode (reg), (const) and 
-			// invert the condition
 			auto &temp_reg = GetLoweringContext().get_temp(0, lhs->size);
 			Encoder().mov(lhs->value, temp_reg);
 
@@ -103,20 +101,6 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 						Encoder().cmp(GetLoweringContext().register_from_operand(rhs), temp_reg);
 					} else if (rhs->is_alloc_stack()) {
 						Encoder().cmp(GetLoweringContext().stack_from_operand(rhs), temp_reg);
-//						switch (lhs->size) {
-//							case 1:
-//								
-//								break;
-//							case 2:
-//								Encoder().cmp2(GetLoweringContext().stack_from_operand(rhs), temp_reg);
-//								break;
-//							case 4:
-//								Encoder().cmp4(GetLoweringContext().stack_from_operand(rhs), temp_reg);
-//								break;
-//							case 8:
-//								Encoder().cmp8(GetLoweringContext().stack_from_operand(rhs), temp_reg);
-//								break;
-//						}
 					} else {
 						assert(false);
 					}
@@ -170,7 +154,7 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 			Encoder().sete(*dest_reg);
 
 			if (should_branch) {
-				assert(dest->is_alloc_reg());
+				ASSERT(dest->is_alloc_reg());
 				IRBlockId next_block = (next_insn+1)->ir_block;
 
 				// Skip the next instruction (which is the branch)
@@ -199,7 +183,7 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 			Encoder().setne(*dest_reg);
 
 			if (should_branch) {
-				assert(dest->is_alloc_reg());
+				ASSERT(dest->is_alloc_reg());
 				IRBlockId next_block = (next_insn+1)->ir_block;
 
 				// Skip the next instruction (which is the branch)
@@ -226,29 +210,29 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 			break;
 		}
 		case IRInstruction::CMPLT:
-			if (invert)
-				Encoder().setnb(*dest_reg);
+			if (reverse_operands)
+				Encoder().seta(*dest_reg);
 			else
 				Encoder().setb(*dest_reg);
 			break;
 
 		case IRInstruction::CMPLTE:
-			if (invert)
-				Encoder().setnbe(*dest_reg);
+			if (reverse_operands)
+				Encoder().setae(*dest_reg);
 			else
 				Encoder().setbe(*dest_reg);
 			break;
 
 		case IRInstruction::CMPGT:
-			if (invert)
-				Encoder().setna(*dest_reg);
+			if (reverse_operands)
+				Encoder().setb(*dest_reg);
 			else
 				Encoder().seta(*dest_reg);
 			break;
 
 		case IRInstruction::CMPGTE:
-			if (invert)
-				Encoder().setnae(*dest_reg);
+			if (reverse_operands)
+				Encoder().setbe(*dest_reg);
 			else
 				Encoder().setae(*dest_reg);
 			break;

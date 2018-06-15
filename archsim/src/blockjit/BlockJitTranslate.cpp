@@ -225,7 +225,9 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 {
 	LC_DEBUG4(LogBlockJit) << "Translating instruction " << std::hex << pc.Get() << " " << decode->Instr_Code << " " << decode->ir;
 	
-	if(archsim::options::Verbose)builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
+	if(archsim::options::Verbose) {
+		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
+	}
 
 	if(archsim::options::InstructionTick) {
 		builder.call(IROperand::func((void*)cpuInstructionTick), IROperand::const64((uint64_t)(void*)processor));
