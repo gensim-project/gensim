@@ -42,12 +42,6 @@ TARGET_LINK_LIBRARIES(archsim
 
 TARGET_LINK_LIBRARIES(archsim-core trace gvnc)
 
-SET_TARGET_PROPERTIES(archsim-core
-	PROPERTIES
-		CXX_STANDARD 11
-		CXX_STANDARD_REQUIRED YES
-		POSITION_INDEPENDENT_CODE ON
-)
 
 # Add each provided source file along with its source directory
 function(archsim_add_sources)

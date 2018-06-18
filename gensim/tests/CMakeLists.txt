@@ -19,11 +19,7 @@ ADD_TEST(
 	COMMAND gensim-tests
 )
 
-SET_TARGET_PROPERTIES(gensim-tests
-	PROPERTIES
-		CXX_STANDARD 11
-		CXX_STANDARD_REQUIRED YES
-)
+standard_flags(gensim-tests)
 
 ADD_DEPENDENCIES(gensim-tests gtest)
 TARGET_LINK_LIBRARIES(gensim-tests ${GTEST_LIBS_DIR}/libgtest.a ${GTEST_LIBS_DIR}/libgtest_main.a ${CMAKE_THREAD_LIBS_INIT} gensim-lib gensim-test)

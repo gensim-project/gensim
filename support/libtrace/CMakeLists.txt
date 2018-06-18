@@ -22,12 +22,6 @@ function(add_trace_tool tool-name)
 	standard_flags(${tool-name})
 	
 	TARGET_LINK_LIBRARIES(${tool-name} trace ${CURSES_LIBRARIES})
-
-	SET_TARGET_PROPERTIES(${tool-name}
-		PROPERTIES
-			CXX_STANDARD 11
-			CXX_STANDARD_REQUIRED YES
-	)
 endfunction()
 
 add_trace_tool(TraceDiffMemory ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordDiffMemory.cpp)
