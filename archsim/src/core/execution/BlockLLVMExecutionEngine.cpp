@@ -233,4 +233,4 @@ ExecutionEngine *BlockLLVMExecutionEngine::Factory(const archsim::module::Module
 	return new BlockLLVMExecutionEngine(translator_entry);
 }
 
-static archsim::core::execution::ExecutionEngineFactoryRegistration registration("LLVMBlockJIT", 200, archsim::core::execution::BlockLLVMExecutionEngine::Factory);
+static archsim::core::execution::ExecutionEngineFactoryRegistration registration("LLVMBlockJIT", 90, archsim::core::execution::BlockLLVMExecutionEngine::Factory);
