@@ -35,12 +35,15 @@ SET_PROPERTY(GLOBAL PROPERTY ARCHSIM_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/inc")
 
 TARGET_LINK_LIBRARIES(archsim
 	archsim-core
+)
+
+TARGET_LINK_LIBRARIES(archsim-core 
+	trace 
+	gvnc
 
 	${CMAKE_THREAD_LIBS_INIT}
 	${CMAKE_DL_LIBS}
 )
-
-TARGET_LINK_LIBRARIES(archsim-core trace gvnc)
 
 
 # Add each provided source file along with its source directory
