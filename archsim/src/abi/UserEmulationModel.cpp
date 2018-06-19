@@ -17,6 +17,7 @@ UseLogContext(LogEmulationModel);
 DeclareChildLogContext(LogEmulationModelUser, LogEmulationModel, "User");
 
 using namespace archsim::abi;
+using archsim::Address;
 
 UserEmulationModel::UserEmulationModel(const user::arch_descriptor_t &arch) : syscall_handler_(user::SyscallHandlerProvider::Singleton().Get(arch)) { }
 
@@ -106,7 +107,7 @@ bool UserEmulationModel::InitialiseProgramArguments()
 
 bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoader &elf_loader)
 {
-	_initial_stack_pointer = 0xc0000000;
+	_initial_stack_pointer = Address(0xc0000000);
 	_stack_size = archsim::options::GuestStackSize;
 
 	if(_stack_size & ((1 << 12)-1)) {
@@ -119,13 +120,13 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 	unsigned long envp_ptrs[global_envc];
 	unsigned long argv_ptrs[global_argc + 1];
 
-	uint32_t sp = _initial_stack_pointer;
+	Address sp = _initial_stack_pointer;
 	
 //	printf("Start (%08x)\n", sp);
 	
 #define PUSH32(_val)   do { sp -= 4; GetMemoryModel().Write32(sp, _val); } while (0)
 #define PUSHSTR(_str)  do { sp -= (strlen(_str) + 1); GetMemoryModel().WriteString(sp, _str); } while (0)
-#define ALIGN_STACK(v) do { sp -= ((unsigned long)sp & (v - 1)); } while (0)
+#define ALIGN_STACK(v) do { sp -= ((uint64_t)sp.Get() & (v - 1)); } while (0)
 #define PUSH_AUX_ENT(_id, _value) do { PUSH32(_value); PUSH32(_id); } while (0)
 #define STACK_ROUND(_sp, _items) (((unsigned long) (_sp - _items)) &~ 15UL)
 
@@ -137,17 +138,17 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 			PUSHSTR("_=/home/a.out");
 		else
 			PUSHSTR(environ[i]);
-		envp_ptrs[i] = sp;
+		envp_ptrs[i] = sp.Get();
 	}
 	
 //	printf("Pushed env values (%08x)\n", sp);
 
 	PUSHSTR(archsim::options::TargetBinary.GetValue().c_str());  // The real arg0
-	argv_ptrs[0] = sp;
+	argv_ptrs[0] = sp.Get();
 
 	for (int i = 0; i < global_argc; i++) {
 		PUSHSTR(global_argv[i]);
-		argv_ptrs[i+1] = sp;
+		argv_ptrs[i+1] = sp.Get();
 	}
 	
 //	printf("Pushed arg values (%08x)\n", sp);
@@ -159,14 +160,14 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 
 	PUSH_AUX_ENT(0, 0);
 
-	PUSH_AUX_ENT(3, elf_loader.GetProgramHeaderLocation());    // AT_PHDR
-	PUSH_AUX_ENT(4, elf_loader.GetProgramHeaderEntrySize());   // AT_PHENT
+	PUSH_AUX_ENT(3, elf_loader.GetProgramHeaderLocation().Get());    // AT_PHDR
+	PUSH_AUX_ENT(4, elf_loader.GetProgramHeaderEntrySize().Get());   // AT_PHENT
 	PUSH_AUX_ENT(5, elf_loader.GetProgramHeaderEntryCount());  // AT_PHNUM
 	PUSH_AUX_ENT(6, 4096);					   // AT_PAGESZ
 
 	PUSH_AUX_ENT(7, 0);			// AT_BASE
 	PUSH_AUX_ENT(8, 0);			// AT_FLAGS
-	PUSH_AUX_ENT(9, _initial_entry_point);  // Entry Point
+	PUSH_AUX_ENT(9, _initial_entry_point.Get());  // Entry Point
 
 	PUSH_AUX_ENT(11, 0);  // AT_UID
 	PUSH_AUX_ENT(12, 0);  // AT_EUID
@@ -208,7 +209,7 @@ bool UserEmulationModel::PrepareBoot(System &system)
 
 	SetInitialBreak(elf_loader.GetInitialProgramBreak());
 
-	_initial_entry_point = elf_loader.GetEntryPoint();
+	_initial_entry_point = Address(elf_loader.GetEntryPoint());
 	LC_DEBUG1(LogEmulationModelUser) << "Located entry-point: " << std::hex << _initial_entry_point;
 
 	// Initialise the program arguments.
@@ -254,34 +255,34 @@ archsim::Address UserEmulationModel::MapAnonymousRegion(size_t size, archsim::ab
 
 bool UserEmulationModel::MapRegion(archsim::Address addr, size_t size, archsim::abi::memory::RegionFlags flags, const std::string &region_name)
 {
-	return GetMemoryModel().GetMappingManager()->MapRegion(addr.Get(), size, flags, region_name);
+	return GetMemoryModel().GetMappingManager()->MapRegion(addr, size, flags, region_name);
 }
 
-void UserEmulationModel::SetInitialBreak(unsigned int brk)
+void UserEmulationModel::SetInitialBreak(Address brk)
 {
 	LC_DEBUG1(LogEmulationModelUser) << "Setting initial program break: " << std::hex << brk;
 	_initial_program_break = brk;
 	_program_break = brk;
 
-	GetMemoryModel().GetMappingManager()->MapRegion(GetMemoryModel().AlignDown(_program_break), GetMemoryModel().AlignUp(1), (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[heap]");
+	GetMemoryModel().GetMappingManager()->MapRegion(GetMemoryModel().AlignDown(_program_break), GetMemoryModel().AlignUp(Address(1)).Get(), (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[heap]");
 }
 
-void UserEmulationModel::SetBreak(unsigned int brk)
+void UserEmulationModel::SetBreak(Address brk)
 {
 	LC_DEBUG1(LogEmulationModelUser) << "Setting program break: " << std::hex << brk;
 
 	if (brk < _initial_program_break) return;
 
-	GetMemoryModel().GetMappingManager()->RemapRegion(_initial_program_break, GetMemoryModel().AlignUp(brk - _initial_program_break));
+	GetMemoryModel().GetMappingManager()->RemapRegion(_initial_program_break, GetMemoryModel().AlignUp(brk - _initial_program_break).Get());
 	_program_break = brk;
 }
 
-unsigned int UserEmulationModel::GetBreak()
+Address UserEmulationModel::GetBreak()
 {
 	return _program_break;
 }
 
-unsigned int UserEmulationModel::GetInitialBreak()
+Address UserEmulationModel::GetInitialBreak()
 {
 	return _initial_program_break;
 }

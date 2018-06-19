@@ -130,7 +130,7 @@ bool EmulationModel::InvokeSignal(int signal, uint32_t next_pc, SignalData *data
 	return false;
 }
 
-bool EmulationModel::LookupSymbol(unsigned long address, bool exact_match, const BinarySymbol *& symbol_out) const
+bool EmulationModel::LookupSymbol(Address address, bool exact_match, const BinarySymbol *& symbol_out) const
 {
 	if (exact_match) {
 		SymbolMap::const_iterator symbol = _functions.find(address);
@@ -156,7 +156,7 @@ bool EmulationModel::LookupSymbol(unsigned long address, bool exact_match, const
 	}
 }
 
-bool EmulationModel::ResolveSymbol(std::string name, unsigned long& value)
+bool EmulationModel::ResolveSymbol(std::string name, Address& value)
 {
 	for (auto symbol : _functions) {
 		if (symbol.second->Name == name) {
@@ -169,7 +169,7 @@ bool EmulationModel::ResolveSymbol(std::string name, unsigned long& value)
 }
 
 
-void EmulationModel::AddSymbol(unsigned long value, unsigned long size, std::string name, BinarySymbolType type)
+void EmulationModel::AddSymbol(Address value, unsigned long size, std::string name, BinarySymbolType type)
 {
 	BinarySymbol *symbol = new BinarySymbol();
 
@@ -195,7 +195,7 @@ void EmulationModel::FixupSymbols()
 		if(i->second->Size == 0) {
 			auto next = i;
 			next++;
-			i->second->Size = next->first - i->first;
+			i->second->Size = (next->first - i->first).Get();
 		}
 	}
 }

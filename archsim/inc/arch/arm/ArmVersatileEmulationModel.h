@@ -40,7 +40,7 @@ namespace archsim
 				bool PrepareCore(archsim::core::thread::ThreadInstance& core) override;
 
 			private:
-				uint32_t entry_point;
+				Address entry_point;
 
 				bool InstallPeripheralDevices();
 				bool InstallPlatformDevices();
