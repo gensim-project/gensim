@@ -1,6 +1,7 @@
 /*
  * abi/EmulationModel.cpp
  */
+#include "abi/Address.h"
 #include "abi/EmulationModel.h"
 #include "abi/memory/MemoryModel.h"
 #include "abi/devices/Device.h"

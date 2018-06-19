@@ -4,6 +4,7 @@
 #include <vector>
 #include <malloc.h>
 #include <string.h>
+#include <iostream>
 
 #ifdef ARCHSIM_SIMULATION_HOST_IS_x86_64
 #include <x86intrin.h>

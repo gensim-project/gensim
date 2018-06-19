@@ -91,10 +91,10 @@ static uint32_t MapSym(uint32_t xsym) {
 		case '9': return 0x46;
 		
 		case '`': return 0; //todo
-		case '¬': return 0; //todo
+//		case '¬': return 0; //todo almagni: this character cannot be encoded in 1 byte.
 		case '!': return 0; //todo
 		case '"': return 0; //todo
-		case '£': return 0; //todo
+//		case '£': return 0; //todo almagni: this character cannot be encoded in 1 byte.  
 		case '$': return 0; //todo
 		case '%': return 0; //todo
 		case '^': return 0; //todo

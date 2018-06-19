@@ -134,4 +134,4 @@ void VersatileSIC<nr_lines>::UpdateParentState()
 	}
 }
 
-template class VersatileSIC<32>;
+template class archsim::abi::devices::VersatileSIC<32>;

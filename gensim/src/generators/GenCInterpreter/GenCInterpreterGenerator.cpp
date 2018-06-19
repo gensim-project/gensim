@@ -35,9 +35,14 @@ namespace gensim
 			return true;
 		}
 
-		bool GenCInterpreterGenerator::GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action) const
+		bool GenCInterpreterGenerator::GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action, bool addTemplateDefaultValue) const
 		{
-			stream << "template<bool trace=false> " << action.GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action.GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
+      if(addTemplateDefaultValue) 
+  			stream << "template<bool trace=false> ";
+      else
+        stream << "template<bool trace> ";
+      
+      stream << action.GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action.GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
 
 			for(auto i : action.ParamSymbols) {
 				// if we're accessing a struct, assume that it's an instruction

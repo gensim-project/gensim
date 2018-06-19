@@ -159,7 +159,7 @@ namespace archsim
 		class TranslationWorkUnit
 		{
 		public:
-			friend std::ostream& operator<< (std::ostream& out, TranslationWorkUnit& twu);
+			friend std::ostream& operator<< (std::ostream& out, const TranslationWorkUnit& twu);
 
 			TranslationWorkUnit(const TranslationWorkUnit&) = delete;
 			TranslationWorkUnit(archsim::core::thread::ThreadInstance *thread, profile::Region& region, uint32_t generation, uint32_t weight);

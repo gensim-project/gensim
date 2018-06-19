@@ -54,9 +54,9 @@ namespace archsim
 			archsim::core::thread::ThreadInstance *GetMainThread();
 			
 			void ResetCores();
-			void HaltCores();
+			void HaltCores() override;
 
-			bool PrepareBoot(System& system);
+			bool PrepareBoot(System& system) override;
 
 			bool EmulateSyscall(SyscallRequest& request, SyscallResponse& response);
 			
@@ -68,8 +68,8 @@ namespace archsim
 			unsigned int GetBreak();
 			unsigned int GetInitialBreak();
 
-			bool AssertSignal(int signum, SignalData* data);
-			virtual bool InvokeSignal(int signum, uint32_t next_pc, SignalData* data);
+			bool AssertSignal(int signum, SignalData* data) override;
+			virtual bool InvokeSignal(int signum, uint32_t next_pc, SignalData* data) override;
 
 			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, unsigned int category, unsigned int data) override;
 			void PrintStatistics(std::ostream& stream);

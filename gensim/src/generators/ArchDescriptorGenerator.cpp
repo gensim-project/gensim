@@ -43,9 +43,14 @@ const std::vector<std::string> ArchDescriptorGenerator::GetSources() const
 	return {"arch.cpp"};
 }
 
-static void GenerateHelperFunctionPrototype(gensim::util::cppformatstream &str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction *action) 
+static void GenerateHelperFunctionPrototype(gensim::util::cppformatstream &str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction *action, bool addTemplateDefaultValue) 
 {
-	str << "template<bool trace=false> " << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
+  if(addTemplateDefaultValue)
+    str << "template<bool trace=false> ";
+  else
+	  str << "template<bool trace> ";
+
+	str << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
 
 	for(auto i : action->ParamSymbols) {
 		// if we're accessing a struct, assume that it's an instruction
@@ -135,14 +140,14 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 		}
 		
 		for(auto action : exported_actions) {
-			GenerateHelperFunctionPrototype(str, *isa, (gensim::genc::ssa::SSAFormAction*)action);
+			GenerateHelperFunctionPrototype(str, *isa, (gensim::genc::ssa::SSAFormAction*)action, true);
 			str << ";";
 		}
 		
 		for(const auto &action : exported_actions) {
 
 			// generate helper function
-			GenerateHelperFunctionPrototype(str, *isa, (gensim::genc::ssa::SSAFormAction*)action);
+			GenerateHelperFunctionPrototype(str, *isa, (gensim::genc::ssa::SSAFormAction*)action, false);
 			str << "{";
 			str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 			interp.GenerateExecuteBodyFor(str, *(gensim::genc::ssa::SSAFormAction*)action);

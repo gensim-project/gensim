@@ -57,3 +57,26 @@ uint32_t MMU::TranslateUnsafe(archsim::core::thread::ThreadInstance* cpu, uint32
 	Translate(cpu, virt_addr, phys_addr, info);
 	return phys_addr;
 }
+
+namespace archsim
+{
+	namespace abi
+	{
+		namespace devices
+		{
+			std::ostream &operator <<(std::ostream &stream, const struct archsim::abi::devices::AccessInfo &info)
+			{
+				stream << "[";
+				if(info.Fetch) stream << "I";
+				else stream << "D";
+				if(info.Kernel) stream << "K";
+				else stream << "U";
+				if(info.Write) stream << "W";
+				else stream << "R";
+
+				stream << "]";
+				return stream;
+			}
+		}
+	}
+}
