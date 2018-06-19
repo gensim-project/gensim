@@ -45,7 +45,7 @@ bool BinaryLoader::LoadBinary(std::string filename)
 	return ProcessBinary(_load_symbols);
 }
 
-unsigned int BinaryLoader::GetEntryPoint()
+archsim::Address BinaryLoader::GetEntryPoint()
 {
 	return _entry_point;
 }

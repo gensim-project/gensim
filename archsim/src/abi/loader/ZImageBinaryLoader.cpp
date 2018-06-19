@@ -22,10 +22,10 @@ DeclareChildLogContext(LogZImage, LogLoader, "ZImage");
 
 using namespace archsim::abi::loader;
 
-ZImageBinaryLoader::ZImageBinaryLoader(EmulationModel &emulation_model, uint32_t base_addr, std::string symbol_map)
+ZImageBinaryLoader::ZImageBinaryLoader(EmulationModel &emulation_model, Address base_addr, std::string symbol_map)
 	: BinaryLoader(emulation_model, true), _base_addr(base_addr), _symbol_map(symbol_map) {}
 
-ZImageBinaryLoader::ZImageBinaryLoader(EmulationModel &emulation_model, uint32_t base_addr)
+ZImageBinaryLoader::ZImageBinaryLoader(EmulationModel &emulation_model, Address base_addr)
 	: BinaryLoader(emulation_model, false), _base_addr(base_addr), _symbol_map("") {}
 
 ZImageBinaryLoader::~ZImageBinaryLoader() {}
@@ -55,7 +55,7 @@ bool ZImageBinaryLoader::LoadSymbolMap(std::string map_file)
 		if (addr_part.size() == 0)
 			continue;
 
-		_emulation_model.AddSymbol(std::stol(addr_part, 0, 16), 0x1000, name_part, FunctionSymbol);
+		_emulation_model.AddSymbol(Address(std::stol(addr_part, 0, 16)), 0x1000, name_part, FunctionSymbol);
 	}
 
 	return true;
@@ -76,7 +76,7 @@ bool ZImageBinaryLoader::ProcessBinary(bool load_symbols)
 		return false;
 	}
 
-	_entry_point = (unsigned long)_base_addr;
+	_entry_point = _base_addr;
 
 	return _emulation_model.GetMemoryModel().Poke(_base_addr, (uint8_t *)_binary_data, _binary_size) == 0;
 }

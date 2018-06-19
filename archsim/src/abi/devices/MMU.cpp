@@ -15,6 +15,7 @@ UseLogContext(LogDevice)
 
 using namespace archsim::abi::devices;
 using namespace archsim::abi::memory;
+using archsim::Address;
 
 PageInfo::PageInfo() : phys_addr(0), mask(0), Present(0), UserCanRead(0), UserCanWrite(0), KernelCanRead(0), KernelCanWrite(0) {}
 
@@ -22,7 +23,7 @@ MMU::MMU() : should_be_enabled(false) { }
 
 MMU::~MMU() {}
 
-MMU::TranslateResult MMU::TranslateRegion(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr, uint32_t size, uint32_t &phys_addr, const struct AccessInfo info)
+MMU::TranslateResult MMU::TranslateRegion(archsim::core::thread::ThreadInstance *cpu, Address virt_addr, uint32_t size, Address &phys_addr, const struct AccessInfo info)
 {
 	return TXLN_FAULT_OTHER;
 }
@@ -32,7 +33,7 @@ void MMU::FlushCaches()
 
 }
 
-void MMU::Evict(virt_addr_t virt_addr)
+void MMU::Evict(Address virt_addr)
 {
 
 }
@@ -49,9 +50,9 @@ void MMU::set_enabled(bool enabled)
 	}
 }
 
-uint32_t MMU::TranslateUnsafe(archsim::core::thread::ThreadInstance* cpu, uint32_t virt_addr)
+Address MMU::TranslateUnsafe(archsim::core::thread::ThreadInstance* cpu, Address virt_addr)
 {
-	uint32_t phys_addr;
+	Address phys_addr;
 	AccessInfo info(0, 0, 0);
 
 	Translate(cpu, virt_addr, phys_addr, info);

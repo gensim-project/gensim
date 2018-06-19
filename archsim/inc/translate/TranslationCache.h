@@ -9,7 +9,9 @@
 #define INC_TRANSLATE_TRANLATIONCACHE_H_
 
 #include "translate/profile/RegionArch.h"
+#include "abi/Address.h"
 #include <bitset>
+
 
 namespace archsim
 {
@@ -26,15 +28,15 @@ namespace archsim
 				return (void**)&region_txln_cache;
 			}
 
-			inline void **GetEntry(virt_addr_t virt_addr)
+			inline void **GetEntry(Address virt_addr)
 			{
-				uint32_t page_index = profile::RegionArch::PageIndexOf(virt_addr);
+				uint32_t page_index = virt_addr.GetPageIndex();
 				dirty_pages.set(page_index >> cache_page_bits);
 				return &region_txln_cache[page_index];
 			}
 
 			void Invalidate();
-			void InvalidateEntry(virt_addr_t entry);
+			void InvalidateEntry(Address entry);
 
 			void InvalidateAll();
 		private:

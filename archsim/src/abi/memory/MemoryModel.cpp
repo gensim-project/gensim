@@ -110,12 +110,12 @@ void MemoryModel::FlushCaches()
 
 }
 
-void MemoryModel::EvictCacheEntry(virt_addr_t virt_addr)
+void MemoryModel::EvictCacheEntry(Address virt_addr)
 {
 
 }
 
-uint32_t MemoryModel::PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct abi::devices::AccessInfo &info)
+uint32_t MemoryModel::PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct abi::devices::AccessInfo &info)
 {
 	out_phys_addr = virt_addr;
 	return 0;
@@ -271,7 +271,7 @@ uint32_t MemoryModel::ReadN(guest_addr_t addr, uint8_t *buffer, size_t size)
 		uint32_t c = Read8(addr, *buffer);
 		if(c) return c;
 		buffer++;
-		addr++;
+		addr += 1;
 		size--;
 	}
 	return 0;
@@ -283,7 +283,7 @@ uint32_t MemoryModel::WriteN(guest_addr_t addr, uint8_t *buffer, size_t size)
 		uint32_t c = Write8(addr, *buffer);
 		if(c) return c;
 		buffer++;
-		addr++;
+		addr += 1;
 		size--;
 	}
 	return 0;
@@ -301,7 +301,7 @@ uint32_t MemoryModel::Peek32Unsafe(guest_addr_t addr)
 	return data;
 }
 
-static struct GuestVMA null_vma = { 0, 0, 0, RegFlagNone, "NULL" };
+static struct GuestVMA null_vma = { 0, archsim::Address(0), 0, RegFlagNone, "NULL" };
 RegionBasedMemoryModel::RegionBasedMemoryModel() : cached_vma(&null_vma) {}
 
 RegionBasedMemoryModel::~RegionBasedMemoryModel()
@@ -406,7 +406,7 @@ bool RegionBasedMemoryModel::MapAll(RegionFlags prot)
 
 	GuestVMA *vma = new GuestVMA();
 
-	vma->base = 0;
+	vma->base = Address(0);
 	vma->size = 0xffffffff;
 	vma->protection = prot;
 	vma->name = "all";
@@ -416,14 +416,14 @@ bool RegionBasedMemoryModel::MapAll(RegionFlags prot)
 		return false;
 	}
 
-	guest_vmas[0] = vma;
+	guest_vmas[Address(0)] = vma;
 
 	return true;
 }
 
 bool RegionBasedMemoryModel::MapRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot, std::string name)
 {
-	size = AlignUp(size);
+	size = AlignUp(Address(size)).Get();
 
 	if (HasIntersectingRegions(addr, size)) {
 		LC_ERROR(LogMemoryModel) << "Overlapping regions not supported";
@@ -452,13 +452,13 @@ bool RegionBasedMemoryModel::MapRegion(guest_addr_t addr, guest_size_t size, Reg
 guest_addr_t RegionBasedMemoryModel::MapAnonymousRegion(guest_size_t size, RegionFlags prot)
 {
 	// Force size alignment.
-	size = AlignUp(size);
+	size = AlignUp(Address(size)).Get();
 
 	LC_DEBUG1(LogMemoryModel) << "Map anonymous region: size = " << std::hex << size << ", prot = " << prot;
 
 	// Start from a (random?) base address, and find the first address that doesn't
 	// contain an intersecting region.
-	guest_addr_t addr = 0x40000000;
+	guest_addr_t addr = Address(0x40000000);
 	while (HasIntersectingRegions(addr, size)) {
 		addr += 4096;
 	}
@@ -467,7 +467,7 @@ guest_addr_t RegionBasedMemoryModel::MapAnonymousRegion(guest_size_t size, Regio
 	if (MapRegion(addr, size, prot, ""))
 		return addr;
 	else
-		return -1;
+		return Address(-1);
 }
 
 bool RegionBasedMemoryModel::RemapRegion(guest_addr_t addr, guest_size_t size)
@@ -480,7 +480,7 @@ bool RegionBasedMemoryModel::RemapRegion(guest_addr_t addr, guest_size_t size)
 	}
 
 	// Force size alignment.
-	size = AlignUp(size);
+	size = AlignUp(Address(size)).Get();
 
 	// Check for overlapping regions.
 	if (VMAIntersects(*vma, size)) {
@@ -501,7 +501,7 @@ bool RegionBasedMemoryModel::UnmapRegion(guest_addr_t addr, guest_size_t size)
 	}
 
 	// Force size alignment.
-	size = AlignUp(size);
+	size = AlignUp(Address(size)).Get();
 
 	LC_DEBUG1(LogMemoryModel) << "Unmap Region: addr = " << std::hex << vma->base << ", real addr = " << std::hex << vma->host_base << ", size = " << std::hex << vma->size;
 
@@ -514,7 +514,7 @@ bool RegionBasedMemoryModel::UnmapRegion(guest_addr_t addr, guest_size_t size)
 bool RegionBasedMemoryModel::ProtectRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot)
 {
 	// Force size alignment.
-	size = AlignUp(size);
+	size = AlignUp(Address(size)).Get();
 
 	LC_DEBUG1(LogMemoryModel) << "Protect Region: addr = " << std::hex << addr << ", size = " << std::hex << size << ", prot = " << prot;
 
@@ -649,7 +649,7 @@ MemoryTranslationModel &NullMemoryModel::GetTranslationModel()
 	return *translation_model;
 }
 
-uint32_t NullMemoryModel::PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
+uint32_t NullMemoryModel::PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
 {
 	out_phys_addr = virt_addr;
 	return 0;

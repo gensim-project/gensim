@@ -26,26 +26,26 @@ DeviceManager::~DeviceManager()
 
 bool DeviceManager::InstallDevice(guest_addr_t base_address, guest_size_t device_size, MemoryComponent& device)
 {
-	assert(base_address > 0);
+	assert(base_address != Address::NullPtr);
 	assert(device_size == device.GetSize());
-	assert(archsim::translate::profile::RegionArch::PageOffsetOf(base_address) == 0);
+	assert(base_address.GetPageOffset() == 0);
 
 	// Check first: does this device overlap any others?
 	for(guest_addr_t addr = base_address; addr < base_address+device_size; addr += archsim::translate::profile::RegionArch::PageSize) {
-		if(device_bitmap[archsim::translate::profile::RegionArch::PageIndexOf(addr)]) {
+		if(device_bitmap[addr.GetPageIndex()]) {
 			LC_ERROR(LogDevice) << "Could not map device on page " << std::hex << addr << ": Devices overlap.";
 			return false;
 		}
 	}
 
-	if (min_device_address == 0 || base_address < min_device_address)
+	if (min_device_address == Address::NullPtr || base_address < min_device_address)
 		min_device_address = base_address;
 
 	device_set.insert(&device);
 	devices[base_address] = &device;
 
 	for(guest_addr_t addr = base_address; addr < base_address+device_size; addr += archsim::translate::profile::RegionArch::PageSize) {
-		device_bitmap.set(archsim::translate::profile::RegionArch::PageIndexOf(addr));
+		device_bitmap.set(addr.GetPageIndex());
 	}
 
 	return true;

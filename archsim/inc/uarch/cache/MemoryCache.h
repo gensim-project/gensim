@@ -46,7 +46,7 @@ namespace archsim
 					nextCaches[(uint32_t)accessType] = &next;
 				}
 
-				bool Access(archsim::core::thread::ThreadInstance *cpu, CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size);
+				bool Access(archsim::core::thread::ThreadInstance *cpu, CacheAccessType accessType, Address phys_addr, Address virt_addr, uint8_t size);
 				virtual void Flush();
 
 				void PrintStatistics(std::ostream& stream);
@@ -75,7 +75,7 @@ namespace archsim
 				}
 
 			protected:
-				virtual bool IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size);
+				virtual bool IsHit(CacheAccessType accessType, Address phys_addr, Address virt_addr, uint8_t size);
 
 			private:
 				MemoryCache(const MemoryCache&) = delete;
@@ -99,7 +99,7 @@ namespace archsim
 					~MainMemory();
 
 				protected:
-					bool IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size);
+					bool IsHit(CacheAccessType accessType, Address phys_addr, Address virt_addr, uint8_t size);
 				};
 
 				class Associative : public MemoryCache
@@ -125,7 +125,7 @@ namespace archsim
 					void Flush() override;
 
 				protected:
-					bool IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size);
+					bool IsHit(CacheAccessType accessType, Address phys_addr, Address virt_addr, uint8_t size);
 
 					uint32_t size;
 					uint32_t entries;
@@ -134,8 +134,8 @@ namespace archsim
 					uint8_t linesize;
 					uint8_t mru;
 
-					phys_addr_t last_phys_addr;
-					virt_addr_t last_virt_addr;
+					Address last_phys_addr;
+					Address last_virt_addr;
 
 					uint8_t *way_ages;
 

@@ -24,6 +24,7 @@ DeclareLogContext(LogTranslate, "Translate");
 DeclareChildLogContext(LogProfile, LogTranslate, "Profile");
 UseLogContext(LogLifetime);
 
+using archsim::Address;
 using namespace archsim::translate;
 using namespace archsim::translate::profile;
 
@@ -34,14 +35,14 @@ RegionTable::RegionTable()
 	Clear();
 }
 
-Region *RegionTable::InstantiateRegion(TranslationManager &mgr, phys_addr_t phys_base)
+Region *RegionTable::InstantiateRegion(TranslationManager &mgr, Address phys_base)
 {
 	return new Region(mgr, phys_base);
 }
 
-size_t RegionTable::Erase(uint32_t phys_base)
+size_t RegionTable::Erase(Address phys_base)
 {
-	profile::Region *&ptr = regions[profile::RegionArch::PageIndexOf(phys_base)];
+	profile::Region *&ptr = regions[phys_base.GetPageIndex()];
 	if(!ptr) return 0;
 	dense_regions.erase(ptr);
 
@@ -65,13 +66,13 @@ static void InvalidateCallback(PubSubType::PubSubType type, void *ctx, const voi
 	TranslationManager *txln_mgr = (TranslationManager*)ctx;
 	switch(type) {
 		case PubSubType::ITlbEntryFlush:
-			txln_mgr->InvalidateRegionTxlnCacheEntry((uint64_t)data);
+			txln_mgr->InvalidateRegionTxlnCacheEntry(Address((uint64_t)data));
 			break;
 		case PubSubType::ITlbFullFlush:
 			txln_mgr->InvalidateRegionTxlnCache();
 			break;
 		case PubSubType::RegionInvalidatePhysical:
-			txln_mgr->InvalidateRegion((uint32_t)(uint64_t)data);
+			txln_mgr->InvalidateRegion(Address((uint64_t)data));
 			break;
 		case PubSubType::L1ICacheFlush:
 			txln_mgr->Invalidate();
@@ -153,16 +154,16 @@ void TranslationManager::Destroy()
 
 }
 
-Region& TranslationManager::GetRegion(phys_addr_t phys_addr)
+Region& TranslationManager::GetRegion(Address phys_addr)
 {
-	GetCodeRegions().MarkRegionAsCode(PhysicalAddress(phys_addr).PageBase());
-	return regions.Get(*this, RegionArch::PageBaseOf(phys_addr));
+	GetCodeRegions().MarkRegionAsCode(PhysicalAddress(phys_addr.GetPageBase()));
+	return regions.Get(*this, phys_addr.PageBase());
 }
 
-bool TranslationManager::TryGetRegion(phys_addr_t phys_addr, profile::Region*& region)
+bool TranslationManager::TryGetRegion(Address phys_addr, profile::Region*& region)
 {
-	if(dirty_code_pages.count(archsim::translate::profile::RegionArch::PageBaseOf(phys_addr))) return false;
-	return regions.TryGet(*this, RegionArch::PageBaseOf(phys_addr), region);
+	if(dirty_code_pages.count(phys_addr.GetPageBase())) return false;
+	return regions.TryGet(*this, phys_addr.PageBase(), region);
 }
 
 void TranslationManager::TraceBlock(archsim::core::thread::ThreadInstance *thread, Block& block)
@@ -186,19 +187,19 @@ bool TranslationManager::Profile(archsim::core::thread::ThreadInstance *thread)
 	bool txltd_regions = false;
 
 	for (auto region : regions) {
-		if(dirty_code_pages.count(region->GetPhysicalBaseAddress())) continue;
+		if(dirty_code_pages.count(region->GetPhysicalBaseAddress().Get())) continue;
 
 		if (region->IsHot(curr_hotspot_threshold)) {
-			region_txln_count[region->GetPhysicalBaseAddress()]++;
+			region_txln_count[region->GetPhysicalBaseAddress().Get()]++;
 
-			uint32_t weight = (region->TotalBlockHeat()) / region_txln_count[region->GetPhysicalBaseAddress()];
+			uint32_t weight = (region->TotalBlockHeat()) / region_txln_count[region->GetPhysicalBaseAddress().Get()];
 
 			region->SetStatus(Region::InTranslation);
 			txltd_regions = true;
 
-			thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationPhysical, (void*)(uint64_t)region->GetPhysicalBaseAddress());
+			thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationPhysical, (void*)(uint64_t)region->GetPhysicalBaseAddress().Get());
 			for(auto virt_base : region->virtual_images) {
-				thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationVirtual, (void*)(uint64_t)virt_base);
+				thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationVirtual, (void*)virt_base.Get());
 			}
 
 #ifdef PROTECT_CODE_REGIONS
@@ -245,13 +246,13 @@ void TranslationManager::Invalidate()
 
 }
 
-void TranslationManager::InvalidateRegion(phys_addr_t phys_addr)
+void TranslationManager::InvalidateRegion(Address phys_addr)
 {
-	assert((phys_addr & 0xfff) == 0);
+	assert((phys_addr.Get() & 0xfff) == 0);
 
 	LC_DEBUG2(LogTranslate) << "Invalidating region " << std::hex << phys_addr;
 
-	dirty_code_pages.insert(archsim::translate::profile::RegionArch::PageBaseOf(phys_addr));
+	dirty_code_pages.insert(phys_addr.GetPageBase());
 	Region& rgn = regions.Get(*this, phys_addr);
 
 	if (txln_cache) {
@@ -274,7 +275,7 @@ void TranslationManager::InvalidateRegionTxlnCache()
 		txln_cache->Invalidate();
 }
 
-void TranslationManager::InvalidateRegionTxlnCacheEntry(virt_addr_t virt_addr)
+void TranslationManager::InvalidateRegionTxlnCacheEntry(Address virt_addr)
 {
 	if(txln_cache)
 		txln_cache->InvalidateEntry(virt_addr);

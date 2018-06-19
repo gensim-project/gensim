@@ -124,9 +124,9 @@ bool SystemEmulationModel::PrepareBoot(System &system)
 		loader = new loader::SystemElfBinaryLoader(*this, archsim::options::TraceSymbols);
 	} else if (archsim::options::TargetBinaryFormat == "zimage") {
 		if (!archsim::options::ZImageSymbolMap.IsSpecified()) {
-			loader = new loader::ZImageBinaryLoader(*this, 64 * 1024);
+			loader = new loader::ZImageBinaryLoader(*this, Address(64 * 1024));
 		} else {
-			loader = new loader::ZImageBinaryLoader(*this, 64 * 1024, archsim::options::ZImageSymbolMap);
+			loader = new loader::ZImageBinaryLoader(*this, Address(64 * 1024), archsim::options::ZImageSymbolMap);
 		}
 	} else {
 		LC_ERROR(LogSystemEmulationModel) << "Unknown binary format: " << archsim::options::TargetBinaryFormat.GetValue();
@@ -163,7 +163,7 @@ bool SystemEmulationModel::PrepareBoot(System &system)
 bool SystemEmulationModel::RegisterMemoryComponent(abi::devices::MemoryComponent& component)
 {
 	LC_INFO(LogSystemEmulationModel) << "Registering device at " << component.GetBaseAddress() << " to " << Address(component.GetBaseAddress().Get() + component.GetSize());
-	return base_device_manager.InstallDevice(component.GetBaseAddress().Get(), component.GetSize(), component);
+	return base_device_manager.InstallDevice(component.GetBaseAddress(), component.GetSize(), component);
 }
 
 void SystemEmulationModel::RegisterCoreComponent(abi::devices::CoreComponent& component)

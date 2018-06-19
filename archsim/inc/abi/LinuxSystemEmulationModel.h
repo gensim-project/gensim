@@ -50,9 +50,9 @@ namespace archsim
 			LinuxEmulationComponent devicetree;
 			LinuxEmulationComponent atags;
 
-			bool InstallDeviceTree(std::string filename, uint32_t addr);
-			bool InstallATAGS(std::string kernel_args, uint32_t addr);
-			bool InstallRootFS(std::string filename, uint32_t addr);
+			bool InstallDeviceTree(std::string filename, Address addr);
+			bool InstallATAGS(std::string kernel_args, Address addr);
+			bool InstallRootFS(std::string filename, Address addr);
 
 
 		};
