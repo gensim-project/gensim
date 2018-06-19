@@ -1,9 +1,4 @@
-/*
- * File:   ClangLLVMTranslationGenerator.h
- * Author: s0803652
- *
- * Created on 29 November 2011, 13:58
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef _CLANGLLVMTRANSLATIONGENERATOR_H
 #define _CLANGLLVMTRANSLATIONGENERATOR_H

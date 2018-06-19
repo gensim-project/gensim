@@ -1,9 +1,4 @@
-/*
- * File:   InterpretiveExecutionEngineGenerator.cpp
- * Author: s0803652
- *
- * Created on 14 October 2011, 14:34
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <sstream>
 #include <fstream>

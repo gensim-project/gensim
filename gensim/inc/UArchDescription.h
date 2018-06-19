@@ -1,9 +1,4 @@
-/*
- * File:   UArchDescription.h
- * Author: s0803652
- *
- * Created on 27 February 2012, 14:58
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef UARCHDESCRIPTION_H
 #define UARCHDESCRIPTION_H

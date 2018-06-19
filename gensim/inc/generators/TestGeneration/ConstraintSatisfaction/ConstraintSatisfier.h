@@ -1,9 +1,4 @@
-/*
- * ConstraintSatisfier.h
- *
- *  Created on: 25 Feb 2014
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef CONSTRAINTSATISFIER_H_
 #define CONSTRAINTSATISFIER_H_

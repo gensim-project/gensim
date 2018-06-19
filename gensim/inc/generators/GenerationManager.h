@@ -1,9 +1,4 @@
-/*
- * File:   GenerationManager.h
- * Author: s0803652
- *
- * Created on 03 October 2011, 10:28
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef _GENERATIONMANAGER_H
 #define _GENERATIONMANAGER_H

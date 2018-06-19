@@ -1,9 +1,4 @@
-/*
- * File:   VariableUseDefAnalysis.h
- * Author: harry
- *
- * Created on 27 June 2017, 11:22
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #pragma once
 

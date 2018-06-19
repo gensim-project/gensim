@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #ifndef GENC_TESTING_TESTCONTEXT_H_
 #define GENC_TESTING_TESTCONTEXT_H_
 

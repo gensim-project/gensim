@@ -1,9 +1,4 @@
-/*
- * GenCInterpreter.cpp
- *
- *  Created on: 10 Dec 2013
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "arch/ArchDescription.h"
 #include "isa/ISADescription.h"

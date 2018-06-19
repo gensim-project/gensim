@@ -1,9 +1,4 @@
-/*
- * RegisterFileDescriptor.cpp
- *
- *  Created on: 18 Sep 2015
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "arch/RegisterFile.h"
 #include "arch/RegisterFileDescriptor.h"

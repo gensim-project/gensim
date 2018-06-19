@@ -1,9 +1,4 @@
-/*
- * File:   InterpretiveExecutionEngineGenerator.h
- * Author: s0803652
- *
- * Created on 14 October 2011, 14:34
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef _INTERPRETIVEEXECUTIONENGINEGENERATOR_H
 #define _INTERPRETIVEEXECUTIONENGINEGENERATOR_H

@@ -1,9 +1,4 @@
-/*
- * PathBasedTestGenerator.h
- *
- *  Created on: 16 Oct 2013
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef PATHBASEDTESTGENERATOR_H_
 #define PATHBASEDTESTGENERATOR_H_
