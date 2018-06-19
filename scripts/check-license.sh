@@ -18,7 +18,7 @@ for file in $FILES; do
 	fi
 	
 	LICENSE="/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */"
-	FOUNDLICENSE=`grep -E "$LICENSE" $file | head -n1`
+	FOUNDLICENSE=$(grep -F "$LICENSE" $file | head -n1)
 	
 	if [ "$FOUNDLICENSE" = "" ]; then
 		LICENSEMISSING=1
@@ -28,7 +28,7 @@ for file in $FILES; do
 	
 	if [ $LICENSEMISSING -eq 1 ]; then
 		ERROR=1
-		echo "$file"
+		echo "License missing in '$file'"
 	fi
 	
 done
