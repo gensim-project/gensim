@@ -1,15 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/* 
- * File:   EEGenerator.h
- * Author: harry
- *
- * Created on 11 April 2018, 13:42
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef EEGENERATOR_H
 #define EEGENERATOR_H

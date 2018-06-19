@@ -1,9 +1,4 @@
-/*
- * File:   DefinitionGenerator.h
- * Author: s0803652
- *
- * Created on 07 October 2011, 15:50
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef _DEFINITIONGENERATOR_H
 #define _DEFINITIONGENERATOR_H

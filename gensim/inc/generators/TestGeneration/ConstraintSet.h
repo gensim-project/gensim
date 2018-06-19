@@ -1,9 +1,4 @@
-/*
- * ConstraintSet.h
- *
- *  Created on: 5 Nov 2013
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef CONSTRAINTSET_H_
 #define CONSTRAINTSET_H_

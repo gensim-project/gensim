@@ -1,9 +1,4 @@
-/*
- * SSADeviceReadStatement.cpp
- *
- *  Created on: 22 May 2015
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/statement/SSADeviceReadStatement.h"
 #include "genC/ssa/SSAStatementVisitor.h"

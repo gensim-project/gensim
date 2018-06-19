@@ -1,9 +1,4 @@
-/*
- * Constraint.h
- *
- *  Created on: 1 Nov 2013
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef CONSTRAINT_H_
 #define CONSTRAINT_H_

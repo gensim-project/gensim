@@ -1,9 +1,4 @@
-/*
- * File:   DynamicTranslationGenerator.cpp
- * Author: s0803652
- *
- * Created on 08 August 2012, 15:20
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <vector>
 

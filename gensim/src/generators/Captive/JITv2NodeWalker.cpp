@@ -1,8 +1,5 @@
-/**
- * generators/Captive/JITv2NodeWalker.cpp
- *
- * Tom Spink <tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "JITv2NodeWalker.h"
 #include "isa/ISADescription.h"
 #include "genC/Enums.h"

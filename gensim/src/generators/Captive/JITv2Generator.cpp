@@ -1,8 +1,5 @@
-/**
- * generators/Captive/JITGenerator.cpp
- *
- * Tom Spink <t.spink@sms.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "generators/GenerationManager.h"
 #include "arch/ArchDescription.h"
 #include "isa/ISADescription.h"

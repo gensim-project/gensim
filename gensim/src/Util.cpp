@@ -1,9 +1,4 @@
-/*
- * File:   Util.cpp
- * Author: s0803652
- *
- * Created on 28 September 2011, 17:36
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <string>
 #include <sstream>

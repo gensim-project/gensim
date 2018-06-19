@@ -1,9 +1,4 @@
-/*
- * File:   gensim-backend.cpp
- * Author: harry
- *
- * Created on 20/7/2017
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <stdlib.h>
 #include <getopt.h>

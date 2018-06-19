@@ -1,9 +1,4 @@
-/*
- * CoverageCheckingInterpreterGenerator.h
- *
- *  Created on: 13 Sep 2013
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef COVERAGECHECKINGINTERPRETERGENERATOR_H_
 #define COVERAGECHECKINGINTERPRETERGENERATOR_H_

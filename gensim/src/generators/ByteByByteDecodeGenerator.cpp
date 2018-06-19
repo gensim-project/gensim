@@ -1,9 +1,5 @@
-/*
- * ByteByByteDecodeGenerator.cpp
- *
- *  Created on: Oct 10, 2012
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #if 0
 #include "ArchDescription.h"
 #include "ISADescription.h"

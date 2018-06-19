@@ -1,9 +1,4 @@
-/*
- * File:   MakefileGenerator.cpp
- * Author: s0803652
- *
- * Created on 02 December 2011, 16:15
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <fstream>
 
