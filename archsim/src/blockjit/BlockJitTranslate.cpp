@@ -388,33 +388,36 @@ bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *pr
 	// if we are at the end of a block, if chaining is enabled, and if the
 	// context is valid (isa mode and features).)
 	if(decode->GetEndOfBlock() && _supportChaining && _isa_mode_valid && _features_valid) {
-		uint32_t target_pc = 0, fallthrough_pc = 0;
+		Address target_pc = 0_ga, fallthrough_pc = 0_ga;
 
 		bool direct = false, indirect = false;
 
 		// Try to figure out where this branch will end up.
-		_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target_pc);
-
-		fallthrough_pc = pc.Get() + decode->Instr_Length;
+		uint32_t target_pc_naked;
+		// TODO: change target_pc_naked to actually be an Address instead of a uint32
+		_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target_pc_naked);
+		target_pc = Address(target_pc_naked);
+		
+		fallthrough_pc = pc + decode->Instr_Length;
 
 		// Can only chain on a direct jump
 		if(direct) {
-			uint32_t target_page = archsim::translate::profile::RegionArch::PageBaseOf(target_pc);
-			uint32_t fallthrough_page = archsim::translate::profile::RegionArch::PageBaseOf(fallthrough_pc);
+			auto target_page = target_pc.GetPageBase();
+			auto fallthrough_page = fallthrough_pc.GetPageBase();
 
 			// Can only chain if the target of the jump is on the same page as the rest of the block
 			if(target_page == pc.GetPageBase()) {
 				// If instruction is not predicated, don't use a fallthrough pc
 				// XXX ARM HAX
 				if(!decode->GetIsPredicated()) {
-					fallthrough_pc = 0;
+					fallthrough_pc = 0_ga;
 				}
 
 				//need to translate target and fallthrough PCs
 
 				Address target_ppc(0), fallthrough_ppc(0);
-				if(target_pc) processor->GetFetchMI().PerformTranslation(Address(target_pc), target_ppc, false, true, false);
-				if(fallthrough_pc) processor->GetFetchMI().PerformTranslation(Address(fallthrough_pc), fallthrough_ppc, false, true, false);
+				if(target_pc != Address::NullPtr) processor->GetFetchMI().PerformTranslation(target_pc, target_ppc, false, true, false);
+				if(fallthrough_pc != Address::NullPtr) processor->GetFetchMI().PerformTranslation(fallthrough_pc, fallthrough_ppc, false, true, false);
 
 				archsim::blockjit::BlockTranslation target_fn;
 				archsim::blockjit::BlockTranslation fallthrough_fn;
@@ -438,7 +441,7 @@ bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *pr
 				}
 
 				if(fallthrough_fn_ptr != nullptr || target_fn_ptr != nullptr) {
-					builder.dispatch(IROperand::const32(target_pc), IROperand::const32(fallthrough_pc), IROperand::const64((uint64_t)target_fn_ptr), IROperand::const64((uint64_t)fallthrough_fn_ptr));
+					builder.dispatch(IROperand::const32(target_pc.Get()), IROperand::const32(fallthrough_pc.Get()), IROperand::const64((uint64_t)target_fn_ptr), IROperand::const64((uint64_t)fallthrough_fn_ptr));
 					return true;
 				}
 			} else {

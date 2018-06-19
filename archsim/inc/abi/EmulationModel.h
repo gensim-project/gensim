@@ -70,10 +70,10 @@ namespace archsim
 		struct BinarySymbol {
 			BinarySymbolType Type;
 			std::string Name;
-			unsigned long Value;
+			Address Value;
 			unsigned long Size;
 
-			inline bool Contains(uint32_t address) const
+			inline bool Contains(Address address) const
 			{
 				return (address >= Value) && (address < (Value + Size));
 			}
@@ -117,10 +117,10 @@ namespace archsim
 			virtual ExceptionAction HandleMemoryFault(archsim::core::thread::ThreadInstance &thread, archsim::MemoryInterface &interface, archsim::Address address);
 			virtual void HandleInterrupt(archsim::core::thread::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine *irq);
 
-			virtual bool LookupSymbol(unsigned long address, bool exact_match, const BinarySymbol *& symbol) const;
-			virtual bool ResolveSymbol(std::string name, unsigned long& value);
+			virtual bool LookupSymbol(Address address, bool exact_match, const BinarySymbol *& symbol) const;
+			virtual bool ResolveSymbol(std::string name, Address& value);
 
-			void AddSymbol(unsigned long value, unsigned long size, std::string name, BinarySymbolType type);
+			void AddSymbol(Address value, unsigned long size, std::string name, BinarySymbolType type);
 			void FixupSymbols();
 
 			virtual void PrintStatistics(std::ostream& stream) = 0;
@@ -156,7 +156,7 @@ namespace archsim
 			typedef std::map<int, SignalData *> SignalMap;
 			SignalMap _captured_signals;
 
-			typedef std::map<unsigned long, BinarySymbol *> SymbolMap;
+			typedef std::map<Address, BinarySymbol *> SymbolMap;
 			SymbolMap _symbols;
 			SymbolMap _functions;
 			uint32_t _function_max_size;
