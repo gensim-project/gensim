@@ -96,7 +96,7 @@ public:
 	class ConstantTag {};
 	
 	static const uint32_t kUConstant = 0x1000;
-	template<int modulus=0xffffffff> class RandValueGen { public: operator uint32_t() { return ((uint32_t)rand()) % modulus; } };
+	template<uint32_t modulus=0xffffffff> class RandValueGen { public: operator uint32_t() { return ((uint32_t)rand()) % modulus; } };
 	class ConstValueGen { public: operator uint32_t() { return kUConstant; } };
 	
 	template<typename t> captive::shared::IRRegId Allocate(t, uint32_t size);

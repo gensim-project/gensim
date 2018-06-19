@@ -46,7 +46,7 @@ namespace gensim
 			// and let the preprocessor deal with it
 			std::stringstream str;
 			
-			str << FormatPrototype() << "{" << body_ << "}";
+			str << body_;
 			
 			// If that was a template, then emit any specialisations that should be instantiated
 			for(auto i : specialisations_) {

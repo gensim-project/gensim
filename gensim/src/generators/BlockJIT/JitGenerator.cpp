@@ -121,9 +121,10 @@ bool JitGenerator::RegisterHelpers(const isa::ISADescription *isa) const
 		if (action->GetPrototype().GetIRSignature().GetName() == "instruction_is_predicated") continue;
 
 		util::cppformatstream prototype_stream;
-		interp.GeneratePrototype(prototype_stream, *isa, *action);
+		interp.GeneratePrototype(prototype_stream, *isa, *action, true);
 
 		util::cppformatstream body_stream;
+		interp.GeneratePrototype(body_stream, *isa, *action, false);
 		body_stream << "{";
 		body_stream << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 		// generate helper function code inline here
@@ -286,7 +287,7 @@ bool JitGenerator::RegisterJITFunction(const ISADescription& isa, const Instruct
 
 	util::cppformatstream src_stream;
 	std::string prototype = "bool captive::arch::" + Manager.GetArch().Name + "::JIT::translate_" + isa.ISAName + "_" + insn.Name + "(const Decode&insn, captive::shared::IRBuilder &builder, bool trace)";
-	src_stream  << "{"
+	src_stream  << prototype << "\n{"
 				<< "using namespace captive::shared;"
 	            << "std::queue<IRBlockId> dynamic_block_queue;";
 
