@@ -2,9 +2,9 @@
 
 
 #include "blockjit/block-compiler/transforms/Transform.h"
-#include "util/wutils/maybe-map.h"
-#include "util/wutils/dense-set.h"
-#include "util/wutils/small-set.h"
+#include <wutils/maybe-map.h>
+#include <wutils/dense-set.h>
+#include <wutils/small-set.h>
 
 using namespace captive::arch::jit;
 using namespace captive::shared;
@@ -127,7 +127,7 @@ uint32_t GlobalRegisterAllocationTransform::GetStackFrameSize() const
 	return stack_frame_size_;
 }
 
-archsim::util::vbitset GlobalRegisterAllocationTransform::GetUsedPhysRegs() const
+wutils::vbitset GlobalRegisterAllocationTransform::GetUsedPhysRegs() const
 {
 	return used_phys_regs_;
 }

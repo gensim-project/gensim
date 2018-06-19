@@ -14,6 +14,21 @@ template <typename ElementT, unsigned Width> class Vector
 {
 public:
 
+	Vector() {
+		for(unsigned i = 0; i < Width; ++i) {
+			new (&elements[i]) ElementT();
+		}
+	}
+	
+	Vector(const std::initializer_list<ElementT> &elems) {
+		if(elems.size() != Width) {
+			throw std::range_error("Incorrect vector width");
+		}
+		for(unsigned i = 0; i < Width; ++i) {
+			elements[i] = elems[i];
+		}
+	}
+	
 #define OPERATEANDSET(op) void operator op(const Vector<ElementT, Width> &other) { for(unsigned i = 0; i < Width; ++i) elements[i] op other.elements[i]; }
 
 	OPERATEANDSET(+=)

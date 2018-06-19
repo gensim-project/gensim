@@ -23,7 +23,7 @@
 
 #include "util/LogContext.h"
 #include "abi/devices/MMU.h"
-#include "util/wutils/tick-timer.h"
+#include <wutils/tick-timer.h>
 #include "blockjit/PerfMap.h"
 #include "blockjit/IRPrinter.h"
 
@@ -67,7 +67,7 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 	InitialiseFeatures(processor);
 	InitialiseIsaMode(processor);
 
-	tick_timer timer (0, stdout);
+	wutils::tick_timer timer (0, stdout);
 	timer.reset();
 
 	// Build the IR for this block

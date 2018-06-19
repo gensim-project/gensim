@@ -92,7 +92,7 @@ public:
 
 	bool Run(SSAFormAction& action) const override
 	{
-		for(auto block : action.Blocks) {
+		for(auto block : action.GetBlocks()) {
 			RemoveDominatedPhiNodes(block);
 			MovePhiNodesToStartOfBlock(block);
 		}
