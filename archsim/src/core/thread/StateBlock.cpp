@@ -18,6 +18,7 @@ uint32_t StateBlockDescriptor::AddBlock(const std::string& name, size_t size_in_
 {
 	block_offsets_[name] = total_size_;
 	total_size_ += size_in_bytes;
+  return total_size_;
 }
 
 size_t StateBlockDescriptor::GetBlockOffset(const std::string& name) const
