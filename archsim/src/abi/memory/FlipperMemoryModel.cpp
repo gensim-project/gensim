@@ -110,7 +110,7 @@ bool FlipperMemoryModel::GetRegionProtection(guest_addr_t addr, RegionFlags& pro
 
 guest_addr_t FlipperMemoryModel::MapAnonymousRegion(guest_size_t size, RegionFlags prot)
 {
-	return -1;
+	return Address(-1);
 }
 
 void FlipperMemoryModel::DumpRegions()

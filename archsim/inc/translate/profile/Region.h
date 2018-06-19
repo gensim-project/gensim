@@ -57,7 +57,7 @@ namespace archsim
 				};
 
 				Region(const Region&) = delete;
-				Region(TranslationManager& mgr, phys_addr_t phys_base_addr);
+				Region(TranslationManager& mgr, Address phys_base_addr);
 				virtual ~Region();
 
 				/**
@@ -90,7 +90,7 @@ namespace archsim
 
 				void Invalidate();
 
-				void EraseBlock(virt_addr_t virt_addr);
+				void EraseBlock(Address virt_addr);
 
 				inline void InvalidateHeat()
 				{
@@ -118,7 +118,7 @@ namespace archsim
 					current_generation = generation;
 				}
 
-				inline phys_addr_t GetPhysicalBaseAddress() const
+				inline Address GetPhysicalBaseAddress() const
 				{
 					return phys_base_addr;
 				}
@@ -152,15 +152,15 @@ namespace archsim
 			public:
 				size_t GetApproximateMemoryUsage() const;
 
-				std::unordered_set<virt_addr_t> virtual_images;
+				std::unordered_set<Address> virtual_images;
 
 				/*
 				 * Map of page offsets to block interpretation counts
 				 */
-				std::map<virt_addr_t, uint32_t> block_interp_count;
+				std::map<Address, uint32_t> block_interp_count;
 				uint64_t total_interp_count;
 
-				typedef std::unordered_map<addr_off_t, Block*> block_map_t;
+				typedef std::unordered_map<Address, Block*> block_map_t;
 
 				/**
 				 * Map of page offsets to blocks
@@ -177,7 +177,7 @@ namespace archsim
 			private:
 				TranslationManager& mgr;
 
-				phys_addr_t phys_base_addr;
+				Address phys_base_addr;
 
 				uint32_t max_generation;
 				uint32_t current_generation;

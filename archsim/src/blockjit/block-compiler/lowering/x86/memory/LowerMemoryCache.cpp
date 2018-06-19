@@ -310,19 +310,19 @@ bool LowerReadMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	// XXX ARM HAX
 	mask <<= 12;
 	Encoder().andd(mask, BLKJIT_ARG1(4));
-	Encoder().shr(8, BLKJIT_ARG1(4));
+	Encoder().shr(7, BLKJIT_ARG1(4));
 	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetLoweringContext().GetStateBlockDescriptor().GetBlockOffset("smm_read_cache")), BLKJIT_ARG1(8));
 
 	// Check the tag
 	Encoder().andd(~archsim::translate::profile::RegionArch::PageMask, BLKJIT_ARG2(4));
-	Encoder().cmp(BLKJIT_ARG2(4), X86Memory::get(BLKJIT_ARG1(8), 0));
+	Encoder().cmp(BLKJIT_ARG2(8), X86Memory::get(BLKJIT_ARG1(8), 0));
 
 	// If not equal, jump to fallback
 	uint32_t fallback_offset;
 	Encoder().jne_reloc(fallback_offset);
 
 	// add tlb addend to calculated address
-	Encoder().add(X86Memory::get(BLKJIT_ARG1(8), 8), BLKJIT_RETURN(8));
+	Encoder().add(X86Memory::get(BLKJIT_ARG1(8), 16), BLKJIT_RETURN(8));
 
 	// perform memory access
 	if(dest->is_allocated()) {
@@ -411,12 +411,12 @@ bool LowerWriteMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	// XXX ARM HAX
 	mask <<= 12;
 	Encoder().andd(mask, BLKJIT_ARG0(4));
-	Encoder().shr(8, BLKJIT_ARG0(4));
+	Encoder().shr(7, BLKJIT_ARG0(4));
 	Encoder().add(X86Memory::get(BLKJIT_CPUSTATE_REG, GetLoweringContext().GetStateBlockDescriptor().GetBlockOffset("smm_write_cache")), BLKJIT_ARG0(8));
 
 	// Check the tag
 	Encoder().andd(~archsim::translate::profile::RegionArch::PageMask, BLKJIT_ARG2(4));
-	Encoder().cmp(BLKJIT_ARG2(4), X86Memory::get(BLKJIT_ARG0(8), 0));
+	Encoder().cmp(BLKJIT_ARG2(8), X86Memory::get(BLKJIT_ARG0(8), 0));
 
 	// If not equal, jump to fallback
 	uint32_t fallback_offset;
@@ -425,7 +425,7 @@ bool LowerWriteMemCache::Lower(const captive::shared::IRInstruction *&insn)
 	// calculate address to write to
 
 	// calculate page offset of memory access
-	Encoder().add(X86Memory::get(BLKJIT_ARG0(8), 8), BLKJIT_ARG1(8));
+	Encoder().add(X86Memory::get(BLKJIT_ARG0(8), 16), BLKJIT_ARG1(8));
 
 	// perform memory access
 	assert(value->is_vreg());

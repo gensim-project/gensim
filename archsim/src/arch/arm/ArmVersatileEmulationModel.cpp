@@ -62,7 +62,7 @@ void ArmVersatileEmulationModel::Destroy()
 bool ArmVersatileEmulationModel::InstallBootloader(archsim::abi::loader::BinaryLoader& loader)
 {
 	entry_point = loader.GetEntryPoint();
-	GetMemoryModel().Write(0, (uint8_t *)&bootloader_start, bootloader_size);
+	GetMemoryModel().Write(0_ga, (uint8_t *)&bootloader_start, bootloader_size);
 
 	return true;
 }
@@ -95,7 +95,7 @@ bool ArmVersatileEmulationModel::PrepareCore(archsim::core::thread::ThreadInstan
 	}
 
 	// IP = Entry Point
-	regs[12] = entry_point;
+	regs[12] = entry_point.Get();
 
 	return true;
 }
@@ -137,8 +137,8 @@ bool ArmVersatileEmulationModel::InstallPlatformDevices()
 
 	//SP810 System controller - registered at multiple places in the device space
 	auto sysctl = adm->GetEntry<ModuleDeviceEntry>("SP810")->Get(*this, Address(0x10000000));
-	base_device_manager.InstallDevice((0x101e0000), (guest_size_t)0x1000, *sysctl);
-	base_device_manager.InstallDevice((0xf11e0000), (guest_size_t)0x1000, *sysctl);
+	base_device_manager.InstallDevice((0x101e0000_ga), (guest_size_t)0x1000, *sysctl);
+	base_device_manager.InstallDevice((0xf11e0000_ga), (guest_size_t)0x1000, *sysctl);
 	if(!HackyMMIORegisterDevice(*sysctl)) return false;
 
 	auto pl190 = adm->GetEntry<ModuleDeviceEntry>("PL190")->Get(*this, Address(0x1014000));
@@ -320,14 +320,14 @@ void ArmVersatileEmulationModel::HandleSemihostingCall()
 		case 3:
 			uint8_t c;
 			//cpu->translation_provider->Translate(cpu, regs[1], phys_addr, 0);
-			GetMemoryModel().Read8(phys_addr, c);
+			GetMemoryModel().Read8(Address(phys_addr), c);
 			printf("\x1b[31m%c\x1b[0m", c);
 			fflush(stdout);
 			break;
 		case 4:
 			char buffer[256];
 			//cpu->translation_provider->Translate(cpu, regs[1], phys_addr, 0);
-			GetMemoryModel().ReadString(phys_addr, buffer, sizeof(buffer));
+			GetMemoryModel().ReadString(Address(phys_addr), buffer, sizeof(buffer));
 			printf("\x1b[31m%s\x1b[0m", buffer);
 			fflush(stdout);
 			break;

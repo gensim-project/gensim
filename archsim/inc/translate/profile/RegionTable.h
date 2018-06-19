@@ -9,6 +9,7 @@
 #define	REGIONTABLE_H
 
 #include "define.h"
+#include "abi/Address.h"
 #include "translate/profile/RegionArch.h"
 
 #include <unordered_set>
@@ -29,10 +30,10 @@ namespace archsim
 
 				RegionTable();
 
-				inline Region& Get(TranslationManager &mgr, phys_addr_t phys_base)
+				inline Region& Get(TranslationManager &mgr, Address phys_base)
 				{
-					assert((phys_base & 0xfff) == 0);
-					profile::Region *&ptr = regions[RegionArch::PageIndexOf(phys_base)];
+					assert(phys_base.GetPageOffset() == 0);
+					profile::Region *&ptr = regions[phys_base.GetPageIndex()];
 					if (ptr == nullptr) {
 						ptr = InstantiateRegion(mgr, phys_base);
 						dense_regions.insert(ptr);
@@ -40,10 +41,10 @@ namespace archsim
 					return *ptr;
 				}
 
-				inline bool TryGet(TranslationManager &mgr, phys_addr_t phys_base, Region*& region)
+				inline bool TryGet(TranslationManager &mgr, Address phys_base, Region*& region)
 				{
-					assert((phys_base & 0xfff) == 0);
-					profile::Region *&ptr = regions[RegionArch::PageIndexOf(phys_base)];
+					assert(phys_base.GetPageOffset() == 0);
+					profile::Region *&ptr = regions[phys_base.GetPageIndex()];
 					if (ptr == nullptr) {
 						return false;
 					}
@@ -52,7 +53,7 @@ namespace archsim
 					return true;
 				}
 
-				size_t Erase(phys_addr_t phys_base);
+				size_t Erase(Address phys_base);
 				void Clear();
 
 				const dense_regions_t::const_iterator begin() const
@@ -74,7 +75,7 @@ namespace archsim
 				}
 
 			private:
-				Region *InstantiateRegion(TranslationManager &mgr, phys_addr_t phys_base);
+				Region *InstantiateRegion(TranslationManager &mgr, Address phys_base);
 
 				dense_regions_t dense_regions;
 				Region *regions[profile::RegionArch::PageCount];

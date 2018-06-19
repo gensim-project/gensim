@@ -165,7 +165,7 @@ uint32_t ContiguousMemoryModel::Read(guest_addr_t addr, uint8_t *data, int size)
 	RaiseEvent(MemoryModel::MemEventRead, addr, size);
 #endif
 
-	memcpy(data, (void *)((unsigned long)mem_base + addr), size);
+	memcpy(data, (void *)((unsigned long)mem_base + addr.Get()), size);
 	return 0;
 }
 
@@ -175,7 +175,7 @@ uint32_t ContiguousMemoryModel::Fetch(guest_addr_t addr, uint8_t *data, int size
 	RaiseEvent(MemoryModel::MemEventFetch, addr, size);
 #endif
 
-	memcpy(data, (void *)((unsigned long)mem_base + addr), size);
+	memcpy(data, (void *)((unsigned long)mem_base + addr.Get()), size);
 	return 0;
 }
 
@@ -185,7 +185,7 @@ uint32_t ContiguousMemoryModel::Write(guest_addr_t addr, uint8_t *data, int size
 	RaiseEvent(MemoryModel::MemEventWrite, addr, size);
 #endif
 
-	memcpy((void *)((unsigned long)mem_base + addr), (void *)data, size);
+	memcpy((void *)((unsigned long)mem_base + addr.Get()), (void *)data, size);
 	return 0;
 }
 
@@ -197,7 +197,7 @@ uint32_t ContiguousMemoryModel::Peek(guest_addr_t addr, uint8_t *data, int size)
 	}
 
 	ProtectRegion(addr, size, RegFlagRead);
-	memcpy(data, (void *)((unsigned long)mem_base + addr), size);
+	memcpy(data, (void *)((unsigned long)mem_base + addr.Get()), size);
 	ProtectRegion(addr, size, old_flags);
 
 	return 0;
@@ -211,7 +211,7 @@ uint32_t ContiguousMemoryModel::Poke(guest_addr_t addr, uint8_t *data, int size)
 	}
 
 	ProtectRegion(addr, size, RegFlagReadWrite);
-	memcpy((void *)((unsigned long)mem_base + addr), (void *)data, size);
+	memcpy((void *)((unsigned long)mem_base + addr.Get()), (void *)data, size);
 	ProtectRegion(addr, size, old_flags);
 
 	return 0;
@@ -223,7 +223,7 @@ uint32_t ContiguousMemoryModel::Read8(guest_addr_t addr, uint8_t &data)
 	RaiseEvent(MemoryModel::MemEventRead, addr, 1);
 #endif
 
-	data = *(uint8_t *)((unsigned long)mem_base + addr);
+	data = *(uint8_t *)((unsigned long)mem_base + addr.Get());
 	return 0;
 }
 
@@ -233,7 +233,7 @@ uint32_t ContiguousMemoryModel::Read16(guest_addr_t addr, uint16_t &data)
 	RaiseEvent(MemoryModel::MemEventRead, addr, 2);
 #endif
 
-	data = *(uint16_t *)((unsigned long)mem_base + addr);
+	data = *(uint16_t *)((unsigned long)mem_base + addr.Get());
 	return 0;
 }
 
@@ -243,7 +243,7 @@ uint32_t ContiguousMemoryModel::Read32(guest_addr_t addr, uint32_t &data)
 	RaiseEvent(MemoryModel::MemEventRead, addr, 4);
 #endif
 
-	data = *(uint32_t *)((unsigned long)mem_base + addr);
+	data = *(uint32_t *)((unsigned long)mem_base + addr.Get());
 	return 0;
 }
 
@@ -253,7 +253,7 @@ uint32_t ContiguousMemoryModel::Fetch8(guest_addr_t addr, uint8_t &data)
 	RaiseEvent(MemoryModel::MemEventFetch, addr, 1);
 #endif
 
-	data = *(uint8_t *)((unsigned long)mem_base + addr);
+	data = *(uint8_t *)((unsigned long)mem_base + addr.Get());
 	return 0;
 }
 
@@ -263,7 +263,7 @@ uint32_t ContiguousMemoryModel::Fetch16(guest_addr_t addr, uint16_t &data)
 	RaiseEvent(MemoryModel::MemEventFetch, addr, 2);
 #endif
 
-	data = *(uint16_t *)((unsigned long)mem_base + addr);
+	data = *(uint16_t *)((unsigned long)mem_base + addr.Get());
 	return 0;
 }
 
@@ -273,7 +273,7 @@ uint32_t ContiguousMemoryModel::Fetch32(guest_addr_t addr, uint32_t &data)
 	RaiseEvent(MemoryModel::MemEventFetch, addr, 4);
 #endif
 
-	data = *(uint32_t *)((unsigned long)mem_base + addr);
+	data = *(uint32_t *)((unsigned long)mem_base + addr.Get());
 	return 0;
 }
 
@@ -283,7 +283,7 @@ uint32_t ContiguousMemoryModel::Write8(guest_addr_t addr, uint8_t data)
 	RaiseEvent(MemoryModel::MemEventWrite, addr, 1);
 #endif
 
-	*(uint8_t *)((unsigned long)mem_base + addr) = data;
+	*(uint8_t *)((unsigned long)mem_base + addr.Get()) = data;
 	return 0;
 }
 
@@ -293,7 +293,7 @@ uint32_t ContiguousMemoryModel::Write16(guest_addr_t addr, uint16_t data)
 	RaiseEvent(MemoryModel::MemEventWrite, addr, 2);
 #endif
 
-	*(uint16_t *)((unsigned long)mem_base + addr) = data;
+	*(uint16_t *)((unsigned long)mem_base + addr.Get()) = data;
 	return 0;
 }
 
@@ -303,11 +303,11 @@ uint32_t ContiguousMemoryModel::Write32(guest_addr_t addr, uint32_t data)
 	RaiseEvent(MemoryModel::MemEventWrite, addr, 4);
 #endif
 
-	*(uint32_t *)((unsigned long)mem_base + addr) = data;
+	*(uint32_t *)((unsigned long)mem_base + addr.Get()) = data;
 	return 0;
 }
 
-uint32_t ContiguousMemoryModel::PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
+uint32_t ContiguousMemoryModel::PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
 {
 	out_phys_addr = virt_addr;
 	return 0;

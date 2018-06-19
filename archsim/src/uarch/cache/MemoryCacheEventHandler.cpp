@@ -13,10 +13,10 @@ MemoryCacheEventHandler::MemoryCacheEventHandler() : MemoryCache("")
 
 bool MemoryCacheEventHandler::HandleEvent(archsim::core::thread::ThreadInstance * cpu, archsim::abi::memory::MemoryModel::MemoryEventType type, Address addr, uint8_t size)
 {
-	virt_addr_t virt = (phys_addr_t)addr.Get();
+	Address virt = (Address)addr;
 	/*abi::memory::SystemMemoryModel& smm = (abi::memory::SystemMemoryModel&)cpu.GetMemoryModel();*/
 
-	phys_addr_t phys = virt;
+	Address phys = virt;
 	/*if (&smm == NULL || &smm.GetMMU() == NULL) {
 		phys = virt;
 	} else {
@@ -66,7 +66,7 @@ void MemoryCacheEventHandler::PrintStatisticsRecursive(std::ostream& stream, std
 	}
 }
 
-bool MemoryCacheEventHandler::IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size)
+bool MemoryCacheEventHandler::IsHit(CacheAccessType accessType, Address phys_addr, Address virt_addr, uint8_t size)
 {
 	return false;
 }

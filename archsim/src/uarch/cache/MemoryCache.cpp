@@ -17,7 +17,7 @@ MemoryCache::~MemoryCache()
 
 }
 
-bool MemoryCache::Access(archsim::core::thread::ThreadInstance *cpu, CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size)
+bool MemoryCache::Access(archsim::core::thread::ThreadInstance *cpu, CacheAccessType accessType, Address phys_addr, Address virt_addr, uint8_t size)
 {
 	/*if (accessType == MemoryCache::InstructionFetch) {
 		uint32_t block = phys_addr / 16;
@@ -52,7 +52,7 @@ void MemoryCache::PrintStatistics(std::ostream& stream)
 	stream << std::right << std::dec << std::fixed << std::setw(12) << (hits.get_value() + misses.get_value()) << std::endl;
 }
 
-bool MemoryCache::IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size)
+bool MemoryCache::IsHit(CacheAccessType accessType, Address phys_addr, Address virt_addr, uint8_t size)
 {
 	return true;
 }
@@ -70,7 +70,7 @@ MainMemory::~MainMemory()
 {
 }
 
-bool MainMemory::IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size)
+bool MainMemory::IsHit(CacheAccessType accessType, Address phys_addr, Address virt_addr, uint8_t size)
 {
 	return true;
 }
@@ -98,7 +98,7 @@ Associative::~Associative()
 #define CE_FLAG_VALID (1 << 0)
 #define CE_FLAG_DIRTY (1 << 1)
 
-bool Associative::IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size)
+bool Associative::IsHit(CacheAccessType accessType, Address phys_addr, Address virt_addr, uint8_t size)
 {
 	uint32_t index = 0, tag = 0;
 	bool sequential = phys_addr == last_phys_addr + 4;
@@ -107,19 +107,19 @@ bool Associative::IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_
 
 	switch(indexType) {
 		case Virtual:
-			index = (virt_addr / linesize) % entries_per_way;
+			index = (virt_addr.Get() / linesize) % entries_per_way;
 			break;
 		case Physical:
-			index = (phys_addr / linesize) % entries_per_way;
+			index = (phys_addr.Get() / linesize) % entries_per_way;
 			break;
 	}
 
 	switch(tagType) {
 		case Virtual:
-			tag = (virt_addr / linesize) / entries_per_way;
+			tag = (virt_addr.Get() / linesize) / entries_per_way;
 			break;
 		case Physical:
-			tag = (phys_addr / linesize) / entries_per_way;
+			tag = (phys_addr.Get() / linesize) / entries_per_way;
 			break;
 	}
 

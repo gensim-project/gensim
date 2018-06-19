@@ -35,7 +35,7 @@ namespace archsim
 				bool LookupDevice(memory::guest_addr_t device_address, MemoryComponent*& device);
 				bool HasDevice(memory::guest_addr_t device_address)
 				{
-					return device_bitmap.test(archsim::translate::profile::RegionArch::PageIndexOf(device_address));
+					return device_bitmap.test(device_address.GetPageIndex());
 				}
 
 			private:

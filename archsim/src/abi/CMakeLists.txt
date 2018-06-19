@@ -1,4 +1,5 @@
 archsim_add_sources(
+	Address.cpp
 	EmulationModel.cpp 
 	SystemEmulationModel.cpp 
 	UserEmulationModel.cpp 
