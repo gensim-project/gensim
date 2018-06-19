@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "abi/memory/system/SystemMemoryTranslationModel.h"
 #include "abi/memory/system/CacheBasedSystemMemoryModel.h"
 #include "abi/memory/MemoryEventHandler.h"

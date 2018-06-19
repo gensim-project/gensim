@@ -1,6 +1,6 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
- * Copyright (C) University of Edinburgh 2014
- *
  * translate/AsynchronousTranslationManager.cpp
  *
  * Models a translation manager that provides one or more asynchronous worker threads to perform JIT

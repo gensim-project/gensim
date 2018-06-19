@@ -1,12 +1,5 @@
-//                      Confidential Information
-//           Limited Distribution to Authorized Persons Only
-//         Copyright (C) 2010 The University of Edinburgh
-//                        All Rights Reserved
-// =====================================================================
-//
-// Description: Definition of a ConditionVariable class.
-//
-// =====================================================================
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 
 #include <pthread.h>
 
