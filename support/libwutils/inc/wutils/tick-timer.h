@@ -6,12 +6,14 @@
 #include <vector>
 #include <malloc.h>
 #include <string.h>
+#include <chrono>
+
+namespace wutils {
 
 #ifdef ARCHSIM_SIMULATION_HOST_IS_x86_64
 #include <x86intrin.h>
 static uint64_t timer() { return __rdtsc(); }
 #else
-#include <chrono>
 static uint64_t timer() { return std::chrono::high_resolution_clock::now().time_since_epoch().count(); }
 #endif
 
@@ -63,5 +65,7 @@ private:
 	bool enabled;
 	FILE *_outfile;
 };
+
+}
 
 #endif

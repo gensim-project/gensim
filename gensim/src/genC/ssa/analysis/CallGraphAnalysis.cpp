@@ -46,7 +46,7 @@ const CallGraph::callee_set_t CallGraph::GetDeepCallees(SSAFormAction* caller)
 CallGraph::callee_set_t CallGraphAnalysis::GetCallees(SSAFormAction* action) const
 {
 	CallGraph::callee_set_t callees;
-	for(auto block : action->Blocks) {
+	for(auto block : action->GetBlocks()) {
 		for(auto stmt : block->GetStatements()) {
 			SSACallStatement *call = dynamic_cast<SSACallStatement*>(stmt);
 			if(call != nullptr) {

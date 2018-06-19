@@ -1,0 +1,1401 @@
+/*
+ * GenSim AARCH64 Model
+ *
+ * Copyright (C) University of Edinburgh 2016.  All Rights Reserved.
+ *
+ * Tom Spink <tspink@inf.ed.ac.uk>
+ */
+AC_ISA(a64)
+{
+	ac_fetchsize 32;
+	
+	ac_format ADD_SUB_IMM = "%sf:1 %op:1 %S:1 0x11:5 %shift:2 %imm12:12 %rn:5 %rd:5";
+	ac_instr<ADD_SUB_IMM> addi, subi;
+	ac_behaviour addi, subi;
+	
+	ac_format BITFIELD = "%sf:1 %opc:2 0x26:6 %N:1 %immr:6 %imms:6 %rn:5 %rd:5";
+	ac_instr<BITFIELD> sbfm, bfm, ubfm;
+	ac_behaviour sbfm, bfm, ubfm;
+
+	ac_format EXTRACT = "%sf:1 %op21:2 0x27:6 %N:1 %o0:1 %rm:5 %imms:6 %rn:5 %rd:5";
+	ac_instr<EXTRACT> extr;
+	ac_behaviour extr;
+
+	ac_format LOGICAL_IMM = "%sf:1 %opc:2 0x24:6 %N:1 %immr:6 %imms:6 %rn:5 %rd:5";
+	ac_instr<LOGICAL_IMM> andi, orri, eori;
+	ac_behaviour andi, orri, eori;
+
+	ac_format MOVE_WIDE_IMM = "%sf:1 %opc:2 0x25:6 %hw:2 %imm16:16 %rd:5";
+	ac_instr<MOVE_WIDE_IMM> movn, movz, movk;
+	ac_behaviour movn, movz, movk;
+
+	ac_format PC_REL = "%op:1 %immlo:2 0x10:5 %immhi:19 %rd:5";
+	ac_instr<PC_REL> adr;
+	ac_behaviour adr;
+	
+	// -----------
+	// C4.3
+	// -----------
+	
+	ac_format CMP_B_IMM = "%sf:1 0x1a:6 %op:1 %imm19:19 %rt:5";
+	ac_instr<CMP_B_IMM> cbz;
+	ac_behaviour cbz;
+	
+	@predicated
+	ac_format COND_B_IMM = "0x2a:7 %o1:1 %imm19:19 %o0:1 %cond:4";
+	ac_instr<COND_B_IMM> bcond;
+	ac_behaviour bcond;
+	
+	ac_format EX_GEN = "0xd4:8 %opc:3 %imm16:16 %op2:3 %ll:2";
+	ac_instr<EX_GEN> exgen;
+	ac_behaviour exgen;
+	
+	ac_format SYSTEM = "0x354:10 %l:1 %op0:2 %op1:3 %crn:4 %crm:4 %op2:3 %rt:5";
+	ac_instr<SYSTEM> msr_imm, msr_reg, mrs, hint, barrier, sys;
+	ac_behaviour msr_imm, msr_reg, mrs, hint, barrier, sys;
+	
+	ac_format TEST_B_IMM = "%b5:1 0x1b:6 %op:1 %b40:5 %imm14:14 %rt:5";
+	ac_instr<TEST_B_IMM> tbz;
+	ac_behaviour tbz;
+	
+	ac_format UB_IMM = "%op:1 0x05:5 %imm26:26";
+	ac_instr<UB_IMM> b;
+	ac_behaviour b;
+
+	ac_format UB_REG = "0x6b:7 %opc:4 %op2:5 %op3:6: %rn:5 %op4:5";
+	ac_instr<UB_REG> br, ret, eret, drps;
+	ac_behaviour br, ret, eret, drps;
+	
+	// -----------
+	// C4.4
+	// -----------
+		
+	// C4.4.5
+	ac_format LOAD_REG_LIT = "%opc:2 0x3:3 %V:1 0x0:2 %imm19:19 %rt:5";
+	ac_instr<LOAD_REG_LIT> ldr_lit, ldrsw_lit, prfm_lit, ldr_lit_simd;
+	ac_behaviour ldr_lit, ldrsw_lit, prfm_lit, ldr_lit_simd;
+	
+	// C4.4.6
+	ac_format LS_EX = "%size:2 0x08:6 %o2:1 %L:1 %o1:1 %rs:5 %o0:1 %rt2:5 %rn:5 %rt:5";
+	ac_instr<LS_EX> stxrb, stlxrb, ldxrb, ldaxrb, stlrb, ldarb;
+	ac_instr<LS_EX> stxrh, stlxrh, ldxrh, ldaxrh, stlrh, ldarh;
+	ac_instr<LS_EX> stxr, stlxr, stxp, stlxp, ldxr, ldaxr, ldxp, ldaxp, stlr, ldar;
+	ac_behaviour stxrb, stlxrb, ldxrb, ldaxrb, stlrb, ldarb, stxrh, stlxrh, ldxrh, ldaxrh, stlrh, ldarh, stxr, stlxr, stxp, stlxp, ldxr, ldaxr, ldxp, ldaxp, stlr, ldar;
+
+	// C4.4.7
+	ac_format LS_NO_ALLOC = "%opc:2 0x5:3 %V:1 0x0:3 %L:1 %imm7:7 %rt2:5 %rn:5 %rt:5";
+	ac_instr<LS_NO_ALLOC> stnp, ldnp;
+	ac_behaviour stnp, ldnp;
+
+	// C4.4.8/C4.4.9
+	ac_format LS_REG_IMM_POST = "%size:2 0x7:3 %V:1 0x0:2 %X:1 %L:1 0x0:1 %imm9:9 %P:1 0x1:1 %rn:5 %rt:5";
+	ac_instr<LS_REG_IMM_POST> ldrb, ldrh, ldr, ldrsw;
+	ac_instr<LS_REG_IMM_POST> strb, strh, str, prfm;
+	ac_behaviour ldrb, ldrh, ldr, ldrsw, strb, strh, str, prfm;
+	
+	// C4.4.10
+	ac_format LS_REG_REG_OFF = "%size:2 0x7:3 %V:1 0x0:2 %X:1 %L:1 0x1:1 %rm:5 %option21:2 %option0:1 %S:1 0x2:2 %rn:5 %rt:5";
+	ac_instr<LS_REG_REG_OFF> strb_reg, strh_reg, str_reg;
+	ac_instr<LS_REG_REG_OFF> ldrb_reg, ldrh_reg, ldr_reg, prfm_reg;
+	ac_instr<LS_REG_REG_OFF> str_reg_simd, ldr_reg_simd;
+	ac_behaviour strb_reg, strh_reg, str_reg, ldrb_reg, ldrh_reg, ldr_reg, prfm_reg, str_reg_simd, ldr_reg_simd;
+	
+	// C4.4.11
+	ac_format LS_REG_UNPRIV = "%size:2 0x7:3 %V:1 0x0:2 %opc:2 0x0:1 %imm9:9 0x2:2 %rn:5 %rt:5";
+	ac_instr<LS_REG_UNPRIV> sttrb, ldtrb, sttrh, ldtrh, sttr, ldtr, ldtrsw;
+	ac_behaviour sttrb, ldtrb, sttrh, ldtrh, sttr, ldtr, ldtrsw;
+	
+	// C4.4.12
+	ac_format LS_REG_USIMM = "%size:2 0x7:3 %V:1 0x0:2 %opc:2 0x0:1 %imm9:9 0x0:2 %rn:5 %rt:5";
+	ac_instr<LS_REG_USIMM> sturb, ldurb, sturh, ldurh, stur, ldur, ldursw;
+	ac_behaviour sturb, ldurb, sturh, ldurh, stur, ldur, ldursw;
+	ac_instr<LS_REG_USIMM> vstur, vldur;
+	ac_behaviour vstur, vldur;
+	
+	// C4.4.13
+	ac_format LS_REG_UIMM = "%size:2 0x7:3 %V:1 0x1:2 %opc:2 %imm12:12 %rn:5 %rt:5";
+	ac_instr<LS_REG_UIMM> strbi, ldrbi, strhi, ldrhi, stri, ldri, ldrswi, prfmi;
+	ac_behaviour strbi, ldrbi, strhi, ldrhi, stri, ldri, ldrswi, prfmi;
+
+	ac_instr<LS_REG_UIMM> vstr, vldr;
+	ac_behaviour vstr, vldr;
+	
+	// C4.4.14
+	ac_format LS_REG_PAIR_OFF = "%opc:2 0x5:3 %V:1 0x2:3 %L:1 %imm7:7 %rt2:5 %rn:5 %rt:5";
+	ac_instr<LS_REG_PAIR_OFF> stp, ldp, ldpsw;
+	ac_instr<LS_REG_PAIR_OFF> stp_simd, ldp_simd;
+	ac_behaviour stp, ldp, ldpsw, stp_simd, ldp_simd;
+	
+	// C4.4.15/C4.4.16
+	ac_format LS_REG_PAIR_IDX = "%opc:2 0x5:3 %V:1 0x0:1 %P:1 0x1:1 %L:1 %imm7:7 %rt2:5 %rn:5 %rt:5";
+	ac_instr<LS_REG_PAIR_IDX> stpi, ldpi, ldpswi;
+	ac_behaviour stpi, ldpi, ldpswi;
+	ac_instr<LS_REG_PAIR_IDX> stpi_simd, ldpi_simd;
+	ac_behaviour stpi_simd, ldpi_simd;
+	
+	// -----------
+	// C4.5
+	// -----------
+	
+	// C4.5.1
+	ac_format ADD_SUB_EREG = "%sf:1 %op:1 %S:1 0x0b:5 %opt:2 0x1:1 %rm:5 %option:3 %imm3:3 %rn:5 %rd:5";
+	ac_instr<ADD_SUB_EREG> add_ereg, sub_ereg;
+	ac_behaviour add_ereg, sub_ereg;
+	
+	// C4.5.2
+	ac_format ADD_SUB_SREG = "%sf:1 %op:1 %S:1 0x0b:5 %shift:2 0x0:1 %rm:5 %imm6:6 %rn:5 %rd:5";
+	ac_instr<ADD_SUB_SREG> add_sreg, sub_sreg;
+	ac_behaviour add_sreg, sub_sreg;
+
+	// C4.5.3
+	ac_format ADD_SUB_CARRY = "%sf:1 %op:1 %S:1 0xd0:8 %rm:5 %opcode2:6 %rn:5 %rd:5";
+	ac_instr<ADD_SUB_CARRY> adc, sbc;
+	ac_behaviour adc, sbc;
+
+	// C4.5.4
+	ac_format COND_CMP_IMM = "%sf:1 %op:1 %S:1 0xd2:8 %imm5:5 %cond:4 0x1:1 %o2:1 %rn:5 %o3:1 %nzcv:4";
+	ac_instr<COND_CMP_IMM> ccmpi, ccmni;
+	ac_behaviour ccmpi, ccmni;
+
+	// C4.5.5
+	ac_format COND_CMP_REG = "%sf:1 %op:1 %S:1 0xd2:8 %rm:5 %cond:4 0x0:1 %o2:1 %rn:5 %o3:1 %nzcv:4";
+	ac_instr<COND_CMP_REG> ccmpr, ccmnr;
+	ac_behaviour ccmpr, ccmnr;
+
+	// C4.5.6
+	ac_format COND_SEL = "%sf:1 %op:1 %S:1 0xd4:8 %rm:5 %cond:4 %op2:2 %rn:5 %rd:5";
+	ac_instr<COND_SEL> csel, csinc, csinv, csneg;
+	ac_behaviour csel, csinc, csinv, csneg;
+
+	// C4.5.7
+	ac_format DP_1S = "%sf:1 0x1:1 %S:1 0xd6:8 %opcode2:5 %opcode:6 %rn:5 %rd:5";
+	ac_instr<DP_1S> rbit, rev16, rev, rev32, clz, cls;
+	ac_behaviour rbit, rev16, rev, rev32, clz, cls;
+
+	// C4.5.8
+	ac_format DP_2S = "%sf:1 0x0:1 %S:1 0xd6:8 %rm:5 %opcode:6 %rn:5 %rd:5";
+	ac_instr<DP_2S> udiv, sdiv, lslv, lsrv, asrv, rorv, crc32, crc32c;
+	ac_behaviour udiv, sdiv, lslv, lsrv, asrv, rorv, crc32, crc32c;
+
+	// C4.5.9
+	ac_format DP_3S = "%sf:1 %op54:2 0x1b:5 %op31:3 %rm:5 %o0:1 %ra:5 %rn:5 %rd:5";
+	ac_instr<DP_3S> madd, msub, smaddl, smsubl, smulh, umaddl, umsubl, umulh;
+	ac_behaviour madd, msub, smaddl, smsubl, smulh, umaddl, umsubl, umulh;
+	
+	// C4.5.10
+	ac_format LOGICAL_SR = "%sf:1 %opc:2 0x0a:5 %shift:2 %N:1 %rm:5 %imm6:6 %rn:5 %rd:5";
+	ac_instr<LOGICAL_SR> andsr, bicsr, orrsr, eorsr;
+	ac_behaviour andsr, bicsr, orrsr, eorsr;
+	
+	ac_instr<LOGICAL_SR> mov;
+	ac_behaviour mov;
+	
+	ac_field<uint32> immu32;
+	ac_field<sint32> imms32;
+	ac_field<uint64> immu64;
+	ac_field<sint64> imms64;
+	ac_field<uint8> shift_amount;
+	ac_field<sint64> label;
+	ac_field<uint8> bit_pos;
+	ac_field<uint8> ext_type;
+
+	ISA_CTOR(a64)
+	{
+		//set_asm("and%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
+		
+		//
+		// Data Processing - Immediate
+		//
+		
+		// Add/substract Immediate
+		addi.set_decoder(op=0);
+		addi.set_asm("add %regsw, %regsw, #%imm", rd, rn, imm12, sf=0, S=0);
+		addi.set_asm("add %regsx, %regsx, #%imm", rd, rn, imm12, sf=1, S=0);
+		
+		addi.set_asm("adds %regw, %regsw, #%imm", rd, rn, imm12, sf=0, S=1);
+		addi.set_asm("adds %regx, %regsx, #%imm", rd, rn, imm12, sf=1, S=1);
+		
+		addi.set_behaviour(addi);
+
+		subi.set_decoder(op=1, shift=0);
+		subi.set_decoder(op=1, shift=1);
+		subi.set_asm("sub %regsw, %regsw, #%imm", rd, rn, imm12, sf=0, shift=0, S=0);
+		subi.set_asm("sub %regsw, %regsw, #%imm, lsl #12", rd, rn, imm12, sf=0, shift=1, S=0);
+		
+		subi.set_asm("sub %regsx, %regsx, #%imm", rd, rn, imm12, sf=1, shift=0, S=0);
+		subi.set_asm("sub %regsx, %regsx, #%imm, lsl #12", rd, rn, imm12, sf=1, shift=1, S=0);
+		
+		subi.set_asm("subs %regw, %regsw, #%imm", rd, rn, imm12, sf=0, shift=0, S=1);
+		subi.set_asm("subs %regw, %regsw, #%imm, lsl #12", rd, rn, imm12, sf=0, shift=1, S=1);
+
+		subi.set_asm("subs %regx, %regsx, #%imm", rd, rn, imm12, sf=1, shift=0, S=1);
+		subi.set_asm("subs %regx, %regsx, #%imm, lsl #12", rd, rn, imm12, sf=1, shift=1, S=1);
+
+		subi.set_asm("cmp %regsw, #%imm", rn, imm12, sf=0, shift=0, S=1, rd=31);
+		subi.set_asm("cmp %regsw, #%imm, lsl #12", rn, imm12, sf=0, shift=1, S=1, rd=31);
+
+		subi.set_asm("cmp %regsx, #%imm", rn, imm12, sf=1, shift=0, S=1, rd=31);
+		subi.set_asm("cmp %regsx, #%imm, lsl #12", rn, imm12, sf=1, shift=1, S=1, rd=31);
+		
+		subi.set_behaviour(subi);
+		
+		// Bitfield
+		sbfm.set_decoder(opc=0, sf=0, N=0);
+		sbfm.set_decoder(opc=0, sf=1, N=1);
+		sbfm.set_asm("sbfm %regw, %regw, #%imm, #%imm", rd, rn, immr, imms, sf=0);
+		sbfm.set_asm("sbfm %regx, %regx, #%imm, #%imm", rd, rn, immr, imms, sf=1);
+		
+		sbfm.set_asm("sxtb %regw, %regw", rd, rn, immr=0, imms=7, sf=0, N=0);
+		sbfm.set_asm("sxtb %regx, %regw", rd, rn, immr=0, imms=7, sf=1, N=1);
+		sbfm.set_asm("sxth %regw, %regw", rd, rn, immr=0, imms=15, sf=0, N=0);
+		sbfm.set_asm("sxth %regx, %regw", rd, rn, immr=0, imms=15, sf=1, N=1);
+		sbfm.set_asm("sxtw %regx, %regw", rd, rn, immr=0, imms=31, sf=1, N=1);
+		
+		sbfm.set_behaviour(sbfm);
+		
+		bfm.set_decoder(opc=1, sf=0, N=0);
+		bfm.set_decoder(opc=1, sf=1, N=1);
+		bfm.set_asm("bfm %regw, %regw, #%imm, #%imm", rd, rn, immr, imms, sf=0);
+		bfm.set_asm("bfm %regx, %regx, #%imm, #%imm", rd, rn, immr, imms, sf=1);
+		bfm.set_behaviour(bfm);
+		
+		ubfm.set_decoder(opc=2, sf=0, N=0);
+		ubfm.set_decoder(opc=2, sf=1, N=1);
+		ubfm.set_asm("ubfm %regw, %regw, #%imm, #%imm", rd, rn, immr, imms, sf=0);
+		ubfm.set_asm("ubfm %regx, %regx, #%imm, #%imm", rd, rn, immr, imms, sf=1);
+		
+		ubfm.set_asm("uxtb %regw, %regw", rd, rn, immr=0, imms=7, sf=0);
+		ubfm.set_asm("uxth %regw, %regw", rd, rn, immr=0, imms=15, sf=0);
+		
+		ubfm.set_behaviour(ubfm);
+		
+		// Extract
+		extr.set_decoder(sf=0, op21=0, N=0, o0=0);	// TODO: imms < 0b100000
+		extr.set_decoder(sf=1, op21=0, N=1, o0=0);
+		
+		extr.set_asm("extr %regw, %regw, %regw, #%imm", rd, rn, rm, imms, sf=0);
+		extr.set_asm("extr %regx, %regx, %regx, #%imm", rd, rn, rm, imms, sf=1);
+				
+		extr.set_behaviour(extr);
+		
+		// Logical
+		andi.set_decoder(opc=0, sf=0, N=0);	// and
+		andi.set_decoder(opc=0, sf=1, N=0);	// and
+		andi.set_decoder(opc=0, sf=1, N=1);	// and
+		andi.set_decoder(opc=3, sf=0, N=0);	// ands
+		andi.set_decoder(opc=3, sf=1, N=0);	// ands
+		andi.set_decoder(opc=3, sf=1, N=1);	// ands
+		
+		andi.set_asm("and %regsw, %regw, #%hex32", rd, rn, immu32, sf=0, N=0);
+		andi.set_asm("and %regsx, %regx, #%hex64", rd, rn, immu64, sf=1);
+
+		andi.set_asm("ands %regw, %regw, #%hex32", rd, rn, immu32, sf=0, N=0, opc=3);
+		andi.set_asm("ands %regx, %regx, #%hex64", rd, rn, immu64, sf=1, opc=3);
+
+		andi.set_asm("tst %regw, #%hex32", rn, immu32, sf=0, N=0, rd=31, opc=3);
+		andi.set_asm("tst %regx, #%hex64", rn, immu64, sf=1, rd=31, opc=3);
+		
+		andi.set_behaviour(andi);
+
+		orri.set_decoder(opc=1, sf=0, N=0);
+		orri.set_decoder(opc=1, sf=1, N=0);
+		orri.set_decoder(opc=1, sf=1, N=1);
+		
+		orri.set_asm("orr %regsw, %regw, #%hex32", rd, rn, immu32, sf=0, N=0);
+		orri.set_asm("orr %regsx, %regx, #%hex64", rd, rn, immu64, sf=1);		
+		
+		orri.set_behaviour(orri);
+
+		eori.set_decoder(opc=2, sf=0, N=0);
+		eori.set_decoder(opc=2, sf=1, N=0);
+		eori.set_decoder(opc=2, sf=1, N=1);
+		eori.set_asm("eor %regsw, %regw, #%hex32", rd, rn, immu32, sf=0, N=0);
+		eori.set_asm("eor %regsx, %regx, #%hex64", rd, rn, immu64, sf=1);		
+		eori.set_behaviour(eori);
+		
+		// Move Wide Immediate
+		movn.set_decoder(opc=0);	// TODO !(hw & 2)
+		movn.set_asm("movn %regw, #%imm", rd, imm16, sf=0, hw=0);
+		movn.set_asm("movn %regx, #%imm", rd, imm16, sf=1, hw=0);
+		movn.set_asm("movn %regw, #%imm, LSL #%imm", rd, imm16, shift_amount, sf=0);
+		movn.set_asm("movn %regx, #%imm, LSL #%imm", rd, imm16, shift_amount, sf=1);
+		movn.set_behaviour(movn);
+
+		movz.set_decoder(opc=2);	// TODO !(hw & 2)
+		movz.set_asm("movz %regw, #%imm", rd, imm16, sf=0, hw=0);
+		movz.set_asm("movz %regx, #%imm", rd, imm16, sf=1, hw=0);
+		movz.set_asm("movz %regw, #%imm, LSL #%imm", rd, imm16, shift_amount, sf=0);
+		movz.set_asm("movz %regx, #%imm, LSL #%imm", rd, imm16, shift_amount, sf=1);
+		movz.set_behaviour(movz);
+
+		movk.set_decoder(opc=3);	// TODO !(hw & 2)
+		movk.set_asm("movk %regw, #%imm", rd, imm16, sf=0, hw=0);
+		movk.set_asm("movk %regx, #%imm", rd, imm16, sf=1, hw=0);
+		movk.set_asm("movk %regw, #%imm, LSL #%imm", rd, imm16, shift_amount, sf=0);
+		movk.set_asm("movk %regx, #%imm, LSL #%imm", rd, imm16, shift_amount, sf=1);
+		movk.set_behaviour(movk);
+		
+		// PC Relative Addressing
+		adr.set_decoder();
+		adr.set_asm("adr %regsx, %reladdr", rd, imms64, op=0);
+		adr.set_asm("adrp %regsx, %reladdr", rd, imms64, op=1);
+		adr.set_behaviour(adr);
+		
+		//
+		// Branches, exception generating, system
+		//
+		
+		// Compare and Branch Immediate
+		cbz.set_decoder();
+		
+		cbz.set_asm("cbz %regw, %reladdr", rt, imms64, op=0, sf=0);
+		cbz.set_asm("cbnz %regw, %reladdr", rt, imms64, op=1, sf=0);
+		
+		cbz.set_asm("cbz %regx, %reladdr", rt, imms64, op=0, sf=1);
+		cbz.set_asm("cbnz %regx, %reladdr", rt, imms64, op=1, sf=1);
+		
+		cbz.set_behaviour(cbz);
+		cbz.set_end_of_block();
+		cbz.set_fixed_predicated_jump(imms64, RELATIVE, 0);
+		//cbz.set_variable_jump();
+		
+		// Conditional Branch Immediate
+		bcond.set_decoder(o1=0, o0=0);
+		bcond.set_asm("b.%cond %reladdr", cond, imms64);
+		bcond.set_behaviour(bcond);
+		bcond.set_end_of_block();
+		bcond.set_fixed_predicated_jump(imms64, RELATIVE, 0);
+		//bcond.set_variable_jump();
+		
+		// Exception Generation
+		exgen.set_decoder(opc=0,op2=0,ll=1);	// SVC
+		exgen.set_decoder(opc=0,op2=0,ll=2);	// HVC
+		exgen.set_decoder(opc=0,op2=0,ll=3);	// SMC
+		exgen.set_decoder(opc=1,op2=0,ll=0);	// BRK
+		exgen.set_decoder(opc=2,op2=0,ll=0);	// HLT
+		exgen.set_behaviour(exgen);
+		
+		exgen.set_asm("svc #%imm", imm16, opc=0,ll=1);
+		exgen.set_asm("hvc #%imm", imm16, opc=0,ll=2);
+		exgen.set_asm("smc #%imm", imm16, opc=0,ll=3);
+		
+		exgen.set_asm("brk #%imm", imm16, opc=1);
+		exgen.set_asm("hlt #%imm", imm16, opc=2);
+		
+		exgen.set_end_of_block();
+		exgen.set_variable_jump();
+		
+		// System
+		msr_imm.set_decoder(l=0, op0=0, crn=4, rt=31);
+		msr_imm.set_asm("msr spsel, #%imm", crm, op1=0, op2=5);
+		msr_imm.set_asm("msr daifset, #%imm", crm, op1=3, op2=6);
+		msr_imm.set_asm("msr daifclr, #%imm", crm, op1=3, op2=7);
+		msr_imm.set_behaviour(msr_imm);
+		
+		msr_reg.set_decoder(l=0, op0=2);
+		msr_reg.set_decoder(l=0, op0=3);
+		msr_reg.set_asm("msr S%imm_%imm_C%imm_C%imm_%imm, %regx", op0, op1, crn, crm, op2, rt);
+		msr_reg.set_behaviour(msr_reg);
+		
+		mrs.set_decoder(l=1, op0=2);
+		mrs.set_decoder(l=1, op0=3);
+		mrs.set_asm("mrs %regx, S%imm_%imm_C%imm_C%imm_%imm", rt, op0, op1, crn, crm, op2);
+		mrs.set_asm("mrs %regx, currentel", rt, op0=3,op1=0,crn=4,crm=2,op2=2);
+		mrs.set_behaviour(mrs);
+		
+		//hint.set_decoder(l=0, op0=0, op1=3, crn=2, crm!=0, rt=31);
+		//hint.set_decoder(l=0, op0=0, op1=3, crn=2, crm=0, op2=6, rt=31);
+		//hint.set_decoder(l=0, op0=0, op1=3, crn=2, crm=0, op2=7, rt=31);
+		hint.set_decoder(l=0, op0=0, op1=3, crn=2, rt=31);
+		hint.set_asm("hint #%imm %imm", crm, op2);
+		hint.set_asm("nop", crm=0, op2=0);
+		hint.set_asm("yield", crm=0, op2=1);
+		hint.set_asm("wfe", crm=0, op2=2);
+		hint.set_asm("wfi", crm=0, op2=3);
+		hint.set_asm("sev", crm=0, op2=4);
+		hint.set_asm("sevl", crm=0, op2=5);
+		hint.set_behaviour(hint);
+		
+		barrier.set_decoder(l=0, op0=0, op1=3, crn=3, op2=4, rt=31);
+		barrier.set_decoder(l=0, op0=0, op1=3, crn=3, op2=5, rt=31);
+		barrier.set_decoder(l=0, op0=0, op1=3, crn=3, op2=6, rt=31);
+		
+		barrier.set_asm("dsb", op2=4);
+		barrier.set_asm("dmb", op2=5);
+		barrier.set_asm("isb", op2=6);
+		
+		barrier.set_behaviour(barrier);
+		
+		sys.set_decoder(l=0, op0=1);
+		sys.set_asm("sys #%imm, C%imm, C%imm, #%imm, %regx", op1, crn, crm, op2, rt);
+		
+		sys.set_asm("dc ivac, %regx", rt,  op1=0, crn=7, crm=6,  op2=1);
+		sys.set_asm("dc isw, %regx", rt,   op1=0, crn=7, crm=6,  op2=2);
+		sys.set_asm("dc csw, %regx", rt,   op1=0, crn=7, crm=10, op2=2);
+		sys.set_asm("dc cisw, %regx", rt,  op1=0, crn=7, crm=14, op2=2);
+		sys.set_asm("dc zva, %regx", rt,   op1=3, crn=7, crm=4,  op2=1);
+		sys.set_asm("dc cvac, %regx", rt,  op1=3, crn=7, crm=10, op2=1);
+		sys.set_asm("dc cvau, %regx", rt,  op1=3, crn=7, crm=11, op2=1);
+		sys.set_asm("dc civac, %regx", rt, op1=3, crn=7, crm=14, op2=1);
+		
+		sys.set_asm("ic ialluis %regx", rt, op1=0, crn=7, crm=1, op2=0);
+		sys.set_asm("ic iallu %regx", rt,   op1=0, crn=7, crm=5, op2=0);
+		sys.set_asm("ic ivau %regx", rt,    op1=3, crn=7, crm=5, op2=1);
+		
+		sys.set_asm("tlbi %regx", rt, crn=8);
+		
+		sys.set_behaviour(sys);
+		
+		// Test & Branch
+		tbz.set_decoder();
+		
+		tbz.set_asm("tbz %regw, #%imm, %reladdr", rt, bit_pos, imms64, op=0, b5=0);
+		tbz.set_asm("tbz %regx, #%imm, %reladdr", rt, bit_pos, imms64, op=0, b5=1);
+		tbz.set_asm("tbnz %regw, #%imm, %reladdr", rt, bit_pos, imms64, op=1, b5=0);
+		tbz.set_asm("tbnz %regx, #%imm, %reladdr", rt, bit_pos, imms64, op=1, b5=1);
+		
+		tbz.set_behaviour(tbz);
+		tbz.set_end_of_block();
+		tbz.set_fixed_predicated_jump(imms64, RELATIVE, 0);
+		//tbz.set_variable_jump();
+		
+		// Unconditional Branch Immediate
+		b.set_decoder();
+		b.set_asm("b #%reladdr", imms64, op=0);
+		b.set_asm("bl #%reladdr", imms64, op=1);
+		b.set_behaviour(b);
+		b.set_end_of_block();
+		b.set_fixed_jump(imms64, RELATIVE, 0);
+		//b.set_variable_jump();
+		
+		// Unconditional Branch Register
+		br.set_decoder(opc=0, op2=31, op3=0, op4=0);	// BR
+		br.set_decoder(opc=1, op2=31, op3=0, op4=0);	// BLR
+		br.set_asm("br %regx", rn,opc=0);
+		br.set_asm("blr %regx", rn,opc=1);
+		br.set_behaviour(br);
+		br.set_end_of_block();
+		br.set_variable_jump();
+
+		ret.set_decoder(opc=2, op2=31, op3=0, op4=0);
+		ret.set_asm("ret", rn=30);
+		ret.set_asm("ret %regx", rn);
+		ret.set_behaviour(ret);
+		ret.set_end_of_block();
+		ret.set_variable_jump();
+
+		eret.set_decoder(opc=4, op2=31, op3=0, rn=31, op4=0);
+		eret.set_behaviour(eret);
+		eret.set_asm("eret");
+		eret.set_end_of_block();
+		eret.set_variable_jump();
+
+		drps.set_decoder(opc=5, op2=31, op3=0, rn=31, op4=0);
+		drps.set_behaviour(drps);
+		drps.set_end_of_block();
+		drps.set_variable_jump();
+		
+		//
+		// Loads and Stores
+		//
+		
+		// Load register literal
+		ldr_lit.set_decoder(opc=0, V=0);
+		ldr_lit.set_decoder(opc=1, V=0);
+		ldr_lit.set_asm("ldr %regw, %reladdr", rt, label, opc=0);
+		ldr_lit.set_asm("ldr %regx, %reladdr", rt, label, opc=1);
+		ldr_lit.set_behaviour(ldr_lit);
+				
+		ldrsw_lit.set_decoder(opc=2, V=0);
+		ldrsw_lit.set_behaviour(ldrsw_lit);
+		
+		prfm_lit.set_decoder(opc=3, V=0);
+		prfm_lit.set_behaviour(prfm_lit);
+		
+		ldr_lit_simd.set_decoder(V=1);
+		ldr_lit_simd.set_asm("ldr %sreg, %reladdr", rt, label, opc=0);
+		ldr_lit_simd.set_asm("ldr %dreg, %reladdr", rt, label, opc=1);
+		ldr_lit_simd.set_asm("ldr %qreg, %reladdr", rt, label, opc=2);
+		ldr_lit_simd.set_behaviour(ldr_lit_simd);
+		
+		// Load/store Exclusive
+		stxrb.set_decoder(size=0, o2=0, L=0, o1=0, o0=0);
+		stxrb.set_asm("stxrb %regw, %regw, [%regsx]", rs, rt, rn);
+		stxrb.set_behaviour(stxrb);
+		
+		stlxrb.set_decoder(size=0, o2=0, L=0, o1=0, o0=1);
+		stlxrb.set_behaviour(stlxrb);
+		
+		ldxrb.set_decoder(size=0, o2=0, L=1, o1=0, o0=0);
+		ldxrb.set_asm("ldxrb %regw, [%regsx]", rt, rn);
+		ldxrb.set_behaviour(ldxrb);
+		
+		ldaxrb.set_decoder(size=0, o2=0, L=1, o1=0, o0=1);
+		ldaxrb.set_behaviour(ldaxrb);
+		
+		stlrb.set_decoder(size=0, o2=1, L=0, o1=0, o0=1);
+		stlrb.set_behaviour(stlrb);
+		
+		ldarb.set_decoder(size=0, o2=1, L=1, o1=0, o0=1);
+		ldarb.set_behaviour(ldarb);
+		
+		stxrh.set_decoder(size=1, o2=0, L=0, o1=0, o0=0);
+		stxrh.set_behaviour(stxrh);
+		
+		stlxrh.set_decoder(size=1, o2=0, L=0, o1=0, o0=1);
+		stlxrh.set_behaviour(stlxrh);
+		
+		ldxrh.set_decoder(size=1, o2=0, L=1, o1=0, o0=0);
+		ldxrh.set_behaviour(ldxrh);
+		
+		ldaxrh.set_decoder(size=1, o2=0, L=1, o1=0, o0=1);
+		ldaxrh.set_asm("ldaxrh %regw, [%regsx]", rt, rn);
+		ldaxrh.set_behaviour(ldaxrh);
+		
+		stlrh.set_decoder(size=1, o2=1, L=0, o1=0, o0=1);
+		stlrh.set_asm("stlrh %regw, [%regsx]", rt, rn);
+		stlrh.set_behaviour(stlrh);
+		
+		ldarh.set_decoder(size=1, o2=1, L=1, o1=0, o0=1);
+		ldarh.set_behaviour(ldarh);
+		
+		stxr.set_decoder(size=2, o2=0, L=0, o1=0, o0=0);
+		stxr.set_decoder(size=3, o2=0, L=0, o1=0, o0=0);
+		stxr.set_asm("stxr %regw, %regw, [%regsx]", rs, rt, rn, size=2);
+		stxr.set_asm("stxr %regw, %regx, [%regsx]", rs, rt, rn, size=3);
+		stxr.set_behaviour(stxr);
+		
+		stlxr.set_decoder(size=2, o2=0, L=0, o1=0, o0=1);
+		stlxr.set_decoder(size=3, o2=0, L=0, o1=0, o0=1);
+		stlxr.set_asm("stlxr %regw, %regw, [%regsx]", rs, rt, rn, size=2);
+		stlxr.set_asm("stlxr %regw, %regx, [%regsx]", rs, rt, rn, size=3);
+		stlxr.set_behaviour(stlxr);
+		
+		stxp.set_decoder(size=2, o2=0, L=0, o1=1, o0=0);
+		stxp.set_decoder(size=3, o2=0, L=0, o1=1, o0=0);
+		stxp.set_asm("stxp %regw, %regw, %regw, [%regsx]", rs, rt, rt2, rn, size=2);
+		stxp.set_asm("stxp %regw, %regx, %regx, [%regsx]", rs, rt, rt2, rn, size=3);
+		stxp.set_behaviour(stxp);
+
+		stlxp.set_decoder(size=2, o2=0, L=0, o1=1, o0=1);
+		stlxp.set_decoder(size=3, o2=0, L=0, o1=1, o0=1);
+		stlxp.set_asm("stlxp %regw, %regw, %regw, [%regsx]", rs, rt, rt2, rn, size=2);
+		stlxp.set_asm("stlxp %regw, %regx, %regx, [%regsx]", rs, rt, rt2, rn, size=3);
+		stlxp.set_behaviour(stlxp);
+		
+		ldxr.set_decoder(size=2, o2=0, L=1, o1=0, o0=0);
+		ldxr.set_decoder(size=3, o2=0, L=1, o1=0, o0=0);
+		ldxr.set_asm("ldxr %regw, [%regsx]", rt, rn, size=2);
+		ldxr.set_asm("ldxr %regx, [%regsx]", rt, rn, size=3);
+		ldxr.set_behaviour(ldxr);
+		
+		ldaxr.set_decoder(size=2, o2=0, L=1, o1=0, o0=1);
+		ldaxr.set_decoder(size=3, o2=0, L=1, o1=0, o0=1);
+		ldaxr.set_asm("ldaxr %regw, [%regsx]", rt, rn, size=2);
+		ldaxr.set_asm("ldaxr %regx, [%regsx]", rt, rn, size=3);
+		ldaxr.set_behaviour(ldaxr);
+
+		ldxp.set_decoder(size=2, o2=0, L=1, o1=1, o0=0);
+		ldxp.set_decoder(size=3, o2=0, L=1, o1=1, o0=0);
+		ldxp.set_asm("ldxp %regw, %regw, [%regsx]", rt, rt2, rn, size=2);
+		ldxp.set_asm("ldxp %regx, %regx, [%regsx]", rt, rt2, rn, size=3);
+		ldxp.set_behaviour(ldxp);
+
+		ldaxp.set_decoder(size=2, o2=0, L=1, o1=1, o0=1);
+		ldaxp.set_decoder(size=3, o2=0, L=1, o1=1, o0=1);
+		ldaxp.set_behaviour(ldaxp);
+		
+		stlr.set_decoder(size=2, o2=1, L=0, o1=0, o0=1);
+		stlr.set_decoder(size=3, o2=1, L=0, o1=0, o0=1);
+		stlr.set_asm("stlr %regw, [%regsx]", rt, rn, size=2);
+		stlr.set_asm("stlr %regx, [%regsx]", rt, rn, size=3);
+		stlr.set_behaviour(stlr);
+		
+		ldar.set_decoder(size=2, o2=1, L=1, o1=0, o0=1);
+		ldar.set_decoder(size=3, o2=1, L=1, o1=0, o0=1);
+		ldar.set_behaviour(ldar);
+		
+		// Load/store no-allocate pair (offset)
+		stnp.set_decoder(opc=0, V=0, L=0);
+		stnp.set_decoder(opc=2, V=0, L=0);
+		stnp.set_asm("stnp %regw, %regw, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=0);
+		stnp.set_asm("stnp %regx, %regx, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=2);
+		stnp.set_behaviour(stnp);
+
+		ldnp.set_decoder(opc=0, V=0, L=1);
+		ldnp.set_decoder(opc=2, V=0, L=1);
+		ldnp.set_asm("ldnp %regw, %regw, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=0);
+		ldnp.set_asm("ldnp %regx, %regx, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=2);
+		ldnp.set_behaviour(ldnp);
+		
+		// Load/store Register (immediate pre-/post- indexed)
+		ldrb.set_decoder(size=0, V=0, X=0, L=1);
+		ldrb.set_decoder(size=0, V=0, X=1, L=0);
+		ldrb.set_decoder(size=0, V=0, X=1, L=1);
+		
+		ldrb.set_asm("ldrb %regw, [%regsx], #%imm", rt, rn, imms64, P=0);
+		ldrb.set_asm("ldrb %regw, [%regsx, #%imm]!", rt, rn, imms64, P=1);
+		ldrb.set_asm("ldrsb %regw, [%regsx], #%imm", rt, rn, imms64, P=0, X=1, L=1);
+		ldrb.set_asm("ldrsb %regw, [%regsx, #%imm]!", rt, rn, imms64, P=1, X=1, L=1);
+		ldrb.set_asm("ldrsb %regx, [%regsx], #%imm", rt, rn, imms64, P=0, X=1, L=0);
+		ldrb.set_asm("ldrsb %regx, [%regsx, #%imm]!", rt, rn, imms64, P=1, X=1, L=0);
+		
+		ldrb.set_behaviour(ldrb);
+
+		ldrh.set_decoder(size=1, V=0, X=0, L=1);
+		ldrh.set_decoder(size=1, V=0, X=1, L=0);
+		ldrh.set_decoder(size=1, V=0, X=1, L=1);
+		
+		ldrh.set_asm("ldrh %regw, [%regsx], #%imm", rt, rn, imms64, P=0);
+		ldrh.set_asm("ldrh %regw, [%regsx, #%imm]!", rt, rn, imms64, P=1);
+		ldrh.set_asm("ldrsh %regw, [%regsx], #%imm", rt, rn, imms64, P=0, X=1, L=1);
+		ldrh.set_asm("ldrsh %regw, [%regsx, #%imm]!", rt, rn, imms64, P=1, X=1, L=1);
+		ldrh.set_asm("ldrsh %regx, [%regsx], #%imm", rt, rn, imms64, P=0, X=1, L=0);
+		ldrh.set_asm("ldrsh %regx, [%regsx, #%imm]!", rt, rn, imms64, P=1, X=1, L=0);
+		
+		ldrh.set_behaviour(ldrh);
+
+		// REGULAR
+		ldr.set_decoder(size=2, V=0, X=0, L=1);
+		ldr.set_decoder(size=3, V=0, X=0, L=1);
+		
+		// SIMD
+		ldr.set_decoder(size=0, V=1, X=0, L=1);
+		ldr.set_decoder(size=0, V=1, X=1, L=1);
+		ldr.set_decoder(size=1, V=1, X=0, L=1);
+		ldr.set_decoder(size=2, V=1, X=0, L=1);
+		ldr.set_decoder(size=3, V=1, X=0, L=1);
+		
+		ldr.set_asm("ldr %regw, [%regsx], #%imm", rt, rn, imms64, V=0, size=2, P=0);
+		ldr.set_asm("ldr %regx, [%regsx], #%imm", rt, rn, imms64, V=0, size=3, P=0);
+		ldr.set_asm("ldr %regw, [%regsx, #%imm]!", rt, rn, imms64, V=0, size=2, P=1);
+		ldr.set_asm("ldr %regx, [%regsx, #%imm]!", rt, rn, imms64, V=0, size=3, P=1);
+		
+		ldr.set_asm("ldr %breg, [%regsx], #%imm", rt, rn, imms64, V=1, size=0, X=0, P=0);
+		ldr.set_asm("ldr %breg, [%regsx, #%imm]!", rt, rn, imms64, V=1, size=0, X=0, P=1);
+		ldr.set_asm("ldr %qreg, [%regsx], #%imm", rt, rn, imms64, V=1, size=0, X=1, P=0);
+		ldr.set_asm("ldr %qreg, [%regsx, #%imm]!", rt, rn, imms64, V=1, size=0, X=1, P=1);
+		ldr.set_asm("ldr %hreg, [%regsx], #%imm", rt, rn, imms64, V=1, size=1, X=0, P=0);
+		ldr.set_asm("ldr %hreg, [%regsx, #%imm]!", rt, rn, imms64, V=1, size=1, X=0, P=1);
+		ldr.set_asm("ldr %sreg, [%regsx], #%imm", rt, rn, imms64, V=1, size=2, X=0, P=0);
+		ldr.set_asm("ldr %sreg, [%regsx, #%imm]!", rt, rn, imms64, V=1, size=2, X=0, P=1);
+		ldr.set_asm("ldr %dreg, [%regsx], #%imm", rt, rn, imms64, V=1, size=3, X=0, P=0);
+		ldr.set_asm("ldr %dreg, [%regsx, #%imm]!", rt, rn, imms64, V=1, size=3, X=0, P=1);
+
+		ldr.set_behaviour(ldr);
+
+		ldrsw.set_decoder(size=2, V=0, X=1, L=0);
+		ldrsw.set_behaviour(ldrsw);
+		
+		strb.set_decoder(size=0, V=0, X=0, L=0);
+		strb.set_asm("strb %regw, [%regsx], #%imm", rt, rn, imms64, P=0);
+		strb.set_asm("strb %regw, [%regsx, #%imm]!", rt, rn, imms64, P=1);
+		strb.set_behaviour(strb);
+
+		strh.set_decoder(size=1, V=0, X=0, L=0);
+		strh.set_asm("strh %regw, [%regsx], #%imm", rt, rn, imms64, P=0);
+		strh.set_asm("strh %regw, [%regsx, #%imm]!", rt, rn, imms64, P=1);
+		strh.set_behaviour(strh);
+
+		// GENERAL
+		str.set_decoder(size=2, V=0, X=0, L=0);
+		str.set_decoder(size=3, V=0, X=0, L=0);
+		
+		// SIMD
+		str.set_decoder(size=0, V=1, X=0, L=0);
+		str.set_decoder(size=0, V=1, X=1, L=0);
+		str.set_decoder(size=1, V=1, X=0, L=0);
+		str.set_decoder(size=2, V=1, X=0, L=0);
+		str.set_decoder(size=3, V=1, X=0, L=0);
+		
+		str.set_asm("str %regw, [%regsx], #%imm", rt, rn, imms64, V=0, size=2, P=0);
+		str.set_asm("str %regx, [%regsx], #%imm", rt, rn, imms64, V=0, size=3, P=0);
+		str.set_asm("str %regw, [%regsx, #%imm]!", rt, rn, imms64, V=0, size=2, P=1);
+		str.set_asm("str %regx, [%regsx, #%imm]!", rt, rn, imms64, V=0, size=3, P=1);
+		
+		str.set_asm("str %breg, [%regsx], #%imm", rt, rn, imms64, V=1, size=0, X=0, P=0);
+		str.set_asm("str %breg, [%regsx, #%imm]!", rt, rn, imms64, V=1, size=0, X=0, P=1);
+		str.set_asm("str %qreg, [%regsx], #%imm", rt, rn, imms64, V=1, size=0, X=1, P=0);
+		str.set_asm("str %qreg, [%regsx, #%imm]!", rt, rn, imms64, V=1, size=0, X=1, P=1);
+		str.set_asm("str %hreg, [%regsx], #%imm", rt, rn, imms64, V=1, size=1, X=0, P=0);
+		str.set_asm("str %hreg, [%regsx, #%imm]!", rt, rn, imms64, V=1, size=1, X=0, P=1);
+		str.set_asm("str %sreg, [%regsx], #%imm", rt, rn, imms64, V=1, size=2, X=0, P=0);
+		str.set_asm("str %sreg, [%regsx, #%imm]!", rt, rn, imms64, V=1, size=2, X=0, P=1);
+		str.set_asm("str %dreg, [%regsx], #%imm", rt, rn, imms64, V=1, size=3, X=0, P=0);
+		str.set_asm("str %dreg, [%regsx, #%imm]!", rt, rn, imms64, V=1, size=3, X=0, P=1);
+
+		str.set_behaviour(str);
+		
+		prfm.set_decoder(size=3, V=0, X=1, L=0);
+		prfm.set_behaviour(prfm);
+		
+		// Load/store Register (register offset)
+		strb_reg.set_decoder(size=0, V=0, X=0, L=0);
+		strb_reg.set_asm("strb %regw, [%regsx, (%regw), %exttype32]", rt, rn, rm, ext_type, S=0);
+		strb_reg.set_asm("strb %regw, [%regsx, (%regw), %exttype32 #1]", rt, rn, rm, ext_type, S=1);
+		strb_reg.set_asm("strb %regw, [%regsx, (%regw), LSL #%imm]", rt, rn, rm, S, ext_type=3);
+		strb_reg.set_behaviour(strb_reg);
+
+		ldrb_reg.set_decoder(size=0, V=0, X=0, L=1);
+		ldrb_reg.set_decoder(size=0, V=0, X=1, L=0);
+		ldrb_reg.set_decoder(size=0, V=0, X=1, L=1);
+		
+		ldrb_reg.set_asm("ldrb %regw, [%regsx, (%regw), %exttype32]", rt, rn, rm, ext_type, S=0);
+		ldrb_reg.set_asm("ldrb %regw, [%regsx, (%regw), %exttype32 #1]", rt, rn, rm, ext_type, S=1);
+		ldrb_reg.set_asm("ldrb %regw, [%regsx, (%regx), LSL #%imm]", rt, rn, rm, S, ext_type=3);
+				
+		ldrb_reg.set_asm("ldrsb %regw, [%regsx, (%regw), %exttype32]", rt, rn, rm, ext_type, S=0, X=1, L=1);
+		ldrb_reg.set_asm("ldrsb %regw, [%regsx, (%regw), %exttype32 #1]", rt, rn, rm, ext_type, S=1, X=1, L=1);
+		ldrb_reg.set_asm("ldrsb %regw, [%regsx, (%regx), LSL #%imm]", rt, rn, rm, S, ext_type=3, X=1, L=1);
+
+		ldrb_reg.set_asm("ldrsb %regx, [%regsx, (%regw), %exttype32]", rt, rn, rm, ext_type, S=0, X=1, L=0);
+		ldrb_reg.set_asm("ldrsb %regx, [%regsx, (%regw), %exttype32 #1]", rt, rn, rm, ext_type, S=1, X=1, L=0);
+		ldrb_reg.set_asm("ldrsb %regx, [%regsx, (%regx), LSL #%imm]", rt, rn, rm, S, ext_type=3, X=1, L=0);
+		
+		ldrb_reg.set_behaviour(ldrb_reg);
+		
+		strh_reg.set_decoder(size=1, V=0, X=0, L=0);
+		strh_reg.set_behaviour(strh_reg);
+
+		ldrh_reg.set_decoder(size=1, V=0, X=0, L=1);
+		ldrh_reg.set_decoder(size=1, V=0, X=1, L=0);
+		ldrh_reg.set_decoder(size=1, V=0, X=1, L=1);
+		
+		ldrh_reg.set_asm("ldrh %regw, [%regsx, (%regw), %exttype32]", rt, rn, rm, ext_type, S=0);
+		ldrh_reg.set_asm("ldrh %regw, [%regsx, (%regw), %exttype32 #1]", rt, rn, rm, ext_type, S=1);
+		ldrh_reg.set_asm("ldrh %regw, [%regsx, (%regx), LSL #%imm]", rt, rn, rm, S, ext_type=3);
+				
+		ldrh_reg.set_asm("ldrsh %regw, [%regsx, (%regw), %exttype32]", rt, rn, rm, ext_type, S=0, X=1, L=1);
+		ldrh_reg.set_asm("ldrsh %regw, [%regsx, (%regw), %exttype32 #1]", rt, rn, rm, ext_type, S=1, X=1, L=1);
+		ldrh_reg.set_asm("ldrsh %regw, [%regsx, (%regx), LSL #%imm]", rt, rn, rm, S, ext_type=3, X=1, L=1);
+		   
+		ldrh_reg.set_asm("ldrsh %regx, [%regsx, (%regw), %exttype32]", rt, rn, rm, ext_type, S=0, X=1, L=0);
+		ldrh_reg.set_asm("ldrsh %regx, [%regsx, (%regw), %exttype32 #1]", rt, rn, rm, ext_type, S=1, X=1, L=0);
+		ldrh_reg.set_asm("ldrsh %regx, [%regsx, (%regx), LSL #%imm]", rt, rn, rm, S, ext_type=3, X=1, L=0);
+		
+		ldrh_reg.set_behaviour(ldrh_reg);
+
+		str_reg.set_decoder(size=2, V=0, X=0, L=0);
+		str_reg.set_decoder(size=3, V=0, X=0, L=0);
+		str_reg.set_asm("str %regw, [%regx, (%regw), UXTW]", rt, rn, rm, size=2, option0=0, S=0);
+		str_reg.set_asm("str %regw, [%regx, (%regx)]", rt, rn, rm, size=2, option0=1, S=0);
+		str_reg.set_asm("str %regx, [%regx, (%regw), SXTW]", rt, rn, rm, size=3, option0=0, S=0);
+		str_reg.set_asm("str %regx, [%regx, (%regx), SXTX]", rt, rn, rm, size=3, option0=1, S=0);
+
+		str_reg.set_asm("str %regw, [%regx, (%regw), UXTW #2]", rt, rn, rm, size=2, option0=0, option21=1, S=1);
+		str_reg.set_asm("str %regw, [%regx, (%regx), LSL #2]", rt, rn, rm, size=2, option0=1, option21=1, S=1);
+		str_reg.set_asm("str %regw, [%regx, (%regw), SXTW #2]", rt, rn, rm, size=2, option0=0, option21=3, S=1);
+		str_reg.set_asm("str %regw, [%regx, (%regx), SXTX #2]", rt, rn, rm, size=2, option0=1, option21=3, S=1);
+
+		str_reg.set_asm("str %regx, [%regx, (%regw), UXTW #3]", rt, rn, rm, size=3, option0=0, option21=1, S=1);
+		str_reg.set_asm("str %regx, [%regx, (%regx), LSL #3]", rt, rn, rm, size=3, option0=1, option21=1, S=1);
+		str_reg.set_asm("str %regx, [%regx, (%regw), SXTW #3]", rt, rn, rm, size=3, option0=0, option21=3, S=1);
+		str_reg.set_asm("str %regx, [%regx, (%regx), SXTX #3]", rt, rn, rm, size=3, option0=1, option21=3, S=1);
+
+		str_reg.set_behaviour(str_reg);
+		
+		ldr_reg.set_decoder(size=2, V=0, X=0, L=1);
+		ldr_reg.set_decoder(size=3, V=0, X=0, L=1);
+		ldr_reg.set_decoder(size=2, V=0, X=1, L=0);
+				
+		ldr_reg.set_asm("ldr %regw, [%regx, (%regw), UXTW]", rt, rn, rm, size=2, option0=0, S=0);
+		ldr_reg.set_asm("ldr %regw, [%regx, (%regx)]", rt, rn, rm, size=2, option0=1, S=0);
+		ldr_reg.set_asm("ldr %regx, [%regx, (%regw), SXTW]", rt, rn, rm, size=3, option0=0, S=0);
+		ldr_reg.set_asm("ldr %regx, [%regx, (%regx), SXTX]", rt, rn, rm, size=3, option0=1, S=0);
+		
+		ldr_reg.set_asm("ldr %regw, [%regx, (%regw), UXTW #2]", rt, rn, rm, size=2, option0=0, option21=1, S=1);
+		ldr_reg.set_asm("ldr %regw, [%regx, (%regx), LSL #2]", rt, rn, rm, size=2, option0=1, option21=1, S=1);
+		ldr_reg.set_asm("ldr %regw, [%regx, (%regw), SXTW #2]", rt, rn, rm, size=2, option0=0, option21=3, S=1);
+		ldr_reg.set_asm("ldr %regw, [%regx, (%regx), SXTX #2]", rt, rn, rm, size=2, option0=1, option21=3, S=1);
+		
+		ldr_reg.set_asm("ldr %regx, [%regx, (%regw), UXTW #3]", rt, rn, rm, size=3, option0=0, option21=1, S=1);
+		ldr_reg.set_asm("ldr %regx, [%regx, (%regx), LSL #3]", rt, rn, rm, size=3, option0=1, option21=1, S=1);
+		ldr_reg.set_asm("ldr %regx, [%regx, (%regw), SXTW #3]", rt, rn, rm, size=3, option0=0, option21=3, S=1);
+		ldr_reg.set_asm("ldr %regx, [%regx, (%regx), SXTX #3]", rt, rn, rm, size=3, option0=1, option21=3, S=1);
+
+		ldr_reg.set_asm("ldrsw %regx, [%regx, (%regw), %exttype32]", rt, rn, rm, ext_type, option0=0, X=1, L=0, S=0);
+		ldr_reg.set_asm("ldrsw %regx, [%regx, (%regx), %exttype64]", rt, rn, rm, ext_type, option0=1, X=1, L=0, S=0);
+		ldr_reg.set_asm("ldrsw %regx, [%regx, (%regw), %exttype32 #2]", rt, rn, rm, ext_type, option0=0, X=1, L=0, S=1);
+		ldr_reg.set_asm("ldrsw %regx, [%regx, (%regx), %exttype64 #2]", rt, rn, rm, ext_type, option0=1, X=1, L=0, S=1);
+		
+		ldr_reg.set_behaviour(ldr_reg);
+		
+		prfm_reg.set_decoder(size=3, V=0, X=1, L=0);
+		prfm_reg.set_behaviour(prfm_reg);
+		
+		ldr_reg_simd.set_decoder(size=0, V=1, X=0, L=1);
+		ldr_reg_simd.set_decoder(size=1, V=1, X=0, L=1);
+		ldr_reg_simd.set_decoder(size=2, V=1, X=0, L=1);
+		ldr_reg_simd.set_decoder(size=3, V=1, X=0, L=1);
+		ldr_reg_simd.set_decoder(size=0, V=1, X=1, L=1);
+				
+		ldr_reg_simd.set_behaviour(ldr_reg_simd);
+		
+		str_reg_simd.set_decoder(size=0, V=1, X=0, L=0);
+		str_reg_simd.set_decoder(size=1, V=1, X=0, L=0);
+		str_reg_simd.set_decoder(size=2, V=1, X=0, L=0);
+		str_reg_simd.set_decoder(size=3, V=1, X=0, L=0);
+		str_reg_simd.set_decoder(size=0, V=1, X=1, L=0);
+				
+		str_reg_simd.set_behaviour(str_reg_simd);
+
+		// Load/store register (unprivileged)
+		sttrb.set_decoder(size=0, V=0, opc=0);
+		sttrb.set_behaviour(sttrb);
+		
+		ldtrb.set_decoder(size=0, V=0, opc=1);	// ldtrb
+		ldtrb.set_decoder(size=0, V=0, opc=2);	// ldtrsb
+		ldtrb.set_decoder(size=0, V=0, opc=3);	// ldtrsb
+		ldtrb.set_behaviour(ldtrb);
+		
+		sttrh.set_decoder(size=1, V=0, opc=0);
+		sttrh.set_behaviour(sttrh);
+		
+		ldtrh.set_decoder(size=1, V=0, opc=1);
+		ldtrh.set_decoder(size=1, V=0, opc=2);
+		ldtrh.set_decoder(size=1, V=0, opc=3);
+		ldtrh.set_behaviour(ldtrh);
+		
+		sttr.set_decoder(size=2, V=0, opc=0);
+		sttr.set_decoder(size=3, V=0, opc=0);
+		sttr.set_behaviour(sttr);
+		
+		ldtr.set_decoder(size=2, V=0, opc=1);
+		ldtr.set_decoder(size=3, V=0, opc=1);
+		ldtr.set_behaviour(ldtr);
+		
+		ldtrsw.set_decoder(size=2, V=0, opc=2);
+		ldtrsw.set_behaviour(ldtrsw);
+		
+		// Load/store register (unscaled immediate)
+		vstur.set_decoder(size=0, V=1, opc=0);	// 8
+		vstur.set_decoder(size=1, V=1, opc=0);	// 16
+		vstur.set_decoder(size=2, V=1, opc=0);	// 32
+		vstur.set_decoder(size=3, V=1, opc=0);	// 64
+		vstur.set_decoder(size=0, V=1, opc=2);	// 128
+		vstur.set_asm("stur V%regw, [%regsx]", rt, rn, immu64=0);
+		vstur.set_asm("stur V%regw, [%regsx, #%imm]", rt, rn, immu64);
+		vstur.set_behaviour(vstur);
+		
+		vldur.set_decoder(size=0, V=1, opc=1);	// 8
+		vldur.set_decoder(size=1, V=1, opc=1);	// 16
+		vldur.set_decoder(size=2, V=1, opc=1);	// 32
+		vldur.set_decoder(size=3, V=1, opc=1);	// 64
+		vldur.set_decoder(size=0, V=1, opc=3);	// 128
+		vldur.set_behaviour(vldur);
+		
+		sturb.set_decoder(size=0, V=0, opc=0);
+		sturb.set_asm("sturb %regw, [%regsx, #%imm]", rt, rn, imms64);
+		sturb.set_behaviour(sturb);
+		
+		ldurb.set_decoder(size=0, V=0, opc=1); // ldurb
+		ldurb.set_decoder(size=0, V=0, opc=2); // ldursb
+		ldurb.set_decoder(size=0, V=0, opc=3); // ldursb
+		ldurb.set_asm("ldurb %regw, [%regsx, #%imm]", rt, rn, imms64, opc=1);
+		ldurb.set_asm("ldursb %regx, [%regsx, #%imm]", rt, rn, imms64, opc=2);
+		ldurb.set_asm("ldursb %regw, [%regsx, #%imm]", rt, rn, imms64, opc=3);
+		ldurb.set_behaviour(ldurb);
+		
+		sturh.set_decoder(size=1, V=0, opc=0);
+		sturh.set_behaviour(sturh);
+		
+		ldurh.set_decoder(size=1, V=0, opc=1);
+		ldurh.set_decoder(size=1, V=0, opc=2);
+		ldurh.set_decoder(size=1, V=0, opc=3);
+		ldurh.set_behaviour(ldurh);
+		
+		stur.set_decoder(size=2, V=0, opc=0);
+		stur.set_decoder(size=3, V=0, opc=0);
+		stur.set_asm("stur %regw, [%regx, #%imm]", rt, rn, imms64, size=2);
+		stur.set_asm("stur %regx, [%regx, #%imm]", rt, rn, imms64, size=3);
+		stur.set_behaviour(stur);
+		
+		ldur.set_decoder(size=2, V=0, opc=1);
+		ldur.set_decoder(size=3, V=0, opc=1);
+		ldur.set_behaviour(ldur);
+		
+		ldursw.set_decoder(size=2, V=0, opc=2);
+		ldursw.set_behaviour(ldursw);
+		
+		// Load/store register (unsigned immediate)
+		vstr.set_decoder(size=0, V=1, opc=0);	// 8
+		vstr.set_decoder(size=1, V=1, opc=0);	// 16
+		vstr.set_decoder(size=2, V=1, opc=0);	// 32
+		vstr.set_decoder(size=3, V=1, opc=0);	// 64
+		vstr.set_decoder(size=0, V=1, opc=2);	// 128
+		vstr.set_asm("str V%regw, [%regsx]", rt, rn, immu64=0);
+		vstr.set_asm("str V%regw, [%regsx, #%imm]", rt, rn, immu64);
+		vstr.set_behaviour(vstr);
+		
+		vldr.set_decoder(size=0, V=1, opc=1);	// 8
+		vldr.set_decoder(size=1, V=1, opc=1);	// 16
+		vldr.set_decoder(size=2, V=1, opc=1);	// 32
+		vldr.set_decoder(size=3, V=1, opc=1);	// 64
+		vldr.set_decoder(size=0, V=1, opc=3);	// 128
+		vldr.set_behaviour(vldr);
+		
+		strbi.set_decoder(size=0, V=0, opc=0);
+		strbi.set_asm("strb %regw, [%regsx]", rt, rn, immu64=0);
+		strbi.set_asm("strb %regw, [%regsx, #%imm]", rt, rn, immu64);
+		strbi.set_behaviour(strbi);
+		
+		ldrbi.set_decoder(size=0, V=0, opc=1);
+		ldrbi.set_decoder(size=0, V=0, opc=2);
+		ldrbi.set_decoder(size=0, V=0, opc=3);
+		
+		ldrbi.set_asm("ldrb %regw, [%regsx]", rt, rn, immu64=0, opc=1);
+		ldrbi.set_asm("ldrb %regw, [%regsx, #%imm]", rt, rn, immu64, opc=1);
+		ldrbi.set_asm("ldrsb %regw, [%regsx]", rt, rn, immu64=0, opc=3);
+		ldrbi.set_asm("ldrsb %regw, [%regsx, #%imm]", rt, rn, immu64, opc=3);
+		ldrbi.set_asm("ldrsb %regx, [%regsx]", rt, rn, immu64=0, opc=2);
+		ldrbi.set_asm("ldrsb %regx, [%regsx, #%imm]", rt, rn, immu64, opc=2);
+		
+		ldrbi.set_behaviour(ldrbi);
+		
+		strhi.set_decoder(size=1, V=0, opc=0);
+		strhi.set_asm("strh %regw, [%regsx]", rt, rn, immu64=0);
+		strhi.set_asm("strh %regw, [%regsx, #%imm]", rt, rn, immu64);
+		strhi.set_behaviour(strhi);
+		
+		ldrhi.set_decoder(size=1, V=0, opc=1);
+		ldrhi.set_decoder(size=1, V=0, opc=2);
+		ldrhi.set_decoder(size=1, V=0, opc=3);
+		
+		ldrhi.set_asm("ldrh %regw, [%regsx]", rt, rn, immu64=0, opc=1);
+		ldrhi.set_asm("ldrh %regw, [%regsx, #%imm]", rt, rn, immu64, opc=1);
+		ldrhi.set_asm("ldrsh %regw, [%regsx]", rt, rn, immu64=0, opc=3);
+		ldrhi.set_asm("ldrsh %regw, [%regsx, #%imm]", rt, rn, immu64, opc=3);
+		ldrhi.set_asm("ldrsh %regx, [%regsx]", rt, rn, immu64=0, opc=2);
+		ldrhi.set_asm("ldrsh %regx, [%regsx, #%imm]", rt, rn, immu64, opc=2);
+		
+		ldrhi.set_behaviour(ldrhi);
+		
+		stri.set_decoder(size=2, V=0, opc=0);
+		stri.set_decoder(size=3, V=0, opc=0);
+		
+		stri.set_asm("str %regw, [%regsx]", rt, rn, immu64=0, size=2);
+		stri.set_asm("str %regw, [%regsx, #%imm]", rt, rn, immu64, size=2);
+
+		stri.set_asm("str %regx, [%regsx]", rt, rn, immu64=0, size=3);
+		stri.set_asm("str %regx, [%regsx, #%imm]", rt, rn, immu64, size=3);
+		
+		stri.set_behaviour(stri);
+		
+		ldri.set_decoder(size=2, V=0, opc=1);
+		ldri.set_decoder(size=3, V=0, opc=1);
+		
+		ldri.set_asm("ldr %regw, [%regsx]", rt, rn, immu64=0, size=2);
+		ldri.set_asm("ldr %regw, [%regsx, #%imm]", rt, rn, immu64, size=2);
+		ldri.set_asm("ldr %regx, [%regsx]", rt, rn, immu64=0, size=3);
+		ldri.set_asm("ldr %regx, [%regsx, #%imm]", rt, rn, immu64, size=3);
+		
+		ldri.set_behaviour(ldri);
+		
+		ldrswi.set_decoder(size=2, V=0, opc=2);
+		ldrswi.set_asm("ldrsw %regx, [%regsx]", rt, rn, immu64=0);
+		ldrswi.set_asm("ldrsw %regx, [%regsx, #%imm]", rt, rn, immu64);
+		ldrswi.set_behaviour(ldrswi);
+		
+		prfmi.set_decoder(size=3, V=0, opc=2);
+		prfmi.set_behaviour(prfmi);
+		
+		// Load/store register pair (offset)
+		stp.set_decoder(opc=0, V=0, L=0);
+		stp.set_decoder(opc=2, V=0, L=0);
+		stp.set_asm("stp %regw, %regw, [%regsx]", rt, rt2, rn, imm7=0, opc=0);
+		stp.set_asm("stp %regx, %regx, [%regsx]", rt, rt2, rn, imm7=0, opc=2);
+		stp.set_asm("stp %regw, %regw, [%regsx, #%imm]", rt, rt2, rn, imm7, opc=0);
+		stp.set_asm("stp %regx, %regx, [%regsx, #%imm]", rt, rt2, rn, imm7, opc=2);
+		
+		stp.set_behaviour(stp);
+
+		ldp.set_decoder(opc=0, V=0, L=1);
+		ldp.set_decoder(opc=2, V=0, L=1);
+		ldp.set_asm("ldp %regw, %regw, [%regsx]", rt, rt2, rn, imm7=0, opc=0);
+		ldp.set_asm("ldp %regx, %regx, [%regsx]", rt, rt2, rn, imm7=0, opc=2);
+		ldp.set_asm("ldp %regw, %regw, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=0);
+		ldp.set_asm("ldp %regx, %regx, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=2);
+		ldp.set_behaviour(ldp);
+
+		ldpsw.set_decoder(opc=1, V=0, L=1);
+		ldpsw.set_behaviour(ldpsw);
+		
+		// Load/store register pair SIMD
+		stp_simd.set_decoder(opc=0, V=1, L=0);
+		stp_simd.set_decoder(opc=1, V=1, L=0);
+		stp_simd.set_decoder(opc=2, V=1, L=0);
+		
+		stp_simd.set_asm("stp %sreg, %sreg, [%regsx]", rt, rt2, rn, imm7=0, opc=0);
+		stp_simd.set_asm("stp %dreg, %dreg, [%regsx]", rt, rt2, rn, imm7=0, opc=1);
+		stp_simd.set_asm("stp %qreg, %qreg, [%regsx]", rt, rt2, rn, imm7=0, opc=2);
+		
+		stp_simd.set_asm("stp %sreg, %sreg, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=0);
+		stp_simd.set_asm("stp %dreg, %dreg, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=1);
+		stp_simd.set_asm("stp %qreg, %qreg, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=2);
+		
+		stp_simd.set_behaviour(stp_simd);
+		
+		ldp_simd.set_decoder(opc=0, V=1, L=1);
+		ldp_simd.set_decoder(opc=1, V=1, L=1);
+		ldp_simd.set_decoder(opc=2, V=1, L=1);
+
+		ldp_simd.set_asm("ldp %sreg, %sreg, [%regsx]", rt, rt2, rn, imm7=0, opc=0);
+		ldp_simd.set_asm("ldp %dreg, %dreg, [%regsx]", rt, rt2, rn, imm7=0, opc=1);
+		ldp_simd.set_asm("ldp %qreg, %qreg, [%regsx]", rt, rt2, rn, imm7=0, opc=2);
+
+		ldp_simd.set_asm("ldp %sreg, %sreg, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=0);
+		ldp_simd.set_asm("ldp %dreg, %dreg, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=1);
+		ldp_simd.set_asm("ldp %qreg, %qreg, [%regsx, #%imm]", rt, rt2, rn, imms64, opc=2);
+
+		ldp_simd.set_behaviour(ldp_simd);
+				
+		// Load/store register pair (post-/pre- indexed)
+		stpi_simd.set_decoder(opc=0, V=1, L=0); // 32
+		stpi_simd.set_decoder(opc=1, V=1, L=0); // 64
+		stpi_simd.set_decoder(opc=2, V=1, L=0); // 128
+		stpi_simd.set_asm("stp %sreg, %sreg, [%regsx], #%imm", rt, rt2, rn, immu64, opc=0, P=0);
+		stpi_simd.set_asm("stp %dreg, %dreg, [%regsx], #%imm", rt, rt2, rn, immu64, opc=1, P=0);
+		stpi_simd.set_asm("stp %qreg, %qreg, [%regsx], #%imm", rt, rt2, rn, immu64, opc=2, P=0);
+		stpi_simd.set_asm("stp %sreg, %sreg, [%regsx, #%imm]!", rt, rt2, rn, immu64, opc=0, P=1);
+		stpi_simd.set_asm("stp %dreg, %dreg, [%regsx, #%imm]!", rt, rt2, rn, immu64, opc=1, P=1);
+		stpi_simd.set_asm("stp %qreg, %qreg, [%regsx, #%imm]!", rt, rt2, rn, immu64, opc=2, P=1);
+		stpi_simd.set_behaviour(stpi_simd);
+
+		stpi.set_decoder(opc=0, V=0, L=0);
+		stpi.set_decoder(opc=2, V=0, L=0);
+
+		stpi.set_asm("stp %regw, %regw, [%regsx], #%imm", rt, rt2, rn, immu64, opc=0, P=0);
+		stpi.set_asm("stp %regx, %regx, [%regsx], #%imm", rt, rt2, rn, immu64, opc=2, P=0);
+		stpi.set_asm("stp %regw, %regw, [%regsx, #%imm]!", rt, rt2, rn, immu64, opc=0, P=1);
+		stpi.set_asm("stp %regx, %regx, [%regsx, #%imm]!", rt, rt2, rn, immu64, opc=2, P=1);
+
+		stpi.set_behaviour(stpi);
+		
+		ldpi.set_decoder(opc=0, V=0, L=1);
+		ldpi.set_decoder(opc=2, V=0, L=1);
+		ldpi.set_asm("ldp %regw, %regw, [%regsx], #%imm", rt, rt2, rn, immu64, opc=0, P=0);
+		ldpi.set_asm("ldp %regx, %regx, [%regsx], #%imm", rt, rt2, rn, immu64, opc=2, P=0);
+		ldpi.set_asm("ldp %regw, %regw, [%regsx, #%imm]!", rt, rt2, rn, immu64, opc=0, P=1);
+		ldpi.set_asm("ldp %regx, %regx, [%regsx, #%imm]!", rt, rt2, rn, immu64, opc=2, P=1);
+		ldpi.set_behaviour(ldpi);
+		
+		ldpswi.set_decoder(opc=1, V=0, L=1);
+		ldpswi.set_behaviour(ldpswi);
+		
+		//
+		// Data Processing Register
+		//
+		
+		// Add/substract (extended register)
+		add_ereg.set_decoder(op=0, opt=0);	// TODO imm3 != 1x1 && imm3 != 11x
+		add_ereg.set_asm("add %regsw, %regsw, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=0, S=0);
+		add_ereg.set_asm("adds %regw, %regsw, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=0, S=1);
+		
+		add_ereg.set_asm("add %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=0);
+		add_ereg.set_asm("add %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=1);
+		add_ereg.set_asm("add %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=2);
+		add_ereg.set_asm("add %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=4);
+		add_ereg.set_asm("add %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=5);
+		add_ereg.set_asm("add %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=6);
+		add_ereg.set_asm("add %regsx, %regsx, %regx, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=3);
+		add_ereg.set_asm("add %regsx, %regsx, %regx, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=7);
+		add_ereg.set_asm("adds %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=0);
+		add_ereg.set_asm("adds %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=1);
+		add_ereg.set_asm("adds %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=2);
+		add_ereg.set_asm("adds %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=4);
+		add_ereg.set_asm("adds %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=5);
+		add_ereg.set_asm("adds %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=6);
+		add_ereg.set_asm("adds %regx, %regsx, %regx, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=3);
+		add_ereg.set_asm("adds %regx, %regsx, %regx, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=7);
+		
+		add_ereg.set_behaviour(add_ereg);
+		
+		sub_ereg.set_decoder(op=1, opt=0);	// TODO imm3 != 1x1 && imm3 != 11x
+		sub_ereg.set_asm("sub %regsw, %regsw, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=0, S=0);
+		sub_ereg.set_asm("subs %regw, %regsw, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=0, S=1);
+
+		sub_ereg.set_asm("sub %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=0);
+		sub_ereg.set_asm("sub %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=1);
+		sub_ereg.set_asm("sub %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=2);
+		sub_ereg.set_asm("sub %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=4);
+		sub_ereg.set_asm("sub %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=5);
+		sub_ereg.set_asm("sub %regsx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=6);
+		sub_ereg.set_asm("sub %regsx, %regsx, %regx, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=3);
+		sub_ereg.set_asm("sub %regsx, %regsx, %regx, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=0, option=7);
+		sub_ereg.set_asm("subs %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=0);
+		sub_ereg.set_asm("subs %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=1);
+		sub_ereg.set_asm("subs %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=2);
+		sub_ereg.set_asm("subs %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=4);
+		sub_ereg.set_asm("subs %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=5);
+		sub_ereg.set_asm("subs %regx, %regsx, %regw, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=6);
+		sub_ereg.set_asm("subs %regx, %regsx, %regx, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=3);
+		sub_ereg.set_asm("subs %regx, %regsx, %regx, %exttype32 #%imm", rd, rn, rm, option, shift_amount, sf=1, S=1, option=7);
+		
+		sub_ereg.set_asm("cmp %regsw, %regw, %exttype32 #%imm", rn, rm, option, shift_amount, sf=0, S=1, rd=31);
+		sub_ereg.set_asm("cmp %regsx, %regw, %exttype32 #%imm", rn, rm, option, shift_amount, sf=1, S=1, option=0, rd=31);
+		sub_ereg.set_asm("cmp %regsx, %regw, %exttype32 #%imm", rn, rm, option, shift_amount, sf=1, S=1, option=1, rd=31);
+		sub_ereg.set_asm("cmp %regsx, %regw, %exttype32 #%imm", rn, rm, option, shift_amount, sf=1, S=1, option=2, rd=31);
+		sub_ereg.set_asm("cmp %regsx, %regw, %exttype32 #%imm", rn, rm, option, shift_amount, sf=1, S=1, option=4, rd=31);
+		sub_ereg.set_asm("cmp %regsx, %regw, %exttype32 #%imm", rn, rm, option, shift_amount, sf=1, S=1, option=5, rd=31);
+		sub_ereg.set_asm("cmp %regsx, %regw, %exttype32 #%imm", rn, rm, option, shift_amount, sf=1, S=1, option=6, rd=31);
+		sub_ereg.set_asm("cmp %regsx, %regx, %exttype32 #%imm", rn, rm, option, shift_amount, sf=1, S=1, option=3, rd=31);
+		sub_ereg.set_asm("cmp %regsx, %regx, %exttype32 #%imm", rn, rm, option, shift_amount, sf=1, S=1, option=7, rd=31);
+
+		sub_ereg.set_behaviour(sub_ereg);
+		
+		// Add/subtract (shifted register)
+		add_sreg.set_decoder(op=0, shift!=3);	// TODO imm6 < 0b100000
+		add_sreg.set_asm("add %regw, %regw, %regw", rd, rn, rm, sf=0, S=0, imm6=0);
+		add_sreg.set_asm("add %regw, %regw, %regw %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, S=0);
+		add_sreg.set_asm("add %regx, %regx, %regx", rd, rn, rm, sf=1, S=0, imm6=0);
+		add_sreg.set_asm("add %regx, %regx, %regx %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, S=0);
+
+		add_sreg.set_asm("adds %regw, %regw, %regw", rd, rn, rm, sf=0, S=1, imm6=0);
+		add_sreg.set_asm("adds %regw, %regw, %regw %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, S=1);
+		add_sreg.set_asm("adds %regx, %regx, %regx", rd, rn, rm, sf=1, S=1, imm6=0);
+		add_sreg.set_asm("adds %regx, %regx, %regx %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, S=1);
+		
+		add_sreg.set_behaviour(add_sreg);
+		
+		sub_sreg.set_decoder(op=1, shift!=3);	// TODO imm6 < 0b100000
+		sub_sreg.set_asm("sub %regw, %regw, %regw", rd, rn, rm, sf=0, S=0, imm6=0);
+		sub_sreg.set_asm("sub %regw, %regw, %regw %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, S=0);
+		sub_sreg.set_asm("sub %regx, %regx, %regx", rd, rn, rm, sf=1, S=0, imm6=0);
+		sub_sreg.set_asm("sub %regx, %regx, %regx %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, S=0);
+
+		sub_sreg.set_asm("subs %regw, %regw, %regw", rd, rn, rm, sf=0, S=1, imm6=0);
+		sub_sreg.set_asm("subs %regw, %regw, %regw %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, S=1);
+		sub_sreg.set_asm("subs %regx, %regx, %regx", rd, rn, rm, sf=1, S=1, imm6=0);
+		sub_sreg.set_asm("subs %regx, %regx, %regx %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, S=1);
+
+		sub_sreg.set_asm("cmp %regw, %regw", rn, rm, sf=0, S=1, imm6=0, rd=31);
+		sub_sreg.set_asm("cmp %regw, %regw %shifttype #%imm", rn, rm, shift, imm6, sf=0, S=1, rd=31);
+		sub_sreg.set_asm("cmp %regx, %regx", rn, rm, sf=1, S=1, imm6=0, rd=31);
+		sub_sreg.set_asm("cmp %regx, %regx %shifttype #%imm", rn, rm, shift, imm6, sf=1, S=1, rd=31);
+
+		sub_sreg.set_behaviour(sub_sreg);
+		
+		// Add/subtract (with carry)
+		adc.set_decoder(op=0, opcode2=0);	// TODO weird opcode2
+		adc.set_behaviour(adc);
+
+		sbc.set_decoder(op=1, opcode2=0);	// TODO weird opcode2
+		sbc.set_behaviour(sbc);
+		
+		// Conditional compare (immediate)
+		ccmpi.set_decoder(op=1, S=1, o2=0, o3=0);
+		ccmpi.set_asm("ccmp %regw, #%imm, #%nzcvbits, %cond", rn, imm5, nzcv, cond, sf=0);
+		ccmpi.set_asm("ccmp %regx, #%imm, #%nzcvbits, %cond", rn, imm5, nzcv, cond, sf=1);
+		ccmpi.set_behaviour(ccmpi);
+		
+		ccmni.set_decoder(op=0, S=1, o2=0, o3=0);
+		ccmni.set_asm("ccmn %regw, #%imm, #%nzcvbits, %cond", rn, imm5, nzcv, cond, sf=0);
+		ccmni.set_asm("ccmn %regx, #%imm, #%nzcvbits, %cond", rn, imm5, nzcv, cond, sf=1);
+		ccmni.set_behaviour(ccmni);
+		
+		// Conditional compare (register)
+		ccmpr.set_decoder(op=1, S=1, o2=0, o3=0);
+		ccmpr.set_asm("ccmp %regw, %regw, #%nzcvbits, %cond", rn, rm, nzcv, cond);
+		ccmpr.set_behaviour(ccmpr);
+		
+		ccmnr.set_decoder(op=0, S=1, o2=0, o3=0);
+		ccmpr.set_asm("ccmn %regw, %regw, #%nzcvbits, %cond", rn, rm, nzcv, cond);
+		ccmnr.set_behaviour(ccmnr);
+		
+		// Conditional select
+		csel.set_decoder(op=0, S=0, op2=0);
+		csel.set_asm("csel %regw, %regw, %regw, %cond", rd, rn, rm, cond, sf=0);
+		csel.set_asm("csel %regx, %regx, %regx, %cond", rd, rn, rm, cond, sf=1);
+		csel.set_behaviour(csel);
+
+		csinc.set_decoder(op=0, S=0, op2=1);
+		csinc.set_asm("csinc %regw, %regw, %regw, %cond", rd, rn, rm, cond, sf=0);
+		csinc.set_asm("csinc %regx, %regx, %regx, %cond", rd, rn, rm, cond, sf=1);
+		
+		csinc.set_asm("cset %regw, %invcond", rd, cond, rn=31, rm=31, sf=0);
+		csinc.set_asm("cset %regx, %invcond", rd, cond, rn=31, rm=31, sf=1);
+		
+		csinc.set_behaviour(csinc);
+
+		csinv.set_decoder(op=1, S=0, op2=0);
+		csinv.set_asm("csinv %regw, %regw, %regw, %cond", rd, rn, rm, cond, sf=0);
+		csinv.set_asm("csinv %regx, %regx, %regx, %cond", rd, rn, rm, cond, sf=1);
+		csinv.set_behaviour(csinv);
+
+		csneg.set_decoder(op=1, S=0, op2=1);
+		csneg.set_behaviour(csneg);
+		
+		// DP 1
+		rbit.set_decoder(S=0, opcode2=0, opcode=0);
+		rbit.set_asm("rbit %regw, %regw", rd, rn, sf=0);
+		rbit.set_asm("rbit %regx, %regx", rd, rn, sf=1);
+		rbit.set_behaviour(rbit);
+		
+		rev.set_decoder(sf=0, S=0, opcode2=0, opcode=2);
+		rev.set_decoder(sf=1, S=0, opcode2=0, opcode=3);
+		rev.set_asm("rev %regw, %regw", rd, rn, sf=0);
+		rev.set_asm("rev %regx, %regx", rd, rn, sf=1);
+		rev.set_behaviour(rev);
+		
+		rev16.set_decoder(S=0, opcode2=0, opcode=1);
+		rev16.set_behaviour(rev16);
+		
+		rev32.set_decoder(sf=1, S=0, opcode2=0, opcode=2);
+		rev32.set_behaviour(rev32);
+		
+		clz.set_decoder(S=0, opcode2=0, opcode=4);
+		clz.set_asm("clz %regw, %regw", rd, rn, sf=0);
+		clz.set_asm("clz %regx, %regx", rd, rn, sf=1);
+		clz.set_behaviour(clz);
+		
+		cls.set_decoder(S=0, opcode2=0, opcode=5);
+		cls.set_behaviour(cls);
+
+		// DP 2
+		udiv.set_decoder(S=0, opcode=2);
+		udiv.set_asm("udiv %regw, %regw, %regw", rd, rn, rm, sf=0);
+		udiv.set_asm("udiv %regx, %regx, %regx", rd, rn, rm, sf=1);
+		udiv.set_behaviour(udiv);
+		
+		sdiv.set_decoder(S=0, opcode=3);
+		sdiv.set_behaviour(sdiv);
+		
+		lslv.set_decoder(S=0, opcode=8);
+		lslv.set_asm("lslv %regw, %regw, %regw", rd, rn, rm, sf=0);
+		lslv.set_asm("lslv %regx, %regx, %regx", rd, rn, rm, sf=1);
+		lslv.set_behaviour(lslv);
+		
+		lsrv.set_decoder(S=0, opcode=9);
+		lsrv.set_asm("lsrv %regw, %regw, %regw", rd, rn, rm, sf=0);
+		lsrv.set_asm("lsrv %regx, %regx, %regx", rd, rn, rm, sf=1);	
+		lsrv.set_behaviour(lsrv);
+		
+		asrv.set_decoder(S=0, opcode=10);
+		asrv.set_asm("asrv %regw, %regw, %regw", rd, rn, rm, sf=0);
+		asrv.set_asm("asrv %regx, %regx, %regx", rd, rn, rm, sf=1);	
+		asrv.set_behaviour(asrv);
+		
+		rorv.set_decoder(S=0, opcode=11);
+		rorv.set_asm("rorv %regw, %regw, %regw", rd, rn, rm, sf=0);
+		rorv.set_asm("rorv %regx, %regx, %regx", rd, rn, rm, sf=1);	
+		rorv.set_behaviour(rorv);
+		
+		crc32.set_decoder(sf=0, S=0, opcode=16);	// crc32b
+		crc32.set_decoder(sf=0, S=0, opcode=17);	// crc32h
+		crc32.set_decoder(sf=0, S=0, opcode=18);	// crc32w
+		crc32.set_decoder(sf=1, S=0, opcode=19);	// crc32x
+		crc32.set_behaviour(crc32);
+		
+		crc32c.set_decoder(sf=0, S=0, opcode=20);	// crc32cb
+		crc32c.set_decoder(sf=0, S=0, opcode=21);	// crc32ch
+		crc32c.set_decoder(sf=0, S=0, opcode=22);	// crc32cw
+		crc32c.set_decoder(sf=1, S=0, opcode=23);	// crc32cx
+		crc32c.set_behaviour(crc32c);
+		
+		// DP 3
+		madd.set_decoder(op54=0, op31=0, o0=0);
+		madd.set_asm("madd %regw, %regw, %regw, %regw", rd, rn, rm, ra, sf=0);
+		madd.set_asm("madd %regx, %regx, %regx, %regx", rd, rn, rm, ra, sf=1);
+		madd.set_asm("mul %regw, %regw, %regw", rd, rn, rm, ra=31, sf=0);
+		madd.set_asm("mul %regx, %regx, %regx", rd, rn, rm, ra=31, sf=1);
+		madd.set_behaviour(madd);
+		
+		msub.set_decoder(op54=0, op31=0, o0=1);
+		msub.set_asm("msub %regw, %regw, %regw, %regw", rd, rn, rm, ra, sf=0);
+		msub.set_asm("msub %regx, %regx, %regx, %regx", rd, rn, rm, ra, sf=1);
+		msub.set_behaviour(msub);
+		
+		smaddl.set_decoder(sf=1, op54=0, op31=1, o0=0);
+		smaddl.set_behaviour(smaddl);
+		
+		smsubl.set_decoder(sf=1, op54=0, op31=1, o0=1);
+		smsubl.set_behaviour(smsubl);
+		
+		smulh.set_decoder(sf=1, op54=0, op31=2, o0=0);
+		smulh.set_behaviour(smulh);
+		
+		umaddl.set_decoder(sf=1, op54=0, op31=5, o0=0);
+		umaddl.set_asm("umaddl %regx, %regw, %regw, %regx", rd, rn, rm, ra);
+		umaddl.set_behaviour(umaddl);
+		
+		umsubl.set_decoder(sf=1, op54=0, op31=5, o0=1);
+		umsubl.set_asm("umsubl %regx, %regw, %regw, %regx", rd, rn, rm, ra);
+		umsubl.set_behaviour(umsubl);
+		
+		umulh.set_decoder(sf=1, op54=0, op31=6, o0=0);
+		umulh.set_asm("umulh %regx, %regx, %regx", rd, rn, rm);
+		umulh.set_behaviour(umulh);
+		
+		// Logical Shifted Register
+		andsr.set_decoder(opc=0, N=0);
+		andsr.set_decoder(opc=3, N=0);
+		
+		andsr.set_asm("and %regw, %regw, %regw", rd, rn, rm, sf=0, opc=0, imm6=0);
+		andsr.set_asm("and %regw, %regw, %regw, %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, opc=0);
+		
+		andsr.set_asm("and %regx, %regx, %regx", rd, rn, rm, sf=1, opc=0, imm6=0);
+		andsr.set_asm("and %regx, %regx, %regx, %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, opc=0);
+
+		andsr.set_asm("ands %regw, %regw, %regw", rd, rn, rm, sf=0, opc=3, imm6=0);
+		andsr.set_asm("ands %regw, %regw, %regw, %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, opc=3);
+		
+		andsr.set_asm("ands %regx, %regx, %regx", rd, rn, rm, sf=1, opc=3, imm6=0);
+		andsr.set_asm("ands %regx, %regx, %regx, %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, opc=3);
+		
+		andsr.set_asm("tst %regw, %regw", rn, rm, imm6=0, sf=0, opc=3, rd=31);
+		andsr.set_asm("tst %regw, %regw, %shifttype #%imm", rn, rm, shift, imm6, sf=0, opc=3, rd=31);
+		andsr.set_asm("tst %regx, %regx", rn, rm, imm6=0, sf=1, opc=3, rd=31);
+		andsr.set_asm("tst %regx, %regx, %shifttype #%imm", rn, rm, shift, imm6, sf=1, opc=3, rd=31);
+		
+		andsr.set_behaviour(andsr);
+		
+		bicsr.set_decoder(opc=0, N=1);
+		bicsr.set_decoder(opc=3, N=1);
+		
+		bicsr.set_asm("bic %regw, %regw, %regw", rd, rn, rm, sf=0, opc=0, imm6=0);
+		bicsr.set_asm("bic %regw, %regw, %regw, %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, opc=0);
+		
+		bicsr.set_asm("bic %regx, %regx, %regx", rd, rn, rm, sf=1, opc=0, imm6=0);
+		bicsr.set_asm("bic %regx, %regx, %regx, %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, opc=0);
+
+		bicsr.set_asm("bics %regw, %regw, %regw", rd, rn, rm, sf=0, opc=3, imm6=0);
+		bicsr.set_asm("bics %regw, %regw, %regw, %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, opc=3);
+		
+		bicsr.set_asm("bics %regx, %regx, %regx", rd, rn, rm, sf=1, opc=3, imm6=0);
+		bicsr.set_asm("bics %regx, %regx, %regx, %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, opc=3);
+		
+		bicsr.set_behaviour(bicsr);
+		
+		orrsr.set_decoder(opc=1);
+		orrsr.set_asm("orr %regw, %regw, %regw", rd, rn, rm, sf=0, N=0, imm6=0);
+		orrsr.set_asm("orr %regw, %regw, %regw %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, N=0);
+		orrsr.set_asm("orr %regx, %regx, %regx", rd, rn, rm, sf=1, N=0, imm6=0);
+		orrsr.set_asm("orr %regx, %regx, %regx %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, N=0);
+
+		orrsr.set_asm("orn %regw, %regw, %regw", rd, rn, rm, sf=0, N=1, imm6=0);
+		orrsr.set_asm("orn %regw, %regw, %regw %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, N=1);
+		orrsr.set_asm("orn %regx, %regx, %regx", rd, rn, rm, sf=1, N=1, imm6=0);
+		orrsr.set_asm("orn %regx, %regx, %regx %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, N=1);
+		
+		orrsr.set_behaviour(orrsr);
+		
+		mov.set_decoder(opc=1, imm6=0, rn=31);
+		mov.set_asm("mov %regw, %regw", rd, rm, sf=0, N=0);
+		mov.set_asm("mov %regx, %regx", rd, rm, sf=1, N=0);
+		mov.set_asm("mvn %regw, %regw", rd, rm, sf=0, N=1);
+		mov.set_asm("mvn %regx, %regx", rd, rm, sf=1, N=1);
+		mov.set_behaviour(mov);
+		
+		eorsr.set_decoder(opc=2);
+		eorsr.set_asm("eor %regw, %regw, %regw", rd, rn, rm, sf=0, N=0, imm6=0);
+		eorsr.set_asm("eor %regw, %regw, %regw %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, N=0);
+		eorsr.set_asm("eor %regx, %regx, %regx", rd, rn, rm, sf=1, N=0, imm6=0);
+		eorsr.set_asm("eor %regx, %regx, %regx %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, N=0);
+		
+		eorsr.set_asm("eon %regw, %regw, %regw", rd, rn, rm, sf=0, N=1, imm6=0);
+		eorsr.set_asm("eon %regw, %regw, %regw %shifttype #%imm", rd, rn, rm, shift, imm6, sf=0, N=1);
+		eorsr.set_asm("eon %regx, %regx, %regx", rd, rn, rm, sf=1, N=1, imm6=0);
+		eorsr.set_asm("eon %regx, %regx, %regx %shifttype #%imm", rd, rn, rm, shift, imm6, sf=1, N=1);
+		eorsr.set_behaviour(eorsr);
+	};
+};

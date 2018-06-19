@@ -61,8 +61,8 @@ namespace gensim
 			}
 
 			// loop through each block and if it is fixed or sometimes fixed, emit code for it
-			for (std::list<SSABlock *>::const_iterator block_iterator = action.Blocks.begin(); block_iterator != action.Blocks.end(); ++block_iterator) {
-				SSABlock &block = **block_iterator;
+			for (auto block_ : action.GetBlocks()) {
+				SSABlock &block = *block_;
 				GenerateFixedBlockEmitter(cstream, block);
 			}
 
@@ -126,9 +126,9 @@ namespace gensim
 			// first, number the blocks. we'll use the numbers later on when emitting code dynamically
 			std::map<SSABlock *, uint16_t> block_numbers;
 			uint16_t blocks = 0;
-			for (std::list<SSABlock *>::const_iterator block_i = action.Blocks.begin(); block_i != action.Blocks.end(); ++block_i) {
-				block_numbers[*block_i] = blocks;
-				cstream << "    const int __block_" << (*block_i)->GetName() << " = " << blocks << ";";
+			for (auto block : action.GetBlocks()) {
+				block_numbers[block] = blocks;
+				cstream << "    const int __block_" << block->GetName() << " = " << blocks << ";";
 				blocks++;
 			}
 
@@ -154,15 +154,14 @@ namespace gensim
 			cstream << "llvm_registers.resize(" << i << ", NULL);";
 
 			// loop through each block and if it is fixed or sometimes fixed, emit code for it
-			for (std::list<SSABlock *>::const_iterator block_iterator = action.Blocks.begin(); block_iterator != action.Blocks.end(); ++block_iterator) {
-				SSABlock &block = **block_iterator;
-				if (block.IsFixed() == BLOCK_ALWAYS_CONST) GenerateDynamicBlockEmitter(cstream, block);
+			for (auto block : action.GetBlocks()) {
+				if (block->IsFixed() == BLOCK_ALWAYS_CONST) GenerateDynamicBlockEmitter(cstream, *block);
 			}
 
 			// first, count the dynamic blocks to see if we should emit a dynamic block emitter loop
 			uint32_t dynamic_block_count = 0;
-			for (std::list<SSABlock *>::const_iterator block_i = action.Blocks.begin(); block_i != action.Blocks.end(); ++block_i) {
-				if ((*block_i)->IsFixed() != BLOCK_ALWAYS_CONST) dynamic_block_count++;
+			for (auto block : action.GetBlocks()) {
+				if (block->IsFixed() != BLOCK_ALWAYS_CONST) dynamic_block_count++;
 			}
 			if (dynamic_block_count) {
 				cstream << ""
@@ -183,8 +182,7 @@ namespace gensim
 				        "             {";
 
 				// loop over each sometimes_fixed and never_fixed block and emit an emitter for that block
-				for (std::list<SSABlock *>::const_iterator block_i = action.Blocks.begin(); block_i != action.Blocks.end(); ++block_i) {
-					SSABlock *block = *block_i;
+				for (auto block : action.GetBlocks()) {
 					if (block->IsFixed() == BLOCK_ALWAYS_CONST) continue;
 					cstream << ""
 					        "case __block_" << block->GetName() << ": // BLOCK START LINE " << block->GetStartLine() << ", END LINE " << block->GetEndLine() << "\n"

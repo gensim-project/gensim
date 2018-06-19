@@ -9,7 +9,7 @@
 
 #include "blockjit/block-compiler/transforms/Transform.h"
 
-#include "util/wutils/tick-timer.h"
+#include <wutils/tick-timer.h>
 
 #include <vector>
 #include <set>
@@ -20,7 +20,7 @@ using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;
 
-GlobalRegisterReuseTransform::GlobalRegisterReuseTransform(const archsim::util::vbitset& used_registers, int max_regs) : used_pregs_(used_registers), max_regs_(max_regs)
+GlobalRegisterReuseTransform::GlobalRegisterReuseTransform(const wutils::vbitset& used_registers, int max_regs) : used_pregs_(used_registers), max_regs_(max_regs)
 {
 
 }

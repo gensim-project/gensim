@@ -9,20 +9,24 @@
 #include <iterator>
 #include <unordered_set>
 
+#include <wutils/vbitset.h>
+
 using namespace gensim::genc::ssa;
 using namespace gensim::genc::ssa::analysis;
 
 SSADominance::dominance_info_t SSADominance::Calculate(const SSAFormAction* action)
 {
-	dominance_info_t dominance;
+	std::map<const SSABlock*, wutils::vbitset> doms;
+	doms.emplace(action->EntryBlock, wutils::vbitset(action->GetBlocks().size()));
+	doms.at(action->EntryBlock).set(action->EntryBlock->GetID(), 1);
 
-	dominance[action->EntryBlock].insert(action->EntryBlock);
-
-	for(const auto block : action->Blocks) {
+	for(const auto block : action->GetBlocks()) {
 		if(block == action->EntryBlock) {
 			continue;
 		}
-		dominance[block].insert(action->Blocks.begin(), action->Blocks.end());
+		wutils::vbitset the_set(action->GetBlocks().size());
+		the_set.set_all();
+		doms.emplace(block, the_set);
 	}
 
 	PredecessorAnalysis predecessors (action);
@@ -31,28 +35,39 @@ SSADominance::dominance_info_t SSADominance::Calculate(const SSAFormAction* acti
 	while(changes) {
 		changes = false;
 
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			if(block == action->EntryBlock) {
 				continue;
 			}
 
-			const auto &old_dom = dominance.at(block);
+			const auto &old_dom = doms.at(block);
 
-			block_dominators_t new_dom;
+			wutils::vbitset new_dom(action->GetBlocks().size());
 			for(auto pred : predecessors.GetPredecessors(block)) {
-				auto &pred_dom = dominance.at(pred);
-				std::set_intersection(old_dom.begin(), old_dom.end(), pred_dom.begin(), pred_dom.end(), std::inserter(new_dom, new_dom.begin()));
+				auto &pred_dom = doms.at(pred);
+				new_dom &= pred_dom;
 			}
-			new_dom.insert(block);
+			new_dom.set(block->GetID(), 1);
 
 			if(new_dom != old_dom) {
-				dominance[block] = new_dom;
+				doms.at(block) = new_dom;
 				changes = true;
 			}
 		}
 
 	}
-
+	
+	dominance_info_t dominance;
+	
+	for(auto block : action->GetBlocks()) {
+		
+		for(auto dominator : action->GetBlocks()) {
+			if(doms.at(block).get(dominator->GetID())) {
+				dominance[block].insert(dominator);
+			}
+		}
+	}
+	
 	return dominance;
 }
 

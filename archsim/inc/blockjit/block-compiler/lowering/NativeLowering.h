@@ -12,7 +12,7 @@
 
 #include "blockjit/ir.h"
 #include "core/thread/ThreadInstance.h"
-#include "util/vbitset.h"
+#include <wutils/vbitset.h>
 #include "util/MemAllocator.h"
 
 #include <string.h>
