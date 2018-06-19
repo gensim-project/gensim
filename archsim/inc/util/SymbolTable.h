@@ -1,7 +1,5 @@
-//                          Copyright Notice
-//
-//    Certain materials incorporated herein are copyright (C) 2004 – 2011,
-//  The University Court of the University of Edinburgh. All Rights Reserved.
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 //
 // =============================================================================
 //

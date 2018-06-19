@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 
 #ifndef WULIB_DENSE_SET_H
 #define WULIB_DENSE_SET_H

@@ -1,14 +1,5 @@
-//                      Confidential Information
-//           Limited Distribution to Authorized Persons Only
-//         Copyright (C) 2011 The University of Edinburgh
-//                        All Rights Reserved
-//
-// =====================================================================
-//
-//  main -- This is the top-level source file for the command-line
-//          instruction-set simulator
-//
-// =====================================================================
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 
 #include <climits>
 #include <csignal>

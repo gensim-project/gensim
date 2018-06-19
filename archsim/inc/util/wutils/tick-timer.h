@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #ifndef TICK_TIMER_H
 #define TICK_TIMER_H
 

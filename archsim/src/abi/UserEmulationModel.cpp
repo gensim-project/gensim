@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "system.h"
 #include "abi/UserEmulationModel.h"
 #include "abi/loader/BinaryLoader.h"

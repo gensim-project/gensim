@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "abi/devices/virtio/VirtIONet.h"
 #include "util/LogContext.h"
 #include "abi/devices/virtio/VirtQueue.h"

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "blockjit/block-compiler/lowering/x86/X86Encoder.h"
 
 using namespace captive::arch::jit::lowering::x86;
