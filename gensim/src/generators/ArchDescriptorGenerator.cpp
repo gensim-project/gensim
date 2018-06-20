@@ -163,7 +163,7 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 				str << "static archsim::BehaviourDescriptor bd_" << isa->ISAName << "_" << action->GetName() << "() { archsim::BehaviourDescriptor bd (\"" << action->GetPrototype().GetIRSignature().GetName() << "\", [](const archsim::InvocationContext &ctx){ helper_" << isa->ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "<false>(ctx.GetThread()";
 
 				// unpack arguments
-				for(int index = 0; index < action->GetPrototype().ParameterTypes().size(); ++index) {
+				for(size_t index = 0; index < action->GetPrototype().ParameterTypes().size(); ++index) {
 					auto &argtype = action->GetPrototype().ParameterTypes().at(index);
 					// if we're accessing a struct, assume it's a decode_t
 					std::string type_string;

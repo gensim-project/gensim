@@ -21,13 +21,13 @@ namespace gensim
 				std::string MemberName;
 				int32_t Index;
 
-				virtual bool IsFixed() const;
-				virtual bool Resolve(DiagnosticContext &ctx);
+				virtual bool IsFixed() const override;
+				virtual bool Resolve(DiagnosticContext &ctx) override;
 				bool HasSideEffects() const override;
 
 
-				virtual void PrettyPrint(std::ostringstream &str) const;
-				virtual std::set<SSASymbol *> GetKilledVariables();
+				virtual void PrettyPrint(std::ostringstream &str) const override;
+				virtual std::set<SSASymbol *> GetKilledVariables() override;
 
 				SSAReadStructMemberStatement(SSABlock *parent, SSASymbol *target, std::string member, int32_t idx = -1, SSAStatement *before = NULL);
 

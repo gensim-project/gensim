@@ -45,11 +45,11 @@ namespace gensim
 					AddOperand(arg);
 				}
 
-				virtual bool IsFixed() const;
+				virtual bool IsFixed() const override;
 
-				virtual void PrettyPrint(std::ostringstream &) const;
+				virtual void PrettyPrint(std::ostringstream &) const override;
 
-				virtual std::set<SSASymbol *> GetKilledVariables();
+				virtual std::set<SSASymbol *> GetKilledVariables() override;
 
 				~SSAIntrinsicStatement();
 

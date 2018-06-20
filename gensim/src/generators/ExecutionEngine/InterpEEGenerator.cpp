@@ -291,7 +291,7 @@ bool InterpEEGenerator::GenerateBehavioursDescriptors(util::cppformatstream& str
 				str << "static archsim::BehaviourDescriptor bd_" << i->ISAName << "_" << action.first << "() { archsim::BehaviourDescriptor bd (\"" << action.first << "\", [](const archsim::InvocationContext &ctx){ helper_" << i->ISAName << "_" << action.first << "<false>(ctx.GetThread()";
 
 				// unpack arguments
-				for(int index = 0; index < action.second->GetPrototype().ParameterTypes().size(); ++index) {
+				for(size_t index = 0; index < action.second->GetPrototype().ParameterTypes().size(); ++index) {
 					auto &argtype = action.second->GetPrototype().ParameterTypes().at(index);
 					// if we're accessing a struct, assume it's a decode_t
 					std::string type_string;

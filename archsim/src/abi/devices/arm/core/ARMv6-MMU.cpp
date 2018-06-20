@@ -293,7 +293,7 @@ namespace archsim
 			public:
 				uint32_t faulting_domain;
 
-				bool Initialise()
+				bool Initialise() override
 				{
 					FlushCaches();
 					cocoprocessor = (ArmControlCoprocessorv6*)Manager->GetDeviceByName("coprocessor");

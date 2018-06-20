@@ -19,12 +19,12 @@ namespace gensim
 			public:
 				IRConstant Constant;
 
-				virtual bool IsFixed() const;
+				virtual bool IsFixed() const override;
 				bool HasSideEffects() const override;
 				bool Resolve(DiagnosticContext& ctx) override;
 
-				virtual void PrettyPrint(std::ostringstream &) const;
-				virtual std::set<SSASymbol *> GetKilledVariables();
+				virtual void PrettyPrint(std::ostringstream &) const override;
+				virtual std::set<SSASymbol *> GetKilledVariables() override;
 
 				void Accept(SSAStatementVisitor& visitor) override;
 
