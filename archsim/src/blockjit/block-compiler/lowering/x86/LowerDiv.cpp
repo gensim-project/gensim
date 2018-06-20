@@ -54,14 +54,14 @@ bool LowerSDiv::Lower(const captive::shared::IRInstruction *&insn)
 	auto &temp = GetLoweringContext().get_temp(0, 4);
 	auto &dest_reg = GetLoweringContext().register_from_operand(dest);
 	// back up EAX
-	
+
 	if(dest_reg != REGS_RAX(dest->size)) {
 		Encoder().mov(REG_RAX, BLKJIT_TEMPS_1(8));
 	}
 
 	GetLoweringContext().encode_operand_to_reg(source, temp);
 	GetLoweringContext().encode_operand_to_reg(dest, REG_EAX);
-	
+
 
 	Encoder().cltd();
 	Encoder().idiv(temp);

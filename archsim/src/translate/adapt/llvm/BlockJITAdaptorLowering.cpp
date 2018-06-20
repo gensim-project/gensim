@@ -6,19 +6,23 @@
 
 using namespace archsim::translate::adapt;
 
-llvm::IRBuilder<>& BlockJITAdaptorLowerer::GetBuilder() {
+llvm::IRBuilder<>& BlockJITAdaptorLowerer::GetBuilder()
+{
 	return GetContext().GetBuilder();
 }
 
-BlockJITLoweringContext& BlockJITAdaptorLowerer::GetContext() {
+BlockJITLoweringContext& BlockJITAdaptorLowerer::GetContext()
+{
 	return (BlockJITLoweringContext&) GetLoweringContext();
 }
 
-llvm::Value* BlockJITAdaptorLowerer::GetValueFor(const captive::shared::IROperand& operand) {
+llvm::Value* BlockJITAdaptorLowerer::GetValueFor(const captive::shared::IROperand& operand)
+{
 	return GetContext().GetValueFor(operand);
 }
 
-void BlockJITAdaptorLowerer::SetValueFor(const captive::shared::IROperand& operand, llvm::Value* value) {
+void BlockJITAdaptorLowerer::SetValueFor(const captive::shared::IROperand& operand, llvm::Value* value)
+{
 	GetContext().SetValueFor(operand, value);
 }
 

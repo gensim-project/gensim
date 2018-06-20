@@ -106,7 +106,7 @@ namespace gensim
 
 			mutable bool bitStringsCalculated;
 		private:
-			
+
 			mutable std::vector<std::string> bitStrings;
 		};
 

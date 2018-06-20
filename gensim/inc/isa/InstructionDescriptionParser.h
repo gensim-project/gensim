@@ -1,6 +1,6 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
-/* 
+/*
  * File:   InstructionDescriptionParser.h
  * Author: harry
  *
@@ -14,9 +14,11 @@
 #include "util/AntlrWrapper.h"
 #include "DiagnosticContext.h"
 
-namespace gensim {
-	namespace isa {
-		
+namespace gensim
+{
+	namespace isa
+	{
+
 		class InstructionDescriptionParser
 		{
 		public:

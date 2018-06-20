@@ -21,25 +21,25 @@ std::vector<char> RawEncoder::Encode(const std::vector<uint32_t> &pixels)
 	uint32_t data_ptr = 0;
 	for (auto pixel_data : pixels) {
 		switch (GetFormat().bits_per_pixel) {
-		case 8:
-			data[data_ptr++] = pixel_data;
-			break;
-		case 16:
-			data[data_ptr++] = pixel_data >> 8;
-			data[data_ptr++] = pixel_data;
-			break;
-		case 24:
-			data[data_ptr++] = pixel_data >> 16;
-			data[data_ptr++] = pixel_data >> 8;
-			data[data_ptr++] = pixel_data;
-			break;
-		case 32:
-			*(uint32_t*) (data.data() + data_ptr) = pixel_data;
-			data_ptr += 4;
-			break;
+			case 8:
+				data[data_ptr++] = pixel_data;
+				break;
+			case 16:
+				data[data_ptr++] = pixel_data >> 8;
+				data[data_ptr++] = pixel_data;
+				break;
+			case 24:
+				data[data_ptr++] = pixel_data >> 16;
+				data[data_ptr++] = pixel_data >> 8;
+				data[data_ptr++] = pixel_data;
+				break;
+			case 32:
+				*(uint32_t*) (data.data() + data_ptr) = pixel_data;
+				data_ptr += 4;
+				break;
 
-		default:
-			throw std::logic_error("Unknown pixel depth");
+			default:
+				throw std::logic_error("Unknown pixel depth");
 		}
 	}
 

@@ -56,9 +56,9 @@ bool ArmLinuxUserEmulationModel::PrepareBoot(System& system)
 	GetMainThread()->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_FPEXC", 1);
 	GetMainThread()->GetFeatures().SetFeatureLevel("ARM_FPU_ENABLED_CPACR", 2);
 	GetMainThread()->GetFeatures().SetFeatureLevel("ARM_NEON_ENABLED_CPACR", 1);
-	
+
 	*GetMainThread()->GetRegisterFileInterface().GetEntry<uint32_t>("FPEXC") = 0x40000000;
-	
+
 #ifdef CONFIG_GFX
 	if (archsim::options::Doom) {
 		fprintf(stderr, "Installing doomvice\n");
@@ -204,7 +204,7 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsi
 			thread->SendMessage(archsim::core::thread::ThreadMessage::Halt);
 			return AbortSimulation;
 		}
-		
+
 		return response.action;
 
 	} else if (category == 11) {

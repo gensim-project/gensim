@@ -136,7 +136,7 @@ bool CacheBasedSystemMemoryModel::Initialise()
 
 	GetThread()->GetStateBlock().AddBlock("smm_read_cache", sizeof(void*));
 	GetThread()->GetStateBlock().AddBlock("smm_write_cache", sizeof(void*));
-	
+
 	InstallCaches();
 	FlushCaches();
 	return true;

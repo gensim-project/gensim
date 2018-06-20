@@ -42,17 +42,17 @@ void Region::dump()
 void Region::dump_dot()
 {
 	std::cerr << "graph {" << std::endl;;
-	
+
 	for(auto i : blocks) {
 		std::cerr << "block_" << std::hex << i.first << ";" << std::endl;
 	}
-	
+
 	for(auto i : blocks) {
 		for(auto j : i.second->GetSuccessors()) {
 			std::cerr << "block_" << std::hex << i.first << " -> block_" << std::hex << j->GetOffset() << ";" << std::endl;
 		}
 	}
-	
+
 	std::cerr << "}" << std::endl;;
 }
 

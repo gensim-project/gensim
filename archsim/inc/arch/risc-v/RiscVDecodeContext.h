@@ -23,7 +23,7 @@ namespace gensim
 namespace archsim
 {
 	class ArchDescriptor;
-	
+
 	namespace arch
 	{
 		namespace riscv
@@ -39,7 +39,7 @@ namespace archsim
 				 * or translating instructions i.e., not for tracing.
 				 */
 				virtual uint32_t DecodeSync(archsim::MemoryInterface &interface, Address address, uint32_t mode, gensim::BaseDecode &target) override;
-				
+
 			private:
 				const archsim::ArchDescriptor &arch_;
 			};

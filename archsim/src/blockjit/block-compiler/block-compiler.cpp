@@ -103,7 +103,7 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 
 	transforms::MergeBlocksTransform mergeblocks;
 	if (!mergeblocks.Apply(ctx)) return false;
-	
+
 	transforms::PeepholeTransform peephole;
 	if (!peephole.Apply(ctx)) return false;
 
@@ -115,45 +115,45 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 	transforms::ValueRenumberingTransform vrt;
 	if(!vrt.Apply(ctx)) return false;
 
-		// dump before register allocation
+	// dump before register allocation
 	dump_ir("premovelimination", GetBlockPA(), ctx);
-	
+
 	transforms::MovEliminationTransform mov_elimination;
 	if(!mov_elimination.Apply(ctx)) return false;
-	
+
 	dump_ir("preconstantprop", GetBlockPA(), ctx);
 	transforms::ConstantPropTransform cpt;
 	if (!cpt.Apply(ctx)) return false;
 	dump_ir("postconstantprop", GetBlockPA(), ctx);
-	
+
 	transforms::DeadStoreElimination dse;
 	if(!dse.Apply((ctx))) return false;
-	
+
 	sorter.Apply(ctx);
-	
+
 	// dump before register allocation
 	dump_ir("prealloc", GetBlockPA(), ctx);
-		
+
 	transforms::GlobalRegisterAllocationTransform reg_alloc(BLKJIT_NUM_ALLOCABLE);
 	if(!reg_alloc.Apply(ctx)) return false;
 	dump_ir("postalloc", GetBlockPA(), ctx);
-	
+
 //	transforms::GlobalRegisterReuseTransform reg_reuse(reg_alloc.GetUsedPhysRegs());
 //	if(!reg_alloc.Apply(ctx)) return false;
 //	dump_ir("postgrr", GetBlockPA(), ctx);
-	
+
 	if( !post_allocate_peephole()) return false;
 
 	transforms::PostAllocatePeephole pap;
 	if(!pap.Apply(ctx)) return false;
-	
-	
+
+
 	sorter.Apply(ctx);
 	transforms::Peephole2Transform p2;
 	if(!p2.Apply(ctx)) return false;
 
 	sorter.Apply(ctx);
-	
+
 	// dump before register allocation
 	dump_ir("final", GetBlockPA(), ctx);
 

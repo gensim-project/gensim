@@ -13,19 +13,21 @@ ExecutionEngineFactory& ExecutionEngineFactory::GetSingleton()
 	if(singleton_ == nullptr) {
 		singleton_ = new ExecutionEngineFactory();
 	}
-	
+
 	return *singleton_;
 }
 
-ExecutionEngineFactory::ExecutionEngineFactory() {
+ExecutionEngineFactory::ExecutionEngineFactory()
+{
 }
 
-ExecutionEngine *ExecutionEngineFactory::Get(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix) {
+ExecutionEngine *ExecutionEngineFactory::Get(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix)
+{
 	LC_DEBUG1(LogEEFactory) << "Available EE Factories:";
 	for(auto i : factories_) {
 		LC_DEBUG1(LogEEFactory) << "  " << i.second.Name;
 	}
-	
+
 	if(archsim::options::Mode.IsSpecified()) {
 		// try and find the specified mode
 		for(auto i : factories_) {
@@ -38,11 +40,11 @@ ExecutionEngine *ExecutionEngineFactory::Get(const archsim::module::ModuleInfo *
 				}
 			}
 		}
-		
+
 		LC_ERROR(LogEEFactory) << "Tried to use specified mode " << archsim::options::Mode.GetValue() << ", but it could not be found";
 		return nullptr;
 	}
-	
+
 	for(auto i : factories_) {
 		auto result = i.second.Factory(module, cpu_prefix);
 		LC_DEBUG1(LogEEFactory) << "For module " << module->GetName() << ", trying EEFactory " << i.second.Name;
@@ -51,12 +53,12 @@ ExecutionEngine *ExecutionEngineFactory::Get(const archsim::module::ModuleInfo *
 			return result;
 		}
 	}
-	
+
 	return nullptr;
 }
 
 void ExecutionEngineFactory::Register(const std::string& name, int priority, EEFactory factory)
-{	
+{
 	Entry entry;
 	entry.Name = name;
 	entry.Factory = factory;

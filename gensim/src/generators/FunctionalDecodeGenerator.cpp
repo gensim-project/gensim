@@ -393,9 +393,9 @@ namespace gensim
 
 			// recursively emit decode statements for the tree
 			source_str << "DecodeInstr(instr, _isa_mode);"
-					   "return 0;";
+			           "return 0;";
 			source_str << "}";
-			
+
 
 			source_str << "void " << GetProperty("class") << "::DecodeInstr(uint32_t instr, uint8_t _isa_mode)\n{\n";
 

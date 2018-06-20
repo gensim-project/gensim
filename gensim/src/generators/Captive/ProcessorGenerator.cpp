@@ -387,7 +387,7 @@ namespace gensim
 					str << "{";
 					str << *(arch.ISAs.front()->BehaviourActions.at("mmu_fault"));
 					str << "}";
-					
+
 					str << "bool " << ClassNameForCPU() << "::handle_single_step()";
 					str << "{";
 					str << *(arch.ISAs.front()->BehaviourActions.at("single_step"));

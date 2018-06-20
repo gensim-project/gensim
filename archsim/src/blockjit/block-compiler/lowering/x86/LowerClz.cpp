@@ -24,10 +24,10 @@ bool LowerClz::Lower(const captive::shared::IRInstruction *&insn)
 
 	if (source->is_vreg()) {
 		if (dest->is_vreg()) {
-			
+
 			auto source_reg = &BLKJIT_TEMPS_0(source->size);
 			auto dest_reg = &BLKJIT_TEMPS_1(dest->size);
-			
+
 			if(source->is_alloc_reg()) {
 				source_reg = &GetLoweringContext().register_from_operand(source);
 			} else {
@@ -38,10 +38,10 @@ bool LowerClz::Lower(const captive::shared::IRInstruction *&insn)
 			} else {
 				GetLoweringContext().encode_operand_to_reg(dest, *dest_reg);
 			}
-			
+
 			Encoder().bsr(*source_reg, *dest_reg);
 			Encoder().xorr(0x1f, *dest_reg);
-			
+
 			if(dest->is_alloc_stack()) {
 				Encoder().mov(*dest_reg, GetLoweringContext().stack_from_operand(dest));
 			}

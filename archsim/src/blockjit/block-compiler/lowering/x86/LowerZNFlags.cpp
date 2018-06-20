@@ -23,7 +23,7 @@ bool LowerZNFlags::Lower(const captive::shared::IRInstruction *&insn)
 	const auto &rfd = GetLoweringContext().GetArchDescriptor().GetRegisterFileDescriptor();
 	uint32_t z_o = rfd.GetTaggedEntry("Z").GetOffset();
 	uint32_t n_o = rfd.GetTaggedEntry("N").GetOffset();
-	
+
 	if(value.is_alloc_reg()) {
 		auto &input_reg = GetLoweringContext().register_from_operand(&value);
 		Encoder().test(input_reg, input_reg);

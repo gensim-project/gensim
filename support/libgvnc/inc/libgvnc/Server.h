@@ -11,52 +11,58 @@
 #include "Pointer.h"
 #include "net/Socket.h"
 
-namespace libgvnc {
-    class ClientConnection;
-    
-    class Server {
-        enum class State {
-            INVALID,
-            Starting,
-            Closed,
-            Open
-        };
+namespace libgvnc
+{
+	class ClientConnection;
 
-    public:
-        Server(Framebuffer *fb);
-        ~Server();
+	class Server
+	{
+		enum class State {
+			INVALID,
+			Starting,
+			Closed,
+			Open
+		};
 
-        bool Open(int listen_port);
+	public:
+		Server(Framebuffer *fb);
+		~Server();
 
-        Framebuffer *GetFB() {
-            return fb_;
-        }
+		bool Open(int listen_port);
 
-        Keyboard &GetKeyboard() {
-            return keyboard_;
-        }
+		Framebuffer *GetFB()
+		{
+			return fb_;
+		}
 
-        Pointer &GetPointer() {
-            return pointer_;
-        }
+		Keyboard &GetKeyboard()
+		{
+			return keyboard_;
+		}
 
-    private:
-        static void *server_thread_tramp(Server *server) {
-            return server->ServerThread();
-        }
+		Pointer &GetPointer()
+		{
+			return pointer_;
+		}
 
-        void *ServerThread();
-        void NotifyServerReady();
-        void AddClientConnection(ClientConnection *client);
+	private:
+		static void *server_thread_tramp(Server *server)
+		{
+			return server->ServerThread();
+		}
 
-        State state_;
-        std::mutex lock_;
-        std::condition_variable ready_cv_;
-        net::Socket *listen_socket_;
-        std::thread server_thread_;
-        std::set<ClientConnection *> clients_;
-        Framebuffer *fb_;
-        Keyboard keyboard_;
-        Pointer pointer_;
-    };
+		void *ServerThread();
+		void NotifyServerReady();
+		void AddClientConnection(ClientConnection *client);
+
+		State state_;
+		std::mutex lock_;
+		std::condition_variable ready_cv_;
+		net::Socket *listen_socket_;
+		std::thread server_thread_;
+		std::set<ClientConnection *> clients_;
+		Framebuffer *fb_;
+		Keyboard keyboard_;
+		Pointer pointer_;
+	};
 }

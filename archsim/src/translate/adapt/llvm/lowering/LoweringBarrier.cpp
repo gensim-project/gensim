@@ -5,9 +5,10 @@
 
 using namespace archsim::translate::adapt;
 
-bool BlockJITBARRIERLowering::Lower(const captive::shared::IRInstruction*& insn) {
-	
+bool BlockJITBARRIERLowering::Lower(const captive::shared::IRInstruction*& insn)
+{
+
 	insn++;
-	
+
 	return true;
 }

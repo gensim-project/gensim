@@ -52,16 +52,16 @@ namespace archsim
 			void Destroy() override;
 
 			gensim::Processor* GetCore(int id);
-			
+
 			archsim::core::thread::ThreadInstance *GetMainThread();
-			
+
 			void ResetCores();
 			void HaltCores();
 
 			bool PrepareBoot(System& system);
 
 			bool EmulateSyscall(SyscallRequest& request, SyscallResponse& response);
-			
+
 			Address MapAnonymousRegion(size_t size, archsim::abi::memory::RegionFlags flags);
 			bool MapRegion(Address addr, size_t size, archsim::abi::memory::RegionFlags flags, const std::string &region_name);
 
@@ -79,7 +79,7 @@ namespace archsim
 		private:
 			bool PrepareStack(System& system, loader::UserElfBinaryLoader& elf_loader);
 			bool InitialiseProgramArguments();
-			
+
 			user::SyscallHandler &syscall_handler_;
 
 			int global_argc, global_envc;
@@ -90,7 +90,7 @@ namespace archsim
 			unsigned int _stack_size;
 			unsigned int _initial_program_break;
 			unsigned int _program_break;
-			
+
 			archsim::core::thread::ThreadInstance *main_thread_;
 		};
 	}

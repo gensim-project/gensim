@@ -1,6 +1,6 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
-/* 
+/*
  * File:   AsmDescriptionParser.h
  * Author: harry
  *
@@ -15,9 +15,11 @@
 #include "isa/AsmDescription.h"
 #include <string>
 
-namespace gensim {
-	namespace isa {
-		
+namespace gensim
+{
+	namespace isa
+	{
+
 		class AsmDescriptionParser
 		{
 		public:

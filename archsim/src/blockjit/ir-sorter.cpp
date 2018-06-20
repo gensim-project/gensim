@@ -8,13 +8,14 @@ using namespace captive::arch::jit;
 using namespace captive::arch::jit::algo;
 using namespace captive::shared;
 
-uint32_t find_run_size(uint32_t* ptr, uint32_t *end) {
+uint32_t find_run_size(uint32_t* ptr, uint32_t *end)
+{
 	uint32_t first_idx = ptr[0];
 	uint32_t size = 0;
 	while((ptr + size) < end && ptr[size] == first_idx + size) {
 		size++;
 	}
-	
+
 	return size;
 }
 
@@ -31,7 +32,7 @@ IRInstruction *IRSorter::perform_sort()
 
 	IRInstruction *new_buffer = (IRInstruction*)malloc(ctx.count() * sizeof(IRInstruction));
 	IRInstruction *buffer_ptr = new_buffer;
-	
+
 	uint32_t run_start = 0;
 	while(run_start < count()) {
 		uint32_t run_size = find_run_size(&insn_idxs[run_start], insn_idxs_end);
@@ -39,7 +40,7 @@ IRInstruction *IRSorter::perform_sort()
 		buffer_ptr += run_size;
 		run_start += run_size;
 	}
-	
+
 	free(insn_idxs);
 
 	insn_idxs = NULL;
@@ -202,13 +203,14 @@ int MergeSort::lower(int from, int to, int val)
 	return from;
 }
 
-bool NopFilter::do_sort() {
+bool NopFilter::do_sort()
+{
 	uint32_t fast_ptr, slow_ptr;
 	fast_ptr = 1;
-	
-	// whenever slow_ptr encounters a nop slot, fast_ptr advances until it 
+
+	// whenever slow_ptr encounters a nop slot, fast_ptr advances until it
 	// finds a real instruction. Then, it swaps the instruction for the nop.
-	
+
 	for(slow_ptr = 0; slow_ptr < count(); ++slow_ptr) {
 		if(key(slow_ptr) == NOP_BLOCK) {
 			if(fast_ptr <= slow_ptr) {
@@ -219,14 +221,14 @@ bool NopFilter::do_sort() {
 					break;
 				}
 			}
-			
+
 			if(fast_ptr >= count()) {
 				return true;
 			}
-			
+
 			exchange(slow_ptr, fast_ptr);
 		}
 	}
-	
+
 	return true;
 }

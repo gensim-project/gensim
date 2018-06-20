@@ -236,13 +236,19 @@ namespace libtrace
 			return GetData32();
 		}
 	};
-	
+
 	struct IndexRecord : public TraceRecord {
 	public:
 		IndexRecord(uint16_t record_count, uint32_t instruction_count) : TraceRecord(Index, record_count, instruction_count, 0) {}
 
-		uint16_t GetRecordCount() const { return GetData16(); }
-		uint32_t GetInstructionCount() const { return GetData32(); }
+		uint16_t GetRecordCount() const
+		{
+			return GetData16();
+		}
+		uint32_t GetInstructionCount() const
+		{
+			return GetData32();
+		}
 	};
 }
 

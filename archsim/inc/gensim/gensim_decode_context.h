@@ -14,7 +14,8 @@
 
 namespace captive
 {
-	namespace shared {
+	namespace shared
+	{
 		class IRBuilder;
 	}
 	namespace arch
@@ -26,11 +27,13 @@ namespace captive
 	}
 }
 
-namespace archsim 
+namespace archsim
 {
 	class MemoryInterface;
-	namespace core {
-		namespace thread {
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}

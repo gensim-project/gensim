@@ -5,15 +5,16 @@
 
 using namespace archsim::translate::adapt;
 
-bool BlockJITEXCEPTIONLowering::Lower(const captive::shared::IRInstruction*& insn) {
-	
+bool BlockJITEXCEPTIONLowering::Lower(const captive::shared::IRInstruction*& insn)
+{
+
 	const auto &category = insn->operands[0];
 	const auto &data = insn->operands[1];
-	
+
 	// create call to cpuTakeException
 	GetBuilder().CreateCall(GetContext().GetValues().cpuTakeExceptionPtr, {GetThreadPtr(), GetValueFor(category), GetValueFor(data)});
-	
+
 	insn++;
-	
+
 	return true;
 }

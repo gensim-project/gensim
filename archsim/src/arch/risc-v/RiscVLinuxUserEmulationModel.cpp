@@ -91,7 +91,7 @@ archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(arch
 
 		archsim::abi::SyscallRequest request {0, cpu};
 		request.syscall = registers[17];
-		
+
 		archsim::abi::SyscallResponse response;
 		response.action = ResumeNext;
 
@@ -108,7 +108,7 @@ archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(arch
 			LC_ERROR(LogEmulationModelRiscVLinux) << "Syscall not supported: " << std::hex << "0x" << request.syscall << "(" << std::dec << request.syscall << ")";
 			registers[0] = -1;
 		}
-		
+
 		// xxx arm hax
 		// currently a syscall cannot return an action other than resume, so
 		// we need to exit manually here.

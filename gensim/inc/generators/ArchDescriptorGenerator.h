@@ -11,21 +11,22 @@ namespace gensim
 	namespace generator
 	{
 
-		class ArchDescriptorGenerator : public GenerationComponent {
+		class ArchDescriptorGenerator : public GenerationComponent
+		{
 		public:
 			ArchDescriptorGenerator(GenerationManager &manager);
-			
+
 			bool Generate() const override;
 			std::string GetFunction() const override;
 			const std::vector<std::string> GetSources() const override;
-			
+
 		private:
 			bool GenerateHeader(util::cppformatstream &str) const;
 			bool GenerateSource(util::cppformatstream &str) const;
-			
+
 			bool GenerateThreadInterface(util::cppformatstream &str) const;
 		};
-		
+
 	}
 }
 

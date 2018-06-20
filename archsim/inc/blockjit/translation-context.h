@@ -29,9 +29,9 @@ namespace captive
 			public:
 				TranslationContext();
 				~TranslationContext();
-				
+
 				void clear();
-				
+
 				inline void add_instruction(shared::IRBlockId block_id, const shared::IRInstruction& instruction)
 				{
 					ensure_buffer(_ir_insn_count + 1);
@@ -41,21 +41,23 @@ namespace captive
 					_ir_insns[_ir_insn_count].ir_block = block_id;
 					_ir_insn_count++;
 				}
-				
-				inline shared::IRInstruction &get_next_instruction() {
+
+				inline shared::IRInstruction &get_next_instruction()
+				{
 					ensure_buffer(_ir_insn_count + 1);
-					
+
 					// construct object
 					auto ptr = &_ir_insns[_ir_insn_count++];
 					new(ptr) shared::IRInstruction(shared::IRInstruction::NOP);
-					
+
 					return *ptr;
 				}
-				inline shared::IRInstruction *get_next_instruction_ptr() {
+				inline shared::IRInstruction *get_next_instruction_ptr()
+				{
 					ensure_buffer(_ir_insn_count + 1);
-					
+
 					// return pointer without constructing object
-					auto ptr = &_ir_insns[_ir_insn_count++];					
+					auto ptr = &_ir_insns[_ir_insn_count++];
 					return ptr;
 				}
 
@@ -153,12 +155,12 @@ namespace captive
 				{
 					_ir_reg_count = max_reg;
 				}
-				
+
 				size_t size_bytes() const
 				{
 					return sizeof(*_ir_insns) * _ir_insn_count;
 				}
-				
+
 				void trim()
 				{
 					int64_t nop_block_start = -1;
@@ -171,7 +173,7 @@ namespace captive
 					if(nop_block_start == -1) {
 						return;
 					}
-					
+
 					_ir_insn_count = nop_block_start;
 					_ir_insns = (shared::IRInstruction*)realloc(_ir_insns, sizeof(shared::IRInstruction) * _ir_insn_count);
 					_ir_insn_buffer_size = _ir_insn_count;
@@ -198,8 +200,8 @@ namespace captive
 						_ir_insns = (shared::IRInstruction *)realloc(_ir_insns, _ir_insn_buffer_size);
 						assert(_ir_insns);
 					}
-				}	
-		};
+				}
+			};
 		}
 	}
 }

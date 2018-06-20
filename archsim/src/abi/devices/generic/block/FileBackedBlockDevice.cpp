@@ -29,7 +29,7 @@ bool FileBackedBlockDevice::Open(std::string filename, bool read_only)
 	assert(file_data == NULL);
 
 	cache.reset(new BlockCache());
-	
+
 	LC_DEBUG1(LogBlockDevice) << "Opening file " << filename;
 
 	this->read_only = read_only;

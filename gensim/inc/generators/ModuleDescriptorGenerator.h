@@ -5,12 +5,15 @@
 
 #include "GenerationManager.h"
 
-namespace gensim {
-	namespace generator {
-		class ModuleDescriptorGenerator : public GenerationComponent {
+namespace gensim
+{
+	namespace generator
+	{
+		class ModuleDescriptorGenerator : public GenerationComponent
+		{
 		public:
 			ModuleDescriptorGenerator(GenerationManager &man);
-			
+
 			bool Generate() const override;
 
 			virtual const std::vector<std::string> GetSources() const;

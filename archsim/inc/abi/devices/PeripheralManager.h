@@ -22,8 +22,10 @@ namespace gensim
 
 namespace archsim
 {
-	namespace core {
-		namespace thread {
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}
@@ -65,7 +67,10 @@ namespace archsim
 
 				bool ProbeDeviceByName(std::string name);
 				Device* GetDeviceByName(std::string name);
-				Device *GetDevice(uint32_t device_id) { return AttachedPeripherals.at(device_id); }
+				Device *GetDevice(uint32_t device_id)
+				{
+					return AttachedPeripherals.at(device_id);
+				}
 
 				bool InitialiseDevices();
 

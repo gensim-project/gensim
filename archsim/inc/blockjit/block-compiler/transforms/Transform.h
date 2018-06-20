@@ -31,17 +31,17 @@ namespace captive
 				public:
 					virtual ~Transform();
 					virtual bool Apply(TranslationContext& ctx) = 0;
-				}; 
-				
+				};
+
 				class AllocationWriterTransform : public Transform
 				{
 				public:
 					typedef std::map<captive::shared::IRRegId, std::pair<captive::shared::IROperand::IRAllocationMode, uint16_t>> allocations_t;
-					
+
 					AllocationWriterTransform(const allocations_t &allocations);
 					virtual ~AllocationWriterTransform();
 					virtual bool Apply(TranslationContext &ctx) override;
-					
+
 				private:
 					allocations_t allocations_;
 				};
@@ -51,16 +51,16 @@ namespace captive
 				public:
 					virtual ~MovEliminationTransform();
 					virtual bool Apply(TranslationContext &ctx) override;
-					
+
 				};
-				
+
 				class DeadStoreElimination : public Transform
 				{
 				public:
 					virtual ~DeadStoreElimination();
 					virtual bool Apply(TranslationContext &ctx) override;
 				};
-				
+
 				class GlobalRegisterReuseTransform : public Transform
 				{
 				public:
@@ -71,14 +71,14 @@ namespace captive
 					archsim::util::vbitset used_pregs_;
 					int max_regs_;
 				};
-				
+
 				class GlobalRegisterAllocationTransform : public Transform
 				{
 				public:
 					GlobalRegisterAllocationTransform(uint32_t num_allocable_registers);
 					virtual ~GlobalRegisterAllocationTransform();
 					virtual bool Apply(TranslationContext &ctx) override;
-					
+
 					uint32_t GetStackFrameSize() const;
 					archsim::util::vbitset GetUsedPhysRegs() const;
 				private:
@@ -86,36 +86,36 @@ namespace captive
 					uint32_t num_allocable_registers_;
 					archsim::util::vbitset used_phys_regs_;
 				};
-				
+
 				class RegisterAllocationTransform : public Transform
 				{
 				public:
 					RegisterAllocationTransform(uint32_t num_allocable_registers);
 					virtual ~RegisterAllocationTransform();
 					virtual bool Apply(TranslationContext &ctx) override;
-					
+
 					uint32_t GetStackFrameSize() const;
 					archsim::util::vbitset GetUsedPhysRegs() const;
-					
+
 				private:
 					uint32_t stack_frame_size_;
 					uint32_t number_allocable_registers_;
 					archsim::util::vbitset used_phys_regs_;
 				};
-				
+
 				class StackToRegTransform : public Transform
 				{
 				public:
 					StackToRegTransform(archsim::util::vbitset used_phys_regs);
 					virtual ~StackToRegTransform();
-					
+
 					virtual bool Apply(TranslationContext &ctx) override;
 					archsim::util::vbitset GetUsedPhysRegs() const;
-					
+
 				private:
 					archsim::util::vbitset used_phys_regs_;
 				};
-				
+
 				class ReorderBlocksTransform : public Transform
 				{
 				public:

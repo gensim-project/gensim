@@ -16,7 +16,7 @@ using namespace archsim::module;
 DeclareLogContext(LogModule, "Module");
 
 // Logging is not enabled until after modules are loaded, so we need to be a bit clever here
-#define EARLYLOG_INFO if(!archsim::options::Verbose); else std::cout 
+#define EARLYLOG_INFO if(!archsim::options::Verbose); else std::cout
 #define EARLYLOG_ERROR if(!archsim::options::Verbose); else std::cerr
 
 bool ModuleManager::LoadModule(const std::string& module_filename)
@@ -55,7 +55,7 @@ bool ModuleManager::LoadModuleDirectory(const std::string& module_directory)
 			success &= LoadModule(module_directory + "/" + std::string(ent->d_name));
 		}
 	}
-	
+
 	closedir(dir);
 	return success;
 }

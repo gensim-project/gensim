@@ -342,7 +342,7 @@ namespace gensim
 			// need to cast vectors if we have a splat operation
 			bool left_is_vector = Left->EvaluateType().VectorWidth > 1;
 			bool right_is_vector = Right->EvaluateType().VectorWidth > 1;
-			
+
 			if(left_is_vector != right_is_vector) {
 				if(!left_is_vector) {
 					auto cast = new IRCastExpression(GetScope(), Right->EvaluateType());
@@ -357,7 +357,7 @@ namespace gensim
 					cast->Resolve(Context);
 				}
 			}
-			
+
 			// If we are using a set operator, we need to check that Left is large enough to contain Right
 			IRType LType = Left->EvaluateType();
 			IRType RType = Right->EvaluateType();

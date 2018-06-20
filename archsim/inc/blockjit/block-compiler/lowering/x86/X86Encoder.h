@@ -22,7 +22,8 @@ namespace captive
 		{
 			namespace lowering
 			{
-				namespace x86 {
+				namespace x86
+				{
 					struct X86Register {
 						X86Register(const char *name, uint8_t size, uint8_t raw_index, bool hi = false, bool nw = false) : name(name), size(size), raw_index(raw_index), hireg(hi), newreg(nw) { }
 						const char *name;

@@ -204,7 +204,7 @@ namespace gensim
 							output << "thread->GetFPState().SetRoundingMode(mode);";
 							output << "}";
 							break;
-							
+
 						default:
 							throw std::logic_error("Unhandled");
 					}
@@ -339,7 +339,7 @@ namespace gensim
 					case SSAIntrinsicStatement::SSAIntrinsic_WritePc:
 						output << "assert(false);";
 						break;
-					
+
 					case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = __builtin_clz(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
@@ -519,7 +519,7 @@ namespace gensim
 
 				// look up correct memory interface
 				auto interface = stmt.GetInterface();
-				
+
 				output << "{";
 				output << "archsim::Address addr = archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ");";
 				output << "auto &interface = thread->GetMemoryInterface(" << interface->GetID() << ");";
@@ -530,7 +530,7 @@ namespace gensim
 				output << "}";
 				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Read(1, " << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ", " << stmt.Target()->GetName() << ", " << (uint32_t)(stmt.Width) << "); }";
 				output << "}";
-				
+
 				return true;
 			}
 		};
@@ -544,12 +544,12 @@ namespace gensim
 			}
 
 			bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
-			{				
+			{
 				const SSAMemoryWriteStatement &stmt = (const SSAMemoryWriteStatement &) (Statement);
-				
+
 				// look up correct memory interface
 				auto interface = stmt.GetInterface();
-				
+
 				output << "{";
 				output << "auto &interface = thread->GetMemoryInterface(" << interface->GetID() << ");";
 				output << "archsim::Address addr = archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ");";
@@ -756,7 +756,7 @@ namespace gensim
 				output << stmt.Target()->GetPrototype().GetIRSignature().GetName() << "(";
 
 				bool first = true;
-				
+
 				if(is_helper) {
 					first = false;
 					output << "thread";

@@ -35,7 +35,7 @@ namespace archsim
 			{
 			public:
 				using translation_fn = captive::shared::block_txln_fn;
-				
+
 				LLVMTranslation(translation_fn fnp, LLVMMemoryManager *mem_mgr);
 				~LLVMTranslation();
 

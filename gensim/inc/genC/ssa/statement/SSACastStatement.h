@@ -36,7 +36,7 @@ namespace gensim
 
 					// Convert the 'bits' of the source value to the data format for the new type. This cast type has an option.
 					Cast_Convert,
-					
+
 					// Splat a scalar into a vector type
 					Cast_VectorSplat
 				};

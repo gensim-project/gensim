@@ -8,9 +8,9 @@ using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;
 
-StackToRegTransform::StackToRegTransform(archsim::util::vbitset used_phys_regs) : used_phys_regs_(used_phys_regs) 
+StackToRegTransform::StackToRegTransform(archsim::util::vbitset used_phys_regs) : used_phys_regs_(used_phys_regs)
 {
-	
+
 }
 
 StackToRegTransform::~StackToRegTransform()

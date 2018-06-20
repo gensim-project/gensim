@@ -46,7 +46,7 @@ namespace gensim
 		public:
 			bool GenerateClass(util::cppformatstream &str) const;
 			bool GenerateTranslation(util::cppformatstream &str) const;
-			
+
 			bool GenerateHeader(util::cppformatstream &) const;
 			bool GenerateSource(util::cppformatstream &) const;
 

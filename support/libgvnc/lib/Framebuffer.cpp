@@ -35,8 +35,7 @@ std::vector<Rectangle> Framebuffer::ServeRequest(const struct fb_update_request&
 
 using encoder_factory_t = Encoder*(const FB_PixelFormat& format, const RectangleShape& shape);
 
-static std::map<EncodingType, std::function<encoder_factory_t>> encoders
-{
+static std::map<EncodingType, std::function<encoder_factory_t>> encoders {
 	std::make_pair(EncodingType::Raw, [](const FB_PixelFormat& format, const RectangleShape & shape)
 	{
 		return(Encoder*)new RawEncoder(format, shape);
@@ -50,7 +49,8 @@ static int ilog2(int index)
 	return targetlevel;
 }
 
-class PixelConverter {
+class PixelConverter
+{
 public:
 
 	PixelConverter(const FB_PixelFormat &start, const FB_PixelFormat &end) : start_(start), end_(end)

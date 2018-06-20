@@ -20,8 +20,10 @@ namespace gensim
 
 namespace archsim
 {
-	namespace core {
-		namespace thread {
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}

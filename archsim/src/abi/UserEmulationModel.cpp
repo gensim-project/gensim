@@ -25,7 +25,7 @@ UserEmulationModel::~UserEmulationModel() { }
 void UserEmulationModel::PrintStatistics(std::ostream& stream)
 {
 //	cpu->PrintStatistics(stream);
-	
+
 }
 
 bool UserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, SignalData* data)
@@ -55,14 +55,14 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	auto engine = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
 	GetSystem().GetECM().AddEngine(engine);
 	main_thread_ = new archsim::core::thread::ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
-	
+
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
 		i->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
 		i->ConnectTranslationProvider(*new archsim::IdentityTranslationProvider());
 	}
-	
+
 	engine->AttachThread(main_thread_);
-	
+
 	return true;
 }
 
@@ -120,9 +120,9 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 	unsigned long argv_ptrs[global_argc + 1];
 
 	uint32_t sp = _initial_stack_pointer;
-	
+
 //	printf("Start (%08x)\n", sp);
-	
+
 #define PUSH32(_val)   do { sp -= 4; GetMemoryModel().Write32(sp, _val); } while (0)
 #define PUSHSTR(_str)  do { sp -= (strlen(_str) + 1); GetMemoryModel().WriteString(sp, _str); } while (0)
 #define ALIGN_STACK(v) do { sp -= ((unsigned long)sp & (v - 1)); } while (0)
@@ -139,7 +139,7 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 			PUSHSTR(environ[i]);
 		envp_ptrs[i] = sp;
 	}
-	
+
 //	printf("Pushed env values (%08x)\n", sp);
 
 	PUSHSTR(archsim::options::TargetBinary.GetValue().c_str());  // The real arg0
@@ -149,7 +149,7 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 		PUSHSTR(global_argv[i]);
 		argv_ptrs[i+1] = sp;
 	}
-	
+
 //	printf("Pushed arg values (%08x)\n", sp);
 
 	ALIGN_STACK(4);
@@ -229,7 +229,7 @@ bool UserEmulationModel::PrepareBoot(System &system)
 		cpu->write_register_T(0);
 	}
 	 * */
-	
+
 	LC_DEBUG1(LogEmulationModelUser) << "Initial stack pointer: " << std::hex << _initial_stack_pointer;
 
 	GetMainThread()->SetPC(Address(_initial_entry_point));

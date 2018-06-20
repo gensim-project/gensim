@@ -18,6 +18,7 @@ Finalisation::~Finalisation()
 
 }
 
-bool X86Finalisation::Finalise(LoweringContext& context) {
+bool X86Finalisation::Finalise(LoweringContext& context)
+{
 	return FinaliseX86(static_cast<x86::X86LoweringContext&>(context));
 }

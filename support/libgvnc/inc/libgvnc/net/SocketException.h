@@ -4,17 +4,22 @@
 #include <stdexcept>
 #include <string>
 
-namespace libgvnc {
-    namespace net {
-        class SocketException : public std::exception
-        {
-        public:
-            SocketException(const std::string& message) : message_(message) { }
-            
-            const char* what() const noexcept override { return message_.c_str(); }
-            
-        private:
-            const std::string message_;
-        };
-    }
+namespace libgvnc
+{
+	namespace net
+	{
+		class SocketException : public std::exception
+		{
+		public:
+			SocketException(const std::string& message) : message_(message) { }
+
+			const char* what() const noexcept override
+			{
+				return message_.c_str();
+			}
+
+		private:
+			const std::string message_;
+		};
+	}
 }

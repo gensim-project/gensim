@@ -231,37 +231,37 @@ bool ArchDescriptionParser::load_feature_set(pANTLR3_BASE_TREE featuresNode)
 bool ArchDescriptionParser::load_mem(pANTLR3_BASE_TREE memNode)
 {
 	assert(memNode->getType(memNode) == AC_MEM);
-	
+
 	auto nameNode = (pANTLR3_BASE_TREE)memNode->getChild(memNode, 0);
 	auto addrNode = (pANTLR3_BASE_TREE)memNode->getChild(memNode, 1);
 	auto wordNode = (pANTLR3_BASE_TREE)memNode->getChild(memNode, 2);
 	auto endianNode = (pANTLR3_BASE_TREE)memNode->getChild(memNode, 3);
 	auto fetchNode = (pANTLR3_BASE_TREE)memNode->getChild(memNode, 4);
-	
+
 	std::string name = (const char*)nameNode->getText(nameNode)->chars;
 	uint64_t addr = strtoll((char*)addrNode->getText(addrNode)->chars, nullptr, 10);
 	uint64_t word = strtoll((char*)wordNode->getText(addrNode)->chars, nullptr, 10);
 	bool big_endian = false;
-	
+
 	std::string endian_text = (const char *)endianNode->getText(endianNode)->chars;
 	if(endian_text == "little") {
-	 	big_endian = false;
+		big_endian = false;
 	} else if(endian_text == "big") {
 		big_endian = true;
 	} else {
 		diag_ctx.Error("Unknown endianness: " + endian_text);
 		return false;
 	}
-	
+
 	bool is_fetch = strtoll((const char*)fetchNode->getText(fetchNode)->chars, nullptr, 10);
-	
+
 	MemoryInterfaceDescription mid (name, addr, word, big_endian, arch->GetMemoryInterfaces().GetInterfaces().size());
 	arch->GetMemoryInterfaces().AddInterface(mid);
-	
+
 	if(is_fetch) {
 		arch->GetMemoryInterfaces().SetFetchInterface(name);
 	}
-	
+
 	return true;
 }
 

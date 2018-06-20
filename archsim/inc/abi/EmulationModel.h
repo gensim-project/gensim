@@ -28,14 +28,16 @@ namespace gensim
 namespace archsim
 {
 	class MemoryInterface;
-	
+
 	namespace uarch
 	{
 		class uArch;
 	}
-	
-	namespace core {
-		namespace thread {
+
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}

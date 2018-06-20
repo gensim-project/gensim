@@ -6,16 +6,17 @@
 
 using namespace archsim::translate::adapt;
 
-bool BlockJITLDPCLowering::Lower(const captive::shared::IRInstruction*& insn) {
+bool BlockJITLDPCLowering::Lower(const captive::shared::IRInstruction*& insn)
+{
 	const auto &target = insn->operands[0];
 
 	assert(target.is_vreg());
 
 	auto &PC = GetContext().GetArchDescriptor().GetRegisterFileDescriptor().GetTaggedEntry("PC");
-	
+
 	GetContext().SetValueFor(target, GetBuilder().CreateLoad(GetContext().GetRegisterPointer(PC, 0)));
-	
+
 	insn++;
-	
+
 	return true;
 }

@@ -45,7 +45,7 @@ namespace gensim
 			if (GetProperty("Debug") == "1") makefile << " -g ";
 			makefile << " -O" << GetProperty("Optimise") << " ";
 			if (GetProperty("Tune") == "1") makefile << " -mtune=native -march=native ";
-			
+
 			makefile << "\n"
 			         "LDFLAGS= --shared -fPIC \n"
 			         "ifeq ($(UNAME), Darwin)\n"

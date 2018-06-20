@@ -18,8 +18,9 @@ static void make_instruction_nop(IRInstruction *insn, bool set_block)
 	if(set_block) insn->ir_block = NOP_BLOCK;
 }
 
-RegisterAllocationTransform::RegisterAllocationTransform(uint32_t num_allocable_registers) : used_phys_regs_(num_allocable_registers), number_allocable_registers_(num_allocable_registers), stack_frame_size_(0) {
-	
+RegisterAllocationTransform::RegisterAllocationTransform(uint32_t num_allocable_registers) : used_phys_regs_(num_allocable_registers), number_allocable_registers_(num_allocable_registers), stack_frame_size_(0)
+{
+
 }
 
 RegisterAllocationTransform::~RegisterAllocationTransform()
@@ -92,7 +93,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 
 			// Reset the available register bitfield
 			avail_regs.set_all();
-			
+
 			// Update the latest block id.
 			latest_block_id = insn->ir_block;
 		}
@@ -142,7 +143,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 			// If the live-in is not already allocated, allocate it.
 			if (allocation[in] == -1 && global_allocation.count(in) == 0) {
 				int32_t next_reg = avail_regs.get_lowest_set();
-				
+
 				if (next_reg == -1) {
 					global_allocation[in] = next_global;
 					next_global += 8;

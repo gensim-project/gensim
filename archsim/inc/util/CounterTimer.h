@@ -74,13 +74,19 @@ namespace archsim
 			std::chrono::system_clock::time_point start;
 			seconds_t elapsed;
 		};
-		
+
 		class CounterTimerContext
 		{
 		public:
-			CounterTimerContext(CounterTimer &counter) : counter_(counter) { counter_.Start(); }
-			~CounterTimerContext() { counter_.Stop(); }
-			
+			CounterTimerContext(CounterTimer &counter) : counter_(counter)
+			{
+				counter_.Start();
+			}
+			~CounterTimerContext()
+			{
+				counter_.Stop();
+			}
+
 		private:
 			CounterTimer &counter_;
 		};

@@ -49,20 +49,23 @@ bool LoweringContext::Lower(const TranslationContext &ctx)
 	return true;
 }
 
-MCLoweringContext::MCLoweringContext(uint32_t stack_frame_size, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd) : LoweringContext(arch, sbd), _stack_frame_size(stack_frame_size) {
+MCLoweringContext::MCLoweringContext(uint32_t stack_frame_size, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd) : LoweringContext(arch, sbd), _stack_frame_size(stack_frame_size)
+{
 
 }
 
-MCLoweringContext::~MCLoweringContext() {
+MCLoweringContext::~MCLoweringContext()
+{
 
 }
 
 
-bool MCLoweringContext::Lower(const TranslationContext &ctx) {
+bool MCLoweringContext::Lower(const TranslationContext &ctx)
+{
 	if(!LoweringContext::Lower(ctx)) {
 		return false;
 	}
-	
+
 	if(!PerformFinalisations()) {
 		LC_ERROR(LogLower) << "Failed to perform finalisations";
 		return false;
@@ -130,7 +133,7 @@ bool LoweringContext::LowerBody(const TranslationContext &ctx)
 bool LoweringContext::LowerBlock(const TranslationContext &ctx, captive::shared::IRBlockId block_id, uint32_t block_start)
 {
 	LC_DEBUG4(LogLower) << "Lowering block";
-	
+
 	const IRInstruction *insn = ctx.at(block_start);
 	while(insn < ctx.end() && (insn->ir_block == NOP_BLOCK || insn->ir_block == block_id)) {
 		if(!LowerInstruction(ctx, insn)) {
@@ -142,7 +145,8 @@ bool LoweringContext::LowerBlock(const TranslationContext &ctx, captive::shared:
 	return true;
 }
 
-bool MCLoweringContext::LowerBlock(const TranslationContext& ctx, captive::shared::IRBlockId block_id, uint32_t block_start) {
+bool MCLoweringContext::LowerBlock(const TranslationContext& ctx, captive::shared::IRBlockId block_id, uint32_t block_start)
+{
 	RegisterBlockOffset(block_id, GetEncoderOffset());
 	return LoweringContext::LowerBlock(ctx, block_id, block_start);
 }

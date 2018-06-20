@@ -9,10 +9,16 @@
 
 #ifdef ARCHSIM_SIMULATION_HOST_IS_x86_64
 #include <x86intrin.h>
-static uint64_t timer() { return __rdtsc(); }
+static uint64_t timer()
+{
+	return __rdtsc();
+}
 #else
 #include <chrono>
-static uint64_t timer() { return std::chrono::high_resolution_clock::now().time_since_epoch().count(); }
+static uint64_t timer()
+{
+	return std::chrono::high_resolution_clock::now().time_since_epoch().count();
+}
 #endif
 
 class tick_timer

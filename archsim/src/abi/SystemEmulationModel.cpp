@@ -60,11 +60,11 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 	auto arch = archentry->Get();
-	
+
 	auto engine = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
 	GetSystem().GetECM().AddEngine(engine);
 	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
-	
+
 	// Create a system memory model for this CPU
 	SystemMemoryModel *smm = NULL;
 	if(!GetComponentInstance(archsim::options::SystemMemoryModel, smm, &GetMemoryModel(), &system.GetPubSub())) {
@@ -80,7 +80,7 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 
 	// Obtain the MMU
 	devices::MMU *mmu = (devices::MMU*)main_thread_->GetPeripherals().GetDeviceByName("mmu");
-	
+
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
 		if(i == &main_thread_->GetFetchMI()) {
 			i->Connect(*new archsim::LegacyFetchMemoryInterface(*smm));
@@ -92,8 +92,8 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	}
 
 	engine->AttachThread(main_thread_);
-	
-	
+
+
 	// Update the memory model with the necessary object references
 	smm->SetMMU(mmu);
 	smm->SetCPU(main_thread_);

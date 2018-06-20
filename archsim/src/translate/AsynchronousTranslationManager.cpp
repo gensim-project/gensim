@@ -96,7 +96,7 @@ void AsynchronousTranslationManager::UpdateThreshold()
 bool AsynchronousTranslationManager::TranslateRegion(archsim::core::thread::ThreadInstance *cpu, profile::Region& region, uint32_t weight)
 {
 	fprintf(stderr, "*** Translating %x\n", region.GetPhysicalBaseAddress());
-	
+
 	if (!region.IsValid()) return false;
 
 	// Create the translation work unit for this region.

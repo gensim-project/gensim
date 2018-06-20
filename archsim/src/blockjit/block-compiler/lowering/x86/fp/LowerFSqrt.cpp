@@ -31,7 +31,7 @@ bool LowerFSqrt::Lower(const captive::shared::IRInstruction *&insn)
 	if(op1.is_alloc_stack()) {
 		Encoder().mov(GetLoweringContext().stack_from_operand(&op1), op1_reg);
 	}
-	
+
 	// dest = op1 - op2
 	if(width == 4) {
 		Encoder().movq(op1_reg, BLKJIT_FP_0);

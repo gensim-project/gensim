@@ -9,97 +9,106 @@
 #include "Framebuffer.h"
 #include "net/Socket.h"
 
-namespace libgvnc {
-    class Server;
-    
-    struct fb_update_request {
-        uint8_t incremental;
-        uint16_t x_pos;
-        uint16_t y_pos;
-        uint16_t width;
-        uint16_t height;
-    };
+namespace libgvnc
+{
+	class Server;
 
-    class ClientConnection {
-    public:
-        enum class State {
-            Invalid,
-            FreshlyConnected,
+	struct fb_update_request {
+		uint8_t incremental;
+		uint16_t x_pos;
+		uint16_t y_pos;
+		uint16_t width;
+		uint16_t height;
+	};
 
-            // Handshaking
-            HS_Done,
+	class ClientConnection
+	{
+	public:
+		enum class State {
+			Invalid,
+			FreshlyConnected,
 
-            // Initialisation
-            Init_Done,
+			// Handshaking
+			HS_Done,
 
-            Closed
-        };
+			// Initialisation
+			Init_Done,
 
-        ClientConnection(Server *server, net::Socket *client_socket);
+			Closed
+		};
 
-        void Open();
-        void Close();
+		ClientConnection(Server *server, net::Socket *client_socket);
 
-        Server *GetServer() {
-            return server_;
-        }
+		void Open();
+		void Close();
 
-    private:
-        void SendRaw(const void *data, size_t size);
+		Server *GetServer()
+		{
+			return server_;
+		}
 
-        template<typename T> void Send(const T& data) {
-            SendRaw(&data, sizeof (T));
-        }
+	private:
+		void SendRaw(const void *data, size_t size);
 
-        void Buffer(const void *data, size_t size) {
-            auto oldsize = buffer_.size();
-            buffer_.resize(buffer_.size() + size);
-            memcpy(buffer_.data() + oldsize, (char*) data, size);
-        }
+		template<typename T> void Send(const T& data)
+		{
+			SendRaw(&data, sizeof (T));
+		}
 
-        template<typename T> void Buffer(const T& data) {
-            Buffer(&data, sizeof (T));
-        }
+		void Buffer(const void *data, size_t size)
+		{
+			auto oldsize = buffer_.size();
+			buffer_.resize(buffer_.size() + size);
+			memcpy(buffer_.data() + oldsize, (char*) data, size);
+		}
 
-        void SendBuffer() {
-            SendRaw(buffer_.data(), buffer_.size());
-            buffer_.clear();
-        }
+		template<typename T> void Buffer(const T& data)
+		{
+			Buffer(&data, sizeof (T));
+		}
 
-        void ReceiveRaw(void *data, size_t size);
+		void SendBuffer()
+		{
+			SendRaw(buffer_.data(), buffer_.size());
+			buffer_.clear();
+		}
 
-        template<typename T> void Receive(T& data) {
-            ReceiveRaw(&data, sizeof (T));
-        }
+		void ReceiveRaw(void *data, size_t size);
 
-        void Run();
+		template<typename T> void Receive(T& data)
+		{
+			ReceiveRaw(&data, sizeof (T));
+		}
 
-        bool Handshake();
-        bool Initialise();
+		void Run();
 
-        bool ServeClientMessage();
-        bool ServeSetPixelFormat();
-        bool ServeSetEncodings();
-        bool ServeFramebufferUpdateRequest();
-        bool ServeKeyEvent();
-        bool ServePointerEvent();
-        bool ServeClientCutText();
+		bool Handshake();
+		bool Initialise();
 
-        void UpdateFB(const struct fb_update_request &request);
+		bool ServeClientMessage();
+		bool ServeSetPixelFormat();
+		bool ServeSetEncodings();
+		bool ServeFramebufferUpdateRequest();
+		bool ServeKeyEvent();
+		bool ServePointerEvent();
+		bool ServeClientCutText();
 
-        void SetPixelFormat(struct FB_PixelFormat &new_format) {
-            pixel_format_ = new_format;
-        }
+		void UpdateFB(const struct fb_update_request &request);
 
-        struct FB_PixelFormat pixel_format_;
-        std::thread thread_;
-        std::mutex lock_;
-        net::Socket *client_socket_;
-        bool open_;
-        State state_;
-        int subversion_;
-        Server *server_;
+		void SetPixelFormat(struct FB_PixelFormat &new_format)
+		{
+			pixel_format_ = new_format;
+		}
 
-        std::vector<char> buffer_;
-    };
+		struct FB_PixelFormat pixel_format_;
+		std::thread thread_;
+		std::mutex lock_;
+		net::Socket *client_socket_;
+		bool open_;
+		State state_;
+		int subversion_;
+		Server *server_;
+
+		std::vector<char> buffer_;
+	};
 }

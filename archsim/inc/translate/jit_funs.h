@@ -3,9 +3,12 @@
 #ifndef _jit_funs_h_
 #define _jit_funs_h_
 
-namespace archsim {
-	namespace core {
-		namespace thread {
+namespace archsim
+{
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}

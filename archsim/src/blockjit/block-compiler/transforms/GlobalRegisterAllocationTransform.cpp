@@ -16,7 +16,8 @@ GlobalRegisterAllocationTransform::GlobalRegisterAllocationTransform(uint32_t nu
 }
 
 
-GlobalRegisterAllocationTransform::~GlobalRegisterAllocationTransform() {
+GlobalRegisterAllocationTransform::~GlobalRegisterAllocationTransform()
+{
 }
 
 /*
@@ -31,19 +32,19 @@ GlobalRegisterAllocationTransform::~GlobalRegisterAllocationTransform() {
  *   Thirdly, allocate these virtual registers either to physical registers
  * or to the stack if there are none left. This is still not super smart since
  * it means that 'deeply' allocated registers will always go to the stack,
- * ignoring e.g. how frequently they are used. However it is good enough for 
+ * ignoring e.g. how frequently they are used. However it is good enough for
  * now.
  *   Finally, go back through the IR and attach the allocations on to each
- * allocated vreg. 
- * 
+ * allocated vreg.
+ *
  */
 bool GlobalRegisterAllocationTransform::Apply(TranslationContext& ctx)
 {
 	std::vector<unsigned> vreg_begins(ctx.reg_count(), 0xffffffff), vreg_ends(ctx.reg_count(), 0);
-	
+
 	for(unsigned insn_idx = 0; insn_idx < ctx.count(); ++insn_idx) {
 		auto insn = ctx.at(insn_idx);
-		
+
 		for(unsigned op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
 			auto &operand = insn->operands.at(op_idx);
 			if(operand.is_vreg()) {
@@ -56,13 +57,13 @@ bool GlobalRegisterAllocationTransform::Apply(TranslationContext& ctx)
 			}
 		}
 	}
-	
+
 	// first, reallocate vregs
 	std::vector<unsigned> allocations(ctx.reg_count(), 0xffffffff);
 	std::vector<unsigned> free_regs;
 	unsigned next_free_reg = 0;
 	unsigned total_regs = 0;
-	
+
 	for(unsigned insn_idx = 0; insn_idx < ctx.count(); ++insn_idx) {
 		auto insn = ctx.at(insn_idx);
 		for(unsigned op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
@@ -71,7 +72,7 @@ bool GlobalRegisterAllocationTransform::Apply(TranslationContext& ctx)
 				if(insn_idx == vreg_begins[operand.get_vreg_idx()]) {
 					// allocate a reg for vreg
 					int reg_id;
-					
+
 					if(free_regs.size()) {
 						reg_id = free_regs.back();
 						free_regs.pop_back();
@@ -79,7 +80,7 @@ bool GlobalRegisterAllocationTransform::Apply(TranslationContext& ctx)
 						reg_id = next_free_reg++;
 						total_regs++;
 					}
-					
+
 					allocations[operand.get_vreg_idx()] = reg_id;
 				}
 				if(insn_idx == vreg_ends[operand.get_vreg_idx()]) {
@@ -88,14 +89,14 @@ bool GlobalRegisterAllocationTransform::Apply(TranslationContext& ctx)
 			}
 		}
 	}
-	
+
 	uint32_t regs_left = num_allocable_registers_;
 	uint32_t next_stack_frame = 0;
-	
+
 	std::vector<std::pair<IROperand::IRAllocationMode, int>> allocation_info(total_regs, std::make_pair(IROperand::NOT_ALLOCATED, 0));
 	for(unsigned reg_idx = 0; reg_idx < total_regs; ++reg_idx) {
 		auto &allocation = allocation_info[reg_idx];
-		
+
 		if(regs_left) {
 			allocation = std::make_pair(IROperand::ALLOCATED_REG, num_allocable_registers_-regs_left);
 			used_phys_regs_.set(num_allocable_registers_-regs_left, 1);
@@ -105,7 +106,7 @@ bool GlobalRegisterAllocationTransform::Apply(TranslationContext& ctx)
 			next_stack_frame += 8;
 		}
 	}
-	
+
 	for(unsigned insn_idx = 0; insn_idx < ctx.count(); ++insn_idx) {
 		auto insn = ctx.at(insn_idx);
 		for(unsigned op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
@@ -116,9 +117,9 @@ bool GlobalRegisterAllocationTransform::Apply(TranslationContext& ctx)
 			}
 		}
 	}
-	
+
 	stack_frame_size_ = next_stack_frame;
-	
+
 	return true;
 }
 

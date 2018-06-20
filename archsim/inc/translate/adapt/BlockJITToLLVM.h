@@ -1,6 +1,6 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
-/* 
+/*
  * File:   BlockJITToLLVM.h
  * Author: harry
  *
@@ -19,23 +19,27 @@
 #include "blockjit/IRInstruction.h"
 #include "translate/llvm/LLVMOptimiser.h"
 
-namespace archsim {
-    namespace translate {
-        namespace adapt {
-			
+namespace archsim
+{
+	namespace translate
+	{
+		namespace adapt
+		{
+
 			::llvm::FunctionType *GetBlockFunctionType(::llvm::LLVMContext &ctx);
-			
-            class BlockJITToLLVMAdaptor {
-            public:	
+
+			class BlockJITToLLVMAdaptor
+			{
+			public:
 				BlockJITToLLVMAdaptor(::llvm::LLVMContext &ctx);
-                ::llvm::Function *AdaptIR(archsim::core::thread::ThreadInstance *thread, ::llvm::Module *target_module, const std::string &name, const captive::arch::jit::TranslationContext &ctx);
-				
+				::llvm::Function *AdaptIR(archsim::core::thread::ThreadInstance *thread, ::llvm::Module *target_module, const std::string &name, const captive::arch::jit::TranslationContext &ctx);
+
 			private:
 				::llvm::LLVMContext &ctx_;
 				translate_llvm::LLVMOptimiser optimiser_;
-            };
-        }
-    }
+			};
+		}
+	}
 }
 
 #endif /* BLOCKJITTOLLVM_H */
