@@ -69,9 +69,9 @@ namespace gensim
 			str << "goto __block_" << action.EntryBlock->GetName() << ";";
 
 			// now iterate over the blocks in the action and emit them
-			for (SSAFormAction::BlockListConstIterator block_ci = action.Blocks.begin(); block_ci != action.Blocks.end(); ++block_ci) {
+			for (auto block_ : action.GetBlocks()) {
 				GenCInterpreterNodeFactory fact;
-				const SSABlock &block = **block_ci;
+				const SSABlock &block = *block_;
 
 				str << "{";
 				str << "__block_" << block.GetName() << ": (void)0;";

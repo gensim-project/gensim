@@ -501,10 +501,10 @@ static unsigned int sys_brk(archsim::core::thread::ThreadInstance* cpu, unsigned
 {
 	archsim::abi::UserEmulationModel& uem = static_cast<archsim::abi::UserEmulationModel&>(cpu->GetEmulationModel());
 	auto oldbrk = uem.GetBreak();
-	if (new_brk >= uem.GetInitialBreak()) uem.SetBreak(new_brk);
+	if (new_brk >= uem.GetInitialBreak()) uem.SetBreak(Address(new_brk));
 
 	LC_DEBUG1(LogSyscalls) << "BRK: old=" << std::hex << oldbrk << ", requested=" << std::hex << new_brk << ", new=" << std::hex << uem.GetBreak();
-	return uem.GetBreak();
+	return uem.GetBreak().Get();
 }
 
 static unsigned int sys_gettimeofday(archsim::core::thread::ThreadInstance* cpu, unsigned int tv_addr, unsigned int tz_addr)

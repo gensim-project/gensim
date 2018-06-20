@@ -54,14 +54,7 @@
 	TypeName(const TypeName&) = delete; \
 	void operator=(const TypeName&) = delete
 
-/*
- * Type-safe memory addressing
- */
-typedef void *host_addr_t;
-typedef uint32_t addr_t;
-typedef addr_t addr_off_t;
-typedef addr_t virt_addr_t;
-typedef addr_t phys_addr_t;
+using host_addr_t = void*;
 
 #include "cmake-config.h"
 

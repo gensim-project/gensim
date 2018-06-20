@@ -44,7 +44,7 @@ public:
 
 		bool changed = false;
 
-		for(auto block : action.Blocks) {
+		for(auto block : action.GetBlocks()) {
 			for(auto stmt : block->GetStatements()) {
 				if(SSAPhiStatement *phi = dynamic_cast<SSAPhiStatement*>(stmt)) {
 					changed |= ProcessPhi(phi, reachable_blocks);

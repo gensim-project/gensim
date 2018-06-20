@@ -185,7 +185,7 @@ public:
 	{
 		bool change_made = false;
 
-		for(auto *block : action.Blocks) {
+		for(auto *block : action.GetBlocks()) {
 
 			std::list<SSABinaryArithmeticStatement *> bin_candidates;
 			std::list<SSACastStatement *> cast_candidates;

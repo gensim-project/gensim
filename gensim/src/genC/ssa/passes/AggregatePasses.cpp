@@ -30,7 +30,7 @@ class CheckEmptyBlocksPass : public SSAPass
 public:
 	bool Run(SSAFormAction& action) const override
 	{
-		for(auto i : action.Blocks) {
+		for(auto i : action.GetBlocks()) {
 			GASSERT(!i->GetStatements().empty());
 		}
 		return false;

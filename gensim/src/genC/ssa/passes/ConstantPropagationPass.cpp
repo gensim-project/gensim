@@ -56,7 +56,7 @@ public:
 		DPRINTF("%s\n", printer.ToString().c_str());
 		std::vector<SSAVariableWriteStatement*> candidates;
 
-		for(auto block : action.Blocks) {
+		for(auto block : action.GetBlocks()) {
 			for(auto statement : block->GetStatements()) {
 				DPRINTF("Checking %s for candidacy\n", statement->GetName().c_str());
 				if(IsACandidate(statement)) {

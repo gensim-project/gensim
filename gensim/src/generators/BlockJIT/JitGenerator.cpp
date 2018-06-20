@@ -335,7 +335,7 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 {
 	JitNodeWalkerFactory factory;
 
-	for (const auto block : action.Blocks) {
+	for (const auto block : action.GetBlocks()) {
 		src_stream << "// Block " << block->GetName() << "\n";
 		src_stream << "const IRBlockId block_idx_" << block->GetName() << " = builder.alloc_block();\n";
 	}
@@ -350,7 +350,7 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 	}
 
 	src_stream << "goto block_" << action.EntryBlock->GetName() << ";\n";
-	for (const auto block : action.Blocks) {
+	for (const auto block : action.GetBlocks()) {
 		if (block->IsFixed() != BLOCK_ALWAYS_CONST) {
 			src_stream << "// BLOCK " << block->GetName() << " not fully fixed\n";
 			continue;
@@ -392,7 +392,7 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 	            << "if(emitted_blocks.find(block_index) != emitted_blocks.end()) continue;"
 	            << "emitted_blocks.insert(block_index);";
 
-	for (const auto block : action.Blocks) {
+	for (const auto block : action.GetBlocks()) {
 		if (block->IsFixed() == BLOCK_ALWAYS_CONST) continue;
 
 		src_stream << "if (block_index == block_idx_" << block->GetName() << ") // BLOCK START LINE " << block->GetStartLine() << ", END LINE " << block->GetEndLine() << "\n";
