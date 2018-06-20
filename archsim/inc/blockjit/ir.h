@@ -46,7 +46,7 @@ namespace captive
 
 #define INVALID_BLOCK_ID ((IRBlockId)-1)
 
-		struct IRInstruction;
+		class IRInstruction;
 
 		typedef uint32_t (*block_txln_fn)(void *regptr, void *stateblock);
 

@@ -43,14 +43,14 @@ namespace archsim
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
 			void Destroy() override;
 
-			void HaltCores();
+			void HaltCores() override;
 
 			bool PrepareBoot(System& system) override;
 
-			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data) = 0;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data) override = 0;
 
 
-			void PrintStatistics(std::ostream& stream);
+			void PrintStatistics(std::ostream& stream) override;
 
 			devices::DeviceManager& GetDeviceManager()
 			{

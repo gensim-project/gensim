@@ -74,7 +74,7 @@ bool JitGenerator::GenerateJitChunks(int count) const
 
 		stream
 		        << "#include \"blockjit/translation-context.h\"\n"
-		        << "#include \"blockjit/IRBuilder.h\"\n"
+				<< "#include \"blockjit/IRBuilder.h\"\n"
 		        << "#include \"decode.h\"\n"
 		        << "#include \"jit.h\"\n"
 		        << "#include \"processor.h\"\n"
@@ -120,9 +120,10 @@ bool JitGenerator::RegisterHelpers(const isa::ISADescription *isa) const
 		if (action->GetPrototype().GetIRSignature().GetName() == "instruction_is_predicated") continue;
 
 		util::cppformatstream prototype_stream;
-		interp.GeneratePrototype(prototype_stream, *isa, *action);
+		interp.GeneratePrototype(prototype_stream, *isa, *action, true);
 
 		util::cppformatstream body_stream;
+		interp.GeneratePrototype(body_stream, *isa, *action, false);
 		body_stream << "{";
 		body_stream << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 		// generate helper function code inline here
@@ -206,9 +207,9 @@ bool JitGenerator::GenerateSource(util::cppformatstream & src_stream) const
 
 	        << "#include <queue>\n"
 	        << "#include <set>\n";
-
+	
 	GenerateTranslation(src_stream);
-
+	
 	return true;
 }
 
@@ -285,8 +286,8 @@ bool JitGenerator::RegisterJITFunction(const ISADescription& isa, const Instruct
 
 	util::cppformatstream src_stream;
 	std::string prototype = "bool captive::arch::" + Manager.GetArch().Name + "::JIT::translate_" + isa.ISAName + "_" + insn.Name + "(const Decode&insn, captive::shared::IRBuilder &builder, bool trace)";
-	src_stream  << "{"
-	            << "using namespace captive::shared;"
+	src_stream  << prototype << "\n{"
+				<< "using namespace captive::shared;"
 	            << "std::queue<IRBlockId> dynamic_block_queue;";
 
 	src_stream << "IRBlockId __exit_block = 0xf0f0f0f0;\n";
