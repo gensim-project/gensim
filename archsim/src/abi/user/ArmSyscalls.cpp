@@ -28,6 +28,8 @@
 #include <time.h>
 #include <sys/times.h>
 
+#include "termios.h"
+
 UseLogContext(LogSyscalls);
 
 using archsim::Address;
@@ -427,7 +429,7 @@ static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsign
 
 	switch (request) {
 		case 0x5401: {
-			struct termio host;
+			struct termios host;
 			unsigned int rc = ioctl(fd, request, &host);
 
 			if (rc) {
