@@ -1,8 +1,8 @@
 /*
  * GenCInterpreter.cpp
  *
- *	Created on: 10 Dec 2013
- *			Author: harry
+ *  Created on: 10 Dec 2013
+ *      Author: harry
  */
 
 #include "arch/ArchDescription.h"
