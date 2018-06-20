@@ -17,7 +17,7 @@ namespace gensim
 				STATEMENT_OPERAND(BitFrom, 1)
 				STATEMENT_OPERAND(BitTo, 2)
 
-				virtual void PrettyPrint(std::ostringstream &) const;
+				virtual void PrettyPrint(std::ostringstream &) const override;
 				void Accept(SSAStatementVisitor& visitor) override;
 
 				bool IsFixed() const override;

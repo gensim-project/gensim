@@ -119,7 +119,7 @@ namespace gensim
 
 				const std::string &GetISA() const;
 
-				std::string GetName() const;
+				std::string GetName() const override;
 
 				int GetIndex() const;
 

@@ -19,9 +19,9 @@ namespace gensim
 			public:
 				ACTION_OPERAND(Target, 0)
 
-				virtual bool IsFixed() const;
-				virtual void PrettyPrint(std::ostringstream &) const;
-				virtual std::set<SSASymbol *> GetKilledVariables();
+				virtual bool IsFixed() const override;
+				virtual void PrettyPrint(std::ostringstream &) const override;
+				virtual std::set<SSASymbol *> GetKilledVariables() override;
 				void Accept(SSAStatementVisitor& visitor) override;
 
 				unsigned ArgCount() const

@@ -45,7 +45,7 @@ namespace gensim
 				UARCH_L_OR
 			};
 
-			struct UArchExpression;
+			class UArchExpression;
 			struct UArchExpression_Unary;
 			struct UArchExpression_Binary;
 			struct UArchExpression_Function;
@@ -313,7 +313,7 @@ namespace gensim
 					details = new InstructionDetails();
 					if (ISA.hasInstruction(n)) details->Description = ISA.Instructions.at(n);
 
-					Details.insert(std::pair<std::string, InstructionDetails *>(n, details)).first;
+					Details.insert(std::pair<std::string, InstructionDetails *>(n, details));
 				} else
 					details = d->second;
 				return *details;
