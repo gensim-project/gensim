@@ -65,10 +65,10 @@ namespace archsim
 			Address MapAnonymousRegion(size_t size, archsim::abi::memory::RegionFlags flags);
 			bool MapRegion(Address addr, size_t size, archsim::abi::memory::RegionFlags flags, const std::string &region_name);
 
-			void SetInitialBreak(unsigned int brk);
-			void SetBreak(unsigned int brk);
-			unsigned int GetBreak();
-			unsigned int GetInitialBreak();
+			void SetInitialBreak(Address brk);
+			void SetBreak(Address brk);
+			Address GetBreak();
+			Address GetInitialBreak();
 
 			bool AssertSignal(int signum, SignalData* data);
 			virtual bool InvokeSignal(int signum, uint32_t next_pc, SignalData* data);
@@ -85,11 +85,11 @@ namespace archsim
 			int global_argc, global_envc;
 			char** global_argv;
 
-			unsigned int _initial_entry_point;
-			unsigned int _initial_stack_pointer;
+			Address _initial_entry_point;
+			Address _initial_stack_pointer;
+			Address _initial_program_break;
+			Address _program_break;
 			unsigned int _stack_size;
-			unsigned int _initial_program_break;
-			unsigned int _program_break;
 
 			archsim::core::thread::ThreadInstance *main_thread_;
 		};

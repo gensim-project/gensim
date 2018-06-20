@@ -66,7 +66,7 @@ namespace archsim
 				BigEndian,
 			};
 
-			typedef uint32_t guest_addr_t;
+			typedef Address guest_addr_t;
 			typedef uint32_t guest_size_t;
 			typedef const void *host_const_addr_t;
 
@@ -149,7 +149,7 @@ namespace archsim
 				 * Evict the specified cache entry from the cache
 				* @param virt_addr
 				*/
-				virtual void EvictCacheEntry(virt_addr_t virt_addr);
+				virtual void EvictCacheEntry(Address virt_addr);
 
 				/**
 				 * Perform a virtual->physical (oe equivalant) memory translation. This function
@@ -157,7 +157,7 @@ namespace archsim
 				 * If this memory model does not support translation, it should set the physical
 				 * address to the virtual address and return 0 (ie., perform an identity translation)
 				 */
-				virtual uint32_t PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct abi::devices::AccessInfo &info);
+				virtual uint32_t PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct abi::devices::AccessInfo &info);
 
 				/**
 				 * Loads and copies the given file into this memory model.
@@ -236,18 +236,18 @@ namespace archsim
 
 				inline guest_addr_t AlignDown(guest_addr_t addr) const __attribute__((pure))
 				{
-					return addr & ~4095;
+					return addr.PageBase();
 				}
 
 				inline guest_addr_t AlignUp(guest_addr_t addr) const __attribute__((pure))
 				{
-					if ((addr & ~4095) == addr) return addr;
+					if ((addr.PageBase()) == addr) return addr;
 					return AlignDown(addr) + 4096;
 				}
 
 				inline bool IsAligned(guest_addr_t addr) const __attribute__((pure))
 				{
-					return (addr & ~4095) == addr;
+					return addr.PageBase() == addr;
 				}
 
 				inline void RegisterEventHandler(MemoryEventHandler& handler)
@@ -293,7 +293,7 @@ namespace archsim
 				virtual bool HandleSegFault(host_const_addr_t host_addr);
 
 				virtual MemoryTranslationModel &GetTranslationModel();
-				virtual uint32_t PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct abi::devices::AccessInfo &info);
+				virtual uint32_t PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct abi::devices::AccessInfo &info);
 
 			private:
 				MemoryTranslationModel *translation_model;
@@ -383,7 +383,7 @@ namespace archsim
 				uint32_t Write16(guest_addr_t addr, uint16_t data) override;
 				uint32_t Write32(guest_addr_t addr, uint32_t data) override;
 
-				virtual uint32_t PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct abi::devices::AccessInfo &info) override;
+				virtual uint32_t PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct abi::devices::AccessInfo &info) override;
 
 				MemoryTranslationModel &GetTranslationModel() override;
 				host_addr_t mem_base;
@@ -401,7 +401,7 @@ namespace archsim
 
 				inline host_addr_t GuestToHost(guest_addr_t addr) const
 				{
-					return (host_addr_t)((unsigned long)mem_base + (unsigned long)addr);
+					return (host_addr_t)((unsigned long)mem_base + (unsigned long)addr.Get());
 				}
 			};
 		}

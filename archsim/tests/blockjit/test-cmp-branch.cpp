@@ -41,7 +41,7 @@ public:
 		transforms::AllocationWriterTransform awt(allocations_);
 		awt.Apply(tc_);
 
-		CompileResult cr (true, stack_frame_, archsim::util::vbitset(8, 0xff));
+		CompileResult cr (true, stack_frame_, wutils::vbitset(8, 0xff));
 
 		auto fn = Lower(cr);
 		ASSERT_NE(nullptr, fn);

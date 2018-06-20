@@ -105,10 +105,10 @@ namespace gensim
 
 				StatementList GetStatements(std::function<bool(SSAStatement*)>) const;
 
-				std::list<SSABlock *> Blocks;
 				bool ContainsBlock(const SSABlock *block) const;
 				void AddBlock(SSABlock *block);
 				void RemoveBlock(SSABlock *block);
+				const BlockList &GetBlocks() const { return blocks_; }
 
 				SSABlock *EntryBlock;
 
@@ -171,6 +171,7 @@ namespace gensim
 			private:
 				SymbolTableType _symbols;
 				const IRAction *action_;
+				BlockList blocks_;
 			};
 		}
 	}

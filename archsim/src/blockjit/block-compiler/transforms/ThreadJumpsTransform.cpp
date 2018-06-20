@@ -9,7 +9,7 @@
 
 #include "blockjit/block-compiler/transforms/Transform.h"
 
-#include "util/wutils/tick-timer.h"
+#include <wutils/tick-timer.h>
 
 using namespace captive::arch::jit;
 using namespace captive::shared;
@@ -22,7 +22,7 @@ ThreadJumpsTransform::~ThreadJumpsTransform()
 
 bool ThreadJumpsTransform::Apply(TranslationContext &ctx)
 {
-	tick_timer timer(0);
+	wutils::tick_timer timer(0);
 	timer.reset();
 
 	std::vector<IRInstruction*> first_instructions(ctx.block_count(), NULL);

@@ -40,6 +40,7 @@ TARGET_LINK_LIBRARIES(archsim
 TARGET_LINK_LIBRARIES(archsim-core 
 	trace 
 	gvnc
+	wutils
 
 	${CMAKE_THREAD_LIBS_INIT}
 	${CMAKE_DL_LIBS}
