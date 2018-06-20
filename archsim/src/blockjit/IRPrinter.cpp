@@ -41,7 +41,8 @@ static void dump_insn(const IRInstruction *insn, std::ostream &str)
 }
 
 
-void IRPrinter::DumpIR(std::ostream& ostr, const captive::arch::jit::TranslationContext& ctx) {
+void IRPrinter::DumpIR(std::ostream& ostr, const captive::arch::jit::TranslationContext& ctx)
+{
 	IRBlockId current_block_id = INVALID_BLOCK_ID;
 
 	for (uint32_t ir_idx = 0; ir_idx < ctx.count(); ir_idx++) {

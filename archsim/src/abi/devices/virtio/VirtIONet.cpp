@@ -16,11 +16,11 @@ using namespace archsim::abi::devices::generic::net;
 
 static ComponentDescriptor virtionet_descriptor ("VirtioNet");
 VirtIONet::VirtIONet(EmulationModel& parent_model, IRQLine& irq, Address base_address, const std::string &name, NetworkInterface &iface, uint64_t mac_address)
-	: 
-		VirtIO(parent_model, irq, base_address, 0x1000, name, 1, 1, 2),
-		Component(virtionet_descriptor),
-		_iface(iface)
-	  
+	:
+	VirtIO(parent_model, irq, base_address, 0x1000, name, 1, 1, 2),
+	Component(virtionet_descriptor),
+	_iface(iface)
+
 {
 	bzero(&config, sizeof(config));
 
@@ -35,7 +35,9 @@ VirtIONet::VirtIONet(EmulationModel& parent_model, IRQLine& irq, Address base_ad
 
 	this->HostFeatures.Set((1 << 5) | (1 << 16));
 
-	iface.attach([this](const uint8_t *buffer, uint32_t length){this->receive_packet(buffer, length);});
+	iface.attach([this](const uint8_t *buffer, uint32_t length) {
+		this->receive_packet(buffer, length);
+	});
 }
 
 VirtIONet::~VirtIONet()

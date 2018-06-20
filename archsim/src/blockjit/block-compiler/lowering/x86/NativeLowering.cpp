@@ -15,11 +15,12 @@ using namespace captive::arch::jit::lowering;
 using namespace captive::arch::jit;
 using namespace captive::shared;
 
-LoweringResult captive::arch::jit::lowering::NativeLowering(TranslationContext &ctx, wulib::MemAllocator &allocator, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &state, const CompileResult &compile_result) {
+LoweringResult captive::arch::jit::lowering::NativeLowering(TranslationContext &ctx, wulib::MemAllocator &allocator, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &state, const CompileResult &compile_result)
+{
 	lowering::x86::X86Encoder encoder(allocator);
 	lowering::x86::X86LoweringContext lowering(compile_result.StackFrameSize, encoder, arch, state, compile_result.UsedPhysRegs);
 	lowering.Prepare(ctx);
-	
+
 	if(!lowering.Lower(ctx)) {
 		LC_ERROR(LogBlockJit) << "Failed to lower block";
 		return LoweringResult(0,0);
@@ -30,6 +31,7 @@ LoweringResult captive::arch::jit::lowering::NativeLowering(TranslationContext &
 	return LoweringResult(fn, encoder.get_buffer_size());
 }
 
-bool captive::arch::jit::lowering::HasNativeLowering() {
+bool captive::arch::jit::lowering::HasNativeLowering()
+{
 	return true;
 }

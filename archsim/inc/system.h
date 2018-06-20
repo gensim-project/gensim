@@ -193,7 +193,7 @@ public:
 	{
 		return GetSession().GetModuleManager();
 	}
-	
+
 	inline archsim::core::execution::ExecutionContextManager &GetECM()
 	{
 		return exec_ctx_mgr_;
@@ -207,7 +207,7 @@ private:
 
 	archsim::Session& session;
 	archsim::core::execution::ExecutionContextManager exec_ctx_mgr_;
-	
+
 	bool _halted;
 
 	archsim::util::PubSubContext pubsubctx;

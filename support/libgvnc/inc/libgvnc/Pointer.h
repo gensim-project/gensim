@@ -4,27 +4,31 @@
 #include <stdint.h>
 #include <functional>
 
-namespace libgvnc {
-    struct PointerEvent {
-        uint8_t ButtonMask;
-        uint16_t PositionX;
-        uint16_t PositionY;
-    };
+namespace libgvnc
+{
+	struct PointerEvent {
+		uint8_t ButtonMask;
+		uint16_t PositionX;
+		uint16_t PositionY;
+	};
 
-    using PointerCallback = std::function<void(struct PointerEvent&) >;
+	using PointerCallback = std::function<void(struct PointerEvent&) >;
 
-    class Pointer {
-    public:
+	class Pointer
+	{
+	public:
 
-        void SendEvent(struct PointerEvent &event) {
-            callback_(event);
-        }
+		void SendEvent(struct PointerEvent &event)
+		{
+			callback_(event);
+		}
 
-        void SetCallback(const PointerCallback &callback) {
-            callback_ = callback;
-        }
+		void SetCallback(const PointerCallback &callback)
+		{
+			callback_ = callback;
+		}
 
-    private:
-        PointerCallback callback_;
-    };
+	private:
+		PointerCallback callback_;
+	};
 }

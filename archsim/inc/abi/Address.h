@@ -24,7 +24,7 @@ namespace archsim
 	{
 	public:
 		using underlying_t = uint32_t;
-		
+
 		explicit Address(underlying_t address) : _address(address) {}
 		Address() = delete;
 		underlying_t Get() const
@@ -54,10 +54,11 @@ namespace archsim
 			return Address(GetPageOffset());
 		}
 
-		Address operator+(int b) const {
+		Address operator+(int b) const
+		{
 			return Address(Get() + b);
 		}
-		
+
 		void operator+=(const underlying_t other)
 		{
 			_address += other;

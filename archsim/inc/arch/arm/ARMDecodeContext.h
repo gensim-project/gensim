@@ -28,7 +28,7 @@ namespace gensim
 namespace archsim
 {
 	class ArchDescriptor;
-	
+
 	namespace arch
 	{
 		namespace arm

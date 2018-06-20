@@ -23,7 +23,7 @@ void ParseGroup(pANTLR3_BASE_TREE node, uint8_t *first, uint8_t *second)
 AsmMapDescription AsmMapDescriptionParser::Parse(void *pnode)
 {
 	AsmMapDescription output;
-	
+
 	pANTLR3_BASE_TREE node = (pANTLR3_BASE_TREE)pnode;
 	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)(node->getChild(node, 0));
 	output.Name = (char *)nameNode->getText(nameNode)->chars;
@@ -84,6 +84,6 @@ AsmMapDescription AsmMapDescriptionParser::Parse(void *pnode)
 			}
 		}
 	}
-	
+
 	return output;
 }

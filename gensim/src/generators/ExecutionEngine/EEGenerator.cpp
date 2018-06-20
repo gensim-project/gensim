@@ -32,11 +32,13 @@ const std::vector<std::string> EEGenerator::GetSources() const
 	return {"ee_" + GetName() + ".cpp"};
 }
 
-bool EEGenerator::GenerateHeader(util::cppformatstream &str) const {
+bool EEGenerator::GenerateHeader(util::cppformatstream &str) const
+{
 	return true;
 }
 
-bool EEGenerator::GenerateSource(util::cppformatstream &str) const {
+bool EEGenerator::GenerateSource(util::cppformatstream &str) const
+{
 	return true;
 }
 

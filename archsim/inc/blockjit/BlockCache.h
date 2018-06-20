@@ -99,7 +99,7 @@ namespace archsim
 			// XXX ARM HAX
 			static const uint32_t kInstructionShift = BLOCKCACHE_INSTRUCTION_SHIFT;
 
-		
+
 
 			const BlockCacheEntry &GetEntry(Address address) const
 			{

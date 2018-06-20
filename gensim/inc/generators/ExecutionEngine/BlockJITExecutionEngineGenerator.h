@@ -6,17 +6,20 @@
 #include "generators/GenerationManager.h"
 #include "generators/ExecutionEngine/EEGenerator.h"
 
-namespace gensim {
-	namespace generator {
-		class BlockJITExecutionEngineGenerator : public EEGenerator {
-		public: 
+namespace gensim
+{
+	namespace generator
+	{
+		class BlockJITExecutionEngineGenerator : public EEGenerator
+		{
+		public:
 			BlockJITExecutionEngineGenerator(GenerationManager &man);
-			
+
 			bool GenerateHeader(util::cppformatstream& str) const override;
 			bool GenerateSource(util::cppformatstream& str) const override;
 			const std::vector<std::string> GetSources() const override;
 			void Setup(GenerationSetupManager& Setup) override;
-			
+
 
 		private:
 			mutable std::vector<std::string> sources;

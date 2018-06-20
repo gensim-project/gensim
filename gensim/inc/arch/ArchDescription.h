@@ -51,7 +51,7 @@ namespace gensim
 		class ArchDescription
 		{
 		public:
-			
+
 			std::string Name;
 
 			bool big_endian;
@@ -84,9 +84,15 @@ namespace gensim
 			{
 				return features_;
 			}
-			
-			MemoryInterfacesDescription &GetMemoryInterfaces(){ return memory_interfaces_; }
-			const MemoryInterfacesDescription &GetMemoryInterfaces() const { return memory_interfaces_; }
+
+			MemoryInterfacesDescription &GetMemoryInterfaces()
+			{
+				return memory_interfaces_;
+			}
+			const MemoryInterfacesDescription &GetMemoryInterfaces() const
+			{
+				return memory_interfaces_;
+			}
 
 			bool PrettyPrint(std::ostream &) const;
 
@@ -97,7 +103,7 @@ namespace gensim
 
 			RegisterFile register_file_;
 			ArchFeatureSet features_;
-			
+
 			MemoryInterfacesDescription memory_interfaces_;
 		};
 	}  // namespace arch

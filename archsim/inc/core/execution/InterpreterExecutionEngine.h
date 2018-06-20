@@ -1,7 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 
-/* 
+/*
  * File:   InterpreterExecutionEngine.h
  * Author: harry
  *
@@ -15,18 +15,22 @@
 #include "interpret/Interpreter.h"
 #include "module/Module.h"
 
-namespace archsim {
-	namespace core {
-		namespace execution {
-			class InterpreterExecutionEngine : public ExecutionEngine {
+namespace archsim
+{
+	namespace core
+	{
+		namespace execution
+		{
+			class InterpreterExecutionEngine : public ExecutionEngine
+			{
 			public:
 				InterpreterExecutionEngine(archsim::interpret::Interpreter *interpreter);
-				
+
 				ExecutionResult Execute(ExecutionEngineThreadContext* thread) override;
 				ExecutionEngineThreadContext* GetNewContext(thread::ThreadInstance* thread) override;
 
 				static ExecutionEngine *Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix);
-				
+
 			private:
 				archsim::interpret::Interpreter *interpreter_;
 			};

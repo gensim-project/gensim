@@ -13,7 +13,7 @@ using namespace captive::shared;
 bool LowerIntCheck::Lower(const captive::shared::IRInstruction *&insn)
 {
 	UNIMPLEMENTED;
-	
+
 //	// load interrupt check field
 //	GetCompiler().load_state_field(gensim::CpuStateOffsets::CpuState_pending_actions, BLKJIT_TEMPS_0(4));
 //

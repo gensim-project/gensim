@@ -42,7 +42,7 @@ namespace captive
 						{
 							return ((X86LoweringContext&)GetLoweringContext()).GetStackMap();
 						}
-						
+
 						X86LoweringContext& GetLoweringContext()
 						{
 							return (X86LoweringContext&)InstructionLowerer::GetLoweringContext();

@@ -75,7 +75,7 @@ bool SSAValue::HasDynamicUses() const
 			}
 		}
 	}
-	
+
 	return false;
 }
 

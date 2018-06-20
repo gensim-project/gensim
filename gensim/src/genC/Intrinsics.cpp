@@ -105,9 +105,9 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 	if(mem_interface_read == nullptr) {
 		throw std::logic_error("First argument of mem intrinsic must be a constant memory interface ID");
 	}
-	
+
 	auto mem_interface_id = call->GetScope().GetContainingAction().Context.GetConstant(mem_interface_read->Symbol->GetLocalName()).second;
-	
+
 	SSAStatement *addr = call->Args[1]->EmitSSAForm(bldr);
 	if (addr->GetType() != wordtype) {
 		const auto& dn = addr->GetDiag();
@@ -119,7 +119,7 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 	if(interface == nullptr) {
 		throw std::logic_error("could not find an interface with id " + std::to_string(mem_interface_id));
 	}
-	
+
 	if (is_memory_write) {
 		SSAStatement *value = call->Args[2]->EmitSSAForm(bldr);
 		if (value->GetType() != data_type) {

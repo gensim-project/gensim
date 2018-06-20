@@ -58,12 +58,12 @@ namespace archsim
 			util::Counter64 blocks;
 
 			gensim::blockjit::BaseBlockJITTranslate *translate_;
-			
+
 			std::shared_ptr<llvm::RTDyldMemoryManager> memory_manager_;
 			std::unique_ptr<llvm::TargetMachine> target_machine_;
 			llvm::orc::RTDyldObjectLinkingLayer linker_;
 			llvm::orc::IRCompileLayer<decltype(linker_), llvm::orc::SimpleCompiler> compiler_;
-			
+
 			uint8_t id;
 			AsynchronousTranslationManager& mgr;
 			volatile bool terminate;

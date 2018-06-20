@@ -1,7 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 
-/* 
+/*
  * File:   ExecutionResult.h
  * Author: harry
  *
@@ -11,9 +11,12 @@
 #ifndef EXECUTIONRESULT_H
 #define EXECUTIONRESULT_H
 
-namespace archsim {
-	namespace core {
-		namespace execution {
+namespace archsim
+{
+	namespace core
+	{
+		namespace execution
+		{
 			enum class ExecutionResult {
 				Continue,
 				Exception,

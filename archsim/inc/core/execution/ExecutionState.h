@@ -1,7 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 
-/* 
+/*
  * File:   ExecutionState.h
  * Author: harry
  *
@@ -11,9 +11,12 @@
 #ifndef EXECUTIONSTATE_H
 #define EXECUTIONSTATE_H
 
-namespace archsim {
-	namespace core {
-		namespace execution {
+namespace archsim
+{
+	namespace core
+	{
+		namespace execution
+		{
 			enum class ExecutionState {
 				Unknown,
 				Ready,

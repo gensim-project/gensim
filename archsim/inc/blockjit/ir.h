@@ -26,9 +26,12 @@
 
 #define NOP_BLOCK 0x7fffffff
 
-namespace archsim {
-	namespace core {
-		namespace thread {
+namespace archsim
+{
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}

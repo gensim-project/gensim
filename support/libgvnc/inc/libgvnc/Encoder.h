@@ -3,38 +3,44 @@
 
 #include "Framebuffer.h"
 
-namespace libgvnc {
+namespace libgvnc
+{
 
-    class Encoder {
-    public:
-        Encoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
+	class Encoder
+	{
+	public:
+		Encoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
 
-        virtual ~Encoder() {
-        }
+		virtual ~Encoder()
+		{
+		}
 
-        virtual std::vector<char> Encode(const std::vector<uint32_t> &data) = 0;
+		virtual std::vector<char> Encode(const std::vector<uint32_t> &data) = 0;
 
-        const RectangleShape &GetShape() const {
-            return shape_;
-        }
+		const RectangleShape &GetShape() const
+		{
+			return shape_;
+		}
 
-        const struct FB_PixelFormat &GetFormat() const {
-            return encoded_format_;
-        }
+		const struct FB_PixelFormat &GetFormat() const {
+			return encoded_format_;
+		}
 
-    private:
-        struct FB_PixelFormat encoded_format_;
-        RectangleShape shape_;
-    };
+	private:
+		struct FB_PixelFormat encoded_format_;
+		RectangleShape shape_;
+	};
 
-    class RawEncoder : public Encoder {
-    public:
-        RawEncoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
+	class RawEncoder : public Encoder
+	{
+	public:
+		RawEncoder(const struct FB_PixelFormat &format, const RectangleShape &shape);
 
-        virtual ~RawEncoder() {
+		virtual ~RawEncoder()
+		{
 
-        }
+		}
 
-        virtual std::vector<char> Encode(const std::vector<uint32_t> &data);
-    };
+		virtual std::vector<char> Encode(const std::vector<uint32_t> &data);
+	};
 }

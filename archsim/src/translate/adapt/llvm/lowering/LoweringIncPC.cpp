@@ -6,7 +6,8 @@
 
 using namespace archsim::translate::adapt;
 
-bool BlockJITINCPCLowering::Lower(const captive::shared::IRInstruction*& insn) {
+bool BlockJITINCPCLowering::Lower(const captive::shared::IRInstruction*& insn)
+{
 	const auto &amount = insn->operands[0];
 
 	auto &PC = GetContext().GetArchDescriptor().GetRegisterFileDescriptor().GetTaggedEntry("PC");
@@ -15,8 +16,8 @@ bool BlockJITINCPCLowering::Lower(const captive::shared::IRInstruction*& insn) {
 	llvm::Value* pc_value = GetBuilder().CreateLoad(pc_ptr);
 	pc_value = GetBuilder().CreateAdd(pc_value, GetValueFor(amount));
 	GetBuilder().CreateStore(pc_value, pc_ptr);
-	
+
 	insn++;
-	
+
 	return true;
 }

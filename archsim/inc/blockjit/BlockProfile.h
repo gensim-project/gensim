@@ -45,13 +45,17 @@ namespace archsim
 					features_required_ = new ProcessorFeatureSet(*other.features_required_);
 				}
 			}
-			
-			~BlockTranslation() { Invalidate(); }
-			
-			void operator=(const BlockTranslation &other) {
+
+			~BlockTranslation()
+			{
+				Invalidate();
+			}
+
+			void operator=(const BlockTranslation &other)
+			{
 				new(this) BlockTranslation(other);
 			}
-			
+
 			void AddRequiredFeature(uint32_t feature_id, uint32_t feature_level)
 			{
 				if(!features_required_) features_required_ = new archsim::ProcessorFeatureSet();
@@ -90,10 +94,16 @@ namespace archsim
 					return *features_required_;
 				else return archsim::ProcessorFeatureSet();
 			}
-			
-			void SetSize(size_t newsize) { size_ = newsize; }
-			size_t GetSize() const { return size_; }
-			
+
+			void SetSize(size_t newsize)
+			{
+				size_ = newsize;
+			}
+			size_t GetSize() const
+			{
+				return size_;
+			}
+
 			void Dump(const std::string &filename);
 
 		private:
@@ -167,9 +177,12 @@ namespace archsim
 			void Insert(Address address, const BlockTranslation &txln);
 			void InvalidatePage(Address address);
 			void Invalidate();
-			
-			uint64_t GetTotalCodeSize() { return code_size_; }
-			
+
+			uint64_t GetTotalCodeSize()
+			{
+				return code_size_;
+			}
+
 			bool IsPageDirty(Address addr)
 			{
 				return getProfile(addr).IsDirty();
@@ -221,9 +234,9 @@ namespace archsim
 			std::bitset<kTablePageCount> _table_pages_dirty;
 
 			std::vector<std::pair<Address, BlockPageProfile *> > _dirty_pages;
-			
+
 			uint64_t code_size_;
-			
+
 			BlockPageProfile *_page_profiles[kProfileCount];
 			wulib::MemAllocator &_allocator;
 		};

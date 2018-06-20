@@ -46,7 +46,7 @@ namespace gensim
 				const use_list_t &GetUses() const;
 				void AddUse(SSAValue *user);
 				void RemoveUse(SSAValue *user);
-                                bool HasDynamicUses() const;
+				bool HasDynamicUses() const;
 
 				/**
 				 * Determines whether or not this SSA statement contains valid diagnostic metadata.

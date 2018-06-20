@@ -19,12 +19,14 @@
 
 namespace archsim
 {
-	namespace core {
-		namespace thread {
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}
-	
+
 	namespace abi
 	{
 		namespace devices

@@ -19,7 +19,8 @@ AllocationWriterTransform::AllocationWriterTransform(const allocations_t& alloca
 }
 
 
-AllocationWriterTransform::~AllocationWriterTransform() {
+AllocationWriterTransform::~AllocationWriterTransform()
+{
 }
 
 bool AllocationWriterTransform::Apply(TranslationContext& ctx)
@@ -36,6 +37,6 @@ bool AllocationWriterTransform::Apply(TranslationContext& ctx)
 			}
 		}
 	}
-	
+
 	return true;
 }

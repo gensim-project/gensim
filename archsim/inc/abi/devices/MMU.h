@@ -16,7 +16,7 @@
 
 namespace archsim
 {
-	namespace abi	
+	namespace abi
 	{
 		namespace memory
 		{

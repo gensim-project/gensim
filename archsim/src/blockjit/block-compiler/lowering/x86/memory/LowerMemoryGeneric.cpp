@@ -67,7 +67,7 @@ bool LowerReadMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 	if(dest->is_alloc_reg()) {
 		Encoder().mov(REGS_RAX(dest->size), GetLoweringContext().register_from_operand(dest, dest->size));
 	}
-	
+
 	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed(), live_regs);
 
 	insn++;
@@ -96,7 +96,7 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 	auto &address_reg = BLKJIT_ARG2(4);
 
 	Encoder().mov(interface->value, BLKJIT_ARG1(4));
-	
+
 	GetLoweringContext().load_state_field("thread_ptr", BLKJIT_ARG0(8));
 	if(offset->is_alloc_reg()) {
 		Encoder().mov(GetLoweringContext().get_allocable_register(offset->alloc_data, 4), address_reg);
@@ -136,7 +136,7 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 		case 4:
 			Encoder().mov((uint64_t)cpuWrite32, BLKJIT_RETURN(8));
 			break;
-	}	
+	}
 
 	Encoder().call(BLKJIT_RETURN(8));
 
@@ -149,11 +149,11 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 bool LowerReadUserMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 {
 	UNIMPLEMENTED;
-	
+
 }
 
 bool LowerWriteUserMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 {
 	UNIMPLEMENTED;
-	
+
 }

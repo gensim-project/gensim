@@ -40,12 +40,12 @@ namespace gensim
 			virtual bool GenerateExtraProcessorInitSource(util::cppformatstream &stream) const;
 			virtual bool GenerateExtraProcessorIncludes(util::cppformatstream &stream) const;
 			virtual bool GenerateExtraProcessorDestructorSource(util::cppformatstream &stream) const;
-			
-			
+
+
 			virtual bool GenerateInlineHelperFns(util::cppformatstream &) const override;
 			virtual bool GenerateExternHelperFns(util::cppformatstream &) const override;
 
-			
+
 
 		};
 	}

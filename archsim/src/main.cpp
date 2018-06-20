@@ -97,7 +97,7 @@ static int run_simple_simulation(archsim::Session& session)
 
 	// Destroy System after simulation to clean up resources
 	simsys->Destroy();
-	
+
 	delete simsys;
 
 	return rc;
@@ -120,9 +120,9 @@ int main(int argc, char *argv[])
 	init_timer.Start();
 
 	archsim::Session session;
-	
+
 	int rc;
-	
+
 	// First thing to do is parse the command-line.  This will print out any problems
 	// with the input, so we can just exit with an error if parsing failed.
 	archsim::util::CommandLineManager command_line;

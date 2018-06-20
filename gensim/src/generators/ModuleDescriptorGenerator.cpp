@@ -14,20 +14,20 @@ ModuleDescriptorGenerator::ModuleDescriptorGenerator(GenerationManager& man) : G
 bool ModuleDescriptorGenerator::Generate() const
 {
 	util::cppformatstream stream;
-	
+
 	stream << "#include <module/Module.h>\n";
-	
+
 	for(auto entry : Manager.GetModuleEntries()) {
 		stream << "#include \"" << entry.GetClassHeader() << "\"\n";
 	}
-	
+
 	stream << "ARCHSIM_MODULE() {";
-	
+
 	stream << "auto module = new archsim::module::ModuleInfo(\"" << Manager.GetArch().Name << "\", \"CPU Module\");";
-	
+
 	for(auto entry : Manager.GetModuleEntries()) {
 		stream << "auto entry_" << entry.GetEntryName() << " = new ";
-		
+
 		switch(entry.GetEntryType()) {
 			case ModuleEntryType::ExecutionEngine:
 				stream << "archsim::module::ModuleExecutionEngineEntry(\"" << entry.GetEntryName() << "\", ARCHSIM_EEFACTORY(" << entry.GetClassName() << "));";
@@ -44,17 +44,17 @@ bool ModuleDescriptorGenerator::Generate() const
 			default:
 				UNIMPLEMENTED;
 		}
-		
+
 		stream << "module->AddEntry(entry_" << entry.GetEntryName() << ");";
 	}
-	
+
 	stream << "return module;";
-	
+
 	stream << "}";
 	stream << "ARCHSIM_MODULE_END() {}";
-	
+
 	WriteOutputFile("module.cpp", stream);
-	
+
 	return true;
 }
 

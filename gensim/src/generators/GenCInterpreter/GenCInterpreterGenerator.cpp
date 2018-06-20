@@ -44,10 +44,10 @@ namespace gensim
 				}
 			}
 			stream << ")";
-			
+
 			return true;
 		}
-		
+
 		bool GenCInterpreterGenerator::GenerateExecuteBodyFor(util::cppformatstream &str, const genc::ssa::SSAFormAction &action) const
 		{
 			using namespace genc::ssa;

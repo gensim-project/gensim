@@ -149,10 +149,10 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 	} else if(dest->is_alloc_reg()) {
 		dest_reg = &GetLoweringContext().register_from_operand(dest);
 	}
-	
+
 	switch (insn->type) {
 		case IRInstruction::CMPEQ: {
-			
+
 			Encoder().sete(*dest_reg);
 
 			if (should_branch) {
@@ -242,7 +242,7 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 		default:
 			assert(false);
 	}
-	
+
 	if(dest->is_alloc_stack()) {
 		Encoder().mov(*dest_reg, GetLoweringContext().stack_from_operand(dest));
 	}

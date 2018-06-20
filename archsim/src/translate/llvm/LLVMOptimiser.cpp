@@ -233,8 +233,8 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 						}
 						break;
 					case TAG_CPU_STATE:
-						// A tagged CPU state is always a GEP %cpustate, 0, X - so check the third
-						// operand for equivalency and return the appropriate result.
+					// A tagged CPU state is always a GEP %cpustate, 0, X - so check the third
+					// operand for equivalency and return the appropriate result.
 //						if (CONSTVAL(i1->getOperand(2)) == CONSTVAL(i2->getOperand(2))) {
 //							return llvm::MustAlias;
 //						} else {
@@ -314,7 +314,7 @@ void ArchsimAA::getAnalysisUsage(llvm::AnalysisUsage& AU) const
 
 bool ArchsimAA::runOnFunction(llvm::Function& F)
 {
-  return false;
+	return false;
 }
 
 #endif
@@ -381,7 +381,7 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 	AddPass(::llvm::createIPConstantPropagationPass());
 	AddPass(::llvm::createDeadArgEliminationPass());
 	AddPass(::llvm::createJumpThreadingPass());
-	
+
 	AddPass(::llvm::createGlobalOptimizerPass());
 	AddPass(::llvm::createIPSCCPPass());
 	AddPass(::llvm::createDeadArgEliminationPass());
@@ -506,7 +506,7 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 //		AddPass(::llvm::createConstantMergePass());
 
 //	}
-	
+
 	return true;
 }
 

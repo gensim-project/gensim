@@ -326,7 +326,7 @@ namespace archsim
 			void GICCPUInterface::update()
 			{
 				LC_DEBUG2(LogGIC) << "CPU Interface update";
-				
+
 				current_pending = 1023;
 				if (!enabled() || !GetOwner()->GetDistributor()->enabled()) {
 					GetIRQLine()->Rescind();

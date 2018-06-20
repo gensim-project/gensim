@@ -64,7 +64,7 @@ bool ContiguousMemoryModel::Initialise()
 		mem_base = (host_addr_t)mmap((void*)nullptr, (size_t)CONTIGUOUS_MEMORY_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE | MAP_32BIT, -1, 0);
 	}
 #endif
-	
+
 	if(mem_base == MAP_FAILED) {
 		mem_base = (host_addr_t)mmap((void*)nullptr, (size_t)CONTIGUOUS_MEMORY_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
 	}
@@ -75,17 +75,17 @@ bool ContiguousMemoryModel::Initialise()
 	}
 
 	is_initialised = true;
-	
+
 #if ARCHSIM_SIMULATION_HOST_IS_x86_64
 	if(arch_prctl(ARCH_SET_GS, (unsigned long)mem_base) == -1) {
 		LC_ERROR(LogMemoryModel) << "Failed to set GS register: " << strerror(errno);
 	}
-	
+
 	unsigned long l;
 	arch_prctl(ARCH_GET_GS, (unsigned long)&l);
 	assert(l == (unsigned long)mem_base);
 #endif
-	
+
 #if CONFIG_LLVM
 	((ContiguousMemoryTranslationModel*)translation_model)->SetContiguousMemoryBase(mem_base);
 #endif

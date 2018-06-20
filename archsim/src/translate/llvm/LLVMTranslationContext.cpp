@@ -284,7 +284,7 @@ void LLVMTranslationContext::AddAliasAnalysisNode(::llvm::Instruction *insn, Ali
 void LLVMTranslationContext::AddAliasAnalysisToRegSlotAccess(::llvm::Value *ptr, uint32_t slot_offset, uint32_t slot_size)
 {
 	UNIMPLEMENTED;
-	
+
 //	::llvm::SmallVector<::llvm::Value*, 4> AR;
 //	AR.push_back(::llvm::ConstantInt::get(types.i32, 0, false));
 //	AR.push_back(::llvm::ConstantInt::get(types.i32, slot_offset, false));
@@ -296,7 +296,7 @@ void LLVMTranslationContext::AddAliasAnalysisToRegSlotAccess(::llvm::Value *ptr,
 void LLVMTranslationContext::AddAliasAnalysisToRegBankAccess(::llvm::Value *ptr, ::llvm::Value *regnum, uint32_t bank_offset, uint32_t bank_stride, uint32_t bank_elements)
 {
 	UNIMPLEMENTED;
-	
+
 //#define CONSTVAL(a) (assert(a->getValueID() == ::llvm::Instruction::ConstantIntVal), (((::llvm::ConstantInt *)(a))->getZExtValue()))
 //#define ISCONSTVAL(a) (a->getValueID() == ::llvm::Instruction::ConstantIntVal)
 //
@@ -461,13 +461,13 @@ bool LLVMTranslationContext::BuildEntryBlock(LLVMRegionTranslationContext& rtc, 
 	}
 
 	// Calculate register pointers
-	uint32_t reg_bank_count = 0; 
-	
+	uint32_t reg_bank_count = 0;
+
 	for(auto entry : twu.GetThread()->GetArch().GetRegisterFileDescriptor().GetEntries()) {
 		for(int i = 0; i < entry.second.GetEntryCount(); ++i) {
-			
+
 			// TODO
-			
+
 //			AddAliasAnalysisToRegBankAccess(ptr, ::llvm::ConstantInt::get(types.i32, r), regbank.BankOffset, regbank.RegisterStride, regbank.RegisterCount);
 			rtc.RegSlots[std::make_pair(entry.second.GetID(), i)] = nullptr;
 		}
@@ -482,7 +482,7 @@ bool LLVMTranslationContext::BuildEntryBlock(LLVMRegionTranslationContext& rtc, 
 bool LLVMTranslationContext::BuildChainBlock(LLVMRegionTranslationContext& rtc)
 {
 	UNIMPLEMENTED;
-//	
+//
 //	rtc.builder.SetInsertPoint(rtc.chain_block);
 //
 //	if(archsim::options::JitDisableBranchOpt) {
@@ -784,7 +784,7 @@ void LLVMRegionTranslationContext::EmitPublishEvent(PubSubType::PubSubType type,
 //		::llvm::Value *context = builder.CreateIntToPtr(txln.GetConstantInt64((uint64_t)subscriber->GetContext()), txln.types.pi8);
 //		builder.CreateCall(fn, {txln.GetConstantInt32(type), context, cast_slot});
 //	}
-	
+
 	UNIMPLEMENTED;
 
 }
@@ -946,7 +946,7 @@ bool LLVMBlockTranslationContext::Translate()
 bool LLVMBlockTranslationContext::EmitInterruptCheck()
 {
 	UNIMPLEMENTED;
-//	
+//
 //	if (archsim::options::Verbose) {
 ////		region.EmitCounterUpdate(region.builder, region.txln.twu.GetProcessor().metrics.interrupt_checks, 1);
 //	}
@@ -1381,7 +1381,7 @@ bool LLVMTranslationContext::LoadTranslation(Translation*& translation)
 //	}
 //
 //	return true;
-	
+
 	UNIMPLEMENTED;
 }
 
@@ -1431,7 +1431,7 @@ bool LLVMTranslationContext::Optimise(::llvm::ExecutionEngine *engine, ::llvm::F
 {
 //	if (archsim::options::Verbose) timers.optimisation.Start();
 	::llvm::legacy::FunctionPassManager internalize(llvm_module);
-	
+
 	std::vector<const char *> fns;
 	fns.push_back(strdup(region_fn->getName().str().c_str()));
 

@@ -5,7 +5,8 @@
 
 using namespace archsim::translate::adapt;
 
-bool BlockJITCOUNTLowering::Lower(const captive::shared::IRInstruction*& insn) {
+bool BlockJITCOUNTLowering::Lower(const captive::shared::IRInstruction*& insn)
+{
 	const auto &counter = insn->operands[0];
 	const auto &amount = insn->operands[1];
 
@@ -14,8 +15,8 @@ bool BlockJITCOUNTLowering::Lower(const captive::shared::IRInstruction*& insn) {
 	llvm::Value *counter_value = GetBuilder().CreateLoad(counter_ptr);
 	counter_value = GetBuilder().CreateAdd(counter_value, GetValueFor(amount));
 	GetBuilder().CreateStore(counter_value, counter_ptr);
-	
+
 	insn++;
-	
+
 	return true;
 }

@@ -38,7 +38,7 @@ class ConstantValueTypeValidationPass : public SSAStatementValidationPass
 			case IRConstant::Type_Float_Single:
 				Assert(stmt.GetType().IsFloating(), "Value type mismatch in constant", stmt.GetDiag());
 				break;
-				
+
 			case IRConstant::Type_Vector:
 				Assert(stmt.GetType().VectorWidth > 1, "Value type mismatch in constant", stmt.GetDiag());
 				break;

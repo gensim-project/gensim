@@ -37,8 +37,11 @@ namespace gensim
 				{
 					return IRTypes::Void;
 				}
-                                
-                                const gensim::arch::MemoryInterfaceDescription *GetInterface() const { return interface_; }
+
+				const gensim::arch::MemoryInterfaceDescription *GetInterface() const
+				{
+					return interface_;
+				}
 
 			private:
 				SSAMemoryWriteStatement(SSABlock *parent, SSAStatement *addrExpr, SSAStatement *valueExpr, uint8_t width, const gensim::arch::MemoryInterfaceDescription *interface, SSAStatement *before = NULL)
@@ -47,8 +50,8 @@ namespace gensim
 					SetAddr(addrExpr);
 					SetValue(valueExpr);
 				}
-                                        
-                                        const gensim::arch::MemoryInterfaceDescription *interface_;
+
+				const gensim::arch::MemoryInterfaceDescription *interface_;
 			};
 		}
 	}

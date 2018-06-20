@@ -5,14 +5,15 @@
 
 using namespace archsim::translate::adapt;
 
-bool BlockJITJMPLowering::Lower(const captive::shared::IRInstruction*& insn) {
-	
+bool BlockJITJMPLowering::Lower(const captive::shared::IRInstruction*& insn)
+{
+
 	const auto &target = insn->operands[0];
 	assert(target.is_block());
-	
+
 	GetBuilder().CreateBr(GetContext().GetLLVMBlock(target.value));
-	
+
 	insn++;
-	
+
 	return true;
 }

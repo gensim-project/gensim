@@ -4,11 +4,12 @@
 
 using namespace archsim::translate::adapt;
 
-bool BlockJITRETLowering::Lower(const captive::shared::IRInstruction*& insn) {
-	
+bool BlockJITRETLowering::Lower(const captive::shared::IRInstruction*& insn)
+{
+
 	GetBuilder().CreateRetVoid();
-	
+
 	insn++;
-	
+
 	return true;
 }

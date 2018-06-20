@@ -228,7 +228,7 @@ namespace gensim
 			if((from.VectorWidth == 1) && (to.VectorWidth > 1)) {
 				return IRConstant::Vector(to.VectorWidth, value);
 			}
-			
+
 			if((from.VectorWidth != 1) || (to.VectorWidth != 1)) {
 				GASSERT(value.Type() == IRConstant::Type_Vector);
 				GASSERT(from.VectorWidth == to.VectorWidth);

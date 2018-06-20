@@ -13,7 +13,7 @@ using namespace captive::shared;
 bool LowerScm::Lower(const captive::shared::IRInstruction *&insn)
 {
 	auto &value = insn->operands[0];
-	
+
 	GetLoweringContext().lea_state_field("ModeID", BLKJIT_TEMPS_0(8));
 	if(value.is_constant()) {
 		Encoder().mov1(value.value, X86Memory::get(BLKJIT_TEMPS_0(8)));

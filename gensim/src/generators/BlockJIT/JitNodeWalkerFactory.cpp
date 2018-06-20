@@ -322,7 +322,7 @@ namespace gensim
 							return EmitVectorOp(output, "sub");
 						case BinaryOperator::Multiply:
 							return EmitVectorOp(output, "mul");
-							
+
 						case BinaryOperator::Bitwise_Or:
 						case BinaryOperator::Bitwise_And:
 						case BinaryOperator::Equality:
@@ -690,14 +690,14 @@ namespace gensim
 					SSANodeWalker *expr = Factory.GetOrCreate(Statement.Expr());
 
 					output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().Size() << ");";
-					
+
 					if(Statement.GetCastType() != SSACastStatement::Cast_Reinterpret) {
 						if(Statement.GetType() == Statement.Expr()->GetType()) {
 							// actually just a mov
 							output << "builder.mov(" << operand_for_node(*expr) << ", " << operand_for_stmt(Statement) << ");";
 							return true;
 						}
-						
+
 						if(Statement.GetType().IsFloating() || Statement.Expr()->GetType().IsFloating()) {
 							return EmitFloatCastCode(output, end_label, fully_fixed);
 						}
@@ -1140,7 +1140,7 @@ namespace gensim
 					output << "if(trace) {";
 					output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemRead" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");";
 					output << "}";
-					
+
 					return true;
 				}
 
@@ -1172,9 +1172,9 @@ namespace gensim
 //					if (Statement.User) {
 //						output << "builder.stmem_user(" << operand_for_node(*value) << ", " << operand_for_node(*address) << ");\n";
 //					} else {
-						output << "builder.stmem(IROperand::const32(" << Statement.GetInterface()->GetID() << "), " << operand_for_node(*value) << ", IROperand::const32(0), " << operand_for_node(*address) << ");\n";
-						output << "if(trace)";
-						output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemWrite" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_node(*value) << ");";
+					output << "builder.stmem(IROperand::const32(" << Statement.GetInterface()->GetID() << "), " << operand_for_node(*value) << ", IROperand::const32(0), " << operand_for_node(*address) << ");\n";
+					output << "if(trace)";
+					output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemWrite" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_node(*value) << ");";
 //					}
 
 					return true;

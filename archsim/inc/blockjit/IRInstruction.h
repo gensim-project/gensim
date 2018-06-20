@@ -33,9 +33,10 @@ namespace captive
 		extern struct insn_descriptor insn_descriptors[];
 		extern size_t num_descriptors;
 
-		class IRInstruction {
+		class IRInstruction
+		{
 		public:
-			
+
 			enum IRInstructionType : uint8_t {
 				INVALID,
 
@@ -153,17 +154,25 @@ namespace captive
 
 				_END
 			};
-			
+
 			util::FastVector<IROperand, 2> operands;
 			IRBlockId ir_block;
 			IRInstructionType type;
-			
-			const insn_descriptor &descriptor() const { return insn_descriptors[type]; }
-			void make_nop() { ir_block = NOP_BLOCK; type = NOP; operands.clear(); }
-			
+
+			const insn_descriptor &descriptor() const
+			{
+				return insn_descriptors[type];
+			}
+			void make_nop()
+			{
+				ir_block = NOP_BLOCK;
+				type = NOP;
+				operands.clear();
+			}
+
 			template<class... args> IRInstruction(IRInstructionType type, const args&... arg)
 				: type(type), operands{arg...} {}
-			
+
 			uint8_t count_operands() const
 			{
 				return operands.size();

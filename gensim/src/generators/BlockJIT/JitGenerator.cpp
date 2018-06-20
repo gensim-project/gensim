@@ -74,7 +74,7 @@ bool JitGenerator::GenerateJitChunks(int count) const
 
 		stream
 		        << "#include \"blockjit/translation-context.h\"\n"
-				<< "#include \"blockjit/IRBuilder.h\"\n"
+		        << "#include \"blockjit/IRBuilder.h\"\n"
 		        << "#include \"decode.h\"\n"
 		        << "#include \"jit.h\"\n"
 		        << "#include \"processor.h\"\n"
@@ -110,7 +110,7 @@ bool JitGenerator::RegisterHelpers(const isa::ISADescription *isa) const
 //SSAContext::ActionListConstIterator HI = isa->GetSSAContext().HelpersBegin(), HE = isa->GetSSAContext().HelpersEnd(); HI != HE; ++HI
 
 	GenCInterpreterGenerator interp (Manager);
-	
+
 	for (const auto& action_item : isa->GetSSAContext().Actions()) {
 		if (!action_item.second->HasAttribute(ActionAttribute::Helper)) continue;
 
@@ -126,12 +126,12 @@ bool JitGenerator::RegisterHelpers(const isa::ISADescription *isa) const
 		body_stream << "{";
 		body_stream << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 		// generate helper function code inline here
-		
+
 		interp.GenerateExecuteBodyFor(body_stream, *action);
-		
+
 		body_stream << "}";
-		
-		Manager.AddFunctionEntry(FunctionEntry(prototype_stream.str(), body_stream.str(),{},{"cstdint", "core/thread/ThreadInstance.h","util/Vector.h"},{},true));
+
+		Manager.AddFunctionEntry(FunctionEntry(prototype_stream.str(), body_stream.str(), {}, {"cstdint", "core/thread/ThreadInstance.h","util/Vector.h"}, {},true));
 	}
 
 	return true;
@@ -144,16 +144,16 @@ bool JitGenerator::GenerateHeader(util::cppformatstream & hdr_stream) const
 	hdr_stream
 	        << "#ifndef _JIT_HEADER\n#define _JIT_HEADER\n"
 	        << "#include \"decode.h\"\n"
-			<< "#include \"arch.h\"\n"
+	        << "#include \"arch.h\"\n"
 	        << "#include <blockjit/translation-context.h>\n"
 	        << "#include <blockjit/BlockJitTranslate.h>\n"
 	        << "#include <util/SimOptions.h>\n"
 	        << "#include <translate/jit_funs.h>\n";
-		
+
 	GenerateClass(hdr_stream);
 
 	hdr_stream << "#endif\n";
-	
+
 	return true;
 }
 
@@ -172,7 +172,7 @@ bool JitGenerator::GenerateClass(util::cppformatstream& str) const
 	        << "				bool translate_instruction(const gensim::BaseDecode* decode_obj, captive::shared::IRBuilder &builder, bool trace) ;"
 
 	        << "			private:\n";
-	
+
 	for (auto isa : arch.ISAs) {
 
 		for (auto fmt : isa->Formats) {
@@ -186,9 +186,9 @@ bool JitGenerator::GenerateClass(util::cppformatstream& str) const
 
 	str	<< "			};"
 
-	            << "		}"
-	            << "	}"
-	            << "}";
+	    << "		}"
+	    << "	}"
+	    << "}";
 
 	return true;
 }
@@ -206,9 +206,9 @@ bool JitGenerator::GenerateSource(util::cppformatstream & src_stream) const
 
 	        << "#include <queue>\n"
 	        << "#include <set>\n";
-	
+
 	GenerateTranslation(src_stream);
-	
+
 	return true;
 }
 
@@ -286,7 +286,7 @@ bool JitGenerator::RegisterJITFunction(const ISADescription& isa, const Instruct
 	util::cppformatstream src_stream;
 	std::string prototype = "bool captive::arch::" + Manager.GetArch().Name + "::JIT::translate_" + isa.ISAName + "_" + insn.Name + "(const Decode&insn, captive::shared::IRBuilder &builder, bool trace)";
 	src_stream  << "{"
-				<< "using namespace captive::shared;"
+	            << "using namespace captive::shared;"
 	            << "std::queue<IRBlockId> dynamic_block_queue;";
 
 	src_stream << "IRBlockId __exit_block = 0xf0f0f0f0;\n";
@@ -325,7 +325,7 @@ bool JitGenerator::RegisterJITFunction(const ISADescription& isa, const Instruct
 
 	src_stream	<< "	return true;"
 	            << "}";
-	
+
 	Manager.AddFunctionEntry(FunctionEntry(prototype, src_stream.str(), {"ee_blockjit.h"}, {"queue", "translate/jit_funs.h"}));
 
 	return true;

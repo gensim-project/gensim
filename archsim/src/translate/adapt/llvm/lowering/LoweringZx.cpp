@@ -5,16 +5,17 @@
 
 using namespace archsim::translate::adapt;
 
-bool BlockJITZXLowering::Lower(const captive::shared::IRInstruction*& insn) {
+bool BlockJITZXLowering::Lower(const captive::shared::IRInstruction*& insn)
+{
 	const auto &source = insn->operands[0];
 	const auto &dest = insn->operands[1];
-	
+
 	auto value = GetValueFor(source);
-	
+
 	auto extended = GetBuilder().CreateZExt(value, GetContext().GetLLVMType(dest));
 	SetValueFor(dest, extended);
-	
+
 	insn++;
-	
+
 	return true;
 }

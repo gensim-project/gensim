@@ -17,7 +17,8 @@
 #include <cfenv>
 #include <setjmp.h>
 
-namespace gensim {
+namespace gensim
+{
 	class Processor;
 }
 
@@ -250,7 +251,7 @@ extern "C" {
 	uint32_t cpuRead32(gensim::Processor *cpu, uint32_t address, uint32_t& data)
 	{
 		UNIMPLEMENTED;
-		
+
 //		LC_DEBUG2(LogJitFuns) << "cpuRead8";
 //		auto rval = ((gensim::Processor*)cpu)->GetMemoryModel().Read32(address, data);
 //		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead32(cpu, address, data);

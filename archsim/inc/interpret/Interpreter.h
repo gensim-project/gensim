@@ -1,6 +1,6 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
-/* 
+/*
  * File:   Interpreter.h
  * Author: harry
  *
@@ -16,9 +16,12 @@
 
 UseLogContext(LogInterpreter)
 
-namespace archsim {
-	namespace interpret {
-		class Interpreter {
+namespace archsim
+{
+	namespace interpret
+	{
+		class Interpreter
+		{
 		public:
 			virtual ~Interpreter();
 			virtual core::execution::ExecutionResult StepBlock(archsim::core::thread::ThreadInstance *thread) = 0;

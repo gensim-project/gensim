@@ -134,7 +134,7 @@ size_t captive::shared::num_descriptors = sizeof(captive::shared::insn_descripto
 TranslationContext::TranslationContext()
 	: _ir_block_count(0), _ir_reg_count(0), _ir_insns(NULL), _ir_insn_count(0), _ir_insn_buffer_size(0)
 {
-	
+
 }
 
 void TranslationContext::clear()

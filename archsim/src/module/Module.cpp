@@ -34,7 +34,7 @@ namespace archsim
 			}
 			return nullptr;
 		}
-		
+
 		template<> const archsim::module::ModuleExecutionEngineEntry *archsim::module::ModuleInfo::GetEntry<archsim::module::ModuleExecutionEngineEntry>(const std::string& entryname) const
 		{
 			auto generic_entry = GetGenericEntry(entryname);
@@ -63,7 +63,7 @@ namespace archsim
 		{
 
 		}
-		
+
 		const std::string& ModuleEntry::GetName() const
 		{
 			return name_;
@@ -106,7 +106,7 @@ namespace archsim
 			if(generic_entry) {
 				if(generic_entry->GetType() == ModuleEntry::ModuleEntry_Processor) {
 					return (const ModuleProcessorEntry*)generic_entry;
-				} 
+				}
 			}
 			return nullptr;
 		}

@@ -26,24 +26,24 @@ namespace archsim
 	{
 		namespace translate_llvm
 		{
-			
+
 			class ArchSimAA : public llvm::AliasAnalysis, llvm::FunctionPass
 			{
 				static char ID;
 			public:
-				
+
 				ArchSimAA();
 
 				bool runOnFunction(llvm::Function &F) override;
-				
-				
-				void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;				
+
+
+				void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
 				virtual llvm::AliasResult alias(const llvm::MemoryLocation &L1, const llvm::MemoryLocation &L2);
 
 			private:
 				llvm::AliasResult do_alias(const llvm::MemoryLocation &L1, const llvm::MemoryLocation &L2);
 			};
-			
+
 			class LLVMOptimiser
 			{
 			public:

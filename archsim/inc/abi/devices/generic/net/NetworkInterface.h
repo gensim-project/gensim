@@ -25,7 +25,7 @@ namespace archsim
 				{
 
 					using NetworkInterfaceReceiveCallback = std::function<void (const uint8_t *buffer, uint32_t length)>;
-					
+
 					class NetworkInterface
 					{
 					public:

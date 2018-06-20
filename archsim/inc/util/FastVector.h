@@ -109,21 +109,23 @@ namespace util
 		typedef OverflowType overflow_t;
 
 		FastVector() : count(0) {}
-		
-		FastVector(const std::initializer_list<T> &vals) : count(0) {
+
+		FastVector(const std::initializer_list<T> &vals) : count(0)
+		{
 			for(auto &i : vals) {
 				push_back(i);
 			}
 		}
-		
+
 		~FastVector()
 		{
 			if(using_vector()) {
 				vector.~OverflowType();
 			}
 		}
-		
-		FastVector(const this_t &other) {
+
+		FastVector(const this_t &other)
+		{
 			count = other.count;
 			if(other.using_vector()) {
 				switch_to_vector();
@@ -134,8 +136,9 @@ namespace util
 				}
 			}
 		}
-		
-		void operator=(const this_t &other) {
+
+		void operator=(const this_t &other)
+		{
 			clear();
 			count = other.count;
 			if(other.using_vector()) {
@@ -177,12 +180,12 @@ namespace util
 				vector.reserve(reserve_size);
 			}
 		}
-		
+
 		reference operator[](unsigned int i)
 		{
 			return at(i);
 		}
-		
+
 		const_reference operator[](unsigned int i) const
 		{
 			return at(i);
@@ -193,7 +196,7 @@ namespace util
 			if(i >= count) {
 				throw std::logic_error("Out of range");
 			}
-			
+
 			if(using_values()) return values[i];
 			else return vector.at(i);
 
@@ -205,7 +208,7 @@ namespace util
 			if(i >= count) {
 				throw std::logic_error("Out of range");
 			}
-			
+
 			if(using_values()) return values[i];
 			else return vector.at(i);
 

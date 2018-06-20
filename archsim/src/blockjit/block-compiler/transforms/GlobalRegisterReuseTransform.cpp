@@ -26,14 +26,15 @@ GlobalRegisterReuseTransform::GlobalRegisterReuseTransform(const archsim::util::
 }
 
 
-GlobalRegisterReuseTransform::~GlobalRegisterReuseTransform() {
+GlobalRegisterReuseTransform::~GlobalRegisterReuseTransform()
+{
 }
 
 bool GlobalRegisterReuseTransform::Apply(TranslationContext& ctx)
 {
 	int free_pregs = used_pregs_.inverted().count();
 	int next_free_preg = used_pregs_.get_lowest_clear();
-	
+
 	// First, figure out which registers are frequently used
 	std::map<uint32_t, uint32_t> register_frequencies;
 	for(unsigned insn_idx = 0; insn_idx < ctx.count(); ++insn_idx) {
@@ -49,7 +50,7 @@ bool GlobalRegisterReuseTransform::Apply(TranslationContext& ctx)
 			}
 		}
 	}
-	
-	// now, 
+
+	// now,
 	return true;
 }
