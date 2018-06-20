@@ -19,7 +19,7 @@ bool MovEliminationTransform::Apply(TranslationContext& ctx)
 		auto instruction = ctx.at(insn_idx);
 		auto &descriptor = instruction->descriptor();
 		
-		for(int op_idx = 0; op_idx < instruction->operands.size(); ++op_idx) {
+		for(unsigned int op_idx = 0; op_idx < instruction->operands.size(); ++op_idx) {
 			auto &operand = instruction->operands.at(op_idx);
 			if(operand.is_vreg()) {
 				if(instruction->descriptor().format[op_idx] == 'I') {

@@ -232,7 +232,7 @@ static bool is_breaker(IRInstruction *add, IRInstruction *test)
 	// If the instruction under test touches the target of the add, then it is a breaker
 	if(test->type != IRInstruction::READ_MEM) {
 		IROperand *add_target = &add->operands[1];
-		for(int op_idx = 0; op_idx < test->operands.size(); ++op_idx) {
+		for(unsigned int op_idx = 0; op_idx < test->operands.size(); ++op_idx) {
 			if((test->operands[op_idx].alloc_mode == add_target->alloc_mode) && (test->operands[op_idx].alloc_data == add_target->alloc_data)) return true;
 		}
 	}

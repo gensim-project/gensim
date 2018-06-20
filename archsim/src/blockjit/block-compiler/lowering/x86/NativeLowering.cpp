@@ -29,3 +29,7 @@ LoweringResult captive::arch::jit::lowering::NativeLowering(TranslationContext &
 	fn = (block_txln_fn)allocator.Reallocate(encoder.get_buffer(), encoder.get_buffer_size());
 	return LoweringResult(fn, encoder.get_buffer_size());
 }
+
+bool captive::arch::jit::lowering::HasNativeLowering() {
+	return true;
+}
