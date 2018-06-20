@@ -13,9 +13,9 @@
 #include <iostream>
 #include <iomanip>
 
-#include "util/LogContext.h"
-
 #include "translate/profile/RegionArch.h"
+
+#include "util/LogContext.h"
 
 namespace archsim
 {
@@ -72,7 +72,7 @@ namespace archsim
 			return Get() == other.Get();
 		}
 
-    friend std::ostream &operator<<(std::ostream &str, const archsim::Address& address);
+		friend std::ostream &operator<<(std::ostream &str, const archsim::Address& address);
 
 	private:
 		underlying_t _address;
