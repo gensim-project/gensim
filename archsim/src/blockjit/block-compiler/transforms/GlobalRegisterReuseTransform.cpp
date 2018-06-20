@@ -51,5 +51,5 @@ bool GlobalRegisterReuseTransform::Apply(TranslationContext& ctx)
 	}
 	
 	// now, 
-	
+	return true;
 }

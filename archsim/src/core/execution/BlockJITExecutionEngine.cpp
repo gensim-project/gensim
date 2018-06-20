@@ -1,5 +1,6 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
+#include "blockjit/block-compiler/lowering/NativeLowering.h"
 #include "core/execution/BlockJITExecutionEngine.h"
 #include "core/execution/ExecutionEngineFactory.h"
 #include "core/thread/ThreadInstance.h"
@@ -257,6 +258,10 @@ bool BlockJITExecutionEngine::translateBlock(ThreadInstance *thread, archsim::Ad
 ExecutionEngine *archsim::core::execution::BlockJITExecutionEngine::Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix) {
 	std::string entry_name = cpu_prefix + "BlockJITTranslator";
 	if(!module->HasEntry(entry_name)) {
+		return nullptr;
+	}
+	
+	if(!captive::arch::jit::lowering::HasNativeLowering()) {
 		return nullptr;
 	}
 	

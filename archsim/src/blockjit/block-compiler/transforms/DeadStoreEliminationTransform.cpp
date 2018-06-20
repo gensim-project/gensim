@@ -60,11 +60,11 @@ bool StoreAfterStoreElimination(TranslationContext &ctx) {
 
 	std::map<IRRegId, IRInstruction*> prev_writes;
 	
-	for(int insn_idx = 0; insn_idx < ctx.count(); insn_idx++) {
+	for(unsigned int insn_idx = 0; insn_idx < ctx.count(); insn_idx++) {
 		auto insn = ctx.at(insn_idx);
 		auto &descriptor = insn->descriptor();
 		
-		for(int op_idx = 0; op_idx < insn->operands.size(); ++op_idx) {
+		for(unsigned int op_idx = 0; op_idx < insn->operands.size(); ++op_idx) {
 			auto &op = insn->operands.at(op_idx);
 			
 			if(op.is_vreg()) {

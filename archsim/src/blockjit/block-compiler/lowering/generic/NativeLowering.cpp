@@ -11,3 +11,8 @@ LoweringResult captive::arch::jit::lowering::NativeLowering(TranslationContext &
 	throw std::logic_error("Cannot lower blockjit for generic simulation target");
 	return LoweringResult(nullptr, 0);
 }
+
+bool captive::arch::jit::lowering::HasNativeLowering() 
+{
+	return false;
+}

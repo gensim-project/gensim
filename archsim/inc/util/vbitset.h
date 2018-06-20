@@ -19,7 +19,7 @@ namespace archsim {
 			vbitset(unsigned int size) : storage_(size, false) {}
 			vbitset(unsigned int size, uint64_t value) : storage_(size, false) 
 			{
-				for(int i = 0; i < size; ++i) {
+				for(unsigned int i = 0; i < size; ++i) {
 					set(i, value & (1 << i));
 				}
 			}

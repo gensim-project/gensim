@@ -10,6 +10,7 @@
 #ifndef NATIVELOWERING_H
 #define NATIVELOWERING_H
 
+#include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/ir.h"
 #include "core/thread/ThreadInstance.h"
 #include "util/vbitset.h"
@@ -32,6 +33,7 @@ namespace captive {
 				};
 				
 				LoweringResult NativeLowering(TranslationContext &ctx, wulib::MemAllocator &allocator, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &state, const CompileResult &compile_result);
+				bool HasNativeLowering();
 			}
 		}
 	}

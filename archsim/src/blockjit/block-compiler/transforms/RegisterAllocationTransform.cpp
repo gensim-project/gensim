@@ -53,7 +53,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 		if(insn->ir_block == NOP_BLOCK) break;
 		if(insn->type == IRInstruction::BARRIER) next_global = 0;
 
-		for (int op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
+		for (unsigned int op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
 			IROperand *oper = &insn->operands[op_idx];
 			if(!oper->is_valid()) break;
 
@@ -105,7 +105,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 		live_outs.copy(live_ins);
 
 		// Loop over the VREG operands and update the live-in set accordingly.
-		for (int o = 0; o < insn->operands.size(); o++) {
+		for (unsigned int o = 0; o < insn->operands.size(); o++) {
 			if (!insn->operands[o].is_valid()) break;
 			if (insn->operands[o].type != IROperand::VREG) continue;
 
