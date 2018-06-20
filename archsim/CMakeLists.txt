@@ -14,7 +14,7 @@ ENDIF()
 
 IF(PkgConfig_FOUND)
 	PKG_CHECK_MODULES(Valgrind valgrind)
-  IF(Valgrind_FOUND AND NOT ARCHSIM_DISABLE_VALGRIND)
+	IF(Valgrind_FOUND AND NOT ARCHSIM_DISABLE_VALGRIND)
 		SET(archsim_extra_options ${archsim_extra_options} ${Valgrind_CFLAGS} -DCONFIG_VALGRIND=1)
 		SET(archsim_libs "${archsim_extra_libs};${Valgrind_LIBRARIES}")
 		LINK_DIRECTORIES(${Valgrind_LIBRARY_DIRS})
