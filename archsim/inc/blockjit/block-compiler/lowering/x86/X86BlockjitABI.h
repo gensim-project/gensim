@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * blockjit-abi.h
  *
@@ -34,7 +36,7 @@
 #define BLKJIT_REGSTATE_REG X86Reg(REG_RBP)
 #define BLKJIT_CPUSTATE_REG X86Reg(REG_R12)
 
-#define BLKJIT_TEMPS_0 REGS_RDI	
+#define BLKJIT_TEMPS_0 REGS_RDI
 #define BLKJIT_TEMPS_1 REGS_RSI
 #define BLKJIT_TEMPS_2 REGS_RDX
 

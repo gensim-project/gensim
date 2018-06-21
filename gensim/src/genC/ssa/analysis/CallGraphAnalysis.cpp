@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/analysis/CallGraphAnalysis.h"
 #include "genC/ssa/statement/SSACallStatement.h"
@@ -31,18 +27,18 @@ const CallGraph::callee_set_t CallGraph::GetDeepCallees(SSAFormAction* caller)
 {
 	auto work_set = GetCallees(caller);
 	auto output = work_set;
-	
+
 	while(work_set.size()) {
 		auto next = *work_set.begin();
 		work_set.erase(next);
-		
+
 		auto next_callees = GetCallees((SSAFormAction*)next);
 		if(!std::includes(output.begin(), output.end(), next_callees.begin(), next_callees.end())) {
 			work_set.insert(next_callees.begin(), next_callees.end());
-			output.insert(next_callees.begin(), next_callees.end());			
+			output.insert(next_callees.begin(), next_callees.end());
 		}
 	}
-	
+
 	return output;
 }
 

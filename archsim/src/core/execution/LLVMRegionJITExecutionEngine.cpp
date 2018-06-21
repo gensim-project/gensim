@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "core/execution/LLVMRegionJITExecutionEngine.h"
 #include "core/execution/ExecutionEngineFactory.h"
@@ -15,7 +11,7 @@ using namespace archsim::core::execution;
 LLVMRegionJITExecutionEngineContext::LLVMRegionJITExecutionEngineContext(archsim::core::execution::ExecutionEngine* engine, archsim::core::thread::ThreadInstance* thread) : ExecutionEngineThreadContext(engine, thread), TxlnMgr(&thread->GetEmulationModel().GetSystem().GetPubSub())
 {
 	LLVMRegionJITExecutionEngine *e = (LLVMRegionJITExecutionEngine*)engine;
-	
+
 	TxlnMgr.SetManager(thread->GetEmulationModel().GetSystem().GetCodeRegions());
 	TxlnMgr.Initialise(e->translator_);
 }
@@ -40,10 +36,12 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 {
 	LLVMRegionJITExecutionEngineContext *ctx = (LLVMRegionJITExecutionEngineContext*)thread_ctx;
 	auto thread = thread_ctx->GetThread();
-	
+
 	CreateThreadExecutionSafepoint(thread);
-	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) { thread->GetTraceSource()->Trace_End_Insn(); }
-	
+	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) {
+		thread->GetTraceSource()->Trace_End_Insn();
+	}
+
 	while(thread_ctx->GetState() == ExecutionState::Running) {
 		int iterations = 10000;
 		while(iterations--) {
@@ -69,7 +67,7 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 					continue;
 				}
 			}
-			
+
 			region.TraceBlock(thread, virt_pc);
 			auto result = interpreter_->StepBlock(thread);
 
@@ -83,7 +81,7 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 		}
 		ctx->TxlnMgr.Profile(thread);
 		ctx->TxlnMgr.RegisterCompletedTranslations();
-		
+
 	}
 	return ExecutionResult::Halt;
 }
@@ -93,7 +91,7 @@ ExecutionEngine* LLVMRegionJITExecutionEngine::Factory(const archsim::module::Mo
 	// need an interpreter and a blockjit translator
 	auto interpreter_entry = module->GetEntry<module::ModuleInterpreterEntry>("Interpreter");
 	auto blockjit_entry = module->GetEntry<module::ModuleBlockJITTranslatorEntry>("BlockJITTranslator");
-	
+
 	if(interpreter_entry == nullptr || blockjit_entry == nullptr) {
 		return nullptr;
 	}

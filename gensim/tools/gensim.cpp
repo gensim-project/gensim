@@ -1,9 +1,4 @@
-/*
- * File:   main.cpp
- * Author: s0803652
- *
- * Created on 27 September 2011, 13:58
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <cstring>
 #include <stdlib.h>

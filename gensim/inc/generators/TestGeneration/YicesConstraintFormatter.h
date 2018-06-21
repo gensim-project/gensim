@@ -1,9 +1,4 @@
-/*
- * YicesConstraintFormatter.h
- *
- *  Created on: 21 Feb 2014
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef YICESCONSTRAINTFORMATTER_H_
 #define YICESCONSTRAINTFORMATTER_H_

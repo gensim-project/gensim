@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * GLScreen.cpp
  *
@@ -187,7 +189,7 @@ void archsim::abi::devices::gfx::key_press_event(GtkWidget *widget, GdkEventKey 
 {
 	GtkScreen *scr = (GtkScreen *)screen;
 	uint16_t scancode = 0;
-	
+
 	if(event->keyval == GDK_KEY_Control_R) {
 		scr->ungrab();
 	}
@@ -217,7 +219,7 @@ void archsim::abi::devices::gfx::motion_notify_event(GtkWidget *widget, GdkEvent
 	if(scr->mouse_y == event->x && scr->mouse_y == event->y) {
 		return;
 	}
-	
+
 	if(scr->grabbed_) {
 		if(scr->ignore_next_) {
 			scr->ignore_next_ = false;
@@ -236,7 +238,7 @@ void archsim::abi::devices::gfx::button_press_event(GtkWidget *widget, GdkEventB
 		// grab the mouse if it isn't grabbed
 		scr->grab();
 	} else {
-	
+
 		//convert button indices
 		uint32_t ps2_index;
 		switch(event->button) {
@@ -265,7 +267,7 @@ void archsim::abi::devices::gfx::button_press_event(GtkWidget *widget, GdkEventB
 			default:
 				break;
 		}
-		
+
 	}
 }
 
@@ -279,17 +281,17 @@ GtkScreen::~GtkScreen()
 	if(running)Reset();
 }
 
-void archsim::abi::devices::gfx::draw_callback(GtkWidget *widget, cairo_t *cr, void *data) 
+void archsim::abi::devices::gfx::draw_callback(GtkWidget *widget, cairo_t *cr, void *data)
 {
 	GtkScreen *screen = (GtkScreen*)data;
-	
-	
+
+
 	uint16_t *fbp = (uint16_t*)screen->guest_fb;
 	uint16_t *fbp_end = fbp + (screen->GetHeight() * screen->GetWidth());
-	
+
 	GdkPixbuf *pb = screen->pb_;
 	guchar *pixels = gdk_pixbuf_get_pixels(pb);
-	
+
 	for(; fbp != fbp_end;) {
 		uint16_t pxl = *fbp++;
 		uint16_t r, g, b;
@@ -305,17 +307,18 @@ void archsim::abi::devices::gfx::draw_callback(GtkWidget *widget, cairo_t *cr, v
 		*(uint32_t*)pixels = out;
 		pixels += 3;
 	}
-	
-	
+
+
 	gdk_cairo_set_source_pixbuf(cr, pb, 0, 0);
 	cairo_paint(cr);
 }
 
 static GtkScreen *local_screen = nullptr;
 
-bool delete_callback(GtkWidget *widget, GdkEvent event) {
+bool delete_callback(GtkWidget *widget, GdkEvent event)
+{
 	local_screen->running = false;
-	
+
 	return false;
 }
 
@@ -327,7 +330,7 @@ bool GtkScreen::Initialise()
 		gtk_init(NULL, NULL);
 
 		cursor_ = gdk_cursor_new(GDK_BLANK_CURSOR);
-		
+
 		window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 		draw_area = gtk_drawing_area_new();
 		pb_ = gdk_pixbuf_new(GDK_COLORSPACE_RGB, false, 8, GetWidth(), GetHeight());
@@ -341,7 +344,7 @@ bool GtkScreen::Initialise()
 		gtk_widget_show_all(window);
 		gtk_window_set_title((GtkWindow*)window, GetId().c_str());
 		gtk_window_set_resizable((GtkWindow*)window,false);
-		
+
 		g_signal_connect(window, "key-press-event", G_CALLBACK(key_press_event), this);
 		g_signal_connect(window, "key-release-event", G_CALLBACK(key_release_event), this);
 
@@ -350,9 +353,9 @@ bool GtkScreen::Initialise()
 		g_signal_connect(window, "button-release-event", G_CALLBACK(button_press_event), this);
 
 		g_signal_connect(draw_area, "draw", G_CALLBACK(draw_callback), this);
-		
+
 		g_signal_connect(window, "delete-event", G_CALLBACK(delete_callback), this);
-		
+
 		framebuffer = (uint8_t*)malloc(3 * GetWidth() * GetHeight());
 
 		host_addr_t guest_fb_ptr;
@@ -388,19 +391,19 @@ bool GtkScreen::Reset()
 
 void GtkScreen::draw_framebuffer()
 {
-	
-	
+
+
 }
 
 void GtkScreen::grab()
 {
 	auto display = gtk_widget_get_display(window);
 	auto seat = gdk_display_get_default_seat(display);
-	
+
 	gdk_seat_grab(seat, gtk_widget_get_window(window), GDK_SEAT_CAPABILITY_ALL, false, cursor_, nullptr, nullptr, nullptr);
-	
+
 	set_cursor_position(GetWidth()/2, GetHeight()/2);
-	
+
 	grabbed_ = true;
 }
 
@@ -409,7 +412,7 @@ void GtkScreen::ungrab()
 	auto display = gtk_widget_get_display(window);
 	auto seat = gdk_display_get_default_seat(display);
 	gdk_seat_ungrab(seat);
-	
+
 	grabbed_ = false;
 }
 
@@ -432,25 +435,25 @@ void GtkScreen::run()
 			while(gtk_events_pending()) {
 				gtk_main_iteration_do(FALSE);
 			}
-			
+
 			if(!running) {
 				return;
 			}
-			
+
 			draw_framebuffer();
 
 			if(grabbed_) {
 				GdkScreen *scr;
 				gint x, y;
-				
+
 				auto seat = gdk_display_get_default_seat(gtk_widget_get_display(window));
-				
+
 				gdk_device_get_position(gdk_seat_get_pointer(seat), &scr, &x, &y);
 				x -= GetWidth()/2;
 				y -= GetHeight()/2;
 				mouse_x += x;
 				mouse_y += y;
-				
+
 				int inverted_y = GetHeight() - mouse_y;
 				mouse->Move(mouse_x, inverted_y);
 
@@ -463,7 +466,7 @@ void GtkScreen::run()
 
 		usleep(20000);
 	}
-	
+
 	// clean up if we ever exit
 	Reset();
 }

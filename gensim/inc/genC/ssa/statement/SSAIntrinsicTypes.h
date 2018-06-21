@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 ENUM_ENTRY(HaltCpu)
 ENUM_ENTRY(ReadPc)
 ENUM_ENTRY(WritePc)

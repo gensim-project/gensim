@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * BlockJitTranslate.cpp
  *
@@ -53,15 +55,15 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 {
 	// Initialise the translation context
 	_should_be_dumped = false;
-	
+
 	SetDecodeContext(processor->GetEmulationModel().GetNewDecodeContext(*processor));
-	
+
 	TranslationContext ctx;
 	captive::shared::IRBuilder builder;
-	
+
 	builder.SetContext(&ctx);
 	builder.SetBlock(ctx.alloc_block());
-	
+
 	InitialiseFeatures(processor);
 	InitialiseIsaMode(processor);
 
@@ -195,7 +197,7 @@ void BaseBlockJITTranslate::InvalidateIsaMode()
 }
 
 bool BaseBlockJITTranslate::build_block(archsim::core::thread::ThreadInstance *processor, archsim::Address block_address, captive::shared::IRBuilder &builder)
-{	
+{
 	// initialise some state, and then recursively emit blocks until we come
 	// to a branch that we can't resolve statically
 	if(!_decode)_decode = processor->GetArch().GetISA(processor->GetModeID()).GetNewDecode();
@@ -216,7 +218,7 @@ bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstan
 		std::cout << "Invalid instruction! PC:" << std::hex << pc.Get() << ": IR:" << std::hex << insn->ir << " ISAMODE:" << (uint32_t)insn->isa_mode << "\n";
 		return false;
 	}
-	
+
 	return emit_instruction_decoded(cpu, pc, insn, builder);
 }
 
@@ -224,7 +226,7 @@ bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstan
 bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::ThreadInstance *processor, Address pc, const gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
 {
 	LC_DEBUG4(LogBlockJit) << "Translating instruction " << std::hex << pc.Get() << " " << decode->Instr_Code << " " << decode->ir;
-	
+
 	if(archsim::options::Verbose) {
 		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
 	}
@@ -242,7 +244,7 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 	if(archsim::options::ProfileIrFreq) {
 		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionIRHistogram.get_value_ptr_at_index(decode->ir)), IROperand::const64(1));
 	}
-	
+
 	if(processor->GetTraceSource()) {
 		IRRegId pc_reg = builder.alloc_reg(4);
 		builder.ldpc(IROperand::vreg(pc_reg, 4));
@@ -252,13 +254,13 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 	}
 
 	translate_instruction(decode, builder, processor->GetTraceSource() != nullptr);
-	
+
 	if(decode_txlt_ctx == nullptr) {
 		if(!GetComponentInstance(processor->GetArch().GetName(), decode_txlt_ctx)) {
 			throw std::logic_error("Could not get DTC");
 		}
 	}
-	
+
 	decode_txlt_ctx->Translate(processor, *decode, *_decode_ctx, builder);
 
 	if(processor->GetTraceSource()) {
@@ -321,7 +323,7 @@ bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *pr
 
 	if(_supportProfiling) {
 		UNIMPLEMENTED;
-		
+
 //		_txln_mgr->GetRegion(phys_page).TraceBlock(*processor, pc.Get());
 //		auto &rgn = _txln_mgr->GetRegion(phys_page);
 //
@@ -462,19 +464,19 @@ bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance 
 	if(!result.Success) {
 		return false;
 	}
-	
+
 	auto lowering = captive::arch::jit::lowering::NativeLowering(ctx, allocator, cpu->GetArch(), cpu->GetStateBlock().GetDescriptor(), result);
 	fn.SetFn(lowering.Function);
-	
+
 	if(dump) {
 		ctx.trim();
-		
+
 		std::ostringstream ir_filename;
 		ir_filename << "blkjit-" << std::hex << block_address.Get() << ".txt";
 		std::ofstream ir_file (ir_filename.str().c_str());
 		archsim::blockjit::IRPrinter printer;
 		printer.DumpIR(ir_file, ctx);
-		
+
 		std::ostringstream str;
 		str << "blkjit-" << std::hex << block_address.Get() << ".bin";
 		FILE *outfile = fopen(str.str().c_str(), "w");

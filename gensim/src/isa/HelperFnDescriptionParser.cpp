@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "isa/HelperFnDescriptionParser.h"
 #include "isa/HelperFnDescription.h"
 #include "DiagnosticContext.h"

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 
 #include "blockjit/block-compiler/lowering/x86/X86LoweringContext.h"
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
@@ -11,7 +13,7 @@ using namespace captive::shared;
 bool LowerIntCheck::Lower(const captive::shared::IRInstruction *&insn)
 {
 	UNIMPLEMENTED;
-	
+
 //	// load interrupt check field
 //	GetCompiler().load_state_field(gensim::CpuStateOffsets::CpuState_pending_actions, BLKJIT_TEMPS_0(4));
 //

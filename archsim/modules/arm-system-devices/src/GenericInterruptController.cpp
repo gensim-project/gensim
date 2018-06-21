@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #include "GenericInterruptController.h"
 #include "abi/EmulationModel.h"
 #include "util/LogContext.h"
@@ -325,7 +326,7 @@ namespace archsim
 			void GICCPUInterface::update()
 			{
 				LC_DEBUG2(LogGIC) << "CPU Interface update";
-				
+
 				current_pending = 1023;
 				if (!enabled() || !GetOwner()->GetDistributor()->enabled()) {
 					GetIRQLine()->Rescind();

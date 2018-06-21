@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   session.h
  * Author: s0457958
@@ -21,9 +23,12 @@ namespace archsim
 	public:
 		abi::devices::generic::MouseAggregator global_mouse;
 		abi::devices::generic::KeyboardAggregator global_kbd;
-		
-		module::ModuleManager &GetModuleManager() { return module_manager_; }
-		
+
+		module::ModuleManager &GetModuleManager()
+		{
+			return module_manager_;
+		}
+
 	private:
 		module::ModuleManager module_manager_;
 	};

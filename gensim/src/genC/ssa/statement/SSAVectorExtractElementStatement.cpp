@@ -1,9 +1,4 @@
-/*
- * SSAVectorExtractElement.cpp
- *
- *  Created on: 25 May 2015
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/statement/SSAVectorExtractElementStatement.h"
 #include "genC/ssa/SSAStatementVisitor.h"

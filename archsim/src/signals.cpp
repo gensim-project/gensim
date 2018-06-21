@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * signals.cpp
  *
@@ -152,7 +154,7 @@ static void sigsegv_handler(siginfo_t *si, void *unused)
 			if (sim_ctx->GetEmulationModel().GetMemoryModel().GetMappingManager()) {
 				sim_ctx->GetEmulationModel().GetMemoryModel().GetMappingManager()->DumpRegions();
 			}
-			
+
 			// TODO: Figure out which thread caused the fault and print some diagnostics
 		}
 	}

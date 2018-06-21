@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "blockjit/block-compiler/lowering/x86/X86LoweringContext.h"
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
@@ -29,7 +31,7 @@ bool LowerFSqrt::Lower(const captive::shared::IRInstruction *&insn)
 	if(op1.is_alloc_stack()) {
 		Encoder().mov(GetLoweringContext().stack_from_operand(&op1), op1_reg);
 	}
-	
+
 	// dest = op1 - op2
 	if(width == 4) {
 		Encoder().movq(op1_reg, BLKJIT_FP_0);

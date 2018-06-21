@@ -1,8 +1,5 @@
-/**
- * generators/Captive/JITv2NodeWalker.cpp
- *
- * Tom Spink <tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "JITv2NodeWalker.h"
 #include "isa/ISADescription.h"
 #include "genC/Enums.h"
@@ -344,42 +341,40 @@ namespace gensim
 					const SSAConstantStatement &stmt = static_cast<const SSAConstantStatement &> (this->Statement);
 
 					switch (stmt.Constant.Type()) {
-						case IRConstant::Type_Float_Double:
-						{
+						case IRConstant::Type_Float_Double: {
 							double value = stmt.Constant.Dbl();
-							
+
 							output << "double " << stmt.GetName() << ";";
-									
+
 							output << "{";
 							output << "uint64_t __tmp = " << *(uint64_t *)&value << ";";
 							output << stmt.GetName() << " = *(double *)&__tmp;";
-							output << "}";							
-							
+							output << "}";
+
 							break;
 						}
-						
-						case IRConstant::Type_Float_Single:
-						{
+
+						case IRConstant::Type_Float_Single: {
 							float value = stmt.Constant.Flt();
-							
+
 							output << "float " << stmt.GetName() << ";";
-									
+
 							output << "{";
 							output << "uint32_t __tmp = " << *(uint32_t *)&value << ";";
 							output << stmt.GetName() << " = *(float *)&__tmp;";
-							output << "}";							
-							
+							output << "}";
+
 							break;
 						}
-						
+
 						case IRConstant::Type_Integer:
 						case IRConstant::Type_Vector:
 							break;
-						
+
 						default:
 							throw std::logic_error("Unsupported conversion constant type: " + std::to_string(stmt.Constant.Type()));
 					}
-					
+
 					return true;
 				}
 
@@ -905,7 +900,7 @@ namespace gensim
 					SSANodeWalker *address = Factory.GetOrCreate(Statement.Addr());
 
 					output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
-					
+
 					output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_stmt(Statement) << ");";
 
 					output << "if (TRACE) {";
@@ -945,7 +940,7 @@ namespace gensim
 					output << "}";
 
 					output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
-					
+
 					return true;
 				}
 			};
@@ -1390,11 +1385,11 @@ namespace gensim
 
 					if (Statement.Parent->Parent->HasDynamicDominatedReads(&Statement)) {
 						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_node(*expr) << ");";
-								
-								/*emitter.const_"
-						       << (Statement.Target()->GetType().IsFloating() ? "f" : (Statement.Target()->GetType().Signed ? "s" : "u"))
-						       << (uint32_t) (Statement.Target()->GetType().Size() * 8)
-						       << "(CV_" << Statement.Target()->GetName() << "));";*/
+
+						/*emitter.const_"
+						<< (Statement.Target()->GetType().IsFloating() ? "f" : (Statement.Target()->GetType().Signed ? "s" : "u"))
+						<< (uint32_t) (Statement.Target()->GetType().Size() * 8)
+						<< "(CV_" << Statement.Target()->GetName() << "));";*/
 					}
 
 					return true;
@@ -1450,13 +1445,13 @@ namespace gensim
 					const SSACallStatement &Statement = static_cast<const SSACallStatement &> (this->Statement);
 
 					//assert(Statement.GetArgs().size() < 4);
-					
+
 					if (Statement.Target()->GetPrototype().GetIRSignature().HasReturnValue()) {
 						output << "auto " << Statement.GetName() << " = ";
 					}
 
 					auto callTargetName = Statement.Target()->GetPrototype().GetIRSignature().GetName();
-					
+
 					output << "emitter.call((void *)&__captive_" << callTargetName;
 
 					for (unsigned argIndex = 0; argIndex < Statement.ArgCount(); argIndex++) {
@@ -1468,7 +1463,7 @@ namespace gensim
 					}
 
 					output << ");\n";
-					
+
 					return true;
 				}
 			};

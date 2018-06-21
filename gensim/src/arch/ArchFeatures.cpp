@@ -1,9 +1,4 @@
-/*
- * ArchFeatures.cpp
- *
- *  Created on: 12 Jun 2016
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "arch/ArchFeatures.h"
 

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   block-compiler.h
  * Author: spink
@@ -33,16 +35,17 @@ namespace captive
 	{
 		namespace jit
 		{
-			class CompileResult {
+			class CompileResult
+			{
 			public:
 				CompileResult(bool Success) : Success(Success), UsedPhysRegs(0) {}
 				CompileResult(bool Success, uint32_t StackFrameSize, const archsim::util::vbitset &bitset) : Success(Success), StackFrameSize(StackFrameSize), UsedPhysRegs(bitset) {}
-				
+
 				bool Success;
 				archsim::util::vbitset UsedPhysRegs;
 				uint32_t StackFrameSize;
 			};
-			
+
 			class BlockCompiler
 			{
 			public:

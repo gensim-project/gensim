@@ -1,9 +1,4 @@
-/*
- * ExecutionEngineGenerator.cpp
- *
- *  Created on: Oct 31, 2012
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <ostream>
 #include <sstream>

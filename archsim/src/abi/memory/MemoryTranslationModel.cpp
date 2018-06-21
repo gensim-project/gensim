@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "abi/memory/MemoryTranslationModel.h"
 #include "abi/memory/MemoryEventHandlerTranslator.h"
 #include "translate/TranslationContext.h"

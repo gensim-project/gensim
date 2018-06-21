@@ -1,8 +1,5 @@
-//                      Confidential Information
-//           Limited Distribution to Authorized Persons Only
-//         Copyright (C) 2003-2005 The University of Edinburgh
-//                        All Rights Reserved
-//
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 // =====================================================================
 //
 // Description:
@@ -196,7 +193,7 @@ public:
 	{
 		return GetSession().GetModuleManager();
 	}
-	
+
 	inline archsim::core::execution::ExecutionContextManager &GetECM()
 	{
 		return exec_ctx_mgr_;
@@ -210,7 +207,7 @@ private:
 
 	archsim::Session& session;
 	archsim::core::execution::ExecutionContextManager exec_ctx_mgr_;
-	
+
 	bool _halted;
 
 	archsim::util::PubSubContext pubsubctx;
