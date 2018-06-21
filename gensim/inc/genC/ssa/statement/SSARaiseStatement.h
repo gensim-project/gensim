@@ -29,12 +29,12 @@ namespace gensim
 					return false;
 				}
 
-				virtual target_list_t GetTargets()
+				virtual target_list_t GetTargets() override
 				{
 					return {};
 				}
 
-				virtual target_const_list_t GetTargets() const
+				virtual target_const_list_t GetTargets() const override
 				{
 					return {};
 				}

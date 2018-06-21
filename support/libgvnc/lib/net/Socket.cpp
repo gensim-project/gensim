@@ -17,7 +17,7 @@ using namespace libgvnc::net;
 Socket::Socket(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType)
 	: addressFamily_(addressFamily),
 	  socketType_(socketType),
-	  protocolType_(protocolType_),
+	  protocolType_(protocolType),
 	  fd_(-1)
 {
 	// Construct the native socket object.

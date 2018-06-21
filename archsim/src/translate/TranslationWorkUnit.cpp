@@ -188,7 +188,7 @@ namespace archsim
 	namespace translate
 	{
 
-		std::ostream& operator<< (std::ostream& out, TranslationWorkUnit& twu)
+		std::ostream& operator<< (std::ostream& out, const TranslationWorkUnit& twu)
 		{
 			out << "[TWU weight=" << std::dec << twu.weight << ", generation=" << twu.generation << ", " << twu.region << "]";
 			return out;

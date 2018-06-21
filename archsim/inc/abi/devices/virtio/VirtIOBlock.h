@@ -34,7 +34,7 @@ namespace archsim
 					VirtIOBlock(EmulationModel& parent_model, IRQLine& irq, Address base_address, std::string name, generic::block::BlockDevice& bdev);
 					virtual ~VirtIOBlock();
 
-					void ResetDevice();
+					void ResetDevice() override;
 
 					void WriteRegister(MemoryRegister& reg, uint32_t value) override;
 

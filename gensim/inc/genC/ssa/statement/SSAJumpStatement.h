@@ -16,9 +16,9 @@ namespace gensim
 			class SSAJumpStatement : public SSAControlFlowStatement
 			{
 			public:
-				virtual bool IsFixed() const;
-				virtual void PrettyPrint(std::ostringstream &) const;
-				virtual std::set<SSASymbol *> GetKilledVariables();
+				virtual bool IsFixed() const override;
+				virtual void PrettyPrint(std::ostringstream &) const override;
+				virtual std::set<SSASymbol *> GetKilledVariables() override;
 
 				virtual target_list_t GetTargets() override
 				{

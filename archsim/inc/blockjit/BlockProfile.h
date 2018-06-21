@@ -17,6 +17,7 @@
 
 #include "core/thread/ProcessorFeatures.h"
 
+#include <array>
 #include <bitset>
 #include <map>
 #include <unordered_map>

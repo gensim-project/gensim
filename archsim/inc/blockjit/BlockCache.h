@@ -15,6 +15,7 @@
 #include "blockjit/blockcache-defines.h"
 #include "core/thread/ProcessorFeatures.h"
 
+#include <array>
 #include <cstring>
 
 namespace archsim

@@ -117,7 +117,7 @@ namespace archsim
 		namespace profile
 		{
 
-			std::ostream& operator<< (std::ostream& out, Region& rgn)
+			std::ostream& operator<< (std::ostream& out, const Region& rgn)
 			{
 				out << "[Region " << std::hex << rgn.phys_base_addr << "(" << &rgn << "), generation=" << std::dec << rgn.current_generation << "/" << rgn.max_generation;
 

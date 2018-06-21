@@ -49,7 +49,7 @@ namespace archsim
 	class FeatureDescriptor
 	{
 	public:
-		FeatureDescriptor(const std::string &name, uint32_t id, uint32_t default_value = 0) : name_(name), id_(id), default_(default_value) {}
+		FeatureDescriptor(const std::string &name, uint32_t id, uint32_t default_value = 0) : name_(name), id_(id) {}
 		const std::string &GetName() const
 		{
 			return name_;
@@ -61,7 +61,6 @@ namespace archsim
 	private:
 		std::string name_;
 		uint32_t id_;
-		uint32_t default_;
 	};
 	class FeaturesDescriptor
 	{

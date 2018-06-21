@@ -123,6 +123,7 @@ namespace gensim
 			if (target.unconstrained_transition) {
 				// if the original node has no unconstrained transition, we can just move the transition over
 				if (other.unconstrained_transition)
+				{
 					// otherwise we need to do some actual merging
 
 					// if the two unconstrained transitions are the same length, we can directly merge the unconstrained targets
@@ -143,6 +144,7 @@ namespace gensim
 						longest->Break(shortest->length);
 						MergeNodes(*longest->target, *shortest->target);
 					}
+				}
 			} else if (other.unconstrained_transition)
 				target.unconstrained_transition = other.unconstrained_transition;
 		}
