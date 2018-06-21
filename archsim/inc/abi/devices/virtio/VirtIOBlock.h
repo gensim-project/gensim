@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   VirtIOBlock.h
  * Author: s0457958
@@ -32,7 +34,7 @@ namespace archsim
 					VirtIOBlock(EmulationModel& parent_model, IRQLine& irq, Address base_address, std::string name, generic::block::BlockDevice& bdev);
 					virtual ~VirtIOBlock();
 
-					void ResetDevice();
+					void ResetDevice() override;
 
 					void WriteRegister(MemoryRegister& reg, uint32_t value) override;
 

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "translate/Translation.h"
 #include "translate/TranslationManager.h"
 #include "translate/profile/Region.h"
@@ -40,17 +42,17 @@ void Region::dump()
 void Region::dump_dot()
 {
 	std::cerr << "graph {" << std::endl;;
-	
+
 	for(auto i : blocks) {
 		std::cerr << "block_" << std::hex << i.first << ";" << std::endl;
 	}
-	
+
 	for(auto i : blocks) {
 		for(auto j : i.second->GetSuccessors()) {
 			std::cerr << "block_" << std::hex << i.first << " -> block_" << std::hex << j->GetOffset() << ";" << std::endl;
 		}
 	}
-	
+
 	std::cerr << "}" << std::endl;;
 }
 
@@ -115,7 +117,7 @@ namespace archsim
 		namespace profile
 		{
 
-			std::ostream& operator<< (std::ostream& out, Region& rgn)
+			std::ostream& operator<< (std::ostream& out, const Region& rgn)
 			{
 				out << "[Region " << std::hex << rgn.phys_base_addr << "(" << &rgn << "), generation=" << std::dec << rgn.current_generation << "/" << rgn.max_generation;
 

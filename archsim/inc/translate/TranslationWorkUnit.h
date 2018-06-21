@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   TranslationWorkUnit.h
  * Author: s0457958
@@ -159,7 +161,7 @@ namespace archsim
 		class TranslationWorkUnit
 		{
 		public:
-			friend std::ostream& operator<< (std::ostream& out, TranslationWorkUnit& twu);
+			friend std::ostream& operator<< (std::ostream& out, const TranslationWorkUnit& twu);
 
 			TranslationWorkUnit(const TranslationWorkUnit&) = delete;
 			TranslationWorkUnit(archsim::core::thread::ThreadInstance *thread, profile::Region& region, uint32_t generation, uint32_t weight);

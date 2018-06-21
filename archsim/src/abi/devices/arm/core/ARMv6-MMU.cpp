@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * ARMv6-MMU.cpp
  *
@@ -291,7 +293,7 @@ namespace archsim
 			public:
 				uint32_t faulting_domain;
 
-				bool Initialise()
+				bool Initialise() override
 				{
 					FlushCaches();
 					cocoprocessor = (ArmControlCoprocessorv6*)Manager->GetDeviceByName("coprocessor");

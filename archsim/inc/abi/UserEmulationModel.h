@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   UserEmulationModel.h
  * Author: s0457958
@@ -50,16 +52,16 @@ namespace archsim
 			void Destroy() override;
 
 			gensim::Processor* GetCore(int id);
-			
-			archsim::core::thread::ThreadInstance *GetMainThread();
-			
-			void ResetCores();
-			void HaltCores();
 
-			bool PrepareBoot(System& system);
+			archsim::core::thread::ThreadInstance *GetMainThread();
+
+			void ResetCores();
+			void HaltCores() override;
+
+			bool PrepareBoot(System& system) override;
 
 			bool EmulateSyscall(SyscallRequest& request, SyscallResponse& response);
-			
+
 			Address MapAnonymousRegion(size_t size, archsim::abi::memory::RegionFlags flags);
 			bool MapRegion(Address addr, size_t size, archsim::abi::memory::RegionFlags flags, const std::string &region_name);
 
@@ -68,16 +70,16 @@ namespace archsim
 			unsigned int GetBreak();
 			unsigned int GetInitialBreak();
 
-			bool AssertSignal(int signum, SignalData* data);
-			virtual bool InvokeSignal(int signum, uint32_t next_pc, SignalData* data);
+			bool AssertSignal(int signum, SignalData* data) override;
+			virtual bool InvokeSignal(int signum, uint32_t next_pc, SignalData* data) override;
 
 			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, unsigned int category, unsigned int data) override;
-			void PrintStatistics(std::ostream& stream);
+			void PrintStatistics(std::ostream& stream) override;
 
 		private:
 			bool PrepareStack(System& system, loader::UserElfBinaryLoader& elf_loader);
 			bool InitialiseProgramArguments();
-			
+
 			user::SyscallHandler &syscall_handler_;
 
 			int global_argc, global_envc;
@@ -88,7 +90,7 @@ namespace archsim
 			unsigned int _stack_size;
 			unsigned int _initial_program_break;
 			unsigned int _program_break;
-			
+
 			archsim::core::thread::ThreadInstance *main_thread_;
 		};
 	}

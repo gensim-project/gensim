@@ -1,11 +1,5 @@
-/*
- * genC/ssa/statement/SSABinaryArithmeticStatement.h
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #pragma once
 
 #include "genC/ssa/statement/SSAStatement.h"
@@ -22,9 +16,9 @@ namespace gensim
 			class SSABinaryArithmeticStatement : public SSAStatement
 			{
 			public:
-				virtual bool IsFixed() const;
-				virtual void PrettyPrint(std::ostringstream &) const;
-				virtual std::set<SSASymbol *> GetKilledVariables();
+				virtual bool IsFixed() const override;
+				virtual void PrettyPrint(std::ostringstream &) const override;
+				virtual std::set<SSASymbol *> GetKilledVariables() override;
 
 				BinaryOperator::EBinaryOperator Type;
 

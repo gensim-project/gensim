@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   CacheControlCoprocessor.h
  * Author: s0457958
@@ -21,66 +23,66 @@ namespace archsim
 			public:
 				SimulatorCacheControlCoprocessor();
 
-				virtual bool Initialise();
+				virtual bool Initialise() override;
 
 				// General purpose controller
 				bool access_cp0(bool is_read, uint32_t& data) override;
 
 				// Tracing subsystem controller
-				bool access_cp1(bool is_read, uint32_t& data);
-				bool access_cp2(bool is_read, uint32_t& data)
+				bool access_cp1(bool is_read, uint32_t& data) override;
+				bool access_cp2(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp3(bool is_read, uint32_t& data)
+				bool access_cp3(bool is_read, uint32_t& data) override 
 				{
 					return true;
 				}
-				bool access_cp4(bool is_read, uint32_t& data)
+				bool access_cp4(bool is_read, uint32_t& data) override 
 				{
 					return true;
 				}
-				bool access_cp5(bool is_read, uint32_t& data)
+				bool access_cp5(bool is_read, uint32_t& data) override 
 				{
 					return true;
 				}
-				bool access_cp6(bool is_read, uint32_t& data)
+				bool access_cp6(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp7(bool is_read, uint32_t& data)
+				bool access_cp7(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp8(bool is_read, uint32_t& data)
+				bool access_cp8(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp9(bool is_read, uint32_t& data)
+				bool access_cp9(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp10(bool is_read, uint32_t& data)
+				bool access_cp10(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp11(bool is_read, uint32_t& data)
+				bool access_cp11(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp12(bool is_read, uint32_t& data)
+				bool access_cp12(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp13(bool is_read, uint32_t& data)
+				bool access_cp13(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp14(bool is_read, uint32_t& data)
+				bool access_cp14(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp15(bool is_read, uint32_t& data)
+				bool access_cp15(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}

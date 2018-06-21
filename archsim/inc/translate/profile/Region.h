@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   Region.h
  * Author: s0457958
@@ -49,7 +51,7 @@ namespace archsim
 				friend class Block;
 
 			public:
-				friend std::ostream& operator<< (std::ostream& out, Region& rgn);
+				friend std::ostream& operator<< (std::ostream& out, const archsim::translate::profile::Region& rgn);
 
 				enum RegionStatus {
 					NotInTranslation,

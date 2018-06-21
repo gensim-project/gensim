@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "translate/TranslationWorkUnit.h"
 #include "translate/profile/Block.h"
 #include "translate/profile/Region.h"
@@ -70,7 +72,7 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	auto phys_device = new archsim::LegacyMemoryInterface(thread->GetEmulationModel().GetMemoryModel());
 	auto phys_interface = new archsim::MemoryInterface(thread->GetArch().GetMemoryInterfaceDescriptor().GetFetchInterface());
 	phys_interface->Connect(*phys_device);
-	
+
 	for (auto block : region.blocks) {
 		auto tbu = twu->AddBlock(*block.second, block.second->IsRootBlock());
 
@@ -79,12 +81,12 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 		uint32_t insn_count = 0;
 
 		auto decode_ctx = twu->GetThread()->GetEmulationModel().GetNewDecodeContext(*twu->GetThread());
-		
+
 		while (!end_of_block && offset < profile::RegionArch::PageSize) {
 			gensim::BaseDecode *decode = thread->GetArch().GetISA(block.second->GetISAMode()).GetNewDecode();
-			
+
 			thread->GetArch().GetISA(block.second->GetISAMode()).DecodeInstr(Address(region.GetPhysicalBaseAddress() + offset), phys_interface, *decode);
-			
+
 			if(decode->Instr_Code == (uint16_t)(-1)) {
 				LC_WARNING(LogTranslate) << "Invalid Instruction at " << std::hex << (uint32_t)(region.GetPhysicalBaseAddress() + offset) <<  ", ir=" << decode->ir << ", isa mode=" << (uint32_t)block.second->GetISAMode() << " whilst building " << *twu;
 				delete decode;
@@ -186,7 +188,7 @@ namespace archsim
 	namespace translate
 	{
 
-		std::ostream& operator<< (std::ostream& out, TranslationWorkUnit& twu)
+		std::ostream& operator<< (std::ostream& out, const TranslationWorkUnit& twu)
 		{
 			out << "[TWU weight=" << std::dec << twu.weight << ", generation=" << twu.generation << ", " << twu.region << "]";
 			return out;

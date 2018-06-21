@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * abi/user/ArmSyscalls.cpp
  */
@@ -26,6 +28,8 @@
 #include <time.h>
 #include <sys/times.h>
 
+#include "termios.h"
+
 UseLogContext(LogSyscalls);
 
 using archsim::Address;
@@ -51,7 +55,7 @@ static unsigned int sys_uname(archsim::core::thread::ThreadInstance* cpu, unsign
 		return -EFAULT;
 	}
 	auto interface = cpu->GetMemoryInterface("Mem");
-	
+
 	interface.WriteString(Address(addr), "Linux");
 
 	addr += 64;
@@ -74,7 +78,7 @@ static unsigned int sys_open(archsim::core::thread::ThreadInstance* cpu, unsigne
 	char filename[256];
 	auto interface = cpu->GetMemoryInterface("Mem");
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
-	
+
 	int host_fd = open(filename, flags, mode);
 	if (host_fd < 0) return -errno;
 
@@ -114,7 +118,7 @@ static unsigned int sys_writev(archsim::core::thread::ThreadInstance* cpu, unsig
 
 	struct iovec host_vectors[cnt];
 	struct arm_iovec arm_vectors[cnt];
-	
+
 	auto interface = cpu->GetMemoryInterface("Mem");
 	interface.Read(Address(iov_addr), (uint8_t *)&arm_vectors, cnt * sizeof(struct arm_iovec));
 
@@ -149,7 +153,7 @@ static unsigned int sys_llseek(archsim::core::thread::ThreadInstance* cpu, unsig
 	loff_t result;
 
 	auto interface = cpu->GetMemoryInterface("Mem");
-	
+
 	fd = translate_fd(cpu, fd);
 	uint64_t offset;
 	if(archsim::options::ArmOabi)
@@ -190,7 +194,7 @@ static unsigned int sys_mmap(archsim::core::thread::ThreadInstance* cpu, unsigne
 	}
 
 	auto interface = cpu->GetMemoryInterface("Mem");
-	
+
 //	if (!cpu.GetMemoryModel().IsAligned(len)) {
 //		return -EINVAL;
 //	}
@@ -247,7 +251,7 @@ static unsigned int sys_read(archsim::core::thread::ThreadInstance* cpu, unsigne
 	res = read(fd, (void*)rd_buf, len);
 
 	auto interface = cpu->GetMemoryInterface("Mem");
-	
+
 	if (res > 0) {
 		interface.Write(Address(addr), (uint8_t *)rd_buf, res);
 	}
@@ -277,12 +281,12 @@ static unsigned int sys_write(archsim::core::thread::ThreadInstance* cpu, unsign
 	res = write(fd, buffer, len);
 	free(buffer);
 
-	
-	
+
+
 	if (res < 0) {
 		res = -errno;
 	}
-	
+
 	return res;
 }
 
@@ -422,10 +426,10 @@ static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsign
 {
 	fd = translate_fd(cpu, fd);
 	auto interface = cpu->GetMemoryInterface("Mem");
-	
+
 	switch (request) {
 		case 0x5401: {
-			struct termio host;
+			struct termios host;
 			unsigned int rc = ioctl(fd, request, &host);
 
 			if (rc) {
@@ -485,13 +489,13 @@ static unsigned int sys_getcwd(archsim::core::thread::ThreadInstance* cpu, unsig
 static unsigned int sys_arm_settls(archsim::core::thread::ThreadInstance* cpu, unsigned int addr)
 {
 	LC_DEBUG1(LogSyscalls) << "TLS Set to 0x" << std::hex << addr;
-	
+
 	auto interface = cpu->GetMemoryInterface("Mem");
 	interface.Write(Address(0xffff0ff0), (uint8_t *)&addr, sizeof(addr));
-	
+
 	// also need to write the TPIDRURO control register which is an alternative way of accessing the TLS value
 	*cpu->GetRegisterFileInterface().GetEntry<uint32_t>("TPIDRURO") = addr;
-	
+
 	return 0;
 }
 
@@ -512,7 +516,7 @@ static unsigned int sys_gettimeofday(archsim::core::thread::ThreadInstance* cpu,
 
 	struct arm_timeval guest_tv;
 	auto interface = cpu->GetMemoryInterface("Mem");
-	
+
 	if (tv_addr == 0) {
 		return -EFAULT;
 	}
@@ -626,7 +630,7 @@ static unsigned int sys_clock_gettime(archsim::core::thread::ThreadInstance *cpu
 	struct arm_timespec arm_ts;
 	struct timespec ts;
 	auto interface = cpu->GetMemoryInterface("Mem");
-	
+
 	if(archsim::options::Verify) {
 		arm_ts.tv_nsec = 0;
 		arm_ts.tv_sec = 0;
@@ -647,7 +651,7 @@ static unsigned int sys_nanosleep(archsim::core::thread::ThreadInstance* cpu, un
 	struct arm_timespec arm_req, arm_rem;
 	struct timespec req, rem;
 	int rc;
-	
+
 	auto interface = cpu->GetMemoryInterface("Mem");
 
 	bzero(&req, sizeof(req));
