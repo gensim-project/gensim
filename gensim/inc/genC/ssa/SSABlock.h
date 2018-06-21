@@ -107,7 +107,7 @@ namespace gensim
 
 				uint32_t GetID() const;
 
-				std::string GetName() const;
+				std::string GetName() const override;
 
 				/**
 				 * Returns true if all control flow paths to this block are determinable at JIT-time

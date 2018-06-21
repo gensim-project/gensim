@@ -56,7 +56,7 @@ bool MemoryCOWBlockDevice::ReadBlock(uint64_t block_idx, uint8_t* buffer)
 
 bool MemoryCOWBlockDevice::ReadBlocks(uint64_t block_idx, uint32_t count, uint8_t* buffer)
 {
-	for(int i = 0; i < count; ++i) {
+	for(uint32_t i = 0; i < count; ++i) {
 		if(!ReadBlock(block_idx+i, buffer + (GetBlockSize()*i))) return false;
 	}
 	return true;
@@ -64,7 +64,7 @@ bool MemoryCOWBlockDevice::ReadBlocks(uint64_t block_idx, uint32_t count, uint8_
 
 bool MemoryCOWBlockDevice::WriteBlocks(uint64_t block_idx, uint32_t count, const uint8_t* buffer)
 {
-	for(int i = 0; i < count; ++i) {
+	for(uint32_t i = 0; i < count; ++i) {
 		if(!WriteBlock(block_idx+i, buffer + (GetBlockSize()*i))) return false;
 	}
 	return true;

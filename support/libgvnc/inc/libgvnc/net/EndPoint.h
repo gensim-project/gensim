@@ -38,7 +38,7 @@ namespace libgvnc
 		public:
 			IPEndPoint(const IPAddress& address, int port) : address_(address), port_(port) { }
 
-			AddressFamily GetAddressFamily() const
+			AddressFamily GetAddressFamily() const override
 			{
 				return AddressFamily::INET;
 			}

@@ -58,12 +58,12 @@ namespace gensim
 					Option_RoundTowardZero
 				};
 
-				virtual bool IsFixed() const;
-				virtual void PrettyPrint(std::ostringstream &) const;
-				virtual std::set<SSASymbol *> GetKilledVariables();
+				virtual bool IsFixed() const override;
+				virtual void PrettyPrint(std::ostringstream &) const override;
+				virtual std::set<SSASymbol *> GetKilledVariables() override;
 				bool HasSideEffects() const override;
 
-				virtual bool Resolve(DiagnosticContext &ctx);
+				virtual bool Resolve(DiagnosticContext &ctx) override;
 
 				STATEMENT_OPERAND(Expr, 0);
 

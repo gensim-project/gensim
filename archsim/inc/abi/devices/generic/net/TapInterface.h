@@ -14,6 +14,7 @@
 
 #include <thread>
 #include <cstdint>
+#include <string>
 
 namespace archsim
 {

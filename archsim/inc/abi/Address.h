@@ -17,6 +17,8 @@
 
 #include "translate/profile/RegionArch.h"
 
+#include "util/LogContext.h"
+
 namespace archsim
 {
 	using namespace translate::profile;
@@ -72,6 +74,8 @@ namespace archsim
 		{
 			return Get() == other.Get();
 		}
+
+		friend std::ostream &operator<<(std::ostream &str, const archsim::Address& address);
 
 	private:
 		underlying_t _address;
@@ -164,10 +168,4 @@ namespace std
 
 }
 
-static std::ostream &operator<<(std::ostream &str, const archsim::Address &address)
-{
-	str << "0x" << std::hex << std::setw(8) << std::setfill('0') << address.Get();
-	return str;
-}
-
-#endif /* INC_ADDRESS_H_ */
+#endif /* INC_ABI_ADDRESS_H_ */

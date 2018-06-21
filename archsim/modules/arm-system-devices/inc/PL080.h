@@ -30,8 +30,8 @@ namespace archsim
 
 				bool Initialise() override;
 
-				bool Read(uint32_t offset, uint8_t size, uint32_t& data);
-				bool Write(uint32_t offset, uint8_t size, uint32_t data);
+				bool Read(uint32_t offset, uint8_t size, uint32_t& data) override;
+				bool Write(uint32_t offset, uint8_t size, uint32_t data) override;
 			};
 
 		}

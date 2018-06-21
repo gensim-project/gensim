@@ -19,7 +19,7 @@ namespace gensim
 			}
 			virtual ~BlockJitAdaptorGenerator() {}
 
-			virtual bool GenerateExtraProcessorIncludes(util::cppformatstream &stream) const
+			virtual bool GenerateExtraProcessorIncludes(util::cppformatstream &stream) const override
 			{
 				GenCInterpreterGenerator::GenerateExtraProcessorIncludes(stream);
 				stream << "#include <gensim/gensim_processor_blockjit.h>\n";
