@@ -7,7 +7,8 @@
 
 #include <map>
 
-namespace wutils {
+namespace wutils
+{
 	template <typename key_type, typename value_type, int threshold> class maybe_map
 	{
 	private:
@@ -19,9 +20,9 @@ namespace wutils {
 			PopulatedSet<threshold> inner_array_populated;
 		};
 
-	#ifndef NDEBUG
+#ifndef NDEBUG
 		int expected_count;
-	#endif
+#endif
 
 		bool is_array;
 
@@ -29,9 +30,9 @@ namespace wutils {
 	public:
 
 		maybe_map(int expected_count)
-	#ifndef NDEBUG
+#ifndef NDEBUG
 			: expected_count(expected_count)
-	#endif
+#endif
 		{
 			if(expected_count >= threshold) is_array = false;
 			else is_array = true;
