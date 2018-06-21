@@ -197,7 +197,7 @@ std::string SSABlock::GetName() const
 uint32_t SSABlock::GetID() const
 {
 	CheckDisposal();
-	
+
 	if(!id_up_to_date_) {
 		id_ = 0;
 		for (auto block : Parent->GetBlocks()) {

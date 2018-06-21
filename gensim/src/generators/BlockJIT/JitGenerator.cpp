@@ -110,31 +110,7 @@ bool JitGenerator::RegisterHelpers(const isa::ISADescription *isa) const
 //SSAContext::ActionListConstIterator HI = isa->GetSSAContext().HelpersBegin(), HE = isa->GetSSAContext().HelpersEnd(); HI != HE; ++HI
 
 	GenCInterpreterGenerator interp (Manager);
-
-	for (const auto& action_item : isa->GetSSAContext().Actions()) {
-		if (!action_item.second->HasAttribute(ActionAttribute::Helper)) continue;
-
-		auto action = dynamic_cast<const SSAFormAction *>(action_item.second);
-
-		if (action->GetPrototype().GetIRSignature().GetName() == "instruction_predicate") continue;
-		if (action->GetPrototype().GetIRSignature().GetName() == "instruction_is_predicated") continue;
-
-		util::cppformatstream prototype_stream;
-		interp.GeneratePrototype(prototype_stream, *isa, *action);
-
-		util::cppformatstream body_stream;
-		body_stream << "{";
-		body_stream << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
-		// generate helper function code inline here
-
-		interp.GenerateExecuteBodyFor(body_stream, *action);
-
-		body_stream << "}";
-
-		Manager.AddFunctionEntry(FunctionEntry(prototype_stream.str(), body_stream.str(), {}, {"cstdint", "core/thread/ThreadInstance.h","util/Vector.h"}, {},true));
-	}
-
-	return true;
+	return interp.RegisterHelpers(*isa);
 }
 
 bool JitGenerator::GenerateHeader(util::cppformatstream & hdr_stream) const

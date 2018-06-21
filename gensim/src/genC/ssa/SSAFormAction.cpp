@@ -91,17 +91,17 @@ void SSAFormAction::RemoveBlock(SSABlock* block)
 		throw std::logic_error("Tried to remove a block which wasn't contained");
 	}
 
-	for(auto block : blocks_ ){
+	for(auto block : blocks_ ) {
 		block->ClearID();
 	}
-	
+
 	for (auto i = blocks_.begin(); i != blocks_.end(); ++i) {
 		if (*i == block) {
 			blocks_.erase(i);
 			break;
 		}
 	}
-	
+
 	block->Parent = nullptr;
 	block->RemoveUse(this);
 	RemoveUse(block);

@@ -56,18 +56,18 @@ SSADominance::dominance_info_t SSADominance::Calculate(const SSAFormAction* acti
 		}
 
 	}
-	
+
 	dominance_info_t dominance;
-	
+
 	for(auto block : action->GetBlocks()) {
-		
+
 		for(auto dominator : action->GetBlocks()) {
 			if(doms.at(block).get(dominator->GetID())) {
 				dominance[block].insert(dominator);
 			}
 		}
 	}
-	
+
 	return dominance;
 }
 

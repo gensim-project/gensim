@@ -165,7 +165,7 @@ namespace gensim
 
 				mutable uint32_t id_;
 				mutable bool id_up_to_date_;
-				
+
 				SSABlock() = delete;
 			};
 		}

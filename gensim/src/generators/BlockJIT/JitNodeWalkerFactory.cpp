@@ -541,7 +541,23 @@ namespace gensim
 								throw std::logic_error("");
 						}
 					} else {
-						str << "(" << stmt.GetType().GetCType() << ")" << stmt.Constant.Int() << "ULL";
+						switch(stmt.Constant.Type()) {
+							case genc::IRConstant::Type_Integer:
+								str << "(" << stmt.GetType().GetCType() << ")(" << stmt.Constant.Int() << "ULL)";
+								break;
+							case genc::IRConstant::Type_Vector:
+								str << "archsim::Vector<" << gensim::genc::IRConstant::GetValueTypeName(stmt.Constant.VGet(0).Type()) << ", " << stmt.Constant.VSize() << ">({";
+								for(unsigned i = 0; i < stmt.Constant.VSize(); ++i) {
+									if(i) {
+										str << ", ";
+									}
+									str << stmt.Constant.VGet(i).Int();
+								}
+								str << "})";
+								break;
+							default:
+								UNIMPLEMENTED;
+						}
 					}
 					return str.str();
 				}
