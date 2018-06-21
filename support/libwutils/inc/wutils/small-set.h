@@ -3,7 +3,8 @@
 #ifndef SMALL_SET_H
 #define SMALL_SET_H
 
-namespace wutils {
+namespace wutils
+{
 	template<unsigned int num_entries> class PopulatedSet
 	{
 	private:

@@ -10,7 +10,8 @@
 #include <cstring>
 #include <limits>
 
-namespace wutils {
+namespace wutils
+{
 	template<typename T> class dense_set
 	{
 	public:
