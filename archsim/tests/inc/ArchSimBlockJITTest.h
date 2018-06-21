@@ -104,7 +104,7 @@ public:
 	class ConstantTag {};
 
 	static const uint32_t kUConstant = 0x1000;
-	template<int modulus=0xffffffff> class RandValueGen
+	template<uint32_t modulus=0xffffffff> class RandValueGen
 	{
 	public:
 		operator uint32_t()

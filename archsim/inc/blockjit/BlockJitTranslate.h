@@ -25,7 +25,7 @@ namespace captive
 {
 	namespace shared
 	{
-		class IROperand;
+		struct IROperand;
 	}
 }
 

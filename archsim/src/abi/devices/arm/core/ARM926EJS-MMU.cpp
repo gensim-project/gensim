@@ -255,7 +255,7 @@ private:
 public:
 	uint32_t faulting_domain;
 
-	bool Initialise()
+	bool Initialise() override
 	{
 		FlushCaches();
 		cocoprocessor = (ArmControlCoprocessor*)Manager->GetDeviceByName("coprocessor");

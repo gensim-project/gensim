@@ -85,7 +85,7 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const
 
 static void GenerateHelperFunctionPrototype(gensim::util::cppformatstream &str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction *action)
 {
-	str << "template<bool trace=false> " << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
+	str << "template<bool trace> " << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
 
 	for(auto i : action->ParamSymbols) {
 		// if we're accessing a struct, assume that it's an instruction
@@ -201,6 +201,7 @@ bool InterpEEGenerator::RegisterStepInstruction(isa::InstructionDescription& ins
 	prototype_str << "template<bool trace=false> archsim::core::execution::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(archsim::core::thread::ThreadInstance *thread, gensim::" << Manager.GetArch().Name << "::Interpreter::decode_t &inst)";
 
 	util::cppformatstream body_str;
+	body_str << "template<bool trace> archsim::core::execution::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(archsim::core::thread::ThreadInstance *thread, gensim::" << Manager.GetArch().Name << "::Interpreter::decode_t &inst)";
 	body_str << "{";
 	body_str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 
@@ -227,10 +228,10 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 		// bad times
 	}
 	if(has_is_predicated) {
-		str << "bool " << isa.ISAName << "_is_predicated(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_is_predicated(thread, insn); }";
+		str << "bool " << isa.ISAName << "_is_predicated(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_is_predicated<false>(thread, insn); }";
 	}
 	if(has_instruction_predicate) {
-		str << "bool " << isa.ISAName << "_check_predicate(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_predicate(thread, insn); }";
+		str << "bool " << isa.ISAName << "_check_predicate(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_predicate<false>(thread, insn); }"; 
 	}
 
 
@@ -290,7 +291,7 @@ bool InterpEEGenerator::GenerateBehavioursDescriptors(util::cppformatstream& str
 				str << "static archsim::BehaviourDescriptor bd_" << i->ISAName << "_" << action.first << "() { archsim::BehaviourDescriptor bd (\"" << action.first << "\", [](const archsim::InvocationContext &ctx){ helper_" << i->ISAName << "_" << action.first << "<false>(ctx.GetThread()";
 
 				// unpack arguments
-				for(int index = 0; index < action.second->GetPrototype().ParameterTypes().size(); ++index) {
+				for(size_t index = 0; index < action.second->GetPrototype().ParameterTypes().size(); ++index) {
 					auto &argtype = action.second->GetPrototype().ParameterTypes().at(index);
 					// if we're accessing a struct, assume it's a decode_t
 					std::string type_string;
