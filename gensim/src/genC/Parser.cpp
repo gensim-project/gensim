@@ -1,12 +1,5 @@
-/*
- * genC/Parser.cpp
- *
- * GenSim
- * Copyright (C) University of Edinburgh.  All Rights Reserved.
- *
- * Harry Wagstaff <hwagstaf@inf.ed.ac.uk>
- * Tom Spink <tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include <assert.h>
 #include <cstdlib>
 #include <cerrno>
@@ -204,7 +197,7 @@ void GenCContext::LoadRegisterNames()
 	for (const auto &slot : Arch.GetRegFile().GetSlots()) {
 		InsertConstant(slot->GetID(), IRTypes::UInt32, regbankid++);
 	}
-	
+
 	// also load memory interface names
 	regbankid = 0;
 	for(const auto &interface : Arch.GetMemoryInterfaces().GetInterfaces()) {
@@ -1333,7 +1326,6 @@ IRBody *IRBody::CreateBodyWithScope(IRScope &scope)
 
 IRIterationStatement *IRIterationStatement::CreateDoWhile(IRScope &scope, IRExpression &Expr, IRStatement &Body)
 {
-	assert(&Expr && &Body);
 	IRIterationStatement *iter = new IRIterationStatement(scope);
 	iter->Type = IRIterationStatement::ITERATE_DO_WHILE;
 	iter->Expr = &Expr;
@@ -1344,7 +1336,6 @@ IRIterationStatement *IRIterationStatement::CreateDoWhile(IRScope &scope, IRExpr
 
 IRIterationStatement *IRIterationStatement::CreateWhile(IRScope &scope, IRExpression &Expr, IRStatement &Body)
 {
-	assert(&Expr && &Body);
 	IRIterationStatement *iter = new IRIterationStatement(scope);
 	iter->Type = IRIterationStatement::ITERATE_WHILE;
 	iter->Expr = &Expr;
@@ -1355,10 +1346,6 @@ IRIterationStatement *IRIterationStatement::CreateWhile(IRScope &scope, IRExpres
 
 IRIterationStatement *IRIterationStatement::CreateFor(IRScope &scope, IRExpression &Start, IRExpression &Check, IRExpression &End, IRStatement &Body)
 {
-	assert(&Start != 0);
-	assert(&Check != 0);
-	assert(&End != 0);
-	assert(&Body != 0);
 	IRIterationStatement *iter = new IRIterationStatement(scope);
 	iter->Type = IRIterationStatement::ITERATE_FOR;
 	iter->For_Expr_Start = &Start;

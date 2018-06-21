@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   FlipperMemoryModel.h
  * Author: s0457958
@@ -25,7 +27,7 @@ namespace archsim
 				FlipperMemoryModel(MemoryModel& lhs, MemoryModel& rhs, guest_addr_t split_address);
 				~FlipperMemoryModel();
 
-				bool Initialise();
+				bool Initialise() override;
 				MappingManager *GetMappingManager() override;
 
 				bool MapAll(RegionFlags prot) override;
@@ -37,15 +39,15 @@ namespace archsim
 				guest_addr_t MapAnonymousRegion(guest_size_t size, RegionFlags prot) override;
 				void DumpRegions() override;
 
-				bool ResolveGuestAddress(host_const_addr_t host_addr, guest_addr_t &guest_addr);
-				bool HandleSegFault(host_const_addr_t host_addr);
+				bool ResolveGuestAddress(host_const_addr_t host_addr, guest_addr_t &guest_addr) override;
+				bool HandleSegFault(host_const_addr_t host_addr) override;
 
 				virtual uint32_t Read(guest_addr_t addr, uint8_t *data, int size) override;
 				virtual uint32_t Write(guest_addr_t addr, uint8_t *data, int size) override;
 				virtual uint32_t Peek(guest_addr_t addr, uint8_t *data, int size) override;
 				virtual uint32_t Poke(guest_addr_t addr, uint8_t *data, int size) override;
 
-				MemoryTranslationModel &GetTranslationModel();
+				MemoryTranslationModel &GetTranslationModel() override;
 
 			private:
 				MemoryTranslationModel *translation_model;

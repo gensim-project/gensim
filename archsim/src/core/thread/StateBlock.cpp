@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "core/thread/StateBlock.h"
 
@@ -18,6 +14,7 @@ uint32_t StateBlockDescriptor::AddBlock(const std::string& name, size_t size_in_
 {
 	block_offsets_[name] = total_size_;
 	total_size_ += size_in_bytes;
+	return total_size_;
 }
 
 size_t StateBlockDescriptor::GetBlockOffset(const std::string& name) const

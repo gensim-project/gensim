@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #ifndef RECORDITERATOR_H
 #define RECORDITERATOR_H
 
@@ -8,7 +9,7 @@
 namespace libtrace
 {
 
-	class TraceRecord;
+	struct TraceRecord;
 	class RecordFile;
 	class RecordIterator;
 

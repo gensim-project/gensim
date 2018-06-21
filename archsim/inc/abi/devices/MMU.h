@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * MMU.h
  *
@@ -14,7 +16,7 @@
 
 namespace archsim
 {
-	namespace abi	
+	namespace abi
 	{
 		namespace memory
 		{
@@ -29,6 +31,7 @@ namespace archsim
 
 				AccessInfo() {}
 				AccessInfo(bool K, bool W, bool F, bool SE=0) : Write(W), Kernel(K), Fetch(F), SideEffects(SE) {}
+				friend std::ostream &operator <<(std::ostream &stream, const struct archsim::abi::devices::AccessInfo &info);
 			};
 
 #define MMUACCESSINFO(K, W, F) archsim::abi::devices::AccessInfo(K, W, F)
@@ -108,20 +111,6 @@ namespace archsim
 
 		}
 	}
-}
-
-inline std::ostream &operator <<(std::ostream &stream, const struct archsim::abi::devices::AccessInfo &info)
-{
-	stream << "[";
-	if(info.Fetch) stream << "I";
-	else stream << "D";
-	if(info.Kernel) stream << "K";
-	else stream << "U";
-	if(info.Write) stream << "W";
-	else stream << "R";
-
-	stream << "]";
-	return stream;
 }
 
 #endif /* MMU_H_ */

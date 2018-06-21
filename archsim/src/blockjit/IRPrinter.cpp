@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "blockjit/IRPrinter.h"
 #include <iomanip>
@@ -18,7 +14,7 @@ static void dump_insn(const IRInstruction *insn, std::ostream &str)
 
 	str << " " << std::left << std::setw(12) << std::setfill(' ') << descr->mnemonic;
 
-	for (int op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
+	for (size_t op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
 		const IROperand *oper = &insn->operands[op_idx];
 
 		if (descr->format[op_idx] != 'X') {
@@ -45,7 +41,8 @@ static void dump_insn(const IRInstruction *insn, std::ostream &str)
 }
 
 
-void IRPrinter::DumpIR(std::ostream& ostr, const captive::arch::jit::TranslationContext& ctx) {
+void IRPrinter::DumpIR(std::ostream& ostr, const captive::arch::jit::TranslationContext& ctx)
+{
 	IRBlockId current_block_id = INVALID_BLOCK_ID;
 
 	for (uint32_t ir_idx = 0; ir_idx < ctx.count(); ir_idx++) {

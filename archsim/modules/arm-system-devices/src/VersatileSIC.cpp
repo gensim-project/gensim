@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * VersatileSIC.cpp
  *
@@ -134,4 +136,4 @@ void VersatileSIC<nr_lines>::UpdateParentState()
 	}
 }
 
-template class VersatileSIC<32>;
+template class archsim::abi::devices::VersatileSIC<32>;

@@ -1,6 +1,9 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * abi/EmulationModel.cpp
  */
+#include "abi/Address.h"
 #include "abi/EmulationModel.h"
 #include "abi/memory/MemoryModel.h"
 #include "abi/devices/Device.h"

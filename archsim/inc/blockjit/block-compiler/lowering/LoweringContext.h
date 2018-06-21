@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LoweringContext.h
  *
@@ -14,7 +16,8 @@
 #include <map>
 #include <vector>
 
-namespace archsim {
+namespace archsim
+{
 	class ArchDescriptor;
 	class StateBlockDescriptor;
 }
@@ -40,30 +43,36 @@ namespace captive
 				public:
 					LoweringContext(const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd);
 					virtual ~LoweringContext();
-					
+
 					virtual bool Prepare(const TranslationContext &ctx) = 0;
 					bool PrepareLowerers(const TranslationContext &ctx);
 
 					virtual bool Lower(const TranslationContext &ctx);
-					
-					const archsim::ArchDescriptor &GetArchDescriptor() const { return arch_descriptor_; }
-					const archsim::StateBlockDescriptor &GetStateBlockDescriptor() const { return sb_descriptor_; }
-					
+
+					const archsim::ArchDescriptor &GetArchDescriptor() const
+					{
+						return arch_descriptor_;
+					}
+					const archsim::StateBlockDescriptor &GetStateBlockDescriptor() const
+					{
+						return sb_descriptor_;
+					}
+
 				protected:
 					virtual bool LowerHeader(const TranslationContext &ctx) = 0;
 					virtual bool LowerBody(const TranslationContext &ctx);
 					virtual bool LowerBlock(const TranslationContext &ctx, captive::shared::IRBlockId block_id, uint32_t block_start);
 					virtual bool LowerInstruction(const TranslationContext &ctx, const captive::shared::IRInstruction *&insn);
-	
+
 					bool AddLowerer(captive::shared::IRInstruction::IRInstructionType type, InstructionLowerer* lowerer);
-					
+
 				private:
 					std::vector<InstructionLowerer*> _lowerers;
-					
+
 					const archsim::ArchDescriptor &arch_descriptor_;
 					const archsim::StateBlockDescriptor &sb_descriptor_;
 				};
-				
+
 				class MCLoweringContext : public LoweringContext
 				{
 				public:
@@ -95,7 +104,7 @@ namespace captive
 
 				protected:
 
-					virtual bool LowerBlock(const TranslationContext &ctx, captive::shared::IRBlockId block_id, uint32_t block_start);
+					virtual bool LowerBlock(const TranslationContext &ctx, captive::shared::IRBlockId block_id, uint32_t block_start) override;
 
 					virtual bool PerformRelocations(const TranslationContext &ctx) = 0;
 
