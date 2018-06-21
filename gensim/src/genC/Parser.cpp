@@ -1326,7 +1326,6 @@ IRBody *IRBody::CreateBodyWithScope(IRScope &scope)
 
 IRIterationStatement *IRIterationStatement::CreateDoWhile(IRScope &scope, IRExpression &Expr, IRStatement &Body)
 {
-	assert(&Expr && &Body);
 	IRIterationStatement *iter = new IRIterationStatement(scope);
 	iter->Type = IRIterationStatement::ITERATE_DO_WHILE;
 	iter->Expr = &Expr;
@@ -1337,7 +1336,6 @@ IRIterationStatement *IRIterationStatement::CreateDoWhile(IRScope &scope, IRExpr
 
 IRIterationStatement *IRIterationStatement::CreateWhile(IRScope &scope, IRExpression &Expr, IRStatement &Body)
 {
-	assert(&Expr && &Body);
 	IRIterationStatement *iter = new IRIterationStatement(scope);
 	iter->Type = IRIterationStatement::ITERATE_WHILE;
 	iter->Expr = &Expr;
@@ -1348,10 +1346,6 @@ IRIterationStatement *IRIterationStatement::CreateWhile(IRScope &scope, IRExpres
 
 IRIterationStatement *IRIterationStatement::CreateFor(IRScope &scope, IRExpression &Start, IRExpression &Check, IRExpression &End, IRStatement &Body)
 {
-	assert(&Start != 0);
-	assert(&Check != 0);
-	assert(&End != 0);
-	assert(&Body != 0);
 	IRIterationStatement *iter = new IRIterationStatement(scope);
 	iter->Type = IRIterationStatement::ITERATE_FOR;
 	iter->For_Expr_Start = &Start;

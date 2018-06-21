@@ -8,7 +8,9 @@
  */
 
 #include "util/MemAllocator.h"
+#include <errno.h>
 #include <malloc.h>
+#include <string>
 
 using namespace wulib;
 

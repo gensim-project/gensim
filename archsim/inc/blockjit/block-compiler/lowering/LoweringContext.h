@@ -104,7 +104,7 @@ namespace captive
 
 				protected:
 
-					virtual bool LowerBlock(const TranslationContext &ctx, captive::shared::IRBlockId block_id, uint32_t block_start);
+					virtual bool LowerBlock(const TranslationContext &ctx, captive::shared::IRBlockId block_id, uint32_t block_start) override;
 
 					virtual bool PerformRelocations(const TranslationContext &ctx) = 0;
 

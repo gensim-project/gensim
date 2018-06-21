@@ -14,7 +14,7 @@ static void dump_insn(const IRInstruction *insn, std::ostream &str)
 
 	str << " " << std::left << std::setw(12) << std::setfill(' ') << descr->mnemonic;
 
-	for (int op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
+	for (size_t op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
 		const IROperand *oper = &insn->operands[op_idx];
 
 		if (descr->format[op_idx] != 'X') {

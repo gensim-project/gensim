@@ -9,7 +9,7 @@
 namespace libtrace
 {
 
-	class TraceRecord;
+	struct TraceRecord;
 	class RecordFile;
 	class RecordIterator;
 

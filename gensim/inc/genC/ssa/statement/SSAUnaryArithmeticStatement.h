@@ -16,10 +16,10 @@ namespace gensim
 			class SSAUnaryArithmeticStatement : public SSAStatement
 			{
 			public:
-				virtual bool IsFixed() const;
-				virtual bool Resolve(DiagnosticContext &ctx);
-				virtual void PrettyPrint(std::ostringstream &) const;
-				virtual std::set<SSASymbol *> GetKilledVariables();
+				virtual bool IsFixed() const override;
+				virtual bool Resolve(DiagnosticContext &ctx) override;
+				virtual void PrettyPrint(std::ostringstream &) const override;
+				virtual std::set<SSASymbol *> GetKilledVariables() override;
 				bool HasSideEffects() const override;
 
 				void Accept(SSAStatementVisitor& visitor) override;

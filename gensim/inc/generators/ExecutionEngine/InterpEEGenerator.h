@@ -19,8 +19,8 @@ namespace gensim
 				manager.AddModuleEntry(ModuleEntry("Interpreter", "gensim::" + manager.GetArch().Name + "::Interpreter", "ee_interpreter.h", ModuleEntryType::Interpreter));
 			}
 
-			virtual bool GenerateHeader(util::cppformatstream &str) const;
-			virtual bool GenerateSource(util::cppformatstream &str) const;
+			virtual bool GenerateHeader(util::cppformatstream &str) const override;
+			virtual bool GenerateSource(util::cppformatstream &str) const override;
 
 			void Setup(GenerationSetupManager& Setup) override;
 

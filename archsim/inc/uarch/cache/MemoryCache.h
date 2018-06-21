@@ -127,7 +127,7 @@ namespace archsim
 					void Flush() override;
 
 				protected:
-					bool IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size);
+					bool IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size) override;
 
 					uint32_t size;
 					uint32_t entries;

@@ -32,14 +32,14 @@ namespace gensim
 			GenCInterpreterGenerator(GenerationManager &manager);
 
 			bool GenerateExecuteBodyFor(util::cppformatstream &str, const genc::ssa::SSAFormAction &action) const;
-			bool GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action) const;
+			bool GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action, bool addTemplateDefaultValue) const;
 		protected:
-			virtual bool GenerateExecutionForBehaviour(util::cppformatstream &, bool, std::string, const isa::ISADescription &) const;
-			virtual bool GenerateExtraProcessorClassMembers(util::cppformatstream &stream) const;
-			virtual bool GenerateExtraProcessorSource(util::cppformatstream &stream) const;
-			virtual bool GenerateExtraProcessorInitSource(util::cppformatstream &stream) const;
-			virtual bool GenerateExtraProcessorIncludes(util::cppformatstream &stream) const;
-			virtual bool GenerateExtraProcessorDestructorSource(util::cppformatstream &stream) const;
+			virtual bool GenerateExecutionForBehaviour(util::cppformatstream &, bool, std::string, const isa::ISADescription &) const override;
+			virtual bool GenerateExtraProcessorClassMembers(util::cppformatstream &stream) const override;
+			virtual bool GenerateExtraProcessorSource(util::cppformatstream &stream) const override;
+			virtual bool GenerateExtraProcessorInitSource(util::cppformatstream &stream) const override;
+			virtual bool GenerateExtraProcessorIncludes(util::cppformatstream &stream) const override;
+			virtual bool GenerateExtraProcessorDestructorSource(util::cppformatstream &stream) const override;
 
 
 			virtual bool GenerateInlineHelperFns(util::cppformatstream &) const override;

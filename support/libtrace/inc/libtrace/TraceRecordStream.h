@@ -24,7 +24,7 @@ namespace libtrace
 	{
 	public:
 		virtual Record Get(size_t i) = 0;
-		virtual size_t Size() = 0;
+		virtual uint64_t Size() = 0;
 	};
 
 	class RecordStreamOutputInterface
