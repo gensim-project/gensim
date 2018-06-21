@@ -35,19 +35,19 @@ namespace wutils
 		}
 		void set_all()
 		{
-			for(int i = 0; i < size(); ++i) {
+			for(unsigned int i = 0; i < size(); ++i) {
 				set(i, 1);
 			}
 		}
 
-		int size() const
+		unsigned int size() const
 		{
 			return storage_.size();
 		}
 
 		int get_lowest_set() const
 		{
-			for(int i = 0; i < size(); ++i) {
+			for(unsigned int i = 0; i < size(); ++i) {
 				if(get(i)) {
 					return i;
 				}
@@ -56,7 +56,7 @@ namespace wutils
 		}
 		int get_lowest_clear() const
 		{
-			for(int i = 0; i < size(); ++i) {
+			for(unsigned int i = 0; i < size(); ++i) {
 				if(!get(i)) {
 					return i;
 				}
@@ -66,7 +66,7 @@ namespace wutils
 
 		bool all_set() const
 		{
-			for(int i = 0; i < size(); ++i) {
+			for(unsigned int i = 0; i < size(); ++i) {
 				if(!get(i)) {
 					return false;
 				}
@@ -75,7 +75,7 @@ namespace wutils
 		}
 		bool all_clear() const
 		{
-			for(int i = 0; i < size(); ++i) {
+			for(unsigned int i = 0; i < size(); ++i) {
 				if(get(i)) {
 					return false;
 				}
@@ -85,7 +85,7 @@ namespace wutils
 
 		void invert()
 		{
-			for(int i = 0; i < size(); ++i) {
+			for(unsigned int i = 0; i < size(); ++i) {
 				set(i, !get(i));
 			}
 		}
@@ -97,7 +97,7 @@ namespace wutils
 		}
 		void clear()
 		{
-			for(int i = 0; i < size(); ++i) {
+			for(unsigned int i = 0; i < size(); ++i) {
 				set(i, false);
 			}
 		}
@@ -105,7 +105,7 @@ namespace wutils
 		int count()
 		{
 			int count = 0;
-			for(int i = 0; i < size(); ++i) {
+			for(unsigned int i = 0; i < size(); ++i) {
 				count += get(i);
 			}
 			return count;
