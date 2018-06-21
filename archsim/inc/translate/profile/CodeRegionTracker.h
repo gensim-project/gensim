@@ -60,7 +60,7 @@ namespace archsim
 				}
 				void Invalidate()
 				{
-					for(uint32_t i = 0; i < RegionArch::PageCount; ++i) InvalidateRegion(PhysicalAddress(i << RegionArch::PageBits));
+					code_regions.reset();
 				}
 
 			private:
