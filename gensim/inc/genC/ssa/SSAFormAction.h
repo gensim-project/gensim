@@ -108,7 +108,10 @@ namespace gensim
 				bool ContainsBlock(const SSABlock *block) const;
 				void AddBlock(SSABlock *block);
 				void RemoveBlock(SSABlock *block);
-				const BlockList &GetBlocks() const { return blocks_; }
+				const BlockList &GetBlocks() const
+				{
+					return blocks_;
+				}
 
 				SSABlock *EntryBlock;
 

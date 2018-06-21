@@ -15,6 +15,9 @@ void InterpEEGenerator::Setup(GenerationSetupManager& Setup)
 		for(auto j : i->Instructions) {
 			RegisterStepInstruction(*j.second);
 		}
+
+		GenCInterpreterGenerator interp(Manager);
+		interp.RegisterHelpers(*i);
 	}
 }
 

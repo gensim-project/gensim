@@ -458,8 +458,10 @@ namespace gensim
 		bool FunctionalDecodeGenerator::GenerateDecodeLeaf(const isa::ISADescription &isa, const isa::InstructionDescription &insn, util::cppformatstream &stream) const
 		{
 			// Make sure that all of the inequality decode constraints are satisfied
-			for (const auto &constraint : insn.Decode_Constraints.front()) {
-				if (constraint.Type == isa::InstructionDescription::Constraint_NotEquals) stream << "// should make sure that " << constraint.Field << " != " << constraint.Value << std::endl;
+			if(insn.Decode_Constraints.size()) {
+				for (const auto &constraint : insn.Decode_Constraints.front()) {
+					if (constraint.Type == isa::InstructionDescription::Constraint_NotEquals) stream << "// should make sure that " << constraint.Field << " != " << constraint.Value << std::endl;
+				}
 			}
 
 			// finish decoding the instruction fields

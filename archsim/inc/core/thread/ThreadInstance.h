@@ -260,6 +260,20 @@ namespace archsim
 				}
 				void fn_flush_dtlb_entry(Address::underlying_t entry) {}
 
+				void fn___builtin_cmpf32_flags(float a, float b);
+				void fn___builtin_cmpf64_flags(double a, double b);
+				void fn___builtin_cmpf32e_flags(float a, float b);
+				void fn___builtin_cmpf64e_flags(double a, double b);
+
+				int32_t fn___builtin_fcvt_f32_s32(float f, uint8_t mode);
+				int32_t fn___builtin_fcvt_f64_s32(double f, uint8_t mode);
+				int64_t fn___builtin_fcvt_f32_s64(float f, uint8_t mode);
+				int64_t fn___builtin_fcvt_f64_s64(double f, uint8_t mode);
+				uint32_t fn___builtin_fcvt_f32_u32(float f, uint8_t mode);
+				uint32_t fn___builtin_fcvt_f64_u32(double f, uint8_t mode);
+				uint64_t fn___builtin_fcvt_f32_u64(float f, uint8_t mode);
+				uint64_t fn___builtin_fcvt_f64_u64(double f, uint8_t mode);
+
 				// Functions to do with manipulating state according to the architecture
 				archsim::abi::ExceptionAction TakeException(uint64_t category, uint64_t data);
 				archsim::abi::ExceptionAction TakeMemoryException(MemoryInterface &interface, Address address);
