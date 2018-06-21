@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   gensim_decode_context.h
  * Author: harry
@@ -12,7 +14,8 @@
 
 namespace captive
 {
-	namespace shared {
+	namespace shared
+	{
 		class IRBuilder;
 	}
 	namespace arch
@@ -24,11 +27,13 @@ namespace captive
 	}
 }
 
-namespace archsim 
+namespace archsim
 {
 	class MemoryInterface;
-	namespace core {
-		namespace thread {
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerRet.cpp
  *
@@ -17,7 +19,7 @@ using namespace captive::arch::jit::lowering::x86;
 using namespace captive::shared;
 
 bool LowerRet::Lower(const captive::shared::IRInstruction *&insn)
-{	
+{
 	GetLoweringContext().EmitEpilogue();
 	Encoder().ret();
 

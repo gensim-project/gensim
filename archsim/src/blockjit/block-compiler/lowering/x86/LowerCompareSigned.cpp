@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerCompare.cpp
  *
@@ -28,16 +30,16 @@ bool LowerCompareSigned::Lower(const captive::shared::IRInstruction *&insn)
 	const IROperand *dest = &insn->operands[2];
 
 	// This should be true if the OPERANDS are reversed, not if the CONDITION
-	// should be inverted. 
+	// should be inverted.
 	// This is important since:
 	// LH >= RH
-	// is the same as 
+	// is the same as
 	// RH <= LH
-	
+
 	// and
-	
+
 	// LH > RH
-	// is the same as 
+	// is the same as
 	// RH < LH
 	bool reverse_operands = false;
 

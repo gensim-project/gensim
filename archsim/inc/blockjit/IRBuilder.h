@@ -1,10 +1,6 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
-/* 
+/*
  * File:   IRBuilder.h
  * Author: harry
  *
@@ -16,34 +12,47 @@
 
 #include <cassert>
 
-namespace captive {
-	namespace shared {
-		
-		class IRBuilder {
+namespace captive
+{
+	namespace shared
+	{
+
+		class IRBuilder
+		{
 		public:
 			IRBuilder() : current_block_(NOP_BLOCK), ctx_(nullptr) {}
-			
-			void SetContext(captive::arch::jit::TranslationContext *c) { ctx_ = c;}
-			void SetBlock(IRBlockId block) { current_block_ = block; }
-			
-			void add_instruction(const IRInstruction &inst) {
+
+			void SetContext(captive::arch::jit::TranslationContext *c)
+			{
+				ctx_ = c;
+			}
+			void SetBlock(IRBlockId block)
+			{
+				current_block_ = block;
+			}
+
+			void add_instruction(const IRInstruction &inst)
+			{
 				auto *insn = ctx_->get_next_instruction_ptr();
 				new (insn) IRInstruction(inst);
 				insn->ir_block = current_block_;
 			}
-			
-			IRRegId alloc_reg(int size) {
+
+			IRRegId alloc_reg(int size)
+			{
 				return ctx_->alloc_reg(size);
 			}
-			
-			IRBlockId alloc_block() {
+
+			IRBlockId alloc_block()
+			{
 				return ctx_->alloc_block();
 			}
-			IRBlockId GetBlock() const {
+			IRBlockId GetBlock() const
+			{
 				assert(current_block_ != NOP_BLOCK);
 				return current_block_;
 			}
-			
+
 //#define INSN0(x) void x() { auto &insn = next_insn(); insn = IRInstruction::x(); insn.ir_block = GetBlock(); }
 //#define INSN1(x) void x(const IROperand &op1) { auto &insn = next_insn(); insn = IRInstruction::x(op1); insn.ir_block = GetBlock(); }
 //#define INSN2(x) void x(const IROperand &op1, const IROperand &op2) { auto &insn = next_insn(); insn = IRInstruction::x(op1, op2); insn.ir_block = GetBlock(); }
@@ -61,19 +70,19 @@ namespace captive {
 			INSN0(nop, NOP);
 			INSN0(ret, RET);
 			INSN0(trap, TRAP);
-			
+
 			INSN2(mov, MOV);
 			INSN2(sx, SX);
 			INSN2(zx, ZX);
 			INSN2(trunc, TRUNC);
-			
+
 			INSN3(cmov, CMOV);
-			
+
 			INSN2(count, COUNT);
 //			INSN2(profile);
 //			INSN1(verify);
 			INSN1(ldpc, LDPC);
-			
+
 			INSN2(add, ADD);
 			INSN2(sub, SUB);
 			INSN2(imul, IMUL);
@@ -90,13 +99,13 @@ namespace captive {
 			INSN2(bitwise_or, OR);
 			INSN2(bitwise_xor, XOR);
 			INSN3(adc_with_flags, ADC_WITH_FLAGS);
-			
+
 			INSN4(vaddi, VADDI);
 			INSN4(vaddf, VADDF);
 			INSN4(vsubi, VSUBI);
 			INSN4(vsubf, VSUBF);
 			INSN4(vmulf, VMULF);
-			
+
 			INSN1(fctrl_set_round, FCTRL_SET_ROUND);
 			INSN1(fctrl_get_round, FCTRL_GET_ROUND);
 			INSN1(fctrl_set_flush, FCTRL_SET_FLUSH_DENORMAL);
@@ -117,10 +126,10 @@ namespace captive {
 			INSN3(fsub, FSUB);
 			INSN3(fmul, FMUL);
 			INSN2(fsqrt, FSQRT);
-			
+
 			INSN3(read_device, READ_DEVICE);
 			INSN3(write_device, WRITE_DEVICE);
-			
+
 			INSN1(updatezn, SET_ZN_FLAGS);
 			INSN3(cmpeq, CMPEQ);
 			INSN3(cmpne, CMPNE);
@@ -131,22 +140,27 @@ namespace captive {
 			INSN3(cmpsgt, CMPSGT);
 			INSN3(cmpgte, CMPGTE);
 			INSN3(cmpsgte, CMPSGTE);
-			
+
 			INSN2(streg, WRITE_REG);
 			INSN2(ldreg, READ_REG);
 			INSN4(ldmem, READ_MEM);
 			INSN4(stmem, WRITE_MEM);
-			
+
 			INSN1(jump, JMP);
 			INSN3(branch, BRANCH);
-			
+
 			INSN0(flush_itlb, FLUSH_ITLB);
 			INSN1(flush_itlb_entry, FLUSH_ITLB_ENTRY);
 			INSN1(flush_dtlb_entry, FLUSH_DTLB_ENTRY);
 			INSN2(take_exception, TAKE_EXCEPTION);
-			
-			void increment_pc(uint32_t amt) { auto &insn = next_insn(); insn = IRInstruction::incpc(IROperand::const32(amt)); insn.ir_block = current_block_; }
-			
+
+			void increment_pc(uint32_t amt)
+			{
+				auto &insn = next_insn();
+				insn = IRInstruction::incpc(IROperand::const32(amt));
+				insn.ir_block = current_block_;
+			}
+
 			INSN1(call, CALL);
 			INSN2(call, CALL);
 			INSN3(call, CALL);
@@ -156,20 +170,25 @@ namespace captive {
 			INSN4(dispatch, DISPATCH);
 			INSN2(set_cpu_feature, SET_CPU_FEATURE);
 			INSN1(set_cpu_mode, SET_CPU_MODE);
-			
+
 #undef INSN0
 #undef INSN1
 #undef INSN2
 #undef INSN3
 #undef INSN4
-			
+
 		private:
 			IRBlockId current_block_;
 			captive::arch::jit::TranslationContext *ctx_;
-			IRInstruction &next_insn() { IRInstruction &next_insn = ctx_->get_next_instruction(); next_insn.ir_block = current_block_; return next_insn; }
-			
+			IRInstruction &next_insn()
+			{
+				IRInstruction &next_insn = ctx_->get_next_instruction();
+				next_insn.ir_block = current_block_;
+				return next_insn;
+			}
+
 		};
-		
+
 	}
 }
 

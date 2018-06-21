@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   EmulationModel.h
  * Author: s0457958
@@ -26,14 +28,16 @@ namespace gensim
 namespace archsim
 {
 	class MemoryInterface;
-	
+
 	namespace uarch
 	{
 		class uArch;
 	}
-	
-	namespace core {
-		namespace thread {
+
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}

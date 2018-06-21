@@ -1,9 +1,4 @@
-/*
- * InterpreterNodeWalker.h
- *
- *  Created on: 24 Mar 2015
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef INTERPRETERNODEWALKER_H_
 #define INTERPRETERNODEWALKER_H_

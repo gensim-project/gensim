@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * InstructionDescription.h
  *
@@ -104,7 +106,7 @@ namespace gensim
 
 			mutable bool bitStringsCalculated;
 		private:
-			
+
 			mutable std::vector<std::string> bitStrings;
 		};
 

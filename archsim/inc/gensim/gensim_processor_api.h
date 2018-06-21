@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 // allow a prefix to allow use of macros out of the context of the cpu object
 #ifndef PREFIX
 #define PREFIX

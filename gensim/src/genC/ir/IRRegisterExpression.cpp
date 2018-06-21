@@ -1,9 +1,4 @@
-/*
- * IRRegisterExpression.cpp
- *
- *  Created on: 15 May 2015
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/Parser.h"
 #include "genC/ir/IR.h"

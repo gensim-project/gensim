@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "core/execution/InterpreterExecutionEngine.h"
 #include "core/thread/ThreadInstance.h"
@@ -18,10 +14,12 @@ InterpreterExecutionEngine::InterpreterExecutionEngine(archsim::interpret::Inter
 ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext* thread_ctx)
 {
 	auto thread = thread_ctx->GetThread();
-	
+
 	CreateThreadExecutionSafepoint(thread);
-	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) { thread->GetTraceSource()->Trace_End_Insn(); }
-	
+	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) {
+		thread->GetTraceSource()->Trace_End_Insn();
+	}
+
 	while(thread_ctx->GetState() == ExecutionState::Running) {
 		if(thread->HasMessage()) {
 			auto result = thread->HandleMessage();
@@ -33,7 +31,7 @@ ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext
 					return result;
 			}
 		}
-		
+
 		auto result = interpreter_->StepBlock(thread);
 		switch(result) {
 			case ExecutionResult::Continue:
@@ -43,7 +41,7 @@ ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext
 				return result;
 		}
 	}
-	
+
 	return ExecutionResult::Halt;
 }
 
@@ -58,7 +56,7 @@ ExecutionEngine* InterpreterExecutionEngine::Factory(const archsim::module::Modu
 	if(!module->HasEntry(entry_name)) {
 		return nullptr;
 	}
-	
+
 	auto interpreter = module->GetEntry<archsim::module::ModuleInterpreterEntry>(entry_name)->Get();
 	return new InterpreterExecutionEngine(interpreter);
 }

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /* Pass to propagate values between phi nodes. If a phi node refers to another
  * phi node, replace that reference with references to each member of the other
  * phi node */

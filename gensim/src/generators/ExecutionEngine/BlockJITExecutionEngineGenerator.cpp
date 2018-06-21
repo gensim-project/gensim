@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "generators/ExecutionEngine/BlockJITExecutionEngineGenerator.h"
 #include "generators/BlockJIT/JitGenerator.h"
@@ -26,35 +22,35 @@ bool BlockJITExecutionEngineGenerator::GenerateHeader(util::cppformatstream& str
 	str << "#include <core/execution/BlockJITExecutionEngine.h>\n";
 	str << "#include \"decode.h\"\n";
 	str << "#include \"arch.h\"\n";
-	
+
 	JitGenerator jitgen (Manager);
 	jitgen.GenerateClass(str);
-	
+
 	str << "namespace gensim {";
 	str << "namespace " << Manager.GetArch().Name << "{";
-	
+
 	str << "class BlockJITEE : public archsim::core::execution::BlockJITExecutionEngine {";
 	str << "public:";
 	str << "BlockJITEE();";
 	str << "};";
-	
+
 	str << "}";
 	str << "}";
-	
+
 	str << "#endif\n\n";
-	
+
 	return true;
 }
 
 void BlockJITExecutionEngineGenerator::Setup(GenerationSetupManager& Setup)
 {
 	JitGenerator jitgen (Manager);
-	for(auto &isa : Manager.GetArch().ISAs) {		
+	for(auto &isa : Manager.GetArch().ISAs) {
 		for(auto &insn : isa->Instructions) {
 			jitgen.RegisterJITFunction(*isa, *insn.second);
-		}	
+		}
 	}
-	
+
 	for(auto &isa : Manager.GetArch().ISAs) {
 		jitgen.RegisterHelpers(isa);
 	}
@@ -69,20 +65,20 @@ bool BlockJITExecutionEngineGenerator::GenerateSource(util::cppformatstream& str
 	str << "#include <abi/devices/Device.h>\n";
 	str << "#include <abi/devices/Component.h>\n";
 	str << "#include <translate/jit_funs.h>\n";
-	
+
 	str << "using namespace gensim::" << Manager.GetArch().Name << ";";
-	
+
 	JitGenerator jitgen (Manager);
 	jitgen.GenerateTranslation(str);
-	
+
 	str << "BlockJITEE::BlockJITEE() : archsim::core::execution::BlockJITExecutionEngine(new captive::arch::" << Manager.GetArch().Name << "::JIT) {}";
-	
-	
-	
 
 
-	
-	
+
+
+
+
+
 	return true;
 }
 

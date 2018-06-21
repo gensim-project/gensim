@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * GLScreen.h
  *
@@ -55,9 +57,9 @@ namespace archsim
 					{
 						this->mouse = &mouse;
 					}
-					
+
 					bool running;
-					
+
 				private:
 					void run() override;
 
@@ -82,7 +84,7 @@ namespace archsim
 					void grab();
 					void ungrab();
 					void set_cursor_position(int x, int y);
-					
+
 					std::mutex gtk_lock_;
 					bool grabbed_;
 					bool ignore_next_;

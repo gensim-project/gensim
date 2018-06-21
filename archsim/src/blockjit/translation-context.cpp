@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "blockjit/translation-context.h"
 
 using namespace captive::arch::jit;
@@ -132,7 +134,7 @@ size_t captive::shared::num_descriptors = sizeof(captive::shared::insn_descripto
 TranslationContext::TranslationContext()
 	: _ir_block_count(0), _ir_reg_count(0), _ir_insns(NULL), _ir_insn_count(0), _ir_insn_buffer_size(0)
 {
-	
+
 }
 
 void TranslationContext::clear()

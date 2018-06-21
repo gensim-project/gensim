@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "core/arch/ArchDescriptor.h"
 #include "define.h"
@@ -33,8 +29,9 @@ ArchDescriptor::ArchDescriptor(const std::string &name, const RegisterFileDescri
 	}
 }
 
-MemoryInterfaceDescriptor::MemoryInterfaceDescriptor(const std::string &name, uint64_t address_width_bytes, uint64_t data_width_bytes, bool big_endian, uint32_t id) : name_(name), address_width_bytes_(address_width_bytes), data_width_bytes_(data_width_bytes), is_big_endian_(big_endian), id_(id) {
-	
+MemoryInterfaceDescriptor::MemoryInterfaceDescriptor(const std::string &name, uint64_t address_width_bytes, uint64_t data_width_bytes, bool big_endian, uint32_t id) : name_(name), address_width_bytes_(address_width_bytes), data_width_bytes_(data_width_bytes), is_big_endian_(big_endian), id_(id)
+{
+
 }
 
 MemoryInterfacesDescriptor::MemoryInterfacesDescriptor(const std::initializer_list<MemoryInterfaceDescriptor>& interfaces, const std::string& fetch_interface_id)
@@ -53,14 +50,14 @@ ISABehavioursDescriptor::ISABehavioursDescriptor(const std::initializer_list<Beh
 }
 
 ISADescriptor::ISADescriptor(const std::string &name, uint32_t id, const DecodeFunction &decoder, const NewDecoderFunction &newdecoder, const NewJumpInfoFunction &newjumpinfo, const NewDTCFunction &newdtc, const ISABehavioursDescriptor &behaviours)
-: 
-	name_(name), 
-	id_(id), 
-	decoder_(decoder), 
+	:
+	name_(name),
+	id_(id),
+	decoder_(decoder),
 	new_decoder_(newdecoder),
 	new_jump_info_(newjumpinfo),
 	new_dtc_(newdtc),
 	behaviours_(behaviours)
 {
-	
+
 }

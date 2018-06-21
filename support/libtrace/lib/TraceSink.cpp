@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #include "libtrace/ArchInterface.h"
 #include "libtrace/TraceSink.h"
 #include "libtrace/TraceSource.h"

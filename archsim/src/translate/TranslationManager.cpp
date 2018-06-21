@@ -1,11 +1,5 @@
-/*
- * Copyright (C) University of Edinburgh 2014
- *
- * translate/TranslationManager.cpp
- *
- * The translation manager is responsible for performing a translation of profile guest machine instructions into
- * host native code.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "translate/TranslationManager.h"
 #include "translate/Translation.h"
 #include "translate/TranslationWorkUnit.h"

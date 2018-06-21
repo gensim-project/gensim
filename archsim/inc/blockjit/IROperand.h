@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * IROperand.h
  *
@@ -36,7 +38,7 @@ namespace captive
 			uint16_t alloc_data : 14;
 			IRAllocationMode alloc_mode : 2;
 			IROperandType type : 4;
-			
+
 			// size in BYTES
 			uint8_t size : 4;
 
@@ -97,7 +99,7 @@ namespace captive
 			{
 				return IROperand(CONSTANT, value, size);
 			}
-			
+
 			static IROperand const8(uint8_t value)
 			{
 				return IROperand(CONSTANT, value, 1);

@@ -1,8 +1,5 @@
-/**
- * generators/Captive/JITv2NodeWalker.h
- *
- * Tom Spink <tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #pragma once
 
 #include "genC/ssa/SSAWalkerFactory.h"

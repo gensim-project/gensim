@@ -1,10 +1,7 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
-/* 
+
+/*
  * File:   ThreadManager.h
  * Author: harry
  *
@@ -16,26 +13,28 @@
 
 #include <arch/ArchDescription.h>
 
-namespace archsim {
-	
-		
-		/**
-		 * This class manages the execution of threads for a single guest
-		 * architecture. These threads might be from the same core or different
-		 * cores, or from cores in different configurations.
-		 * 
-		 * This class mainly exists to bridge the gap between guest thread
-		 * instances and execution engines.
-		 */
-		class ThreadManager {
-		public:
-			
-			
-			
-		private:
-			std::vector<ThreadInstance*> thread_instances_;
-			gensim::arch::ArchDescription &arch_descriptor_;
-		};
+namespace archsim
+{
+
+
+	/**
+	 * This class manages the execution of threads for a single guest
+	 * architecture. These threads might be from the same core or different
+	 * cores, or from cores in different configurations.
+	 *
+	 * This class mainly exists to bridge the gap between guest thread
+	 * instances and execution engines.
+	 */
+	class ThreadManager
+	{
+	public:
+
+
+
+	private:
+		std::vector<ThreadInstance*> thread_instances_;
+		gensim::arch::ArchDescription &arch_descriptor_;
+	};
 
 }
 

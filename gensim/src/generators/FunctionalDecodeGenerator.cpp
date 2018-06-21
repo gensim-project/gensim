@@ -1,9 +1,4 @@
-/*
- * File:   FunctionalDecodeGenerator.cpp
- * Author: s0803652
- *
- * Created on 28 September 2011, 12:15
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "define.h"
 #include "generators/FunctionalDecodeGenerator.h"
@@ -398,9 +393,9 @@ namespace gensim
 
 			// recursively emit decode statements for the tree
 			source_str << "DecodeInstr(instr, _isa_mode);"
-					   "return 0;";
+			           "return 0;";
 			source_str << "}";
-			
+
 
 			source_str << "void " << GetProperty("class") << "::DecodeInstr(uint32_t instr, uint8_t _isa_mode)\n{\n";
 
