@@ -40,9 +40,9 @@ namespace gensim
 			// re-include but for now just blast them all out for every function
 			// and let the preprocessor deal with it
 			std::stringstream str;
-			
+
 			str << body_;
-			
+
 			// If that was a template, then emit any specialisations that should be instantiated
 			for(auto i : specialisations_) {
 				str << i << ";";

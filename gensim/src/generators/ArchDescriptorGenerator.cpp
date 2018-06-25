@@ -40,7 +40,7 @@ const std::vector<std::string> ArchDescriptorGenerator::GetSources() const
 	return {"arch.cpp"};
 }
 
-static void GenerateHelperFunctionPrototype(gensim::util::cppformatstream &str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction *action, bool addTemplateDefaultValue) 
+static void GenerateHelperFunctionPrototype(gensim::util::cppformatstream &str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction *action, bool addTemplateDefaultValue)
 {
 	if(addTemplateDefaultValue)
 		str << "template<bool trace=false> ";

@@ -10,3 +10,5 @@ archsim/inc/cmake-scm.h
 nbproject/
 
 CMakeFiles
+
+^tests/arm-linux-tests/linux-4.3/
