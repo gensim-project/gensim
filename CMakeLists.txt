@@ -47,3 +47,4 @@ ADD_SUBDIRECTORY(support/libtrace)
 ADD_SUBDIRECTORY(support/libgvnc)
 
 ADD_SUBDIRECTORY(models)
+ADD_SUBDIRECTORY(tests)
