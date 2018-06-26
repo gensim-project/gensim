@@ -48,7 +48,10 @@ def main():
 	zimage = command_line_args.zimage
 	kernel_flags='--bdev-file /dev/null --binary-format zimage -e ' + zimage + ' --kernel-args "' + args + '"'
 
-	command=archsim + " " + model_flags + " " + kernel_flags 
+	# If we use Popen with shell=True and then try and kill the process,
+	# the shell will be killed but the process will live on. So, use 'exec'
+	# (which replaces the shell with the child process) to avoid this.
+	command="exec " + archsim + " " + model_flags + " " + kernel_flags 
 
 	final_line = '---[ end Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)'
 	process = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
