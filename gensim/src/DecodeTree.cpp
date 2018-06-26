@@ -122,8 +122,7 @@ namespace gensim
 			// if the duplicate node has no unconstrained transition, we don't need to do any merging
 			if (target.unconstrained_transition) {
 				// if the original node has no unconstrained transition, we can just move the transition over
-				if (other.unconstrained_transition)
-				{
+				if (other.unconstrained_transition) {
 					// otherwise we need to do some actual merging
 
 					// if the two unconstrained transitions are the same length, we can directly merge the unconstrained targets

@@ -34,15 +34,15 @@ namespace archsim
 				{
 					return true;
 				}
-				bool access_cp3(bool is_read, uint32_t& data) override 
+				bool access_cp3(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp4(bool is_read, uint32_t& data) override 
+				bool access_cp4(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
-				bool access_cp5(bool is_read, uint32_t& data) override 
+				bool access_cp5(bool is_read, uint32_t& data) override
 				{
 					return true;
 				}
