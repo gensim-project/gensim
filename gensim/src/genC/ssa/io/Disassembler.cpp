@@ -123,7 +123,7 @@ void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& st
 
 		str << "<" << std::endl;
 		str << indent << indent << action->EntryBlock->GetName() << std::endl;
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			if(block == action->EntryBlock) {
 				continue;
 			}
@@ -134,7 +134,7 @@ void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& st
 		str << " {" << std::endl;
 		// blocks
 		BlockDisassembler bd;
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			bd.Disassemble(block, str);
 		}
 		str << "}" << std::endl;

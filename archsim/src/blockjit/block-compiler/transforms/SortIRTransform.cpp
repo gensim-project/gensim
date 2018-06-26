@@ -10,8 +10,7 @@
 #include "blockjit/block-compiler/transforms/Transform.h"
 #include "blockjit/ir-sorter.h"
 
-#include "util/wutils/tick-timer.h"
-
+#include <wutils/tick-timer.h>
 #include <vector>
 #include <set>
 #include <cstdint>

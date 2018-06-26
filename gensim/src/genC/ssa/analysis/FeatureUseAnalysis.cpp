@@ -12,7 +12,7 @@ const std::set<const ArchFeature *> FeatureUseAnalysis::GetUsedFeatures(const SS
 {
 	std::set<const ArchFeature *> feature_set;
 
-	for (auto block : action->Blocks) {
+	for (auto block : action->GetBlocks()) {
 		for (auto stmt : block->GetStatements()) {
 			if (auto intrinsic = dynamic_cast<SSAIntrinsicStatement *>(stmt)) {
 				if (intrinsic->Type == SSAIntrinsicStatement::SSAIntrinsic_GetFeature || intrinsic->Type == SSAIntrinsicStatement::SSAIntrinsic_SetFeature) {
