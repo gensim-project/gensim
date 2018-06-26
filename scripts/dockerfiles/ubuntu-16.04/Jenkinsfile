@@ -6,14 +6,14 @@ pipeline {
     stages {
         stage ('Build Image') {
             steps {
-                sh 'cd scripts/dockerfiles/ubuntu-16.04; docker build -t gensim-ubuntu-16.04 . '
+                sh 'cd scripts/dockerfiles/archlinux; docker build -t gensim-ubuntu-16.04 . '
             }
         }
 
         stage ('Build') {
             steps {
                 sh '''
-                docker run --rm -v `pwd`:/workspace gensim-ubuntu-16.04 bash -c "cp -r /workspace ~/gensim-repo; cd ~/gensim-repo; make"
+                cd scripts/dockerfiles && sh test-dockerfile.sh ubuntu-16.04/
                 '''
             }
         }
