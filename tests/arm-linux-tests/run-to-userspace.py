@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import sys
 import subprocess
 from select import select
@@ -36,14 +37,19 @@ def find_archsim_binary():
 	process = subprocess.Popen("hg root", shell=True, stdout=subprocess.PIPE)
 	return process.stdout.readline().strip('\n').strip('\r') + "/build/dist/bin/archsim"
 	
-args='virtio_mmio.device=1K@0x10200000:34 earlyprintk=serial console=ttyAMA0 root=/dev/vda1 rw norandmaps verbose text'
-archsim=find_archsim_binary()
-model_flags='-s armv7a -m arm-realview -l contiguous --sys-model base '
-kernel_flags='--bdev-file /dev/null --binary-format zimage -e linux-4.3/arch/arm/boot/zImage --kernel-args "' + args + '"'
-
-command=archsim + " " + model_flags + " " + kernel_flags 
-
 def main():
+	parser = ArgumentParser()
+	parser.add_argument("-e", "--zimage", dest="zimage")
+	command_line_args = parser.parse_args()
+	
+	args='virtio_mmio.device=1K@0x10200000:34 earlyprintk=serial console=ttyAMA0 root=/dev/vda1 rw norandmaps verbose text'
+	archsim=find_archsim_binary()
+	model_flags='-s armv7a -m arm-realview -l contiguous --sys-model base '
+	zimage = command_line_args.zimage
+	kernel_flags='--bdev-file /dev/null --binary-format zimage -e ' + zimage + ' --kernel-args "' + args + '"'
+
+	command=archsim + " " + model_flags + " " + kernel_flags 
+
 	final_line = '---[ end Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)'
 	process = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 	try:
