@@ -7,6 +7,10 @@ echo "Running with dockerfile in $1"
 
 IMAGEID=$(cd $DOCKERFILEDIR && docker build . -q)
 
+if [ "$?" -ne 0 ]; then
+	exit 1
+fi
+
 echo "Got image $IMAGEID"
 
 echo "Testing build..."
