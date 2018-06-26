@@ -43,9 +43,9 @@ void TranslationCache::Invalidate()
 	assert(dirty_pages.none());
 }
 
-void TranslationCache::InvalidateEntry(virt_addr_t virt_addr)
+void TranslationCache::InvalidateEntry(Address virt_addr)
 {
 	if(dirty_pages.none())return;
-	uint32_t page_index = profile::RegionArch::PageIndexOf(virt_addr);
+	uint32_t page_index = virt_addr.GetPageIndex();
 	region_txln_cache[page_index] = 0;
 }

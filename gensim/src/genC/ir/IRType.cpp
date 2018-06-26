@@ -462,7 +462,7 @@ namespace gensim
 					IRType innertype = *this;
 					innertype.VectorWidth = 1;
 
-					out << "Vector<" << innertype.GetCType() << ", " << (uint32_t)VectorWidth << ">";
+					out << "archsim::Vector<" << innertype.GetCType() << ", " << (uint32_t)VectorWidth << ">";
 					return out.str();
 				}
 
@@ -615,7 +615,7 @@ namespace gensim
 			assert(DataType == PlainOldData);
 			assert(!IsFloating());
 
-			return 1 << (8*Size()) - 1;
+			return 1 << ((8*Size()) - 1);
 		}
 
 		IRType IRType::GetElementType() const

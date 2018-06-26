@@ -28,6 +28,7 @@ namespace gensim
 				Type_Struct,
 				Type_Vector
 			};
+			static std::string GetValueTypeName(ValueType type);
 
 			IRConstant();
 

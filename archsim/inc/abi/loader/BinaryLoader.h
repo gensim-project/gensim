@@ -14,6 +14,8 @@
 #include <string>
 #include <elf.h>
 
+#include "abi/Address.h"
+
 namespace archsim
 {
 	namespace abi
@@ -33,13 +35,13 @@ namespace archsim
 
 				bool LoadBinary(std::string filename);
 
-				unsigned int GetEntryPoint();
+				Address GetEntryPoint();
 
 			protected:
 				std::string _binary_filename;
 				const char* _binary_data;
 				unsigned int _binary_size;
-				unsigned int _entry_point;
+				Address _entry_point;
 				EmulationModel& _emulation_model;
 
 				virtual bool ProcessBinary(bool load_symbols) = 0;
@@ -51,21 +53,21 @@ namespace archsim
 			class FlatBinaryLoader : public BinaryLoader
 			{
 			public:
-				FlatBinaryLoader(EmulationModel& emulation_model, uint32_t base_addr);
+				FlatBinaryLoader(EmulationModel& emulation_model, Address base_addr);
 				virtual ~FlatBinaryLoader();
 
 			protected:
 				bool ProcessBinary(bool load_symbols);
 
 			private:
-				uint32_t _base_addr;
+				Address _base_addr;
 			};
 
 			class ZImageBinaryLoader : public BinaryLoader
 			{
 			public:
-				ZImageBinaryLoader(EmulationModel& emulation_model, uint32_t base_addr, std::string symbol_map);
-				ZImageBinaryLoader(EmulationModel& emulation_model, uint32_t base_addr);
+				ZImageBinaryLoader(EmulationModel& emulation_model, Address base_addr, std::string symbol_map);
+				ZImageBinaryLoader(EmulationModel& emulation_model, Address base_addr);
 				virtual ~ZImageBinaryLoader();
 
 			protected:
@@ -74,7 +76,7 @@ namespace archsim
 			private:
 				bool LoadSymbolMap(std::string map_file);
 
-				uint32_t _base_addr;
+				Address _base_addr;
 				std::string _symbol_map;
 			};
 
@@ -85,7 +87,7 @@ namespace archsim
 				virtual ~ElfBinaryLoader() = 0;
 
 			protected:
-				unsigned int _load_bias;
+				Address _load_bias;
 				Elf32_Ehdr *_elf_header;
 
 				bool ProcessBinary(bool load_symbols);
@@ -103,10 +105,10 @@ namespace archsim
 				UserElfBinaryLoader(UserEmulationModel& emulation_model, bool load_symbols);
 				~UserElfBinaryLoader();
 
-				unsigned int GetInitialProgramBreak();
+				Address GetInitialProgramBreak();
 
-				unsigned int GetProgramHeaderLocation();
-				unsigned int GetProgramHeaderEntrySize();
+				Address GetProgramHeaderLocation();
+				Address GetProgramHeaderEntrySize();
 				unsigned int GetProgramHeaderEntryCount();
 
 			protected:
@@ -114,8 +116,8 @@ namespace archsim
 				bool LoadSegment(Elf32_Phdr *segment);
 
 			private:
-				unsigned int _initial_brk;
-				unsigned int _ph_loc;
+				Address _initial_brk;
+				Address _ph_loc;
 			};
 
 			class SystemElfBinaryLoader : public ElfBinaryLoader

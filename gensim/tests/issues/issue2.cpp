@@ -60,7 +60,7 @@ helper void testfn()
 		ctx->Optimise();
 
 		// check for empty blocks manually (in case optimisations become non-checking by default))
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			ASSERT_NE(0, block->GetStatements().size());
 		}
 	}

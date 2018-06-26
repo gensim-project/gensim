@@ -76,7 +76,7 @@ SSAContext* SSATestFixture::CompileAsm(const std::string& src)
 
 bool SSATestFixture::RunPass(SSAFormAction* action, SSAStatementValidationPass* pass)
 {
-	for (auto block : action->Blocks) {
+	for (auto block : action->GetBlocks()) {
 		for (auto stmt : block->GetStatements()) {
 			if (!pass->Run(stmt, Diag())) {
 				return false;

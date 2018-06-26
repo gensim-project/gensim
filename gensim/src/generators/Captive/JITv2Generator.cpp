@@ -398,7 +398,7 @@ namespace gensim
 					}
 
 					bool have_dynamic_blocks = false;
-					for (const auto block : action.Blocks) {
+					for (const auto block : action.GetBlocks()) {
 						if (block->IsFixed() != BLOCK_ALWAYS_CONST) {
 							have_dynamic_blocks = true;
 							break;
@@ -475,7 +475,7 @@ namespace gensim
 					JITv2NodeWalkerFactory factory(ra);
 
 					bool have_dynamic_blocks = false;
-					for (const auto block : action.Blocks) {
+					for (const auto block : action.GetBlocks()) {
 						if (block->IsFixed() != BLOCK_ALWAYS_CONST) {
 							have_dynamic_blocks = true;
 							src_stream << "auto block_" << block->GetName() << " = emitter.context().create_block();";
@@ -500,7 +500,7 @@ namespace gensim
 					}
 
 					src_stream << "goto fixed_block_" << action.EntryBlock->GetName() << ";\n";
-					for (const auto block : action.Blocks) {
+					for (const auto block : action.GetBlocks()) {
 						if (block->IsFixed() != BLOCK_ALWAYS_CONST) {
 							src_stream << "// BLOCK " << block->GetName() << " not fully fixed\n";
 							continue;
@@ -551,7 +551,7 @@ namespace gensim
 						           << "emitted_blocks.insert(block_index);";
 
 						bool first = true;
-						for (const auto block : action.Blocks) {
+						for (const auto block : action.GetBlocks()) {
 							if (block->IsFixed() == BLOCK_ALWAYS_CONST) continue;
 
 							if (first) {

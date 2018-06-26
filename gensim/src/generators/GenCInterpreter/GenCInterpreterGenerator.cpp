@@ -53,6 +53,45 @@ namespace gensim
 			return true;
 		}
 
+		bool GenCInterpreterGenerator::Generate() const
+		{
+			for(auto isa : Manager.GetArch().ISAs) {
+				RegisterHelpers(*isa);
+			}
+			return InterpretiveExecutionEngineGenerator::Generate();
+		}
+
+
+		bool GenCInterpreterGenerator::RegisterHelpers(const isa::ISADescription &isa) const
+		{
+			using namespace gensim::genc;
+			for (const auto& action_item : isa.GetSSAContext().Actions()) {
+				if (!action_item.second->HasAttribute(ActionAttribute::Helper)) continue;
+
+				auto action = dynamic_cast<const gensim::genc::ssa::SSAFormAction *>(action_item.second);
+
+				if (action->GetPrototype().GetIRSignature().GetName() == "instruction_predicate") continue;
+				if (action->GetPrototype().GetIRSignature().GetName() == "instruction_is_predicated") continue;
+
+				util::cppformatstream prototype_stream;
+				GeneratePrototype(prototype_stream, isa, *action, false);
+
+				util::cppformatstream body_stream;
+				body_stream << prototype_stream.str();
+				body_stream << "{";
+				body_stream << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
+				// generate helper function code inline here
+
+				GenerateExecuteBodyFor(body_stream, *action);
+
+				body_stream << "}";
+
+				Manager.AddFunctionEntry(FunctionEntry(prototype_stream.str(), body_stream.str(), {}, {"cstdint", "core/thread/ThreadInstance.h","util/Vector.h"}, {},true));
+			}
+
+			return true;
+		}
+
 		bool GenCInterpreterGenerator::GenerateExecuteBodyFor(util::cppformatstream &str, const genc::ssa::SSAFormAction &action) const
 		{
 			using namespace genc::ssa;
@@ -74,9 +113,9 @@ namespace gensim
 			str << "goto __block_" << action.EntryBlock->GetName() << ";";
 
 			// now iterate over the blocks in the action and emit them
-			for (SSAFormAction::BlockListConstIterator block_ci = action.Blocks.begin(); block_ci != action.Blocks.end(); ++block_ci) {
+			for (auto block_ : action.GetBlocks()) {
 				GenCInterpreterNodeFactory fact;
-				const SSABlock &block = **block_ci;
+				const SSABlock &block = *block_;
 
 				str << "{";
 				str << "__block_" << block.GetName() << ": (void)0;";
