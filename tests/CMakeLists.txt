@@ -4,6 +4,7 @@
 INCLUDE(ExternalProject)
 
 ExternalProject_Add(gensim-test-artifacts
+	HG_REPOSITORY "https://bitbucket.org/gensim/gensim-test-artifacts"
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND ""
 	INSTALL_COMMAND ""
