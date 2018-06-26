@@ -33,6 +33,10 @@ namespace gensim
 
 			bool GenerateExecuteBodyFor(util::cppformatstream &str, const genc::ssa::SSAFormAction &action) const;
 			bool GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action, bool addTemplateDefaultValue) const;
+
+			bool Generate() const override;
+
+			bool RegisterHelpers(const gensim::isa::ISADescription &isa) const;
 		protected:
 			virtual bool GenerateExecutionForBehaviour(util::cppformatstream &, bool, std::string, const isa::ISADescription &) const override;
 			virtual bool GenerateExtraProcessorClassMembers(util::cppformatstream &stream) const override;

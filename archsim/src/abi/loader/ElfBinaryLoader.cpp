@@ -14,6 +14,7 @@ UseLogContext(LogLoader);
 DeclareChildLogContext(LogElf, LogLoader, "ELF");
 
 using namespace archsim::abi::loader;
+using archsim::Address;
 
 ElfBinaryLoader::ElfBinaryLoader(EmulationModel &emulation_model, bool load_symbols) : BinaryLoader(emulation_model, load_symbols), _load_bias(0) {}
 
@@ -90,15 +91,24 @@ bool ElfBinaryLoader::ProcessBinary(bool load_symbols)
 		LC_DEBUG1(LogElf) << "Binary is not an ELF file.";
 		return false;
 	}
+	uint8_t elf_class = ident[EI_CLASS];
+	switch(elf_class) {
+		case ELFCLASS64:
+		case ELFCLASSNONE:
+			throw std::logic_error("Unsupported ELF type");
+		case ELFCLASS32:
+			//OK!
+			break;
+	}
 
-	_entry_point = _elf_header->e_entry;
+	_entry_point = Address(_elf_header->e_entry);
 
 	// If the ELF file is dynamic, create a load bias.
 	if (_elf_header->e_type == ET_DYN) {
-		_load_bias = 0xF0000000;
+		_load_bias = Address(0xF0000000);
 		_entry_point += 0xF0000000;
 	} else
-		_load_bias = 0;
+		_load_bias = Address(0);
 
 	if (load_symbols && !LoadSymbols()) {
 		LC_DEBUG1(LogElf) << "Symbol loading failed.";
@@ -140,7 +150,7 @@ UserElfBinaryLoader::~UserElfBinaryLoader()
 bool UserElfBinaryLoader::PrepareLoad()
 {
 	// Err - arbitrary?
-	_ph_loc = 0xfffd0000;
+	_ph_loc = Address(0xfffd0000);
 
 	Elf32_Phdr *prog_header_base = (Elf32_Phdr *)((unsigned long)_elf_header + _elf_header->e_phoff);
 
@@ -149,21 +159,21 @@ bool UserElfBinaryLoader::PrepareLoad()
 	_emulation_model.GetMemoryModel().GetMappingManager()->MapRegion(_ph_loc, 4096, archsim::abi::memory::RegFlagReadWriteExecute, "[prog header]");
 	_emulation_model.GetMemoryModel().Poke(_ph_loc, (uint8_t *)prog_header_base, _elf_header->e_phentsize * _elf_header->e_phnum);
 
-	for(uint32_t i = _ph_loc; i < _ph_loc + (_elf_header->e_phentsize * _elf_header->e_phnum); ++i) {
+	for(Address i = _ph_loc; i < _ph_loc + (_elf_header->e_phentsize * _elf_header->e_phnum); i += 1) {
 		uint8_t byte;
 		_emulation_model.GetMemoryModel().Read8(i, byte);
 	}
 
-	_initial_brk = 0;
+	_initial_brk = Address(0);
 
 	return true;
 }
 
 bool UserElfBinaryLoader::LoadSegment(Elf32_Phdr *segment)
 {
-	unsigned long target_address = segment->p_vaddr + _load_bias;
-	unsigned long aligned_address = _emulation_model.GetMemoryModel().AlignDown(target_address);
-	unsigned long region_size = _emulation_model.GetMemoryModel().AlignUp(segment->p_memsz + (target_address - aligned_address));
+	Address target_address = segment->p_vaddr + _load_bias;
+	Address aligned_address = _emulation_model.GetMemoryModel().AlignDown(target_address);
+	unsigned long region_size = _emulation_model.GetMemoryModel().AlignUp(segment->p_memsz + (target_address - aligned_address)).Get();
 
 	LC_DEBUG1(LogElf) << "[ELF] Loading ELF Segment, target address = " << std::hex << target_address << " aligned to " << std::hex << aligned_address << " size " << std::hex << region_size;
 
@@ -200,19 +210,19 @@ bool UserElfBinaryLoader::LoadSegment(Elf32_Phdr *segment)
 	return true;
 }
 
-unsigned int UserElfBinaryLoader::GetInitialProgramBreak()
+Address UserElfBinaryLoader::GetInitialProgramBreak()
 {
 	return _initial_brk;
 }
 
-unsigned int UserElfBinaryLoader::GetProgramHeaderLocation()
+Address UserElfBinaryLoader::GetProgramHeaderLocation()
 {
 	return _ph_loc;
 }
 
-unsigned int UserElfBinaryLoader::GetProgramHeaderEntrySize()
+Address UserElfBinaryLoader::GetProgramHeaderEntrySize()
 {
-	return _elf_header->e_phentsize;
+	return Address(_elf_header->e_phentsize);
 }
 
 unsigned int UserElfBinaryLoader::GetProgramHeaderEntryCount()
@@ -235,7 +245,7 @@ bool SystemElfBinaryLoader::PrepareLoad()
 
 bool SystemElfBinaryLoader::LoadSegment(Elf32_Phdr* segment)
 {
-	unsigned long target_address = segment->p_paddr + _load_bias;
+	Address target_address = segment->p_paddr + _load_bias;
 
 	LC_DEBUG1(LogElf) << "[ELF] Loading ELF Segment, target address = " << std::hex << target_address << " poffset " << segment->p_offset;
 	return _emulation_model.GetMemoryModel().Poke(target_address, (uint8_t *)((unsigned long)_elf_header + segment->p_offset), (size_t)segment->p_filesz) == 0;

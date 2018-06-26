@@ -45,5 +45,7 @@ ADD_SUBDIRECTORY(scripts)
 
 ADD_SUBDIRECTORY(support/libtrace)
 ADD_SUBDIRECTORY(support/libgvnc)
+ADD_SUBDIRECTORY(support/libwutils)
 
 ADD_SUBDIRECTORY(models)
+

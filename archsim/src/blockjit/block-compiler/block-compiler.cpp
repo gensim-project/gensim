@@ -16,10 +16,11 @@
 #include <fstream>
 #include <unordered_map>
 
-#include "util/wutils/small-set.h"
-#include "util/wutils/maybe-map.h"
-#include "util/wutils/tick-timer.h"
-#include "util/wutils/dense-set.h"
+#include <wutils/small-set.h>
+#include <wutils/maybe-map.h>
+#include <wutils/tick-timer.h>
+#include <wutils/dense-set.h>
+
 #include "util/SimOptions.h"
 
 #include "util/LogContext.h"

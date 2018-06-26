@@ -20,7 +20,7 @@ class VariableWriteValidationPass : public SSAActionValidationPass
 	{
 		bool success = true;
 
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			for(auto stmt : block->GetStatements()) {
 				if(auto write = dynamic_cast<SSAVariableWriteStatement*>(stmt)) {
 					const SSAType &variable_type = write->Target()->GetType();

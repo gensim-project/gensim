@@ -76,7 +76,7 @@ static bool RemoveDeadStatements(SSABlock *block)
 static bool RemoveDeadStatements(SSAFormAction &action)
 {
 	bool changed = false;
-	for(auto block : action.Blocks) {
+	for(auto block : action.GetBlocks()) {
 		changed |= RemoveDeadStatements(block);
 	}
 	return changed;

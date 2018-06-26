@@ -1,0 +1,255 @@
+/*
+ * GenSim AARCH64 Model
+ *
+ * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
+ *
+ * Tom Spink <tspink@inf.ed.ac.uk>
+ */
+ 
+decode(SIMD_COPY)
+{
+	if (((imm5 & 1) == 1) && Q == 0) {
+		arrangement = 0;							// 8B
+	} else if (((imm5 & 1) == 1) && Q == 1) {
+		arrangement = 1;							// 16B
+	} else if (((imm5 & 3) == 2) && Q == 0) {
+		arrangement = 2;							// 4H
+	} else if (((imm5 & 3) == 2) && Q == 1) {
+		arrangement = 3;							// 8H
+	} else if (((imm5 & 7) == 4) && Q == 0) {
+		arrangement = 4;							// 2S
+	} else if (((imm5 & 7) == 4) && Q == 1) {
+		arrangement = 5;							// 4S
+	} else if (((imm5 & 15) == 8) && Q == 1) {
+		arrangement = 6;							// 2D
+	}
+	
+	if ((imm5 & 1) == 1) {
+		width = 32;
+		size = 0;
+	} else if ((imm5 & 3) == 2) {
+		width = 32;
+		size = 1;
+	} else if ((imm5 & 7) == 4) {
+		width = 32;
+		size = 2;
+	} else if ((imm5 & 15) == 8) {
+		width = 64;
+		size = 3;
+	}
+}
+
+decode(SIMD_ACROSS_LANES)
+{
+	if (size == 0 && Q == 0) {
+		arrangement = 0;							// 8B
+	} else if (size == 0 && Q == 1) {
+		arrangement = 1;							// 16B
+	} else if (size == 1 && Q == 0) {
+		arrangement = 2;							// 4H
+	} else if (size == 1 && Q == 1) {
+		arrangement = 3;							// 8H
+	} else if (size == 2 && Q == 0) {
+		arrangement = 4;							// 2S
+	} else if (size == 2 && Q == 1) {
+		arrangement = 5;							// 4S
+	} else if (size == 3 && Q == 1) {
+		arrangement = 6;							// 2D
+	}
+}
+
+decode(SIMD_THREE_SAME)
+{
+	if (size == 0 && Q == 0) {
+		arrangement = 0;							// 8B
+	} else if (size == 0 && Q == 1) {
+		arrangement = 1;							// 16B
+	} else if (size == 1 && Q == 0) {
+		arrangement = 2;							// 4H
+	} else if (size == 1 && Q == 1) {
+		arrangement = 3;							// 8H
+	} else if (size == 2 && Q == 0) {
+		arrangement = 4;							// 2S
+	} else if (size == 2 && Q == 1) {
+		arrangement = 5;							// 4S
+	} else if (size == 3 && Q == 1) {
+		arrangement = 6;							// 2D
+	}
+}
+
+decode(SIMD_TWO_REG_MISC)
+{
+	if (size == 0 && Q == 0) {
+		arrangement = 0;							// 8B
+	} else if (size == 0 && Q == 1) {
+		arrangement = 1;							// 16B
+	} else if (size == 1 && Q == 0) {
+		arrangement = 2;							// 4H
+	} else if (size == 1 && Q == 1) {
+		arrangement = 3;							// 8H
+	} else if (size == 2 && Q == 0) {
+		arrangement = 4;							// 2S
+	} else if (size == 2 && Q == 1) {
+		arrangement = 5;							// 4S
+	} else if (size == 3 && Q == 1) {
+		arrangement = 6;							// 2D
+	}
+}
+
+decode(SIMD_LS_MULT)
+{
+	if (size == 0 && Q == 0) {
+		arrangement = 0;							// 8B
+		elemcnt = 8;
+		elemsize = 1;
+	} else if (size == 0 && Q == 1) {
+		arrangement = 1;							// 16B
+		elemcnt = 16;
+		elemsize = 1;
+	} else if (size == 1 && Q == 0) {
+		arrangement = 2;							// 4H
+		elemcnt = 4;
+		elemsize = 2;
+	} else if (size == 1 && Q == 1) {
+		arrangement = 3;							// 8H
+		elemcnt = 8;
+		elemsize = 2;
+	} else if (size == 2 && Q == 0) {
+		arrangement = 4;							// 2S
+		elemcnt = 2;
+		elemsize = 4;
+	} else if (size == 2 && Q == 1) {
+		arrangement = 5;							// 4S
+		elemcnt = 4;
+		elemsize = 4;
+	} else if (size == 3 && Q == 1) {
+		arrangement = 6;							// 2D
+		elemcnt = 2;
+		elemsize = 8;
+	}
+	
+	if (opcode == 2) {
+		regcnt = 4;
+	} else if (opcode == 6) {
+		regcnt = 3;
+	} else if (opcode == 7) {
+		regcnt = 1;
+	} else if (opcode == 10) {
+		regcnt = 2;
+	}
+}
+
+decode(SIMD_LS_MULT_PI)
+{
+	if (size == 0 && Q == 0) {
+		arrangement = 0;							// 8B
+		elemcnt = 8;
+		elemsize = 1;
+	} else if (size == 0 && Q == 1) {
+		arrangement = 1;							// 16B
+		elemcnt = 16;
+		elemsize = 1;
+	} else if (size == 1 && Q == 0) {
+		arrangement = 2;							// 4H
+		elemcnt = 4;
+		elemsize = 2;
+	} else if (size == 1 && Q == 1) {
+		arrangement = 3;							// 8H
+		elemcnt = 8;
+		elemsize = 2;
+	} else if (size == 2 && Q == 0) {
+		arrangement = 4;							// 2S
+		elemcnt = 2;
+		elemsize = 4;
+	} else if (size == 2 && Q == 1) {
+		arrangement = 5;							// 4S
+		elemcnt = 4;
+		elemsize = 4;
+	} else if (size == 3 && Q == 1) {
+		arrangement = 6;							// 2D
+		elemcnt = 2;
+		elemsize = 8;
+	}
+	
+	if (opcode == 2) {
+		regcnt = 4;
+	} else if (opcode == 6) {
+		regcnt = 3;
+	} else if (opcode == 7) {
+		regcnt = 1;
+	} else if (opcode == 10) {
+		regcnt = 2;
+	}
+}
+
+decode(SIMD_SHIFT_IMM)
+{
+	shift_amount = 128 - ((immh << 3) | immb);
+}
+
+decode(SIMD_MOD_IMM)
+{
+	uint64_t tmp = 0;
+	tmp |= a << 7;
+	tmp |= b << 6;
+	tmp |= c << 5;
+	tmp |= d << 4;
+	tmp |= e << 3;
+	tmp |= f << 2;
+	tmp |= g << 1;
+	tmp |= h << 0;
+	
+	switch ((cmode >> 1) & 7) {
+	case 0:	immu64 = tmp << 32 | tmp; break;
+	case 1:	immu64 = tmp << 40 | tmp << 8; break;
+	case 2:	immu64 = tmp << 48 | tmp << 16; break;
+	case 3:	immu64 = tmp << 56 | tmp << 24; break;
+	case 4:	immu64 = tmp << 48 | tmp << 32 | tmp << 16 | tmp; break;
+	case 5:	immu64 = tmp << 56 | tmp << 40 | tmp << 24 | tmp << 8; break;
+	case 6:	
+		if ((cmode & 1) == 0) {
+			immu64 = 0x000000ff000000ff;
+			immu64 |= (tmp << 40);
+			immu64 |= (tmp << 8);
+		} else {
+			immu64 = 0x0000ffff0000ffff;
+			immu64 |= (tmp << 48);
+			immu64 |= (tmp << 16);
+		}
+		break;
+	case 7:
+		if (((cmode & 1) == 0) && op == 0) {
+			immu64 = tmp << 56 | tmp << 48 | tmp << 40 | tmp << 32 | tmp << 24 | tmp << 16 | tmp << 8 | tmp;
+		} else if (((cmode & 1) == 0) && op == 1) {
+			immu64 = 0;
+			immu64 |= (tmp & 0x80) ? 0xff00000000000000 : 0;
+			immu64 |= (tmp & 0x40) ? 0x00ff000000000000 : 0;
+			immu64 |= (tmp & 0x20) ? 0x0000ff0000000000 : 0;
+			immu64 |= (tmp & 0x10) ? 0x000000ff00000000 : 0;
+			immu64 |= (tmp & 0x08) ? 0x00000000ff000000 : 0;
+			immu64 |= (tmp & 0x04) ? 0x0000000000ff0000 : 0;
+			immu64 |= (tmp & 0x02) ? 0x000000000000ff00 : 0;
+			immu64 |= (tmp & 0x01) ? 0x00000000000000ff : 0;
+		} else if (((cmode & 1) == 1) && op == 0) {
+			uint32_t tmp32 = a << 31;
+			tmp32 |= (!b) << 30;
+			tmp32 |= b ? 0x3d000000 : 0;
+			tmp32 |= (tmp & 0x3f) << 24;
+			
+			immu64 = ((uint64_t)tmp32 << 32) | tmp32;
+		} else if (((cmode & 1) == 1) && op == 1) {
+			uint32_t tmp32 = a << 31;
+			tmp32 |= (!b) << 30;
+			tmp32 |= b ? 0x3fc00000 : 0;
+			tmp32 |= (tmp & 0x3f) << 21;
+			
+			immu64 = ((uint64_t)tmp32 << 32);
+		}
+		break;
+	}
+}
+
+decode(FP_IMM)
+{
+	immu64 = 0;
+}

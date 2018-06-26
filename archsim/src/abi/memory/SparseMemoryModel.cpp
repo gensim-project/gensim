@@ -14,15 +14,6 @@
 
 #define ADDRESS_SPACE_SIZE	(0x100000000)
 
-#define PAGE_BITS			(12)
-#define PAGE_SIZE			((1) << (PAGE_BITS))
-#define PAGE_OFFSET_MASK	(PAGE_SIZE - (1))
-#define PAGE_BASE_MASK		(~PAGE_OFFSET_MASK)
-
-#define PAGE_INDEX(_addr)	((_addr) >> (PAGE_BITS))
-#define PAGE_BASE(_addr)	((_addr) & (PAGE_BASE_MASK))
-#define PAGE_OFFSET(_addr)	((_addr) & (PAGE_OFFSET_MASK))
-
 using namespace archsim::abi::memory;
 
 //#define FAST_SPARSE_TRANSLATION
@@ -151,7 +142,7 @@ SparseMemoryModel::~SparseMemoryModel()
 
 bool SparseMemoryModel::Initialise()
 {
-	_page_map = (void **)calloc(ADDRESS_SPACE_SIZE / PAGE_SIZE, sizeof(void *));
+	_page_map = (void **)calloc(ADDRESS_SPACE_SIZE / archsim::RegionArch::PageSize, sizeof(void *));
 	if (_page_map == NULL)
 		return false;
 
@@ -177,22 +168,22 @@ MemoryTranslationModel& SparseMemoryModel::GetTranslationModel()
 
 void SparseMemoryModel::SyncPageMap(GuestVMA &vma)
 {
-	uint32_t guest_addr = vma.base;
+	Address guest_addr = vma.base;
 	unsigned long host_addr = (unsigned long)vma.host_base;
 	while (guest_addr < vma.base + vma.size) {
-		_page_map[PAGE_INDEX(guest_addr)] = (void *)host_addr;
+		_page_map[guest_addr.GetPageIndex()] = (void *)host_addr;
 
-		guest_addr += PAGE_SIZE;
-		host_addr += PAGE_SIZE;
+		guest_addr += archsim::RegionArch::PageSize;
+		host_addr += archsim::RegionArch::PageSize;
 	}
 }
 
 void SparseMemoryModel::ErasePageMap(GuestVMA &vma)
 {
-	uint32_t guest_addr = vma.base;
+	Address guest_addr = vma.base;
 	while (guest_addr < vma.base + vma.size) {
-		_page_map[PAGE_INDEX(guest_addr)] = NULL;
-		guest_addr += PAGE_SIZE;
+		_page_map[guest_addr.GetPageIndex()] = NULL;
+		guest_addr += archsim::RegionArch::PageSize;
 	}
 }
 
@@ -238,7 +229,7 @@ uint32_t SparseMemoryModel::Read(guest_addr_t addr, uint8_t *data, int size)
 {
 	RaiseEvent(MemoryModel::MemEventRead, addr, size);
 
-	void *host = (void *)((unsigned long)_page_map[PAGE_INDEX(addr)] + (unsigned long)PAGE_OFFSET(addr));
+	void *host = (void *)((unsigned long)_page_map[addr.GetPageIndex()] + (unsigned long)addr.GetPageOffset());
 	memcpy(data, host, size);
 
 	return 0;
@@ -248,7 +239,7 @@ uint32_t SparseMemoryModel::Fetch(guest_addr_t addr, uint8_t *data, int size)
 {
 	RaiseEvent(MemoryModel::MemEventFetch, addr, size);
 
-	void *host = (void *)((unsigned long)_page_map[PAGE_INDEX(addr)] + (unsigned long)PAGE_OFFSET(addr));
+	void *host = (void *)((unsigned long)_page_map[addr.GetPageIndex()] + (unsigned long)addr.GetPageOffset());
 	memcpy(data, host, size);
 
 	return 0;
@@ -258,7 +249,7 @@ uint32_t SparseMemoryModel::Write(guest_addr_t addr, uint8_t *data, int size)
 {
 	RaiseEvent(MemoryModel::MemEventWrite, addr, size);
 
-	void *host = (void *)((unsigned long)_page_map[PAGE_INDEX(addr)] + (unsigned long)PAGE_OFFSET(addr));
+	void *host = (void *)((unsigned long)_page_map[addr.GetPageIndex()] + (unsigned long)addr.GetPageOffset());
 	memcpy(host, data, size);
 
 	return 0;

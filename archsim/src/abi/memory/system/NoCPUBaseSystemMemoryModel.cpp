@@ -50,7 +50,7 @@ bool NoCPUBaseSystemMemoryModel::ResolveGuestAddress(host_const_addr_t, guest_ad
 	return false;
 }
 
-uint32_t NoCPUBaseSystemMemoryModel::PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
+uint32_t NoCPUBaseSystemMemoryModel::PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
 {
 //	return GetMMU()->Translate(GetCPU(), virt_addr, out_phys_addr, MMUACCESSINFO(GetCPU()->in_kernel_mode(), false,0));
 	return GetMMU()->Translate(NULL, virt_addr, out_phys_addr, MMUACCESSINFO(false, false,0));
@@ -70,10 +70,10 @@ uint32_t NoCPUBaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *dat
 	if(UNLIKELY(archsim::options::MemoryCheckAlignment)) {
 		switch(size) {
 			case 2:
-				if(virt_addr & 0x1) unaligned = true;
+				if(virt_addr.Get() & 0x1) unaligned = true;
 				break;
 			case 4:
-				if(virt_addr & 0x3) unaligned = true;
+				if(virt_addr.Get() & 0x3) unaligned = true;
 				break;
 		}
 	}
@@ -89,7 +89,7 @@ uint32_t NoCPUBaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *dat
 		}
 	}
 
-	phys_addr_t phys_addr;
+	Address phys_addr;
 //	uint32_t fault = GetMMU()->Translate(GetCPU(), virt_addr, phys_addr, MMUACCESSINFO2(use_perms ? GetCPU()->in_kernel_mode() : false, false, is_fetch, side_effects));
 
 	uint32_t fault = GetMMU()->Translate(NULL, virt_addr, phys_addr, MMUACCESSINFO2(false, false, is_fetch, side_effects));
@@ -109,8 +109,8 @@ uint32_t NoCPUBaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *dat
 		LC_DEBUG2(LogNoCPUSystemMemoryModel) << "Performing device read from address V" << std::hex << virt_addr << "(P" << phys_addr << ")";
 		LC_DEBUG2(LogNoCPUSystemMemoryModel) << "Hit device " << std::hex << (uint64_t)dev << " at address: " << std::hex << dev->GetBaseAddress();
 
-		uint32_t device_addr = virt_addr & mask;
-		if (!dev->Read(device_addr, size, device_data)) { //*(uint32_t*)(data)))
+		Address device_addr = virt_addr & mask;
+		if (!dev->Read(device_addr.Get(), size, device_data)) { //*(uint32_t*)(data)))
 			LC_DEBUG2(LogNoCPUSystemMemoryModel) << "Read failed!";
 			memset(data, 0, size);
 		} else {
@@ -151,10 +151,10 @@ uint32_t NoCPUBaseSystemMemoryModel::DoWrite(guest_addr_t virt_addr, uint8_t *da
 	if(UNLIKELY(archsim::options::MemoryCheckAlignment)) {
 		switch(size) {
 			case 2:
-				if(virt_addr & 0x1) unaligned = true;
+				if(virt_addr.Get() & 0x1) unaligned = true;
 				break;
 			case 4:
-				if(virt_addr & 0x3) unaligned = true;
+				if(virt_addr.Get() & 0x3) unaligned = true;
 				break;
 		}
 	}
@@ -170,7 +170,7 @@ uint32_t NoCPUBaseSystemMemoryModel::DoWrite(guest_addr_t virt_addr, uint8_t *da
 		}
 	}
 
-	phys_addr_t phys_addr;
+	Address phys_addr;
 //	uint32_t fault = GetMMU()->Translate(GetCPU(), virt_addr, phys_addr, MMUACCESSINFO2(use_perms ? GetCPU()->in_kernel_mode() : false, true, 0, side_effects));
 	uint32_t fault = GetMMU()->Translate(NULL, virt_addr, phys_addr, MMUACCESSINFO2(false, true, 0, side_effects));
 
@@ -196,19 +196,19 @@ uint32_t NoCPUBaseSystemMemoryModel::DoWrite(guest_addr_t virt_addr, uint8_t *da
 			case 1: {
 				LC_DEBUG2(LogNoCPUSystemMemoryModel) << "Writing data " << std::hex << (uint32_t)*data;
 				device_data = *(data);
-				dev->Write(virt_addr, 1, *data);
+				dev->Write(virt_addr.Get(), 1, *data);
 				break;
 			}
 			case 2: {
 				LC_DEBUG2(LogNoCPUSystemMemoryModel) << "Writing data " << std::hex << *(uint16_t*)data;
 				device_data = *(uint16_t*)(data);
-				dev->Write(virt_addr, 2, *(uint16_t*)data);
+				dev->Write(virt_addr.Get(), 2, *(uint16_t*)data);
 				break;
 			}
 			case 4: {
 				LC_DEBUG2(LogNoCPUSystemMemoryModel) << "Writing data " << std::hex << *(uint32_t*)data;
 				device_data = *(uint32_t*)(data);
-				dev->Write(virt_addr, 4, *(uint32_t*)data);
+				dev->Write(virt_addr.Get(), 4, *(uint32_t*)data);
 				break;
 			}
 			default:

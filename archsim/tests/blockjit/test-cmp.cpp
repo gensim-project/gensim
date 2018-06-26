@@ -34,7 +34,7 @@ public:
 		transforms::AllocationWriterTransform awt(allocations_);
 		awt.Apply(tc_);
 
-		CompileResult cr (true, stack_frame_, archsim::util::vbitset(8, 0xff));
+		CompileResult cr (true, stack_frame_, wutils::vbitset(8, 0xff));
 
 		auto fn = Lower(cr);
 		ASSERT_NE(nullptr, fn);
@@ -74,7 +74,7 @@ TEST_F(ArchSimBlockJITCmpTest, Cmp_GTE_Constant_R0_R0)
 	transforms::AllocationWriterTransform awt(allocations_);
 	awt.Apply(tc_);
 
-	CompileResult cr (true, stack_frame_, archsim::util::vbitset(8, 0xff));
+	CompileResult cr (true, stack_frame_, wutils::vbitset(8, 0xff));
 	auto fn = Lower(cr);
 
 	ASSERT_NE(nullptr, fn);
@@ -119,7 +119,7 @@ TEST_F(ArchSimBlockJITCmpTest, Cmps_GTE_Constant_R0_R0)
 	transforms::AllocationWriterTransform awt(allocations_);
 	awt.Apply(tc_);
 
-	CompileResult cr (true, stack_frame_, archsim::util::vbitset(8, 0xff));
+	CompileResult cr (true, stack_frame_, wutils::vbitset(8, 0xff));
 	auto fn = Lower(cr);
 
 	ASSERT_NE(nullptr, fn);

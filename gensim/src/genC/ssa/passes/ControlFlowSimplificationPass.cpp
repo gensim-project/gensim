@@ -106,7 +106,7 @@ public:
 	bool Run(SSAFormAction& action)const override
 	{
 		bool changed = false;
-		for(auto block : action.Blocks) {
+		for(auto block : action.GetBlocks()) {
 			SSAControlFlowStatement *ctrlflow = block->GetControlFlow();
 
 			if(dynamic_cast<SSAIfStatement*>(ctrlflow)) {

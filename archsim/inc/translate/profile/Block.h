@@ -37,14 +37,14 @@ namespace archsim
 					HasTranslation,
 				};
 
-				Block(Region& parent, addr_t offset, uint8_t isa_mode);
+				Block(Region& parent, Address offset, uint8_t isa_mode);
 
 				inline Region& GetParent() const
 				{
 					return parent;
 				}
 
-				inline addr_t GetOffset() const
+				inline Address GetOffset() const
 				{
 					return offset;
 				}
@@ -89,7 +89,7 @@ namespace archsim
 				std::vector<Block *> successors;
 				Region& parent;
 
-				addr_t offset;
+				Address offset;
 
 				BlockStatus status;
 				uint8_t isa_mode;
