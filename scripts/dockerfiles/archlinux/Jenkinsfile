@@ -13,7 +13,7 @@ pipeline {
         stage ('Build') {
             steps {
                 sh '''
-                docker run --rm -v `pwd`:/workspace gensim-archlinux bash -c "cp -r /workspace ~/gensim-repo; cd ~/gensim-repo; cp ~/gensim-repo/scripts/dockerfiles/archlinux/archsim-config ~/gensim-repo/archsim/.config; make"
+                cd scripts/dockerfiles && sh test-dockerfile.sh archlinux/
                 '''
             }
         }
