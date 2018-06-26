@@ -1,8 +1,14 @@
 
-# Check out gensim-mibench
+# Check out test artifact repo containing binaries and images
 
-# For each tested architecture:
-#  remote-build gensim-mibench
-#  run each benchmark and check results
+INCLUDE(ExternalProject)
+
+ExternalProject_Add(gensim-test-artifacts
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+)
+
+SET(GENSIM_TEST_ARTIFACTS "${CMAKE_CURRENT_BINARY_DIR}/gensim-test-artifacts-prefix/src/gensim-test-artifacts/artifacts")
 
 ADD_SUBDIRECTORY(arm-linux-tests)
