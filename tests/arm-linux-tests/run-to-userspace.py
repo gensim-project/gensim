@@ -19,11 +19,11 @@ def wait_for_line(process, needle, max_timeout=1000):
 			while(True):
 				result = select([process.stdout],[],[])
 				if(result[0]):
-					line = process.stdout.readline()
+					line = process.stdout.readline().decode('ascii')
 					if(line == ''):
 						continue
 						
-					print line
+					print(line)
 					
 					if(line.find(needle) == 0):
 						# We found it!
@@ -35,7 +35,7 @@ def wait_for_line(process, needle, max_timeout=1000):
 
 def find_archsim_binary():
 	process = subprocess.Popen("hg root", shell=True, stdout=subprocess.PIPE)
-	return process.stdout.readline().strip('\n').strip('\r') + "/build/dist/bin/archsim"
+	return process.stdout.readline().decode('ascii').strip('\n').strip('\r') + "/build/dist/bin/archsim"
 	
 def main():
 	parser = ArgumentParser()
@@ -52,18 +52,19 @@ def main():
 
 	final_line = '---[ end Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)'
 	process = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-	try:
-		result = wait_for_line(process, final_line, 30)
-
-		if(result):
-			print "Success!"
-			return 0
-		else:
-			print "Failure!"
-			return 1
-	finally:
-		process.kill()
-
+	result = wait_for_line(process, final_line, 30)
+	
+	exitcode = 0
+	
+	if(result):
+		print("Success!")
+		exitcode = 0
+	else:
+		print("Failure!")
+		exitcode = 1
+	
+	process.kill()
+	return exitcode
 
 if __name__ == "__main__":
     sys.exit(main())
