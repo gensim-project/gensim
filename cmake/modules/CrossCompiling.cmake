@@ -141,11 +141,11 @@ function(cross_compile_binary ARCHITECTURE TARGET_NAME FLAGS)
 	SET(OUTPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}")
 	SET(SOURCES "${ARGN}")
 	
-	cross_compile_try_sysroot(arm-linux-gnu)
+	#cross_compile_try_sysroot(${CCPREFIX})
 	
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${OUTPUT_FILE}
-		COMMAND "sh" "-c" "${CCPREFIX}gcc -o ${OUTPUT_FILE} --sysroot=${SYSROOT} -I${SYSROOT}/include -L${SYSROOT}/lib ${FLAGS} ${SOURCES}"
+		COMMAND "sh" "-c" "${CCPREFIX}gcc -o ${OUTPUT_FILE} ${FLAGS} ${SOURCES}"
 		DEPENDS "${SOURCES}"
 		COMMENT "Cross compiling ${TARGET_NAME}" 
 	)
