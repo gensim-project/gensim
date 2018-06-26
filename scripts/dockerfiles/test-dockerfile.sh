@@ -15,7 +15,7 @@ echo "Got image $IMAGEID"
 
 echo "Testing build..."
 
-docker run --rm -it -v $(hg root):/workspace $IMAGEID bash -c \
+docker run -u $(whoami) --rm -it -v $(hg root):/workspace $IMAGEID bash -c \
 	 "\
 	 cd /workspace && \
 	 mkdir -p $BUILDDIR && \
