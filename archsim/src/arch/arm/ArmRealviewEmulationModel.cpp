@@ -67,7 +67,7 @@ void ArmRealviewEmulationModel::Destroy()
 bool ArmRealviewEmulationModel::InstallBootloader(archsim::abi::loader::BinaryLoader& loader)
 {
 	entry_point = loader.GetEntryPoint();
-	GetMemoryModel().Write(0, (uint8_t *)&bootloader_start, bootloader_size);
+	GetMemoryModel().Write(0_ga, (uint8_t *)&bootloader_start, bootloader_size);
 
 	return true;
 }
@@ -103,7 +103,7 @@ bool ArmRealviewEmulationModel::PrepareCore(archsim::core::thread::ThreadInstanc
 	}
 
 	// IP = Entry Point
-	regs[12] = entry_point;
+	regs[12] = entry_point.Get();
 
 	return true;
 }
@@ -363,14 +363,14 @@ void ArmRealviewEmulationModel::HandleSemihostingCall()
 		case 3:
 			uint8_t c;
 			//cpu->translation_provider->Translate(cpu, regs[1], phys_addr, 0);
-			GetMemoryModel().Read8(phys_addr, c);
+			GetMemoryModel().Read8(Address(phys_addr), c);
 			printf("\x1b[31m%c\x1b[0m", c);
 			fflush(stdout);
 			break;
 		case 4:
 			char buffer[256];
 			//cpu->translation_provider->Translate(cpu, regs[1], phys_addr, 0);
-			GetMemoryModel().ReadString(phys_addr, buffer, sizeof(buffer));
+			GetMemoryModel().ReadString(Address(phys_addr), buffer, sizeof(buffer));
 			printf("\x1b[31m%s\x1b[0m", buffer);
 			fflush(stdout);
 			break;

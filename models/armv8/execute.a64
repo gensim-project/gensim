@@ -1,0 +1,2955 @@
+/*
+ * GenSim AARCH64 Model
+ *
+ * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
+ *
+ * Tom Spink <tspink@inf.ed.ac.uk>
+ */
+
+// ****************************************************************************
+// C4.2		Data processing - immediate
+// ****************************************************************************
+
+// ----------------------------------------------------------------------------
+// C4.2.1	Add/substract (immediate)
+// ----------------------------------------------------------------------------
+execute(addi)
+{
+	uint64 imm = decode_imm(inst.imm12, inst.shift);
+	uint64 op1 = read_gpr_sp(inst.sf, inst.rn);
+	
+	if (inst.S) {
+		if (inst.sf == 0) {
+			write_gpr(0, inst.rd, __builtin_adc_flags((uint32)op1, (uint32)imm, 0));
+		} else {
+			write_gpr(1, inst.rd, __builtin_adc64_flags(op1, imm, 0));
+		}
+	} else {
+		write_gpr_sp(inst.sf, inst.rd, op1 + imm);
+	}
+}
+
+execute(subi)
+{
+	uint64 imm = decode_imm(inst.imm12, inst.shift);
+	uint64 op1 = read_gpr_sp(inst.sf, inst.rn);
+	
+	if (inst.S) {
+		if (inst.sf == 0) {
+			write_gpr(0, inst.rd, __builtin_sbc_flags((uint32)op1, (uint32)imm, 1));
+		} else {
+			write_gpr(1, inst.rd, __builtin_sbc64_flags(op1, imm, 1));
+		}
+	} else {
+		write_gpr_sp(inst.sf, inst.rd, op1 - imm);
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.2.2	Bitfield
+// ----------------------------------------------------------------------------
+execute(sbfm)
+{
+
+	//bits(datasize) src = X[n];
+	//bits(datasize) bot = ROR(src, R) AND wmask;
+	//bits(datasize) top = Replicate(src<S>);
+	//X[d] = (top AND NOT(tmask)) OR (bot AND tmask);
+		
+	if (inst.immr == 0 && inst.imms == 7 && inst.sf == inst.N) {
+		// sxtb
+		write_gpr(inst.sf, inst.rd, (uint64)(sint64)(sint8)read_gpr(0, inst.rn));
+	} else if (inst.immr == 0 && inst.imms == 15 && inst.sf == inst.N) {
+		// sxth
+		write_gpr(inst.sf, inst.rd, (uint64)(sint64)(sint16)read_gpr(0, inst.rn));
+	} else if (inst.immr == 0 && inst.imms == 31 && inst.sf == 1 && inst.N == 1) {
+		// sxtw
+		write_gpr(1, inst.rd, (uint64)(sint64)(sint32)read_gpr(0, inst.rn));
+	} else {
+		uint64 value = read_gpr(inst.sf, inst.rn);
+		
+		if (inst.imms >= inst.immr) {
+			uint8 lsb = inst.immr;
+			uint8 width = (inst.imms - inst.immr) + 1;
+			
+			value = bit_extract(value, lsb, width);
+			value = (uint64)sign_extend(value, width);
+		} else {
+			uint8 lsb = (-inst.immr) % ((inst.sf == 0) ? 32 : 64);
+			uint8 width = inst.imms + 1;
+		
+			value = bit_extract(value, 0, width);
+			value = (uint64)sign_extend(value, width);
+			value <<= lsb;
+		}
+
+		write_gpr(inst.sf, inst.rd, value);
+	}
+}
+
+execute(bfm)
+{
+	uint64 bits;
+	uint8 pos;
+	uint8 len;
+	
+	if (inst.imms >= inst.immr) {
+		bits = bit_extract(read_gpr(inst.sf, inst.rn), inst.immr, ((uint8)inst.imms - (uint8)inst.immr) + 1);
+		pos = 0;
+		len = ((uint8)inst.imms - (uint8)inst.immr) + 1;
+	} else {
+		bits = bit_extract(read_gpr(inst.sf, inst.rn), 0, (uint8)inst.imms + (uint8)1);
+		pos = ((inst.sf == 1) ? (uint8)64 : (uint8)32) - (uint8)inst.immr;
+		len = (uint8)inst.imms + 1;
+	}
+
+	uint64 value = bit_deposit(read_gpr(inst.sf, inst.rd), bits, pos, len);
+	write_gpr(inst.sf, inst.rd, value);
+}
+
+execute(ubfm)
+{	
+	if (((inst.sf == 0 && inst.imms != 31) || (inst.sf == 1 && inst.imms != 63)) && (inst.imms + 1) == inst.immr) {
+		// LSL
+		uint8 amount = ((inst.sf == 0) ? 31 : 63) - inst.imms;
+		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn) << amount);
+	} else if ((inst.sf == 0 && inst.imms == 31) || (inst.sf == 1 && inst.imms == 63)) {
+		// LSR
+		uint8 amount = inst.immr;
+		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn) >> amount);
+	} else if (inst.sf == 0 && inst.immr == 0 && inst.imms == 7) {
+		// UXTB
+		write_gpr(0, inst.rd, (uint64)(uint8)read_gpr(0, inst.rn));
+	} else if (inst.sf == 0 && inst.immr == 0 && inst.imms == 15) {
+		// UXTH
+		write_gpr(0, inst.rd, (uint64)(uint16)read_gpr(0, inst.rn));
+	} else {
+		uint64 value = read_gpr(inst.sf, inst.rn);
+		
+		if (inst.imms >= inst.immr) {
+			uint8 lsb = inst.immr;
+			uint8 width = (inst.imms - inst.immr) + 1;
+			
+			value = bit_extract(value, lsb, width);
+		} else {
+			uint8 lsb = (-inst.immr) % ((inst.sf == 0) ? 32 : 64);
+			uint8 width = inst.imms + 1;
+		
+			value = bit_extract(value, 0, width);
+			value <<= lsb;
+		}
+
+		write_gpr(inst.sf, inst.rd, value);
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.2.3	Extract
+// ----------------------------------------------------------------------------
+execute(extr)
+{
+	if (inst.rn == inst.rm) {
+		uint64 v = read_gpr(inst.sf, inst.rn);
+		
+		if (inst.sf == 0) {
+			v = (uint64)(((uint32)v) >>> inst.imms);
+		} else {
+			v = v >>> inst.imms;
+		}
+		
+		write_gpr(inst.sf, inst.rd, v);
+	} else {
+		uint64 rn = read_gpr(inst.sf, inst.rn);
+		uint64 rm = read_gpr(inst.sf, inst.rm);
+		
+		uint64 v = rm >> inst.imms;
+		
+		if (inst.sf) {
+			v |= rn << (64 - inst.imms);
+		} else {
+			v |= rn << (32 - inst.imms);
+		}
+		
+		write_gpr(inst.sf, inst.rd, v);
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.2.4	Logical Immediate
+// ----------------------------------------------------------------------------
+execute(andi)
+{
+	uint64 op1 = read_gpr(inst.sf, inst.rn);
+	
+	if (inst.sf) {
+		uint64 result = op1 & inst.immu64;
+		
+		if (inst.opc == 3) {
+			write_gpr(1, inst.rd, result);
+			
+			__builtin_update_zn_flags64(result);
+			write_register(C, 0);
+			write_register(V, 0);
+		} else {
+			write_gpr_sp(1, inst.rd, result);
+		}
+	} else {
+		uint32 result = (uint32)op1 & inst.immu32;
+		
+		if (inst.opc == 3) {
+			write_gpr(0, inst.rd, result);
+			
+			__builtin_update_zn_flags(result);
+			write_register(C, 0);
+			write_register(V, 0);
+		} else {
+			write_gpr_sp(0, inst.rd, (uint64)result);
+		}
+	}
+}
+
+execute(orri)
+{
+	uint64 op1 = read_gpr(inst.sf, inst.rn);
+	
+	if (inst.sf) {
+		uint64 result = op1 | inst.immu64;
+		write_gpr_sp(1, inst.rd, result);
+	} else {
+		uint32 result = (uint32)op1 | inst.immu32;
+		write_gpr_sp(0, inst.rd, (uint64)result);
+	}
+}
+
+execute(eori)
+{
+	uint64 op1 = read_gpr(inst.sf, inst.rn);
+	
+	if (inst.sf) {
+		uint64 result = op1 ^ inst.immu64;
+		write_gpr_sp(1, inst.rd, result);
+	} else {
+		uint32 result = (uint32)op1 ^ inst.immu32;
+		write_gpr_sp(0, inst.rd, (uint64)result);
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.2.5	Move Wide Immediate
+// ----------------------------------------------------------------------------
+execute(movn)
+{
+	uint64 result = ((uint64)inst.imm16) << (uint64)inst.shift_amount;
+	write_gpr(inst.sf, inst.rd, ~result);
+}
+
+execute(movz)
+{
+	uint64 result = ((uint64)inst.imm16) << (uint64)inst.shift_amount;
+	write_gpr(inst.sf, inst.rd, result);
+}
+
+execute(movk)
+{
+	uint64 result = read_gpr(inst.sf, inst.rd) & ~((uint64)0xffff << inst.shift_amount);
+	result |= ((uint64)inst.imm16) << inst.shift_amount;
+	
+	write_gpr(inst.sf, inst.rd, result);
+}
+
+// ----------------------------------------------------------------------------
+// C4.2.6	PC-relative Addressing
+// ----------------------------------------------------------------------------
+execute(adr)
+{
+	sint64 base = (sint64)read_pc();
+	
+	if (inst.op == 1) {
+		base &= ~(uint64)0xfff;
+	}
+	
+	write_gpr(1, inst.rd, (uint64)(base + inst.imms64));
+}
+
+// ****************************************************************************
+// C4.3 Branches, exception generating and system instructions
+// ****************************************************************************
+
+// ----------------------------------------------------------------------------
+// C4.3.1	Compare & branch (immediate)
+// ----------------------------------------------------------------------------
+execute(cbz)
+{
+	uint64 test_val = read_gpr(inst.sf, inst.rt);
+	
+	if (inst.op == 0) {
+		if (test_val == 0) {
+			write_pc((uint64)((sint64)read_pc() + inst.imms64));
+		} else {
+			write_pc((uint64)read_pc() + 4);
+		}
+	} else {
+		if (test_val != 0) {
+			write_pc((uint64)((sint64)read_pc() + inst.imms64));
+		} else {
+			write_pc((uint64)read_pc() + 4);
+		}
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.3.2	Conditional branch (immediate)
+// ----------------------------------------------------------------------------
+execute(bcond)
+{
+	write_pc((uint64)((sint64)read_pc() + inst.imms64));
+}
+
+// ----------------------------------------------------------------------------
+// C4.3.3	Exception generation
+// ----------------------------------------------------------------------------
+execute(exgen)
+{
+	if (inst.opc == 1) {
+		software_breakpoint(inst.imm16);
+	} else if (inst.opc == 0 && inst.ll == 1) {
+		call_supervisor(inst.imm16);
+	} else if (inst.opc == 0 && inst.ll == 3) {
+		write_device(17, 0, 0);
+		write_pc(read_pc() + 4);
+	} else if (inst.opc == 2) {
+		if (inst.imm16 == 0xf000) {
+			write_device(19, 0, 0);
+			write_pc(read_pc() + 4);
+		}
+	} else {
+		trap();
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.3.4	System
+// ----------------------------------------------------------------------------
+execute(msr_imm)
+{
+	if (inst.op1 == 0 && inst.op2 == 5) {
+		// SPSel
+		update_spsel((uint8)inst.crm);
+	} else if (inst.op1 == 3 && inst.op2 == 6) {
+		// DAIFSet
+		write_register(D, read_register(D) | ((inst.crm & 8) == 8));
+		write_register(A, read_register(A) | ((inst.crm & 4) == 4));
+		write_register(I, read_register(I) | ((inst.crm & 2) == 2));
+		write_register(F, read_register(F) | ((inst.crm & 1) == 1));
+	} else if (inst.op1 == 3 && inst.op2 == 7) {
+		// DAIFClr
+		write_register(D, read_register(D) & ((inst.crm & 8) != 8));
+		write_register(A, read_register(A) & ((inst.crm & 4) != 4));
+		write_register(I, read_register(I) & ((inst.crm & 2) != 2));
+		write_register(F, read_register(F) & ((inst.crm & 1) != 1));
+		trigger_irq();
+	} else {
+		trap();
+	}
+}
+
+execute(msr_reg)
+{
+	uint64 value = read_gpr(1, inst.rt);
+	
+	if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 2 && inst.crm == 0 && inst.op2 == 0) {
+		write_register(TTBR0, value);
+		pgt_change();
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 2 && inst.crm == 0 && inst.op2 == 1) {
+		write_register(TTBR1, value);
+		pgt_change();
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 4 && inst.crm == 2 && inst.op2 == 0) {
+		update_spsel((uint8)value);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 4 && inst.crm == 1 && inst.op2 == 0) {
+		write_register(SP_EL0, value);
+	} else if (inst.op0 == 3 && inst.op1 == 4 && inst.crn == 4 && inst.crm == 1 && inst.op2 == 0) {
+		write_register(SP_EL1, value);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 4 && inst.crm == 0 && inst.op2 == 0) {
+		write_register(SPSR_EL1, (uint32)value);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 4 && inst.crm == 0 && inst.op2 == 1) {
+		write_register(ELR_EL1, value);
+	} else if (inst.op0 == 2 && inst.op1 == 0 && inst.crn == 0 && inst.crm == 2 && inst.op2 == 2) {
+		write_register(MDSCR_EL1, value);
+		__builtin_set_feature(A64_SS, (value & 1));
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 13 && inst.crm == 0 && inst.op2 == 1) {
+		write_register(CONTEXTIDR_EL1, value);
+	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 2 && inst.op2 == 0) {
+		// NZCV
+		
+		write_register(N, ((uint32)value & 0x80000000U) == 0x80000000U);
+		write_register(Z, ((uint32)value & 0x40000000U) == 0x40000000U);
+		write_register(C, ((uint32)value & 0x20000000U) == 0x20000000U);
+		write_register(V, ((uint32)value & 0x10000000U) == 0x10000000U);
+	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 2 && inst.op2 == 1) {
+		// DAIF
+		
+		write_register(D, ((uint32)value & 0x200) == 0x200);
+		write_register(A, ((uint32)value & 0x100) == 0x100);
+		write_register(I, ((uint32)value & 0x080) == 0x080);
+		write_register(F, ((uint32)value & 0x040) == 0x040);
+		trigger_irq();
+	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 4 && inst.op2 == 0) {
+		write_register(FPCR, (uint32)value);
+		
+		uint8 rounding_mode = (value >> 22) & 3;
+		__builtin_set_fp_rounding(rounding_mode);
+	} else {
+		write_device(16, inst.ir, value);
+	}
+}
+
+execute(mrs)
+{
+	uint64 value;
+	if (inst.op0 == 2 && (inst.op1 == 0 || inst.op1 == 4 || inst.op1 == 6) && inst.crn == 2 && inst.crm == 0 && inst.op2 == 0) {
+		value = read_register(TTBR0);
+	} else if (inst.op0 == 2 && inst.op1 == 0 && inst.crn == 2 && inst.crm == 0 && inst.op2 == 1) {
+		value = read_register(TTBR1);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 4 && inst.crm == 2 && inst.op2 == 0) {
+		value = (uint64)__builtin_get_feature(A64_SPSEL);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 4 && inst.crm == 2 && inst.op2 == 2) {
+		value = (uint64)(get_el() << 2);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 4 && inst.crm == 1 && inst.op2 == 0) {
+		value = read_register(SP_EL0);
+	} else if (inst.op0 == 3 && inst.op1 == 4 && inst.crn == 4 && inst.crm == 1 && inst.op2 == 0) {
+		value = read_register(SP_EL1);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 4 && inst.crm == 0 && inst.op2 == 0) {
+		value = read_register(SPSR_EL1);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 4 && inst.crm == 0 && inst.op2 == 1) {
+		value = read_register(ELR_EL1);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 13 && inst.crm == 0 && inst.op2 == 1) {
+		value = read_register(CONTEXTIDR_EL1);
+	} else if (inst.op0 == 2 && inst.op1 == 0 && inst.crn == 0 && inst.crm == 2 && inst.op2 == 2) {
+		value = read_register(MDSCR_EL1, value);
+	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 2 && inst.op2 == 0) {
+		// NZCV
+		value = ((uint64)read_register(N) << 31) | ((uint64)read_register(Z) << 30) | ((uint64)read_register(C) << 29) | ((uint64)read_register(V) << 28);
+	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 2 && inst.op2 == 1) {
+		// DAIF
+		value = ((uint64)read_register(D) << 9) | ((uint64)read_register(A) << 8) | ((uint64)read_register(I) << 7) | ((uint64)read_register(F) << 6);
+	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 4 && inst.op2 == 0) {
+		value = (uint64)read_register(FPCR);
+	} else {
+		// read_device needs updating to support 64 bit values.
+		uint32 value32;
+		read_device(16, inst.ir, value32);
+		value = value32;
+	}
+
+	write_gpr(1, inst.rt, value);
+}
+
+execute(hint)
+{
+	//not_implemented();
+}
+
+execute(barrier)
+{
+	//not_implemented();
+}
+
+execute(sys)
+{
+	if (inst.crn == 7) {
+		if (inst.op1 == 3 && inst.crm == 4 && inst.op2 == 1) {
+			// DC ZVA
+			
+			uint64 addr = read_gpr(1, inst.rt);
+			mem_write_64(Data, addr, 0);
+		}
+	} else if (inst.crn == 8) {
+		flush();
+	}
+	
+	//not_implemented();
+}
+
+// ----------------------------------------------------------------------------
+// C4.3.5	Test & branch (immediate)
+// ----------------------------------------------------------------------------
+execute(tbz)
+{
+	uint64 operand = read_gpr(inst.b5, inst.rt);
+	
+	uint64 base = read_pc();
+	
+	if (((operand >> inst.bit_pos) & ((uint64)1)) == inst.op) {
+		write_pc((uint64)((sint64)base + inst.imms64));
+	} else {
+		write_pc(base + 4);
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.3.6	Unconditional branch (immediate)
+// ----------------------------------------------------------------------------
+execute(b)
+{
+	if (inst.op) {
+		write_gpr(1, 30, read_pc() + 4);
+	}
+	
+	uint64 target = (uint64)((sint64)read_pc() + inst.imms64);
+	write_pc(target);
+}
+
+// ----------------------------------------------------------------------------
+// C4.3.7	Unconditional branch (register)
+// ----------------------------------------------------------------------------
+execute(br)
+{
+	if (inst.opc == 1) {
+		write_gpr(1, 30, read_pc() + 4);
+	}
+	
+	uint64 target = read_gpr(1, inst.rn);
+	write_pc(target);
+}
+
+execute(ret)
+{
+	uint64 target = read_gpr(1, inst.rn);
+	write_pc(target);
+}
+
+execute(eret)
+{
+	return_from_exception((uint64)read_register(ELR_EL1), (uint32)read_register(SPSR_EL1));
+}
+
+execute(drps)
+{
+	not_implemented();
+}
+
+// ****************************************************************************
+// C4.4 Loads and stores
+// ****************************************************************************
+
+// ----------------------------------------------------------------------------
+// C4.4.5	Load register (literal)
+// ----------------------------------------------------------------------------
+execute(ldr_lit)
+{
+	uint64 address = read_pc() + inst.label;
+	
+	if (inst.opc == 0) {
+		mem_load(address, inst.rt, 32, 0, 0, 0);
+	} else {
+		mem_load(address, inst.rt, 64, 0, 0, 0);
+	}
+}
+
+execute(ldrsw_lit)
+{
+	not_implemented();
+}
+
+execute(prfm_lit)
+{
+	not_implemented();
+}
+
+// ----------------------------------------------------------------------------
+// C4.4.6	Load/store Exclusive
+// ----------------------------------------------------------------------------
+execute(stxrb)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_store(address, inst.rt, 8, 0, 1);	
+	write_gpr(0, inst.rs, (uint64)0);
+}
+		
+execute(stlxrb)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_store(address, inst.rt, 8, 1, 1);	
+	write_gpr(0, inst.rs, (uint64)0);
+}
+		
+execute(ldxrb)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_load(address, inst.rt, 8, 0, 0, 1);
+}
+
+execute(ldaxrb)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_load(address, inst.rt, 8, 0, 1, 1);
+}
+
+execute(stlrb)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_store(address, inst.rt, 8, 1, 0);
+}
+
+execute(ldarb)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_load(address, inst.rt, 8, 0, 1, 0);
+}
+
+execute(stxrh)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_store(address, inst.rt, 16, 0, 1);
+	write_gpr(0, inst.rs, (uint64)0);
+}
+
+execute(stlxrh)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_store(address, inst.rt, 16, 1, 1);
+	write_gpr(0, inst.rs, (uint64)0);
+}
+
+execute(ldxrh)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_load(address, inst.rt, 16, 0, 0, 1);
+}
+
+execute(ldaxrh)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_load(address, inst.rt, 16, 0, 1, 1);
+}
+
+execute(stlrh)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_store(address, inst.rt, 16, 1, 0);
+}
+
+execute(ldarh)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	mem_load(address, inst.rt, 16, 0, 1, 0);
+}
+
+execute(stxr)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.size == 2) {
+		mem_store(address, inst.rt, 32, 0, 1);
+	} else {
+		mem_store(address, inst.rt, 64, 0, 1);
+	}
+	
+	write_gpr(0, inst.rs, 0);
+}
+
+execute(stlxr)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.size == 2) {
+		mem_store(address, inst.rt, 32, 1, 1);
+	} else {
+		mem_store(address, inst.rt, 64, 1, 1);
+	}
+	
+	write_gpr(0, inst.rs, 0);
+}
+
+execute(stxp)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.size == 2) {
+		mem_store(address, inst.rt, 32, 0, 1);
+		mem_store(address+4, inst.rt2, 32, 0, 1);
+	} else {
+		mem_store(address, inst.rt, 64, 0, 1);
+		mem_store(address+8, inst.rt2, 64, 0, 1);
+	}
+	
+	write_gpr(0, inst.rs, 0);
+}
+
+execute(stlxp)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.size == 2) {
+		mem_store(address, inst.rt, 32, 1, 1);
+		mem_store(address+4, inst.rt2, 32, 1, 1);
+	} else {
+		mem_store(address, inst.rt, 64, 1, 1);
+		mem_store(address+8, inst.rt2, 64, 1, 1);
+	}
+	
+	write_gpr(0, inst.rs, 0);
+}
+
+execute(ldxr)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.size == 2) {
+		mem_load(address, inst.rt, 32, 0, 0, 1);
+	} else {
+		mem_load(address, inst.rt, 64, 0, 0, 1);
+	}
+}
+
+execute(ldaxr)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.size == 2) {
+		mem_load(address, inst.rt, 32, 0, 1, 1);
+	} else {
+		mem_load(address, inst.rt, 64, 0, 1, 1);
+	}
+}
+
+execute(ldxp)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.size == 2) {
+		mem_load(address, inst.rt, 32, 0, 0, 1);
+		mem_load(address + 4, inst.rt2, 32, 0, 0, 1);
+	} else {
+		mem_load(address, inst.rt, 64, 0, 0, 1);
+		mem_load(address + 8, inst.rt2, 64, 0, 0, 1);
+	}
+}
+
+execute(ldaxp)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.size == 2) {
+		mem_load(address, inst.rt, 32, 0, 1, 1);
+		mem_load(address + 4, inst.rt2, 32, 0, 1, 1);
+	} else {
+		mem_load(address, inst.rt, 64, 0, 1, 1);
+		mem_load(address + 8, inst.rt2, 64, 0, 1, 1);
+	}
+}
+
+execute(stlr)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.size == 2) {
+		mem_store(address, inst.rt, 32, 1, 0);
+	} else {
+		mem_store(address, inst.rt, 64, 1, 0);
+	}
+}
+
+execute(ldar)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.size == 2) {
+		mem_load(address, inst.rt, 32, 0, 1, 0);
+	} else {
+		mem_load(address, inst.rt, 64, 0, 1, 0);
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.4.7			Load/store no allocate (offset)
+// ----------------------------------------------------------------------------
+execute(stnp)
+{
+	uint64 addr = read_gpr_sp(1, inst.rn) + inst.imms64;
+	
+	if (inst.opc == 0) {
+		mem_store(addr, inst.rt, 32, 0, 0);
+		mem_store(addr+4, inst.rt2, 32, 0, 0);
+	} else {
+		mem_store(addr, inst.rt, 64, 0, 0);
+		mem_store(addr+8, inst.rt2, 64, 0, 0);
+	}
+}
+
+execute(ldnp)
+{
+	uint64 addr = read_gpr_sp(1, inst.rn) + inst.imms64;
+	
+	if (inst.opc == 0) {
+		mem_load(addr, inst.rt, 32, 0, 0, 0);
+		mem_load(addr+4, inst.rt2, 32, 0, 0, 0);
+	} else {
+		mem_load(addr, inst.rt, 64, 0, 0, 0);
+		mem_load(addr+8, inst.rt2, 64, 0, 0, 0);
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.4.8/C4.4.9	Load/store register (pre-/post- indexed)
+// ----------------------------------------------------------------------------
+execute(ldrb)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.P) {
+		address += inst.imms64;
+	}
+	
+	if (inst.X) {
+		if (inst.L) {
+			mem_load(address, inst.rt, 8, 1, 0, 0);
+		} else {
+			mem_load(address, inst.rt, 8, 2, 0, 0);
+		}
+	} else {
+		mem_load(address, inst.rt, 8, 0, 0, 0);
+	}
+		
+	if (!inst.P) {
+		address += inst.imms64;
+	}
+	
+	write_gpr_sp(1, inst.rn, address);
+}
+
+execute(ldrh)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.P) {
+		address += inst.imms64;
+	}
+	
+	if (inst.X) {
+		if (inst.L) {
+			mem_load(address, inst.rt, 16, 1, 0, 0);
+		} else {
+			mem_load(address, inst.rt, 16, 2, 0, 0);
+		}
+	} else {
+		mem_load(address, inst.rt, 16, 0, 0, 0);
+	}
+	
+	if (!inst.P) {
+		address += inst.imms64;
+	}
+	
+	write_gpr_sp(1, inst.rn, address);
+}
+
+execute(ldr)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.P) {
+		address += inst.imms64;
+	}
+	
+	if (inst.V == 0) {
+		if (inst.size == 2) {
+			mem_load(address, inst.rt, 32, 0, 0, 0);
+		} else {
+			mem_load(address, inst.rt, 64, 0, 0, 0);
+		}
+	} else {
+		if (inst.size == 0 && inst.X == 0) {
+			mem_load_simd(address, inst.rt, 8);
+		} else if (inst.size == 0 && inst.X == 1) {
+			mem_load_simd(address, inst.rt, 128);
+		} else if (inst.size == 1) {
+			mem_load_simd(address, inst.rt, 16);
+		} else if (inst.size == 2) {
+			mem_load_simd(address, inst.rt, 32);
+		} else if (inst.size == 3) {
+			mem_load_simd(address, inst.rt, 64);
+		}
+	}
+	
+	if (!inst.P) {
+		address += inst.imms64;
+	}
+	
+	write_gpr_sp(1, inst.rn, address);
+}
+
+execute(ldrsw)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.P) {
+		address += inst.imms64;
+	}
+	
+	mem_load(address, inst.rt, 32, 1, 0, 0);
+	
+	if (!inst.P) {
+		address += inst.imms64;
+	}
+	
+	write_gpr_sp(1, inst.rn, address);
+}
+
+execute(strb)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.P) {
+		address += inst.imms64;
+	}
+	
+	uint8 value = (uint8)read_gpr(0, inst.rt);
+	mem_write_8(Data, address, value);
+		
+	if (!inst.P) {
+		address += inst.imms64;
+	}
+	
+	write_gpr_sp(1, inst.rn, address);
+}
+
+execute(strh)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.P) {
+		address += inst.imms64;
+	}
+	
+	uint16 value = (uint16)read_gpr(0, inst.rt);
+	mem_write_16(Data, address, value);
+		
+	if (!inst.P) {
+		address += inst.imms64;
+	}
+	
+	write_gpr_sp(1, inst.rn, address);
+}
+
+execute(str)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.P) {
+		address += inst.imms64;
+	}
+	
+	if (inst.V == 0) {
+		if (inst.size == 2) {
+			mem_store(address, inst.rt, 32, 0, 0);
+		} else {
+			mem_store(address, inst.rt, 64, 0, 0);
+		}
+	} else {
+		if (inst.size == 0 && inst.X == 0) {
+			mem_store_simd(address, inst.rt, 8);
+		} else if (inst.size == 0 && inst.X == 1) {
+			mem_store_simd(address, inst.rt, 128);
+		} else if (inst.size == 1) {
+			mem_store_simd(address, inst.rt, 16);
+		} else if (inst.size == 2) {
+			mem_store_simd(address, inst.rt, 32);
+		} else if (inst.size == 3) {
+			mem_store_simd(address, inst.rt, 64);
+		}
+	}
+		
+	if (!inst.P) {
+		address += inst.imms64;
+	}
+	
+	write_gpr_sp(1, inst.rn, address);
+}
+
+execute(prfm)
+{
+	//not_implemented();
+}
+
+// ----------------------------------------------------------------------------
+// C4.4.10	Load/store register (register offset)
+// ----------------------------------------------------------------------------
+execute(ldrb_reg)
+{
+	uint64 rm;
+	if (inst.option0 == 0 && inst.option21 == 1) {			// UXTW
+		rm = extend_reg(0, inst.rm, 2, inst.S);
+	} else if (inst.option0 == 0 && inst.option21 == 3) {	// SXTW
+		rm = extend_reg(0, inst.rm, 6, inst.S);
+	} else if (inst.option0 == 1 && inst.option21 == 1) {	// LSL (UXTX)
+		rm = extend_reg(1, inst.rm, 3, inst.S);
+	} else if (inst.option0 == 1 && inst.option21 == 3) {	// SXTX
+		rm = extend_reg(1, inst.rm, 7, inst.S);
+	} else {
+		rm = 0;
+		trap();
+	}
+	
+	uint64 address = read_gpr_sp(1, inst.rn) + rm;
+	
+	uint8 value;
+	mem_read_8(Data, address, value);
+	
+	if (inst.X) {
+		if (inst.L == 0) {
+			write_gpr(1, inst.rt, (uint64)(sint64)(sint8)value);
+		} else {
+			write_gpr(0, inst.rt, (uint64)(sint64)(sint8)value);
+		}
+	} else {
+		write_gpr(0, inst.rt, (uint64)value);
+	}
+}
+
+execute(strb_reg)
+{
+	uint64 rm;
+	if (inst.option0 == 0 && inst.option21 == 1) {			// UXTW
+		rm = extend_reg(0, inst.rm, 2, inst.S);
+	} else if (inst.option0 == 0 && inst.option21 == 3) {	// SXTW
+		rm = extend_reg(0, inst.rm, 6, inst.S);
+	} else if (inst.option0 == 1 && inst.option21 == 1) {	// LSL (UXTX)
+		rm = extend_reg(1, inst.rm, 3, inst.S);
+	} else if (inst.option0 == 1 && inst.option21 == 3) {	// SXTX
+		rm = extend_reg(1, inst.rm, 7, inst.S);
+	} else {
+		rm = 0;
+		trap();
+	}
+	
+	uint64 address = read_gpr_sp(1, inst.rn) + rm;
+	
+	mem_write_8(Data, address, (uint8)read_gpr(0, inst.rt));
+}
+
+execute(ldrh_reg)
+{
+	uint64 rm;
+	if (inst.option0 == 0 && inst.option21 == 1) {			// UXTW
+		rm = extend_reg(0, inst.rm, 2, inst.S);
+	} else if (inst.option0 == 0 && inst.option21 == 3) {	// SXTW
+		rm = extend_reg(0, inst.rm, 6, inst.S);
+	} else if (inst.option0 == 1 && inst.option21 == 1) {	// LSL (UXTX)
+		rm = extend_reg(1, inst.rm, 3, inst.S);
+	} else if (inst.option0 == 1 && inst.option21 == 3) {	// SXTX
+		rm = extend_reg(1, inst.rm, 7, inst.S);
+	} else {
+		rm = 0;
+		trap();
+	}
+	
+	uint64 address = read_gpr_sp(1, inst.rn) + rm;
+	
+	uint16 value;
+	mem_read_16(Data, address, value);
+	
+	if (inst.X) {
+		if (inst.L == 0) {
+			write_gpr(1, inst.rt, (uint64)(sint64)(sint16)value);
+		} else {
+			write_gpr(0, inst.rt, (uint64)(sint64)(sint16)value);
+		}
+	} else {
+		write_gpr(0, inst.rt, (uint64)value);
+	}
+}
+
+execute(strh_reg)
+{
+	uint64 rm;
+	if (inst.option0 == 0 && inst.option21 == 1) {			// UXTW
+		rm = extend_reg(0, inst.rm, 2, inst.S);
+	} else if (inst.option0 == 0 && inst.option21 == 3) {	// SXTW
+		rm = extend_reg(0, inst.rm, 6, inst.S);
+	} else if (inst.option0 == 1 && inst.option21 == 1) {	// LSL (UXTX)
+		rm = extend_reg(1, inst.rm, 3, inst.S);
+	} else if (inst.option0 == 1 && inst.option21 == 3) {	// SXTX
+		rm = extend_reg(1, inst.rm, 7, inst.S);
+	} else {
+		rm = 0;
+		trap();
+	}
+	
+	uint64 address = read_gpr_sp(1, inst.rn) + rm;
+	
+	mem_write_16(Data, address, (uint16)read_gpr(0, inst.rt));
+}
+
+execute(ldr_reg)
+{
+	uint8 shift = (inst.S == 0) ? (uint8)0 : (uint8)inst.size;
+	
+	uint64 rm;
+	if (inst.option0 == 0 && inst.option21 == 1) {			// UXTW
+		rm = extend_reg(0, inst.rm, 2, shift);
+	} else if (inst.option0 == 0 && inst.option21 == 3) {	// SXTW
+		rm = extend_reg(0, inst.rm, 6, shift);
+	} else if (inst.option0 == 1 && inst.option21 == 1) {	// LSL (UXTX)
+		rm = extend_reg(1, inst.rm, 3, shift);
+	} else if (inst.option0 == 1 && inst.option21 == 3) {	// SXTX
+		rm = extend_reg(1, inst.rm, 7, shift);
+	} else {
+		rm = 0;
+		trap();
+	}
+	
+	uint64 address = read_gpr_sp(1, inst.rn) + rm;
+	
+	uint64 value;
+	if (inst.size == 3) {
+		mem_read_64(Data, address, value);
+	} else {
+		uint32 v32;
+		mem_read_32(Data, address, v32);
+		
+		value = (uint64)v32;
+	}
+	
+	if (inst.X == 1) {
+		write_gpr(1, inst.rt, (uint64)(sint64)(sint32)value);
+	} else {
+		write_gpr(inst.size == 3, inst.rt, value);
+	}
+}
+
+execute(str_reg)
+{
+	uint8 shift = (inst.S == 0) ? (uint8)0 : (uint8)inst.size;
+	
+	uint64 rm;
+	if (inst.option0 == 0 && inst.option21 == 1) {			// UXTW
+		rm = extend_reg(0, inst.rm, 2, shift);
+	} else if (inst.option0 == 0 && inst.option21 == 3) {	// SXTW
+		rm = extend_reg(0, inst.rm, 6, shift);
+	} else if (inst.option0 == 1 && inst.option21 == 1) {	// LSL (UXTX)
+		rm = extend_reg(1, inst.rm, 3, shift);
+	} else if (inst.option0 == 1 && inst.option21 == 3) {	// SXTX
+		rm = extend_reg(1, inst.rm, 7, shift);
+	} else {
+		rm = 0;
+		trap();
+	}
+	
+	uint64 address = read_gpr_sp(1, inst.rn) + rm;
+	
+	uint64 rt = read_gpr(inst.size == 3, inst.rt);
+	if (inst.size == 3) {
+		mem_write_64(Data, address, rt);
+	} else {
+		mem_write_32(Data, address, (uint32)rt);
+	}
+}
+
+execute(prfm_reg)
+{
+	//not_implemented();
+}
+
+// ----------------------------------------------------------------------------
+// C4.4.11	Load/store register (unprivileged)
+// ----------------------------------------------------------------------------
+execute(sttrb)
+{
+	not_implemented();
+}
+
+execute(ldtrb)
+{
+	not_implemented();
+}
+
+execute(sttrh)
+{
+	not_implemented();
+}
+
+execute(ldtrh)
+{
+	not_implemented();
+}
+
+execute(sttr)
+{
+	not_implemented();
+}
+
+execute(ldtr)
+{
+	not_implemented();
+}
+
+execute(ldtrsw)
+{
+	not_implemented();
+}
+
+
+// ----------------------------------------------------------------------------
+// C4.4.12	Load/store register (unscaled immediate)
+// ----------------------------------------------------------------------------
+execute(sturb)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	address += inst.imms64;
+	
+	mem_write_8(Data, address, (uint8)read_gpr(0, inst.rt));
+}
+
+execute(ldurb)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	address += inst.imms64;
+	
+	uint8 value;
+	mem_read_8(Data, address, value);
+	
+	if (inst.opc == 1) { // ldurb
+		write_gpr(0, inst.rt, (uint64)value);
+	} else if (inst.opc == 2) { // ldursb
+		write_gpr(1, inst.rt, (uint64)(sint64)(sint8)value);
+	} else if (inst.opc == 3) {	// ldursb
+		write_gpr(0, inst.rt, (uint64)(sint64)(sint8)value);
+	} else {
+		trap();
+	}
+}
+
+execute(sturh)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	address += inst.imms64;
+	
+	mem_write_16(Data, address, (uint16)read_gpr(0, inst.rt));
+}
+
+execute(ldurh)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	address += inst.imms64;
+	
+	uint16 value;
+	mem_read_16(Data, address, value);
+	
+	if (inst.opc == 1) { // ldurh
+		write_gpr(0, inst.rt, (uint64)value);
+	} else if (inst.opc == 2) { // ldursh
+		write_gpr(1, inst.rt, (uint64)(sint64)(sint16)value);
+	} else if (inst.opc == 3) {	// ldursh
+		write_gpr(0, inst.rt, (uint64)(sint64)(sint16)value);
+	} else {
+		trap();
+	}
+}
+
+execute(stur)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	address += inst.imms64;
+	
+	uint64 value = read_gpr(inst.size == 3, inst.rt);
+	
+	if (inst.size == 3) {
+		mem_write_64(Data, address, value);
+	} else {
+		mem_write_32(Data, address, (uint32)value);
+	}
+}
+
+execute(ldur)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	address += inst.imms64;
+	
+	uint64 value;
+	if (inst.size == 3) {
+		mem_read_64(Data, address, value);
+	} else {
+		uint32 v32;
+		mem_read_32(Data, address, v32);
+		value = (uint64)v32;
+	}
+	
+	write_gpr(inst.size == 3, inst.rt, value);
+}
+
+execute(ldursw)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	address += inst.imms64;
+	
+	uint32 value;
+	mem_read_32(Data, address, value);
+	
+	write_gpr(1, inst.rt, (uint64)(sint64)(sint32)value);
+}
+
+
+// ----------------------------------------------------------------------------
+// C4.4.13	Load/store register (unsigned immediate)
+// ----------------------------------------------------------------------------
+execute(strbi)
+{
+	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
+	
+	uint64 value = read_gpr(0, inst.rt);
+	mem_write_8(Data, addr, (uint8)value);
+}
+
+execute(ldrbi)
+{
+	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
+	
+	uint8 value;
+	mem_read_8(Data, addr, value);
+	
+	if (inst.opc == 1) {
+		write_gpr(0, inst.rt, (uint64)value);
+	} else if (inst.opc == 2) {
+		write_gpr(1, inst.rt, (uint64)(sint64)(sint8)value);
+	} else if (inst.opc == 3) {
+		write_gpr(0, inst.rt, (uint64)(sint64)(sint8)value);
+	} else {
+		trap();
+	}
+}
+
+execute(strhi)
+{
+	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
+	
+	uint64 value = read_gpr(0, inst.rt);
+	mem_write_16(Data, addr, (uint16)value);
+}
+
+execute(ldrhi)
+{
+	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
+	
+	uint16 value;
+	mem_read_16(Data, addr, value);
+	
+	if (inst.opc == 1) {
+		write_gpr(0, inst.rt, (uint64)value);
+	} else if (inst.opc == 2) {
+		write_gpr(1, inst.rt, (uint64)(sint64)(sint16)value);
+	} else if (inst.opc == 3) {
+		write_gpr(0, inst.rt, (uint64)(sint64)(sint16)value);
+	} else {
+		trap();
+	}
+}
+
+execute(stri)
+{
+	uint64 value = read_gpr(inst.size == 3, inst.rt);
+	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
+	
+	if (inst.size == 3) {
+		mem_write_64(Data, addr, value);
+	} else if (inst.size == 2) {
+		mem_write_32(Data, addr, (uint32)value);
+	}
+}
+
+execute(ldri)
+{
+	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
+	
+	uint64 value;
+	if (inst.size == 3) {
+		mem_read_64(Data, addr, value);
+	} else if (inst.size == 2) {
+		uint32 v2;
+		mem_read_32(Data, addr, v2);
+		
+		value = (uint64)v2;
+	} else {
+		value = 0;
+		trap();
+	}
+	
+	write_gpr(inst.size == 3, inst.rt, value);
+}
+
+execute(ldrswi)
+{
+	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
+	
+	uint32 value;
+	mem_read_32(Data, addr, value);
+	
+	write_gpr(1, inst.rt, (uint64)(sint64)(sint32)value);
+}
+
+execute(prfmi)
+{
+//	not_implemented();
+}
+
+
+// ----------------------------------------------------------------------------
+// C4.4.14	Load/store register pair (offset)
+// ----------------------------------------------------------------------------
+execute(stp)
+{
+	uint8 scale = 2 + ((inst.opc >> 1) & 1);
+	sint64 offset = sign_extend(inst.imm7, 7) << scale;
+	
+	uint64 address = read_gpr_sp(1, inst.rn);
+	address += offset;
+	
+	uint64 data1 = read_gpr(inst.opc == 2, inst.rt);
+	uint64 data2 = read_gpr(inst.opc == 2, inst.rt2);
+	
+	if (inst.opc == 2) {
+		mem_write_64(Data, address, data1);
+		mem_write_64(Data, address + 8, data2);
+	} else {
+		mem_write_32(Data, address, (uint32)data1);
+		mem_write_32(Data, address + 4, (uint32)data2);
+	}
+}
+
+execute(ldp)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	address += inst.imms64;
+	
+	if (inst.opc == 2) {
+		uint64 data1;
+		uint64 data2;
+		
+		mem_read_64(Data, address, data1);
+		mem_read_64(Data, address + 8, data2);
+		
+		write_gpr(1, inst.rt, data1);
+		write_gpr(1, inst.rt2, data2);
+	} else {
+		uint32 data1;
+		uint32 data2;
+		
+		mem_read_32(Data, address, data1);
+		mem_read_32(Data, address + 4, data2);
+		
+		write_gpr(0, inst.rt, data1);
+		write_gpr(0, inst.rt2, data2);
+	}
+}
+
+execute(ldpsw)
+{
+	uint8 scale = 2 + ((inst.opc >> 1) & 1);
+	sint64 offset = sign_extend(inst.imm7, 7) << scale;
+	
+	uint64 address = read_gpr_sp(1, inst.rn);
+	address += offset;
+	
+	uint32 data1;
+	uint32 data2;
+	mem_read_32(Data, address, data1);
+	mem_read_32(Data, address + 4, data2);
+	
+	write_gpr(1, inst.rt, (uint64)(sint64)(sint32)data1);
+	write_gpr(1, inst.rt2, (uint64)(sint64)(sint32)data2);
+}
+
+
+// ----------------------------------------------------------------------------
+// C4.4.1	Load/store register pair (pre-/post- indexed)
+// ----------------------------------------------------------------------------
+execute(stpi)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.P) {
+		address += inst.immu64;
+	}
+	
+	uint64 data1 = read_gpr(inst.opc==2, inst.rt);
+	uint64 data2 = read_gpr(inst.opc==2, inst.rt2);
+	
+	if (inst.opc == 0) { // 32
+		mem_write_32(Data, address, (uint32)data1);
+		mem_write_32(Data, address + 4, (uint32)data2);
+	} else if (inst.opc == 2) { // 64
+		mem_write_64(Data, address, data1);
+		mem_write_64(Data, address + 8, data2);
+	}
+	
+	if (!inst.P) {
+		address += inst.immu64;
+	}
+		
+	write_gpr_sp(1, inst.rn, address);
+}
+
+execute(ldpi)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.P) {
+		address += inst.immu64;
+	}
+	
+	uint64 data1;
+	uint64 data2;
+	
+	if (inst.opc == 0) { // 32
+		uint32 d132;
+		uint32 d232;
+		
+		mem_read_32(Data, address, d132);
+		mem_read_32(Data, address + 4, d232);
+		
+		data1 = (uint64)d132;
+		data2 = (uint64)d232;
+	} else if (inst.opc == 2) { // 64
+		mem_read_64(Data, address, data1);
+		mem_read_64(Data, address + 8, data2);
+	} else {
+		data1 = 0;
+		data2 = 0;
+		trap();
+	}
+	
+	if (!inst.P) {
+		address += inst.immu64;
+	}
+	
+	write_gpr(inst.opc==2, inst.rt, data1);
+	write_gpr(inst.opc==2, inst.rt2, data2);
+	
+	write_gpr_sp(1, inst.rn, address);
+}
+
+execute(ldpswi)
+{
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	if (inst.P) {
+		address += inst.immu64;
+	}
+	
+	uint32 d1;
+	uint32 d2;
+		
+	mem_read_32(Data, address, d1);
+	mem_read_32(Data, address + 4, d2);
+	
+	if (!inst.P) {
+		address += inst.immu64;
+	}
+	
+	write_gpr(1, inst.rt, (uint64)(sint64)(sint32)d1);
+	write_gpr(1, inst.rt2, (uint64)(sint64)(sint32)d2);
+	
+	write_gpr_sp(1, inst.rn, address);
+}
+
+helper void mem_load(uint64 address, uint8 dest_reg, uint8 width, uint8 sign_extend, uint8 acquire, uint8 exclusive)
+{
+	switch (width) {
+	case 8: {
+		uint8 data8;
+		mem_read_8(Data, address, data8);
+		
+		if (sign_extend == 0) {
+			write_gpr(0, dest_reg, (uint64)data8);
+		} else if (sign_extend == 1) {
+			write_gpr(0, dest_reg, (uint64)(sint64)(sint8)data8);
+		} else {
+			write_gpr(1, dest_reg, (uint64)(sint64)(sint8)data8);
+		}
+		break;
+	}
+	
+	case 16: {
+		uint16 data16;
+		mem_read_16(Data, address, data16);
+		
+		if (sign_extend == 0) {
+			write_gpr(0, dest_reg, (uint64)data16);
+		} else if (sign_extend == 1) {
+			write_gpr(0, dest_reg, (uint64)(sint64)(sint16)data16);
+		} else {
+			write_gpr(1, dest_reg, (uint64)(sint64)(sint16)data16);
+		}
+		break;
+	}
+	
+	case 32: {
+		uint32 data32;
+		mem_read_32(Data, address, data32);
+		
+		if (sign_extend) {
+			write_gpr(1, dest_reg, (uint64)(sint64)(sint32)data32);
+		} else {
+			write_gpr(0, dest_reg, (uint64)data32);
+		}
+		break;
+	}
+	
+	case 64: {
+		uint64 data64;
+		mem_read_64(Data, address, data64);
+		write_gpr(1, dest_reg, data64);
+		break;
+	}
+
+	case 128: {
+		uint64 data64_1;
+		mem_read_64(Data, address, data64_1);
+
+		uint64 data64_2;
+		mem_read_64(Data, address + 8, data64_2);
+		
+		write_gpr(1, dest_reg, data64_1);
+		write_gpr(1, dest_reg+1, data64_2);
+		break;
+	}
+	
+	default: {
+		trap();
+		break;
+	}
+	}
+	
+	return;
+}
+
+helper void mem_load_simd(uint64 address, uint8 dest_reg, uint8 width)
+{
+	switch (width) {
+	case 8: {
+		uint8 data8;
+		mem_read_8(Data, address, data8);
+		write_vector_reg8(dest_reg, data8);
+		break;
+	}
+	
+	case 16: {
+		uint16 data16;
+		mem_read_16(Data, address, data16);
+		write_vector_reg16(dest_reg, data16);
+		break;
+	}
+	
+	case 32: {
+		uint32 data32;
+		mem_read_32(Data, address, data32);
+		write_vector_reg32(dest_reg, data32);
+		break;
+	}
+	
+	case 64: {
+		uint64 data64;
+		mem_read_64(Data, address, data64);
+		write_vector_reg64(dest_reg, data64);
+		break;
+	}
+
+	case 128: {
+		uint64 data128_1;
+		mem_read_64(Data, address, data128_1);
+
+		uint64 data128_2;
+		mem_read_64(Data, address + 8, data128_2);
+		
+		write_vector_reg128(dest_reg, data128_1, data128_2);
+		break;
+	}
+	
+	default: {
+		trap();
+		break;
+	}
+	}
+	
+	return;
+}
+
+helper void mem_store(uint64 address, uint8 src_reg, uint8 width, uint8 release, uint8 exclusive)
+{
+	switch (width) {
+	case 8: {
+		mem_write_8(Data, address, (uint8)read_gpr(0, src_reg));
+		break;
+	}
+	
+	case 16: {
+		mem_write_16(Data, address, (uint16)read_gpr(0, src_reg));
+		break;
+	}
+	
+	case 32: {
+		mem_write_32(Data, address, (uint32)read_gpr(0, src_reg));
+		break;
+	}
+	
+	case 64: {
+		mem_write_64(Data, address, read_gpr(1, src_reg));
+		break;
+	}
+
+	case 128: {
+		mem_write_64(Data, address, read_gpr(1, src_reg));
+		mem_write_64(Data, address+8, read_gpr(1, src_reg+1));
+		break;
+	}
+	
+	default: {
+		trap();
+		break;
+	}
+	}
+	
+	return;
+}
+
+helper void mem_store_simd(uint64 address, uint8 src_reg, uint8 width)
+{
+	switch (width) {
+	case 8: {
+		mem_write_8(Data, address, read_vector_reg8(src_reg));
+		break;
+	}
+	
+	case 16: {
+		mem_write_16(Data, address, read_vector_reg16(src_reg));
+		break;
+	}
+	
+	case 32: {
+		mem_write_32(Data, address, read_vector_reg32(src_reg));
+		break;
+	}
+	
+	case 64: {
+		mem_write_64(Data, address, read_vector_reg64(src_reg));
+		break;
+	}
+
+	case 128: {
+		uint64 vh;
+		uint64 vl;
+		
+		read_vector_reg128(src_reg, vl, vh);
+		
+		mem_write_64(Data, address, vl);
+		mem_write_64(Data, address+8, vh);
+		break;
+	}
+	
+	default: {
+		trap();
+		break;
+	}
+	}
+	
+	return;
+}
+
+// ****************************************************************************
+// C4.5 Data processing - register
+// ****************************************************************************
+
+// ----------------------------------------------------------------------------
+// C4.5.1 Add/subtract (extended register)
+// ----------------------------------------------------------------------------
+execute(add_ereg)
+{
+	uint64 rn = read_gpr_sp(inst.sf, inst.rn);
+	uint64 rm = extend_reg((inst.option & 3) == 3, inst.rm, inst.option, inst.imm3);
+	
+	if (inst.S) {
+		if (inst.sf) {
+			write_gpr(1, inst.rd, __builtin_adc64_flags(rn, rm, 0));
+		} else {
+			write_gpr(0, inst.rd, (uint64)__builtin_adc_flags((uint32)rn, (uint32)rm, 0));
+		}
+	} else {
+		write_gpr_sp(inst.sf, inst.rd, rn + rm);
+	}
+}
+
+execute(sub_ereg)
+{
+	uint64 rn = read_gpr_sp(inst.sf, inst.rn);
+	uint64 rm = extend_reg((inst.option & 3) == 3, inst.rm, inst.option, inst.imm3);
+	
+	if (inst.S) {
+		if (inst.sf) {
+			write_gpr(1, inst.rd, __builtin_sbc64_flags(rn, rm, 1));
+		} else {
+			write_gpr(0, inst.rd, (uint64)__builtin_sbc_flags(rn, rm, 1));
+		}
+	} else {
+		write_gpr_sp(inst.sf, inst.rd, rn - rm);
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.5.2 Add/subtract (shifted register)
+// ----------------------------------------------------------------------------
+execute(add_sreg)
+{
+	uint64 op1 = read_gpr(inst.sf, inst.rn);
+	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
+	
+	if (inst.sf) {
+		uint64 result;
+		
+		if (inst.S) {
+			result = __builtin_adc64_flags(op1, op2, 0);
+		} else {
+			result = op1 + op2;
+		}
+		
+		write_gpr(1, inst.rd, result);	
+	} else {
+		uint32 result;
+		
+		if (inst.S) {
+			result = __builtin_adc_flags((uint32)op1, (uint32)op2, 0);
+		} else {
+			result = (uint32)op1 + (uint32)op2;
+		}
+		
+		write_gpr(0, inst.rd, (uint64)result);	
+	}
+}
+
+execute(sub_sreg)
+{
+	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
+	
+	if (inst.sf) {
+		uint64 result;
+		
+		if (inst.S) {
+			result = __builtin_sbc64_flags(read_gpr64(inst.rn), op2, 1);
+		} else {
+			result = read_gpr64(inst.rn) - op2;
+		}
+		
+		write_gpr64(inst.rd, result);	
+	} else {
+		uint32 result;
+		
+		if (inst.S) {
+			result = __builtin_sbc_flags(read_gpr32(inst.rn), (uint32)op2, 1);
+		} else {
+			result = read_gpr32(inst.rn) - (uint32)op2;
+		}
+		
+		write_gpr32(inst.rd, result);	
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.5.3 Add/subtract (with carry)
+// ----------------------------------------------------------------------------
+execute(adc)
+{
+	uint64 op1 = read_gpr(inst.sf, inst.rn);
+	uint64 op2 = read_gpr(inst.sf, inst.rm);
+	
+	if (inst.sf) {
+		uint64 result;
+		
+		if (inst.S) {
+			result = __builtin_adc64_flags(op1, op2, read_register(C));
+		} else {
+			result = __builtin_adc64(op1, op2, read_register(C));
+		}
+		
+		write_gpr(1, inst.rd, result);
+	} else {
+		uint32 result;
+		
+		if (inst.S) {
+			result = __builtin_adc_flags((uint32)op1, (uint32)op2, read_register(C));
+		} else {
+			result = __builtin_adc((uint32)op1, (uint32)op2, read_register(C));
+		}
+		
+		write_gpr(0, inst.rd, (uint64)result);
+	}
+}
+
+execute(sbc)
+{
+	uint64 op1 = read_gpr(inst.sf, inst.rn);
+	uint64 op2 = read_gpr(inst.sf, inst.rm);
+	
+	if (inst.sf) {
+		uint64 result;
+		
+		if (inst.S) {
+			result = __builtin_sbc64_flags(op1, op2, !read_register(C));
+		} else {
+			result = __builtin_sbc64(op1, op2, !read_register(C));
+		}
+		
+		write_gpr(1, inst.rd, result);
+	} else {
+		uint32 result;
+		
+		if (inst.S) {
+			result = __builtin_sbc_flags((uint32)op1, (uint32)op2, !read_register(C));
+		} else {
+			result = __builtin_sbc((uint32)op1, (uint32)op2, !read_register(C));
+		}
+		
+		write_gpr(0, inst.rd, (uint64)result);
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.5.4 Conditional compare (immediate)
+// ----------------------------------------------------------------------------
+execute(ccmpi)
+{
+	uint8 check = check_cond(inst.cond);
+	
+	if (check != 0) {
+		uint64 rn = read_gpr(inst.sf, inst.rn);
+		
+		if (inst.sf == 0) {
+			__builtin_sbc_flags((uint32)rn, (uint32)inst.imm5, 1);
+		} else {
+			__builtin_sbc64_flags(rn, (uint64)inst.imm5, 1);
+		}
+	} else {
+		write_register(N, (inst.nzcv & 8) == 8);
+		write_register(Z, (inst.nzcv & 4) == 4);
+		write_register(C, (inst.nzcv & 2) == 2);
+		write_register(V, (inst.nzcv & 1) == 1);
+	}
+}
+
+execute(ccmni)
+{
+	uint8 check = check_cond(inst.cond);
+	
+	if (check != 0) {
+		uint64 rn = read_gpr(inst.sf, inst.rn);
+		
+		if (inst.sf == 0) {
+			__builtin_adc_flags((uint32)rn, (uint32)inst.imm5, 0);
+		} else {
+			__builtin_adc64_flags(rn, (uint64)inst.imm5, 0);
+		}
+	} else {
+		write_register(N, (inst.nzcv & 8) == 8);
+		write_register(Z, (inst.nzcv & 4) == 4);
+		write_register(C, (inst.nzcv & 2) == 2);
+		write_register(V, (inst.nzcv & 1) == 1);
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.5.5 Conditional compare (register)
+// ----------------------------------------------------------------------------
+execute(ccmpr)
+{
+	uint8 check = check_cond(inst.cond);
+	if (check != 0) {
+		uint64 rn = read_gpr(inst.sf, inst.rn);
+		uint64 rm = read_gpr(inst.sf, inst.rm);
+		
+		if (inst.sf == 0) {
+			__builtin_sbc_flags((uint32)rn, (uint32)rm, 1);
+		} else {
+			__builtin_sbc64_flags(rn, rm, 1);
+		}
+	} else {
+		write_register(N, (inst.nzcv & 8) == 8);
+		write_register(Z, (inst.nzcv & 4) == 4);
+		write_register(C, (inst.nzcv & 2) == 2);
+		write_register(V, (inst.nzcv & 1) == 1);
+	}
+}
+
+execute(ccmnr)
+{
+	uint8 check = check_cond(inst.cond);
+	if (check != 0) {
+		uint64 rn = read_gpr(inst.sf, inst.rn);
+		uint64 rm = read_gpr(inst.sf, inst.rm);
+		
+		if (inst.sf == 0) {
+			__builtin_adc_flags((uint32)rn, (uint32)rm, 0);
+		} else {
+			__builtin_adc64_flags(rn, rm, 0);
+		}
+	} else {
+		write_register(N, (inst.nzcv & 8) == 8);
+		write_register(Z, (inst.nzcv & 4) == 4);
+		write_register(C, (inst.nzcv & 2) == 2);
+		write_register(V, (inst.nzcv & 1) == 1);
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.5.6 Conditional select
+// ----------------------------------------------------------------------------
+execute(csel)
+{
+	uint8 check = check_cond(inst.cond);
+	
+	if (check == 0) {
+		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rm));
+	} else {
+		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn));
+	}
+}
+
+execute(csinc)
+{
+	uint8 check = check_cond(inst.cond);
+	
+	if (check == 0) {
+		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rm) + 1);	
+	} else {
+		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn));
+	}
+}
+
+execute(csinv)
+{
+	uint8 check = check_cond(inst.cond);
+	
+	if (check == 0) {
+		write_gpr(inst.sf, inst.rd, ~read_gpr(inst.sf, inst.rm));
+	} else {
+		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn));		
+	}
+}
+
+execute(csneg)
+{
+	uint8 check = check_cond(inst.cond);
+	
+	if (check == 0) {
+		write_gpr(inst.sf, inst.rd, (~read_gpr(inst.sf, inst.rm)) + 1);
+	} else {
+		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn));		
+	}
+}
+
+// ----------------------------------------------------------------------------
+// C4.5.7 Data-processing (1 source)
+// ----------------------------------------------------------------------------
+
+execute(rbit)
+{
+	uint64 output = 0;
+	uint64 input = read_gpr(inst.sf, inst.rn);
+	
+	if (inst.sf == 0) {
+		output = (uint64)bitrev32((uint32)input);
+	} else {
+		output = bitrev64(input);
+	}
+	
+	write_gpr(inst.sf, inst.rd, output);
+}
+		
+execute(rev)
+{
+	if (inst.sf) {
+		write_gpr(1, inst.rd, __builtin_bswap64(read_gpr(1, inst.rn)));
+	} else {
+		write_gpr(0, inst.rd, (uint64)__builtin_bswap32((uint32)read_gpr(0, inst.rn)));
+	}
+}
+
+execute(rev16)
+{
+	uint64 value = read_gpr(inst.sf, inst.rn);
+	
+	uint64 result = value;
+	result >>= 8;
+	result &= 0x00ff00ff00ff00ff;
+	
+	value <<= 8;
+	value &= 0xff00ff00ff00ff00;
+	result |= value;
+	
+	write_gpr(inst.sf, inst.rd, result);
+}
+
+execute(rev32)
+{
+	uint64 rn = read_gpr(1, inst.rn);
+	
+	uint64 lo = (uint64)__builtin_bswap32((uint32)rn);
+	uint64 hi = ((uint64)__builtin_bswap32((uint32)(rn >> 32)) << 32);
+	
+	write_gpr(1, inst.rd, (hi | lo));
+}
+
+execute(clz)
+{
+	if (inst.sf) {
+		uint64 rn = read_gpr(1, inst.rn);
+		if (rn == 0) {
+			write_gpr(1, inst.rd, 64);
+		} else {
+			write_gpr(1, inst.rd, (uint64)__builtin_clz64(rn));
+		}
+	} else {
+		uint32 rn = (uint32)read_gpr(0, inst.rn);
+		if (rn == 0) {
+			write_gpr(0, inst.rd, 32);
+		} else {
+			write_gpr(0, inst.rd, (uint64)__builtin_clz(rn));
+		}
+	}
+}
+
+execute(cls)
+{
+	not_implemented();
+}
+
+// ----------------------------------------------------------------------------
+// C4.5.8 Data-processing (2 source)
+// ----------------------------------------------------------------------------
+execute(udiv)
+{
+	uint64 rn = read_gpr(inst.sf, inst.rn);
+	uint64 rm = read_gpr(inst.sf, inst.rm);
+	
+	uint64 result;
+	if (rm == 0) {
+		result = 0;
+	} else {
+		result = rn / rm;
+	}
+	
+	write_gpr(inst.sf, inst.rd, result);
+}
+
+execute(sdiv)
+{
+	sint64 rn = read_gpr_sx(inst.sf, inst.rn);
+	sint64 rm = read_gpr_sx(inst.sf, inst.rm);
+	
+	sint64 result;
+	if (rm == 0) {
+		result = (sint64)0;
+	} else {
+		if (inst.sf) {
+			result = rn / rm;
+		} else {
+			result = (sint64)((sint32)rn / (sint32)rm);
+		}
+	}
+	
+	write_gpr(inst.sf, inst.rd, (uint64)result);
+}
+
+execute(lslv)
+{
+	uint8 amount = read_gpr(inst.sf, inst.rm);
+	if (inst.sf) {
+		amount &= 0x3f;
+	} else {
+		amount &= 0x1f;
+	}
+	
+	write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn) << amount);
+}
+
+execute(lsrv)
+{
+	uint64 amount = read_gpr(inst.sf, inst.rm);
+	if (inst.sf) {
+		amount &= (uint64)0x3f;
+	} else {
+		amount &= (uint64)0x1f;
+	}
+	
+	write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn) >> amount);
+}
+
+execute(asrv)
+{
+	uint8 amount = read_gpr(inst.sf, inst.rm);
+	if (inst.sf) {
+		amount &= 0x3f;
+	} else {
+		amount &= 0x1f;
+	}
+	
+	write_gpr(inst.sf, inst.rd, (uint64)(((sint64)read_gpr_sx(inst.sf, inst.rn)) >> amount));
+}
+
+execute(rorv)
+{
+	uint8 amount = read_gpr(inst.sf, inst.rm);
+	if (inst.sf) {
+		amount &= 0x3f;
+		write_gpr(1, inst.rd, read_gpr(1, inst.rn) >>> amount);
+	} else {
+		amount &= 0x1f;
+		write_gpr(0, inst.rd, (uint64)(((uint32)read_gpr(0, inst.rn)) >>> amount));
+	}
+}
+
+execute(crc32)
+{
+	not_implemented();
+}
+
+execute(crc32c)
+{
+	not_implemented();
+}
+
+
+// ----------------------------------------------------------------------------
+// C4.5.9 Data-processing (3 source)
+// ----------------------------------------------------------------------------
+execute(madd)
+{
+	uint64 result = read_gpr(inst.sf, inst.ra) + (read_gpr(inst.sf, inst.rn) * read_gpr(inst.sf, inst.rm));
+	write_gpr(inst.sf, inst.rd, result);
+}
+
+execute(msub)
+{
+	uint64 rn = read_gpr(inst.sf, inst.rn);
+	uint64 rm = read_gpr(inst.sf, inst.rm);
+	uint64 ra = read_gpr(inst.sf, inst.ra);
+	
+	uint64 result = ra - ((uint64)rn * rm);
+	write_gpr(inst.sf, inst.rd, result);
+}
+
+execute(smaddl)
+{
+	sint64 rn = read_gpr_sx(0, inst.rn);
+	sint64 rm = read_gpr_sx(0, inst.rm);
+	sint64 ra = read_gpr_sx(1, inst.ra);
+	
+	write_gpr(1, inst.rd, (uint64)(ra + ((sint64)rn * rm)));
+}
+
+execute(smsubl)
+{
+	sint64 rn = read_gpr_sx(0, inst.rn);
+	sint64 rm = read_gpr_sx(0, inst.rm);
+	sint64 ra = read_gpr_sx(1, inst.ra);
+	
+	write_gpr(1, inst.rd, (uint64)(ra - ((sint64)rn * rm)));
+}
+
+execute(smulh)
+{
+	sint64 x = (sint64)read_gpr(1, inst.rn);
+	sint64 y = (sint64)read_gpr(1, inst.rm);
+	
+	uint64 result = (uint64)__builtin_smulh(x, y);
+	write_gpr(1, inst.rd, result);
+
+	/*sint64 x = (sint64)read_gpr(1, inst.rn);
+	sint64 y = (sint64)read_gpr(1, inst.rm);
+	
+	sint64 x0 = (sint64)(uint32)x;
+	sint64 x1 = (sint64)(sint32)((sint64)x >> 32);
+	sint64 y0 = (sint64)(uint32)y;
+	sint64 y1 = (sint64)(sint32)((sint64)y >> 32);
+
+	sint64 x0y0 = x0 * y0;
+	sint64 x0y1 = x0 * y1;
+	sint64 x1y0 = x1 * y0;
+	sint64 x1y1 = x1 * y1;
+
+	sint64 carry = ((sint64)(uint32)x1y0 + (sint64)(uint32)x0y1 + (x0y0 >> 32)) >> 32;
+
+	sint64 result = (x0y1 >> 32) + (x1y0 >> 32) + x1y1 + carry;
+	write_gpr(1, inst.rd, (uint64)result);*/
+}
+
+execute(umaddl)
+{
+	uint64 rn = read_gpr(0, inst.rn);
+	uint64 rm = read_gpr(0, inst.rm);
+	uint64 ra = read_gpr(1, inst.ra);
+	
+	write_gpr(1, inst.rd, ((uint64)ra + ((uint64)rn * (uint64)rm)));
+}
+
+execute(umsubl)
+{
+	uint64 rn = read_gpr(0, inst.rn);
+	uint64 rm = read_gpr(0, inst.rm);
+	uint64 ra = read_gpr(1, inst.ra);
+	
+	write_gpr(1, inst.rd, ((uint64)ra - ((uint64)rn * (uint64)rm)));
+}
+
+execute(umulh)
+{
+	uint64 x = read_gpr(1, inst.rn);
+	uint64 y = read_gpr(1, inst.rm);
+	
+	uint64 result = __builtin_umulh(x, y);
+	write_gpr(1, inst.rd, result);
+}
+
+// ----------------------------------------------------------------------------
+// C4.5.10 Logical (shifted register)
+// ----------------------------------------------------------------------------
+execute(andsr)
+{
+	uint64 op1 = read_gpr(inst.sf, inst.rn);
+	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
+	
+	uint64 result = op1 & op2;
+	write_gpr(inst.sf, inst.rd, result);
+	
+	if (inst.opc == 3) {
+		if (inst.sf) {
+			__builtin_update_zn_flags64(result);
+		} else {
+			__builtin_update_zn_flags((uint32)result);
+		}
+		
+		write_register(C, 0);
+		write_register(V, 0);
+	}
+}
+
+execute(bicsr)
+{
+	uint64 op1 = read_gpr(inst.sf, inst.rn);
+	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
+	
+	uint64 result = op1 & (~op2);
+	write_gpr(inst.sf, inst.rd, result);
+	
+	if (inst.opc == 3) {
+		if (inst.sf) {
+			__builtin_update_zn_flags64(result);
+		} else {
+			__builtin_update_zn_flags((uint32)result);
+		}
+		
+		write_register(C, 0);
+		write_register(V, 0);
+	}
+}
+
+execute(orrsr)
+{
+	uint64 op1 = read_gpr(inst.sf, inst.rn);
+	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
+	
+	if (inst.N) op2 = ~op2;
+	
+	uint64 result = op1 | op2;
+		
+	write_gpr(inst.sf, inst.rd, result);
+}
+
+// MOV/MVN is a specialised encoding of ORR/ORN
+execute(mov)
+{
+	if (inst.N) write_gpr(inst.sf, inst.rd, ~(read_gpr(inst.sf, inst.rm)));
+	else write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rm));
+}
+
+execute(eorsr)
+{
+	uint64 op1 = read_gpr(inst.sf, inst.rn);
+	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
+	
+	if (inst.N) op2 = ~op2;
+	
+	uint64 result = op1 ^ op2;
+		
+	write_gpr(inst.sf, inst.rd, result);
+}
+
+/// HELPERS
+
+internal helper uint64 bit_extract(uint64 src, uint8 from, uint8 len)
+{
+	if (len >= 64) {
+		return (src >> from);
+	} else {
+		return (src >> from) & (((uint64)1 << len) - 1);
+	}
+}
+
+internal helper uint64 bit_deposit(uint64 src, uint64 bits, uint8 to, uint8 len)
+{
+	uint64 mask = (((uint64)1 << len) - 1) << to;
+	return ((uint64)src & ~mask) | ((uint64)bits << to);
+}
+
+internal helper uint64 bitrev64(uint64 src)
+{
+	uint64 tmp = src;
+	
+	src &= 0xaaaaaaaaaaaaaaaaUL;
+	src = src >>> 2;
+	tmp &= 0x5555555555555555UL;
+	src |= tmp;
+	
+	tmp = src;
+	src &= 0x6666666666666666UL;
+	src = src >>> 4;
+	tmp &= 0x9999999999999999UL;
+	src |= tmp;
+	
+	tmp = src;
+	src &= 0x1e1e1e1e1e1e1e1eUL;
+	src = src >>> 8;
+	tmp &= 0xe1e1e1e1e1e1e1e1UL;
+	src |= tmp;
+	
+	src = src <<< 7;
+	return __builtin_bswap64(src);
+}
+
+internal helper uint32 bitrev32(uint32 src)
+{
+	uint32 tmp = src;
+	
+	src &= 0xaaaaaaaaU;
+	src = src >>> 2;
+	tmp &= 0x55555555U;
+	src |= tmp;
+	
+	tmp = src;
+	src &= 0x66666666U;
+	src = src >>> 4;
+	tmp &= 0x99999999U;
+	src |= tmp;
+	
+	tmp = src;
+	src &= 0x1e1e1e1eU;
+	src = src >>> 8;
+	tmp &= 0xe1e1e1e1U;
+	src |= tmp;
+	
+	src = src <<< 7;
+	return __builtin_bswap32(src);
+}
+
+internal helper uint64 shift_reg(uint8 sf, uint8 gpr, uint8 type, uint8 amount)
+{
+	if (amount == 0) return read_gpr(sf, gpr);
+	
+	switch (type) {
+	case 0: // LSL
+	{
+		return read_gpr(sf, gpr) << amount;
+	}
+	case 1: // LSR
+	{
+		return read_gpr(sf, gpr) >> amount;
+	}
+	case 2: // ASR
+	{
+		return (uint64)(read_gpr_sx(sf, gpr) >> amount);
+	}
+	case 3: // ROR
+	{
+		if (sf) {
+			return read_gpr(1, gpr) >>> amount;
+		} else {
+			return (uint64)(((uint32)read_gpr(0, gpr)) >>> amount);
+		}
+	}
+	}
+	
+	trap();
+	return 0;
+}
+
+internal helper uint64 extend_reg(uint8 sf, uint8 gpr, uint8 type, uint8 shift)
+{
+	uint64 value = read_gpr(sf, gpr);
+	
+	switch (type) {
+	case 0:	// UXTB
+	{
+		return ((uint64)(uint8)value) << shift;
+	}
+	case 1:	// UXTH
+	{
+		return ((uint64)(uint16)value) << shift;
+	}
+	case 2:	// UXTW
+	{
+		return ((uint64)(uint32)value) << shift;
+	}
+	case 3:	// UXTX
+	{
+		return value << shift;
+	}
+	case 4:	// SXTB
+	{
+		return ((uint64)(sint64)(sint8)value) << shift;
+	}
+	case 5:	// SXTH
+	{
+		return ((uint64)(sint64)(sint16)value) << shift;
+	}
+	case 6:	// SXTW
+	{
+		return ((uint64)(sint64)(sint32)value) << shift;
+	}
+	case 7:	// SXTX
+	{
+		return value << shift;
+	}
+	}
+	
+	trap();
+	return 0;
+}
+
+internal helper uint32 read_gpr32(uint8 gpr)
+{
+	return (gpr == 31) ? (uint32)0 : read_register_bank(RBW, gpr);
+}
+
+internal helper uint64 read_gpr64(uint8 gpr)
+{
+	return (gpr == 31) ? (uint64)0 : read_register_bank(RBX, gpr);
+}
+
+internal helper uint64 read_gpr(uint8 sf, uint8 gpr)
+{
+	if (sf) {
+		return read_gpr64(gpr);
+	} else {
+		return (uint64)read_gpr32(gpr);
+	}
+}
+
+internal helper sint64 read_gpr_sx(uint8 sf, uint8 gpr)
+{
+	if (sf) {
+		return (gpr == 31) ? (sint64)0 : (sint64)read_register_bank(RBX, gpr);
+	} else {
+		return (gpr == 31) ? (sint64)0 : (sint64)((sint32)read_register_bank(RBW, gpr));
+	}
+}
+
+internal helper void write_gpr32(uint8 gpr, uint32 value)
+{
+	if (gpr == 31) return;
+	
+	write_register_bank(RBX, gpr, (uint64)value);	
+	return;
+}
+
+internal helper void write_gpr64(uint8 gpr, uint64 value)
+{
+	if (gpr == 31) return;
+	
+	write_register_bank(RBX, gpr, value);	
+	return;
+}
+
+internal helper void write_gpr(uint8 sf, uint8 gpr, uint64 value)
+{
+	if (sf) {
+		write_gpr64(gpr, value);
+	} else {
+		write_gpr64(gpr, (uint32)value);
+	}
+	
+	return;
+}
+
+internal helper uint64 read_sp()
+{
+	if (__builtin_get_feature(A64_SPSEL) == 0) {
+		return read_register(SP_EL0);
+	} else {
+		if (get_el() == 0) {
+			return read_register(SP_EL0);
+		} else {
+			return read_register(SP_EL1);
+		}
+	}
+}
+
+internal helper void write_sp(uint64 value)
+{
+	if (__builtin_get_feature(A64_SPSEL) == 0) {
+		write_register(SP_EL0, value);
+	} else {
+		if (get_el() == 0) {
+			write_register(SP_EL0, value);
+		} else {
+			write_register(SP_EL1, value);
+		}
+	}
+	
+	return;
+}
+
+internal helper uint64 read_gpr_sp(uint8 sf, uint8 gpr)
+{
+	if (sf) {
+		if (gpr == 31) {
+			return read_sp();
+		} else {
+			return read_register_bank(RBX, gpr);
+		}
+	} else {
+		if (gpr == 31) {
+			return (uint64)(uint32)read_sp();
+		} else {
+			return (uint64)read_register_bank(RBW, gpr);
+		}
+	}
+}
+
+internal helper void write_gpr_sp(uint8 sf, uint8 gpr, uint64 value)
+{
+	if (!sf) {
+		value &= (uint64)0xffffffffU;
+	}
+	
+	if (gpr == 31) {
+		write_sp(value);
+	} else {
+		write_register_bank(RBX, gpr, value);
+	}
+	
+	return;
+}
+
+internal helper uint64 decode_imm(uint32 imm, uint8 type)
+{
+	switch (type) {
+	case 0: {
+		return (uint64)imm;
+	}
+	case 1: {
+		return (uint64)(imm << 12);
+	}
+	default: {
+		return 0;
+	}
+	}
+}
+
+internal helper sint64 sign_extend(uint64 immz, uint8 bits)
+{
+	if (bits == 8) {
+		return (sint64)(sint8)immz;
+	} else if (bits == 16) {
+		return (sint64)(sint16)immz;
+	} else if (bits == 32) {
+		return (sint64)(sint32)immz;
+	} else if (bits == 64) {
+		return (sint64)immz;
+	} else {
+		return ((sint64)(((sint64)immz) << (sint64)(64 - bits)) >> (sint64)(64 - bits));
+	}
+}
+
+internal helper uint8 check_cond(uint8 cond)
+{
+	uint8 state = 0;
+	
+	switch (cond >> 1) {
+	case 0: {
+		state = read_register(Z);
+		break;
+	}
+	case 1: {
+		state = read_register(C);
+		break;
+	}
+	case 2: {
+		state = read_register(N);
+		break;
+	}
+	case 3: {
+		state = read_register(V);
+		break;
+	}
+	case 4: {
+		state = read_register(C) & !read_register(Z);
+		break;
+	}
+	case 5: {
+		state = read_register(N) == read_register(V);
+		break;
+	}
+	case 6: {
+		state = (read_register(N) == read_register(V)) & !read_register(Z);
+		break;
+	}
+	case 7: {
+		state = 1;
+		break;
+	}
+	}
+	
+	if (((cond & 1) == 1) && (cond != 0xf)) {
+		return !state;
+	} else {
+		return state;
+	}
+}
+
+internal helper uint32 get_psr_from_pstate() global
+{
+	return (uint32)read_register(N) << 31 |
+		(uint32)read_register(Z) << 30 | 
+		(uint32)read_register(C) << 29 | 
+		(uint32)read_register(V) << 28 |
+		(uint32)read_register(D) << 9 |
+		(uint32)read_register(A) << 8 |
+		(uint32)read_register(I) << 7 |
+		(uint32)read_register(F) << 6 |
+		(uint32)get_el() << 2 |
+		(uint32)__builtin_get_feature(A64_SPSEL);
+}
+
+internal helper void set_pstate_from_psr(uint32 psr)
+{
+	write_register(N, (psr & (uint32)0x80000000U) == 0x80000000U);
+	write_register(Z, (psr & (uint32)0x40000000U) == 0x40000000U);
+	write_register(C, (psr & (uint32)0x20000000U) == 0x20000000U);
+	write_register(V, (psr & (uint32)0x10000000U) == 0x10000000U);
+	
+	write_register(D, (psr & (uint32)0x00000200U) == 0x00000200U);
+	write_register(A, (psr & (uint32)0x00000100U) == 0x00000100U);
+	write_register(I, (psr & (uint32)0x00000080U) == 0x00000080U);
+	write_register(F, (psr & (uint32)0x00000040U) == 0x00000040U);
+	
+	uint8 el = (uint8)(psr >> 2) & (uint8)3;
+	set_el(el);
+	update_spsel((uint8)(psr & 1));
+
+	if (el == 0) { enter_user_mode(); }
+	else if (el == 1) { enter_kernel_mode(); }
+	else { trap(); }
+	
+	return;
+}
+
+internal helper void software_breakpoint(uint16 imm)
+{
+	uint64 addr = read_pc();
+	uint64 vect_offset = 0;
+		
+	take_arm_exception(1, 0, (uint32)imm, addr, addr, vect_offset);
+	return;
+}
+
+internal helper void call_supervisor(uint16 imm)
+{
+	if (__builtin_get_feature(EMULATE_LINUX)) {
+		write_device(19, 1, imm);
+		write_pc(read_pc() + 4);
+	} else {
+		uint64 addr = read_pc() + 4;
+		uint64 vect_offset = 0;
+		
+		take_arm_exception(1, 3, (uint32)imm, addr, addr, vect_offset);
+	}
+	
+	return;
+}
+
+internal helper uint32 get_exception_class(uint8 current_el, uint8 target_el, uint8 type) global
+{
+	uint32 ec = 0;
+	
+	switch(type) {
+	case 0:	{ // Software Breakpoint
+		ec = 0x38 + 4;
+		break;
+	}
+	case 1: { // Data Fault
+		if (target_el == current_el) {
+			ec = 0x25;
+		} else {
+			ec = 0x24;
+		}
+		break;
+	}
+	case 2: { // Undefined Fault
+		ec = 0;
+		break;
+	}
+	case 3: { // Supervisor Call
+		ec = 0x11 + 4;
+		break;
+	}
+	case 4: { // Instruction Abort
+		if (target_el == current_el) {
+			ec = 0x21;
+		} else {
+			ec = 0x20;
+		}
+		break;
+	}
+	case 5: { // FPAccessTrap
+		ec = 0x07;
+		break;
+	}
+	case 6: { // Single Step
+		ec = 0x32;
+		break;
+	}
+	default: {
+		trap();
+		break;
+	}
+	}
+	
+	return ec;
+}
+
+internal helper void undefined_fault()
+{
+	take_arm_exception(1, 2, 0, 0, read_pc(), 0);
+	return;
+}
+
+internal helper void update_spsel(uint8 v) global
+{
+	__builtin_set_feature(A64_SPSEL, v);
+	return;
+}
+
+public helper void take_arm_exception(uint8 target_el, uint8 type, uint32 syndrome, uint64 vaddr, uint64 retaddr, uint64 voff) global
+{
+	uint32 spsr = get_psr_from_pstate();
+	uint8 current_el = get_el();
+
+	if (target_el > current_el) {
+		voff += 0x400;
+	} else if (__builtin_get_feature(A64_SPSEL) == 1) {
+		voff += 0x200;
+	}
+
+	// Update the execution level
+	set_el(target_el);
+	
+	// Update spsel
+	update_spsel(1);
+		
+	enter_kernel_mode();
+	
+	if (target_el == 1) {
+		write_register(SPSR_EL1, spsr);
+		write_register(ELR_EL1, retaddr);
+		
+		// If it's NOT an IRQ...
+		if (type != 255) {
+			uint32 ec = get_exception_class(current_el, target_el, type);
+			write_register(ESR_EL1, ((uint32)ec << 26) | ((uint32)1 << 25) | (syndrome & 0x1ffffff));
+		
+			if (type == 1 || type == 4) {
+				write_register(FAR_EL1, vaddr);
+			}
+		}
+	} else {
+		trap();
+	}
+	
+	write_register(D, 1);
+	write_register(A, 1);
+	write_register(I, 1);
+	write_register(F, 1);
+	
+	uint64 vbar = read_register(VBAR);
+	//write_register(PC, vbar + voff);
+	write_pc(vbar + voff);
+	return;
+}
+
+internal helper void return_from_exception(uint64 retaddr, uint32 spsr)
+{
+	set_pstate_from_psr(spsr);
+	write_pc(retaddr);
+	
+	return;
+}
+
+internal helper uint8 get_el() global
+{
+	return __builtin_get_feature(A64_EL);
+}
+
+internal helper void set_el(uint8 el) global
+{
+	__builtin_set_feature(A64_EL, el);
+	return;
+}
+
+internal helper uint8 instruction_predicate(Instruction inst)
+{
+	uint8 state = 0;
+	
+	switch(inst.cond >> 1) {
+	case 0: {
+		state = read_register(Z);
+		break;
+	}
+	case 1: {
+		state = read_register(C);
+		break;
+	}
+	case 2: {
+		state = read_register(N);
+		break;
+	}
+	case 3: {
+		state = read_register(V);
+		break;
+	}
+	case 4: {
+		state = read_register(C) & !read_register(Z);
+		break;
+	}
+	case 5: {
+		state = read_register(N) == read_register(V);
+		break;
+	}
+	case 6: {
+		state = (read_register(N) == read_register(V)) & !read_register(Z);
+		break;
+	}
+	case 7: {
+		state = 1;
+		break;
+	}
+	}
+	
+	if (inst.cond & 1) {
+		return !state;
+	} else {
+		return state;
+	}
+}
+
+internal helper void not_implemented()
+{
+	//raise;
+	trap();
+	return;
+}
