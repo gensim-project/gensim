@@ -12,3 +12,4 @@ ExternalProject_Add(gensim-test-artifacts
 SET(GENSIM_TEST_ARTIFACTS "${CMAKE_CURRENT_BINARY_DIR}/gensim-test-artifacts-prefix/src/gensim-test-artifacts/artifacts")
 
 ADD_SUBDIRECTORY(arm-linux-tests)
+ADD_SUBDIRECTORY(arm-user-tests)
