@@ -46,7 +46,7 @@ namespace archsim
 		class UserEmulationModel : public EmulationModel
 		{
 		public:
-			UserEmulationModel(const user::arch_descriptor_t &arch);
+			UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary);
 			virtual ~UserEmulationModel();
 
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
@@ -77,10 +77,13 @@ namespace archsim
 			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, unsigned int category, unsigned int data) override;
 			void PrintStatistics(std::ostream& stream) override;
 
+			bool Is64BitBinary() const { return is_64bit_; }
 		private:
-			bool PrepareStack(System& system, loader::UserElfBinaryLoader<loader::ElfClass32>& elf_loader);
+			bool PrepareStack(System &system, Address elf_phdr_location, uint32_t elf_phnum, uint32_t elf_phentsize);
 			bool InitialiseProgramArguments();
 
+			bool is_64bit_;
+			
 			user::SyscallHandler &syscall_handler_;
 
 			int global_argc, global_envc;

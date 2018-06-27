@@ -19,7 +19,7 @@ DeclareChildLogContext(LogEmulationModelUser, LogEmulationModel, "User");
 using namespace archsim::abi;
 using archsim::Address;
 
-UserEmulationModel::UserEmulationModel(const user::arch_descriptor_t &arch) : syscall_handler_(user::SyscallHandlerProvider::Singleton().Get(arch)) { }
+UserEmulationModel::UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary) : syscall_handler_(user::SyscallHandlerProvider::Singleton().Get(arch)) { }
 
 UserEmulationModel::~UserEmulationModel() { }
 
@@ -105,7 +105,7 @@ bool UserEmulationModel::InitialiseProgramArguments()
 	return true;
 }
 
-bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoader<loader::ElfClass32> &elf_loader)
+bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location, uint32_t elf_phnum, uint32_t elf_phentsize)
 {
 	_initial_stack_pointer = Address(0xc0000000);
 	_stack_size = archsim::options::GuestStackSize;
@@ -160,9 +160,9 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 
 	PUSH_AUX_ENT(0, 0);
 
-	PUSH_AUX_ENT(3, elf_loader.GetProgramHeaderLocation().Get());    // AT_PHDR
-	PUSH_AUX_ENT(4, elf_loader.GetProgramHeaderEntrySize().Get());   // AT_PHENT
-	PUSH_AUX_ENT(5, elf_loader.GetProgramHeaderEntryCount());  // AT_PHNUM
+	PUSH_AUX_ENT(3, elf_phdr_location.Get());    // AT_PHDR
+	PUSH_AUX_ENT(4, elf_phentsize);   // AT_PHENT
+	PUSH_AUX_ENT(5, elf_phnum);  // AT_PHNUM
 	PUSH_AUX_ENT(6, 4096);					   // AT_PAGESZ
 
 	PUSH_AUX_ENT(7, 0);			// AT_BASE
@@ -197,26 +197,62 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 	return true;
 }
 
-bool UserEmulationModel::PrepareBoot(System &system)
+struct LoadedBinaryInfo {
+	bool Success;
+	
+	Address InitialBreak;
+	Address EntryPoint;
+	Address EntrySize;
+	Address HeaderLocation;
+	
+	uint32_t HeaderEntryCount;
+};
+
+template<typename ElfClass> LoadedBinaryInfo Load_Binary(UserEmulationModel *model) 
 {
-	loader::UserElfBinaryLoader<loader::ElfClass32> elf_loader(*this, (true));
+	LoadedBinaryInfo info;
+	
+	loader::UserElfBinaryLoader<ElfClass> elf_loader(*model, (true));
 
 	// Load the binary.
 	if (!elf_loader.LoadBinary(archsim::options::TargetBinary)) {
 		LC_ERROR(LogEmulationModelUser) << "Unable to load binary: " << (std::string)archsim::options::TargetBinary;
+		info.Success = false;
+	} else {
+		info.InitialBreak = elf_loader.GetInitialProgramBreak();
+		info.EntryPoint = elf_loader.GetEntryPoint();
+		info.EntrySize = elf_loader.GetProgramHeaderEntrySize();
+		info.HeaderLocation = elf_loader.GetProgramHeaderLocation();
+		info.HeaderEntryCount = elf_loader.GetProgramHeaderEntryCount();
+		info.Success = true;
+	}
+	
+	return info;	
+}
+
+bool UserEmulationModel::PrepareBoot(System &system)
+{
+	LoadedBinaryInfo info;
+	if(Is64BitBinary()) {
+		info = Load_Binary<loader::ElfClass64>(this);
+	} else {
+		info = Load_Binary<loader::ElfClass32>(this);
+	}
+	
+	if(!info.Success) {
 		return false;
 	}
+	
+	SetInitialBreak(info.InitialBreak);
 
-	SetInitialBreak(elf_loader.GetInitialProgramBreak());
-
-	_initial_entry_point = Address(elf_loader.GetEntryPoint());
+	_initial_entry_point = Address(info.EntryPoint);
 	LC_DEBUG1(LogEmulationModelUser) << "Located entry-point: " << std::hex << _initial_entry_point;
 
 	// Initialise the program arguments.
 	InitialiseProgramArguments();
 
 	// Try and initialise the user-mode stack.
-	if (!PrepareStack(system, elf_loader))
+	if (!PrepareStack(system, info.HeaderLocation, info.HeaderEntryCount, info.EntrySize.Get()))
 		return false;
 
 	//TODO: Fix this
