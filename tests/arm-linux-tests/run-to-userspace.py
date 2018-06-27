@@ -6,35 +6,31 @@ import time
 
 # Wait for the given line to be output by the process.
 def wait_for_line(process, needle, max_timeout=1000):
-	while(max_timeout > 0):
-		before_select = time.clock()
+	start = time.clock()
+	while(time.clock() - start < max_timeout):
+		process.poll()
+		if(process.returncode != None):
+			return False
+		
 		result = select([process.stdout], [], [], 1)
-		after_select = time.clock()
-		
-		max_timeout -= after_select - before_select
-		
+			
 		# Do we have any stdout available?
 		if(result[0]):
 			# We have some stdout available, so read it line by line until we don't have any left
-			while(True):
-				result = select([process.stdout],[],[])
-				if(result[0]):
-					line = process.stdout.readline().decode('ascii')
-					if(line == ''):
-						continue
-						
-					print(line)
-					
-					if(line.find(needle) == 0):
-						# We found it!
-						return True
-					
-				else:
-					break
+			line = process.stdout.readline().decode('ascii')
+			if(line == ''):
+				continue
+				
+			print(line)
+			
+			if(line.find(needle) == 0):
+				# We found it!
+				return True
+				
 	return False
 
 def find_archsim_binary():
-	process = subprocess.Popen("hg root", shell=True, stdout=subprocess.PIPE)
+	process = subprocess.Popen("hg root", shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 	return process.stdout.readline().decode('ascii').strip('\n').strip('\r') + "/build/dist/bin/archsim"
 	
 def main():
@@ -54,7 +50,7 @@ def main():
 	command="exec " + archsim + " " + model_flags + " " + kernel_flags 
 
 	final_line = '---[ end Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)'
-	process = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+	process = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 	result = wait_for_line(process, final_line, 30)
 	
 	exitcode = 0
