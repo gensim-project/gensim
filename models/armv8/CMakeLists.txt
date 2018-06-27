@@ -5,6 +5,7 @@ define_model(
 	aarch64.ac
 
 	a64.ac
+	aarch64.ac
 	a64-simd.ac
 	behaviours.a64
 	behaviours.simd
