@@ -363,7 +363,7 @@ namespace gensim
 						output << "assert(false);";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_WritePc:
-						output << "assert(false);";
+						output << "thread->SetPC(archsim::Address(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
 						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
