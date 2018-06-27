@@ -28,5 +28,46 @@ genc_adc_flags:
 
 	// return
 	retq
-
 .size genc_adc_flags, .-genc_adc_flags
+
+.globl genc_adc64_flags
+genc_adc64_flags:
+	ud2	
+	retq
+.size genc_adc64_flags, .-genc_adc64_flags
+
+.globl genc_sbc_flags
+genc_sbc_flags:
+	ud2	
+	retq
+.size genc_sbc_flags, .-genc_sbc_flags
+
+.globl genc_sbc64_flags
+genc_sbc64_flags:
+	ud2	
+	retq
+.size genc_sbc64_flags, .-genc_sbc64_flags
+
+.globl genc_adc
+genc_adc:
+	ud2	
+	retq
+.size genc_adc, .-genc_adc
+
+.globl genc_adc64
+genc_adc64:
+	ud2	
+	retq
+.size genc_adc64, .-genc_adc64
+
+.globl genc_sbc
+genc_sbc:
+	ud2	
+	retq
+.size genc_sbc, .-genc_sbc
+
+.globl genc_sbc64
+genc_sbc64:
+	ud2	
+	retq
+.size genc_sbc64, .-genc_sbc64

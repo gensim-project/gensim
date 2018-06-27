@@ -24,8 +24,6 @@ extern "C" {
 	uint32_t cpuGetFlushMode(archsim::core::thread::ThreadInstance *cpu);
 	void cpuSetFlushMode(archsim::core::thread::ThreadInstance *cpu, uint32_t mode);
 
-	uint32_t genc_adc_flags(uint32_t lhs, uint32_t rhs, uint32_t carry_in);
-
 	int jitDebug0();
 
 	int jitDebug1(void *a);

@@ -17,7 +17,7 @@ DeclareLogContext(LogModule, "Module");
 
 // Logging is not enabled until after modules are loaded, so we need to be a bit clever here
 #define EARLYLOG_INFO if(!archsim::options::Verbose); else std::cout
-#define EARLYLOG_ERROR if(!archsim::options::Verbose); else std::cerr
+#define EARLYLOG_ERROR std::cerr
 
 bool ModuleManager::LoadModule(const std::string& module_filename)
 {
