@@ -58,12 +58,6 @@ namespace archsim
 			class CPUIRQLine;
 		}
 
-		namespace loader
-		{
-			class ElfBinaryLoader;
-			class UserElfBinaryLoader;
-		}
-
 		enum BinarySymbolType {
 			FunctionSymbol,
 			ObjectSymbol
