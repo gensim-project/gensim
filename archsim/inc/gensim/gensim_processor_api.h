@@ -102,6 +102,4 @@ extern "C" uint64_t genc_adc64(uint64_t lhs, uint64_t rhs, uint32_t carry_in);
 extern "C" uint32_t genc_sbc(uint32_t lhs, uint32_t rhs, uint32_t carry_in);
 extern "C" uint64_t genc_sbc64(uint64_t lhs, uint64_t rhs, uint32_t carry_in);
 
-
-
 #endif
