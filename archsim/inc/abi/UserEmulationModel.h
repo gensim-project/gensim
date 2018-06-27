@@ -14,6 +14,7 @@
 #include "abi/memory/MemoryModel.h"
 #include "abi/user/SyscallHandler.h"
 #include "core/thread/ThreadInstance.h"
+#include "abi/loader/BinaryLoader.h"
 
 namespace archsim
 {
@@ -77,7 +78,7 @@ namespace archsim
 			void PrintStatistics(std::ostream& stream) override;
 
 		private:
-			bool PrepareStack(System& system, loader::UserElfBinaryLoader& elf_loader);
+			bool PrepareStack(System& system, loader::UserElfBinaryLoader<loader::ElfClass32>& elf_loader);
 			bool InitialiseProgramArguments();
 
 			user::SyscallHandler &syscall_handler_;

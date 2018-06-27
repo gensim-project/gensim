@@ -105,7 +105,7 @@ bool UserEmulationModel::InitialiseProgramArguments()
 	return true;
 }
 
-bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoader &elf_loader)
+bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoader<loader::ElfClass32> &elf_loader)
 {
 	_initial_stack_pointer = Address(0xc0000000);
 	_stack_size = archsim::options::GuestStackSize;
@@ -199,7 +199,7 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 
 bool UserEmulationModel::PrepareBoot(System &system)
 {
-	loader::UserElfBinaryLoader elf_loader(*this, (true));
+	loader::UserElfBinaryLoader<loader::ElfClass32> elf_loader(*this, (true));
 
 	// Load the binary.
 	if (!elf_loader.LoadBinary(archsim::options::TargetBinary)) {
