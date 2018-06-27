@@ -86,7 +86,7 @@ AC_ARCH(aarch64)
 		slot ESR_EL1	(uint32, 4, 16);
 		slot FAR_EL1	(uint64, 8, 24);
 		
-		slot SP_EL0		(uint64, 8, 32);
+		slot SP_EL0		(uint64, 8, 32) SP;
 		slot SP_EL1		(uint64, 8, 40);
 		
 		slot FPCR		(uint32, 4, 48);
