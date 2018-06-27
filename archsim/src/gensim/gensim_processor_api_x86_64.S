@@ -32,7 +32,19 @@ genc_adc_flags:
 
 .globl genc_adc64_flags
 genc_adc64_flags:
-	ud2	
+	mov %rdi, %r11
+	// set carry flag and clear ecx
+	movb $0xff, %al
+	addb %dl, %al
+
+	// perform add with carry
+	adc %rsi, %r11
+
+	// read out flags into correct format
+	lahf
+	seto %al
+
+	// return
 	retq
 .size genc_adc64_flags, .-genc_adc64_flags
 
@@ -44,7 +56,19 @@ genc_sbc_flags:
 
 .globl genc_sbc64_flags
 genc_sbc64_flags:
-	ud2	
+	mov %rdi, %r11
+	// set carry flag and clear ecx
+	movb $0xff, %al
+	addb %dl, %al
+
+	// perform add with carry
+	sbb %rsi, %r11
+
+	// read out flags into correct format
+	lahf
+	seto %al
+
+	// return
 	retq
 .size genc_sbc64_flags, .-genc_sbc64_flags
 
@@ -68,6 +92,6 @@ genc_sbc:
 
 .globl genc_sbc64
 genc_sbc64:
-	ud2	
+	ud2
 	retq
 .size genc_sbc64, .-genc_sbc64
