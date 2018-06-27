@@ -30,7 +30,7 @@ RegisterComponent(archsim::abi::EmulationModel, ArmLinuxUserEmulationModel, "arm
 
 ArmLinuxUserEmulationModel::ArmLinuxUserEmulationModel() : ArmLinuxUserEmulationModel(archsim::options::ArmOabi ? ABI_OABI : ABI_EABI) { }
 
-ArmLinuxUserEmulationModel::ArmLinuxUserEmulationModel(ArmLinuxABIVersion version) : LinuxUserEmulationModel("arm"), abi_version(version) { }
+ArmLinuxUserEmulationModel::ArmLinuxUserEmulationModel(ArmLinuxABIVersion version) : LinuxUserEmulationModel("arm", false), abi_version(version) { }
 
 ArmLinuxUserEmulationModel::~ArmLinuxUserEmulationModel() { }
 

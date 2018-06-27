@@ -27,7 +27,7 @@ DeclareChildLogContext(LogEmulationModelRiscVLinux, LogEmulationModelUser, "RISC
 
 RegisterComponent(archsim::abi::EmulationModel, RiscVLinuxUserEmulationModel, "riscv-user", "ARM Linux user emulation model");
 
-RiscVLinuxUserEmulationModel::RiscVLinuxUserEmulationModel() : LinuxUserEmulationModel("risc-v") { }
+RiscVLinuxUserEmulationModel::RiscVLinuxUserEmulationModel() : LinuxUserEmulationModel("risc-v", false) { }
 
 RiscVLinuxUserEmulationModel::~RiscVLinuxUserEmulationModel() { }
 
