@@ -87,7 +87,7 @@ namespace gensim
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
 
 						int bits;
-						switch (stmt.LHS()->GetType().Size()) {
+						switch (stmt.LHS()->GetType().SizeInBytes()) {
 							case 1:
 								bits = 8;
 								break;
@@ -335,7 +335,9 @@ namespace gensim
 				const SSAStatement *addr = stmt.Address();
 				const SSASymbol *target = stmt.Target();
 
-				output << "uint32_t " << stmt.GetName() << " = thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(dev_id)->GetFixedValue() << ")->Read32(" << Factory.GetOrCreate(addr)->GetFixedValue() << ", " << target->GetName() << ");";
+				int size = target->GetType().SizeInBytes() * 8;
+
+				output << "uint32_t " << stmt.GetName() << " = thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(dev_id)->GetFixedValue() << ")->Read" << size << "(" << Factory.GetOrCreate(addr)->GetFixedValue() << ", " << target->GetName() << ");";
 
 				return true;
 			}

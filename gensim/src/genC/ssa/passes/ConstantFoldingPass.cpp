@@ -65,11 +65,11 @@ SSAConstantStatement *ConstantFoldBinaryOp(SSABinaryArithmeticStatement *binary_
 			break;
 
 		case BinaryOperator::RotateLeft:
-			val = IRConstant::ROL(lhs->Constant, rhs->Constant, binary_stmt->GetType().Size()*8).Int();
+			val = IRConstant::ROL(lhs->Constant, rhs->Constant, binary_stmt->GetType().SizeInBytes()*8).Int();
 			break;
 
 		case BinaryOperator::RotateRight:
-			val = IRConstant::ROR(lhs->Constant, rhs->Constant, binary_stmt->GetType().Size()*8).Int();
+			val = IRConstant::ROR(lhs->Constant, rhs->Constant, binary_stmt->GetType().SizeInBytes()*8).Int();
 			break;
 
 		case BinaryOperator::Bitwise_And:
