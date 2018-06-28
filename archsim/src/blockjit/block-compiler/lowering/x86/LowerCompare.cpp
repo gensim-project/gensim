@@ -138,8 +138,12 @@ bool LowerCompare::Lower(const captive::shared::IRInstruction *&insn)
 		if (next_insn->operands[0].is_vreg() && next_insn->operands[0].value == dest->value) {
 			// Right here we go, we've got a compare-and-branch situation.
 
-			// Set the do-a-branch-instead flag
-			should_branch = true;
+			// If the dest is on the stack, then don't try and compare-and-branch
+			if(dest->is_alloc_reg()) {
+				should_branch = true;
+			} else {
+				should_branch = false;
+			}
 		}
 	}
 
