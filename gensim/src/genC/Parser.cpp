@@ -562,6 +562,10 @@ IRType GenCContext::Parse_Type(pANTLR3_BASE_TREE node)
 		type = IRTypes::UInt64;
 	} else if (baseType == "sint64") {
 		type = IRTypes::Int64;
+	} else if (baseType == "uint128") {
+		type = IRTypes::UInt128;
+	} else if (baseType == "sint128") {
+		type = IRTypes::Int128;
 	} else if (baseType == "float") {
 		type = IRTypes::Float;
 	} else if (baseType == "double") {
