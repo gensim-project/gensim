@@ -2124,8 +2124,8 @@ execute(pmull)
 		break;
 	}
 	case 1: {	// 16b:upper -> 8h
-		uint8[16] rn = read_register_bank(VB8B, inst.rn);
-		uint8[16] rm = read_register_bank(VB8B, inst.rm);
+		uint8[8] rn = read_register_bank(VB8B, inst.rn);
+		uint8[8] rm = read_register_bank(VB8B, inst.rm);
 		
 		uint16[8] rd = (uint16)0;
 		

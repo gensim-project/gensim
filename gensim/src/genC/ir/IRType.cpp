@@ -18,6 +18,26 @@ namespace gensim
 	namespace genc
 	{
 
+		IRType IRType::_UInt128()
+		{
+			IRType g;
+			g.DataType = IRType::PlainOldData;
+			g.BaseType.PlainOldDataType = IRPlainOldDataType::INT128;
+			g.Signed = false;
+			g.Const = false;
+			return g;
+		}
+
+		IRType IRType::_Int128()
+		{
+			IRType g;
+			g.DataType = IRType::PlainOldData;
+			g.BaseType.PlainOldDataType = IRPlainOldDataType::INT128;
+			g.Signed = true;
+			g.Const = false;
+			return g;
+		}
+
 		IRType IRType::_UInt64()
 		{
 			IRType g;
@@ -166,11 +186,13 @@ namespace gensim
 		const IRType IRTypes::Int16 = IRType::_Int16();
 		const IRType IRTypes::Int32 = IRType::_Int32();
 		const IRType IRTypes::Int64 = IRType::_Int64();
+		const IRType IRTypes::Int128 = IRType::_Int128();
 		const IRType IRTypes::UInt1 = IRType::_UInt1();
 		const IRType IRTypes::UInt8 = IRType::_UInt8();
 		const IRType IRTypes::UInt16 = IRType::_UInt16();
 		const IRType IRTypes::UInt32 = IRType::_UInt32();
 		const IRType IRTypes::UInt64 = IRType::_UInt64();
+		const IRType IRTypes::UInt128 = IRType::_UInt128();
 		const IRType IRTypes::Void = IRType::_Void();
 		const IRType IRTypes::Float = IRType::_Float();
 		const IRType IRTypes::Double = IRType::_Double();
@@ -218,6 +240,8 @@ namespace gensim
 					return IRTypes::UInt32;
 				case 64:
 					return IRTypes::UInt64;
+				case 128:
+					return IRTypes::UInt128;
 			}
 			throw std::logic_error("Unsupported integer type");
 		}
@@ -294,6 +318,10 @@ namespace gensim
 			IRConstant result = value;
 
 			if(from.Signed && to.Signed) {
+				if (from.SizeInBytes() == 16 || to.SizeInBytes() == 16) {
+					throw std::logic_error("Sign extension to/from 128-bit integer not supported");
+				}
+
 				// sign extend from value to 64 bits
 				switch(from.SizeInBytes()) {
 					case 1:
@@ -359,6 +387,10 @@ namespace gensim
 				type = IRTypes::UInt64;
 			} else if (baseType == "sint64") {
 				type = IRTypes::Int64;
+			} else if (baseType == "uint128") {
+				type = IRTypes::UInt128;
+			} else if (baseType == "sint128") {
+				type = IRTypes::Int128;
 			} else if (baseType == "float") {
 				type = IRTypes::Float;
 			} else if (baseType == "double") {
@@ -434,6 +466,8 @@ namespace gensim
 						return 4;
 					case IRPlainOldDataType::INT64:
 						return 8;
+					case IRPlainOldDataType::INT128:
+						return 16;
 					case IRPlainOldDataType::FLOAT:
 						return 4;
 					case IRPlainOldDataType::DOUBLE:
@@ -489,6 +523,9 @@ namespace gensim
 							break;
 						case IRPlainOldDataType::INT64:
 							out << "int64_t";
+							break;
+						case IRPlainOldDataType::INT128:
+							out << "int128_t";
 							break;
 						case IRPlainOldDataType::FLOAT:
 							out << "float";
@@ -580,6 +617,8 @@ namespace gensim
 								return "s32";
 							case 8:
 								return "s64";
+							case 16:
+								return "s128";
 						}
 					} else {
 						switch (SizeInBytes()) {
@@ -591,6 +630,8 @@ namespace gensim
 								return "u32";
 							case 8:
 								return "u64";
+							case 16:
+								return "u128";
 						}
 					}
 				}

@@ -33,6 +33,22 @@ namespace archsim
 			}
 		}
 
+		// 'Splat' constructor
+		Vector(const ElementT &element)
+		{
+			for(auto &i : elements) {
+				i = element;
+			}
+		}
+
+		// Element cast constructor
+		template<typename OtherTy> Vector(const Vector<OtherTy, Width> &otherVector)
+		{
+			for(unsigned i = 0; i < Width; ++i) {
+				elements[i] = otherVector.elements[i];
+			}
+		}
+
 		Vector(const std::initializer_list<ElementT> &elems)
 		{
 			if(elems.size() != Width) {
@@ -105,6 +121,15 @@ template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector
 	archsim::Vector<bool, Width> output;
 	for(unsigned int i = 0; i < Width; ++i) {
 		output.InsertElement(i, v1.ExtractElement(i) == v2.ExtractElement(i));
+	}
+	return output;
+}
+
+template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector<bool, Width> operator>=(const archsim::Vector<ElementT1, Width> &v1, const archsim::Vector<ElementT2, Width> &v2)
+{
+	archsim::Vector<bool, Width> output;
+	for(unsigned int i = 0; i < Width; ++i) {
+		output.InsertElement(i, v1.ExtractElement(i) >= v2.ExtractElement(i));
 	}
 	return output;
 }

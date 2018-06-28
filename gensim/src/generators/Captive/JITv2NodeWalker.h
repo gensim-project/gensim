@@ -18,10 +18,14 @@ namespace gensim
 	{
 		namespace captive
 		{
+
 			class JITv2NodeWalkerFactory : public genc::ssa::SSAWalkerFactory
 			{
 			public:
-				JITv2NodeWalkerFactory(const genc::ssa::RegisterAllocation& ra) : _ra(ra) { }
+
+				JITv2NodeWalkerFactory(const genc::ssa::RegisterAllocation& ra) : _ra(ra)
+				{
+				}
 
 				genc::ssa::SSANodeWalker *Create(const genc::ssa::SSAStatement *statement) override;
 

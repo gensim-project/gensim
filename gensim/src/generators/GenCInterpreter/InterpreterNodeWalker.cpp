@@ -179,7 +179,7 @@ namespace gensim
 								throw std::logic_error("Unhandled");
 						}
 
-					case SSACastStatement::Cast_Convert:
+					case SSACastStatement::Cast_Convert: {
 						auto option = stmt.GetOption();
 
 						if(option != SSACastStatement::Option_RoundDefault) {
@@ -187,7 +187,10 @@ namespace gensim
 						}
 
 						return "(" + stmt.GetType().GetCType() + ")(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + ")";
-
+					}
+					case SSACastStatement::Cast_VectorSplat: {
+						return stmt.GetType().GetCType() + "(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + ")";
+					}
 				}
 				assert(false && "Unknown cast type");
 				UNEXPECTED;

@@ -270,6 +270,35 @@ namespace archsim
 				{
 					UNIMPLEMENTED;
 				}
+				void fn_mmu_notify_asid_change(uint32_t)
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_mmu_notify_pgt_change()
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_mmu_flush_all()
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_mmu_flush_va(uint64_t)
+				{
+					UNIMPLEMENTED;
+				}
+
+				uint32_t fn___builtin_polymul8(uint8_t, uint8_t)
+				{
+					UNIMPLEMENTED;
+				}
+				uint32_t fn___builtin_polymul16(uint8_t, uint8_t)
+				{
+					UNIMPLEMENTED;
+				}
+				uint32_t fn___builtin_polymul64(uint8_t, uint8_t)
+				{
+					UNIMPLEMENTED;
+				}
 
 				void fn___builtin_cmpf32_flags(float a, float b)
 				{

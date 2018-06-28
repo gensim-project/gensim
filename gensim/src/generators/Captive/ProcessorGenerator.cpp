@@ -97,7 +97,6 @@ namespace gensim
 
 					// CPU
 					str << "class " << ClassNameForCPU() << " : public CPU {";
-					str << "friend class " << arch.Name << "_mmu;";
 
 					str << "public:\n";
 
@@ -171,6 +170,13 @@ namespace gensim
 
 					str << "} reg_offsets;";
 
+					str << "uint64_t get_page_table_base(int index) const override\n";
+					str << "{\n";
+					str << "if (index == 0) return (*reg_offsets.TTBR0) & ~0xffff000000000fffull;\n";
+					str << "if (index == 1) return (*reg_offsets.TTBR1) & ~0xffff000000000fffull;\n";
+					str << "return 0;\n";
+					str << "}\n";
+
 					str << "protected:\n";
 					str << "bool decode_instruction_virt(uint8_t isa, gva_t addr, Decode *insn) override;";
 					str << "bool decode_instruction_phys(uint8_t isa, gpa_t addr, Decode *insn) override;";
@@ -209,7 +215,6 @@ namespace gensim
 					str << "#include <" << arch.Name << "-decode.h>\n";
 					str << "#include <" << arch.Name << "-disasm.h>\n";
 					str << "#include <" << arch.Name << "-jit2.h>\n";
-					str << "#include <" << arch.Name << "-mmu.h>\n";
 
 					str << "using namespace captive::arch::" << arch.Name << ";";
 
@@ -315,7 +320,6 @@ namespace gensim
 					str << "_trace = new Trace(*new " << arch.Name << "_disasm());";
 					str << "_dbt = new " << arch.Name << "_jit2<false>();";
 					str << "_tracing_dbt = new " << arch.Name << "_jit2<true>();";
-					str << "_mmu = " << arch.Name << "_mmu::create(*this);";
 
 					/*str << "jit_state.registers = &regs;";
 					str << "jit_state.registers_size = sizeof(regs);";

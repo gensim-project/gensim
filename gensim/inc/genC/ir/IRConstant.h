@@ -22,6 +22,7 @@ namespace gensim
 			enum ValueType {
 				Type_Invalid,
 				Type_Integer,
+				Type_BigInteger,
 				Type_Float_Single,
 				Type_Float_Double,
 				Type_Float_LongDouble,
@@ -47,6 +48,14 @@ namespace gensim
 				IRConstant v;
 				v.type_ = Type_Integer;
 				v.integer_ = i;
+				return v;
+			}
+			static IRConstant BigInteger(uint64_t l, uint64_t h)
+			{
+				IRConstant v;
+				v.type_ = Type_BigInteger;
+				v.integer128_.integer_l_= l;
+				v.integer128_.integer_h_ = h;
 				return v;
 			}
 			static IRConstant Float(float i)
@@ -144,7 +153,7 @@ namespace gensim
 					case Type_Float_LongDouble:
 						return LongDbl() != 0.0;
 					default:
-						throw std::logic_error("");
+						throw std::logic_error("Boolean operator on IRConstant of unsupported type");
 				}
 			}
 
@@ -166,6 +175,10 @@ namespace gensim
 				float float_;
 				double double_;
 				long double long_double_;
+				struct {
+					uint64_t integer_l_;
+					uint64_t integer_h_;
+				} integer128_;
 			};
 			const IRStructMap * struct_;
 			std::vector<IRConstant> * vector_;
