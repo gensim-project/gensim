@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerReadDevice.cpp
  *
@@ -41,7 +43,7 @@ bool LowerReadDevice::Lower(const captive::shared::IRInstruction *&insn)
 	Encoder().mov((uint64_t)&devReadDevice, BLKJIT_RETURN(8));
 	Encoder().call(BLKJIT_RETURN(8));
 
-	GetLoweringContext().emit_restore_reg_state(4, GetStackMap(), GetIsStackFixed());
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 
 	// Pop the reference argument value into the destination register
 	if (val->is_alloc_reg()) {

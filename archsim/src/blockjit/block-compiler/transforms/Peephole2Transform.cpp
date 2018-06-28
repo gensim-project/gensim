@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * Peephole2Transform.cpp
  *
@@ -28,7 +30,7 @@ bool Peephole2Transform::Apply(TranslationContext &ctx)
 	IRInstruction *prev_pc_inc = NULL;
 	IRBlockId prev_block = INVALID_BLOCK_ID;
 
-	for (unsigned int ir_idx = 0; ir_idx < ctx.count()-3; ++ir_idx) {
+	for (int ir_idx = 0; ir_idx < ((int)ctx.count())-3; ++ir_idx) {
 
 		// Check for an instruction combination of the form
 		// ldreg XXX, (r0)
@@ -55,8 +57,7 @@ bool Peephole2Transform::Apply(TranslationContext &ctx)
 //					fprintf(stderr, "LOL\n");
 					ldreg1_dest.alloc_data = mov_dest.alloc_data;
 
-					mov->type = IRInstruction::NOP;
-					mov->ir_block = NOP_BLOCK;
+					mov->make_nop();
 				}
 
 			}

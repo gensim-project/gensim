@@ -1,9 +1,6 @@
-/*                      Confidential Information
- *           Limited Distribution to Authorized Persons Only
- *         Copyright (C) 2003-2004 The University of Edinburgh
- *                        All Rights Reserved
- *
- * =====================================================================
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
+/* =====================================================================
  *
  * Description:
  *
@@ -30,6 +27,7 @@
 #define INSTRUCTION_WORD_TYPE uint32_t
 
 #define UNIMPLEMENTED do { throw std::logic_error("Not implemented " __FILE__ ":" + std::to_string(__LINE__)); } while(0)
+#define ASSERT(x) do { if(!(x)) { throw std::logic_error("Assertion failed: " #x ", " __FILE__ ":" + std::to_string(__LINE__)); } } while(0)
 
 // Prompts for gcc's block placement algorithms
 #define LIKELY(x) __builtin_expect((x), 1)

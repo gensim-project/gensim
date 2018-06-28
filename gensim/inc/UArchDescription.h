@@ -1,9 +1,4 @@
-/*
- * File:   UArchDescription.h
- * Author: s0803652
- *
- * Created on 27 February 2012, 14:58
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef UARCHDESCRIPTION_H
 #define UARCHDESCRIPTION_H
@@ -50,7 +45,7 @@ namespace gensim
 				UARCH_L_OR
 			};
 
-			struct UArchExpression;
+			class UArchExpression;
 			struct UArchExpression_Unary;
 			struct UArchExpression_Binary;
 			struct UArchExpression_Function;
@@ -318,7 +313,7 @@ namespace gensim
 					details = new InstructionDetails();
 					if (ISA.hasInstruction(n)) details->Description = ISA.Instructions.at(n);
 
-					Details.insert(std::pair<std::string, InstructionDetails *>(n, details)).first;
+					Details.insert(std::pair<std::string, InstructionDetails *>(n, details));
 				} else
 					details = d->second;
 				return *details;

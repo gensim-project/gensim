@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   LLVMTranslationEngine.h
  * Author: s0457958
@@ -14,7 +16,7 @@ namespace archsim
 {
 	namespace translate
 	{
-		namespace llvm
+		namespace translate_llvm
 		{
 			class LLVMTranslationEngine : public TranslationEngine
 			{

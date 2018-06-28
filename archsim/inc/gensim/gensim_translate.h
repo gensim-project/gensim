@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   gensim_translate.h
  * Author: s0803652
@@ -26,7 +28,7 @@ namespace archsim
 	}
 	namespace translate
 	{
-		namespace llvm
+		namespace translate_llvm
 		{
 			class LLVMTranslationContext;
 			class LLVMInstructionTranslationContext;
@@ -60,16 +62,16 @@ namespace gensim
 	class BaseLLVMTranslate : public BaseTranslate
 	{
 	public:
-		BaseLLVMTranslate(const gensim::Processor& cpu, archsim::translate::llvm::LLVMTranslationContext& ctx) : BaseTranslate(cpu), txln_ctx(ctx) { }
+		BaseLLVMTranslate(const gensim::Processor& cpu, archsim::translate::translate_llvm::LLVMTranslationContext& ctx) : BaseTranslate(cpu), txln_ctx(ctx) { }
 
 		virtual uint8_t *GetPrecompBitcode() = 0;
 		virtual uint32_t GetPrecompSize() = 0;
 
-		virtual bool EmitPredicate(archsim::translate::llvm::LLVMInstructionTranslationContext& ctx, ::llvm::Value*& __result, bool trace) = 0;
-		virtual bool TranslateInstruction(archsim::translate::llvm::LLVMInstructionTranslationContext& ctx, ::llvm::Value*& __result, bool trace) = 0;
+		virtual bool EmitPredicate(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& ctx, ::llvm::Value*& __result, bool trace) = 0;
+		virtual bool TranslateInstruction(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& ctx, ::llvm::Value*& __result, bool trace) = 0;
 
 	protected:
-		archsim::translate::llvm::LLVMTranslationContext& txln_ctx;
+		archsim::translate::translate_llvm::LLVMTranslationContext& txln_ctx;
 	};
 
 	class BaseIJTranslate : public BaseTranslate

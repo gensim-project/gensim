@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * PeepholeTransform.cpp
  *
@@ -97,20 +99,6 @@ static bool peephole_shift(IRInstruction &insn)
 	return true;
 }
 
-
-
-static void make_instruction_nop(IRInstruction *insn, bool set_block)
-{
-	insn->type = IRInstruction::NOP;
-	insn->operands[0].type = IROperand::NONE;
-	insn->operands[1].type = IROperand::NONE;
-	insn->operands[2].type = IROperand::NONE;
-	insn->operands[3].type = IROperand::NONE;
-	insn->operands[4].type = IROperand::NONE;
-	insn->operands[5].type = IROperand::NONE;
-	if(set_block) insn->ir_block = NOP_BLOCK;
-}
-
 static void peephole_and(IRInstruction *insn)
 {
 	IROperand &constant = insn->operands[0];
@@ -136,7 +124,7 @@ static void peephole_and(IRInstruction *insn)
 			insn->operands[0] = insn->operands[1];
 			insn->operands[0].size = op_size;
 		} else {
-			make_instruction_nop(insn, true);
+			insn->make_nop();
 		}
 	}
 }
@@ -167,7 +155,7 @@ bool PeepholeTransform::Apply(TranslationContext &ctx)
 		switch (insn->type) {
 			case IRInstruction::ADD:
 				if (insn->operands[0].is_constant() && insn->operands[0].value == 0) {
-					make_instruction_nop(insn, true);
+					insn->make_nop();
 				} else {
 					peephole_add(*insn);
 				}
@@ -177,7 +165,7 @@ bool PeepholeTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::SHR:
 			case IRInstruction::SHL:
 				if (insn->operands[0].is_constant() && insn->operands[0].value == 0) {
-					make_instruction_nop(insn, true);
+					insn->make_nop();
 				} else {
 					peephole_shift(*insn);
 				}
@@ -188,7 +176,7 @@ bool PeepholeTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::OR:
 			case IRInstruction::XOR:
 				if (insn->operands[0].is_constant() && insn->operands[0].value == 0) {
-					make_instruction_nop(insn, true);
+					insn->make_nop();
 				}
 				break;
 
@@ -196,7 +184,7 @@ bool PeepholeTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::INCPC:
 				if(prev_pc_inc) {
 					insn->operands[0].value += prev_pc_inc->operands[0].value;
-					prev_pc_inc->type = IRInstruction::NOP;
+					prev_pc_inc->make_nop();
 				}
 				prev_pc_inc = insn;
 
@@ -214,8 +202,6 @@ bool PeepholeTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::DISPATCH:
 			case IRInstruction::READ_MEM:
 			case IRInstruction::WRITE_MEM:
-			case IRInstruction::READ_MEM_USER:
-			case IRInstruction::WRITE_MEM_USER:
 			case IRInstruction::LDPC:
 			case IRInstruction::READ_DEVICE:
 			case IRInstruction::WRITE_DEVICE:

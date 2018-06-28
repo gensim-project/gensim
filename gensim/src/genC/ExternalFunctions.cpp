@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "define.h"
 #include "genC/Intrinsics.h"
 #include "genC/Parser.h"
@@ -48,28 +50,28 @@ void GenCContext::LoadExternalFunctions()
 	AddExternalFunction("flush_itlb", IRTypes::Void, {});
 	AddExternalFunction("flush_dtlb_entry", IRTypes::Void, {IRParam("addr", wordtype)});
 	AddExternalFunction("flush_itlb_entry", IRTypes::Void, {IRParam("addr", wordtype)});
-	
+
 	AddExternalFunction("mmu_flush_all", IRTypes::Void, {});
 	AddExternalFunction("mmu_flush_va", IRTypes::Void, {IRParam("addr", wordtype)});
 	AddExternalFunction("mmu_notify_asid_change", IRTypes::Void, {IRParam("asid", IRTypes::UInt32)});
 	AddExternalFunction("mmu_notify_pgt_change", IRTypes::Void, {});
-	
+
 	// Floating-point
 	AddExternalFunction("__builtin_clear_fpex", IRTypes::Void, {});
 	AddExternalFunction("__builtin_fpex_invalid", IRTypes::UInt8, {});
 	AddExternalFunction("__builtin_fpex_underflow", IRTypes::UInt8, {});
 	AddExternalFunction("__builtin_fpex_overflow", IRTypes::UInt8, {});
-	
+
 	AddExternalFunction("__builtin_f32_round", IRTypes::Float, {IRParam("value", IRTypes::Float), IRParam("rmode", IRTypes::UInt8)});
 	AddExternalFunction("__builtin_f64_round", IRTypes::Double, {IRParam("value", IRTypes::Double), IRParam("rmode", IRTypes::UInt8)});
-	
+
 	AddExternalFunction("__builtin_f32_is_nan", IRTypes::UInt8, {IRParam("value", IRTypes::Float)});
 	AddExternalFunction("__builtin_f32_is_snan", IRTypes::UInt8, {IRParam("value", IRTypes::Float)});
 	AddExternalFunction("__builtin_f32_is_qnan", IRTypes::UInt8, {IRParam("value", IRTypes::Float)});
 	AddExternalFunction("__builtin_f64_is_nan", IRTypes::UInt8, {IRParam("value", IRTypes::Double)});
 	AddExternalFunction("__builtin_f64_is_snan", IRTypes::UInt8, {IRParam("value", IRTypes::Double)});
 	AddExternalFunction("__builtin_f64_is_qnan", IRTypes::UInt8, {IRParam("value", IRTypes::Double)});
-	
+
 	AddExternalFunction("__builtin_fcvt_f32_s32", IRTypes::Int32, {IRParam("value", IRTypes::Float), IRParam("rmode", IRTypes::UInt8)});
 	AddExternalFunction("__builtin_fcvt_f64_s32", IRTypes::Int32, {IRParam("value", IRTypes::Double), IRParam("rmode", IRTypes::UInt8)});
 	AddExternalFunction("__builtin_fcvt_f32_s64", IRTypes::Int64, {IRParam("value", IRTypes::Float), IRParam("rmode", IRTypes::UInt8)});
@@ -83,7 +85,7 @@ void GenCContext::LoadExternalFunctions()
 	AddExternalFunction("__builtin_cmpf32e_flags", IRTypes::Void, {IRParam("a", IRTypes::Float), IRParam("b", IRTypes::Float)});
 	AddExternalFunction("__builtin_cmpf64_flags", IRTypes::Void, {IRParam("a", IRTypes::Double), IRParam("b", IRTypes::Double)});
 	AddExternalFunction("__builtin_cmpf64e_flags", IRTypes::Void, {IRParam("a", IRTypes::Double), IRParam("b", IRTypes::Double)});
-	
+
 	AddExternalFunction("__builtin_polymul8", IRTypes::UInt16, {IRParam("a", IRTypes::UInt8), IRParam("b", IRTypes::UInt8)});
 	AddExternalFunction("__builtin_polymul64", IRTypes::UInt128, {IRParam("a", IRTypes::UInt64), IRParam("b", IRTypes::UInt64)});
 }

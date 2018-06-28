@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * MemAllocator.h
  *
@@ -18,7 +20,7 @@
 
 #ifndef NDEBUG
 #ifdef CONFIG_VALGRIND
-#include <valgrind/memcheck.h>7
+#include <valgrind/memcheck.h>
 #endif
 #endif
 
@@ -42,7 +44,6 @@ namespace wulib
 	class StandardMemAllocator : public MemAllocator
 	{
 	public:
-		static StandardMemAllocator singleton;
 		virtual ~StandardMemAllocator();
 
 		void *Allocate(size_t size_bytes) override;

@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <cassert>
 #include <string>
@@ -36,7 +37,7 @@ namespace gensim
 			g.Const = false;
 			return g;
 		}
-		
+
 		IRType IRType::_UInt64()
 		{
 			IRType g;
@@ -251,7 +252,7 @@ namespace gensim
 			if((from.VectorWidth == 1) && (to.VectorWidth > 1)) {
 				return IRConstant::Vector(to.VectorWidth, value);
 			}
-			
+
 			if((from.VectorWidth != 1) || (to.VectorWidth != 1)) {
 				GASSERT(value.Type() == IRConstant::Type_Vector);
 				GASSERT(from.VectorWidth == to.VectorWidth);
@@ -320,7 +321,7 @@ namespace gensim
 				if (from.Size() == 16 || to.Signed == 16) {
 					throw std::logic_error("Sign extension to/from 128-bit integer not supported");
 				}
-				
+
 				// sign extend from value to 64 bits
 				switch(from.Size()) {
 					case 1:

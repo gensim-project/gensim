@@ -1,6 +1,6 @@
-#include "abi/devices/arm/special/SimulatorCacheControlCoprocessor.h"
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
-#include "tracing/TraceManager.h"
+#include "abi/devices/arm/special/SimulatorCacheControlCoprocessor.h"
 
 #include "abi/devices/PeripheralManager.h"
 #include "abi/devices/DeviceManager.h"

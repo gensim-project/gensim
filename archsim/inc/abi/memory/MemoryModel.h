@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   MemoryModel.h
  * Author: s0457958
@@ -10,7 +12,7 @@
 
 #include "define.h"
 
-#include "translate/profile/ProfileManager.h"
+#include "translate/profile/CodeRegionTracker.h"
 #include "abi/devices/Component.h"
 
 #include <string.h>
@@ -119,7 +121,7 @@ namespace archsim
 				MemoryModel();
 				virtual ~MemoryModel();
 
-				virtual bool Initialise() = 0;
+				virtual bool Initialise() override = 0;
 				virtual void Destroy() = 0;
 
 				virtual bool GetMemoryUsage(MemoryUsageInfo& usage);
@@ -287,11 +289,11 @@ namespace archsim
 				virtual uint32_t Peek(guest_addr_t addr, uint8_t *data, int size) override;
 				virtual uint32_t Poke(guest_addr_t addr, uint8_t *data, int size) override;
 
-				virtual bool ResolveGuestAddress(host_const_addr_t host_addr, guest_addr_t &guest_addr);
-				virtual bool HandleSegFault(host_const_addr_t host_addr);
+				virtual bool ResolveGuestAddress(host_const_addr_t host_addr, guest_addr_t &guest_addr) override;
+				virtual bool HandleSegFault(host_const_addr_t host_addr) override;
 
-				virtual MemoryTranslationModel &GetTranslationModel();
-				virtual uint32_t PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct abi::devices::AccessInfo &info);
+				virtual MemoryTranslationModel &GetTranslationModel() override;
+				virtual uint32_t PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct abi::devices::AccessInfo &info) override;
 
 			private:
 				MemoryTranslationModel *translation_model;
@@ -311,8 +313,8 @@ namespace archsim
 				RegionBasedMemoryModel();
 				virtual ~RegionBasedMemoryModel();
 
-				bool Initialise() = 0;
-				void Destroy() = 0;
+				bool Initialise() override = 0;
+				void Destroy() override = 0;
 
 				bool MapAll(RegionFlags prot) override;
 				bool MapRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot, std::string name) override;
@@ -361,10 +363,10 @@ namespace archsim
 				bool Initialise() override;
 				void Destroy() override;
 
-				bool ResolveGuestAddress(host_const_addr_t host_addr, guest_addr_t &guest_addr);
+				bool ResolveGuestAddress(host_const_addr_t host_addr, guest_addr_t &guest_addr) override;
 
-				bool LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr);
-				bool UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr);
+				bool LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr) override;
+				bool UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr) override;
 
 				uint32_t Read(guest_addr_t addr, uint8_t *data, int size) override;
 				uint32_t Fetch(guest_addr_t addr, uint8_t *data, int size) override;
@@ -387,10 +389,10 @@ namespace archsim
 				host_addr_t mem_base;
 
 			protected:
-				bool AllocateVMA(GuestVMA &vma);
-				bool DeallocateVMA(GuestVMA &vma);
-				bool ResizeVMA(GuestVMA &vma, guest_size_t new_size);
-				bool SynchroniseVMAProtection(GuestVMA &vma);
+				bool AllocateVMA(GuestVMA &vma) override;
+				bool DeallocateVMA(GuestVMA &vma) override;
+				bool ResizeVMA(GuestVMA &vma, guest_size_t new_size) override;
+				bool SynchroniseVMAProtection(GuestVMA &vma) override;
 
 			private:
 				MemoryTranslationModel *translation_model;

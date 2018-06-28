@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerAdcFlags.cpp
  *
@@ -87,11 +89,12 @@ bool LowerAdcFlags::Lower(const captive::shared::IRInstruction *&insn)
 	}
 
 	// LOL HAX XXX
-	const archsim::core::thread::ThreadInstance *cpu = GetLoweringContext().GetThread();
-	uint32_t c_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C").GetOffset();
-	uint32_t v_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V").GetOffset();
-	uint32_t z_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z").GetOffset();
-	uint32_t n_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N").GetOffset();
+	const archsim::ArchDescriptor &arch = GetLoweringContext().GetArchDescriptor();
+	auto &rfd = arch.GetRegisterFileDescriptor();
+	uint32_t c_o = rfd.GetTaggedEntry("C").GetOffset();
+	uint32_t v_o = rfd.GetTaggedEntry("V").GetOffset();
+	uint32_t z_o = rfd.GetTaggedEntry("Z").GetOffset();
+	uint32_t n_o = rfd.GetTaggedEntry("N").GetOffset();
 
 	Encoder().setc(X86Memory::get(BLKJIT_REGSTATE_REG, c_o));
 	Encoder().seto(X86Memory::get(BLKJIT_REGSTATE_REG, v_o));

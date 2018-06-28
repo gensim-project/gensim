@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LoweringContext.cpp
  *
@@ -17,9 +19,9 @@ using namespace captive::shared;
 using namespace captive::arch::jit;
 using namespace captive::arch::jit::lowering;
 
-LoweringContext::LoweringContext(uint32_t stack_size) : _stack_frame_size(stack_size)
+LoweringContext::LoweringContext(const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd) : arch_descriptor_(arch), sb_descriptor_(sbd)
 {
-	_lowerers.resize(IRInstruction::_END, NULL);
+	_lowerers.resize(IRInstruction::_END, nullptr);
 }
 
 LoweringContext::~LoweringContext()
@@ -44,6 +46,26 @@ bool LoweringContext::Lower(const TranslationContext &ctx)
 		return false;
 	}
 
+	return true;
+}
+
+MCLoweringContext::MCLoweringContext(uint32_t stack_frame_size, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd) : LoweringContext(arch, sbd), _stack_frame_size(stack_frame_size)
+{
+
+}
+
+MCLoweringContext::~MCLoweringContext()
+{
+
+}
+
+
+bool MCLoweringContext::Lower(const TranslationContext &ctx)
+{
+	if(!LoweringContext::Lower(ctx)) {
+		return false;
+	}
+
 	if(!PerformFinalisations()) {
 		LC_ERROR(LogLower) << "Failed to perform finalisations";
 		return false;
@@ -57,7 +79,7 @@ bool LoweringContext::Lower(const TranslationContext &ctx)
 	return true;
 }
 
-bool LoweringContext::RegisterBlockOffset(captive::shared::IRBlockId block, offset_t offset)
+bool MCLoweringContext::RegisterBlockOffset(captive::shared::IRBlockId block, offset_t offset)
 {
 	if(_block_offsets.size() <= block) {
 		_block_offsets.resize(block+1);
@@ -67,19 +89,19 @@ bool LoweringContext::RegisterBlockOffset(captive::shared::IRBlockId block, offs
 	return true;
 }
 
-bool LoweringContext::RegisterBlockRelocation(offset_t offset, shared::IRBlockId block)
+bool MCLoweringContext::RegisterBlockRelocation(offset_t offset, shared::IRBlockId block)
 {
 	_block_relocations.push_back({offset, block});
 	return true;
 }
 
-bool LoweringContext::RegisterFinalisation(Finalisation *f)
+bool MCLoweringContext::RegisterFinalisation(Finalisation *f)
 {
 	_finalisations.push_back(f);
 	return true;
 }
 
-bool LoweringContext::PerformFinalisations()
+bool MCLoweringContext::PerformFinalisations()
 {
 	for(auto i : _finalisations) {
 		i->Finalise(*this);
@@ -111,7 +133,6 @@ bool LoweringContext::LowerBody(const TranslationContext &ctx)
 bool LoweringContext::LowerBlock(const TranslationContext &ctx, captive::shared::IRBlockId block_id, uint32_t block_start)
 {
 	LC_DEBUG4(LogLower) << "Lowering block";
-	RegisterBlockOffset(block_id, GetEncoderOffset());
 
 	const IRInstruction *insn = ctx.at(block_start);
 	while(insn < ctx.end() && (insn->ir_block == NOP_BLOCK || insn->ir_block == block_id)) {
@@ -123,6 +144,13 @@ bool LoweringContext::LowerBlock(const TranslationContext &ctx, captive::shared:
 
 	return true;
 }
+
+bool MCLoweringContext::LowerBlock(const TranslationContext& ctx, captive::shared::IRBlockId block_id, uint32_t block_start)
+{
+	RegisterBlockOffset(block_id, GetEncoderOffset());
+	return LoweringContext::LowerBlock(ctx, block_id, block_start);
+}
+
 
 bool LoweringContext::LowerInstruction(const TranslationContext &ctx, const captive::shared::IRInstruction *&insn)
 {

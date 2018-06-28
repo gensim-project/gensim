@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   shared-jit.h
  * Author: spink
@@ -24,9 +26,12 @@
 
 #define NOP_BLOCK 0x7fffffff
 
-namespace archsim {
-	namespace core {
-		namespace thread {
+namespace archsim
+{
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}
@@ -41,9 +46,9 @@ namespace captive
 
 #define INVALID_BLOCK_ID ((IRBlockId)-1)
 
-		struct IRInstruction;
+		class IRInstruction;
 
-		typedef uint32_t (*block_txln_fn)(void *, void *);
+		typedef uint32_t (*block_txln_fn)(void *regptr, void *stateblock);
 
 
 	}

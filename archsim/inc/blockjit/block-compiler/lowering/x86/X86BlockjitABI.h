@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * blockjit-abi.h
  *
@@ -41,6 +43,7 @@
 #define BLKJIT_ARG0 REGS_RDI
 #define BLKJIT_ARG1 REGS_RSI
 #define BLKJIT_ARG2 REGS_RDX
+#define BLKJIT_ARG3 REGS_RCX
 
 #define BLKJIT_RETURN REGS_R15
 

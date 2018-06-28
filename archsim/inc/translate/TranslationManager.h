@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   TranslationManager.h
  * Author: s0457958
@@ -18,7 +20,7 @@
 #include "core/thread/ThreadInstance.h"
 
 #include "translate/TranslationCache.h"
-#include "translate/profile/ProfileManager.h"
+#include "translate/profile/CodeRegionTracker.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -81,7 +83,7 @@ namespace archsim
 			virtual bool Initialise();
 			virtual void Destroy();
 
-			virtual bool TranslateRegion(archsim::core::thread::ThreadInstance *thread, profile::Region& rgn, uint32_t weight) = 0;
+			virtual bool TranslateRegion(archsim::core::thread::ThreadInstance *thread, profile::Region& rgn, uint32_t weight);
 
 			inline bool RegionIsDirty(phys_addr_t region_addr)
 			{
@@ -148,12 +150,12 @@ namespace archsim
 			virtual void PrintStatistics(std::ostream& stream);
 			size_t ApproximateRegionMemoryUsage() const;
 
-			profile::ProfileManager &GetManager()
+			profile::CodeRegionTracker &GetCodeRegions()
 			{
 				assert(manager);
 				return *manager;
 			}
-			void SetManager(profile::ProfileManager &manager)
+			void SetManager(profile::CodeRegionTracker &manager)
 			{
 				this->manager = &manager;
 			}
@@ -162,7 +164,7 @@ namespace archsim
 			profile::RegionTable regions;
 
 			// ProfileManager keeps track of which pages are code and notifies when pages are invalidated
-			profile::ProfileManager *manager;
+			profile::CodeRegionTracker *manager;
 
 			TranslationCache *txln_cache;
 

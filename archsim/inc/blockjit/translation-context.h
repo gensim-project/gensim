@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   translation-context.h
  * Author: spink
@@ -12,6 +14,7 @@
 #include <malloc.h>
 #include "blockjit/ir.h"
 #include "blockjit/IRInstruction.h"
+#include "util/linked-vector.h"
 
 #include <algorithm>
 
@@ -27,18 +30,35 @@ namespace captive
 				TranslationContext();
 				~TranslationContext();
 
+				void clear();
+
 				inline void add_instruction(shared::IRBlockId block_id, const shared::IRInstruction& instruction)
 				{
 					ensure_buffer(_ir_insn_count + 1);
 
+					new(&_ir_insns[_ir_insn_count]) shared::IRInstruction(shared::IRInstruction::NOP);
 					_ir_insns[_ir_insn_count] = instruction;
 					_ir_insns[_ir_insn_count].ir_block = block_id;
 					_ir_insn_count++;
 				}
-				
-				inline shared::IRInstruction &get_next_instruction() {
+
+				inline shared::IRInstruction &get_next_instruction()
+				{
 					ensure_buffer(_ir_insn_count + 1);
-					return _ir_insns[_ir_insn_count++];
+
+					// construct object
+					auto ptr = &_ir_insns[_ir_insn_count++];
+					new(ptr) shared::IRInstruction(shared::IRInstruction::NOP);
+
+					return *ptr;
+				}
+				inline shared::IRInstruction *get_next_instruction_ptr()
+				{
+					ensure_buffer(_ir_insn_count + 1);
+
+					// return pointer without constructing object
+					auto ptr = &_ir_insns[_ir_insn_count++];
+					return ptr;
 				}
 
 				inline shared::IRBlockId alloc_block()
@@ -81,6 +101,14 @@ namespace captive
 				{
 					return _ir_insns + count();
 				}
+				inline shared::IRInstruction *begin()
+				{
+					return _ir_insns;
+				}
+				inline shared::IRInstruction *end()
+				{
+					return _ir_insns + count();
+				}
 
 				inline void swap(uint32_t a, uint32_t b)
 				{
@@ -102,6 +130,9 @@ namespace captive
 				}
 				inline void free_ir_buffer()
 				{
+					for(unsigned i = 0; i < count(); ++i) {
+						_ir_insns[i].~IRInstruction();
+					}
 					free(_ir_insns);
 					_ir_insns = nullptr;
 				}
@@ -123,6 +154,29 @@ namespace captive
 				void recount_regs(uint32_t max_reg)
 				{
 					_ir_reg_count = max_reg;
+				}
+
+				size_t size_bytes() const
+				{
+					return sizeof(*_ir_insns) * _ir_insn_count;
+				}
+
+				void trim()
+				{
+					int64_t nop_block_start = -1;
+					for(uint32_t i = 0; i < _ir_insn_count; ++i) {
+						if(_ir_insns[i].ir_block == NOP_BLOCK) {
+							nop_block_start = i;
+							break;
+						}
+					}
+					if(nop_block_start == -1) {
+						return;
+					}
+
+					_ir_insn_count = nop_block_start;
+					_ir_insns = (shared::IRInstruction*)realloc(_ir_insns, sizeof(shared::IRInstruction) * _ir_insn_count);
+					_ir_insn_buffer_size = _ir_insn_count;
 				}
 
 			private:

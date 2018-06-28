@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerZNFlags.cpp
  *
@@ -18,10 +20,10 @@ bool LowerZNFlags::Lower(const captive::shared::IRInstruction *&insn)
 {
 	const IROperand &value = insn->operands[0];
 
-	const auto *cpu = GetLoweringContext().GetThread();
-	uint32_t z_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z").GetOffset();
-	uint32_t n_o = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N").GetOffset();
-	
+	const auto &rfd = GetLoweringContext().GetArchDescriptor().GetRegisterFileDescriptor();
+	uint32_t z_o = rfd.GetTaggedEntry("Z").GetOffset();
+	uint32_t n_o = rfd.GetTaggedEntry("N").GetOffset();
+
 	if(value.is_alloc_reg()) {
 		auto &input_reg = GetLoweringContext().register_from_operand(&value);
 		Encoder().test(input_reg, input_reg);

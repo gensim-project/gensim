@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "isa/AsmMapDescriptionParser.h"
 
@@ -27,7 +23,7 @@ void ParseGroup(pANTLR3_BASE_TREE node, uint8_t *first, uint8_t *second)
 AsmMapDescription AsmMapDescriptionParser::Parse(void *pnode)
 {
 	AsmMapDescription output;
-	
+
 	pANTLR3_BASE_TREE node = (pANTLR3_BASE_TREE)pnode;
 	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)(node->getChild(node, 0));
 	output.Name = (char *)nameNode->getText(nameNode)->chars;
@@ -88,6 +84,6 @@ AsmMapDescription AsmMapDescriptionParser::Parse(void *pnode)
 			}
 		}
 	}
-	
+
 	return output;
 }

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * BlockCache.h
  *
@@ -10,10 +12,10 @@
 
 #include "blockjit/ir.h"
 #include "abi/Address.h"
-#include "util/NTZero.h"
 #include "blockjit/blockcache-defines.h"
 #include "core/thread/ProcessorFeatures.h"
 
+#include <array>
 #include <cstring>
 
 namespace archsim
@@ -98,7 +100,7 @@ namespace archsim
 			// XXX ARM HAX
 			static const uint32_t kInstructionShift = BLOCKCACHE_INSTRUCTION_SHIFT;
 
-		
+
 
 			const BlockCacheEntry &GetEntry(Address address) const
 			{

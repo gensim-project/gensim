@@ -1,9 +1,4 @@
-/*
- * File:   DisasmGenerator.h
- * Author: s0803652
- *
- * Created on 30 September 2011, 12:28
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef _DISASMGENERATOR_H
 #define _DISASMGENERATOR_H

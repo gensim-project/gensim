@@ -1,7 +1,5 @@
-//                      Confidential Information
-//           Limited Distribution to Authorized Persons Only
-//         Copyright (C) 2011 The University of Edinburgh
-//                        All Rights Reserved
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 // =====================================================================
 //
 // Description: Portable time recording class.
@@ -76,13 +74,19 @@ namespace archsim
 			std::chrono::system_clock::time_point start;
 			seconds_t elapsed;
 		};
-		
+
 		class CounterTimerContext
 		{
 		public:
-			CounterTimerContext(CounterTimer &counter) : counter_(counter) { counter_.Start(); }
-			~CounterTimerContext() { counter_.Stop(); }
-			
+			CounterTimerContext(CounterTimer &counter) : counter_(counter)
+			{
+				counter_.Start();
+			}
+			~CounterTimerContext()
+			{
+				counter_.Stop();
+			}
+
 		private:
 			CounterTimer &counter_;
 		};

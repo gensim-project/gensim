@@ -118,7 +118,7 @@ function(cross_compile_bin ARCHITECTURE FLAGS SOURCE_FILE SYMBOL_NAME)
 		COMMAND "sh" "-c" "echo .globl ${SYMBOL_NAME}_size >> ${CC_OUTPUT_FILE}"
 		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_start: >> ${CC_OUTPUT_FILE}"
 		COMMAND "sh" "-c" "echo .incbin \\\"${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_FILE}.o.bin\\\"" >> ${CC_OUTPUT_FILE}
-		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_end: >> ${CC_OUTPUT_FILE}"
+		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_end: .word 0 >> ${CC_OUTPUT_FILE}"
 		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_size: .word ${SYMBOL_NAME}_end - ${SYMBOL_NAME}_start >> ${CC_OUTPUT_FILE}"
 		DEPENDS ${CC_SOURCE_FILE} 
 		COMMENT "Repacking ${SOURCE_FILE}"
@@ -141,11 +141,11 @@ function(cross_compile_binary ARCHITECTURE TARGET_NAME FLAGS)
 	SET(OUTPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}")
 	SET(SOURCES "${ARGN}")
 	
-	cross_compile_try_sysroot(arm-linux-gnu)
+	#cross_compile_try_sysroot(${CCPREFIX})
 	
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${OUTPUT_FILE}
-		COMMAND "sh" "-c" "${CCPREFIX}gcc -o ${OUTPUT_FILE} --sysroot=${SYSROOT} -I${SYSROOT}/include -L${SYSROOT}/lib ${FLAGS} ${SOURCES}"
+		COMMAND "sh" "-c" "${CCPREFIX}gcc -o ${OUTPUT_FILE} ${FLAGS} ${SOURCES}"
 		DEPENDS "${SOURCES}"
 		COMMENT "Cross compiling ${TARGET_NAME}" 
 	)

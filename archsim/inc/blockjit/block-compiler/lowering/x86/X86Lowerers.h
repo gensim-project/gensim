@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * X86Lowerers.h
  *
@@ -40,6 +42,7 @@ namespace captive
 						{
 							return ((X86LoweringContext&)GetLoweringContext()).GetStackMap();
 						}
+
 						X86LoweringContext& GetLoweringContext()
 						{
 							return (X86LoweringContext&)InstructionLowerer::GetLoweringContext();

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   LLVMOptimiser.h
  * Author: s0457958
@@ -8,7 +10,8 @@
 #ifndef LLVMOPTIMISER_H
 #define	LLVMOPTIMISER_H
 
-#include <llvm/PassManager.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/Analysis/AliasAnalysis.h>
 
 namespace llvm
 {
@@ -21,22 +24,40 @@ namespace archsim
 {
 	namespace translate
 	{
-		namespace llvm
+		namespace translate_llvm
 		{
+
+			class ArchSimAA : public llvm::AliasAnalysis, llvm::FunctionPass
+			{
+				static char ID;
+			public:
+
+				ArchSimAA();
+
+				bool runOnFunction(llvm::Function &F) override;
+
+
+				void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
+				virtual llvm::AliasResult alias(const llvm::MemoryLocation &L1, const llvm::MemoryLocation &L2);
+
+			private:
+				llvm::AliasResult do_alias(const llvm::MemoryLocation &L1, const llvm::MemoryLocation &L2);
+			};
+
 			class LLVMOptimiser
 			{
 			public:
 				LLVMOptimiser();
 				~LLVMOptimiser();
 
-				bool Optimise(::llvm::Module *module, const ::llvm::DataLayout *data_layout);
+				bool Optimise(::llvm::Module *module, const ::llvm::DataLayout &data_layout);
 
 			private:
-				bool Initialise(const ::llvm::DataLayout*);
+				bool Initialise(const ::llvm::DataLayout&);
 
 				bool AddPass(::llvm::Pass*);
 
-				::llvm::PassManager pm;
+				::llvm::legacy::PassManager pm;
 				bool isInitialised;
 			};
 		}

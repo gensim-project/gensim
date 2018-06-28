@@ -6,6 +6,7 @@ archsim_add_sources(
 	PerfMap.cpp
 	BlockCache.cpp
 	BlockJitTranslate.cpp
+	IRPrinter.cpp
 )
 
 ADD_SUBDIRECTORY(block-compiler)

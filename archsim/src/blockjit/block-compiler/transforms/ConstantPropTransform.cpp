@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * ConstantPropTransform.cpp
  *
@@ -60,14 +62,16 @@ bool ConstantPropTransform::Apply(TranslationContext &ctx)
 
 		struct insn_descriptor &descr = insn_descriptors[insn->type];
 
-		for(unsigned int op_idx = 0; op_idx < 6; ++op_idx) {
+		for(unsigned int op_idx = 0; op_idx < insn->operands.size(); ++op_idx) {
 			IROperand *operand = &(insn->operands[op_idx]);
 			if(descr.format[op_idx] == 'I') {
 				if(operand->is_vreg() && constant_operands.count(operand->value)) {
 					*operand = constant_operands[operand->value];
 				}
 			} else {
-				if(operand->is_vreg()) constant_operands.erase(operand->value);
+				if(operand->is_vreg()) {
+					constant_operands.erase(operand->value);
+				}
 			}
 		}
 	}

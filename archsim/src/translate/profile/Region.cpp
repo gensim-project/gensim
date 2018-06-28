@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "translate/Translation.h"
 #include "translate/TranslationManager.h"
 #include "translate/profile/Region.h"
@@ -17,7 +19,7 @@ Region::Region(TranslationManager& mgr, phys_addr_t phys_base_addr)
 	  current_generation(0),
 	  max_generation(0),
 	  status(NotInTranslation),
-	  invalid(false),
+	  invalid_(false),
 	  txln(NULL)
 {
 
@@ -31,6 +33,29 @@ Region::~Region()
 		mgr.RegisterTranslationForGC(*txln);
 	}
 }
+
+void Region::dump()
+{
+	std::cerr << *this;
+}
+
+void Region::dump_dot()
+{
+	std::cerr << "graph {" << std::endl;;
+
+	for(auto i : blocks) {
+		std::cerr << "block_" << std::hex << i.first << ";" << std::endl;
+	}
+
+	for(auto i : blocks) {
+		for(auto j : i.second->GetSuccessors()) {
+			std::cerr << "block_" << std::hex << i.first << " -> block_" << std::hex << j->GetOffset() << ";" << std::endl;
+		}
+	}
+
+	std::cerr << "}" << std::endl;;
+}
+
 
 Block& Region::GetBlock(Address virt_addr, uint8_t isa_mode)
 {
@@ -70,7 +95,7 @@ void Region::TraceBlock(archsim::core::thread::ThreadInstance *thread, Address v
 
 void Region::Invalidate()
 {
-	invalid = true;
+	invalid_ = true;
 }
 
 size_t Region::GetApproximateMemoryUsage() const
@@ -92,11 +117,11 @@ namespace archsim
 		namespace profile
 		{
 
-			std::ostream& operator<< (std::ostream& out, Region& rgn)
+			std::ostream& operator<< (std::ostream& out, const Region& rgn)
 			{
 				out << "[Region " << std::hex << rgn.phys_base_addr << "(" << &rgn << "), generation=" << std::dec << rgn.current_generation << "/" << rgn.max_generation;
 
-				if (rgn.invalid)
+				if (rgn.invalid_)
 					out << " INVALID";
 
 //	out << ", Heat = " << rgn.TotalBlockHeat() << "/" << rgn.TotalRegionHeat();

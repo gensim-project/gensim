@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #pragma once
 
 #include "define.h"
@@ -172,10 +174,10 @@ namespace gensim
 				float float_;
 				double double_;
 				long double long_double_;
-                                struct {
-                                    uint64_t integer_l_;
-                                    uint64_t integer_h_;
-                                } integer128_;
+				struct {
+					uint64_t integer_l_;
+					uint64_t integer_h_;
+				} integer128_;
 			};
 			const IRStructMap * struct_;
 			std::vector<IRConstant> * vector_;

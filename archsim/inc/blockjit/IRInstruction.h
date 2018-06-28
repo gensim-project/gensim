@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * IRInstruction.h
  *
@@ -10,9 +12,11 @@
 
 #include "blockjit/ir.h"
 #include "blockjit/IROperand.h"
+#include "util/FastVector.h"
 
 #include <cassert>
 #include <cstdint>
+#include <vector>
 
 
 namespace captive
@@ -29,7 +33,10 @@ namespace captive
 		extern struct insn_descriptor insn_descriptors[];
 		extern size_t num_descriptors;
 
-		struct IRInstruction {
+		class IRInstruction
+		{
+		public:
+
 			enum IRInstructionType : uint8_t {
 				INVALID,
 
@@ -78,8 +85,6 @@ namespace captive
 				WRITE_REG,
 				READ_MEM,
 				WRITE_MEM,
-				READ_MEM_USER,
-				WRITE_MEM_USER,
 
 				CALL,
 				JMP,
@@ -150,43 +155,27 @@ namespace captive
 				_END
 			};
 
+			util::FastVector<IROperand, 2> operands;
 			IRBlockId ir_block;
 			IRInstructionType type;
-			IROperand operands[6];
 
-			IRInstruction(IRInstructionType type)
-				: type(type),
-				  operands { IROperand::none(), IROperand::none(), IROperand::none(), IROperand::none(), IROperand::none(), IROperand::none() } { }
+			const insn_descriptor &descriptor() const
+			{
+				return insn_descriptors[type];
+			}
+			void make_nop()
+			{
+				ir_block = NOP_BLOCK;
+				type = NOP;
+				operands.clear();
+			}
 
-			IRInstruction(IRInstructionType type, const IROperand& op1)
-				: type(type),
-				  operands { op1, IROperand::none(), IROperand::none(), IROperand::none(), IROperand::none(), IROperand::none() } { }
-
-			IRInstruction(IRInstructionType type, const IROperand& op1, const IROperand& op2)
-				: type(type),
-				  operands { op1, op2, IROperand::none(), IROperand::none(), IROperand::none(), IROperand::none() } { }
-
-			IRInstruction(IRInstructionType type, const IROperand& op1, const IROperand& op2, const IROperand& op3)
-				: type(type),
-				  operands { op1, op2, op3, IROperand::none(), IROperand::none(), IROperand::none() } { }
-
-			IRInstruction(IRInstructionType type, const IROperand& op1, const IROperand& op2, const IROperand& op3, const IROperand& op4)
-				: type(type),
-				  operands { op1, op2, op3, op4, IROperand::none(), IROperand::none() } { }
-
-			IRInstruction(IRInstructionType type, const IROperand& op1, const IROperand& op2, const IROperand& op3, const IROperand& op4, const IROperand& op5)
-				: type(type),
-				  operands { op1, op2, op3, op4, op5, IROperand::none() } { }
-
-			IRInstruction(IRInstructionType type, const IROperand& op1, const IROperand& op2, const IROperand& op3, const IROperand& op4, const IROperand& op5, const IROperand& op6)
-				: type(type),
-				  operands { op1, op2, op3, op4, op5, op6 } { }
+			template<class... args> IRInstruction(IRInstructionType type, const args&... arg)
+				: type(type), operands{arg...} {}
 
 			uint8_t count_operands() const
 			{
-				int count = 0;
-				for(int i = 0; i < 6; ++i) count += operands[i].type == IROperand::NONE;
-				return count;
+				return operands.size();
 			}
 
 			static IRInstruction nop()
@@ -826,22 +815,6 @@ namespace captive
 				assert(src.is_constant() || src.is_vreg());
 
 				return IRInstruction(WRITE_MEM, interface, src, IROperand::const32(0), offset);
-			}
-
-			static IRInstruction ldmem_user(const IROperand &offset, const IROperand &dst)
-			{
-				assert(offset.is_constant() || offset.is_vreg());
-				assert(dst.is_vreg());
-
-				return IRInstruction(READ_MEM_USER, offset, dst);
-			}
-
-			static IRInstruction stmem_user(const IROperand &src, const IROperand &offset)
-			{
-				assert(offset.is_constant() || offset.is_vreg());
-				assert(src.is_constant() || src.is_vreg());
-
-				return IRInstruction(WRITE_MEM_USER, src, offset);
 			}
 
 			static IRInstruction write_device(const IROperand &dev, const IROperand &reg, const IROperand &val)

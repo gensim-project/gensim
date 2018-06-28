@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * SystemMemoryModel.h
  *
@@ -238,7 +240,7 @@ namespace archsim
 				uint32_t PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info) override;
 
 			private:
-				
+
 				uint32_t DoRead(guest_addr_t virt_addr, uint8_t *data, int size, bool use_perms);
 
 				inline bool TryGetReadUserCacheEntry(guest_addr_t addr, SMMCacheEntry *&entry)

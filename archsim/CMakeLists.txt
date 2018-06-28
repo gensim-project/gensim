@@ -12,46 +12,50 @@ IF(PkgConfig_FOUND)
 	PKG_CHECK_MODULES(GTK3 gtk+-3.0)
 ENDIF()
 
-# Add the main ArchSim executable to the build, along with its dependencies
-ADD_EXECUTABLE(archsim src/main.cpp)
-ADD_LIBRARY(archsim-interface INTERFACE)
+IF(PkgConfig_FOUND)
+	PKG_CHECK_MODULES(Valgrind valgrind)
+	IF(Valgrind_FOUND AND NOT ARCHSIM_DISABLE_VALGRIND)
+		SET(archsim_extra_options ${archsim_extra_options} ${Valgrind_CFLAGS} -DCONFIG_VALGRIND=1)
+		SET(archsim_libs "${archsim_extra_libs};${Valgrind_LIBRARIES}")
+		LINK_DIRECTORIES(${Valgrind_LIBRARY_DIRS})
+	ENDIF()
+ENDIF()
 
-TARGET_COMPILE_OPTIONS(archsim PRIVATE "-fomit-frame-pointer")
+
+# Add the main ArchSim executable to the build, along with its dependencies
+ADD_LIBRARY(archsim-core SHARED)
+ADD_EXECUTABLE(archsim src/main.cpp)
 
 standard_flags(archsim)
+standard_flags(archsim-core)
+
+TARGET_COMPILE_OPTIONS(archsim-core PRIVATE ${archsim_extra_options} -fomit-frame-pointer)
 
 SET_PROPERTY(GLOBAL PROPERTY ARCHSIM_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/inc")
 
 TARGET_LINK_LIBRARIES(archsim
+	archsim-core
+)
+
+TARGET_LINK_LIBRARIES(archsim-core 
+	trace 
+	gvnc
+
 	${CMAKE_THREAD_LIBS_INIT}
 	${CMAKE_DL_LIBS}
-
-	trace
-	gvnc
 )
 
-TARGET_LINK_LIBRARIES(archsim-interface INTERFACE trace)
-
-SET_TARGET_PROPERTIES(archsim
-	PROPERTIES
-		CXX_STANDARD 11
-		CXX_STANDARD_REQUIRED YES
-		POSITION_INDEPENDENT_CODE ON
-)
 
 # Add each provided source file along with its source directory
 function(archsim_add_sources)
 	foreach(source ${ARGN})
-		TARGET_SOURCES(archsim PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/${source}")
+		TARGET_SOURCES(archsim-core PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/${source}")
 	endforeach()
 endfunction()
 
 # Include the archsim include directory
-TARGET_INCLUDE_DIRECTORIES(archsim PRIVATE "inc/")
-TARGET_INCLUDE_DIRECTORIES(archsim-interface INTERFACE "inc/")
-TARGET_INCLUDE_DIRECTORIES(archsim-interface INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/inc/")
-
-TARGET_COMPILE_DEFINITIONS(archsim PUBLIC "-DARCHSIM_MODULE_DIRECTORY=${ARCHSIM_MODULE_DIRECTORY}")
+TARGET_INCLUDE_DIRECTORIES(archsim-core PUBLIC "inc/")
+TARGET_COMPILE_DEFINITIONS(archsim-core PUBLIC "-DARCHSIM_MODULE_DIRECTORY=${ARCHSIM_MODULE_DIRECTORY}")
 
 # Process the configuration files
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-config.h)
@@ -69,23 +73,43 @@ IF(NOT ARCHSIM_SIMULATION_HOST)
 		SET(ARCHSIM_SIMULATION_HOST "generic")
 	ENDIF()
 ENDIF()
+
 MESSAGE(STATUS "ArchSim simulation host: ${ARCHSIM_SIMULATION_HOST}")
-TARGET_COMPILE_DEFINITIONS(archsim PUBLIC "-DARCHSIM_SIMULATION_HOST_IS_${ARCHSIM_SIMULATION_HOST}")
+TARGET_COMPILE_DEFINITIONS(archsim PUBLIC "-DARCHSIM_SIMULATION_HOST_IS_${ARCHSIM_SIMULATION_HOST}=1")
 
 # Depending on the version of SDL2 which is available, they might be 
 # using the old system of xxx_LIBRARIES or the new imported target
 # system. 
 IF(SDL2_FOUND)
 	if(NOT SDL2_LIBRARIES)
-		TARGET_LINK_LIBRARIES(archsim SDL2::SDL2)
+		TARGET_LINK_LIBRARIES(archsim-core SDL2::SDL2)
 	else()
-		TARGET_LINK_LIBRARIES(archsim ${SDL2_LIBRARIES})
+		TARGET_LINK_LIBRARIES(archsim-core ${SDL2_LIBRARIES})
 	endif()
 ENDIF()
 
 IF(GTK3_FOUND)
-	TARGET_LINK_LIBRARIES(archsim ${GTK3_LIBRARIES})
-	TARGET_INCLUDE_DIRECTORIES(archsim PRIVATE ${GTK3_INCLUDE_DIRS})
+	TARGET_LINK_LIBRARIES(archsim-core ${GTK3_LIBRARIES})
+	TARGET_INCLUDE_DIRECTORIES(archsim-core PRIVATE ${GTK3_INCLUDE_DIRS})
+ENDIF()
+
+IF(ARCHSIM_ENABLE_LLVM)
+	FIND_PACKAGE(LLVM 6.0.0 REQUIRED CONFIG)
+	IF(LLVM_FOUND)
+		llvm_map_components_to_libnames(llvm_libs target x86desc x86info x86codegen x86asmparser runtimedyld support core irreader codegen mcjit executionengine passes )
+
+		message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+		message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+		message(STATUS "Using LLVM Libs: ${llvm_libs}")
+
+		TARGET_COMPILE_DEFINITIONS(archsim-core PRIVATE ${LLVM_DEFINITIONS})
+		TARGET_COMPILE_DEFINITIONS(archsim-core PUBLIC "-DARCHSIM_ENABLE_LLVM=1")
+		TARGET_LINK_LIBRARIES(archsim-core LLVM)
+		TARGET_INCLUDE_DIRECTORIES(archsim-core PRIVATE ${LLVM_INCLUDE_DIRS})
+	ELSE()
+		MESSAGE(SEND_ERROR "ARCHSIM_ENABLE_LLVM was set but LLVM could not be found.")
+	ENDIF()
 ENDIF()
 
 # Include helper functions
@@ -97,17 +121,19 @@ ADD_SUBDIRECTORY("src")
 # Recursively build modules
 ADD_SUBDIRECTORY("modules")
 
+# Build tests
+ADD_SUBDIRECTORY("tests")
 
 # Add extra objects, dependency targets, and extra source files (which might be generated)
-TARGET_LINK_LIBRARIES(archsim
+TARGET_LINK_LIBRARIES(archsim-core
 	${ARCHSIM_EXTRA_OBJECTS}
 )
 
 foreach(dep ${ARCHSIM_EXTRA_TARGETS})
-	ADD_DEPENDENCIES(archsim ${dep})
+	ADD_DEPENDENCIES(archsim-core ${dep})
 endforeach()
 
 foreach(dep ${ARCHSIM_EXTRA_SOURCES})	
-	target_sources(archsim PRIVATE ${dep})
+	target_sources(archsim-core PRIVATE ${dep})
 	SET_SOURCE_FILES_PROPERTIES(${dep} PROPERTIES GENERATED TRUE)
 endforeach()

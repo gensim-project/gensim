@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "abi/devices/generic/ps2/PS2Device.h"
 #include "util/LogContext.h"
 

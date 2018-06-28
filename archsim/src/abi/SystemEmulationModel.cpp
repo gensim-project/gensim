@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * abi/SystemEmulationModel.cpp
  */
@@ -9,11 +11,12 @@
 #include "abi/devices/MMU.h"
 #include "abi/memory/MemoryModel.h"
 
+#include "core/execution/ExecutionEngineFactory.h"
+
 #include "core/MemoryInterface.h"
 #include "core/execution/ExecutionEngine.h"
 
 #include "abi/memory/system/FunctionBasedSystemMemoryModel.h"
-
 #include "abi/memory/system/CacheBasedSystemMemoryModel.h"
 
 #include "util/ComponentManager.h"
@@ -50,20 +53,18 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 
 	// Acquire the CPU component
-	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleExecutionEngineEntry>("EE");
-	auto archentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
+	auto module = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName);
+	auto archentry = module->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
 
-	if(moduleentry == nullptr) {
-		return false;
-	}
 	if(archentry == nullptr) {
 		return false;
 	}
 	auto arch = archentry->Get();
-	auto engine = moduleentry->Get();
+
+	auto engine = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
 	GetSystem().GetECM().AddEngine(engine);
 	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
-	
+
 	// Create a system memory model for this CPU
 	SystemMemoryModel *smm = NULL;
 	if(!GetComponentInstance(archsim::options::SystemMemoryModel, smm, &GetMemoryModel(), &system.GetPubSub())) {
@@ -79,7 +80,7 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 
 	// Obtain the MMU
 	devices::MMU *mmu = (devices::MMU*)main_thread_->GetPeripherals().GetDeviceByName("mmu");
-	
+
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
 		if(i == &main_thread_->GetFetchMI()) {
 			i->Connect(*new archsim::LegacyFetchMemoryInterface(*smm));
@@ -91,8 +92,8 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	}
 
 	engine->AttachThread(main_thread_);
-	
-	
+
+
 	// Update the memory model with the necessary object references
 	smm->SetMMU(mmu);
 	smm->SetCPU(main_thread_);

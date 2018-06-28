@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "define.h"
 #include "genC/Parser.h"
 #include "genC/ir/IR.h"
@@ -987,7 +989,7 @@ namespace gensim
 //					if(Statement.User)
 //						output << "txln_ctx.mtm.EmitNonPrivilegedWrite(ctx, " << (uint32_t)Statement.Width << ", " << Statement.GetName() << ", " << AddrExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
 //					else
-						output << "txln_ctx.mtm.EmitMemoryWrite(ctx, " << (uint32_t)Statement.Width << ", " << Statement.GetName() << ", " << AddrExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
+					output << "txln_ctx.mtm.EmitMemoryWrite(ctx, " << (uint32_t)Statement.Width << ", " << Statement.GetName() << ", " << AddrExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
 
 					output << "if (__trace) {";
 

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * Finalisation.h
  *
@@ -8,6 +10,8 @@
 #ifndef INC_BLOCKJIT_BLOCK_COMPILER_LOWERING_FINALISATION_H_
 #define INC_BLOCKJIT_BLOCK_COMPILER_LOWERING_FINALISATION_H_
 
+#include "blockjit/block-compiler/lowering/LoweringContext.h"
+#include "blockjit/block-compiler/lowering/x86/X86LoweringContext.h"
 
 namespace captive
 {
@@ -24,11 +28,24 @@ namespace captive
 
 				class LoweringContext;
 
+				namespace x86
+				{
+					class X86LoweringContext;
+				}
+
 				class Finalisation
 				{
 				public:
 					virtual ~Finalisation();
 					virtual bool Finalise(LoweringContext &context) = 0;
+				};
+
+				class X86Finalisation : public Finalisation
+				{
+				public:
+					virtual ~X86Finalisation() {}
+					bool Finalise(LoweringContext &context);
+					virtual bool FinaliseX86(x86::X86LoweringContext &ctx) = 0;
 				};
 
 			}

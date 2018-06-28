@@ -1,11 +1,5 @@
-/*
- * genC/ssa/SSAContext.cpp
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "genC/ssa/SSABlock.h"
 #include "genC/ssa/SSABuilder.h"
 #include "genC/ssa/SSAContext.h"

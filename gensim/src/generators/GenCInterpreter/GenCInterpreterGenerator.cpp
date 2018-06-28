@@ -1,9 +1,4 @@
-/*
- * GenCInterpreter.cpp
- *
- *  Created on: 10 Dec 2013
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "arch/ArchDescription.h"
 #include "isa/ISADescription.h"
@@ -27,7 +22,7 @@ namespace gensim
 	namespace generator
 	{
 
-		GenCInterpreterGenerator::GenCInterpreterGenerator(const GenerationManager &man) : InterpretiveExecutionEngineGenerator(man, "genc_interpret") {}
+		GenCInterpreterGenerator::GenCInterpreterGenerator(GenerationManager &man) : InterpretiveExecutionEngineGenerator(man, "genc_interpret") {}
 
 		bool GenCInterpreterGenerator::GenerateExecutionForBehaviour(util::cppformatstream &str, bool trace_enabled, std::string behaviourname, const isa::ISADescription &isa) const
 		{
@@ -35,9 +30,14 @@ namespace gensim
 			return true;
 		}
 
-		bool GenCInterpreterGenerator::GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action) const
+		bool GenCInterpreterGenerator::GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action, bool addTemplateDefaultValue) const
 		{
-			stream << "template<bool trace=false> " << action.GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action.GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
+			if(addTemplateDefaultValue)
+				stream << "template<bool trace=false> ";
+			else
+				stream << "template<bool trace> ";
+
+			stream << action.GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action.GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
 
 			for(auto i : action.ParamSymbols) {
 				// if we're accessing a struct, assume that it's an instruction
@@ -49,10 +49,10 @@ namespace gensim
 				}
 			}
 			stream << ")";
-			
+
 			return true;
 		}
-		
+
 		bool GenCInterpreterGenerator::GenerateExecuteBodyFor(util::cppformatstream &str, const genc::ssa::SSAFormAction &action) const
 		{
 			using namespace genc::ssa;

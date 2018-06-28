@@ -1,8 +1,5 @@
-//                      Confidential Information
-//           Limited Distribution to Authorized Persons Only
-//         Copyright (C) 2003-2005 The University of Edinburgh
-//                        All Rights Reserved
-//
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 // =====================================================================
 //
 // Description:
@@ -20,7 +17,7 @@
 #include "core/execution/ExecutionContextManager.h"
 #include "util/PubSubSync.h"
 #include "concurrent/Barrier.h"
-#include "translate/profile/ProfileManager.h"
+#include "translate/profile/CodeRegionTracker.h"
 #include "abi/devices/generic/block/BlockCache.h"
 #include "abi/devices/generic/block/BlockDevice.h"
 #include "module/ModuleManager.h"
@@ -80,12 +77,6 @@ public:
 
 	typedef bool (*segfault_handler_t)(void *ctx, const segfault_data& data);
 
-	enum SimulationMode {
-		Interpreter,
-		IJ,
-		JIT,
-		SingleStep,
-	};
 
 	uint32_t exit_code;
 
@@ -108,39 +99,9 @@ public:
 
 	void PrintStatistics(std::ostream& stream);
 
-	inline bool HaveTranslationManager() const
-	{
-		return txln_mgr != NULL;
-	}
-
-	inline archsim::translate::TranslationManager& GetTranslationManager() const
-	{
-		return *txln_mgr;
-	}
-
-	inline bool HaveIJManager() const
-	{
-		return ij_mgr != NULL;
-	}
-
-	inline archsim::ij::IJManager& GetIJManager() const
-	{
-		return *ij_mgr;
-	}
-
 	inline archsim::abi::EmulationModel& GetEmulationModel() const
 	{
 		return *emulation_model;
-	}
-
-	inline SimulationMode GetSimulationMode() const
-	{
-		return mode;
-	}
-
-	inline void SetSimulationMode(SimulationMode mode)
-	{
-		this->mode = mode;
 	}
 
 	inline bool HasBreakpoints() const
@@ -197,9 +158,9 @@ public:
 		return session;
 	}
 
-	inline archsim::translate::profile::ProfileManager &GetProfileManager()
+	inline archsim::translate::profile::CodeRegionTracker &GetCodeRegions()
 	{
-		return profile_manager;
+		return code_region_tracker_;
 	}
 
 	//TODO: move this into user mode emulation model
@@ -232,7 +193,7 @@ public:
 	{
 		return GetSession().GetModuleManager();
 	}
-	
+
 	inline archsim::core::execution::ExecutionContextManager &GetECM()
 	{
 		return exec_ctx_mgr_;
@@ -246,21 +207,11 @@ private:
 
 	archsim::Session& session;
 	archsim::core::execution::ExecutionContextManager exec_ctx_mgr_;
-	
-	static archsim::concurrent::LWBarrier2 _verify_barrier_enter;
-	static archsim::concurrent::LWBarrier2 _verify_barrier_leave;
-	bool _verify;
-	System *_next_verify_system;
-	uint32_t _verify_tid;
-	struct sockaddr_un _verify_socket;
-	int _verify_socket_fd;
-	int _verify_bundle_index;
-	int _verify_chunk_size;
 
 	bool _halted;
 
 	archsim::util::PubSubContext pubsubctx;
-	archsim::translate::profile::ProfileManager profile_manager;
+	archsim::translate::profile::CodeRegionTracker code_region_tracker_;
 
 	archsim::module::ModuleManager module_manager_;
 
@@ -280,11 +231,8 @@ private:
 	bool Simulate(bool trace);
 
 	archsim::abi::EmulationModel *emulation_model;
-	archsim::translate::TranslationManager *txln_mgr;
-	archsim::ij::IJManager *ij_mgr;
 	archsim::uarch::uArch *uarch;
 
-	SimulationMode mode;
 
 	archsim::abi::devices::timing::TickSource *_tick_source;
 };

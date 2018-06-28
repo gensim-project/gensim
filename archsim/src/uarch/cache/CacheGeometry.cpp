@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "uarch/cache/CacheGeometry.h"
 #include "util/LivePerformanceMeter.h"
 #include "abi/EmulationModel.h"

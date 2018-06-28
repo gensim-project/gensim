@@ -1,17 +1,9 @@
-//                      Confidential Information
-//           Limited Distribution to Authorized Persons Only
-//         Copyright (C) 2010 The University of Edinburgh
-//                        All Rights Reserved
-// =====================================================================
-//
-// Description:
-//
-// Thread class implementation.
-//
-// =====================================================================
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 
 #include "concurrent/Thread.h"
 
+#include <mutex>
 #include <pthread.h>
 #include <sys/signal.h>
 
@@ -24,6 +16,7 @@ using namespace archsim::concurrent;
 class ThreadHandle::ThreadHandleData
 {
 public:
+	std::mutex thread_mutex_;
 	pthread_t thread_;
 	bool is_valid_;
 
@@ -111,6 +104,7 @@ static void* thread_entry_point(void* arg)
 	// Retrieve pointer to Thread instance
 	//
 	Thread* thread = reinterpret_cast<Thread*> (arg);
+	std::lock_guard<std::mutex> l(thread->get_thread_handle_data()->thread_mutex_);
 	thread->get_thread_handle_data()->thread_ = pthread_self();
 	thread->get_thread_handle_data()->is_valid_ = true;
 
@@ -132,6 +126,7 @@ void Thread::start()
 	               NULL, // pthread attributes
 	               thread_entry_point, // thread entry point (function pointer)
 	               this); // parameters to entry point function
+	std::lock_guard<std::mutex> l(get_thread_handle_data()->thread_mutex_);
 	pthread_setname_np(get_thread_handle_data()->thread_, name.c_str());
 }
 

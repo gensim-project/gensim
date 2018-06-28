@@ -1,9 +1,14 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #ifndef _jit_funs_h_
 #define _jit_funs_h_
 
-namespace archsim {
-	namespace core {
-		namespace thread {
+namespace archsim
+{
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}

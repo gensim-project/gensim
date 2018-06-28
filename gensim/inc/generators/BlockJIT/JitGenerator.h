@@ -1,9 +1,4 @@
-/*
- * File:   JitGenerator.h
- * Author: spink
- *
- * Created on 27 February 2015, 14:28
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef JITGENERATOR_H
 #define	JITGENERATOR_H
@@ -35,7 +30,7 @@ namespace gensim
 		class JitGenerator : public GenerationComponent
 		{
 		public:
-			JitGenerator(const GenerationManager &man);
+			JitGenerator(GenerationManager &man);
 
 			bool Generate() const override;
 			const std::vector<std::string> GetSources() const override
@@ -51,18 +46,18 @@ namespace gensim
 		public:
 			bool GenerateClass(util::cppformatstream &str) const;
 			bool GenerateTranslation(util::cppformatstream &str) const;
-			
+
 			bool GenerateHeader(util::cppformatstream &) const;
 			bool GenerateSource(util::cppformatstream &) const;
 
 			mutable std::vector<std::string> sources;
 
 			bool GeneratePredicateFunction(util::cppformatstream &, const isa::ISADescription& isa, const isa::InstructionFormatDescription& fmt) const;
-			bool GenerateJITFunction(util::cppformatstream &, const isa::ISADescription& isa, const isa::InstructionDescription& insn) const;
+			bool RegisterJITFunction(const isa::ISADescription& isa, const isa::InstructionDescription& insn) const;
 			bool EmitJITFunction(util::cppformatstream &, const genc::ssa::SSAFormAction& action) const;
 
 			bool GenerateJitChunks(int count) const;
-			bool GenerateHelpers(util::cppformatstream &str, const isa::ISADescription*) const;
+			bool RegisterHelpers(const isa::ISADescription*) const;
 		};
 	}
 }
