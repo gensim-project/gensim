@@ -335,75 +335,82 @@ execute(ldpi_simd)
 // ----------------------------------------------------------------------------
 execute(add_vector)
 {
-	switch (inst.arrangement) {
-	case 0: {	// 8b
-		uint8[8] rn = read_register_bank(VB8B, inst.rn);
-		uint8[8] rm = read_register_bank(VB8B, inst.rm);
+	if (inst.SCALAR == 1) {
+		uint64 rn = read_vector_reg64(inst.rn);
+		uint64 rm = read_vector_reg64(inst.rm);
 		
-		uint8[8] rd = rn + rm;
-		write_register_bank(VB8B, inst.rd, rd);
-		write_register_bank(VBH, inst.rd, 0);
-		
-		break;
-	}
-	case 1: {	// 16b
-		uint8[16] rn = read_register_bank(VB16B, inst.rn);
-		uint8[16] rm = read_register_bank(VB16B, inst.rm);
-		
-		uint8[16] rd = rn + rm;
-		write_register_bank(VB16B, inst.rd, rd);
-		break;
-	}
-	case 2: {	// 4h
-		uint16[4] rn = read_register_bank(VB4H, inst.rn);
-		uint16[4] rm = read_register_bank(VB4H, inst.rm);
-		
-		uint16[4] rd = rn + rm;
-		write_register_bank(VB4H, inst.rd, rd);
-		write_register_bank(VBH, inst.rd, 0);
-		
-		break;
-	}
-	case 3: {	// 8h
-		uint16[8] rn = read_register_bank(VB8H, inst.rn);
-		uint16[8] rm = read_register_bank(VB8H, inst.rm);
-		
-		uint16[8] rd = rn + rm;
-		write_register_bank(VB8H, inst.rd, rd);
-		
-		break;
-	}
-	case 4: {	// 2s
-		uint32[2] rn = read_register_bank(VB2S, inst.rn);
-		uint32[2] rm = read_register_bank(VB2S, inst.rm);
-		
-		uint32[2] rd = rn + rm;
-		write_register_bank(VB2S, inst.rd, rd);
-		write_register_bank(VBH, inst.rd, 0);
-		
-		break;
-	}
-	case 5: {	// 4s
-		uint32[4] rn = read_register_bank(VB4S, inst.rn);
-		uint32[4] rm = read_register_bank(VB4S, inst.rm);
-		
-		uint32[4] rd = rn + rm;
-		write_register_bank(VB4S, inst.rd, rd);
-		break;
-	}
-	case 6: {	// 2d
-		uint64[2] rn = read_register_bank(VB2D, inst.rn);
-		uint64[2] rm = read_register_bank(VB2D, inst.rm);
-		
-		uint64[2] rd = rn + rm;
-		write_register_bank(VB2D, inst.rd, rd);
-		
-		break;
-	}
-	default: {
-		trap();
-		break;
-	}
+		write_vector_reg64(inst.rd, rn + rm);
+	} else {
+		switch (inst.arrangement) {
+		case 0: {	// 8b
+			uint8[8] rn = read_register_bank(VB8B, inst.rn);
+			uint8[8] rm = read_register_bank(VB8B, inst.rm);
+			
+			uint8[8] rd = rn + rm;
+			write_register_bank(VB8B, inst.rd, rd);
+			write_register_bank(VBH, inst.rd, 0);
+			
+			break;
+		}
+		case 1: {	// 16b
+			uint8[16] rn = read_register_bank(VB16B, inst.rn);
+			uint8[16] rm = read_register_bank(VB16B, inst.rm);
+			
+			uint8[16] rd = rn + rm;
+			write_register_bank(VB16B, inst.rd, rd);
+			break;
+		}
+		case 2: {	// 4h
+			uint16[4] rn = read_register_bank(VB4H, inst.rn);
+			uint16[4] rm = read_register_bank(VB4H, inst.rm);
+			
+			uint16[4] rd = rn + rm;
+			write_register_bank(VB4H, inst.rd, rd);
+			write_register_bank(VBH, inst.rd, 0);
+			
+			break;
+		}
+		case 3: {	// 8h
+			uint16[8] rn = read_register_bank(VB8H, inst.rn);
+			uint16[8] rm = read_register_bank(VB8H, inst.rm);
+			
+			uint16[8] rd = rn + rm;
+			write_register_bank(VB8H, inst.rd, rd);
+			
+			break;
+		}
+		case 4: {	// 2s
+			uint32[2] rn = read_register_bank(VB2S, inst.rn);
+			uint32[2] rm = read_register_bank(VB2S, inst.rm);
+			
+			uint32[2] rd = rn + rm;
+			write_register_bank(VB2S, inst.rd, rd);
+			write_register_bank(VBH, inst.rd, 0);
+			
+			break;
+		}
+		case 5: {	// 4s
+			uint32[4] rn = read_register_bank(VB4S, inst.rn);
+			uint32[4] rm = read_register_bank(VB4S, inst.rm);
+			
+			uint32[4] rd = rn + rm;
+			write_register_bank(VB4S, inst.rd, rd);
+			break;
+		}
+		case 6: {	// 2d
+			uint64[2] rn = read_register_bank(VB2D, inst.rn);
+			uint64[2] rm = read_register_bank(VB2D, inst.rm);
+			
+			uint64[2] rd = rn + rm;
+			write_register_bank(VB2D, inst.rd, rd);
+			
+			break;
+		}
+		default: {
+			trap();
+			break;
+		}
+		}
 	}
 }
 
@@ -582,6 +589,35 @@ execute(orr_vector)
 		uint8[16] rm = read_register_bank(VB16B, inst.rm);
 		
 		uint8[16] rd = rn | rm;
+		
+		write_register_bank(VB16B, inst.rd, rd);
+		break;
+	}
+	default: {
+		trap();
+		break;
+	}
+	}
+}
+
+execute(eor_vector)
+{
+	switch (inst.Q) {
+	case 0: {	// 8b
+		uint8[8] rn = read_register_bank(VB8B, inst.rn);
+		uint8[8] rm = read_register_bank(VB8B, inst.rm);
+		
+		uint8[8] rd = rn ^ rm;
+		write_register_bank(VB8B, inst.rd, rd);
+		write_register_bank(VBH, inst.rd, 0);
+		
+		break;
+	}
+	case 1: {	// 16b
+		uint8[16] rn = read_register_bank(VB16B, inst.rn);
+		uint8[16] rm = read_register_bank(VB16B, inst.rm);
+		
+		uint8[16] rd = rn ^ rm;
 		
 		write_register_bank(VB16B, inst.rd, rd);
 		break;
@@ -778,6 +814,112 @@ execute(cmeq_zero)
 	}
 }
 
+execute(cmge_zero)
+{
+	if (inst.SCALAR) {
+		uint64 rn = read_vector_reg64(inst.rn);
+		
+		if (inst.U == 1) {
+			if ((sint64)rn >= (sint64)0) {
+				write_vector_reg64(inst.rd, (uint64)0xffffffffffffffff);
+			} else {
+				write_vector_reg64(inst.rd, 0);
+			}
+		} else {
+			if ((sint64)rn > (sint64)0) {
+				write_vector_reg64(inst.rd, (uint64)0xffffffffffffffff);
+			} else {
+				write_vector_reg64(inst.rd, 0);
+			}
+		}
+	} else {
+		switch (inst.arrangement) {
+		case 0: {	// 8b
+			uint8[8] rn = read_register_bank(VB8B, inst.rn);
+			
+			uint8[8] rd = rn >= (uint8)0;
+			write_register_bank(VB8B, inst.rd, rd);
+			write_register_bank(VBH, inst.rd, 0);
+			
+			break;
+		}
+		case 1: {	// 16b
+			uint8[16] rn = read_register_bank(VB16B, inst.rn);
+			
+			uint8[16] rd = rn >= (uint8)0;
+			write_register_bank(VB16B, inst.rd, rd);
+			
+			break;
+		}
+		case 2: {	// 4h
+			uint16[4] rn = read_register_bank(VB4H, inst.rn);
+			
+			uint16[4] rd = rn >= (uint16)0;
+			write_register_bank(VB4H, inst.rd, rd);
+			write_register_bank(VBH, inst.rd, 0);
+			
+			break;
+		}
+		case 3: {	// 8h
+			uint16[8] rn = read_register_bank(VB8H, inst.rn);
+			
+			uint16[8] rd = rn >= (uint16)0;
+			
+			write_register_bank(VB8H, inst.rd, rd);
+			break;
+		}
+		case 4: {	// 2s
+			uint32[2] rn = read_register_bank(VB2S, inst.rn);
+			
+			uint32[2] rd = rn >= (uint32)0;
+			write_register_bank(VB2S, inst.rd, rd);
+			write_register_bank(VBH, inst.rd, 0);
+			
+			break;
+		}
+		case 5: {	// 4s
+			uint32[4] rn = read_register_bank(VB4S, inst.rn);
+			
+			uint32[4] rd = rn >= (uint32)0;
+			
+			write_register_bank(VB4S, inst.rd, rd);
+			break;
+		}
+		case 6: {	// 2d
+			uint64[2] rn = read_register_bank(VB2D, inst.rn);
+			
+			uint64[2] rd = rn >= (uint64)0;
+			
+			write_register_bank(VB2D, inst.rd, rd);
+			break;
+		}
+		default: {
+			trap();
+			break;
+		}
+		}
+	}
+}
+
+execute(fcmgt_zero)
+{
+	if (inst.size == 2) {
+		float rn = read_float_reg32(inst.rn);
+		if (rn > (float)0) {
+			write_vector_reg32(inst.rd, 0xffffffff);
+		} else {
+			write_vector_reg32(inst.rd, 0);
+		}
+	} else {
+		double rn = read_float_reg64(inst.rn);
+		if (rn > (double)0) {
+			write_vector_reg64(inst.rd, (uint64)0xffffffffffffffff);
+		} else {
+			write_vector_reg64(inst.rd, 0);
+		}
+	}
+}
+
 execute(cnt)
 {
 	if (inst.SCALAR) {
@@ -836,11 +978,96 @@ execute(cnt)
 	}
 }
 
+execute(bsl)
+{
+	if (inst.Q) {
+		uint64 vdl;
+		uint64 vdh;
+		uint64 vnl;
+		uint64 vnh;
+		uint64 vml;
+		uint64 vmh;
+		
+		read_vector_reg128(inst.rd, vdl, vdh);
+		read_vector_reg128(inst.rn, vnl, vnh);
+		read_vector_reg128(inst.rm, vml, vmh);
+		
+		write_vector_reg128(inst.rd, vml ^ ((vml ^ vnl) & vdl), vmh ^ ((vmh ^ vnh) & vdh));
+	} else {
+		uint64 vd;
+		uint64 vn;
+		uint64 vm;
+		
+		vd = read_vector_reg64(inst.rd);
+		vn = read_vector_reg64(inst.rn);
+		vm = read_vector_reg64(inst.rm);
+		
+		write_vector_reg64(inst.rd, vm ^ ((vm ^ vn) & vd));
+	}
+}
+
+execute(bit)
+{
+	if (inst.Q) {
+		uint64 vdl;
+		uint64 vdh;
+		uint64 vnl;
+		uint64 vnh;
+		uint64 vml;
+		uint64 vmh;
+		
+		read_vector_reg128(inst.rd, vdl, vdh);
+		read_vector_reg128(inst.rn, vnl, vnh);
+		read_vector_reg128(inst.rm, vml, vmh);
+		
+		write_vector_reg128(inst.rd, vdl ^ ((vdl ^ vnl) & vml), vdh ^ ((vdh ^ vnh) & vmh));
+	} else {
+		uint64 vd;
+		uint64 vn;
+		uint64 vm;
+		
+		vd = read_vector_reg64(inst.rd);
+		vn = read_vector_reg64(inst.rn);
+		vm = read_vector_reg64(inst.rm);
+		
+		write_vector_reg64(inst.rd, vd ^ ((vd ^ vn) & vm));
+	}
+}
+
+execute(bif)
+{
+	if (inst.Q) {
+		uint64 vdl;
+		uint64 vdh;
+		uint64 vnl;
+		uint64 vnh;
+		uint64 vml;
+		uint64 vmh;
+		
+		read_vector_reg128(inst.rd, vdl, vdh);
+		read_vector_reg128(inst.rn, vnl, vnh);
+		read_vector_reg128(inst.rm, vml, vmh);
+		
+		write_vector_reg128(inst.rd, vdl ^ ((vdl ^ vnl) & (~vml)), vdh ^ ((vdh ^ vnh) & (~vmh)));
+	} else {
+		uint64 vd;
+		uint64 vn;
+		uint64 vm;
+		
+		vd = read_vector_reg64(inst.rd);
+		vn = read_vector_reg64(inst.rn);
+		vm = read_vector_reg64(inst.rm);
+		
+		write_vector_reg64(inst.rd, vd ^ ((vd ^ vn) & (~vm)));
+	}
+}
+
 execute(ld1)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
 	
 	for (uint8 rt = 0; rt < inst.regcnt; rt++) {
+		write_vector_reg128(inst.rt + rt, 0, 0);
 		for (uint8 lane = 0; lane < inst.elemcnt; lane++) {
 			load_vector_lane(inst.arrangement, inst.rt + rt, lane, address);
 			address += inst.elemsize;
@@ -895,6 +1122,7 @@ execute(ld1pi)
 	uint64 address = read_gpr_sp(1, inst.rn);
 	
 	for (uint8 rt = 0; rt < inst.regcnt; rt++) {
+		write_vector_reg128(inst.rt + rt, 0, 0);
 		for (uint8 lane = 0; lane < inst.elemcnt; lane++) {
 			load_vector_lane(inst.arrangement, inst.rt + rt, lane, address);
 			address += inst.elemsize;
@@ -902,7 +1130,7 @@ execute(ld1pi)
 	}
 	
 	if (inst.rm != 31) {
-		address = read_gpr(1, inst.rm);
+		address = read_gpr_sp(1, inst.rn) + read_gpr64(inst.rm);
 	}
 	
 	write_gpr_sp(1, inst.rn, address);
@@ -925,7 +1153,20 @@ execute(ld4pi)
 
 execute(st1pi)
 {
-	not_implemented();
+	uint64 address = read_gpr_sp(1, inst.rn);
+	
+	for (uint8 rt = 0; rt < inst.regcnt; rt++) {
+		for (uint8 lane = 0; lane < inst.elemcnt; lane++) {
+			store_vector_lane(inst.arrangement, inst.rt + rt, lane, address);
+			address += inst.elemsize;
+		}
+	}
+	
+	if (inst.rm != 31) {
+		address = read_gpr_sp(1, inst.rn) + read_gpr64(inst.rm);
+	}
+	
+	write_gpr_sp(1, inst.rn, address);
 }
 
 execute(st2pi)
@@ -1156,7 +1397,7 @@ execute(vstr)
 execute(vldr)
 {
 	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
-	load_vector(((inst.size == 0) ? ((inst.opc == 0) ? ((uint8)0) : ((uint8)4)) : ((uint8)inst.size)), inst.rt, addr);
+	load_vector(((inst.size == 0) ? ((inst.opc == 1) ? ((uint8)0) : ((uint8)4)) : ((uint8)inst.size)), inst.rt, addr);
 }
 
 execute(vstur)
@@ -1172,7 +1413,7 @@ execute(vldur)
 	uint64 addr = read_gpr_sp(1, inst.rn);
 	addr += inst.imms64;
 	
-	load_vector(((inst.size == 0) ? ((inst.opc == 0) ? ((uint8)0) : ((uint8)4)) : ((uint8)inst.size)), inst.rt, addr);
+	load_vector(((inst.size == 0) ? ((inst.opc == 1) ? ((uint8)0) : ((uint8)4)) : ((uint8)inst.size)), inst.rt, addr);
 }
 
 execute(ldr_lit_simd)
@@ -1200,7 +1441,7 @@ execute(ldr_lit_simd)
 
 execute(ldr_reg_simd)
 {
-	uint8 shift = (inst.S == 0) ? (uint8)0 : (uint8)inst.size;
+	uint8 shift = (inst.S == 0) ? (uint8)0 : ((inst.X == 1) ? ((uint8)4) : ((uint8)inst.size));
 	
 	uint64 rm;
 	if (inst.option0 == 0 && inst.option21 == 1) {			// UXTW
@@ -1240,7 +1481,7 @@ execute(ldr_reg_simd)
 
 execute(str_reg_simd)
 {
-	uint8 shift = (inst.S == 0) ? (uint8)0 : (uint8)inst.size;
+	uint8 shift = (inst.S == 0) ? (uint8)0 : ((inst.X == 1) ? ((uint8)4) : ((uint8)inst.size));
 	
 	uint64 rm;
 	if (inst.option0 == 0 && inst.option21 == 1) {			// UXTW
@@ -1643,6 +1884,51 @@ execute(fcvt)
 	}
 }
 
+execute (fcvtz_fxp)
+{
+	uint64 mulp = (uint64)1<<inst.immu64;
+	
+	if (inst.opcode == 0) {
+		// Signed
+		if (inst.sf == 0) {
+			if (inst.type == 0) {
+				// f32 to s32				
+				write_gpr32(inst.rd, __builtin_fcvt_f32_s32(read_float_reg32(inst.rn) * mulp, inst.rmode));
+			} else {
+				// f64 to s32
+				write_gpr32(inst.rd, __builtin_fcvt_f64_s32(read_float_reg64(inst.rn) * mulp, inst.rmode));
+			}
+		} else {
+			if (inst.type == 0) {
+				// f32 to s64
+				write_gpr64(inst.rd, __builtin_fcvt_f32_s64(read_float_reg32(inst.rn) * mulp, inst.rmode));
+			} else {
+				// f64 to s64
+				write_gpr64(inst.rd, __builtin_fcvt_f64_s64(read_float_reg64(inst.rn) * mulp, inst.rmode));
+			}
+		}
+	} else {
+		// Unsigned
+		if (inst.sf == 0) {
+			if (inst.type == 0) {
+				// f32 to u32
+				write_gpr32(inst.rd, __builtin_fcvt_f32_u32(read_float_reg32(inst.rn) * mulp, inst.rmode));
+			} else {
+				// f64 to u32
+				write_gpr32(inst.rd, __builtin_fcvt_f64_u32(read_float_reg64(inst.rn) * mulp, inst.rmode));
+			}
+		} else {
+			if (inst.type == 0) {
+				// f32 to u64
+				write_gpr64(inst.rd, __builtin_fcvt_f32_u64(read_float_reg32(inst.rn) * mulp, inst.rmode));
+			} else {
+				// f64 to u64
+				write_gpr64(inst.rd, __builtin_fcvt_f64_u64(read_float_reg64(inst.rn) * mulp, inst.rmode));
+			}
+		}
+	}
+}
+
 execute(frintx)
 {
 	uint8 rmode;
@@ -1766,12 +2052,28 @@ execute(ushr)
 	}
 }
 
+execute(shl_simd)
+{
+	if (inst.SCALAR) {
+		write_vector_reg64(inst.rd, read_vector_reg64(inst.rd) << inst.shift_amount);
+	} else {
+		trap();
+	}
+}
+
 execute(movi)
 {
 	if (inst.Q == 0) {
 		write_vector_reg64(inst.rd, inst.immu64);
 	} else {
 		write_vector_reg128(inst.rd, inst.immu64, inst.immu64);
+	}
+}
+
+execute(mvni)
+{
+	if (inst.Q == 0) {
+		write_vector_reg64(inst.rd, (~inst.immu64));
 	}
 }
 
@@ -1800,6 +2102,51 @@ execute(fmovi)
 		write_vector_reg32(inst.rd, vfp_expand_imm32(inst.imm8));
 	} else {
 		write_vector_reg64(inst.rd, vfp_expand_imm64(inst.imm8));
+	}
+}
+
+execute(pmull)
+{
+	if (inst.ta == 1) trap();
+	
+	switch (inst.tb) {
+	case 0: {	// 8b -> 8h
+		uint8[8] rn = read_register_bank(VB8B, inst.rn);
+		uint8[8] rm = read_register_bank(VB8B, inst.rm);
+		
+		uint16[8] rd = (uint16)0;
+		
+		for (uint8 i = 0; i < 8; i++) {
+			rd[i] = __builtin_polymul8(rn[i], rm[i]);
+		}
+		
+		write_register_bank(VB8H, inst.rd, rd);
+		break;
+	}
+	case 1: {	// 16b:upper -> 8h
+		uint8[16] rn = read_register_bank(VB8B, inst.rn);
+		uint8[16] rm = read_register_bank(VB8B, inst.rm);
+		
+		uint16[8] rd = (uint16)0;
+		
+		for (uint8 i = 0; i < 8; i++) {
+			rd[i] = __builtin_polymul8(rn[i+8], rm[i+8]);
+		}
+		
+		write_register_bank(VB8H, inst.rd, rd);
+		break;
+	}
+	case 2: {	// 1d -> 1q
+		uint64 rn = read_register_bank(VD, inst.rn);
+		uint64 rm = read_register_bank(VD, inst.rm);
+		
+		uint128 rd = __builtin_polymul64(rn, rm);
+		write_register_bank(VB1Q, inst.rd, rd);
+		break;
+	}
+	default: {
+		trap();
+	}
 	}
 }
 
@@ -1912,6 +2259,6 @@ private helper uint64 vfp_expand_imm64(uint8 imm8)
     exp |= (((v & 0x40) == 0) ? (uint64)0 : (uint64)0x3fc);
     exp |= ((v & 0x30) >> 4);
 
-    uint64 frac = (v & 0xf) << 19;
+    uint64 frac = (v & 0xf) << 48;
     return sign << 63 | exp << 52 | frac;
 }

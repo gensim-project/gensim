@@ -253,3 +253,27 @@ decode(FP_IMM)
 {
 	immu64 = 0;
 }
+
+decode(CVT_FP_FXP)
+{
+	immu64 = 64 - scale;
+}
+
+decode(SIMD_THREE_DIFF)
+{
+	if (size == 0) {
+		ta = 0;							// 8H
+	} else if (size == 3) {
+		ta = 1;							// 1Q
+	}
+	
+	if (size == 0 && Q == 0) {
+		tb = 0;							// 8B
+	} else if (size == 0 && Q == 1) {
+		tb = 1;							// 16B
+	} else if (size == 3 && Q == 0) {
+		tb = 2;							// 1D
+	} else if (size == 3 && Q == 1) {
+		tb = 3;							// 2D
+	}
+}

@@ -31,7 +31,7 @@ decode(LOGICAL_IMM)
 
 decode(LS_REG_UIMM)
 {
-	if (size == 0 && opc == 2) {
+	if (size == 0 && opc == 2 && V == 1) {
 		immu64 = ((uint64_t)imm12) << 4;
 	} else {
 		immu64 = ((uint64_t)imm12) << size;
@@ -173,12 +173,12 @@ behaviour(irq) global
 
 behaviour(mmu_fault) global
 {
-	if (ctx.fault == MMU::FETCH_FAULT) {
+	if (ctx.type == captive::arch::mmu::AddressTranslationType::FETCH) {
 		uint32 syndrome = (uint32)ctx.private_data;
-		take_arm_exception(1, 4, syndrome, ctx.va, read_pc(), 0);
+		take_arm_exception(1, 4, syndrome, va, read_pc(), 0);
 	} else {
 		uint32 syndrome = (uint32)ctx.private_data;
-		take_arm_exception(1, 1, syndrome, ctx.va, read_pc(), 0);
+		take_arm_exception(1, 1, syndrome, va, read_pc(), 0);
 	}
 	
 	return true;
