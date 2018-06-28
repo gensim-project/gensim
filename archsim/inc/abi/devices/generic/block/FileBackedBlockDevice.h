@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   FileBackedBlockDevice.h
  * Author: spink
@@ -11,6 +13,7 @@
 #include "abi/devices/generic/block/BlockDevice.h"
 #include "abi/devices/generic/block/BlockCache.h"
 
+#include <memory>
 #include <string>
 
 namespace archsim
@@ -64,7 +67,7 @@ namespace archsim
 						uint64_t block_count;
 						bool read_only;
 
-						BlockCache cache;
+						std::unique_ptr<BlockCache> cache;
 					};
 				}
 			}

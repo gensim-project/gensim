@@ -1,11 +1,5 @@
-/*
- * genC/ssa/SSAValue.h
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #pragma once
 
 #include "genC/ssa/SSAType.h"
@@ -52,7 +46,7 @@ namespace gensim
 				const use_list_t &GetUses() const;
 				void AddUse(SSAValue *user);
 				void RemoveUse(SSAValue *user);
-                                bool HasDynamicUses() const;
+				bool HasDynamicUses() const;
 
 				/**
 				 * Determines whether or not this SSA statement contains valid diagnostic metadata.

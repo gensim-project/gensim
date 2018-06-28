@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #ifndef SMALL_SET_H
 #define SMALL_SET_H
 

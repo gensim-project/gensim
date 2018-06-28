@@ -1,10 +1,26 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #ifndef TICK_TIMER_H
 #define TICK_TIMER_H
 
 #include <vector>
-#include <x86intrin.h>
 #include <malloc.h>
 #include <string.h>
+#include <iostream>
+
+#ifdef ARCHSIM_SIMULATION_HOST_IS_x86_64
+#include <x86intrin.h>
+static uint64_t timer()
+{
+	return __rdtsc();
+}
+#else
+#include <chrono>
+static uint64_t timer()
+{
+	return std::chrono::high_resolution_clock::now().time_since_epoch().count();
+}
+#endif
 
 class tick_timer
 {
@@ -29,7 +45,7 @@ public:
 	void tick(const char *tickname = NULL)
 	{
 		if(!enabled) return;
-		ticks.push_back(__rdtsc());
+		ticks.push_back(timer());
 		if(tickname)names.push_back(strdup(tickname));
 		else names.push_back(NULL);
 	}

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * BlockJitTranslate.cpp
  *
@@ -23,6 +25,7 @@
 #include "abi/devices/MMU.h"
 #include "util/wutils/tick-timer.h"
 #include "blockjit/PerfMap.h"
+#include "blockjit/IRPrinter.h"
 
 #include <stdio.h>
 
@@ -52,15 +55,15 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 {
 	// Initialise the translation context
 	_should_be_dumped = false;
-	
-	_decode_ctx = processor->GetEmulationModel().GetNewDecodeContext(*processor);
-	
+
+	SetDecodeContext(processor->GetEmulationModel().GetNewDecodeContext(*processor));
+
 	TranslationContext ctx;
 	captive::shared::IRBuilder builder;
-	
+
 	builder.SetContext(&ctx);
 	builder.SetBlock(ctx.alloc_block());
-	
+
 	InitialiseFeatures(processor);
 	InitialiseIsaMode(processor);
 
@@ -76,24 +79,22 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 	timer.tick("build");
 
 	// Optimise the IR and lower it to instructions
-	block_txln_fn fn;
-	if(!compile_block(processor, block_address, ctx, fn, allocator)) {
+	out_txln.Invalidate();
+	if(!compile_block(processor, block_address, ctx, out_txln, allocator)) {
 		LC_ERROR(LogBlockJit) << "Failed to compile block";
 		delete _decode_ctx;
 		return false;
 	}
 
+//	ctx.trim();
+//	fprintf(stderr, "*** %08x = %u %u\n", block_address.Get(), (uint32_t)ctx.size_bytes(), out_txln.GetSize());
 	ctx.free_ir_buffer();
 
 	delete _decode_ctx;
 
 	// Fill in the output translation data structure with the translated
 	// function and feature vector
-	out_txln.Invalidate();
-	out_txln.SetFn(fn);
-	for(auto i : _read_feature_levels) {
-		out_txln.AddRequiredFeature(i, _initial_feature_levels.at(i));
-	}
+	AttachFeaturesTo(out_txln);
 
 	timer.tick("compile");
 
@@ -159,6 +160,15 @@ archsim::ProcessorFeatureSet BaseBlockJITTranslate::GetProcessorFeatures() const
 	return features;
 }
 
+void BaseBlockJITTranslate::AttachFeaturesTo(archsim::blockjit::BlockTranslation& txln) const
+{
+	for(auto i : _read_feature_levels) {
+		txln.AddRequiredFeature(i, _initial_feature_levels.at(i));
+	}
+}
+
+
+
 void BaseBlockJITTranslate::InitialiseIsaMode(const archsim::core::thread::ThreadInstance* cpu)
 {
 	_isa_mode_valid = true;
@@ -187,7 +197,7 @@ void BaseBlockJITTranslate::InvalidateIsaMode()
 }
 
 bool BaseBlockJITTranslate::build_block(archsim::core::thread::ThreadInstance *processor, archsim::Address block_address, captive::shared::IRBuilder &builder)
-{	
+{
 	// initialise some state, and then recursively emit blocks until we come
 	// to a branch that we can't resolve statically
 	if(!_decode)_decode = processor->GetArch().GetISA(processor->GetModeID()).GetNewDecode();
@@ -196,31 +206,31 @@ bool BaseBlockJITTranslate::build_block(archsim::core::thread::ThreadInstance *p
 	return emit_block(processor, block_address, builder, block_heads);
 }
 
-bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstance *processor, Address pc, gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
+bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstance* cpu, archsim::Address pc, gensim::BaseDecode* insn, captive::shared::IRBuilder& builder)
 {
-	if(archsim::options::Verbose)builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
-
-
-	auto fault = _decode_ctx->DecodeSync(pc, GetIsaMode(), *decode);
+	_decode_ctx->Reset(cpu);
+	auto fault = _decode_ctx->DecodeSync(cpu->GetFetchMI(), pc, GetIsaMode(), *insn);
+	_decode_ctx->WriteBackState(cpu);
 	assert(!fault);
 
-	LC_DEBUG4(LogBlockJit) << "Translating instruction " << std::hex << pc.Get() << " " << decode->Instr_Code << " " << decode->ir;
-
-	if(decode->Instr_Code == 65535) {
-		LC_DEBUG1(LogBlockJit) << "Invalid instruction! 0x" << std::hex << decode->ir;
-		std::cout << "Invalid instruction! PC:" << std::hex << pc.Get() << ": IR:" << std::hex << decode->ir << " ISAMODE:" << (uint32_t)decode->isa_mode << "\n";
+	if(insn->Instr_Code == 65535) {
+		LC_DEBUG1(LogBlockJit) << "Invalid instruction! 0x" << std::hex << insn->ir;
+		std::cout << "Invalid instruction! PC:" << std::hex << pc.Get() << ": IR:" << std::hex << insn->ir << " ISAMODE:" << (uint32_t)insn->isa_mode << "\n";
 		return false;
 	}
 
-	IRInstruction b = IRInstruction::barrier();
-	b.operands[0] = IROperand::const32(decode->GetIR());
-	builder.add_instruction(b);
+	return emit_instruction_decoded(cpu, pc, insn, builder);
+}
 
-	b = IRInstruction::barrier();
-	b.operands[0] = IROperand::const32(pc.Get());
-	builder.add_instruction(b);
 
-	if(archsim::options::Verify && !archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
+bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::ThreadInstance *processor, Address pc, const gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
+{
+	LC_DEBUG4(LogBlockJit) << "Translating instruction " << std::hex << pc.Get() << " " << decode->Instr_Code << " " << decode->ir;
+
+	if(archsim::options::Verbose) {
+		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
+	}
+
 	if(archsim::options::InstructionTick) {
 		builder.call(IROperand::func((void*)cpuInstructionTick), IROperand::const64((uint64_t)(void*)processor));
 	}
@@ -234,7 +244,7 @@ bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstan
 	if(archsim::options::ProfileIrFreq) {
 		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionIRHistogram.get_value_ptr_at_index(decode->ir)), IROperand::const64(1));
 	}
-	
+
 	if(processor->GetTraceSource()) {
 		IRRegId pc_reg = builder.alloc_reg(4);
 		builder.ldpc(IROperand::vreg(pc_reg, 4));
@@ -244,14 +254,14 @@ bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstan
 	}
 
 	translate_instruction(decode, builder, processor->GetTraceSource() != nullptr);
-	
+
 	if(decode_txlt_ctx == nullptr) {
 		if(!GetComponentInstance(processor->GetArch().GetName(), decode_txlt_ctx)) {
 			throw std::logic_error("Could not get DTC");
 		}
 	}
-	
-	decode_txlt_ctx->Translate(*decode, *_decode_ctx, builder);
+
+	decode_txlt_ctx->Translate(processor, *decode, *_decode_ctx, builder);
 
 	if(processor->GetTraceSource()) {
 		builder.call(IROperand::func((void*)cpuTraceInsnEnd));
@@ -313,7 +323,7 @@ bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *pr
 
 	if(_supportProfiling) {
 		UNIMPLEMENTED;
-		
+
 //		_txln_mgr->GetRegion(phys_page).TraceBlock(*processor, pc.Get());
 //		auto &rgn = _txln_mgr->GetRegion(phys_page);
 //
@@ -350,7 +360,7 @@ bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *pr
 				Address target = get_jump_target(processor, _decode, pc);
 				if(!block_heads.count(target)) {
 					block_heads.insert(target);
-					if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
+//					if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
 					return emit_block(processor, target, builder, block_heads);
 				}
 			}
@@ -361,7 +371,7 @@ bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *pr
 		}
 	}
 
-	if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
+//	if(archsim::options::Verify && archsim::options::VerifyBlocks) builder.verify(IROperand::pc(pc.Get()));
 
 	// attempt to chain (otherwise return)
 	emit_chain(processor, pc, _decode, builder);
@@ -443,7 +453,7 @@ bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *pr
 	return true;
 }
 
-bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, captive::shared::block_txln_fn &fn, wulib::MemAllocator &allocator)
+bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, archsim::blockjit::BlockTranslation &fn, wulib::MemAllocator &allocator)
 {
 	BlockCompiler compiler (ctx, block_address.Get(), allocator, false, true);
 
@@ -454,34 +464,34 @@ bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance 
 	if(!result.Success) {
 		return false;
 	}
-	
-	auto lowering = captive::arch::jit::lowering::NativeLowering(ctx, allocator, cpu, result);
-	fn = lowering.Function;
-	
+
+	auto lowering = captive::arch::jit::lowering::NativeLowering(ctx, allocator, cpu->GetArch(), cpu->GetStateBlock().GetDescriptor(), result);
+	fn.SetFn(lowering.Function);
+
 	if(dump) {
+		ctx.trim();
+
+		std::ostringstream ir_filename;
+		ir_filename << "blkjit-" << std::hex << block_address.Get() << ".txt";
+		std::ofstream ir_file (ir_filename.str().c_str());
+		archsim::blockjit::IRPrinter printer;
+		printer.DumpIR(ir_file, ctx);
+
 		std::ostringstream str;
 		str << "blkjit-" << std::hex << block_address.Get() << ".bin";
 		FILE *outfile = fopen(str.str().c_str(), "w");
-		fwrite((void*)fn, lowering.Size, 1, outfile);
+		fwrite((void*)lowering.Function, lowering.Size, 1, outfile);
 		fclose(outfile);
-
-//		str.str("");
-//		str << "blkjit-" << std::hex << block_address.Get() << ".txt";
-//		outfile = fopen(str.str().c_str(), "w");
-//		str.str("");
-//		compiler.dump_ir(str);
-//		std::string ir_str = str.str();
-//		fwrite(ir_str.c_str(), ir_str.length(), 1, outfile);
-//		fclose(outfile);
 	}
 
 
 	PerfMap &pmap = PerfMap::Singleton;
 	if(pmap.Enabled()) {
 		pmap.Acquire();
-		pmap.Stream() << std::hex << (size_t)fn << " " << lowering.Size << " JIT_" << std::hex << block_address.Get() << std::endl;
+		pmap.Stream() << std::hex << (size_t)lowering.Function << " " << lowering.Size << " JIT_" << std::hex << block_address.Get() << std::endl;
 		pmap.Release();
 	}
 
+	fn.SetSize(lowering.Size);
 	return lowering.Size != 0;
 }

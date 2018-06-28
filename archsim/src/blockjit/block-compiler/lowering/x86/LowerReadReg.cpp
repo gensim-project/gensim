@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerReadReg.cpp
  *
@@ -174,7 +176,7 @@ bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 					auto &descr = insn_descriptors[potential_killer->type];
 					//~ printf("Killer is %s %x\n", descr.mnemonic, pa);
 					bool kills_value = false;
-					for(int i = 0; i < 6; ++i) {
+					for(int i = 0; i < potential_killer->operands.size(); ++i) {
 						const IROperand *kop = &potential_killer->operands[i];
 						// If the operand is an input of the register, we need the move
 						if(descr.format[i] == 'I' || descr.format[i] == 'B') {

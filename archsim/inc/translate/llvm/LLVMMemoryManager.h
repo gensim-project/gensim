@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LLVMMemoryManager.h
  *
@@ -16,7 +18,7 @@ namespace archsim
 {
 	namespace translate
 	{
-		namespace llvm
+		namespace translate_llvm
 		{
 
 			class LLVMMemoryManager : public ::llvm::RTDyldMemoryManager

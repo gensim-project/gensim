@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerCall.cpp
  *
@@ -40,7 +42,7 @@ bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
 	// CPU State
 	GetLoweringContext().load_state_field("thread_ptr", *sysv_abi[0]);
 
-	for (int i = 1; i < 6; i++) {
+	for (int i = 1; i < insn->operands.size(); i++) {
 		if (insn->operands[i].type != IROperand::NONE) {
 			GetLoweringContext().encode_operand_function_argument(&insn->operands[i], *sysv_abi[i], GetStackMap());
 		}
@@ -54,10 +56,10 @@ bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
 		if (next_insn->type == IRInstruction::CALL && insn->count_operands() == next_insn->count_operands()) {
 			// Don't restore the state, because the next instruction is a call and it will use it.
 		} else {
-			GetLoweringContext().emit_restore_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
+			GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 		}
 	} else {
-		GetLoweringContext().emit_restore_reg_state(insn->count_operands(), GetStackMap(), GetIsStackFixed());
+		GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 	}
 
 

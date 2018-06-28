@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "blockjit/translation-context.h"
 
 using namespace captive::arch::jit;
@@ -59,8 +61,6 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "streg",		.format = "IIXXXX", .has_side_effects = true },
 	{ .mnemonic = "ldmem",		.format = "NIIOXX", .has_side_effects = true },
 	{ .mnemonic = "stmem",		.format = "NIIIXX", .has_side_effects = true },
-	{ .mnemonic = "ldumem",		.format = "IOXXXX", .has_side_effects = true },
-	{ .mnemonic = "stumem",		.format = "IIXXXX", .has_side_effects = true },
 
 	{ .mnemonic = "call",		.format = "NIIIII", .has_side_effects = true },
 	{ .mnemonic = "jmp",		.format = "NXXXXX", .has_side_effects = true },
@@ -134,8 +134,18 @@ size_t captive::shared::num_descriptors = sizeof(captive::shared::insn_descripto
 TranslationContext::TranslationContext()
 	: _ir_block_count(0), _ir_reg_count(0), _ir_insns(NULL), _ir_insn_count(0), _ir_insn_buffer_size(0)
 {
-	
+
 }
+
+void TranslationContext::clear()
+{
+	free_ir_buffer();
+	_ir_block_count = 0;
+	_ir_reg_count = 0;
+	_ir_insn_count = 0;
+	_ir_insn_buffer_size = 0;
+}
+
 
 TranslationContext::~TranslationContext()
 {

@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "blockjit/block-compiler/transforms/Transform.h"
 
@@ -12,9 +8,9 @@ using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;
 
-StackToRegTransform::StackToRegTransform(archsim::util::vbitset used_phys_regs) : used_phys_regs_(used_phys_regs) 
+StackToRegTransform::StackToRegTransform(archsim::util::vbitset used_phys_regs) : used_phys_regs_(used_phys_regs)
 {
-	
+
 }
 
 StackToRegTransform::~StackToRegTransform()
@@ -38,7 +34,7 @@ bool StackToRegTransform::Apply(TranslationContext& ctx)
 
 		// Don't need to do any clever allocation here since the stack entries should already be re-used
 
-		for(unsigned int op_idx = 0; op_idx < 6; ++op_idx) {
+		for(unsigned int op_idx = 0; op_idx < insn->operands.size(); ++op_idx) {
 			IROperand &op = insn->operands[op_idx];
 			if(!op.is_valid()) break;
 

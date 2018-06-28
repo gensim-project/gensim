@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #ifndef RECORDSTREAM_H
 #define RECORDSTREAM_H
 

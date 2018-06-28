@@ -1,7 +1,5 @@
-//                      Confidential Information
-//           Limited Distribution to Authorized Persons Only
-//         Copyright (C) 2011 The University of Edinburgh
-//                        All Rights Reserved
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 // =====================================================================
 //
 // Description:
@@ -25,13 +23,6 @@
 
 namespace archsim
 {
-	namespace translate
-	{
-		namespace llvm
-		{
-			class LLVMTranslationContext;
-		}
-	}
 	namespace util
 	{
 		class Counter
@@ -140,7 +131,7 @@ namespace archsim
 			}
 
 #if CONFIG_LLVM
-			void emit_inc(archsim::translate::llvm::LLVMTranslationContext& ctx, llvm::IRBuilder<>& bldr);
+			void emit_inc(archsim::translate::translate_llvm::LLVMTranslationContext& ctx, llvm::IRBuilder<>& bldr);
 #endif
 
 		private:

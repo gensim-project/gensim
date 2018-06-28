@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerFlushTlb.cpp
  *
@@ -26,7 +28,7 @@ bool LowerFlushTlb::Lower(const captive::shared::IRInstruction *&insn)
 	Encoder().mov((uint64_t)fn_ptr, REG_RAX);
 	Encoder().call(REG_RAX);
 
-	GetLoweringContext().emit_restore_reg_state(0, GetStackMap(), GetIsStackFixed());
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 
 	insn++;
 	return true;
@@ -45,7 +47,7 @@ bool LowerFlushTlbEntry::Lower(const captive::shared::IRInstruction *&insn)
 	Encoder().mov((uint64_t)fn_ptr, REG_RAX);
 	Encoder().call(REG_RAX);
 
-	GetLoweringContext().emit_restore_reg_state(1, GetStackMap(), GetIsStackFixed());
+	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed());
 
 	insn++;
 	return true;

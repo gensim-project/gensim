@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * X86LoweringContext.h
  *
@@ -33,12 +35,12 @@ namespace captive
 				namespace x86
 				{
 
-					class X86LoweringContext : public LoweringContext
+					class X86LoweringContext : public MCLoweringContext
 					{
 					public:
 						typedef X86Encoder encoder_t;
 
-						X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, const archsim::core::thread::ThreadInstance *thread, const archsim::util::vbitset &used_regs);
+						X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder,  const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd, const archsim::util::vbitset &used_regs);
 						virtual ~X86LoweringContext();
 
 						encoder_t &GetEncoder()
@@ -61,21 +63,19 @@ namespace captive
 							return _stack_fixed;
 						}
 
-						const archsim::core::thread::ThreadInstance *GetThread() { return thread_; }
-						
 						inline void load_state_field(const std::string &entry, const X86Register& reg)
 						{
-							GetEncoder().mov(X86Memory::get(BLKJIT_CPUSTATE_REG,  GetThread()->GetStateBlock().GetBlockOffset(entry)), reg);
+							GetEncoder().mov(X86Memory::get(BLKJIT_CPUSTATE_REG,  GetStateBlockDescriptor().GetBlockOffset(entry)), reg);
 						}
 
 						inline void lea_state_field(const std::string &entry, const X86Register& reg)
 						{
-							GetEncoder().lea(X86Memory::get(BLKJIT_CPUSTATE_REG, GetThread()->GetStateBlock().GetBlockOffset(entry)), reg);
+							GetEncoder().lea(X86Memory::get(BLKJIT_CPUSTATE_REG, GetStateBlockDescriptor().GetBlockOffset(entry)), reg);
 						}
-						
+
 
 						void emit_save_reg_state(int num_operands, stack_map_t&, bool &fixed_stack, uint32_t live_regs = 0xffffffff);
-						void emit_restore_reg_state(int num_operands, stack_map_t&, bool fixed_stack, uint32_t live_regs = 0xffffffff);
+						void emit_restore_reg_state(bool fixed_stack, uint32_t live_regs = 0xffffffff);
 						void encode_operand_function_argument(const shared::IROperand *oper, const X86Register& reg, stack_map_t&);
 						void encode_operand_to_reg(const shared::IROperand *operand, const X86Register& reg);
 
@@ -104,10 +104,10 @@ namespace captive
 							}
 							__builtin_unreachable();
 						}
-						
+
 						inline const X86Register& register_from_operand(const captive::shared::IROperand *oper, int force_width = 0) const
 						{
-							assert(oper->alloc_mode == captive::shared::IROperand::ALLOCATED_REG);
+							ASSERT(oper->alloc_mode == captive::shared::IROperand::ALLOCATED_REG);
 
 							if (!force_width) force_width = oper->size;
 
@@ -116,8 +116,8 @@ namespace captive
 
 						inline X86Memory stack_from_operand(const captive::shared::IROperand *oper) const
 						{
-							assert(oper->alloc_mode == captive::shared::IROperand::ALLOCATED_STACK);
-							assert(oper->size <= 8);
+							ASSERT(oper->alloc_mode == captive::shared::IROperand::ALLOCATED_STACK);
+							ASSERT(oper->size <= 8);
 
 							return X86Memory(REG_RSP, oper->alloc_data);
 						}
@@ -144,7 +144,17 @@ namespace captive
 							GetEncoder().mov(stack_from_operand(oper), tmp);
 							return tmp;
 						}
-						
+
+						archsim::util::vbitset used_phys_regs;
+
+						// Get a list of registers which should be saved on entry
+						// and restored on exit (i.e. pushed in prologue and
+						// popped in epilogue
+						std::vector<const X86Register*> GetSavedRegisters();
+						void EmitPrologue();
+						void EmitEpilogue();
+
+						bool ABICalleeSave(const X86Register &reg);
 					protected:
 						virtual bool LowerHeader(const TranslationContext &ctx) override;
 						virtual bool PerformRelocations(const TranslationContext &ctx) override;
@@ -153,10 +163,7 @@ namespace captive
 						stack_map_t _stack_map;
 						X86Encoder &_encoder;
 						bool _stack_fixed;
-						const archsim::core::thread::ThreadInstance *thread_;
-						
-						archsim::util::vbitset used_phys_regs;
-						
+
 						struct reg_assignment {
 							const x86::X86Register *b1;
 							const x86::X86Register *b2;

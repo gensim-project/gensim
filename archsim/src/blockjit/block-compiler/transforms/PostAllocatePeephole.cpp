@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * PostAllocateDCE.cpp
  *
@@ -48,8 +50,7 @@ static void peephole_and(IRInstruction *insn)
 			insn->operands[0] = insn->operands[1];
 			insn->operands[0].size = op_size;
 		} else {
-			insn->type = IRInstruction::NOP;
-			insn->ir_block = NOP_BLOCK;
+			insn->make_nop();
 		}
 	}
 }

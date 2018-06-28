@@ -5,7 +5,9 @@ syntax:regexp
 archsim/inc/cmake-config.h
 archsim/inc/cmake-scm.h
 
-^build/
+^build.*/
 nbproject/
 
 CMakeFiles
+
+^tests/arm-linux-tests/linux-4.3/

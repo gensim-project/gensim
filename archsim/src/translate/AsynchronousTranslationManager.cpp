@@ -1,6 +1,6 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
- * Copyright (C) University of Edinburgh 2014
- *
  * translate/AsynchronousTranslationManager.cpp
  *
  * Models a translation manager that provides one or more asynchronous worker threads to perform JIT
@@ -23,7 +23,7 @@ using namespace archsim::translate;
 
 RegisterComponent(TranslationManager, AsynchronousTranslationManager, "async", "Asynchronous", archsim::util::PubSubContext*);
 
-AsynchronousTranslationManager::AsynchronousTranslationManager(util::PubSubContext *psctx) : TranslationManager(psctx) { }
+AsynchronousTranslationManager::AsynchronousTranslationManager(util::PubSubContext *psctx) : TranslationManager(*psctx) { }
 
 AsynchronousTranslationManager::~AsynchronousTranslationManager() { }
 
@@ -32,13 +32,13 @@ bool WorkUnitQueueComparator::operator()(const TranslationWorkUnit* lhs, const T
 	return lhs->GetWeight() < rhs->GetWeight();
 }
 
-bool AsynchronousTranslationManager::Initialise()
+bool AsynchronousTranslationManager::Initialise(gensim::blockjit::BaseBlockJITTranslate *translate)
 {
 	if (!TranslationManager::Initialise())
 		return false;
 
 	for (unsigned int i = 0; i < archsim::options::JitThreads; i++) {
-		auto worker = new AsynchronousTranslationWorker(*this, i);
+		auto worker = new AsynchronousTranslationWorker(*this, i, translate);
 		workers.push_back(worker);
 		worker->start();
 	}
@@ -51,7 +51,6 @@ void AsynchronousTranslationManager::Destroy()
 	// No point notfiying threads here of the change to the queue, as they are
 	// about to be terminated.
 	work_unit_queue_lock.lock();
-	fprintf(stderr, "*** QUEUE ENTRIES %lu\n", work_unit_queue.size());
 
 	while(!work_unit_queue.empty()) {
 		auto i = work_unit_queue.top();
@@ -94,8 +93,10 @@ void AsynchronousTranslationManager::UpdateThreshold()
 	assert(curr_hotspot_threshold > 0);
 }
 
-bool AsynchronousTranslationManager::TranslateRegion(gensim::Processor& cpu, profile::Region& region, uint32_t weight)
+bool AsynchronousTranslationManager::TranslateRegion(archsim::core::thread::ThreadInstance *cpu, profile::Region& region, uint32_t weight)
 {
+	fprintf(stderr, "*** Translating %x\n", region.GetPhysicalBaseAddress());
+
 	if (!region.IsValid()) return false;
 
 	// Create the translation work unit for this region.

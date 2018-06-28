@@ -1,11 +1,5 @@
-/*
- * Copyright (C) University of Edinburgh 2014
- *
- * translate/TranslationManager.cpp
- *
- * The translation manager is responsible for performing a translation of profile guest machine instructions into
- * host native code.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "translate/TranslationManager.h"
 #include "translate/Translation.h"
 #include "translate/TranslationWorkUnit.h"
@@ -117,6 +111,12 @@ TranslationManager::~TranslationManager()
 
 }
 
+bool TranslationManager::TranslateRegion(archsim::core::thread::ThreadInstance* thread, profile::Region& rgn, uint32_t weight)
+{
+	return false;
+}
+
+
 bool TranslationManager::Initialise()
 {
 	// Attempt to acquire the translation engine
@@ -149,7 +149,7 @@ void TranslationManager::Destroy()
 
 Region& TranslationManager::GetRegion(phys_addr_t phys_addr)
 {
-	GetManager().MarkRegionAsCode(PhysicalAddress(phys_addr).PageBase());
+	GetCodeRegions().MarkRegionAsCode(PhysicalAddress(phys_addr).PageBase());
 	return regions.Get(*this, RegionArch::PageBaseOf(phys_addr));
 }
 
@@ -191,7 +191,7 @@ bool TranslationManager::Profile(archsim::core::thread::ThreadInstance *thread)
 			txltd_regions = true;
 
 			thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationPhysical, (void*)(uint64_t)region->GetPhysicalBaseAddress());
-			for(auto virt_base : region->virtual_images){
+			for(auto virt_base : region->virtual_images) {
 				thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationVirtual, (void*)(uint64_t)virt_base);
 			}
 
@@ -277,6 +277,7 @@ void TranslationManager::InvalidateRegionTxlnCacheEntry(virt_addr_t virt_addr)
 bool TranslationManager::MarkTranslationAsComplete(Region &unit, Translation &txln)
 {
 	completed_translations_lock.lock();
+	unit.Acquire();
 	completed_translations.push_back({&unit, &txln});
 	completed_translations_lock.unlock();
 
@@ -292,6 +293,7 @@ void TranslationManager::RegisterCompletedTranslations()
 	for(auto &txln : completed_translations) {
 		registered |= RegisterTranslation(*txln.first, *txln.second);
 		InvalidateRegionTxlnCacheEntry(txln.first->GetPhysicalBaseAddress());
+		txln.first->Release();
 	}
 	completed_translations.clear();
 	completed_translations_lock.unlock();

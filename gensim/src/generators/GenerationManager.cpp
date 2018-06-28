@@ -1,9 +1,4 @@
-/*
- * File:   GenerationManager.cpp
- * Author: s0803652
- *
- * Created on 03 October 2011, 10:28
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,6 +18,68 @@ namespace gensim
 		std::string GenerationManager::FnTranslate = "translate";
 		std::string GenerationManager::FnPipeline = "pipeline";
 		std::string GenerationManager::FnJumpInfo = "jumpinfo";
+
+		FunctionEntry::FunctionEntry(const std::string prototype, const std::string& body, const std::vector<std::string> &local_headers, const std::vector<std::string> &sys_headers, const std::vector<std::string> &specialisations, bool global) : prototype_(prototype), body_(body), local_headers_(local_headers), system_headers_(sys_headers), specialisations_(specialisations), is_global_(global)
+		{
+
+		}
+
+		size_t FunctionEntry::GetBodySize() const
+		{
+			return body_.size();
+		}
+
+		bool FunctionEntry::IsGlobal() const
+		{
+			return is_global_;
+		}
+
+		std::string FunctionEntry::Format() const
+		{
+			// We could be smart with figuring out which headers we need to
+			// re-include but for now just blast them all out for every function
+			// and let the preprocessor deal with it
+			std::stringstream str;
+
+			str << body_;
+
+			// If that was a template, then emit any specialisations that should be instantiated
+			for(auto i : specialisations_) {
+				str << i << ";";
+			}
+
+			return str.str();
+		}
+		std::string FunctionEntry::FormatPrototype() const
+		{
+			return prototype_;
+		}
+
+		std::string FunctionEntry::FormatIncludes() const
+		{
+			std::stringstream str;
+			for(auto i : local_headers_) {
+				str << "#include \"" << i << "\"\n";
+			}
+			for(auto i : system_headers_) {
+				str << "#include <" << i << ">\n";
+			}
+			return str.str();
+		}
+
+		const std::vector<std::string>& FunctionEntry::GetLocalHeaders() const
+		{
+			return local_headers_;
+		}
+
+		const std::vector<std::string>& FunctionEntry::GetSystemHeaders() const
+		{
+			return system_headers_;
+		}
+
+
+
+
 
 		std::map<std::string, std::map<std::string, GenerationOption*> > GenerationComponent::Options __attribute__((init_priority(101)));
 		std::map<std::string, std::string> GenerationComponent::Inheritance __attribute__((init_priority(102)));
@@ -47,13 +104,8 @@ namespace gensim
 
 		void GenerationManager::AddComponent(GenerationComponent& component)
 		{
-			if (Components.find(component.GetFunction()) != Components.end()) {
-				fprintf(stderr, "Attempted to insert a component with function %s when such a component already exists.\n", component.GetFunction().c_str());
-				exit(1);
-			} else {
-				Components.insert(std::pair<std::string, GenerationComponent*>(component.GetFunction(), &component));
-				_components.push_back(&component);
-			}
+			Components.insert(std::pair<std::string, GenerationComponent*>(component.GetFunction(), &component));
+			_components.push_back(&component);
 		}
 
 		GenerationComponent* GenerationManager::GetComponent(const std::string str)

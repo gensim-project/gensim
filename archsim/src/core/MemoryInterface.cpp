@@ -1,75 +1,77 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "core/MemoryInterface.h"
 #include "core/thread/ThreadInstance.h"
 
 using namespace archsim;
 
-TranslationResult MMUTranslationProvider::Translate(Address virt_addr, Address& phys_addr, bool is_write, bool is_fetch, bool side_effects) {
+TranslationResult MMUTranslationProvider::Translate(Address virt_addr, Address& phys_addr, bool is_write, bool is_fetch, bool side_effects)
+{
 	AccessInfo info;
 	info.Fetch = is_fetch;
 	info.SideEffects = side_effects;
 	info.Write = is_write;
 	info.Kernel = thread_->GetExecutionRing() != 0;
 	uint32_t physaddr;
-	
+
 	auto result = mmu_->Translate(thread_, virt_addr.Get(), physaddr, info);
 	phys_addr = Address(physaddr);
 	switch(result) {
-		case archsim::abi::devices::MMU::TXLN_OK: return TranslationResult::OK;
+		case archsim::abi::devices::MMU::TXLN_OK:
+			return TranslationResult::OK;
 		default:
 			return TranslationResult::NotPresent;
 	}
 }
 
-MemoryResult MemoryInterface::WriteString(Address address, const char *data) {
+MemoryResult MemoryInterface::WriteString(Address address, const char *data)
+{
 	do {
 		Write8(address, *data);
 		data++;
 		address += 1;
 	} while(*data);
-	
+
 	return MemoryResult::OK;
 }
 
-MemoryResult MemoryInterface::ReadString(Address address, char *data, size_t max_size) {
+MemoryResult MemoryInterface::ReadString(Address address, char *data, size_t max_size)
+{
 	if(max_size == 0) {
 		return MemoryResult::OK;
 	}
-	
+
 	uint8_t cdata;
 	do {
 		Read8(address, cdata);
 		*data = cdata;
-		
+
 		data++;
 		address += 1;
 		max_size--;
 	} while(cdata && max_size != 0);
-	
+
 	return MemoryResult::OK;
 }
 
-MemoryResult MemoryInterface::Read(Address address, unsigned char *data, size_t size) {
+MemoryResult MemoryInterface::Read(Address address, unsigned char *data, size_t size)
+{
 	for(unsigned int i = 0; i < size; ++i) {
 		auto result = Read8(address + i, data[i]);
 		if(result != MemoryResult::OK) {
 			return result;
 		}
 	}
-	
-	return MemoryResult::OK; 
+
+	return MemoryResult::OK;
 }
 
-MemoryResult MemoryInterface::Write(Address address, const unsigned char *data, size_t size) {
+MemoryResult MemoryInterface::Write(Address address, const unsigned char *data, size_t size)
+{
 	for(unsigned int i = 0; i < size; ++i) {
 		Write8(address + i, data[i]);
 	}
-	
+
 	return MemoryResult::OK;
 }
 

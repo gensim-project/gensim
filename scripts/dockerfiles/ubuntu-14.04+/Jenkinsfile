@@ -1,0 +1,21 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any;
+
+    stages {
+        stage ('Build Image') {
+            steps {
+                sh 'cd scripts/dockerfiles/archlinux; docker build -t gensim-ubuntu-14.04-plus . '
+            }
+        }
+
+        stage ('Build') {
+            steps {
+                sh '''
+                cd scripts/dockerfiles && sh test-dockerfile.sh ubuntu-14.04+/
+                '''
+            }
+        }
+    }
+}

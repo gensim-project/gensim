@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * SystemMemoryModel.h
  *
@@ -10,7 +12,7 @@
 
 #include "abi/memory/MemoryModel.h"
 #include "core/thread/ThreadInstance.h"
-#include "translate/profile/ProfileManager.h"
+#include "translate/profile/CodeRegionTracker.h"
 #include "util/PubSubSync.h"
 #include "system.h"
 
@@ -54,7 +56,7 @@ namespace archsim
 
 				void MarkPageAsCode(PhysicalAddress page_base)
 				{
-					GetProfile().MarkRegionAsCode(page_base);
+					GetCodeRegions().MarkRegionAsCode(page_base);
 				}
 
 			protected:
@@ -74,9 +76,9 @@ namespace archsim
 				{
 					return phys_mem;
 				}
-				translate::profile::ProfileManager &GetProfile()
+				translate::profile::CodeRegionTracker &GetCodeRegions()
 				{
-					return this->GetThread()->GetEmulationModel().GetSystem().GetProfileManager();
+					return this->GetThread()->GetEmulationModel().GetSystem().GetCodeRegions();
 				}
 
 			private:

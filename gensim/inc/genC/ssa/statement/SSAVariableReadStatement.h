@@ -1,11 +1,5 @@
-/*
- * genC/ssa/statement/SSAVariableReadStatement.h
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #pragma once
 
 #include "genC/ssa/statement/SSAStatement.h"
@@ -26,19 +20,19 @@ namespace gensim
 
 				SYMBOL_OPERAND(Target, 0)
 
-				virtual void PrettyPrint(std::ostringstream &) const;
+				virtual void PrettyPrint(std::ostringstream &) const override;
 				void Accept(SSAStatementVisitor& visitor) override;
 				bool Resolve(DiagnosticContext& ctx) override;
 
 				SSAVariableReadStatement(SSABlock *parent, SSASymbol *Target, SSAStatement *before = NULL);
 				virtual ~SSAVariableReadStatement();
 
-				virtual bool IsFixed() const
+				virtual bool IsFixed() const override
 				{
 					return Const;
 				}
 
-				virtual std::set<SSASymbol *> GetKilledVariables()
+				virtual std::set<SSASymbol *> GetKilledVariables() override
 				{
 					return {};
 				}

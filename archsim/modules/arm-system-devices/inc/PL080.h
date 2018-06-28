@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * PL080.h
  *
@@ -28,8 +30,8 @@ namespace archsim
 
 				bool Initialise() override;
 
-				bool Read(uint32_t offset, uint8_t size, uint32_t& data);
-				bool Write(uint32_t offset, uint8_t size, uint32_t data);
+				bool Read(uint32_t offset, uint8_t size, uint32_t& data) override;
+				bool Write(uint32_t offset, uint8_t size, uint32_t data) override;
 			};
 
 		}

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * BlockProfile.h
  *
@@ -15,6 +17,7 @@
 
 #include "core/thread/ProcessorFeatures.h"
 
+#include <array>
 #include <bitset>
 #include <map>
 #include <unordered_map>
@@ -33,50 +36,81 @@ namespace archsim
 		class BlockTranslation
 		{
 		public:
-			BlockTranslation() : _fn(nullptr), _features_required(nullptr) {}
+			BlockTranslation() : fn_(nullptr), features_required_(nullptr), size_(0) {}
+			BlockTranslation(const BlockTranslation &other) :
+				fn_(other.fn_),
+				features_required_(nullptr),
+				size_(other.size_)
+			{
+				if(other.features_required_ != nullptr) {
+					features_required_ = new ProcessorFeatureSet(*other.features_required_);
+				}
+			}
+
+			~BlockTranslation()
+			{
+				Invalidate();
+			}
+
+			void operator=(const BlockTranslation &other)
+			{
+				new(this) BlockTranslation(other);
+			}
 
 			void AddRequiredFeature(uint32_t feature_id, uint32_t feature_level)
 			{
-				if(!_features_required) _features_required = new archsim::ProcessorFeatureSet();
-				_features_required->AddFeature(feature_id);
-				_features_required->SetFeatureLevel(feature_id, feature_level);
+				if(!features_required_) features_required_ = new archsim::ProcessorFeatureSet();
+				features_required_->AddFeature(feature_id);
+				features_required_->SetFeatureLevel(feature_id, feature_level);
 			}
 
 			block_txln_fn GetFn() const
 			{
-				return _fn;
+				return fn_;
 			}
 			void SetFn(block_txln_fn fn)
 			{
-				_fn = fn;
+				fn_ = fn;
 			}
 
 			bool IsValid(const archsim::ProcessorFeatureSet &features)
 			{
-				if(_fn == nullptr) return false;
+				if(fn_ == nullptr) return false;
 				return FeaturesValid(features);
 			}
 			bool FeaturesValid(const archsim::ProcessorFeatureSet &features) const;
 
 			void Invalidate()
 			{
-				_fn = nullptr;
-				if(_features_required) {
-					delete _features_required;
-					_features_required = nullptr;
+				fn_ = nullptr;
+				if(features_required_) {
+					delete features_required_;
+					features_required_ = nullptr;
 				}
 			}
 
 			archsim::ProcessorFeatureSet GetFeatures()
 			{
-				if(_features_required)
-					return *_features_required;
+				if(features_required_)
+					return *features_required_;
 				else return archsim::ProcessorFeatureSet();
 			}
 
+			void SetSize(size_t newsize)
+			{
+				size_ = newsize;
+			}
+			size_t GetSize() const
+			{
+				return size_;
+			}
+
+			void Dump(const std::string &filename);
+
 		private:
-			block_txln_fn _fn;
-			archsim::ProcessorFeatureSet *_features_required;
+			block_txln_fn fn_;
+			archsim::ProcessorFeatureSet *features_required_;
+			size_t size_;
 		};
 
 		class BlockPageProfile
@@ -91,7 +125,7 @@ namespace archsim
 
 			BlockTranslation &Get(Address address)
 			{
-				return getChunk(address).chunk[(address.GetPageOffset() >> kInstructionAlignment) % kBlocksPerChunk];
+				return getChunk(address)[(address.GetPageOffset() >> kInstructionAlignment) % kBlocksPerChunk];
 			}
 
 			static const size_t kInstructionAlignment = 1;
@@ -112,9 +146,7 @@ namespace archsim
 			static const uint32_t kMaxBlocksPerPage = kPageSize / kInstructionSize;
 			static const uint32_t kBlocksPerChunk = 128;
 
-			typedef struct table_chunk_t {
-				BlockTranslation chunk[kBlocksPerChunk];
-			} table_chunk_t;
+			typedef std::unordered_map<uint32_t, BlockTranslation> table_chunk_t;
 
 			table_chunk_t *&getChunkPtr(Address address)
 			{
@@ -147,6 +179,11 @@ namespace archsim
 			void InvalidatePage(Address address);
 			void Invalidate();
 
+			uint64_t GetTotalCodeSize()
+			{
+				return code_size_;
+			}
+
 			bool IsPageDirty(Address addr)
 			{
 				return getProfile(addr).IsDirty();
@@ -163,20 +200,15 @@ namespace archsim
 			// XXX ARM HAX
 			static const size_t kInstructionSize = BlockPageProfile::kInstructionSize;
 
-			bool Get(Address address, const archsim::ProcessorFeatureSet &features, BlockTranslation &out_txln)
+			BlockTranslation Get(Address address, const archsim::ProcessorFeatureSet &features)
 			{
-				if(!hasProfile(address)) {
-					return false;
-				}
-
-				auto &txln = getProfile(address).Get(address);
+				auto txln = getProfile(address).Get(address);
 
 				if(txln.IsValid(features)) {
-					out_txln = txln;
-					return true;
+					return txln;
 				} else {
 					getProfile(address).InvalidateTxln(address);
-					return false;
+					return txln;
 				}
 			}
 
@@ -203,6 +235,8 @@ namespace archsim
 			std::bitset<kTablePageCount> _table_pages_dirty;
 
 			std::vector<std::pair<Address, BlockPageProfile *> > _dirty_pages;
+
+			uint64_t code_size_;
 
 			BlockPageProfile *_page_profiles[kProfileCount];
 			wulib::MemAllocator &_allocator;

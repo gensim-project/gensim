@@ -1,11 +1,5 @@
-/*
- * genC/ssa/statement/SSAMemoryWriteStatement.h
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #pragma once
 
 #include "genC/ssa/statement/SSAStatement.h"
@@ -43,8 +37,11 @@ namespace gensim
 				{
 					return IRTypes::Void;
 				}
-                                
-                                const gensim::arch::MemoryInterfaceDescription *GetInterface() const { return interface_; }
+
+				const gensim::arch::MemoryInterfaceDescription *GetInterface() const
+				{
+					return interface_;
+				}
 
 			private:
 				SSAMemoryWriteStatement(SSABlock *parent, SSAStatement *addrExpr, SSAStatement *valueExpr, uint8_t width, const gensim::arch::MemoryInterfaceDescription *interface, SSAStatement *before = NULL)
@@ -53,8 +50,8 @@ namespace gensim
 					SetAddr(addrExpr);
 					SetValue(valueExpr);
 				}
-                                        
-                                        const gensim::arch::MemoryInterfaceDescription *interface_;
+
+				const gensim::arch::MemoryInterfaceDescription *interface_;
 			};
 		}
 	}

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   gensim_decode_context.h
  * Author: harry
@@ -12,7 +14,8 @@
 
 namespace captive
 {
-	namespace shared {
+	namespace shared
+	{
 		class IRBuilder;
 	}
 	namespace arch
@@ -24,10 +27,13 @@ namespace captive
 	}
 }
 
-namespace archsim 
+namespace archsim
 {
-	namespace core {
-		namespace thread {
+	class MemoryInterface;
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}
@@ -41,16 +47,12 @@ namespace gensim
 	class DecodeContext
 	{
 	public:
-		DecodeContext(archsim::core::thread::ThreadInstance *cpu);
+		DecodeContext();
 		virtual ~DecodeContext();
-		virtual uint32_t DecodeSync(archsim::Address address, uint32_t mode, BaseDecode &target) = 0;
+		virtual uint32_t DecodeSync(archsim::MemoryInterface &mem_interface, archsim::Address address, uint32_t mode, BaseDecode &target) = 0;
 
-		archsim::core::thread::ThreadInstance *GetCPU()
-		{
-			return cpu_;
-		}
-	private:
-		archsim::core::thread::ThreadInstance *cpu_;
+		virtual void Reset(archsim::core::thread::ThreadInstance *thread);
+		virtual void WriteBackState(archsim::core::thread::ThreadInstance *thread);
 	};
 
 	// This class is used to emit operations which should happen unconditionally
@@ -58,7 +60,7 @@ namespace gensim
 	class DecodeTranslateContext
 	{
 	public:
-		virtual void Translate(gensim::BaseDecode &insn, DecodeContext &decode, captive::shared::IRBuilder &builder) = 0;
+		virtual void Translate(archsim::core::thread::ThreadInstance *cpu, const gensim::BaseDecode &insn, DecodeContext &decode, captive::shared::IRBuilder &builder) = 0;
 	};
 }
 

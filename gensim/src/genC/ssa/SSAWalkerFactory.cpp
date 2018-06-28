@@ -1,9 +1,4 @@
-/*
- * SSAWalkerFactory.cpp
- *
- *  Created on: 29 Jun 2013
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/SSAWalkerFactory.h"
 #include "genC/ssa/statement/SSAStatement.h"

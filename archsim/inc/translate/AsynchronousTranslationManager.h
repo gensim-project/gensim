@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   AsynchronousTranslationManager.h
  * Author: s0457958
@@ -9,6 +11,7 @@
 #define	ASYNCHRONOUSTRANSLATIONMANAGER_H
 
 #include "translate/TranslationManager.h"
+#include "blockjit/BlockJitTranslate.h"
 
 #include <condition_variable>
 #include <list>
@@ -46,12 +49,12 @@ namespace archsim
 			AsynchronousTranslationManager(util::PubSubContext *psctx);
 			~AsynchronousTranslationManager();
 
-			bool Initialise() override;
+			bool Initialise(gensim::blockjit::BaseBlockJITTranslate *translate);
 			void Destroy() override;
 
 			void UpdateThreshold() override;
 
-			bool TranslateRegion(gensim::Processor& cpu, profile::Region& rgn, uint32_t weight);
+			bool TranslateRegion(archsim::core::thread::ThreadInstance *cpu, profile::Region& rgn, uint32_t weight) override;
 
 			void PrintStatistics(std::ostream& stream);
 

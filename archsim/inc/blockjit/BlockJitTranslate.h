@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * BlockJitTranslate.h
  *
@@ -23,7 +25,7 @@ namespace captive
 {
 	namespace shared
 	{
-		class IROperand;
+		struct IROperand;
 	}
 }
 
@@ -65,17 +67,26 @@ namespace gensim
 			uint32_t GetFeatureLevel(uint32_t feature);
 			void InvalidateFeatures();
 			archsim::ProcessorFeatureSet GetProcessorFeatures() const;
+			void AttachFeaturesTo(archsim::blockjit::BlockTranslation &txln) const;
 
 			void InitialiseIsaMode(const archsim::core::thread::ThreadInstance *cpu);
 			void SetIsaMode(const captive::shared::IROperand&, captive::shared::IRBuilder& builder);
 			uint32_t GetIsaMode();
 			void InvalidateIsaMode();
 
-		protected:
+			bool build_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::shared::IRBuilder &builder);
 			virtual bool translate_instruction(const BaseDecode* decode_obj, captive::shared::IRBuilder& builder, bool trace) = 0;
 
+			bool emit_instruction(archsim::core::thread::ThreadInstance *cpu, archsim::Address pc, gensim::BaseDecode *insn, captive::shared::IRBuilder &builder);
+			bool emit_instruction_decoded(archsim::core::thread::ThreadInstance *cpu, archsim::Address pc, const gensim::BaseDecode *insn, captive::shared::IRBuilder &builder);
+
+			void SetDecodeContext(gensim::DecodeContext *dec)
+			{
+				_decode_ctx = dec;
+			}
+
 		private:
-			
+
 			std::map<uint32_t, uint32_t> _feature_levels;
 			std::map<uint32_t, uint32_t> _initial_feature_levels;
 			std::set<uint32_t> _read_feature_levels;
@@ -97,11 +108,9 @@ namespace gensim
 
 			bool _should_be_dumped;
 
-			bool build_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::shared::IRBuilder &builder);
-			bool compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, captive::shared::block_txln_fn &fn, wulib::MemAllocator &allocator);
+			bool compile_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::arch::jit::TranslationContext &ctx, archsim::blockjit::BlockTranslation &fn, wulib::MemAllocator &allocator);
 
 			bool emit_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::shared::IRBuilder &ctx, std::unordered_set<archsim::Address> &block_heads);
-			bool emit_instruction(archsim::core::thread::ThreadInstance *cpu, archsim::Address pc, gensim::BaseDecode *insn, captive::shared::IRBuilder &builder);
 			bool emit_chain(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, gensim::BaseDecode *insn, captive::shared::IRBuilder &ctx);
 
 			bool can_merge_jump(archsim::core::thread::ThreadInstance *cpu, gensim::BaseDecode *decode, archsim::Address pc);

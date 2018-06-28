@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/validation/SSAStatementValidationPass.h"
 #include "genC/ssa/SSAFormAction.h"
@@ -42,7 +38,7 @@ class ConstantValueTypeValidationPass : public SSAStatementValidationPass
 			case IRConstant::Type_Float_Single:
 				Assert(stmt.GetType().IsFloating(), "Value type mismatch in constant", stmt.GetDiag());
 				break;
-				
+
 			case IRConstant::Type_Vector:
 				Assert(stmt.GetType().VectorWidth > 1, "Value type mismatch in constant", stmt.GetDiag());
 				break;

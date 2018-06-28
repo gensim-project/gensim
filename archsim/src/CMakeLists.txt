@@ -1,13 +1,9 @@
 
 archsim_add_sources(
-	Assertion.cpp 
-	main.cpp 
 	system.cpp 
 	signals.cpp 
 	session.cpp
 )
-
-archsim_add_sources(translate/jit_funs.cpp)
 
 ADD_SUBDIRECTORY(abi)
 ADD_SUBDIRECTORY(arch)
@@ -15,8 +11,8 @@ ADD_SUBDIRECTORY(blockjit)
 ADD_SUBDIRECTORY(concurrent)
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(gensim)
+ADD_SUBDIRECTORY(interpret)
 ADD_SUBDIRECTORY(module)
-ADD_SUBDIRECTORY(tracing)
 ADD_SUBDIRECTORY(translate)
 ADD_SUBDIRECTORY(uarch)
 ADD_SUBDIRECTORY(util)

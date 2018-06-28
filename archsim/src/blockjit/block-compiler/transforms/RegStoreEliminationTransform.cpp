@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * RegStoreEliminationTransform.cpp
  *
@@ -18,33 +20,22 @@ using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;
 
-static void make_instruction_nop(IRInstruction *insn, bool set_block)
-{
-	insn->type = IRInstruction::NOP;
-	insn->operands[0].type = IROperand::NONE;
-	insn->operands[1].type = IROperand::NONE;
-	insn->operands[2].type = IROperand::NONE;
-	insn->operands[3].type = IROperand::NONE;
-	insn->operands[4].type = IROperand::NONE;
-	insn->operands[5].type = IROperand::NONE;
-	if(set_block) insn->ir_block = NOP_BLOCK;
-}
-
 RegStoreEliminationTransform::~RegStoreEliminationTransform()
 {
 
 }
 
-class RegWriteInfo {
+class RegWriteInfo
+{
 public:
 	uint32_t Size, Offset;
 	IRInstruction *Write;
-	
+
 	RegWriteInfo(uint32_t size, uint32_t offset, IRInstruction *write) : Size(size), Offset(offset), Write(write) {}
 };
 
 // Remove writes which alias the given offset and size from the provided map
-static void ClearPreviousWrites(std::map<uint32_t, RegWriteInfo>& writes, uint32_t offset, uint32_t size) 
+static void ClearPreviousWrites(std::map<uint32_t, RegWriteInfo>& writes, uint32_t offset, uint32_t size)
 {
 	uint32_t begin = offset;
 	uint32_t end = offset + size;
@@ -54,7 +45,7 @@ static void ClearPreviousWrites(std::map<uint32_t, RegWriteInfo>& writes, uint32
 			offsets.push_back(i.first);
 		}
 	}
-	
+
 	for(auto i : offsets) {
 		writes.erase(i);
 	}
@@ -62,7 +53,7 @@ static void ClearPreviousWrites(std::map<uint32_t, RegWriteInfo>& writes, uint32
 
 // Look through writes, and if there is a write which aliases with offset and size,
 // then replace that write with a nop instruction
-static void NopPreviousWrites(std::map<uint32_t, RegWriteInfo>& writes, uint32_t offset, uint32_t size) 
+static void NopPreviousWrites(std::map<uint32_t, RegWriteInfo>& writes, uint32_t offset, uint32_t size)
 {
 	uint32_t begin = offset;
 	uint32_t end = offset + size;
@@ -72,9 +63,9 @@ static void NopPreviousWrites(std::map<uint32_t, RegWriteInfo>& writes, uint32_t
 			offsets.push_back(i.first);
 		}
 	}
-	
+
 	for(auto i : offsets) {
-		make_instruction_nop(writes.at(i).Write, true);
+		writes.at(i).Write->make_nop();
 		writes.erase(i);
 	}
 }
@@ -92,9 +83,7 @@ bool RegStoreEliminationTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::JMP:
 			case IRInstruction::BRANCH:
 			case IRInstruction::READ_MEM:
-			case IRInstruction::READ_MEM_USER:
 			case IRInstruction::WRITE_MEM:
-			case IRInstruction::WRITE_MEM_USER:
 			case IRInstruction::LDPC:
 			case IRInstruction::INCPC:
 			case IRInstruction::TAKE_EXCEPTION:
@@ -117,7 +106,7 @@ bool RegStoreEliminationTransform::Apply(TranslationContext &ctx)
 				assert(offset.is_constant());
 
 				ClearPreviousWrites(prev_writes, offset.value, insn->operands[1].size);
-				
+
 				break;
 			}
 			case IRInstruction::WRITE_REG: {
@@ -133,7 +122,7 @@ bool RegStoreEliminationTransform::Apply(TranslationContext &ctx)
 				// Only nop out an instruction if the prev write is smaller than
 				// the new one
 				NopPreviousWrites(prev_writes, offset.value, size);
-				
+
 				prev_writes.insert({offset.value, RegWriteInfo(offset.value, size, insn)});
 
 				break;

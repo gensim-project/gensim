@@ -1,9 +1,4 @@
-/*
- * ByteByByteDecodeGenerator.h
- *
- *  Created on: Oct 10, 2012
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef BYTEBYBYTEDECODEGENERATOR_H_
 #define BYTEBYBYTEDECODEGENERATOR_H_

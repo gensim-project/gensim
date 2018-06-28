@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "system.h"
 #include "abi/UserEmulationModel.h"
 #include "abi/loader/BinaryLoader.h"
@@ -7,7 +9,7 @@
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
 #include "core/MemoryInterface.h"
-#include "core/execution/ExecutionEngine.h"
+#include "core/execution/ExecutionEngineFactory.h"
 
 extern char **environ;
 
@@ -23,7 +25,7 @@ UserEmulationModel::~UserEmulationModel() { }
 void UserEmulationModel::PrintStatistics(std::ostream& stream)
 {
 //	cpu->PrintStatistics(stream);
-	UNIMPLEMENTED;
+
 }
 
 bool UserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, SignalData* data)
@@ -44,51 +46,23 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	if (!EmulationModel::Initialise(system, uarch))
 		return false;
 
-	auto moduleentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleExecutionEngineEntry>("EE");
-	auto archentry = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName)->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
-	if(moduleentry == nullptr) {
-		return false;
-	}
+	auto module = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName);
+	auto archentry = module->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
 	if(archentry == nullptr) {
 		return false;
 	}
 	auto arch = archentry->Get();
-	auto engine = moduleentry->Get();
+	auto engine = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
 	GetSystem().GetECM().AddEngine(engine);
 	main_thread_ = new archsim::core::thread::ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
-	
+
 	for(auto i : main_thread_->GetMemoryInterfaces()) {
 		i->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
 		i->ConnectTranslationProvider(*new archsim::IdentityTranslationProvider());
 	}
-	
+
 	engine->AttachThread(main_thread_);
-	
-//	cpu = moduleentry->Get(archsim::options::ProcessorName, 0, &GetSystem().GetPubSub());
 
-//	if (!cpu->Initialise(*this, GetMemoryModel())) {
-//		return false;
-//	}
-//
-//	cpu->reset_to_initial_state(true);
-
-//	archsim::abi::devices::Device *coprocessor;
-//	if(!GetComponentInstance("fpu", coprocessor)) return false;
-//	cpu->peripherals.RegisterDevice("fpu", coprocessor);
-//	cpu->peripherals.AttachDevice("fpu", 10);
-
-#ifdef IO_DEVICES
-	if (system.sim_opts.virtual_screen) {
-		archsim::abi::devices::VirtualScreenDevice *vsd = new archsim::abi::devices::VirtualScreenDevice(*this);
-		if (!vsd->Attach())
-			return false;
-
-		archsim::abi::devices::VirtualScreenDeviceKeyboardController *cont /* what did you call me */ = new archsim::abi::devices::VirtualScreenDeviceKeyboardController(*vsd);
-		cpu->peripherals.RegisterDevice("kb", cont);
-		cpu->peripherals.AttachDevice("kb", 13);
-	}
-#endif
-	
 	return true;
 }
 
@@ -114,7 +88,7 @@ void UserEmulationModel::ResetCores()
 
 void UserEmulationModel::HaltCores()
 {
-	UNIMPLEMENTED;
+	main_thread_->SendMessage(core::thread::ThreadMessage::Halt);
 }
 
 bool UserEmulationModel::InitialiseProgramArguments()
@@ -147,6 +121,8 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 
 	uint32_t sp = _initial_stack_pointer;
 
+//	printf("Start (%08x)\n", sp);
+
 #define PUSH32(_val)   do { sp -= 4; GetMemoryModel().Write32(sp, _val); } while (0)
 #define PUSHSTR(_str)  do { sp -= (strlen(_str) + 1); GetMemoryModel().WriteString(sp, _str); } while (0)
 #define ALIGN_STACK(v) do { sp -= ((unsigned long)sp & (v - 1)); } while (0)
@@ -164,6 +140,8 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 		envp_ptrs[i] = sp;
 	}
 
+//	printf("Pushed env values (%08x)\n", sp);
+
 	PUSHSTR(archsim::options::TargetBinary.GetValue().c_str());  // The real arg0
 	argv_ptrs[0] = sp;
 
@@ -171,6 +149,8 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 		PUSHSTR(global_argv[i]);
 		argv_ptrs[i+1] = sp;
 	}
+
+//	printf("Pushed arg values (%08x)\n", sp);
 
 	ALIGN_STACK(4);
 
@@ -210,6 +190,7 @@ bool UserEmulationModel::PrepareStack(System &system, loader::UserElfBinaryLoade
 
 	PUSH32(global_argc + 1);
 
+//	printf("Finished. (%08x)\n", sp);
 	_initial_stack_pointer = sp;
 
 	return true;
@@ -248,6 +229,8 @@ bool UserEmulationModel::PrepareBoot(System &system)
 		cpu->write_register_T(0);
 	}
 	 * */
+
+	LC_DEBUG1(LogEmulationModelUser) << "Initial stack pointer: " << std::hex << _initial_stack_pointer;
 
 	GetMainThread()->SetPC(Address(_initial_entry_point));
 	GetMainThread()->SetSP(Address(_initial_stack_pointer));

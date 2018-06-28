@@ -1,9 +1,4 @@
-/*
- * File:   FunctionalDecodeGenerator.cpp
- * Author: s0803652
- *
- * Created on 28 September 2011, 12:15
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "define.h"
 #include "generators/FunctionalDecodeGenerator.h"
@@ -41,7 +36,6 @@ namespace gensim
 			header_str << "#include <gensim/gensim_decode.h>\n";
 			header_str << "#include <core/MemoryInterface.h>\n";
 			header_str << "#include <core/thread/ThreadInstance.h>\n";
-			header_str << "#include <util/HashMap.h>\n";
 			header_str << "#include <queue>\n";
 			header_str << "#include <utility>\n";
 
@@ -96,12 +90,14 @@ namespace gensim
 
 						bool first = true;
 						for (std::list<isa::InstructionFormatChunk>::const_iterator ifc = i->second->GetChunks().begin(); ifc != i->second->GetChunks().end(); ++ifc) {
-							if (!ifc->generate_field && !ifc->is_constrained)
+							if (!ifc->generate_field && !ifc->is_constrained) {
 								if (first) {
 									header_str << util::Util::TypeString(ifc->length);
 									first = false;
-								} else
+								} else {
 									header_str << ", " << util::Util::TypeString(ifc->length);
+								}
+							}
 						}
 
 						header_str << ");\n";
@@ -397,9 +393,9 @@ namespace gensim
 
 			// recursively emit decode statements for the tree
 			source_str << "DecodeInstr(instr, _isa_mode);"
-					   "return 0;";
+			           "return 0;";
 			source_str << "}";
-			
+
 
 			source_str << "void " << GetProperty("class") << "::DecodeInstr(uint32_t instr, uint8_t _isa_mode)\n{\n";
 

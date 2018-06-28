@@ -1,7 +1,5 @@
-//                      Confidential Information
-//           Limited Distribution to Authorized Persons Only
-//         Copyright (C) 2011 The University of Edinburgh
-//                        All Rights Reserved
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 // =====================================================================
 //
 // Description:
@@ -27,7 +25,7 @@ Counter64::Counter64() : count_(0)
 }
 
 #if CONFIG_LLVM
-void Counter64::emit_inc(archsim::translate::llvm::LLVMTranslationContext &ctx, llvm::IRBuilder<> &bldr)
+void Counter64::emit_inc(archsim::translate::translate_llvm::LLVMTranslationContext &ctx, llvm::IRBuilder<> &bldr)
 {
 	assert(false);
 #if 0

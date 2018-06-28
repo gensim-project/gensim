@@ -1,15 +1,5 @@
-//                      Confidential Information
-//           Limited Distribution to Authorized Persons Only
-//         Copyright (C) 2003-2009 The University of Edinburgh
-//                        All Rights Reserved
-//
-// =====================================================================
-//
-// Description:
-// uint32_t
-//  This file implements an API to the ISS using C linkage for JIT simulation.
-//
-// =====================================================================
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 
 #include "define.h"
 
@@ -18,7 +8,6 @@
 
 #include "core/MemoryInterface.h"
 #include "core/thread/ThreadInstance.h"
-#include "tracing/TraceManager.h"
 
 #include "util/LogContext.h"
 
@@ -28,7 +17,8 @@
 #include <cfenv>
 #include <setjmp.h>
 
-namespace gensim {
+namespace gensim
+{
 	class Processor;
 }
 
@@ -261,7 +251,7 @@ extern "C" {
 	uint32_t cpuRead32(gensim::Processor *cpu, uint32_t address, uint32_t& data)
 	{
 		UNIMPLEMENTED;
-		
+
 //		LC_DEBUG2(LogJitFuns) << "cpuRead8";
 //		auto rval = ((gensim::Processor*)cpu)->GetMemoryModel().Read32(address, data);
 //		if(cpu->IsTracingEnabled()) cpuTraceOnlyMemRead32(cpu, address, data);

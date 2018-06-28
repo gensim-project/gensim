@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "abi/devices/Component.h"
 #include "abi/devices/virtio/VirtIOBlock.h"
 #include "abi/devices/generic/block/BlockDevice.h"

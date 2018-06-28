@@ -1,9 +1,4 @@
-/*
- * File:   DynamicTranslationGenerator.cpp
- * Author: s0803652
- *
- * Created on 08 August 2012, 15:20
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <vector>
 
@@ -248,7 +243,7 @@ namespace gensim
 					case gensim::genc::IRPlainOldDataType::INT64:
 						cstream << "SafeFreeVR64(__idx_" << sym->GetName() << ");";
 						break;
-						
+
 					default:
 						throw std::logic_error("Unhandled");
 				}

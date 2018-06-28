@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * BaseSystemMemoryModel.cpp
  *
@@ -21,7 +23,7 @@ RegisterComponent(SystemMemoryModel, BaseSystemMemoryModel, "base", "Basic naive
 UseLogContext(LogMemoryModel);
 DeclareChildLogContext(LogSystemMemoryModel, LogMemoryModel, "System");
 
-BaseSystemMemoryModel::BaseSystemMemoryModel(MemoryModel *phys_mem, util::PubSubContext *pubsub) : SystemMemoryModel(phys_mem, pubsub), txln_model(NULL), _unaligned_behaviour(Unaligned_TRAP)
+BaseSystemMemoryModel::BaseSystemMemoryModel(MemoryModel *phys_mem, util::PubSubContext *pubsub) : SystemMemoryModel(phys_mem, pubsub), txln_model(NULL), _unaligned_behaviour(Unaligned_EMULATE)
 {
 }
 
@@ -226,8 +228,8 @@ uint32_t BaseSystemMemoryModel::DoWrite(guest_addr_t virt_addr, uint8_t *data, i
 				break;
 		}
 
-		if (GetProfile().IsRegionCode(PhysicalAddress(phys_addr))) {
-			GetProfile().InvalidateRegion(PhysicalAddress(phys_addr));
+		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr))) {
+			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr));
 		}
 
 		return 0;

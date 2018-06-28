@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "abi/memory/SparseMemoryModel.h"
 #include "util/ComponentManager.h"
 
@@ -31,18 +33,18 @@ RegisterComponent(MemoryModel, SparseMemoryModel, "sparse", "");
 SparseMemoryTranslationModel::SparseMemoryTranslationModel(SparseMemoryModel& model)  {}
 SparseMemoryTranslationModel::~SparseMemoryTranslationModel() {}
 
-bool SparseMemoryTranslationModel::PrepareTranslation(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx)
+bool SparseMemoryTranslationModel::PrepareTranslation(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx)
 {
 	return MemoryTranslationModel::PrepareTranslation(insn_ctx);
 }
 
 #ifndef FAST_SPARSE_TRANSLATION
-bool SparseMemoryTranslationModel::EmitMemoryRead(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination)
+bool SparseMemoryTranslationModel::EmitMemoryRead(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination)
 {
 	return MemoryTranslationModel::EmitMemoryRead(insn_ctx, width, sx, fault, address, destinationType, destination);
 }
 
-bool SparseMemoryTranslationModel::EmitMemoryWrite(archsim::translate::llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value)
+bool SparseMemoryTranslationModel::EmitMemoryWrite(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value)
 {
 	return MemoryTranslationModel::EmitMemoryWrite(insn_ctx, width, fault, address, value);
 }

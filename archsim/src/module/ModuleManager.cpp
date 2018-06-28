@@ -1,8 +1,5 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 
 #include "module/ModuleManager.h"
 #include "util/LogContext.h"
@@ -19,7 +16,7 @@ using namespace archsim::module;
 DeclareLogContext(LogModule, "Module");
 
 // Logging is not enabled until after modules are loaded, so we need to be a bit clever here
-#define EARLYLOG_INFO if(!archsim::options::Verbose); else std::cout 
+#define EARLYLOG_INFO if(!archsim::options::Verbose); else std::cout
 #define EARLYLOG_ERROR if(!archsim::options::Verbose); else std::cerr
 
 bool ModuleManager::LoadModule(const std::string& module_filename)
@@ -58,6 +55,8 @@ bool ModuleManager::LoadModuleDirectory(const std::string& module_directory)
 			success &= LoadModule(module_directory + "/" + std::string(ent->d_name));
 		}
 	}
+
+	closedir(dir);
 	return success;
 }
 

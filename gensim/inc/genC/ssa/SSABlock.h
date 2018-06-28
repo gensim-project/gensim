@@ -1,11 +1,5 @@
-/*
- * genC/ssa/SSABlock.h
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #pragma once
 
 #include "genC/ssa/SSAValue.h"
@@ -113,7 +107,7 @@ namespace gensim
 
 				uint32_t GetID() const;
 
-				std::string GetName() const;
+				std::string GetName() const override;
 
 				/**
 				 * Returns true if all control flow paths to this block are determinable at JIT-time

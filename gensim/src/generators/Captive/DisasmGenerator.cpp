@@ -1,8 +1,5 @@
-/**
- * generators/Captive/DisasmGenerator.cpp
- *
- * Tom Spink <tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "generators/GenerationManager.h"
 #include "generators/DisasmGenerator.h"
 #include "arch/ArchDescription.h"

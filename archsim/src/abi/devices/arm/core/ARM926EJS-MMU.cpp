@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * ARM926EJS-MMU.cpp
  *
@@ -253,7 +255,7 @@ private:
 public:
 	uint32_t faulting_domain;
 
-	bool Initialise()
+	bool Initialise() override
 	{
 		FlushCaches();
 		cocoprocessor = (ArmControlCoprocessor*)Manager->GetDeviceByName("coprocessor");

@@ -1,9 +1,4 @@
-/*
- * ExecutionEngineGenerator.h
- *
- *  Created on: Oct 31, 2012
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef EXECUTIONENGINEGENERATOR_H_
 #define EXECUTIONENGINEGENERATOR_H_
@@ -24,7 +19,7 @@ namespace gensim
 				return GenerationManager::FnInterpret;
 			}
 
-			ExecutionEngineGenerator(const GenerationManager &manager, std::string _name) : GenerationComponent(manager, _name) {}
+			ExecutionEngineGenerator(GenerationManager &manager, std::string _name) : GenerationComponent(manager, _name) {}
 
 			std::string GetStateStruct() const;
 

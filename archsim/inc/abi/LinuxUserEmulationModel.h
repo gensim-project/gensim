@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   LinuxUserEmulationModel.h
  * Author: s0457958
@@ -23,7 +25,7 @@ namespace archsim
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
 			void Destroy() override;
 
-			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, unsigned int category, unsigned int data) = 0;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, unsigned int category, unsigned int data) override = 0;
 		};
 	}
 }

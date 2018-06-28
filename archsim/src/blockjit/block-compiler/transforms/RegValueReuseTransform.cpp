@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * RegValueReuseTransform.cpp
  *
@@ -41,7 +43,7 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 		auto &descr = insn_descriptors[insn->type];
 
 		// First, check to see if the vregs containing any live values have been killed
-		for(unsigned int op_idx = 0; op_idx < 6; ++op_idx) {
+		for(unsigned int op_idx = 0; op_idx < insn->operands.size(); ++op_idx) {
 			const IROperand &op = insn->operands[op_idx];
 
 			// If this operand is written to
@@ -57,9 +59,7 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::JMP:
 			case IRInstruction::BRANCH:
 			case IRInstruction::READ_MEM:
-			case IRInstruction::READ_MEM_USER:
 			case IRInstruction::WRITE_MEM:
-			case IRInstruction::WRITE_MEM_USER:
 			case IRInstruction::LDPC:
 			case IRInstruction::INCPC:
 			case IRInstruction::TAKE_EXCEPTION:
@@ -69,7 +69,7 @@ bool RegValueReuseTransform::Apply(TranslationContext &ctx)
 			case IRInstruction::READ_DEVICE:
 			case IRInstruction::WRITE_DEVICE:
 			case IRInstruction::ADC_WITH_FLAGS:
-                        case IRInstruction::SET_ZN_FLAGS:
+			case IRInstruction::SET_ZN_FLAGS:
 
 				offset_to_vreg.clear();
 				vreg_to_offset.clear();

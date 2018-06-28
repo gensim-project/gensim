@@ -1,9 +1,4 @@
-/*
- * File:   Util.cpp
- * Author: s0803652
- *
- * Created on 28 September 2011, 17:36
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <string>
 #include <sstream>
@@ -281,7 +276,7 @@ namespace gensim
 		size_t Util::Match(const std::string str, size_t begin, char inc, char dec)
 		{
 			int level = 0;
-			size_t pos;
+			size_t pos = 0;
 			for (std::string::const_iterator i = str.begin(); i != str.end(); ++i) {
 
 				if (begin > 0) {

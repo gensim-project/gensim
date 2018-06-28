@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * Address.h
  *
@@ -15,6 +17,8 @@
 
 #include "translate/profile/RegionArch.h"
 
+#include "util/LogContext.h"
+
 namespace archsim
 {
 	using namespace translate::profile;
@@ -22,7 +26,7 @@ namespace archsim
 	{
 	public:
 		using underlying_t = uint32_t;
-		
+
 		explicit Address(underlying_t address) : _address(address) {}
 		Address() = delete;
 		underlying_t Get() const
@@ -52,10 +56,11 @@ namespace archsim
 			return Address(GetPageOffset());
 		}
 
-		Address operator+(int b) const {
+		Address operator+(int b) const
+		{
 			return Address(Get() + b);
 		}
-		
+
 		void operator+=(const underlying_t other)
 		{
 			_address += other;
@@ -69,6 +74,8 @@ namespace archsim
 		{
 			return Get() == other.Get();
 		}
+
+		friend std::ostream &operator<<(std::ostream &str, const archsim::Address& address);
 
 	private:
 		underlying_t _address;
@@ -161,10 +168,4 @@ namespace std
 
 }
 
-static std::ostream &operator<<(std::ostream &str, const archsim::Address &address)
-{
-	str << "0x" << std::hex << std::setw(8) << std::setfill('0') << address.Get();
-	return str;
-}
-
-#endif /* INC_ADDRESS_H_ */
+#endif /* INC_ABI_ADDRESS_H_ */

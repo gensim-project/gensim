@@ -1,8 +1,5 @@
-/**
- * generators/Captive/ProcessorGenerator.cpp
- *
- * Tom Spink <tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "generators/GenerationManager.h"
 #include "arch/ArchDescription.h"
 #include "arch/RegisterFile.h"
@@ -172,7 +169,7 @@ namespace gensim
 					}
 
 					str << "} reg_offsets;";
-					
+
 					str << "uint64_t get_page_table_base(int index) const override\n";
 					str << "{\n";
 					str << "if (index == 0) return (*reg_offsets.TTBR0) & ~0xffff000000000fffull;\n";
@@ -394,7 +391,7 @@ namespace gensim
 					str << "{";
 					str << *(arch.ISAs.front()->BehaviourActions.at("mmu_fault"));
 					str << "}";
-					
+
 					str << "bool " << ClassNameForCPU() << "::handle_single_step()";
 					str << "{";
 					str << *(arch.ISAs.front()->BehaviourActions.at("single_step"));

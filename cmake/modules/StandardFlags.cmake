@@ -13,6 +13,13 @@ MESSAGE(STATUS "Build type is ${CMAKE_BUILD_TYPE}")
 
 function(standard_flags target-name)
 
+	SET_TARGET_PROPERTIES(${target-name}
+		PROPERTIES
+			CXX_STANDARD 11
+			CXX_STANDARD_REQUIRED YES
+			POSITION_INDEPENDENT_CODE ON
+	)
+
 	IF("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
 		TARGET_COMPILE_OPTIONS(${target-name} PRIVATE -g -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-reorder)
 		SET(CONFIGSTRING "Debug" PARENT_SCOPE)

@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "blockjit/block-compiler/transforms/Transform.h"
 #include "util/wutils/maybe-map.h"
@@ -11,7 +7,6 @@
 
 #include <vector>
 
-
 using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;
@@ -19,17 +14,13 @@ using namespace captive::arch::jit::transforms;
 static void make_instruction_nop(IRInstruction *insn, bool set_block)
 {
 	insn->type = IRInstruction::NOP;
-	insn->operands[0].type = IROperand::NONE;
-	insn->operands[1].type = IROperand::NONE;
-	insn->operands[2].type = IROperand::NONE;
-	insn->operands[3].type = IROperand::NONE;
-	insn->operands[4].type = IROperand::NONE;
-	insn->operands[5].type = IROperand::NONE;
+	insn->operands.clear();
 	if(set_block) insn->ir_block = NOP_BLOCK;
 }
 
-RegisterAllocationTransform::RegisterAllocationTransform(uint32_t num_allocable_registers) : used_phys_regs_(num_allocable_registers), number_allocable_registers_(num_allocable_registers), stack_frame_size_(0) {
-	
+RegisterAllocationTransform::RegisterAllocationTransform(uint32_t num_allocable_registers) : used_phys_regs_(num_allocable_registers), number_allocable_registers_(num_allocable_registers), stack_frame_size_(0)
+{
+
 }
 
 RegisterAllocationTransform::~RegisterAllocationTransform()
@@ -63,7 +54,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 		if(insn->ir_block == NOP_BLOCK) break;
 		if(insn->type == IRInstruction::BARRIER) next_global = 0;
 
-		for (int op_idx = 0; op_idx < 6; op_idx++) {
+		for (unsigned int op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
 			IROperand *oper = &insn->operands[op_idx];
 			if(!oper->is_valid()) break;
 
@@ -102,7 +93,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 
 			// Reset the available register bitfield
 			avail_regs.set_all();
-			
+
 			// Update the latest block id.
 			latest_block_id = insn->ir_block;
 		}
@@ -115,7 +106,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 		live_outs.copy(live_ins);
 
 		// Loop over the VREG operands and update the live-in set accordingly.
-		for (int o = 0; o < 6; o++) {
+		for (unsigned int o = 0; o < insn->operands.size(); o++) {
 			if (!insn->operands[o].is_valid()) break;
 			if (insn->operands[o].type != IROperand::VREG) continue;
 
@@ -152,7 +143,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 			// If the live-in is not already allocated, allocate it.
 			if (allocation[in] == -1 && global_allocation.count(in) == 0) {
 				int32_t next_reg = avail_regs.get_lowest_set();
-				
+
 				if (next_reg == -1) {
 					global_allocation[in] = next_global;
 					next_global += 8;
@@ -172,7 +163,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 		bool can_be_dead = !descr->has_side_effects;
 
 		// Loop over operands to update the allocation information on VREG operands.
-		for (int op_idx = 0; op_idx < 6; op_idx++) {
+		for (unsigned op_idx = 0; op_idx < insn->operands.size(); op_idx++) {
 			IROperand *oper = &insn->operands[op_idx];
 			if(!oper->is_valid()) break;
 

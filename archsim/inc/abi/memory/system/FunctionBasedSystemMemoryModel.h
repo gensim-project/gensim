@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * FunctionBasedSystemMemoryModel.h
  *
@@ -12,7 +14,6 @@
 #include "abi/memory/system/BaseSystemMemoryModel.h"
 #include "abi/memory/system/SystemMemoryTranslationModel.h"
 #include "translate/profile/RegionArch.h"
-#include "translate/llvm/LLVMTranslationContext.h"
 #include "util/PubSubSync.h"
 #include "util/LogContext.h"
 #include "util/RawZoneMap.h"

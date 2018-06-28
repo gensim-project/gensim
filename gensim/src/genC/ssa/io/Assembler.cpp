@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/io/Assembler.h"
 #include "genC/ssa/io/AssemblyReader.h"
@@ -574,7 +570,7 @@ SSAStatement *StatementAssembler::parse_mem_read_statement(pANTLR3_BASE_TREE tre
 	IRConstant width = parse_constant_value(width_node);
 	SSAStatement *addr = get_statement(addr_node);
 	SSASymbol *target = get_symbol(target_name_node);
-	
+
 	gensim::arch::MemoryInterfaceDescription *interface = nullptr;
 
 	return &SSAMemoryReadStatement::CreateRead(block, addr, target, width.Int(), false, interface);
@@ -591,9 +587,9 @@ SSAStatement *StatementAssembler::parse_mem_write_statement(pANTLR3_BASE_TREE tr
 	IRConstant width = parse_constant_value(width_node);
 	SSAStatement *addr = get_statement(addr_node);
 	SSAStatement *target = get_statement(value_node);
-	
+
 	gensim::arch::MemoryInterfaceDescription *interface = nullptr;
-	
+
 	return &SSAMemoryWriteStatement::CreateWrite(block, addr, target, width.Int(), interface);
 }
 

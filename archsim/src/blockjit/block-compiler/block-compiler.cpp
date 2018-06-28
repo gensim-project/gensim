@@ -1,9 +1,12 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/block-compiler/transforms/Transform.h"
 #include "blockjit/block-compiler/lowering/x86/X86LoweringContext.h"
 #include "blockjit/ir-sorter.h"
 #include "blockjit/IRInstruction.h"
 #include "blockjit/IROperand.h"
+#include "blockjit/IRPrinter.h"
 
 #include <algorithm>
 #include <set>
@@ -72,6 +75,17 @@ BlockCompiler::BlockCompiler(TranslationContext& ctx, uint32_t pa, wulib::MemAll
 
 }
 
+void dump_ir(const std::string &name, uint32_t block_pc, TranslationContext &ctx)
+{
+	if(archsim::options::Debug) {
+		archsim::blockjit::IRPrinter printer;
+		std::ostringstream filename_str;
+		filename_str << "blkjit-" << std::hex << block_pc << "-" << name << ".txt";
+		std::ofstream file_stream(filename_str.str().c_str());
+		printer.DumpIR(file_stream, ctx);
+	}
+}
+
 CompileResult BlockCompiler::compile(bool dump_intermediates)
 {
 	uint32_t max_stack = 0;
@@ -90,15 +104,8 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 	transforms::MergeBlocksTransform mergeblocks;
 	if (!mergeblocks.Apply(ctx)) return false;
 
-	transforms::ConstantPropTransform cpt;
-	if (!cpt.Apply(ctx)) return false;
-
 	transforms::PeepholeTransform peephole;
 	if (!peephole.Apply(ctx)) return false;
-
-	sorter.Apply(ctx);
-	transforms::RegValueReuseTransform rvr;
-//	if(!rvr.Apply(ctx)) return false;
 
 	transforms::RegStoreEliminationTransform rse;
 	if(!rse.Apply(ctx)) return false;
@@ -108,35 +115,55 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 	transforms::ValueRenumberingTransform vrt;
 	if(!vrt.Apply(ctx)) return false;
 
-	transforms::RegisterAllocationTransform reg_alloc(BLKJIT_NUM_ALLOCABLE);
+	// dump before register allocation
+	dump_ir("premovelimination", GetBlockPA(), ctx);
+
+	transforms::MovEliminationTransform mov_elimination;
+	if(!mov_elimination.Apply(ctx)) return false;
+
+	dump_ir("preconstantprop", GetBlockPA(), ctx);
+	transforms::ConstantPropTransform cpt;
+	if (!cpt.Apply(ctx)) return false;
+	dump_ir("postconstantprop", GetBlockPA(), ctx);
+
+	transforms::DeadStoreElimination dse;
+	if(!dse.Apply((ctx))) return false;
+
+	sorter.Apply(ctx);
+
+	// dump before register allocation
+	dump_ir("prealloc", GetBlockPA(), ctx);
+
+	transforms::GlobalRegisterAllocationTransform reg_alloc(BLKJIT_NUM_ALLOCABLE);
 	if(!reg_alloc.Apply(ctx)) return false;
+	dump_ir("postalloc", GetBlockPA(), ctx);
+
+//	transforms::GlobalRegisterReuseTransform reg_reuse(reg_alloc.GetUsedPhysRegs());
+//	if(!reg_alloc.Apply(ctx)) return false;
+//	dump_ir("postgrr", GetBlockPA(), ctx);
 
 	if( !post_allocate_peephole()) return false;
 
 	transforms::PostAllocatePeephole pap;
 	if(!pap.Apply(ctx)) return false;
-	
-	transforms::StackToRegTransform str (reg_alloc.GetUsedPhysRegs());
-	if(!str.Apply(ctx)) return false;
-	
+
+
 	sorter.Apply(ctx);
 	transforms::Peephole2Transform p2;
 	if(!p2.Apply(ctx)) return false;
 
 	sorter.Apply(ctx);
 
-	return CompileResult(true, reg_alloc.GetStackFrameSize(), str.GetUsedPhysRegs());
+	// dump before register allocation
+	dump_ir("final", GetBlockPA(), ctx);
+
+	return CompileResult(true, reg_alloc.GetStackFrameSize(), reg_alloc.GetUsedPhysRegs());
 }
 
 static void make_instruction_nop(IRInstruction *insn, bool set_block)
 {
 	insn->type = IRInstruction::NOP;
-	insn->operands[0].type = IROperand::NONE;
-	insn->operands[1].type = IROperand::NONE;
-	insn->operands[2].type = IROperand::NONE;
-	insn->operands[3].type = IROperand::NONE;
-	insn->operands[4].type = IROperand::NONE;
-	insn->operands[5].type = IROperand::NONE;
+	insn->operands.clear();
 	if(set_block) insn->ir_block = NOP_BLOCK;
 }
 
@@ -205,7 +232,7 @@ static bool is_breaker(IRInstruction *add, IRInstruction *test)
 	// If the instruction under test touches the target of the add, then it is a breaker
 	if(test->type != IRInstruction::READ_MEM) {
 		IROperand *add_target = &add->operands[1];
-		for(int op_idx = 0; op_idx < 6; ++op_idx) {
+		for(unsigned int op_idx = 0; op_idx < test->operands.size(); ++op_idx) {
 			if((test->operands[op_idx].alloc_mode == add_target->alloc_mode) && (test->operands[op_idx].alloc_data == add_target->alloc_data)) return true;
 		}
 	}

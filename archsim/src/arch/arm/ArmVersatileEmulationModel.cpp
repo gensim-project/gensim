@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * arch/arm/ArmSystemEmulationModel.cpp
  */
@@ -344,7 +346,7 @@ void ArmVersatileEmulationModel::HandleSemihostingCall()
 ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
 {
 	UNIMPLEMENTED;
-//	
+//
 //	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu.read_pc() << " mode " << (uint32_t)cpu.get_cpu_mode();
 //
 //	if (category == 3 && data == 0x123456) {
@@ -384,5 +386,5 @@ ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::core::threa
 
 gensim::DecodeContext* ArmVersatileEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu)
 {
-	return new archsim::arch::arm::ARMDecodeContext(&cpu);
+	return new archsim::arch::arm::ARMDecodeContext(cpu.GetArch());
 }

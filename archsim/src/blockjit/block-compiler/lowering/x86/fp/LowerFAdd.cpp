@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "blockjit/block-compiler/lowering/x86/X86LoweringContext.h"
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
@@ -20,7 +22,7 @@ bool LowerFAdd::Lower(const captive::shared::IRInstruction *&insn)
 	int width = op1.size;
 
 	assert(dest.is_vreg());
-	
+
 	assert(op1.size == op2.size && op2.size == dest.size);
 	assert(op1.size == 4 || op1.size == 8);
 
@@ -33,7 +35,7 @@ bool LowerFAdd::Lower(const captive::shared::IRInstruction *&insn)
 	} else if(op1.is_constant()) {
 		assert(false);
 	}
-	
+
 	if(op2.is_alloc_stack()) {
 		Encoder().mov(GetLoweringContext().stack_from_operand(&op2), op2_reg);
 	} else if(op2.is_constant()) {
@@ -60,7 +62,7 @@ bool LowerFAdd::Lower(const captive::shared::IRInstruction *&insn)
 	if(dest.is_alloc_stack()) {
 		Encoder().mov(dest_reg, GetLoweringContext().stack_from_operand(&dest));
 	}
-	
+
 	insn++;
 
 	return true;

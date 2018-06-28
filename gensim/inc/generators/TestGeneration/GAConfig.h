@@ -1,9 +1,4 @@
-/*
- * GAConfig.h
- *
- *  Created on: 4 Nov 2013
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef GACONFIG_H_
 #define GACONFIG_H_

@@ -1,9 +1,4 @@
-/*
- * File:   DecodeGenerator.cpp
- * Author: mgould1
- *
- * Created on 04 May 2012, 17:30
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "generators/DecodeGenerator.h"
 #include "DecodeTree.h"

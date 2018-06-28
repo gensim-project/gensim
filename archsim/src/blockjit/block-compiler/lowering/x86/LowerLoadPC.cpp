@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerLoadPC.cpp
  *
@@ -20,8 +22,8 @@ bool LowerLoadPC::Lower(const captive::shared::IRInstruction *&insn)
 
 	assert(target->is_vreg());
 
-	const auto *cpu = GetLoweringContext().GetThread();
-	uint32_t pc_offset = cpu->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC").GetOffset();
+	const auto &rfd = GetLoweringContext().GetArchDescriptor().GetRegisterFileDescriptor();
+	uint32_t pc_offset = rfd.GetTaggedEntry("PC").GetOffset();
 
 	if (target->is_alloc_reg()) {
 		// TODO: FIXME: XXX: HACK HACK HACK

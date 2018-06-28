@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   ARMDecodeContext.h
  * Author: harry
@@ -25,6 +27,8 @@ namespace gensim
 
 namespace archsim
 {
+	class ArchDescriptor;
+
 	namespace arch
 	{
 		namespace arm
@@ -60,23 +64,22 @@ namespace archsim
 			class ARMDecodeContext : public gensim::DecodeContext
 			{
 			public:
-				ARMDecodeContext(archsim::core::thread::ThreadInstance *cpu);
+				ARMDecodeContext(const archsim::ArchDescriptor &arch);
+				virtual ~ARMDecodeContext();
+
+				void Reset(archsim::core::thread::ThreadInstance* thread) override;
+				void WriteBackState(archsim::core::thread::ThreadInstance* thread) override;
 
 				/*
 				 * DecodeSync is the main decode method exposed by the decode context.
 				 * It should be called synchronously with the processor executing
 				 * or translating instructions i.e., not for tracing.
 				 */
-				virtual uint32_t DecodeSync(Address address, uint32_t mode, gensim::BaseDecode &target) override;
-
-				size_t GetITSTATEOffset() const
-				{
-					return _itstate_offset;
-				}
+				virtual uint32_t DecodeSync(archsim::MemoryInterface &interface, Address address, uint32_t mode, gensim::BaseDecode &target) override;
 
 			private:
-				uint8_t *_itstate;
-				size_t _itstate_offset;
+				uint8_t itstate_;
+				const archsim::ArchDescriptor &arch_;
 			};
 
 		}

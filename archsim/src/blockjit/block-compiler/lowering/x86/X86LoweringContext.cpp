@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * X86LoweringContext.cpp
  *
@@ -18,7 +20,7 @@ using namespace captive::arch::jit::lowering;
 using namespace captive::arch::jit::lowering::x86;
 using namespace captive::shared;
 
-X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, const archsim::core::thread::ThreadInstance *thread, const archsim::util::vbitset &used_regs) : LoweringContext(stack_frame_size), _encoder(encoder), _stack_fixed(false), thread_(thread), used_phys_regs(used_regs)
+X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd, const archsim::util::vbitset &used_regs) : MCLoweringContext(stack_frame_size, arch, sbd), _encoder(encoder), _stack_fixed(false), used_phys_regs(used_regs)
 {
 	int i = 0;
 #define ASSIGN_REGS(x) assign(i++, x(8), x(4), x(2), x(1))
@@ -149,19 +151,13 @@ bool X86LoweringContext::Prepare(const TranslationContext &ctx)
 
 	if(archsim::options::SystemMemoryModel == "cache") {
 		A(IRInstruction::READ_MEM, ReadMemCache);
-		A(IRInstruction::READ_MEM_USER, ReadUserMemCache);
 		A(IRInstruction::WRITE_MEM, WriteMemCache);
-		A(IRInstruction::WRITE_MEM_USER, WriteUserMemCache);
 	} else if(archsim::options::SystemMemoryModel == "user") {
 		A(IRInstruction::READ_MEM, ReadMemUser);
-		A(IRInstruction::READ_MEM_USER, ReadUserMemGeneric);
 		A(IRInstruction::WRITE_MEM, WriteMemUser);
-		A(IRInstruction::WRITE_MEM_USER, WriteUserMemGeneric);
 	} else {
 		A(IRInstruction::READ_MEM, ReadMemGeneric);
-		A(IRInstruction::READ_MEM_USER, ReadUserMemGeneric);
 		A(IRInstruction::WRITE_MEM, WriteMemGeneric);
-		A(IRInstruction::WRITE_MEM_USER, WriteUserMemGeneric);
 	}
 #undef A
 
@@ -170,21 +166,126 @@ bool X86LoweringContext::Prepare(const TranslationContext &ctx)
 	return true;
 }
 
-bool X86LoweringContext::LowerHeader(const TranslationContext &ctx)
+bool X86LoweringContext::ABICalleeSave(const X86Register &reg)
+{
+	if(reg.hireg) {
+		switch(reg.raw_index) {
+			case 0:
+				return false;// r8
+			case 1:
+				return false;// r9
+			case 2:
+				return false;// r10
+			case 3:
+				return false;// r11
+			case 4:
+				return true;// r12
+			case 5:
+				return true;// r13
+			case 6:
+				return true;// r14
+			case 7:
+				return true;// r15
+			default:
+				throw std::logic_error("");
+		}
+	} else {
+		switch(reg.raw_index) {
+			case 0:
+				return false; // ax
+			case 1:
+				return false;// cx
+			case 2:
+				return false;// dx
+			case 3:
+				return true;// bx
+			case 4:
+				return true;// sp
+			case 5:
+				return true;// bp
+			case 6:
+				return false;// si
+			case 7:
+				return false;// di
+			default:
+				throw std::logic_error("");
+		}
+	}
+}
+
+std::vector<const X86Register*> X86LoweringContext::GetSavedRegisters()
+{
+	std::vector<const X86Register*> regs;
+
+	for(int i = used_phys_regs.size()-1; i >= 0 ; --i) {
+		if(used_phys_regs.get(i)) {
+			auto &reg = get_allocable_register(i, 8);
+			if(ABICalleeSave(reg)) {
+				regs.push_back(&reg);
+			}
+		}
+	}
+
+	// only actually need to pop return reg if used
+	if(ABICalleeSave(BLKJIT_RETURN(8))) {
+		regs.push_back(&BLKJIT_RETURN(8));
+	}
+	if(ABICalleeSave(BLKJIT_REGSTATE_REG)) {
+		regs.push_back(&BLKJIT_REGSTATE_REG);
+	}
+	if(ABICalleeSave(BLKJIT_CPUSTATE_REG)) {
+		regs.push_back(&BLKJIT_CPUSTATE_REG);
+	}
+
+	return regs;
+}
+
+void X86LoweringContext::EmitPrologue()
 {
 	uint32_t max_stack = GetStackFrameSize();
 
-	GetEncoder().push(BLKJIT_CPUSTATE_REG);
-	GetEncoder().push(BLKJIT_REGSTATE_REG);
-	
-	GetEncoder().mov(REG_RDI, BLKJIT_REGSTATE_REG);
-	GetEncoder().mov(REG_RSI, BLKJIT_CPUSTATE_REG);
+	auto saved_regs = GetSavedRegisters();
+	for(auto i : saved_regs) {
+		GetEncoder().push(*i);
+	}
 
 	if(max_stack & 15) {
 		max_stack = (max_stack & ~15) + 16;
 	}
-
+	if((saved_regs.size() & 0x1)) {
+		max_stack += 8;
+	}
 	if(max_stack) GetEncoder().sub(max_stack, REG_RSP);
+}
+
+
+void X86LoweringContext::EmitEpilogue()
+{
+	auto saved_regs = GetSavedRegisters();
+
+	uint32_t max_stack = GetStackFrameSize();
+	if(max_stack & 15) {
+		max_stack = (max_stack & ~15) + 16;
+	}
+	if((saved_regs.size() & 0x1)) {
+		max_stack += 8;
+	}
+	if(max_stack)
+		GetEncoder().add(max_stack, REG_RSP);
+
+	// need to pop used regs
+	for(int i = saved_regs.size()-1; i >= 0 ; --i) {
+		GetEncoder().pop(*saved_regs.at(i));
+	}
+}
+
+
+bool X86LoweringContext::LowerHeader(const TranslationContext &ctx)
+{
+	EmitPrologue();
+
+	GetEncoder().mov(REG_RDI, BLKJIT_REGSTATE_REG);
+	GetEncoder().mov(REG_RSI, BLKJIT_CPUSTATE_REG);
 
 	return true;
 }
@@ -203,7 +304,7 @@ bool X86LoweringContext::PerformRelocations(const TranslationContext &ctx)
 	return true;
 }
 
-LoweringContext::offset_t X86LoweringContext::GetEncoderOffset()
+MCLoweringContext::offset_t X86LoweringContext::GetEncoderOffset()
 {
 	return GetEncoder().current_offset();
 }
@@ -244,7 +345,7 @@ void X86LoweringContext::emit_save_reg_state(int num_operands, stack_map_t &stac
 	}
 }
 
-void X86LoweringContext::emit_restore_reg_state(int num_operands, stack_map_t &stack_map, bool fix_stack, uint32_t live_regs)
+void X86LoweringContext::emit_restore_reg_state(bool fix_stack, uint32_t live_regs)
 {
 
 	for(unsigned int i = 0; i < used_phys_regs.size(); ++i) {
@@ -259,12 +360,12 @@ void X86LoweringContext::emit_restore_reg_state(int num_operands, stack_map_t &s
 }
 
 void X86LoweringContext::encode_operand_function_argument(const IROperand *oper, const X86Register& target_reg, stack_map_t &stack_map)
-{	
+{
 	uint8_t stack_offset_adjust = 8;
 	if(stack_map.size() % 2) {
 		stack_offset_adjust = 0;
 	}
-	
+
 	if (oper->is_constant() == IROperand::CONSTANT) {
 		if(oper->value == 0) GetEncoder().xorr(target_reg, target_reg);
 		else GetEncoder().mov(oper->value, target_reg);
