@@ -48,9 +48,13 @@ void GenCContext::LoadExternalFunctions()
 	AddExternalFunction("flush", IRTypes::Void, {});
 	AddExternalFunction("flush_dtlb", IRTypes::Void, {});
 	AddExternalFunction("flush_itlb", IRTypes::Void, {});
-	AddExternalFunction("flush_dtlb_entry", IRTypes::Void, {IRParam("addr", IRTypes::UInt64)});
-	AddExternalFunction("flush_itlb_entry", IRTypes::Void, {IRParam("addr", IRTypes::UInt64)});
-	AddExternalFunction("pgt_change", IRTypes::Void, {});
+	AddExternalFunction("flush_dtlb_entry", IRTypes::Void, {IRParam("addr", wordtype)});
+	AddExternalFunction("flush_itlb_entry", IRTypes::Void, {IRParam("addr", wordtype)});
+
+	AddExternalFunction("mmu_flush_all", IRTypes::Void, {});
+	AddExternalFunction("mmu_flush_va", IRTypes::Void, {IRParam("addr", wordtype)});
+	AddExternalFunction("mmu_notify_asid_change", IRTypes::Void, {IRParam("asid", IRTypes::UInt32)});
+	AddExternalFunction("mmu_notify_pgt_change", IRTypes::Void, {});
 
 	// Floating-point
 	AddExternalFunction("__builtin_clear_fpex", IRTypes::Void, {});
@@ -81,6 +85,9 @@ void GenCContext::LoadExternalFunctions()
 	AddExternalFunction("__builtin_cmpf32e_flags", IRTypes::Void, {IRParam("a", IRTypes::Float), IRParam("b", IRTypes::Float)});
 	AddExternalFunction("__builtin_cmpf64_flags", IRTypes::Void, {IRParam("a", IRTypes::Double), IRParam("b", IRTypes::Double)});
 	AddExternalFunction("__builtin_cmpf64e_flags", IRTypes::Void, {IRParam("a", IRTypes::Double), IRParam("b", IRTypes::Double)});
+
+	AddExternalFunction("__builtin_polymul8", IRTypes::UInt16, {IRParam("a", IRTypes::UInt8), IRParam("b", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_polymul64", IRTypes::UInt128, {IRParam("a", IRTypes::UInt64), IRParam("b", IRTypes::UInt64)});
 }
 
 SSAStatement *IRCallExpression::EmitExternalCall(SSABuilder &bldr, const gensim::arch::ArchDescription &Arch) const

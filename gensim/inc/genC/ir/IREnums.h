@@ -26,9 +26,10 @@ namespace gensim
 				INT16 = 3,
 				INT32 = 4,
 				INT64 = 5,
-				FLOAT = 6,
-				DOUBLE = 7,
-				LONG_DOUBLE = 8
+				INT128 = 6,
+				FLOAT = 7,
+				DOUBLE = 8,
+				LONG_DOUBLE = 9
 			};
 		}
 

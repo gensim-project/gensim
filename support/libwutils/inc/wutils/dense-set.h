@@ -4,7 +4,6 @@
 #ifndef WULIB_DENSE_SET_H
 #define WULIB_DENSE_SET_H
 
-#include <vector>
 #include <cassert>
 #include <cstdint>
 #include <cstring>

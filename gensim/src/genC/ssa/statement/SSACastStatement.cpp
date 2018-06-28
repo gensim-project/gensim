@@ -39,6 +39,10 @@ SSACastStatement::CastType SSACastStatement::GetCastType() const
 				option_ = Option_RoundDefault;
 				break;
 			}
+			case IRType::PROMOTE_VECTOR: {
+				cast_type_ = SSACastStatement::Cast_VectorSplat;
+				break;
+			}
 			default:
 				UNEXPECTED;
 		}

@@ -208,6 +208,10 @@ bool ArchDescriptorGenerator::GenerateHeader(util::cppformatstream &str) const
 	str << "#include <core/thread/ThreadInstance.h>\n";
 	str << "#include <gensim/gensim_processor_api.h>\n";
 	str << "#include <util/Vector.h>\n";
+
+	str << "#include <util/int128.h>\n";
+	str << "using uint128_t = wutils::int128<false>;";
+
 	str << "namespace gensim {";
 	str << "namespace " << Manager.GetArch().Name << " {";
 	str << "class ArchDescriptor : public archsim::ArchDescriptor {";
