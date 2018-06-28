@@ -160,13 +160,13 @@ namespace gensim
 			}
 
 		private:
-			static IRType _UInt1(), _Int8(), _Int16(), _Int32(), _Int64(), _UInt8(), _UInt16(), _UInt32(), _UInt64(), _Void(), _Float(), _Double(), _LongDouble(), _Block(), _Function();
+			static IRType _UInt1(), _Int8(), _Int16(), _Int32(), _Int64(), _Int128(), _UInt8(), _UInt16(), _UInt32(), _UInt64(), _UInt128(), _Void(), _Float(), _Double(), _LongDouble(), _Block(), _Function();
 		};
 
 		class IRTypes
 		{
 		public:
-			static const IRType UInt1, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64, Void, Float, Double, LongDouble, Block, Function;
+			static const IRType UInt1, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, Void, Float, Double, LongDouble, Block, Function;
 		};
 
 		class IRStructType

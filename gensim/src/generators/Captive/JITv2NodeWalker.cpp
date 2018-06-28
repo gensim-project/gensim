@@ -68,6 +68,8 @@ namespace gensim
 						return "emitter.const_u32(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::UInt64) {
 						return "emitter.const_u64(" + node.GetFixedValue() + ")";
+					} else if (node.Statement.GetType() == IRTypes::UInt128) {
+						return "emitter.const_u128(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::Int8) {
 						return "emitter.const_s8(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::Int16) {
@@ -76,6 +78,8 @@ namespace gensim
 						return "emitter.const_s32(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::Int64) {
 						return "emitter.const_s64(" + node.GetFixedValue() + ")";
+					} else if (node.Statement.GetType() == IRTypes::Int128) {
+						return "emitter.const_s128(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::Float) {
 						return "emitter.const_f32(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::Double) {
