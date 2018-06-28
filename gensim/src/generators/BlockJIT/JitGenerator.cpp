@@ -322,7 +322,7 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 		}
 		src_stream << "// Reg " << symbol->GetName() << std::endl;
 		src_stream << symbol->GetType().GetCType() << " CV_" << symbol->GetName() << ";";
-		src_stream << "const IRRegId ir_idx_" << symbol->GetName() << " = builder.alloc_reg(" << symbol->GetType().Size() << ");";
+		src_stream << "const IRRegId ir_idx_" << symbol->GetName() << " = builder.alloc_reg(" << symbol->GetType().SizeInBytes() << ");";
 	}
 
 	src_stream << "goto block_" << action.EntryBlock->GetName() << ";\n";

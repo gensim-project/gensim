@@ -295,7 +295,7 @@ namespace gensim
 
 			if(from.Signed && to.Signed) {
 				// sign extend from value to 64 bits
-				switch(from.Size()) {
+				switch(from.SizeInBytes()) {
 					case 1:
 						result = IRConstant::Integer((int64_t)(int8_t)value.Int());
 						break;
@@ -331,7 +331,7 @@ namespace gensim
 				return IRConstant::Integer(result);
 			}
 
-			uint64_t mask = (1ULL << (to.Size()*8))-1;
+			uint64_t mask = (1ULL << (to.SizeInBytes()*8))-1;
 			cast_value = result.Int() & mask;
 
 			return IRConstant::Integer(cast_value);
@@ -412,7 +412,7 @@ namespace gensim
 				}
 			}
 		}
-		uint32_t IRType::Size() const
+		uint32_t IRType::SizeInBytes() const
 		{
 			assert(VectorWidth != 0);
 			return VectorWidth * ElementSize();
@@ -448,7 +448,7 @@ namespace gensim
 				const IRStructType &t = *BaseType.StructType;
 				uint32_t size = 0;
 				for (std::vector<IRStructType::IRStructMember>::const_iterator ci = t.Members.begin(); ci != t.Members.end(); ++ci) {
-					size += ci->Type.Size();
+					size += ci->Type.SizeInBytes();
 				}
 				return size;
 			}
@@ -571,7 +571,7 @@ namespace gensim
 						return "f80";
 				} else {
 					if (Signed) {
-						switch (Size()) {
+						switch (SizeInBytes()) {
 							case 1:
 								return "s8";
 							case 2:
@@ -582,7 +582,7 @@ namespace gensim
 								return "s64";
 						}
 					} else {
-						switch (Size()) {
+						switch (SizeInBytes()) {
 							case 1:
 								return "u8";
 							case 2:
@@ -615,7 +615,7 @@ namespace gensim
 			assert(DataType == PlainOldData);
 			assert(!IsFloating());
 
-			return 1 << ((8*Size()) - 1);
+			return 1 << ((8*SizeInBytes()) - 1);
 		}
 
 		IRType IRType::GetElementType() const
@@ -643,7 +643,7 @@ namespace gensim
 			uint32_t offset = 0;
 			for (std::vector<IRStructMember>::const_iterator ci = Members.begin(); ci != Members.end(); ++ci) {
 				if (ci->Name == member) return offset;
-				offset += ci->Type.Size();
+				offset += ci->Type.SizeInBytes();
 			}
 			assert(false && "Could not find struct member");
 			return 0;

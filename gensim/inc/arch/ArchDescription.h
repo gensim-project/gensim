@@ -97,7 +97,7 @@ namespace gensim
 			bool PrettyPrint(std::ostream &) const;
 
 			uint32_t GetMaxInstructionSize() const;
-			
+
 		private:
 			// disallow copy
 			ArchDescription(const ArchDescription &orig);
