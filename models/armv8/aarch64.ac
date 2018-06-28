@@ -40,7 +40,7 @@ AC_ARCH(aarch64)
 		bank VS    (uint32, 0, 32, 16, 1, 4, 4);
 		bank VD    (uint64, 0, 32, 16, 1, 8, 8);
 
-		bank FS     (float, 0, 32, 16, 1, 4, 4);
+		bank FS    (float,  0, 32, 16, 1, 4, 4);
 		bank FSH   (uint32, 4, 32, 16, 1, 4, 4);
 		bank FD    (double, 0, 32, 16, 1, 8, 8);
 		
@@ -54,6 +54,8 @@ AC_ARCH(aarch64)
 		bank VB4S  (uint32, 0, 32, 16, 4, 4, 4);
 
 		bank VB2D  (uint64, 0, 32, 16, 2, 8, 8);
+		
+		bank VB1Q  (uint128, 0, 32, 16, 1, 16, 16);
 	}
 
 	ac_regspace(16) {
@@ -74,10 +76,14 @@ AC_ARCH(aarch64)
 		slot MODE (uint8, 1, 9) ISA;
 	}
 	
-	ac_regspace(32) {
-		slot TTBR0 (uint64, 8, 0);
-		slot TTBR1 (uint64, 8, 8);
-		slot VBAR  (uint64, 8, 16);
+	ac_regspace(64) {
+		slot TTBR0   (uint64, 8, 0);
+		slot TTBR1   (uint64, 8, 8);
+		slot TCR_EL1 (uint64, 8, 16);
+		slot VBAR    (uint64, 8, 24);
+		
+		slot TPIDR_EL0 (uint64, 8, 32);
+		slot TPIDR_EL1 (uint64, 8, 40);
 	}
 	
 	ac_regspace(128) {
@@ -104,7 +110,9 @@ AC_ARCH(aarch64)
 		feature A64_EL;
 		feature A64_SPSEL;
 		feature A64_SS;
+		feature A64_A1;
 		feature EMULATE_LINUX;
+		feature EMULATE_LINUX_ARCHSIM;
 	}
 
 	ARCH_CTOR(arm)

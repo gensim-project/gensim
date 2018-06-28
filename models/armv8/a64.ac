@@ -51,8 +51,8 @@ AC_ISA(a64)
 	ac_behaviour exgen;
 	
 	ac_format SYSTEM = "0x354:10 %l:1 %op0:2 %op1:3 %crn:4 %crm:4 %op2:3 %rt:5";
-	ac_instr<SYSTEM> msr_imm, msr_reg, mrs, hint, barrier, sys;
-	ac_behaviour msr_imm, msr_reg, mrs, hint, barrier, sys;
+	ac_instr<SYSTEM> msr_imm, msr_reg, mrs, hint, barrier, sys, clrex;
+	ac_behaviour msr_imm, msr_reg, mrs, hint, barrier, sys, clrex;
 	
 	ac_format TEST_B_IMM = "%b5:1 0x1b:6 %op:1 %b40:5 %imm14:14 %rt:5";
 	ac_instr<TEST_B_IMM> tbz;
@@ -395,12 +395,16 @@ AC_ISA(a64)
 		msr_reg.set_decoder(l=0, op0=2);
 		msr_reg.set_decoder(l=0, op0=3);
 		msr_reg.set_asm("msr S%imm_%imm_C%imm_C%imm_%imm, %regx", op0, op1, crn, crm, op2, rt);
+		msr_reg.set_asm("msr %regx, tpidr_el0", rt, op0=3,op1=3,crn=13,crm=0,op2=2);
+		msr_reg.set_asm("msr %regx, tpidr_el1", rt, op0=3,op1=0,crn=13,crm=0,op2=4);
 		msr_reg.set_behaviour(msr_reg);
 		
 		mrs.set_decoder(l=1, op0=2);
 		mrs.set_decoder(l=1, op0=3);
 		mrs.set_asm("mrs %regx, S%imm_%imm_C%imm_C%imm_%imm", rt, op0, op1, crn, crm, op2);
 		mrs.set_asm("mrs %regx, currentel", rt, op0=3,op1=0,crn=4,crm=2,op2=2);
+		mrs.set_asm("mrs %regx, tpidr_el0", rt, op0=3,op1=3,crn=13,crm=0,op2=2);
+		mrs.set_asm("mrs %regx, tpidr_el1", rt, op0=3,op1=0,crn=13,crm=0,op2=4);
 		mrs.set_behaviour(mrs);
 		
 		//hint.set_decoder(l=0, op0=0, op1=3, crn=2, crm!=0, rt=31);
@@ -442,9 +446,15 @@ AC_ISA(a64)
 		sys.set_asm("ic iallu %regx", rt,   op1=0, crn=7, crm=5, op2=0);
 		sys.set_asm("ic ivau %regx", rt,    op1=3, crn=7, crm=5, op2=1);
 		
+		sys.set_asm("tlbi vmalle1is", op1=0, crn=8, crm=3, op2=0);
+		sys.set_asm("tlbi vae1is, %regx", rt, op1=0, crn=8, crm=3, op2=1);		
 		sys.set_asm("tlbi %regx", rt, crn=8);
 		
 		sys.set_behaviour(sys);
+		
+		clrex.set_decoder(l=0, op0=0, op1=3, crn=3, op2=2, rt=31);
+		clrex.set_asm("clrex");
+		clrex.set_behaviour(clrex);
 		
 		// Test & Branch
 		tbz.set_decoder();
