@@ -695,76 +695,81 @@ static unsigned int syscall_return_enosys(archsim::core::thread::ThreadInstance*
 	return -ENOSYS;
 }
 
-DEFINE_SYSCALL("arm", __NR_exit, sys_exit, "exit()");
-DEFINE_SYSCALL("arm", __NR_exit_group, sys_exit, "exit_group()");
+DEFINE_SYSCALL(arm, __NR_exit, sys_exit, "exit()");
+DEFINE_SYSCALL(arm, __NR_exit_group, sys_exit, "exit_group()");
 
-DEFINE_SYSCALL("arm", __NR_open, sys_open, "open(path=%p, mode=%d, flags=%d)");
-DEFINE_SYSCALL("arm", __NR_openat, sys_openat, "open(dirfd=%u, path=%p, mode=%d, flags=%d)");
-DEFINE_SYSCALL("arm", __NR_close, sys_close, "close(fd=%d)");
-DEFINE_SYSCALL("arm", __NR_read, sys_read, "read(fd=%d, addr=%p, len=%d)");
-DEFINE_SYSCALL("arm", __NR_write, sys_write, "write(fd=%d, addr=%p, len=%d)");
-DEFINE_SYSCALL("arm", __NR_lseek, sys_lseek, "lseek(fd=%d, offset=%d, whence=%d)");
-DEFINE_SYSCALL("arm", __NR__llseek, sys_llseek, "llseek(fd=%d, offset_high=%d, offset_low=%d, offset_result=%x, whence=%d)");
-DEFINE_SYSCALL("arm", __NR_unlink, sys_unlink, "unlink(path=%p)");
+DEFINE_SYSCALL(arm, __NR_open, sys_open, "open(path=%p, mode=%d, flags=%d)");
+DEFINE_SYSCALL(arm, __NR_openat, sys_openat, "open(dirfd=%u, path=%p, mode=%d, flags=%d)");
+DEFINE_SYSCALL(arm, __NR_close, sys_close, "close(fd=%d)");
+DEFINE_SYSCALL(arm, __NR_read, sys_read, "read(fd=%d, addr=%p, len=%d)");
+DEFINE_SYSCALL(arm, __NR_write, sys_write, "write(fd=%d, addr=%p, len=%d)");
+DEFINE_SYSCALL(arm, __NR_lseek, sys_lseek, "lseek(fd=%d, offset=%d, whence=%d)");
+DEFINE_SYSCALL(arm, __NR__llseek, sys_llseek, "llseek(fd=%d, offset_high=%d, offset_low=%d, offset_result=%x, whence=%d)");
+DEFINE_SYSCALL(arm, __NR_unlink, sys_unlink, "unlink(path=%p)");
 
-DEFINE_SYSCALL("arm", __NR_dup, sys_dup, "dup(oldfd=%d)");
+DEFINE_SYSCALL(arm, __NR_dup, sys_dup, "dup(oldfd=%d)");
 
-DEFINE_SYSCALL("arm", __NR_uname, sys_uname, "uname(addr=%p)");
-DEFINE_SYSCALL("arm", __NR_writev, sys_writev, "writev()");
-DEFINE_SYSCALL("arm", __NR_mmap, sys_mmap, "mmap()");
-DEFINE_SYSCALL("arm", __NR_mmap2, sys_mmap2, "mmap2(addr=%p, size=%u, prot=%d, flags=%d, fd=%d, pgoff=%u)");
-DEFINE_SYSCALL("arm", __NR_mremap, sys_mremap, "mremap()");
-DEFINE_SYSCALL("arm", __NR_munmap, sys_munmap, "munmap(addr=%p, size=%d)");
-DEFINE_SYSCALL("arm", __NR_mprotect, sys_mprotect, "mprotect(addr=%p, size=%d, prot=%d)");
-DEFINE_SYSCALL("arm", __NR_fstat64, sys_fstat64, "fstat64(fd=%d, addr=%p)");
-DEFINE_SYSCALL("arm", __NR_stat64, sys_stat64, "stat64(path=%p, addr=%p)");
-DEFINE_SYSCALL("arm", __NR_lstat64, sys_lstat64, "lstat64(path=%p, addr=%p)");
-DEFINE_SYSCALL("arm", __NR_ioctl, sys_ioctl, "ioctl(fd=%d, request=%d, ...)");
-DEFINE_SYSCALL("arm", __NR_fcntl64, sys_fcntl64, "fcntl64(fd=%d, cmd=%d, ...)");
+DEFINE_SYSCALL(arm, __NR_uname, sys_uname, "uname(addr=%p)");
+DEFINE_SYSCALL(arm, __NR_writev, sys_writev, "writev()");
+DEFINE_SYSCALL(arm, __NR_mmap, sys_mmap, "mmap()");
+DEFINE_SYSCALL(arm, __NR_mmap2, sys_mmap2, "mmap2(addr=%p, size=%u, prot=%d, flags=%d, fd=%d, pgoff=%u)");
+DEFINE_SYSCALL(arm, __NR_mremap, sys_mremap, "mremap()");
+DEFINE_SYSCALL(arm, __NR_munmap, sys_munmap, "munmap(addr=%p, size=%d)");
+DEFINE_SYSCALL(arm, __NR_mprotect, sys_mprotect, "mprotect(addr=%p, size=%d, prot=%d)");
+DEFINE_SYSCALL(arm, __NR_fstat64, sys_fstat64, "fstat64(fd=%d, addr=%p)");
+DEFINE_SYSCALL(arm, __NR_stat64, sys_stat64, "stat64(path=%p, addr=%p)");
+DEFINE_SYSCALL(arm, __NR_lstat64, sys_lstat64, "lstat64(path=%p, addr=%p)");
+DEFINE_SYSCALL(arm, __NR_ioctl, sys_ioctl, "ioctl(fd=%d, request=%d, ...)");
+DEFINE_SYSCALL(arm, __NR_fcntl64, sys_fcntl64, "fcntl64(fd=%d, cmd=%d, ...)");
 
-DEFINE_SYSCALL("arm", __NR_mkdir, sys_mkdir, "mkdir(path=%s, mode=%d)");
-DEFINE_SYSCALL("arm", __NR_getcwd, sys_getcwd, "getcwd(path=%p, size=%d)");
+DEFINE_SYSCALL(arm, __NR_mkdir, sys_mkdir, "mkdir(path=%s, mode=%d)");
+DEFINE_SYSCALL(arm, __NR_getcwd, sys_getcwd, "getcwd(path=%p, size=%d)");
 
-DEFINE_SYSCALL("arm", __ARM_NR_set_tls, sys_arm_settls, "settls(addr=%p)");
-DEFINE_SYSCALL("arm", __NR_brk, sys_brk, "brk(new_brk=%p)");
+DEFINE_SYSCALL(arm, __ARM_NR_set_tls, sys_arm_settls, "settls(addr=%p)");
+DEFINE_SYSCALL(arm, __NR_brk, sys_brk, "brk(new_brk=%p)");
 
-DEFINE_SYSCALL("arm", __NR_gettid, syscall_return_zero, "gettid()");
-DEFINE_SYSCALL("arm", __NR_getpid, syscall_return_zero, "getpid()");
-DEFINE_SYSCALL("arm", __NR_getuid, syscall_return_zero, "getuid()");
-DEFINE_SYSCALL("arm", __NR_getgid, syscall_return_zero, "getgid()");
-DEFINE_SYSCALL("arm", __NR_geteuid, syscall_return_zero, "geteuid()");
-DEFINE_SYSCALL("arm", __NR_getegid, syscall_return_zero, "getegid()");
-DEFINE_SYSCALL("arm", __NR_getuid32, syscall_return_zero, "getuid32()");
-DEFINE_SYSCALL("arm", __NR_getgid32, syscall_return_zero, "getgid32()");
-DEFINE_SYSCALL("arm", __NR_geteuid32, syscall_return_zero, "geteuid32()");
-DEFINE_SYSCALL("arm", __NR_getegid32, syscall_return_zero, "getegid32()");
+DEFINE_SYSCALL(arm, __NR_gettid, syscall_return_zero, "gettid()");
+DEFINE_SYSCALL(arm, __NR_getpid, syscall_return_zero, "getpid()");
+DEFINE_SYSCALL(arm, __NR_getuid, syscall_return_zero, "getuid()");
+DEFINE_SYSCALL(arm, __NR_getgid, syscall_return_zero, "getgid()");
+DEFINE_SYSCALL(arm, __NR_geteuid, syscall_return_zero, "geteuid()");
+DEFINE_SYSCALL(arm, __NR_getegid, syscall_return_zero, "getegid()");
+DEFINE_SYSCALL(arm, __NR_getuid32, syscall_return_zero, "getuid32()");
+DEFINE_SYSCALL(arm, __NR_getgid32, syscall_return_zero, "getgid32()");
+DEFINE_SYSCALL(arm, __NR_geteuid32, syscall_return_zero, "geteuid32()");
+DEFINE_SYSCALL(arm, __NR_getegid32, syscall_return_zero, "getegid32()");
 
-DEFINE_SYSCALL("arm", __NR_gettimeofday, sys_gettimeofday, "gettimeofday()");
+DEFINE_SYSCALL(arm, __NR_gettimeofday, sys_gettimeofday, "gettimeofday()");
 
-DEFINE_SYSCALL("arm", __NR_rt_sigprocmask, sys_rt_sigprocmask, "rt_sigprocmask(how=%d, set=%p, old_set=%p)");
-DEFINE_SYSCALL("arm", __NR_rt_sigaction, sys_rt_sigaction, "rt_sigaction(signum=%d, act=%p, old_act=%p)");
-DEFINE_SYSCALL("arm", __NR_nanosleep, sys_nanosleep, "nanosleep(req=%p, rem=%p)");
-DEFINE_SYSCALL("arm", __NR_times, sys_times, "times(buf=%p)");
-DEFINE_SYSCALL("arm", __NR_clock_gettime, sys_clock_gettime, "clock_gettime(clk_id=%u, timespec=%p)");
+DEFINE_SYSCALL(arm, __NR_rt_sigprocmask, sys_rt_sigprocmask, "rt_sigprocmask(how=%d, set=%p, old_set=%p)");
+DEFINE_SYSCALL(arm, __NR_rt_sigaction, sys_rt_sigaction, "rt_sigaction(signum=%d, act=%p, old_act=%p)");
+DEFINE_SYSCALL(arm, __NR_nanosleep, sys_nanosleep, "nanosleep(req=%p, rem=%p)");
+DEFINE_SYSCALL(arm, __NR_times, sys_times, "times(buf=%p)");
+DEFINE_SYSCALL(arm, __NR_clock_gettime, sys_clock_gettime, "clock_gettime(clk_id=%u, timespec=%p)");
 
-DEFINE_SYSCALL("arm", __ARM_NR_cacheflush, sys_cacheflush, "cacheflush(%p, %p)");
+DEFINE_SYSCALL(arm, __ARM_NR_cacheflush, sys_cacheflush, "cacheflush(%p, %p)");
 
+/* Aarch64 System calls */
+DEFINE_SYSCALL(aarch64, 1, sys_exit, "exit()");
+DEFINE_SYSCALL(aarch64, 3, sys_read, "read()");
+DEFINE_SYSCALL(aarch64, 4, sys_write, "write()");
+DEFINE_SYSCALL(aarch64, 214, sys_brk, "brk()");
 
 /* RISC-V SYSTEM CALLS */
-DEFINE_SYSCALL("risc-v", 64, sys_write, "write(fd=%d, addr=%p, len=%d)");
-DEFINE_SYSCALL("risc-v", 160, sys_uname, "uname(addr=%p)");
-DEFINE_SYSCALL("risc-v", 214, sys_brk, "brk(new_brk=%p)");
-DEFINE_SYSCALL("risc-v", 78, syscall_return_enosys, "readlinkat(dirfd=%d, pathname=%p, buf=%p, bufsiz=%u)");
-DEFINE_SYSCALL("risc-v", 222, sys_mmap, "mmap()");
+DEFINE_SYSCALL(riscv, 64, sys_write, "write(fd=%d, addr=%p, len=%d)");
+DEFINE_SYSCALL(riscv, 160, sys_uname, "uname(addr=%p)");
+DEFINE_SYSCALL(riscv, 214, sys_brk, "brk(new_brk=%p)");
+DEFINE_SYSCALL(riscv, 78, syscall_return_enosys, "readlinkat(dirfd=%d, pathname=%p, buf=%p, bufsiz=%u)");
+DEFINE_SYSCALL(riscv, 222, sys_mmap, "mmap()");
 //DEFINE_SYSCALL("risc-v", 80, sys_fstat, "fstat()");
-DEFINE_SYSCALL("risc-v", 93, sys_exit, "exit()");
-DEFINE_SYSCALL("risc-v", 94, sys_exit, "exit_group()");
-DEFINE_SYSCALL("risc-v", 215, sys_munmap, "fstat()");
+DEFINE_SYSCALL(riscv, 93, sys_exit, "exit()");
+DEFINE_SYSCALL(riscv, 94, sys_exit, "exit_group()");
+DEFINE_SYSCALL(riscv, 215, sys_munmap, "fstat()");
 
 
-DEFINE_SYSCALL("risc-v", 56, sys_openat, "openat(dirfd=%d, pathname=%p, flags=%d, mode=%d)");
-DEFINE_SYSCALL("risc-v", 23, syscall_return_enosys, "_unknown_()");
+DEFINE_SYSCALL(riscv, 56, sys_openat, "openat(dirfd=%d, pathname=%p, flags=%d, mode=%d)");
+DEFINE_SYSCALL(riscv, 23, syscall_return_enosys, "_unknown_()");
 //DEFINE_SYSCALL("risc-v", 25, sys_fcntl, "fcntl()");
-DEFINE_SYSCALL("risc-v", 80, sys_fstat, "fstat()");
-DEFINE_SYSCALL("risc-v", 57, sys_close, "close()");
-DEFINE_SYSCALL("risc-v", 63, sys_read, "read()");
+DEFINE_SYSCALL(riscv, 80, sys_fstat, "fstat()");
+DEFINE_SYSCALL(riscv, 57, sys_close, "close()");
+DEFINE_SYSCALL(riscv, 63, sys_read, "read()");

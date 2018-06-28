@@ -30,16 +30,16 @@ namespace archsim
 
 			archsim::core::thread::ThreadInstance *thread;
 
-			unsigned int arg0;
-			unsigned int arg1;
-			unsigned int arg2;
-			unsigned int arg3;
-			unsigned int arg4;
-			unsigned int arg5;
+			unsigned long int arg0;
+			unsigned long int arg1;
+			unsigned long int arg2;
+			unsigned long int arg3;
+			unsigned long int arg4;
+			unsigned long int arg5;
 		};
 
 		struct SyscallResponse {
-			unsigned int result;
+			unsigned long int result;
 			ExceptionAction action;
 		};
 
@@ -77,13 +77,16 @@ namespace archsim
 			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, unsigned int category, unsigned int data) override;
 			void PrintStatistics(std::ostream& stream) override;
 
-			bool Is64BitBinary() const { return is_64bit_; }
+			bool Is64BitBinary() const
+			{
+				return is_64bit_;
+			}
 		private:
 			bool PrepareStack(System &system, Address elf_phdr_location, uint32_t elf_phnum, uint32_t elf_phentsize);
 			bool InitialiseProgramArguments();
 
 			bool is_64bit_;
-			
+
 			user::SyscallHandler &syscall_handler_;
 
 			int global_argc, global_envc;

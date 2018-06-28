@@ -111,7 +111,7 @@ static void* thread_entry_point(void* arg)
 
 		assert(thread->is_valid() && "Thread is invalid!");
 	}
-	
+
 	// Execute run method on Thread instance
 	//
 	thread->run();

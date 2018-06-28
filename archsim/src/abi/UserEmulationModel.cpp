@@ -19,7 +19,7 @@ DeclareChildLogContext(LogEmulationModelUser, LogEmulationModel, "User");
 using namespace archsim::abi;
 using archsim::Address;
 
-UserEmulationModel::UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary) : syscall_handler_(user::SyscallHandlerProvider::Singleton().Get(arch)) { }
+UserEmulationModel::UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary) : syscall_handler_(user::SyscallHandlerProvider::Singleton().Get(arch)), is_64bit_(is_64bit_binary) { }
 
 UserEmulationModel::~UserEmulationModel() { }
 
@@ -124,13 +124,13 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 
 //	printf("Start (%08x)\n", sp);
 
-#define PUSH32(_val)   do { sp -= 4; GetMemoryModel().Write32(sp, _val); } while (0)
+#define PUSH(_val)   do { if(Is64BitBinary()) { sp -= 8; GetMemoryModel().Write64(sp, _val); } else { sp -= 4; GetMemoryModel().Write32(sp, _val);  } } while (0)
 #define PUSHSTR(_str)  do { sp -= (strlen(_str) + 1); GetMemoryModel().WriteString(sp, _str); } while (0)
 #define ALIGN_STACK(v) do { sp -= ((uint64_t)sp.Get() & (v - 1)); } while (0)
-#define PUSH_AUX_ENT(_id, _value) do { PUSH32(_value); PUSH32(_id); } while (0)
+#define PUSH_AUX_ENT(_id, _value) do { PUSH(_value); PUSH(_id); } while (0)
 #define STACK_ROUND(_sp, _items) (((unsigned long) (_sp - _items)) &~ 15UL)
 
-	PUSH32(0);
+	PUSH(0);
 	PUSHSTR(archsim::options::TargetBinary.GetValue().c_str()); // global_argv[0]);
 
 	for (int i = 0; i < global_envc; i++) {
@@ -182,14 +182,14 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	PUSH_AUX_ENT(31, argv_ptrs[0]);  // AT_EXECFN
 
 	// ENVP ARRAY
-	PUSH32(0);
-	for (int i = global_envc - 1; i >= 0; i--) PUSH32(envp_ptrs[i]);
+	PUSH(0);
+	for (int i = global_envc - 1; i >= 0; i--) PUSH(envp_ptrs[i]);
 
 	// ARGV ARRAY
-	PUSH32(0);
-	for (int i = global_argc; i >= 0; i--) PUSH32(argv_ptrs[i]);
+	PUSH(0);
+	for (int i = global_argc; i >= 0; i--) PUSH(argv_ptrs[i]);
 
-	PUSH32(global_argc + 1);
+	PUSH(global_argc + 1);
 
 //	printf("Finished. (%08x)\n", sp);
 	_initial_stack_pointer = sp;
@@ -199,19 +199,19 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 
 struct LoadedBinaryInfo {
 	bool Success;
-	
+
 	Address InitialBreak;
 	Address EntryPoint;
 	Address EntrySize;
 	Address HeaderLocation;
-	
+
 	uint32_t HeaderEntryCount;
 };
 
-template<typename ElfClass> LoadedBinaryInfo Load_Binary(UserEmulationModel *model) 
+template<typename ElfClass> LoadedBinaryInfo Load_Binary(UserEmulationModel *model)
 {
 	LoadedBinaryInfo info;
-	
+
 	loader::UserElfBinaryLoader<ElfClass> elf_loader(*model, (true));
 
 	// Load the binary.
@@ -226,8 +226,8 @@ template<typename ElfClass> LoadedBinaryInfo Load_Binary(UserEmulationModel *mod
 		info.HeaderEntryCount = elf_loader.GetProgramHeaderEntryCount();
 		info.Success = true;
 	}
-	
-	return info;	
+
+	return info;
 }
 
 bool UserEmulationModel::PrepareBoot(System &system)
@@ -238,11 +238,11 @@ bool UserEmulationModel::PrepareBoot(System &system)
 	} else {
 		info = Load_Binary<loader::ElfClass32>(this);
 	}
-	
+
 	if(!info.Success) {
 		return false;
 	}
-	
+
 	SetInitialBreak(info.InitialBreak);
 
 	_initial_entry_point = Address(info.EntryPoint);
