@@ -7,6 +7,17 @@
 
 .text
 
+.globl genc_bswap32
+genc_bswap32:
+	bswap %edi
+	mov %edi, %eax
+	ret
+.globl genc_bswap64
+genc_bswap64:
+	bswap %rdi
+	mov %rdi, %rax
+	ret
+
 // %rdi: lhs
 // %rsi: rhs
 // %rdx: carry_in

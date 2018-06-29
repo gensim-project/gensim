@@ -92,14 +92,21 @@ static inline uint64_t bitcast_double_u64(double x)
 #ifndef __GENC_FUNS
 #define __GENC_FUNS
 
-extern "C" uint32_t genc_adc_flags(uint32_t lhs, uint32_t rhs, uint32_t carry_in);
-extern "C" uint32_t genc_adc64_flags(uint64_t lhs, uint64_t rhs, uint32_t carry_in);
-extern "C" uint32_t genc_sbc_flags(uint32_t lhs, uint32_t rhs, uint32_t carry_in);
-extern "C" uint32_t genc_sbc64_flags(uint64_t lhs, uint64_t rhs, uint32_t carry_in);
+extern "C" {
 
-extern "C" uint32_t genc_adc(uint32_t lhs, uint32_t rhs, uint32_t carry_in);
-extern "C" uint64_t genc_adc64(uint64_t lhs, uint64_t rhs, uint32_t carry_in);
-extern "C" uint32_t genc_sbc(uint32_t lhs, uint32_t rhs, uint32_t carry_in);
-extern "C" uint64_t genc_sbc64(uint64_t lhs, uint64_t rhs, uint32_t carry_in);
+	uint32_t genc_bswap32(uint32_t);
+	uint32_t genc_bswap64(uint64_t);
+
+	uint32_t genc_adc_flags(uint32_t lhs, uint32_t rhs, uint32_t carry_in);
+	uint32_t genc_adc64_flags(uint64_t lhs, uint64_t rhs, uint32_t carry_in);
+	uint32_t genc_sbc_flags(uint32_t lhs, uint32_t rhs, uint32_t carry_in);
+	uint32_t genc_sbc64_flags(uint64_t lhs, uint64_t rhs, uint32_t carry_in);
+
+	uint32_t genc_adc(uint32_t lhs, uint32_t rhs, uint32_t carry_in);
+	uint64_t genc_adc64(uint64_t lhs, uint64_t rhs, uint32_t carry_in);
+	uint32_t genc_sbc(uint32_t lhs, uint32_t rhs, uint32_t carry_in);
+	uint64_t genc_sbc64(uint64_t lhs, uint64_t rhs, uint32_t carry_in);
+
+}
 
 #endif
