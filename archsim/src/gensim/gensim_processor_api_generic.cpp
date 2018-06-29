@@ -4,6 +4,16 @@
 #include "define.h"
 
 extern "C" {
+
+	uint32_t genc_bswap32(uint32_t)
+	{
+		UNIMPLEMENTED;
+	}
+	uint64_t genc_bswap64(uint64_t)
+	{
+		UNIMPLEMENTED;
+	}
+
 //// output: SZ0A0P1C0000000V
 	uint16_t genc_adc_flags(uint32_t lhs, uint32_t rhs, uint8_t carry_in)
 	{
