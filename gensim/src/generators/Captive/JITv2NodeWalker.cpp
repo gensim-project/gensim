@@ -645,6 +645,9 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_Trap:
 							output << "emitter.raise(emitter.const_u8(0));";
 							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
+							output << "emitter.raise(emitter.const_u8(0));";
+							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
 							output << "emitter.raise(emitter.const_u8(0));";
 							break;
