@@ -14,6 +14,7 @@
 using namespace gensim::genc::ssa;
 using namespace gensim::genc::ssa::analysis;
 
+#if 0
 SSADominance::dominance_info_t SSADominance::Calculate(const SSAFormAction* action)
 {
 	std::map<const SSABlock*, wutils::vbitset> doms;
@@ -74,6 +75,51 @@ SSADominance::dominance_info_t SSADominance::Calculate(const SSAFormAction* acti
 
 	return dominance;
 }
+#else
+SSADominance::dominance_info_t SSADominance::Calculate(const SSAFormAction* action)
+{
+	dominance_info_t dominance;
+
+	dominance[action->EntryBlock].insert(action->EntryBlock);
+
+	for(const auto block : action->GetBlocks()) {
+		if(block == action->EntryBlock) {
+			continue;
+		}
+		dominance[block].insert(action->GetBlocks().begin(), action->GetBlocks().end());
+	}
+
+	PredecessorAnalysis predecessors (action);
+
+	bool changes = true;
+	while(changes) {
+		changes = false;
+
+		for(auto block : action->GetBlocks()) {
+			if(block == action->EntryBlock) {
+				continue;
+			}
+
+			const auto &old_dom = dominance.at(block);
+
+			block_dominators_t new_dom;
+			for(auto pred : predecessors.GetPredecessors(block)) {
+				auto &pred_dom = dominance.at(pred);
+				std::set_intersection(old_dom.begin(), old_dom.end(), pred_dom.begin(), pred_dom.end(), std::inserter(new_dom, new_dom.begin()));
+			}
+			new_dom.insert(block);
+
+			if(new_dom != old_dom) {
+				dominance[block] = new_dom;
+				changes = true;
+			}
+		}
+
+	}
+
+	return dominance;
+}
+#endif
 
 std::string SSADominance::Print(const dominance_info_t& dominance) const
 {
