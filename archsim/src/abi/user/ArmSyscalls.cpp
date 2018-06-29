@@ -54,7 +54,7 @@ static unsigned int sys_uname(archsim::core::thread::ThreadInstance* cpu, unsign
 	if (addr == 0) {
 		return -EFAULT;
 	}
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	interface.WriteString(Address(addr), "Linux");
 
@@ -76,7 +76,7 @@ static unsigned int sys_uname(archsim::core::thread::ThreadInstance* cpu, unsign
 static unsigned int sys_open(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int flags, unsigned int mode)
 {
 	char filename[256];
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	int host_fd = open(filename, flags, mode);
@@ -93,7 +93,7 @@ static unsigned int sys_openat(archsim::core::thread::ThreadInstance* cpu, int d
 		return sys_open(cpu, filename_addr, flags, mode);
 	}
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	char filename[256];
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
@@ -119,7 +119,7 @@ static unsigned int sys_writev(archsim::core::thread::ThreadInstance* cpu, unsig
 	struct iovec host_vectors[cnt];
 	struct arm_iovec arm_vectors[cnt];
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.Read(Address(iov_addr), (uint8_t *)&arm_vectors, cnt * sizeof(struct arm_iovec));
 
 	for (int i = 0; i < cnt; i++) {
@@ -152,7 +152,7 @@ static unsigned int sys_llseek(archsim::core::thread::ThreadInstance* cpu, unsig
 {
 	loff_t result;
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	fd = translate_fd(cpu, fd);
 	uint64_t offset;
@@ -173,7 +173,7 @@ static unsigned int sys_llseek(archsim::core::thread::ThreadInstance* cpu, unsig
 static unsigned int sys_unlink(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr)
 {
 	char filename[256];
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	if (unlink(filename)) return -errno;
@@ -193,7 +193,7 @@ static unsigned int sys_mmap(archsim::core::thread::ThreadInstance* cpu, unsigne
 		return -EINVAL;
 	}
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 //	if (!cpu.GetMemoryModel().IsAligned(len)) {
 //		return -EINVAL;
@@ -250,7 +250,7 @@ static unsigned int sys_read(archsim::core::thread::ThreadInstance* cpu, unsigne
 	fd = translate_fd(cpu, fd);
 	res = read(fd, (void*)rd_buf, len);
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	if (res > 0) {
 		interface.Write(Address(addr), (uint8_t *)rd_buf, res);
@@ -271,7 +271,7 @@ static unsigned int sys_write(archsim::core::thread::ThreadInstance* cpu, unsign
 	char *buffer = (char *)malloc(len);
 	bzero(buffer, len);
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	if (interface.Read(Address(addr), (uint8_t *)buffer, len) != archsim::MemoryResult::OK) {
 		free(buffer);
 		return -EFAULT;
@@ -316,7 +316,7 @@ static unsigned int sys_fstat64(archsim::core::thread::ThreadInstance* cpu, unsi
 	result_st.target_st_ctime = (uint32_t)st.st_ctime;
 	result_st.st_blksize = 4096;
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
 
 	return 0;
@@ -348,7 +348,7 @@ static unsigned int sys_fstat(archsim::core::thread::ThreadInstance* cpu, unsign
 	result_st.target_st_ctime = (uint32_t)st.st_ctime;
 	result_st.st_blksize = 4096;
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
 
 	return 0;
@@ -360,7 +360,7 @@ static unsigned int sys_stat64(archsim::core::thread::ThreadInstance* cpu, unsig
 	struct arm_stat64 result_st;
 
 	char filename[256];
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	if (stat64(filename, &st)) {
@@ -394,7 +394,7 @@ static unsigned int sys_lstat64(archsim::core::thread::ThreadInstance* cpu, unsi
 	struct arm_stat64 result_st;
 
 	char filename[256];
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	if (lstat64(filename, &st)) {
@@ -425,7 +425,7 @@ static unsigned int sys_lstat64(archsim::core::thread::ThreadInstance* cpu, unsi
 static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int request, unsigned int a0)
 {
 	fd = translate_fd(cpu, fd);
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	switch (request) {
 		case 0x5401: {
@@ -456,7 +456,7 @@ static unsigned int sys_fcntl64(archsim::core::thread::ThreadInstance* cpu, unsi
 static unsigned int sys_mkdir(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int mode)
 {
 	char filename[256];
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	int rc = mkdir(filename, mode);
@@ -479,7 +479,7 @@ static unsigned int sys_getcwd(archsim::core::thread::ThreadInstance* cpu, unsig
 	}
 
 	cwd[size] = '\0';
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.WriteString(Address(buffer_addr), cwd);
 	free(cwd);
 
@@ -490,7 +490,7 @@ static unsigned int sys_arm_settls(archsim::core::thread::ThreadInstance* cpu, u
 {
 	LC_DEBUG1(LogSyscalls) << "TLS Set to 0x" << std::hex << addr;
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.Write(Address(0xffff0ff0), (uint8_t *)&addr, sizeof(addr));
 
 	// also need to write the TPIDRURO control register which is an alternative way of accessing the TLS value
@@ -515,7 +515,7 @@ static unsigned int sys_gettimeofday(archsim::core::thread::ThreadInstance* cpu,
 	struct timezone host_tz;
 
 	struct arm_timeval guest_tv;
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	if (tv_addr == 0) {
 		return -EFAULT;
@@ -549,7 +549,7 @@ static unsigned int sys_rt_sigprocmask(archsim::core::thread::ThreadInstance* cp
 static unsigned int sys_rt_sigaction(archsim::core::thread::ThreadInstance* cpu, unsigned int signum, unsigned int act_ptr, unsigned int oldact_ptr)
 {
 	if(!archsim::options::UserPermitSignalHandling) return -EINVAL;
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	if (act_ptr == 0) {
 		if (oldact_ptr == 0) {
 			return -EINVAL;
@@ -587,7 +587,7 @@ static unsigned int sys_times(archsim::core::thread::ThreadInstance* cpu, unsign
 
 	struct tms host_buf;
 	struct arm_tms guest_buf;
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	if(archsim::options::Verify) {
 		guest_buf.tms_utime = (uint32_t)0;
@@ -629,7 +629,7 @@ static unsigned int sys_clock_gettime(archsim::core::thread::ThreadInstance *cpu
 {
 	struct arm_timespec arm_ts;
 	struct timespec ts;
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	if(archsim::options::Verify) {
 		arm_ts.tv_nsec = 0;
@@ -652,7 +652,7 @@ static unsigned int sys_nanosleep(archsim::core::thread::ThreadInstance* cpu, un
 	struct timespec req, rem;
 	int rc;
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	bzero(&req, sizeof(req));
 	bzero(&rem, sizeof(rem));
@@ -753,7 +753,11 @@ DEFINE_SYSCALL(arm, __ARM_NR_cacheflush, sys_cacheflush, "cacheflush(%p, %p)");
 DEFINE_SYSCALL(aarch64, 1, sys_exit, "exit()");
 DEFINE_SYSCALL(aarch64, 3, sys_read, "read()");
 DEFINE_SYSCALL(aarch64, 4, sys_write, "write()");
+DEFINE_SYSCALL(aarch64, 56, sys_openat, "openat()");
+DEFINE_SYSCALL(aarch64, 66, sys_writev, "openat()");
+DEFINE_SYSCALL(aarch64, 160, sys_uname, "openat()");
 DEFINE_SYSCALL(aarch64, 214, sys_brk, "brk()");
+DEFINE_SYSCALL(aarch64, 222, sys_mmap2, "brk()");
 
 /* RISC-V SYSTEM CALLS */
 DEFINE_SYSCALL(riscv, 64, sys_write, "write(fd=%d, addr=%p, len=%d)");
