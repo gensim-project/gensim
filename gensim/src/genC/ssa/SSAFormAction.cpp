@@ -197,9 +197,7 @@ bool SSAFormAction::DoFixednessAnalysis()
 {
 	// loop through all blocks, resetting their fixedness information
 	for (auto block : GetBlocks()) {
-		block->DynamicIn.clear();
-		block->DynamicOut.clear();
-		block->_constness = BLOCK_INVALID;
+		block->ClearFixedness();
 	}
 
 	// fprintf(stderr, "Fixedness analysis for %s\n", Action.Name.c_str());
