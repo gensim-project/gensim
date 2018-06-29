@@ -228,7 +228,11 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 	bool has_is_predicated = isa.GetSSAContext().HasAction("instruction_is_predicated");
 	bool has_instruction_predicate = isa.GetSSAContext().HasAction("instruction_predicate");
 	if(has_is_predicated != has_instruction_predicate) {
-		// bad times
+		if(has_is_predicated) {
+			throw std::logic_error("Architecture has predicate checker but no predicate function");
+		} else {
+			throw std::logic_error("Architecture has predicate function but no predicate checker");
+		}
 	}
 	if(has_is_predicated) {
 		str << "bool " << isa.ISAName << "_is_predicated(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_is_predicated<false>(thread, insn); }";
