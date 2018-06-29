@@ -32,29 +32,33 @@ SSADominance::dominance_info_t SSADominance::Calculate(const SSAFormAction* acti
 	PredecessorAnalysis predecessors (action);
 
 	bool changes = true;
-	while(changes) {
-		changes = false;
 
-		for(auto block : action->GetBlocks()) {
-			if(block == action->EntryBlock) {
-				continue;
-			}
+	std::list<SSABlock*> work_list = action->GetBlocks();
 
-			const auto &old_dom = doms.at(block);
+	while(work_list.size()) {
+		auto block = work_list.front();
+		work_list.pop_front();
 
-			wutils::vbitset new_dom(action->GetBlocks().size());
-			for(auto pred : predecessors.GetPredecessors(block)) {
-				auto &pred_dom = doms.at(pred);
-				new_dom &= pred_dom;
-			}
-			new_dom.set(block->GetID(), 1);
-
-			if(new_dom != old_dom) {
-				doms.at(block) = new_dom;
-				changes = true;
-			}
+		if(block == action->EntryBlock) {
+			continue;
 		}
 
+		const auto &old_dom = doms.at(block);
+
+		wutils::vbitset new_dom = old_dom;
+		for(auto pred : predecessors.GetPredecessors(block)) {
+			auto &pred_dom = doms.at(pred);
+			new_dom &= pred_dom;
+		}
+		new_dom.set(block->GetID(), 1);
+
+		if(new_dom != old_dom) {
+			doms.at(block) = new_dom;
+
+			for(auto i : predecessors.GetPredecessors(block)) {
+				work_list.push_back(i);
+			}
+		}
 	}
 
 	dominance_info_t dominance;

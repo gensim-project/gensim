@@ -170,12 +170,12 @@ const SSAVariableWriteStatement *SSABlock::GetLastWriteTo(const SSASymbol *symbo
 	return NULL;
 }
 
-SSABlock::SSABlock(SSAContext& context, SSAFormAction &parent) : SSAValue(context, context.GetValueNamespace()), Parent(nullptr), _constness(BLOCK_ALWAYS_CONST), _type(IRTypes::Block)
+SSABlock::SSABlock(SSAContext& context, SSAFormAction &parent) : SSAValue(context, context.GetValueNamespace()), Parent(nullptr), _constness(BLOCK_ALWAYS_CONST), _type(IRTypes::Block), id_up_to_date_(false)
 {
 	parent.AddBlock(this);
 }
 
-SSABlock::SSABlock(SSABuilder &bldr) : SSAValue(bldr.Context, bldr.Context.GetValueNamespace()), _type(IRTypes::Block), Parent(nullptr), _constness(BLOCK_ALWAYS_CONST)
+SSABlock::SSABlock(SSABuilder &bldr) : SSAValue(bldr.Context, bldr.Context.GetValueNamespace()), _type(IRTypes::Block), Parent(nullptr), _constness(BLOCK_ALWAYS_CONST), id_up_to_date_(false)
 {
 	bldr.Target->AddBlock(this);
 }
@@ -374,6 +374,12 @@ void SSABlock::ClearFixedness()
 	DynamicIn.clear();
 	DynamicOut.clear();
 	_constness = BLOCK_INVALID;
+
+	for(auto i : Statements) {
+		if(auto j = dynamic_cast<SSAVariableReadStatement*>(i)) {
+			j->Const = true;
+		}
+	}
 }
 
 
