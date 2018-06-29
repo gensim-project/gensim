@@ -87,7 +87,7 @@ ATTRIBUTE_HELPER = 'helper';
 EXTERNAL = 'external';
 }
 
-SSAASM_TYPE : 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'sint8' | 'sint16' | 'sint32' | 'sint64' | 'float' | 'double' | 'void' | 'Instruction';
+SSAASM_TYPE : 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'uint128' | 'sint8' | 'sint16' | 'sint32' | 'sint64' | 'sint128' | 'float' | 'double' | 'void' | 'Instruction';
 
 vector_size : '[' constant_value ']' -> ^(SSAASM_TYPE_VECTOR constant_value);
 
