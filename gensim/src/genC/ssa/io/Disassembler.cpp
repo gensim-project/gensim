@@ -226,6 +226,9 @@ void TypeDisassembler::DisassemblePOD(const SSAType& type, std::ostream& str)
 			case IRPlainOldDataType::INT64:
 				str << "int64";
 				break;
+			case IRPlainOldDataType::INT128:
+				str << "int128";
+				break;
 			default:
 				throw std::logic_error("");
 		}
