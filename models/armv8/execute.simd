@@ -2001,7 +2001,7 @@ execute(fcmpe)
 		float rn = read_float_reg32(inst.rn);
 		float rm = (inst.opcode2 == 0x18 || inst.opcode2 == 0x08) ? (float)0 : read_float_reg32(inst.rm);
 		
-		if (inst.opcode & 0x10) {
+		if (inst.opcode2 & 0x10) {
 			__builtin_cmpf32e_flags(rn, rm);
 		} else {
 			__builtin_cmpf32_flags(rn, rm);
@@ -2011,7 +2011,7 @@ execute(fcmpe)
 		double rn = read_float_reg64(inst.rn);
 		double rm = (inst.opcode2 == 0x18 || inst.opcode2 == 0x08) ? (double)0 : read_float_reg64(inst.rm);
 		
-		if (inst.opcode & 0x10) {
+		if (inst.opcode2 & 0x10) {
 			__builtin_cmpf64e_flags(rn, rm);
 		} else {
 			__builtin_cmpf64_flags(rn, rm);
