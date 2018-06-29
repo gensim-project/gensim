@@ -306,7 +306,28 @@ namespace archsim
 				}
 				void fn___builtin_cmpf64_flags(double a, double b)
 				{
-					UNIMPLEMENTED;
+					// do it aarch64 style
+
+					// N Z C V
+					uint8_t *N = GetRegisterFileInterface().GetEntry<uint8_t>("N");
+					uint8_t *Z = GetRegisterFileInterface().GetEntry<uint8_t>("Z");
+					uint8_t *C = GetRegisterFileInterface().GetEntry<uint8_t>("C");
+					uint8_t *V = GetRegisterFileInterface().GetEntry<uint8_t>("V");
+
+					uint32_t result = 0;
+
+					if(a == b) {
+						result = 6;
+					} else if(a < b) {
+						result = 8;
+					} else if(a > b) {
+						result = 2;
+					}
+
+					*N = (result & 8) != 0;
+					*Z = (result & 4) != 0;
+					*C = (result & 2) != 0;
+					*V = (result & 1) != 0;
 				}
 				void fn___builtin_cmpf32e_flags(float a, float b)
 				{
