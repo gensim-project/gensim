@@ -360,12 +360,12 @@ namespace gensim
 
 				switch (stmt.Type) {
 					case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
-						output << "assert(false);";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = ";
+						output << "genc_bswap32(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
-						output << "assert(false);";
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = ";
+						output << "genc_bswap64(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_WritePc:
 						output << "thread->SetPC(archsim::Address(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
