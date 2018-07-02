@@ -236,12 +236,12 @@ bool ArchDescriptorGenerator::GenerateThreadInterface(util::cppformatstream &str
 	for(gensim::arch::RegBankViewDescriptor *rbank : Manager.GetArch().GetRegFile().GetBanks()) {
 		std::string read_trace_string = "";
 		std::string write_trace_string = "";
-		if(rbank->GetRegisterIRType().VectorWidth > 1) {
+		if(rbank->GetRegisterIRType().VectorWidth > 1 || rbank->GetElementSize() > 8) {
 			read_trace_string = ""; // not currently supported
 			write_trace_string = ""; // not currently supported
 		} else {
-			read_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Read(true, " + std::to_string(rbank->GetIndex()) + ", idx, value); }";
-			write_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Write(true, " + std::to_string(rbank->GetIndex()) + ", idx, value); }";
+			read_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Read(true, " + std::to_string(rbank->GetIndex()) + ", idx, (" + rbank->GetElementIRType().GetCType() + ")value); }";
+			write_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Write(true, " + std::to_string(rbank->GetIndex()) + ", idx, (" + rbank->GetElementIRType().GetCType() + ") value); }";
 		}
 		str << "template<bool trace=false> " << rbank->GetRegisterIRType().GetCType() << " read_register_bank_" << rbank->ID << "(uint32_t idx) const { auto value = *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")); " << read_trace_string << " return value; }";
 		str << "template<bool trace=false> void write_register_bank_" << rbank->ID << "(uint32_t idx, " << rbank->GetRegisterIRType().GetCType() << " value) { *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")) = value; " << write_trace_string << " }";
