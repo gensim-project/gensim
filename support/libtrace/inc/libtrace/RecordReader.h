@@ -38,6 +38,16 @@ namespace libtrace
 				return (uint64_t)reader_.GetRecord().GetData32() | ((uint64_t)reader_.GetExtensions().at(0).GetData32() << 32);
 			}
 
+			uint32_t GetExtension(uint32_t idx) const
+			{
+				return reader_.GetExtensions().at(idx).GetData32();
+			}
+			uint32_t GetExtensionCount() const
+			{
+				return reader_.GetExtensions().size();
+			}
+
+
 		private:
 			const RecordReader &reader_;
 		};
