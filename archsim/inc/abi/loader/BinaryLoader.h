@@ -101,8 +101,22 @@ namespace archsim
 				ElfBinaryLoader(EmulationModel& emulation_model, bool load_symbols) : BinaryLoader(emulation_model, load_symbols), _load_bias(0_ga) {}
 				virtual ~ElfBinaryLoader() {};
 
+				Address GetProgramHeaderLocation() const
+				{
+					return _ph_loc;
+				}
+				Address GetProgramHeaderEntrySize() const
+				{
+					return Address(this->_elf_header->e_phentsize);
+				}
+				unsigned int GetProgramHeaderEntryCount() const
+				{
+					return this->_elf_header->e_phnum;
+				}
+
 			protected:
 				Address _load_bias;
+				Address _ph_loc;
 				typename elfclass::ElfHeader *_elf_header;
 
 				bool ProcessBinary(bool load_symbols);
@@ -127,26 +141,12 @@ namespace archsim
 					return _initial_brk;
 				}
 
-				Address GetProgramHeaderLocation() const
-				{
-					return _ph_loc;
-				}
-				Address GetProgramHeaderEntrySize() const
-				{
-					return Address(this->_elf_header->e_phentsize);
-				}
-				unsigned int GetProgramHeaderEntryCount() const
-				{
-					return this->_elf_header->e_phnum;
-				}
-
 			protected:
 				bool PrepareLoad() override;
 				bool LoadSegment(typename ElfClass::PHeader *segment) override;
 
 			private:
 				Address _initial_brk;
-				Address _ph_loc;
 			};
 			template class UserElfBinaryLoader<ElfClass32>;
 			template class UserElfBinaryLoader<ElfClass64>;

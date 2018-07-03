@@ -111,25 +111,34 @@ namespace archsim
 			return ExtractElement(i);
 		}
 
+		void *data()
+		{
+			return (char*)elements;
+		}
+		size_t size() const
+		{
+			return sizeof(ElementT) * Width;
+		}
+
 	private:
 		ElementT elements[Width];
 	};
 }
 
-template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector<bool, Width> operator==(const archsim::Vector<ElementT1, Width> &v1, const archsim::Vector<ElementT2, Width> &v2)
+template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector<ElementT1, Width> operator==(const archsim::Vector<ElementT1, Width> &v1, const archsim::Vector<ElementT2, Width> &v2)
 {
-	archsim::Vector<bool, Width> output;
+	archsim::Vector<ElementT1, Width> output;
 	for(unsigned int i = 0; i < Width; ++i) {
-		output.InsertElement(i, v1.ExtractElement(i) == v2.ExtractElement(i));
+		output.InsertElement(i, v1.ExtractElement(i) == v2.ExtractElement(i) ? ~0ULL : 0);
 	}
 	return output;
 }
 
-template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector<bool, Width> operator>=(const archsim::Vector<ElementT1, Width> &v1, const archsim::Vector<ElementT2, Width> &v2)
+template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector<ElementT1, Width> operator>=(const archsim::Vector<ElementT1, Width> &v1, const archsim::Vector<ElementT2, Width> &v2)
 {
-	archsim::Vector<bool, Width> output;
+	archsim::Vector<ElementT1, Width> output;
 	for(unsigned int i = 0; i < Width; ++i) {
-		output.InsertElement(i, v1.ExtractElement(i) >= v2.ExtractElement(i));
+		output.InsertElement(i, v1.ExtractElement(i) >= v2.ExtractElement(i) ? ~(uint64_t)0 : 0);
 	}
 	return output;
 }

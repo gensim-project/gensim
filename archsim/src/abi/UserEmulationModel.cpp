@@ -117,21 +117,25 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 
 	GetMemoryModel().GetMappingManager()->MapRegion(_initial_stack_pointer - _stack_size, _stack_size, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[stack]");
 
-	unsigned long envp_ptrs[global_envc];
+	unsigned long envp_ptrs[1];
 	unsigned long argv_ptrs[global_argc + 1];
+
+	int argc = global_argc + 1;
+	int envc = 1;
 
 	Address sp = _initial_stack_pointer;
 
 //	printf("Start (%08x)\n", sp);
 
 #define PUSH(_val)   do { if(Is64BitBinary()) { sp -= 8; GetMemoryModel().Write64(sp, _val); } else { sp -= 4; GetMemoryModel().Write32(sp, _val);  } } while (0)
+#define PUSHB(_val)   do { sp -= 1; GetMemoryModel().Write8(sp, _val); } while (0)
 #define PUSHSTR(_str)  do { sp -= (strlen(_str) + 1); GetMemoryModel().WriteString(sp, _str); } while (0)
 #define ALIGN_STACK(v) do { sp -= ((uint64_t)sp.Get() & (v - 1)); } while (0)
 #define PUSH_AUX_ENT(_id, _value) do { PUSH(_value); PUSH(_id); } while (0)
-#define STACK_ROUND(_sp, _items) (((unsigned long) (_sp - _items)) &~ 15UL)
 
 	PUSH(0);
 	PUSHSTR(archsim::options::TargetBinary.GetValue().c_str()); // global_argv[0]);
+	argv_ptrs[0] = sp.Get();
 
 	for (int i = 0; i < global_envc; i++) {
 		if(environ[i][0] == '_')
@@ -141,58 +145,61 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 		envp_ptrs[i] = sp.Get();
 	}
 
-//	printf("Pushed env values (%08x)\n", sp);
-
-	PUSHSTR(archsim::options::TargetBinary.GetValue().c_str());  // The real arg0
-	argv_ptrs[0] = sp.Get();
-
-	for (int i = 0; i < global_argc; i++) {
+	for(int i = 0; i < global_argc; ++i) {
 		PUSHSTR(global_argv[i]);
 		argv_ptrs[i+1] = sp.Get();
 	}
 
-//	printf("Pushed arg values (%08x)\n", sp);
+	for(int i = 0; i < 16; ++i) {
+		PUSHB(0x1f);
+	}
+	Address random_ptr = sp;
 
-	ALIGN_STACK(4);
+	ALIGN_STACK(16);
 
-	unsigned int elemSize = (global_argc + 2 + global_envc + 1 + 19) * 4;
-	sp = (sp - ((sp - elemSize) - ((sp - elemSize) & (~15))));
+	uint32_t entry_size = Is64BitBinary() ? 8 : 4;
 
-	PUSH_AUX_ENT(0, 0);
+	std::vector<std::pair<uint64_t, uint64_t>> auxv_entries;
+	int elf_info_idx = 0;
+#define NEW_AUXV_ENTRY(a, b) do { auxv_entries.push_back({a, b}); elf_info_idx += 2; } while(0)
+	NEW_AUXV_ENTRY(AT_HWCAP, 0x8197);
+	NEW_AUXV_ENTRY(AT_PAGESZ, 4096);
+	NEW_AUXV_ENTRY(AT_PHDR, elf_phdr_location.Get());
+	NEW_AUXV_ENTRY(AT_PHENT, elf_phentsize);
+	NEW_AUXV_ENTRY(AT_PHNUM, elf_phnum);
+	NEW_AUXV_ENTRY(AT_FLAGS, 0x0);
+	NEW_AUXV_ENTRY(AT_ENTRY, _initial_entry_point.Get());
+	NEW_AUXV_ENTRY(AT_UID, 0);
+	NEW_AUXV_ENTRY(AT_EUID, 0);
+	NEW_AUXV_ENTRY(AT_GID, 0);
+	NEW_AUXV_ENTRY(AT_EGID, 0);
+	NEW_AUXV_ENTRY(AT_SECURE, 0);
+	NEW_AUXV_ENTRY(AT_RANDOM, random_ptr.Get());
+	NEW_AUXV_ENTRY(AT_EXECFN, 0x4321);
 
-	PUSH_AUX_ENT(3, elf_phdr_location.Get());    // AT_PHDR
-	PUSH_AUX_ENT(4, elf_phentsize);   // AT_PHENT
-	PUSH_AUX_ENT(5, elf_phnum);  // AT_PHNUM
-	PUSH_AUX_ENT(6, 4096);					   // AT_PAGESZ
+	NEW_AUXV_ENTRY(AT_NULL, 0);
 
-	PUSH_AUX_ENT(7, 0);			// AT_BASE
-	PUSH_AUX_ENT(8, 0);			// AT_FLAGS
-	PUSH_AUX_ENT(9, _initial_entry_point.Get());  // Entry Point
+	sp -= entry_size * elf_info_idx;
+	int items = (argc + 1) + (envc + 1) + 1;
+	sp = (sp - (items * entry_size)) & ~15UL;
 
-	PUSH_AUX_ENT(11, 0);  // AT_UID
-	PUSH_AUX_ENT(12, 0);  // AT_EUID
-	PUSH_AUX_ENT(13, 0);  // AT_GID
-	PUSH_AUX_ENT(14, 0);  // AT_EGID
-
-	PUSH_AUX_ENT(16, 0x8197);	// AT_HWCAP
-//	PUSH_AUX_ENT(17, sysconf(_SC_CLK_TCK));
-	PUSH_AUX_ENT(23, 0);		 // AT_SECURE
-	PUSH_AUX_ENT(25, 0xffff0000);    // AT_RANDOM
-//	PUSH_AUX_ENT(26, 0x1f);    // AT_RANDOM
-	PUSH_AUX_ENT(31, argv_ptrs[0]);  // AT_EXECFN
-
-	// ENVP ARRAY
-	PUSH(0);
-	for (int i = global_envc - 1; i >= 0; i--) PUSH(envp_ptrs[i]);
-
-	// ARGV ARRAY
-	PUSH(0);
-	for (int i = global_argc; i >= 0; i--) PUSH(argv_ptrs[i]);
-
-	PUSH(global_argc + 1);
-
-//	printf("Finished. (%08x)\n", sp);
 	_initial_stack_pointer = sp;
+
+#define WRITE_STACK(value) do { if(Is64BitBinary()) {GetMemoryModel().Write64(sp, value); sp += 8;} else { GetMemoryModel().Write32(sp, value); sp += 4;} } while(0)
+	WRITE_STACK(argc);
+	for(auto i : argv_ptrs) {
+		WRITE_STACK(i);
+	}
+	WRITE_STACK(0);
+	for(auto i : envp_ptrs) {
+		WRITE_STACK(i);
+	}
+	WRITE_STACK(0);
+
+	for(auto i : auxv_entries) {
+		WRITE_STACK(i.first);
+		WRITE_STACK(i.second);
+	}
 
 	return true;
 }

@@ -84,7 +84,8 @@ namespace gensim
 				switch(stmt.Type) {
 					case genc::BinaryOperator::RotateRight:
 					case genc::BinaryOperator::RotateLeft: {
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
+						std::string typestring = stmt.GetType().GetCType();
+						output << typestring << " " << stmt.GetName() << ";";
 
 						int bits;
 						switch (stmt.LHS()->GetType().SizeInBytes()) {
@@ -104,9 +105,9 @@ namespace gensim
 								throw std::logic_error("Unsupported rotate-right data size");
 						}
 
-						output << "{"
-						       "uint32_t lhs = " << Factory.GetOrCreate(stmt.LHS())->GetFixedValue() << ";"
-						       "uint32_t rhs = " << Factory.GetOrCreate(stmt.RHS())->GetFixedValue() << ";";
+						output << "{" <<
+						       typestring << " lhs = " << Factory.GetOrCreate(stmt.LHS())->GetFixedValue() << ";" <<
+						       typestring << " rhs = " << Factory.GetOrCreate(stmt.RHS())->GetFixedValue() << ";";
 
 						if(stmt.Type == genc::BinaryOperator::RotateRight) {
 							output << stmt.GetName() << "= (lhs >> rhs) | (lhs << (" << bits << "-rhs));";
@@ -567,12 +568,21 @@ namespace gensim
 						output << "thread->GetFPState().SetRoundingMode((archsim::core::thread::RoundingMode)" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 
+					case SSAIntrinsicStatement::SSAIntrinsic_UMULH:
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
+						output << "{";
+						output << "unsigned __int128 a = " << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ";";
+						output << "unsigned __int128 b = " << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ";";
+						output << "unsigned __int128 c = a * b;";
+						output << stmt.GetName() << " = c >> 64;";
+						output << "}";
+						break;
+
 					case SSAIntrinsicStatement::SSAIntrinsic_FMA32:
 					case SSAIntrinsicStatement::SSAIntrinsic_FMA64:
 					case SSAIntrinsicStatement::SSAIntrinsic_TriggerIRQ:
 					case SSAIntrinsicStatement::SSAIntrinsic_SMULH:
 					case SSAIntrinsicStatement::SSAIntrinsic_SMULL:
-					case SSAIntrinsicStatement::SSAIntrinsic_UMULH:
 					case SSAIntrinsicStatement::SSAIntrinsic_UMULL:
 						if(stmt.HasValue()) {
 							output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
@@ -638,7 +648,7 @@ namespace gensim
 				// trigger exception
 				output << "  thread->TakeMemoryException(interface, addr);";
 				output << "}";
-				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Read(1, " << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ", " << stmt.Target()->GetName() << ", " << (uint32_t)(stmt.Width) << "); }";
+				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Read(1, addr.Get(), " << stmt.Target()->GetName() << ", " << (uint32_t)(stmt.Width) << "); }";
 				output << "}";
 
 				return true;
