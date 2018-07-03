@@ -79,6 +79,59 @@ namespace libtrace
 		 * Banked Register Operation Tracing
 		 */
 
+	private:
+		uint32_t getDataWord(char *data, uint32_t total_size, uint32_t word_idx)
+		{
+			assert(word_idx <= getExtensionCount(total_size));
+
+			uint32_t out_data = 0;
+			memcpy((char*)&out_data, data + (word_idx * 4), std::min(total_size, 4U));
+			return out_data;
+		}
+
+		uint32_t getExtensionCount(uint32_t size)
+		{
+			if(size <= 4) {
+				return 0;
+			}
+			return (size / 4) - 1;
+		}
+
+	public:
+		void Trace_Bank_Reg_Read(bool Trace, uint8_t Bank, uint8_t Regnum, char *data, uint32_t size)
+		{
+			if(!IsPacketOpen()) {
+				return;
+			}
+			assert(!IsTerminated() && IsPacketOpen());
+
+			int extension_count = getExtensionCount(size);
+
+			BankRegReadRecord *header = (BankRegReadRecord*)(getNextPacket());
+			*header = BankRegReadRecord(Bank, Regnum, getDataWord(data, size, 0), extension_count);
+
+			for(int i = 0; i < extension_count; ++i) {
+				DataExtensionRecord *extension = (DataExtensionRecord*)getNextPacket();
+				*extension = DataExtensionRecord(BankRegRead, getDataWord(data, size, i+1));
+			}
+		}
+		void Trace_Bank_Reg_Write(bool Trace, uint8_t Bank, uint8_t Regnum, char *data, uint32_t size)
+		{
+			if(!IsPacketOpen()) {
+				return;
+			}
+			assert(!IsTerminated() && IsPacketOpen());
+
+			int extension_count = getExtensionCount(size);
+
+			BankRegWriteRecord *header = (BankRegWriteRecord*)(getNextPacket());
+			*header = BankRegWriteRecord(Bank, Regnum, getDataWord(data, size, 0), extension_count);
+
+			for(int i = 0; i < extension_count; ++i) {
+				DataExtensionRecord *extension = (DataExtensionRecord*)getNextPacket();
+				*extension = DataExtensionRecord(BankRegWrite, getDataWord(data, size, i+1));
+			}
+		}
 
 		template<typename T> void Trace_Bank_Reg_Read(bool Trace, uint8_t Bank, uint8_t Regnum, T Value)
 		{
