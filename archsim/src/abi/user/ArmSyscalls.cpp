@@ -62,13 +62,14 @@ static unsigned int sys_uname(archsim::core::thread::ThreadInstance* cpu, unsign
 	interface.WriteString(Address(addr), "archsim");
 
 	addr += 64;
-	interface.WriteString(Address(addr), "3.6.3");
+	interface.WriteString(Address(addr), "4.8.0");
 
 	addr += 64;
 	interface.WriteString(Address(addr), "#1");
 
 	addr += 64;
-	interface.WriteString(Address(addr), "arm");
+	// HACK:
+	interface.WriteString(Address(addr), "arm64");
 
 	return 0;
 }
@@ -354,6 +355,42 @@ static unsigned int sys_fstat(archsim::core::thread::ThreadInstance* cpu, unsign
 	return 0;
 }
 
+static unsigned int sys64_fstat(archsim::core::thread::ThreadInstance *cpu, unsigned int fd, unsigned long addr)
+{
+	struct stat st;
+	struct aarch64_stat result_st;
+
+	fd = translate_fd(cpu, fd);
+	if (fstat(fd, &st)) {
+		return -errno;
+	}
+
+	memset(&result_st, 0, sizeof(result_st));
+
+//	result_st.st_dev = st.st_dev;
+//	result_st.__st_ino = st.st_ino;
+	result_st.st_mode = st.st_mode;
+//	result_st.st_nlink = st.st_nlink;
+//	result_st.st_uid = st.st_uid;
+//	result_st.st_gid = st.st_gid;
+//	result_st.st_rdev = st.st_rdev;
+//	result_st.st_size = st.st_size;
+//	result_st.st_blksize = st.st_blksize;
+//	result_st.st_blocks = st.st_blocks;
+//	result_st.target_st_atime = st.st_atim.tv_sec;
+//	result_st.st_atime_nsec = st.st_atim.tv_nsec;
+//	result_st.target_st_mtime = st.st_mtim.tv_sec;
+//	result_st.st_mtime_nsec = st.st_mtim.tv_nsec;
+//	result_st.target_st_ctime = st.st_ctim.tv_sec;
+//	result_st.st_ctime_nsec = st.st_ctim.tv_nsec;
+//	result_st.st_blksize = 4096;
+
+	auto interface = cpu->GetMemoryInterface(0);
+	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
+
+	return 0;
+}
+
 static unsigned int sys_stat64(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int addr)
 {
 	struct stat64 st;
@@ -422,7 +459,7 @@ static unsigned int sys_lstat64(archsim::core::thread::ThreadInstance* cpu, unsi
 	return 0;
 }
 
-static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int request, unsigned int a0)
+static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int request, unsigned long a0)
 {
 	fd = translate_fd(cpu, fd);
 	auto interface = cpu->GetMemoryInterface(0);
@@ -436,7 +473,8 @@ static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsign
 				return -errno;
 			}
 
-			interface.Write(Address(a0), (uint8_t *)&host, sizeof(host));
+// HACK:
+//			interface.Write(Address(a0), (uint8_t *)&host, sizeof(host));
 			return 0;
 		}
 
@@ -686,6 +724,25 @@ static unsigned int sys_dup(archsim::core::thread::ThreadInstance *cpu, int oldf
 	else return -errno;
 }
 
+static unsigned int sys_readlinkat(archsim::core::thread::ThreadInstance *cpu, int dirfd, unsigned long long pathname, unsigned long long buf, size_t bufsiz)
+{
+	char buffer[256];
+	cpu->GetMemoryInterface(0).ReadString(Address(pathname), buffer, 256);
+	std::string requested_path = std::string(buffer);
+
+	if(requested_path == "/proc/self/exe") {
+
+		// HACK:
+		std::string my_name_is = "/home/a.out";
+		cpu->GetMemoryInterface(0).WriteString(Address(buf), my_name_is.c_str());
+		return my_name_is.size()+1;
+	} else {
+		return -1;
+	}
+
+
+}
+
 static unsigned int syscall_return_zero(archsim::core::thread::ThreadInstance* cpu)
 {
 	return 0;
@@ -753,9 +810,13 @@ DEFINE_SYSCALL(arm, __ARM_NR_cacheflush, sys_cacheflush, "cacheflush(%p, %p)");
 DEFINE_SYSCALL(aarch64, 1, sys_exit, "exit()");
 DEFINE_SYSCALL(aarch64, 3, sys_read, "read()");
 DEFINE_SYSCALL(aarch64, 4, sys_write, "write()");
+DEFINE_SYSCALL(aarch64, 29, sys_ioctl, "ioctl()");
 DEFINE_SYSCALL(aarch64, 56, sys_openat, "openat()");
-DEFINE_SYSCALL(aarch64, 66, sys_writev, "openat()");
-DEFINE_SYSCALL(aarch64, 160, sys_uname, "openat()");
+DEFINE_SYSCALL(aarch64, 64, sys_write, "write(%u, %lu, %u)");
+DEFINE_SYSCALL(aarch64, 66, sys_writev, "writev()");
+DEFINE_SYSCALL(aarch64, 78, sys_readlinkat, "readlinkat()");
+DEFINE_SYSCALL(aarch64, 80, sys64_fstat, "fstat()");
+DEFINE_SYSCALL(aarch64, 160, sys_uname, "uname()");
 DEFINE_SYSCALL(aarch64, 214, sys_brk, "brk()");
 DEFINE_SYSCALL(aarch64, 222, sys_mmap2, "brk()");
 
