@@ -236,9 +236,12 @@ bool ArchDescriptorGenerator::GenerateThreadInterface(util::cppformatstream &str
 	for(gensim::arch::RegBankViewDescriptor *rbank : Manager.GetArch().GetRegFile().GetBanks()) {
 		std::string read_trace_string = "";
 		std::string write_trace_string = "";
-		if(rbank->GetRegisterIRType().VectorWidth > 1 || rbank->GetElementSize() > 8) {
-			read_trace_string = ""; // not currently supported
-			write_trace_string = ""; // not currently supported
+		if(rbank->GetElementSize() > 8) {
+			read_trace_string = "";
+			write_trace_string = "";
+		} else if(rbank->GetRegisterIRType().VectorWidth > 1) {
+			read_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Read(true, " + std::to_string(rbank->GetIndex()) + ", idx, (char*)value.data(), " + std::to_string(rbank->GetRegisterWidth()) + "); }";
+			write_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Write(true, " + std::to_string(rbank->GetIndex()) + ", idx, (char*)value.data(), " + std::to_string(rbank->GetRegisterWidth()) + "); }";
 		} else {
 			read_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Read(true, " + std::to_string(rbank->GetIndex()) + ", idx, (" + rbank->GetElementIRType().GetCType() + ")value); }";
 			write_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Write(true, " + std::to_string(rbank->GetIndex()) + ", idx, (" + rbank->GetElementIRType().GetCType() + ") value); }";
