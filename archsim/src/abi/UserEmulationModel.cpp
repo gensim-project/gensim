@@ -117,23 +117,25 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 
 	GetMemoryModel().GetMappingManager()->MapRegion(_initial_stack_pointer - _stack_size, _stack_size, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[stack]");
 
-	unsigned long envp_ptrs[global_envc];
+	unsigned long envp_ptrs[1];
 	unsigned long argv_ptrs[global_argc + 1];
 
 	int argc = global_argc + 1;
-	int envc = global_envc;
+	int envc = 1;
 
 	Address sp = _initial_stack_pointer;
 
 //	printf("Start (%08x)\n", sp);
 
 #define PUSH(_val)   do { if(Is64BitBinary()) { sp -= 8; GetMemoryModel().Write64(sp, _val); } else { sp -= 4; GetMemoryModel().Write32(sp, _val);  } } while (0)
+#define PUSHB(_val)   do { sp -= 1; GetMemoryModel().Write8(sp, _val); } while (0)
 #define PUSHSTR(_str)  do { sp -= (strlen(_str) + 1); GetMemoryModel().WriteString(sp, _str); } while (0)
 #define ALIGN_STACK(v) do { sp -= ((uint64_t)sp.Get() & (v - 1)); } while (0)
 #define PUSH_AUX_ENT(_id, _value) do { PUSH(_value); PUSH(_id); } while (0)
 
 	PUSH(0);
 	PUSHSTR(archsim::options::TargetBinary.GetValue().c_str()); // global_argv[0]);
+	argv_ptrs[0] = sp.Get();
 
 	for (int i = 0; i < global_envc; i++) {
 		if(environ[i][0] == '_')
@@ -142,6 +144,18 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 			PUSHSTR(environ[i]);
 		envp_ptrs[i] = sp.Get();
 	}
+
+	for(int i = 0; i < global_argc; ++i) {
+		PUSHSTR(global_argv[i]);
+		argv_ptrs[i+1] = sp.Get();
+	}
+
+	for(int i = 0; i < 16; ++i) {
+		PUSHB(0x1f);
+	}
+	Address random_ptr = sp;
+
+	ALIGN_STACK(16);
 
 	uint32_t entry_size = Is64BitBinary() ? 8 : 4;
 
@@ -153,7 +167,6 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	NEW_AUXV_ENTRY(AT_PHDR, elf_phdr_location.Get());
 	NEW_AUXV_ENTRY(AT_PHENT, elf_phentsize);
 	NEW_AUXV_ENTRY(AT_PHNUM, elf_phnum);
-	NEW_AUXV_ENTRY(AT_BASE, 0x0);
 	NEW_AUXV_ENTRY(AT_FLAGS, 0x0);
 	NEW_AUXV_ENTRY(AT_ENTRY, _initial_entry_point.Get());
 	NEW_AUXV_ENTRY(AT_UID, 0);
@@ -161,16 +174,18 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	NEW_AUXV_ENTRY(AT_GID, 0);
 	NEW_AUXV_ENTRY(AT_EGID, 0);
 	NEW_AUXV_ENTRY(AT_SECURE, 0);
-	NEW_AUXV_ENTRY(AT_RANDOM, 0);
-	NEW_AUXV_ENTRY(AT_EXECFN, 0);
+	NEW_AUXV_ENTRY(AT_RANDOM, random_ptr.Get());
+	NEW_AUXV_ENTRY(AT_EXECFN, 0x4321);
 
 	NEW_AUXV_ENTRY(AT_NULL, 0);
 
-	sp -= entry_size * auxv_entries.size();
+	sp -= entry_size * elf_info_idx;
 	int items = (argc + 1) + (envc + 1) + 1;
 	sp = (sp - (items * entry_size)) & ~15UL;
 
-#define WRITE_STACK(value) do { GetMemoryModel().Write64(sp, value); sp += 8; } while(0)
+	_initial_stack_pointer = sp;
+
+#define WRITE_STACK(value) do { if(Is64BitBinary()) {GetMemoryModel().Write64(sp, value); sp += 8;} else { GetMemoryModel().Write32(sp, value); sp += 4;} } while(0)
 	WRITE_STACK(argc);
 	for(auto i : argv_ptrs) {
 		WRITE_STACK(i);
@@ -185,9 +200,6 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 		WRITE_STACK(i.first);
 		WRITE_STACK(i.second);
 	}
-
-
-	_initial_stack_pointer = sp;
 
 	return true;
 }
