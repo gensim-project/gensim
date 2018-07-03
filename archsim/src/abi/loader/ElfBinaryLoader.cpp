@@ -131,6 +131,9 @@ template<typename elfclass> bool ElfBinaryLoader<elfclass>::ProcessBinary(bool l
 				LC_DEBUG1(LogElf) << "Could not load segment.";
 				return false;
 			}
+		} else if(prog_header->p_type == PT_PHDR) {
+			LC_DEBUG1(LogElf) << "Found PHDR segment with address " << Address(prog_header->p_vaddr);
+			_ph_loc = Address(prog_header->p_vaddr);
 		}
 	}
 
@@ -141,19 +144,19 @@ template<typename elfclass> bool UserElfBinaryLoader<elfclass>::PrepareLoad()
 {
 	using PHeader = typename elfclass::PHeader;
 	// Err - arbitrary?
-	_ph_loc = Address(0xfffd0000);
 
-	PHeader *prog_header_base = (PHeader *)((unsigned long)this->_elf_header + this->_elf_header->e_phoff);
 
-	//unsigned long aligned_ph_size = _emulation_model.memory_model.AlignUp(_elf_header->e_phentsize * _elf_header->e_phnum);
-
-	this->_emulation_model.GetMemoryModel().GetMappingManager()->MapRegion(_ph_loc, 4096, archsim::abi::memory::RegFlagReadWriteExecute, "[prog header]");
-	this->_emulation_model.GetMemoryModel().Poke(this->_ph_loc, (uint8_t *)prog_header_base, this->_elf_header->e_phentsize * this->_elf_header->e_phnum);
-
-	for(Address i = _ph_loc; i < _ph_loc + (this->_elf_header->e_phentsize * this->_elf_header->e_phnum); i += 1) {
-		uint8_t byte;
-		this->_emulation_model.GetMemoryModel().Read8(i, byte);
-	}
+//	PHeader *prog_header_base = (PHeader *)((unsigned long)this->_elf_header + this->_elf_header->e_phoff);
+//
+//	//unsigned long aligned_ph_size = _emulation_model.memory_model.AlignUp(_elf_header->e_phentsize * _elf_header->e_phnum);
+//
+//	this->_emulation_model.GetMemoryModel().GetMappingManager()->MapRegion(_ph_loc, 4096, archsim::abi::memory::RegFlagReadWriteExecute, "[prog header]");
+//	this->_emulation_model.GetMemoryModel().Poke(this->_ph_loc, (uint8_t *)prog_header_base, this->_elf_header->e_phentsize * this->_elf_header->e_phnum);
+//
+//	for(Address i = _ph_loc; i < _ph_loc + (this->_elf_header->e_phentsize * this->_elf_header->e_phnum); i += 1) {
+//		uint8_t byte;
+//		this->_emulation_model.GetMemoryModel().Read8(i, byte);
+//	}
 
 	_initial_brk = Address(0);
 
