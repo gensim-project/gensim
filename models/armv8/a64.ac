@@ -1209,7 +1209,7 @@ AC_ISA(a64)
 		ccmpr.set_behaviour(ccmpr);
 		
 		ccmnr.set_decoder(op=0, S=1, o2=0, o3=0);
-		ccmpr.set_asm("ccmn %regw, %regw, #%nzcvbits, %cond", rn, rm, nzcv, cond);
+		ccmnr.set_asm("ccmn %regw, %regw, #%nzcvbits, %cond", rn, rm, nzcv, cond);
 		ccmnr.set_behaviour(ccmnr);
 		
 		// Conditional select
