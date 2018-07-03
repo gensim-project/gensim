@@ -13,6 +13,18 @@ public:
 	std::mt19937_64 Random;
 };
 
+TEST_F(GensimProcessorAPI, BSwap32)
+{
+	ASSERT_EQ(0x12345678, genc_bswap32(0x78563412));
+	ASSERT_EQ(0x87654321, genc_bswap32(0x21436587));
+}
+TEST_F(GensimProcessorAPI, BSwap64)
+{
+	ASSERT_EQ(0x123456789abcdef0, genc_bswap64(0xf0debc9a78563412));
+	ASSERT_EQ(0x0fedcba987654321, genc_bswap64(0x21436587a9cbed0f));
+	ASSERT_EQ(0x1000000000000000, genc_bswap64(0x10));
+}
+
 TEST_F(GensimProcessorAPI, Adc)
 {
 	for(int i = 0; i < ITERATIONS; ++i) {
