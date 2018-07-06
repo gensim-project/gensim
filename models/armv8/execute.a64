@@ -355,7 +355,7 @@ execute(msr_imm)
 
 execute(msr_reg)
 {
-	uint64 value = read_gpr(1, inst.rt);
+	uint64 value = read_gpr64(inst.rt);
 	
 	if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 2 && inst.crm == 0 && inst.op2 == 0) {
 		write_register(TTBR0, value);
@@ -418,6 +418,13 @@ execute(msr_reg)
 	} else {
 		write_device(16, inst.ir, value);
 	}
+}
+
+execute(msr_sctlr)
+{
+	uint64 value = read_gpr64(inst.rt);
+	write_device(16, inst.ir, value);
+	write_pc(read_pc()+4);
 }
 
 execute(mrs)
