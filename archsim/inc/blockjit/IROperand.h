@@ -116,6 +116,10 @@ namespace captive
 			{
 				return IROperand(CONSTANT, value, 8);
 			}
+			static IROperand const128(uint64_t value)
+			{
+				return IROperand(CONSTANT, value, 16);
+			}
 
 			static IROperand const_float(float value)
 			{

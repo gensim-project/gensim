@@ -7,7 +7,7 @@
  *      Author: harry
  */
 
-
+#include "define.h"
 #include "blockjit/block-compiler/lowering/x86/X86LoweringContext.h"
 #include "blockjit/block-compiler/lowering/x86/X86Lowerers.h"
 #include "blockjit/block-compiler/block-compiler.h"
@@ -19,7 +19,8 @@ using namespace captive::shared;
 
 bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
 {
-	const IROperand *target = &insn->operands[0];
+	const IROperand *rval = &insn->operands[0];
+	const IROperand *target = &insn->operands[1];
 
 	const IRInstruction *prev_insn = insn-1;
 	const IRInstruction *next_insn = insn+1;
@@ -42,15 +43,25 @@ bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
 	// CPU State
 	GetLoweringContext().load_state_field("thread_ptr", *sysv_abi[0]);
 
-	for (int i = 1; i < insn->operands.size(); i++) {
+	for (int i = 2; i < insn->operands.size(); i++) {
 		if (insn->operands[i].type != IROperand::NONE) {
-			GetLoweringContext().encode_operand_function_argument(&insn->operands[i], *sysv_abi[i], GetStackMap());
+			GetLoweringContext().encode_operand_function_argument(&insn->operands[i], *sysv_abi[i-1], GetStackMap());
 		}
 	}
 
 	// Load the address of the target function into a temporary, and perform an indirect call.
 	Encoder().mov(target->value, BLKJIT_RETURN(8));
 	Encoder().call(BLKJIT_RETURN(8));
+
+	if(rval->is_vreg()) {
+		if(rval->is_alloc_reg()) {
+			Encoder().mov(REG_RAX, GetLoweringContext().register_from_operand(rval));
+		} else if(rval->is_alloc_stack()) {
+			Encoder().mov(REG_RAX, GetLoweringContext().stack_from_operand(rval));
+		} else {
+			UNEXPECTED;
+		}
+	}
 
 	if (next_insn) {
 		if (next_insn->type == IRInstruction::CALL && insn->count_operands() == next_insn->count_operands()) {

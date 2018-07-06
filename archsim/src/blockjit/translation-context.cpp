@@ -40,7 +40,9 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "shr",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "sar",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "ror",		.format = "IBXXXX", .has_side_effects = false },
+	{ .mnemonic = "rol",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "clz",		.format = "IOXXXX", .has_side_effects = false },
+	{ .mnemonic = "popcnt",		.format = "IOXXXX", .has_side_effects = false },
 
 	{ .mnemonic = "and",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "or",			.format = "IBXXXX", .has_side_effects = false },
@@ -97,6 +99,7 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "fadd",		.format = "IIOXXX", .has_side_effects = false },
 	{ .mnemonic = "fsub",		.format = "IIOXXX", .has_side_effects = false },
 	{ .mnemonic = "fsqrt",		.format = "IOXXXX", .has_side_effects = false },
+	{ .mnemonic = "fabs",		.format = "IOXXXX", .has_side_effects = false },
 
 	{ .mnemonic = "fcmp_lt",	.format = "IIOXXX", .has_side_effects = false },
 	{ .mnemonic = "fcmp_lte",	.format = "IIOXXX", .has_side_effects = false },

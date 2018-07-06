@@ -117,13 +117,13 @@ extern "C" {
 //		cpu->flush_dtlb();
 	}
 
-	void tmFlushITlbEntry(gensim::Processor *cpu, uint32_t addr)
+	void tmFlushITlbEntry(gensim::Processor *cpu, uint64_t addr)
 	{
 		UNIMPLEMENTED;
 //		cpu->flush_itlb_entry(addr);
 	}
 
-	void tmFlushDTlbEntry(gensim::Processor *cpu, uint32_t addr)
+	void tmFlushDTlbEntry(gensim::Processor *cpu, uint64_t addr)
 	{
 		UNIMPLEMENTED;
 //		cpu->flush_dtlb_entry(addr);
@@ -218,7 +218,7 @@ extern "C" {
 //		return ((archsim::abi::devices::MMU *)cpu->peripherals.GetDeviceByName("mmu"))->Translate(cpu, virt_addr, *phys_addr, MMUACCESSINFO(cpu->in_kernel_mode(), 0, 0));
 	}
 
-	uint32_t cpuRead8(gensim::Processor *cpu, uint32_t address, uint8_t& data)
+	uint32_t cpuRead8(gensim::Processor *cpu, uint64_t address, uint8_t& data)
 	{
 		UNIMPLEMENTED;
 //		LC_DEBUG2(LogJitFuns) << "cpuRead8";
@@ -233,7 +233,7 @@ extern "C" {
 //		return rval;
 	}
 
-	uint32_t cpuRead16(gensim::Processor *cpu, uint32_t address, uint16_t& data)
+	uint32_t cpuRead16(gensim::Processor *cpu, uint64_t address, uint16_t& data)
 	{
 		UNIMPLEMENTED;
 //		LC_DEBUG2(LogJitFuns) << "cpuRead8";
@@ -248,7 +248,7 @@ extern "C" {
 //		return rval;
 	}
 
-	uint32_t cpuRead32(gensim::Processor *cpu, uint32_t address, uint32_t& data)
+	uint32_t cpuRead32(gensim::Processor *cpu, uint64_t address, uint32_t& data)
 	{
 		UNIMPLEMENTED;
 
@@ -264,7 +264,7 @@ extern "C" {
 //		return rval;
 	}
 
-	uint32_t cpuWrite8(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint32_t address, uint8_t data)
+	uint32_t cpuWrite8(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint8_t data)
 	{
 		LC_DEBUG2(LogJitFuns) << "cpuWrite8 " << interface_id << " " << archsim::Address(address) << " " << (uint32_t)data;
 
@@ -278,7 +278,7 @@ extern "C" {
 		return 0;
 	}
 
-	uint32_t cpuWrite16(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint32_t address, uint16_t data)
+	uint32_t cpuWrite16(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint16_t data)
 	{
 		LC_DEBUG2(LogJitFuns) << "cpuWrite16 " << interface_id << " " << archsim::Address(address) << " " << (uint32_t)data;
 		auto &interface = cpu->GetMemoryInterface(interface_id);
@@ -291,7 +291,7 @@ extern "C" {
 		return 0;
 	}
 
-	uint32_t cpuWrite32(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint32_t address, uint32_t data)
+	uint32_t cpuWrite32(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint32_t data)
 	{
 		LC_DEBUG2(LogJitFuns) << "cpuWrite32 " << interface_id << " " << archsim::Address(address) << " " << (uint32_t)data;
 		auto &interface = cpu->GetMemoryInterface(interface_id);
@@ -304,7 +304,7 @@ extern "C" {
 		return 0;
 	}
 
-	uint32_t cpuRead8User(gensim::Processor *cpu, uint32_t address, uint8_t&data)
+	uint32_t cpuRead8User(gensim::Processor *cpu, uint64_t address, uint8_t&data)
 	{
 		UNIMPLEMENTED;
 //		LC_DEBUG2(LogJitFuns) << "cpuRead8User";
@@ -317,7 +317,7 @@ extern "C" {
 //		return rc;
 	}
 
-	uint32_t cpuRead32User(gensim::Processor *cpu, uint32_t address, uint32_t&data)
+	uint32_t cpuRead32User(gensim::Processor *cpu, uint64_t address, uint32_t&data)
 	{
 		UNIMPLEMENTED;
 //		LC_DEBUG2(LogJitFuns) << "cpuRead32User";
@@ -328,7 +328,7 @@ extern "C" {
 //		return rc;
 	}
 
-	uint32_t cpuWrite8User(gensim::Processor *cpu, uint32_t address, uint8_t data)
+	uint32_t cpuWrite8User(gensim::Processor *cpu, uint64_t address, uint8_t data)
 	{
 		UNIMPLEMENTED;
 //		LC_DEBUG2(LogJitFuns) << "cpuWrite8User";
@@ -346,7 +346,7 @@ extern "C" {
 //		return rc;
 	}
 
-	uint32_t cpuWrite32User(gensim::Processor *cpu, uint32_t address, uint32_t data)
+	uint32_t cpuWrite32User(gensim::Processor *cpu, uint64_t address, uint32_t data)
 	{
 		UNIMPLEMENTED;
 //		LC_DEBUG2(LogJitFuns) << "cpuWrite32User";
@@ -471,33 +471,42 @@ extern "C" {
 		}
 	}
 
-	void cpuTraceOnlyMemRead8(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t value)
+	void cpuTraceOnlyMemRead8(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint32_t value)
 	{
 		cpu->GetTraceSource()->Trace_Mem_Read(true, addr, value & 0xff, 1);
 	}
 
-	void cpuTraceOnlyMemRead16(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t value)
+	void cpuTraceOnlyMemRead16(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint32_t value)
 	{
 		cpu->GetTraceSource()->Trace_Mem_Read(true, addr, value & 0xffff, 2);
 	}
 
-	void cpuTraceOnlyMemRead32(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t value)
+	void cpuTraceOnlyMemRead32(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint32_t value)
 	{
 		cpu->GetTraceSource()->Trace_Mem_Read(true, addr, value & 0xffffffff, 4);
 	}
 
-	void cpuTraceOnlyMemWrite8(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t data)
+	void cpuTraceOnlyMemRead64(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint64_t value)
+	{
+		cpu->GetTraceSource()->Trace_Mem_Read(true, addr, value, 8);
+	}
+
+	void cpuTraceOnlyMemWrite8(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint32_t data)
 	{
 		cpu->GetTraceSource()->Trace_Mem_Write(true, addr, data & 0xff, 1);
 	}
 
-	void cpuTraceOnlyMemWrite16(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t data)
+	void cpuTraceOnlyMemWrite16(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint32_t data)
 	{
 		cpu->GetTraceSource()->Trace_Mem_Write(true, addr, data & 0xffff, 2);
 	}
 
-	void cpuTraceOnlyMemWrite32(archsim::core::thread::ThreadInstance *cpu, uint32_t addr, uint32_t data)
+	void cpuTraceOnlyMemWrite32(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint32_t data)
 	{
 		cpu->GetTraceSource()->Trace_Mem_Write(true, addr, data & 0xffffffff, 4);
+	}
+	void cpuTraceOnlyMemWrite64(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint64_t data)
+	{
+		cpu->GetTraceSource()->Trace_Mem_Write(true, addr, data, 8);
 	}
 }
