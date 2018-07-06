@@ -51,8 +51,8 @@ AC_ISA(a64)
 	ac_behaviour exgen;
 	
 	ac_format SYSTEM = "0x354:10 %l:1 %op0:2 %op1:3 %crn:4 %crm:4 %op2:3 %rt:5";
-	ac_instr<SYSTEM> msr_imm, msr_reg, mrs, hint, barrier, sys, clrex;
-	ac_behaviour msr_imm, msr_reg, mrs, hint, barrier, sys, clrex;
+	ac_instr<SYSTEM> msr_imm, msr_reg, mrs, hint, barrier, sys, clrex, msr_sctlr;
+	ac_behaviour msr_imm, msr_reg, mrs, hint, barrier, sys, clrex, msr_sctlr;
 	
 	ac_format TEST_B_IMM = "%b5:1 0x1b:6 %op:1 %b40:5 %imm14:14 %rt:5";
 	ac_instr<TEST_B_IMM> tbz;
@@ -398,6 +398,12 @@ AC_ISA(a64)
 		msr_reg.set_asm("msr %regx, tpidr_el0", rt, op0=3,op1=3,crn=13,crm=0,op2=2);
 		msr_reg.set_asm("msr %regx, tpidr_el1", rt, op0=3,op1=0,crn=13,crm=0,op2=4);
 		msr_reg.set_behaviour(msr_reg);
+		
+		msr_sctlr.set_decoder(l=0, op0=3,op1=0,crn=1,crm=0,op2=0);
+		msr_sctlr.set_asm("msr sctlr_el1, %regx", rt);
+		msr_sctlr.set_behaviour(msr_sctlr);
+		msr_sctlr.set_end_of_block();
+		msr_sctlr.set_variable_jump();
 		
 		mrs.set_decoder(l=1, op0=2);
 		mrs.set_decoder(l=1, op0=3);
