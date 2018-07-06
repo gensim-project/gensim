@@ -83,6 +83,7 @@ LowerType(FCtrl_GetFlush)
 
 LowerType(VAddF)
 LowerType(VAddI)
+LowerType(VCmpEQI)
 LowerType(VSubF)
 LowerType(VSubI)
 LowerType(VMulF)

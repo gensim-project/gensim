@@ -40,6 +40,12 @@ namespace gensim
 			static std::string operand_for_node(const SSANodeWalker& node)
 			{
 				if (node.Statement.IsFixed()) {
+					auto type = node.Statement.GetType();
+					if(type.VectorWidth > 1) {
+						int total_size = type.SizeInBytes() * 8;
+						return "IROperand::const" + std::to_string(total_size) + "(" + node.GetFixedValue() + ".toData())";
+					}
+
 					if (node.Statement.GetType() == IRTypes::UInt8) {
 						return "IROperand::const8(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::UInt16) {
@@ -60,8 +66,14 @@ namespace gensim
 						return "IROperand::const_float(" + node.GetFixedValue() + ")";
 					} else if(node.Statement.GetType() == IRTypes::Double) {
 						return "IROperand::const_double(" + node.GetFixedValue() + ")";
+					} else if(node.Statement.GetType() == IRTypes::Int128) {
+						return "IROperand::const_128(" + node.GetFixedValue() + ")";
+					} else if(node.Statement.GetType() == IRTypes::UInt128) {
+						return "IROperand::const_128(" + node.GetFixedValue() + ")";
+					} else if(node.Statement.GetType() == IRTypes::LongDouble) {
+						return "IROperand::const_long_double(" + node.GetFixedValue() + ")";
 					} else {
-						assert(false && "Unsupported node type");
+						throw std::logic_error("Unsupported node type: " + node.Statement.GetType().GetCType());
 						UNEXPECTED;
 					}
 				} else {
@@ -322,15 +334,21 @@ namespace gensim
 							return EmitVectorOp(output, "sub");
 						case BinaryOperator::Multiply:
 							return EmitVectorOp(output, "mul");
+						case BinaryOperator::GreaterThan:
+							return EmitVectorOp(output, "cmpgt");
+						case BinaryOperator::GreaterThanEqual:
+							return EmitVectorOp(output, "cmpgte");
+						case BinaryOperator::Equality:
+							return EmitVectorOp(output, "cmpeq");
 
 						case BinaryOperator::Bitwise_Or:
 						case BinaryOperator::Bitwise_And:
-						case BinaryOperator::Equality:
+						case BinaryOperator::Bitwise_XOR:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "assert(false);";
 							break;
 						default:
-							assert(false && "Unimplemented vector operator!");
+							throw std::logic_error("Unimplemented vector operator " + BinaryOperator::PrettyPrintOperator(Statement.Type));
 							UNEXPECTED;
 
 					}
@@ -500,6 +518,7 @@ namespace gensim
 
 				bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
+					output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = " << GetFixedValue() << ";";
 					return true;
 				}
 
@@ -546,12 +565,12 @@ namespace gensim
 								str << "(" << stmt.GetType().GetCType() << ")(" << stmt.Constant.Int() << "ULL)";
 								break;
 							case genc::IRConstant::Type_Vector:
-								str << "archsim::Vector<" << gensim::genc::IRConstant::GetValueTypeName(stmt.Constant.VGet(0).Type()) << ", " << stmt.Constant.VSize() << ">({";
+								str << "archsim::Vector<" << stmt.GetType().GetElementType().GetCType() << ", " << stmt.Constant.VSize() << ">({";
 								for(unsigned i = 0; i < stmt.Constant.VSize(); ++i) {
 									if(i) {
 										str << ", ";
 									}
-									str << stmt.Constant.VGet(i).Int();
+									str << std::to_string(stmt.Constant.VGet(i).Int());
 								}
 								str << "})";
 								break;
@@ -952,6 +971,10 @@ namespace gensim
 					if (Statement.ArgCount() > 2) arg2 = Factory.GetOrCreate(Statement.Args(2));
 
 					switch (Statement.Type) {
+						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
+							output << "builder.popcnt(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << ");";
+							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
@@ -966,7 +989,7 @@ namespace gensim
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
 //							output << "UNIMPLEMENTED; // pendirq\n";
-							output << "builder.call(IROperand::func((void*)cpuPendInterrupt));";
+							output << "builder.call(IROperand::const32(0), IROperand::func((void*)cpuPendInterrupt));";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
 							// XXX TODO FIXME
@@ -991,11 +1014,25 @@ namespace gensim
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.ldpc(IROperand::vreg(" << Statement.GetName() << ", " << Statement.GetType().SizeInBytes() << "));";
 							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_WritePc: {
+							auto pc_descriptor = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetSlot("PC");
+
+							output << "builder.streg(" << operand_for_node(*arg0) << ", IROperand::const32(" << pc_descriptor.GetRegFileOffset() << "));";
+
+							break;
+						}
 
 						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
 						case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.adc_with_flags(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
+							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_Adc:
+						case SSAIntrinsicStatement::SSAIntrinsic_Adc64:
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
+							output << "builder.mov(" << operand_for_node(*arg0) << ", " << operand_for_node(*this) << ");";
+							output << "builder.add(" << operand_for_node(*arg1) << ", " << operand_for_node(*this) << ");";
+							output << "builder.add(" << operand_for_node(*arg2) << ", " << operand_for_node(*this) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
@@ -1017,10 +1054,9 @@ namespace gensim
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
-							output << "builder.fabsd(" << operand_for_node(*arg0) << ");";
-							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatAbs:
-							output << "builder.fabsf(" << operand_for_node(*arg0) << ");";
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
+							output << "builder.fabs(" << operand_for_node(*arg0) << ", " << operand_for_node(*this) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
@@ -1154,7 +1190,7 @@ namespace gensim
 					output << "builder.ldmem(IROperand::const32(" << Statement.GetInterface()->GetID() << ")," << operand_for_node(*address) << ", IROperand::const32(0), " << operand_for_symbol(*Statement.Target()) << ");\n";
 
 					output << "if(trace) {";
-					output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemRead" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");";
+					output << "builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceOnlyMemRead" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_symbol(*Statement.Target()) << ");";
 					output << "}";
 
 					return true;
@@ -1190,7 +1226,7 @@ namespace gensim
 //					} else {
 					output << "builder.stmem(IROperand::const32(" << Statement.GetInterface()->GetID() << "), " << operand_for_node(*value) << ", IROperand::const32(0), " << operand_for_node(*address) << ");\n";
 					output << "if(trace)";
-					output << "builder.call(IROperand::func((void*)cpuTraceOnlyMemWrite" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_node(*value) << ");";
+					output << "builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceOnlyMemWrite" << (uint32_t)(8*Statement.Width) << "), " << operand_for_node(*address) << ", " << operand_for_node(*value) << ");";
 //					}
 
 					return true;
@@ -1306,7 +1342,7 @@ namespace gensim
 								output << "builder.mov(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 8));";
 							}
 
-							output << "builder.call(IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), IROperand::vreg(tmp,8));";
+							output << "builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), IROperand::vreg(tmp,8));";
 							output << "}";
 						}
 						return true;
@@ -1320,7 +1356,7 @@ namespace gensim
 
 						output << "builder.streg(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4));\n";
 						if(register_width <= 4) {
-							output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), " << operand_for_node(*RegNum) << ", " << operand_for_node(*Value) << ");";
+							output << "if(trace) builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), " << operand_for_node(*RegNum) << ", " << operand_for_node(*Value) << ");";
 						}
 						output << "}";
 					}
@@ -1341,7 +1377,7 @@ namespace gensim
 
 					if (write.RegNum()->IsFixed()) {
 						output << "builder.ldreg(IROperand::const32((uint32_t)(" << offset << " + (" << register_stride << " * " << RegNum->GetFixedValue() << "))), " << operand_for_stmt(Statement) << ");\n";
-						output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), " << operand_for_stmt(Statement) << ");";
+						output << "if(trace) builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), " << operand_for_stmt(Statement) << ");";
 						return true;
 					} else {
 						output << "{";
@@ -1355,7 +1391,7 @@ namespace gensim
 
 						output <<
 						       "if(trace) {"
-						       "  builder.call(IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*RegNum) << ", " << operand_for_stmt(Statement) << ");"
+						       "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*RegNum) << ", " << operand_for_stmt(Statement) << ");"
 						       "}";
 
 						output << "}";
@@ -1377,7 +1413,7 @@ namespace gensim
 						output << "IRRegId tmp = builder.alloc_reg(" << register_width << ");";
 						output << "builder.trunc(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, " << register_width << "));";
 						output << "builder.streg(IROperand::vreg(tmp, " << register_width << "), IROperand::const32(" << offset << "));";
-						output << "if(trace) builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, " << register_width << "));";
+						output << "if(trace) builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, " << register_width << "));";
 						output << "}";
 					} else if (Value->Statement.GetType().SizeInBytes() < register_width) {
 						assert(false);
@@ -1388,9 +1424,9 @@ namespace gensim
 						if(register_width < 4) {
 							output << "  IRRegId tmp = builder.alloc_reg(4);";
 							output << "  builder.zx(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4));";
-							output << "  builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
+							output << "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
 						} else {
-							output << "  builder.call(IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*Value) << ");";
+							output << "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*Value) << ");";
 						}
 						output << "}";
 
@@ -1412,9 +1448,9 @@ namespace gensim
 					if(register_width < 4) {
 						output << "  IRRegId tmp = builder.alloc_reg(4);";
 						output << "  builder.zx(IROperand::vreg(" << Statement.GetName() << ", " << register_width << "), IROperand::vreg(tmp, 4));";
-						output << "  builder.call(IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
+						output << "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
 					} else {
-						output << "  builder.call(IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(" << Statement.GetName() << ", 4));";
+						output << "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(" << Statement.GetName() << ", 4));";
 					}
 
 					output << "}";
@@ -1770,10 +1806,7 @@ namespace gensim
 					output << "CV_" << Statement.Target()->GetName() << " = " << expr->GetFixedValue() << ";";
 
 					if (Statement.Parent->Parent->HasDynamicDominatedReads(&Statement)) {
-						output << "builder.mov(IROperand::const"
-						       << (uint32_t)(Statement.Target()->GetType().SizeInBytes() * 8)
-						       << "(CV_" << Statement.Target()->GetName() << "), "
-						       << operand_for_symbol(*Statement.Target()) << ");";
+						output << "builder.mov(" << operand_for_node(*expr) << ", " << operand_for_symbol(*Statement.Target()) << ");";
 
 						//output << "lir.mov(*lir_variables[lir_idx_" << Statement.GetTarget()->GetName() << "], CV_" << Statement.GetTarget()->GetName() << ");";
 					}
@@ -1851,6 +1884,13 @@ namespace gensim
 					// IR Call instruction supports up to 5 operands
 					assert(Statement.ArgCount() <= 5);
 
+					std::string function_name;
+					if(Statement.Target()->HasAttribute(ActionAttribute::External)) {
+						function_name = "jit_" + Statement.Target()->GetPrototype().GetIRSignature().GetName();
+					} else {
+						function_name = "helper_" + Statement.Target()->GetContext().GetIsaDescription().ISAName + "_" + Statement.Target()->GetPrototype().GetIRSignature().GetName() + "<false>";
+					}
+
 					if (Statement.Target()->GetPrototype().GetIRSignature().GetName() == "flush") {
 						output << "builder.flush();\n";
 					} else if (Statement.Target()->GetPrototype().GetIRSignature().GetName() == "flush_itlb") {
@@ -1862,8 +1902,15 @@ namespace gensim
 					} else if (Statement.Target()->GetPrototype().GetIRSignature().GetName() == "flush_dtlb_entry") {
 						output << "builder.flush_dtlb_entry(" << operand_for_node(*Factory.GetOrCreate(dynamic_cast<const SSAStatement*>(Statement.Arg(0)))) << ");\n";
 					} else {
+						std::string output_string;
+						if(Statement.HasValue()) {
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");";
+							output_string = operand_for_node(*this);
+						} else {
+							output_string = "IROperand::const32(0)";
+						}
 						output << "builder.call";
-						output << "(IROperand::func((void *)&helper_" << Statement.Target()->GetContext().GetIsaDescription().ISAName << "_" << Statement.Target()->GetPrototype().GetIRSignature().GetName() << "<false>)";
+						output << "(" << output_string << ", IROperand::func((void *)&" << function_name << ")";
 
 						for(unsigned i = 0; i < Statement.ArgCount(); ++i) {
 							auto arg = Statement.Arg(i);

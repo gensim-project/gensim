@@ -22,7 +22,7 @@ function(define_model target-name arch-name arch-file)
 		SET(MODEL_OPT "3")
 	ENDIF()
 
-	SET(gensim-options -s module,function,arch,decode,disasm,ee_interp,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=${MODEL_OPT},makefile.Debug=1)
+	SET(gensim-options -s module,function,arch,decode,disasm,ee_interp,ee_blockjit,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=${MODEL_OPT},makefile.Debug=1)
 
     #SET(gensim-options -s module,arch,decode,disasm,ee_blockjit,jumpinfo,makefile -o makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.Optimise=${MODEL_OPT},makefile.Debug=1)
 

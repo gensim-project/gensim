@@ -28,6 +28,7 @@
 
 #define UNIMPLEMENTED do { throw std::logic_error("Not implemented " __FILE__ ":" + std::to_string(__LINE__)); } while(0)
 #define ASSERT(x) do { if(!(x)) { throw std::logic_error("Assertion failed: " #x ", " __FILE__ ":" + std::to_string(__LINE__)); } } while(0)
+#define UNEXPECTED do {throw std::logic_error("Unexpected: " __FILE__", " + std::to_string(__LINE__)); } while(0)
 
 // Prompts for gcc's block placement algorithms
 #define LIKELY(x) __builtin_expect((x), 1)

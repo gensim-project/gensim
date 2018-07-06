@@ -94,7 +94,9 @@ namespace captive
 			INSN2(shr, SHR);
 			INSN2(sar, SAR);
 			INSN2(ror, ROR);
+			INSN2(rol, ROL);
 			INSN2(clz, CLZ);
+			INSN2(popcnt, POPCNT);
 			INSN2(bitwise_and, AND);
 			INSN2(bitwise_or, OR);
 			INSN2(bitwise_xor, XOR);
@@ -105,6 +107,9 @@ namespace captive
 			INSN4(vsubi, VSUBI);
 			INSN4(vsubf, VSUBF);
 			INSN4(vmulf, VMULF);
+			INSN4(vcmpeqi, VCMPEQI);
+			INSN4(vcmpgti, VCMPGTI);
+			INSN4(vcmpgtei, VCMPGTEI);
 
 			INSN1(fctrl_set_round, FCTRL_SET_ROUND);
 			INSN1(fctrl_get_round, FCTRL_GET_ROUND);
@@ -126,6 +131,7 @@ namespace captive
 			INSN3(fsub, FSUB);
 			INSN3(fmul, FMUL);
 			INSN2(fsqrt, FSQRT);
+			INSN2(fabs, FABS);
 
 			INSN3(read_device, READ_DEVICE);
 			INSN3(write_device, WRITE_DEVICE);
@@ -161,7 +167,6 @@ namespace captive
 				insn.ir_block = current_block_;
 			}
 
-			INSN1(call, CALL);
 			INSN2(call, CALL);
 			INSN3(call, CALL);
 			INSN4(call, CALL);

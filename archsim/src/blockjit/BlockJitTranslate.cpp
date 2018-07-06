@@ -264,7 +264,7 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 	decode_txlt_ctx->Translate(processor, *decode, *_decode_ctx, builder);
 
 	if(processor->GetTraceSource()) {
-		builder.call(IROperand::func((void*)cpuTraceInsnEnd));
+		builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceInsnEnd));
 	}
 
 	return true;
