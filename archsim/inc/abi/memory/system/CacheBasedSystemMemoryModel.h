@@ -116,9 +116,9 @@ namespace archsim
 				void Dump()
 				{
 					if(IsDevice())
-						fprintf(stderr, "SMM Entry %08x (%01x) => %08x (Device %p)\n", GetTag(), GetFlags(), GetPhysAddr(), GetDevice());
+						fprintf(stderr, "SMM Entry %08lx (%01x) => %08lx (Device %p)\n", GetTag().Get(), GetFlags(), GetPhysAddr().Get(), GetDevice());
 					else
-						fprintf(stderr, "SMM Entry %08x (%01x) => %08x (Memory %p)\n", GetTag(), GetFlags(), GetPhysAddr(), GetMemory());
+						fprintf(stderr, "SMM Entry %08lx (%01x) => %08lx (Memory %p)\n", GetTag().Get(), GetFlags(), GetPhysAddr().Get(), GetMemory());
 				}
 
 				static const Address::underlying_t kPhysAddrMask = ~0xf;

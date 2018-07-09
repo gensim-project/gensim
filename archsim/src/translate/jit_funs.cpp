@@ -303,6 +303,18 @@ extern "C" {
 		}
 		return 0;
 	}
+	uint32_t cpuWrite64(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint32_t data)
+	{
+		LC_DEBUG2(LogJitFuns) << "cpuWrite64 " << interface_id << " " << archsim::Address(address) << " " << (uint32_t)data;
+		auto &interface = cpu->GetMemoryInterface(interface_id);
+		auto rval = interface.Write64(archsim::Address(address), data);
+		if(rval != archsim::MemoryResult::OK) {
+			cpu->TakeMemoryException(interface, archsim::Address(address));
+		} else {
+			// OK!
+		}
+		return 0;
+	}
 
 	uint32_t cpuRead8User(gensim::Processor *cpu, uint64_t address, uint8_t&data)
 	{

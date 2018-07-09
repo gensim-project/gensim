@@ -46,7 +46,7 @@ namespace gensim
 {
 	class BaseDecode;
 	class BlockJitProcessor;
-	class BaseJumpInfo;
+	class BaseJumpInfoProvider;
 
 	namespace blockjit
 	{
@@ -101,7 +101,7 @@ namespace gensim
 
 			bool _supportChaining;
 			gensim::BaseDecode *_decode;
-			gensim::BaseJumpInfo *_jumpinfo;
+			gensim::BaseJumpInfoProvider *_jumpinfo;
 
 			archsim::translate::TranslationManager *_txln_mgr;
 			bool _supportProfiling;

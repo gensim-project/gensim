@@ -66,6 +66,7 @@ namespace captive
 #define INSN3(x, y) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3) { auto insn = new(ctx_->get_next_instruction_ptr()) IRInstruction(IRInstruction::y, op1,op2,op3);  insn->ir_block = GetBlock(); }
 #define INSN4(x, y) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3, const IROperand &op4) { auto insn = new(ctx_->get_next_instruction_ptr()) IRInstruction(IRInstruction::y, op1,op2,op3,op4);  insn->ir_block = GetBlock(); }
 #define INSN5(x, y) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3, const IROperand &op4, const IROperand &op5) { auto insn = new(ctx_->get_next_instruction_ptr()) IRInstruction(IRInstruction::y, op1,op2,op3,op4,op5);  insn->ir_block = GetBlock(); }
+#define INSN6(x, y) void x(const IROperand &op1, const IROperand &op2, const IROperand &op3, const IROperand &op4, const IROperand &op5, const IROperand &op6) { auto insn = new(ctx_->get_next_instruction_ptr()) IRInstruction(IRInstruction::y, op1,op2,op3,op4,op5,op6);  insn->ir_block = GetBlock(); }
 
 			INSN0(nop, NOP);
 			INSN0(ret, RET);
@@ -96,6 +97,7 @@ namespace captive
 			INSN2(ror, ROR);
 			INSN2(rol, ROL);
 			INSN2(clz, CLZ);
+			INSN2(bswap, BSWAP);
 			INSN2(popcnt, POPCNT);
 			INSN2(bitwise_and, AND);
 			INSN2(bitwise_or, OR);
@@ -107,6 +109,9 @@ namespace captive
 			INSN4(vsubi, VSUBI);
 			INSN4(vsubf, VSUBF);
 			INSN4(vmulf, VMULF);
+			INSN4(vori, VORI);
+			INSN4(vandi, VANDI);
+			INSN4(vxori, VXORI);
 			INSN4(vcmpeqi, VCMPEQI);
 			INSN4(vcmpgti, VCMPGTI);
 			INSN4(vcmpgtei, VCMPGTEI);
@@ -171,6 +176,7 @@ namespace captive
 			INSN3(call, CALL);
 			INSN4(call, CALL);
 			INSN5(call, CALL);
+			INSN6(call, CALL);
 
 			INSN4(dispatch, DISPATCH);
 			INSN2(set_cpu_feature, SET_CPU_FEATURE);

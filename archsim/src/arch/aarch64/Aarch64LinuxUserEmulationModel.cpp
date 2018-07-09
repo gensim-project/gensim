@@ -4,6 +4,7 @@
 #include "abi/devices/aarch64/core/AArch64Coprocessor.h"
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
+#include "gensim/gensim_decode.h"
 
 UseLogContext(LogEmulationModel)
 DeclareChildLogContext(LogEmulationModelAarch64LinuxUser, LogEmulationModel, "Aarch64")
@@ -22,7 +23,13 @@ namespace archsim
 
 				uint32_t DecodeSync(archsim::MemoryInterface& mem_interface, archsim::Address address, uint32_t mode, gensim::BaseDecode& target) override
 				{
-					return arch_.GetISA(0).DecodeInstr(address, &mem_interface, target);
+					auto result = arch_.GetISA(0).DecodeInstr(address, &mem_interface, target);
+
+					if((target.ir & 0xff000010) == 0x54000000) {
+						target.SetIsPredicated();
+					}
+
+					return result;
 				}
 			private:
 				const ArchDescriptor &arch_;

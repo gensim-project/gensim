@@ -342,10 +342,11 @@ namespace gensim
 							return EmitVectorOp(output, "cmpeq");
 
 						case BinaryOperator::Bitwise_Or:
+							return EmitVectorOp(output, "or");
 						case BinaryOperator::Bitwise_And:
+							return EmitVectorOp(output, "and");
 						case BinaryOperator::Bitwise_XOR:
-							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
-							output << "assert(false);";
+							return EmitVectorOp(output, "xor");
 							break;
 						default:
 							throw std::logic_error("Unimplemented vector operator " + BinaryOperator::PrettyPrintOperator(Statement.Type));
@@ -975,6 +976,11 @@ namespace gensim
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.popcnt(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << ");";
 							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
+						case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
+							output << "builder.bswap(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << ");";
+							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
@@ -1348,14 +1354,14 @@ namespace gensim
 						return true;
 					} else {
 						output << "{";
-						output << "IRRegId tmp = builder.alloc_reg(4);\n";
+						output << "IRRegId tmp = builder.alloc_reg(8);\n";
 
-						output << "builder.mov(" << operand_for_node(*RegNum) << ", IROperand::vreg(tmp, 4));";
-						output << "builder.imul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 4));";
-						output << "builder.add(IROperand::const32(" << offset << "), IROperand::vreg(tmp, 4));";
+						output << "builder.mov(" << operand_for_node(*RegNum) << ", IROperand::vreg(tmp, 8));";
+						output << "builder.imul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 8));";
+						output << "builder.add(IROperand::const32(" << offset << "), IROperand::vreg(tmp, 8));";
 
-						output << "builder.streg(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4));\n";
-						if(register_width <= 4) {
+						output << "builder.streg(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 8));\n";
+						if(register_width <= 8) {
 							output << "if(trace) builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), " << operand_for_node(*RegNum) << ", " << operand_for_node(*Value) << ");";
 						}
 						output << "}";
@@ -1421,10 +1427,10 @@ namespace gensim
 						output << "builder.streg(" << operand_for_node(*Value) << ", IROperand::const32(" << offset << "));";
 
 						output << "if(trace) {";
-						if(register_width < 4) {
-							output << "  IRRegId tmp = builder.alloc_reg(4);";
-							output << "  builder.zx(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4));";
-							output << "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
+						if(register_width < 8) {
+							output << "  IRRegId tmp = builder.alloc_reg(8);";
+							output << "  builder.zx(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 8));";
+							output << "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 8));";
 						} else {
 							output << "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegWrite), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*Value) << ");";
 						}
@@ -1445,12 +1451,12 @@ namespace gensim
 					output << "builder.ldreg(IROperand::const32(" << offset << "), " << operand_for_stmt(Statement) << ");";
 
 					output << "if(trace) {";
-					if(register_width < 4) {
-						output << "  IRRegId tmp = builder.alloc_reg(4);";
-						output << "  builder.zx(IROperand::vreg(" << Statement.GetName() << ", " << register_width << "), IROperand::vreg(tmp, 4));";
-						output << "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 4));";
+					if(register_width < 8) {
+						output << "  IRRegId tmp = builder.alloc_reg(8);";
+						output << "  builder.zx(IROperand::vreg(" << Statement.GetName() << ", " << register_width << "), IROperand::vreg(tmp, 8));";
+						output << "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(tmp, 8));";
 					} else {
-						output << "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(" << Statement.GetName() << ", 4));";
+						output << "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::vreg(" << Statement.GetName() << ", 8));";
 					}
 
 					output << "}";

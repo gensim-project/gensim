@@ -47,10 +47,12 @@ namespace archsim
 				llvm::Function *blkRead8Ptr;
 				llvm::Function *blkRead16Ptr;
 				llvm::Function *blkRead32Ptr;
+				llvm::Function *blkRead64Ptr;
 
 				llvm::Function *blkWrite8Ptr;
 				llvm::Function *blkWrite16Ptr;
 				llvm::Function *blkWrite32Ptr;
+				llvm::Function *blkWrite64Ptr;
 
 				llvm::Function *genc_adc_flags_ptr;
 			};
@@ -121,6 +123,8 @@ namespace archsim
 
 				::llvm::Type *GetLLVMType(uint32_t bytes);
 				::llvm::Type *GetLLVMType(const IROperand &op);
+				::llvm::Type *GetVectorType(const IROperand &aggregate, const IROperand &count);
+
 				::llvm::LLVMContext &GetLLVMContext()
 				{
 					return target_module_->getContext();

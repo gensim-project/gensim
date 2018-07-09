@@ -59,10 +59,10 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 			Address virt_pc = thread->GetPC();
 			Address phys_pc(0);
 			auto txln = thread->GetFetchMI().PerformTranslation(virt_pc, phys_pc, false, true, false);
-			auto &region = ctx->TxlnMgr.GetRegion(phys_pc.Get());
+			auto &region = ctx->TxlnMgr.GetRegion(phys_pc);
 
 			if(region.HasTranslations()) {
-				if(region.txln != nullptr && region.txln->ContainsBlock(virt_pc.GetPageOffset())) {
+				if(region.txln != nullptr && region.txln->ContainsBlock(virt_pc.PageOffset())) {
 					region.txln->Execute(thread);
 					continue;
 				}
