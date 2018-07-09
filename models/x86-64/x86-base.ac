@@ -1,4 +1,16 @@
 AC_ISA(x86)
 {
-
-}
+	ac_format FORMAT_DUMMY = "%dummy:32";
+	
+	ac_instr<FORMAT_DUMMY> mov;
+	
+	ac_behaviour mov;
+	
+	ac_field<uint32> register;
+	
+	ISA_CTOR(x86) {
+		mov.set_decoder();
+		mov.set_behaviour(mov);
+	};
+	
+};

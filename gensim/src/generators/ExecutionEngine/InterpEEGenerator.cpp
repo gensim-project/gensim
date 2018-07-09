@@ -26,8 +26,13 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const
 {
 	str <<
 	    "#ifndef " << Manager.GetArch().Name << "_INTERP_H\n"
-	    "#define " << Manager.GetArch().Name << "_INTERP_H\n"
-	    "#include \"decode.h\"\n"
+	    "#define " << Manager.GetArch().Name << "_INTERP_H\n";
+
+	if(Manager.GetComponent(GenerationManager::FnDecode)) {
+		str << "#include \"decode.h\"\n";
+	}
+
+	str <<
 	    "#include <interpret/Interpreter.h>\n"
 	    "#include <cstdint>\n"
 

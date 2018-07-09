@@ -2,6 +2,7 @@ TARGET_ADD_SOURCES(gensim-lib
 	ByteByByteDecodeGenerator.cpp
 	DecodeGenerator.cpp
 	DisasmGenerator.cpp
+	ExternalDecoderGenerator.cpp
 	FunctionalDecodeGenerator.cpp
 	GenerationManager.cpp
 	JumpInfoGenerator.cpp

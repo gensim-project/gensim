@@ -222,7 +222,9 @@ bool JitGenerator::GenerateTranslation(util::cppformatstream& src_stream) const
 	for (auto isa : arch.ISAs) {
 		for (auto fmt : isa->Formats) {
 			if (fmt.second->CanBePredicated()) {
-				GeneratePredicateFunction(src_stream, *isa, *fmt.second);
+				if(isa->HasBehaviourAction("instruction_predicate")) {
+					GeneratePredicateFunction(src_stream, *isa, *fmt.second);
+				}
 			}
 		}
 	}

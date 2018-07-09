@@ -66,7 +66,11 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 	str << "#include <core/thread/ThreadInstance.h>\n";
 	str << "#include <core/execution/ExecutionEngine.h>\n";
 	str << "#include \"arch.h\"\n";
-	str << "#include \"decode.h\"\n";
+
+	if(Manager.GetComponent(GenerationManager::FnDecode)) {
+		str << "#include \"decode.h\"\n";
+	}
+
 	str << "#include \"jumpinfo.h\"\n";
 
 	str << "using namespace gensim::" << Manager.GetArch().Name << ";";

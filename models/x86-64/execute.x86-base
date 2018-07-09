@@ -1,0 +1,5 @@
+helper void nothing() { return; }
+
+execute(mov) {
+	uint8 reg = inst.register;
+}

@@ -5,13 +5,13 @@
  *
  * Harry Wagstaff <harry.wagstaff@gmail.com>
  */
-AC_ARCH(aarch64)
+AC_ARCH(x86)
 {
 	ac_mem Data(64, 64, little, 0);
 	ac_mem Fetch(64, 64, little, 1);
 	
 	// General Purpose Registers
-	ac_regspace(248) {
+	ac_regspace(128) {
 		// bank NAME (TYPE, OFFSET, COUNT, REG-STRIDE, # ELEMS, ELEM-SIZE, ELEM-STRIDE)
 		
 		bank RQ (uint64, 0, 16, 8, 1, 8, 8);
@@ -22,6 +22,9 @@ AC_ARCH(aarch64)
 	
 	ac_regspace(8) {
 		slot IP (uint64, 8, 0) PC;
+	}
+	ac_regspace(8) {
+		slot SP (uint64, 8, 0) SP;
 	}
 	
 	// Flags
@@ -36,8 +39,6 @@ AC_ARCH(aarch64)
 	
 	ac_wordsize 64;
 	
-	ac_features {
-	}
 
 	ARCH_CTOR(x86)
 	{
