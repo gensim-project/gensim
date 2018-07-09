@@ -59,9 +59,10 @@ extern "C" {
 	void blkProfile(gensim::Processor *cpu, void *region, uint32_t address);
 
 	// Different versions of memory functions for block jit (implicit return to safepoint on fault) and region jit (no implicit safepoint stuff)
-	uint8_t blkRead8(archsim::core::thread::ThreadInstance **thread_p, uint32_t interface, uint32_t address);
-	uint16_t blkRead16(archsim::core::thread::ThreadInstance **thread_p, uint32_t interface, uint32_t address);
-	uint32_t blkRead32(archsim::core::thread::ThreadInstance **thread_p, uint32_t interface, uint32_t address);
+	uint8_t blkRead8(archsim::core::thread::ThreadInstance **thread_p, uint64_t address, uint32_t interface);
+	uint16_t blkRead16(archsim::core::thread::ThreadInstance **thread_p, uint64_t address, uint32_t interface);
+	uint32_t blkRead32(archsim::core::thread::ThreadInstance **thread_p, uint64_t address, uint32_t interface);
+	uint64_t blkRead64(archsim::core::thread::ThreadInstance **thread_p, uint64_t address, uint32_t interface);
 
 	void blkWrite8(archsim::core::thread::ThreadInstance **thread_p, uint32_t interface, uint32_t address, uint32_t data);
 	void blkWrite16(archsim::core::thread::ThreadInstance **thread_p, uint32_t interface, uint32_t address, uint32_t data);
@@ -74,6 +75,7 @@ extern "C" {
 	uint32_t cpuWrite8(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint8_t data);
 	uint32_t cpuWrite16(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint16_t data);
 	uint32_t cpuWrite32(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint32_t data);
+	uint32_t cpuWrite64(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint32_t data);
 
 	void cpuEnterKernelMode(gensim::Processor *cpu);
 	void cpuEnterUserMode(gensim::Processor *cpu);

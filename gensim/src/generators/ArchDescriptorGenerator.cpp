@@ -188,7 +188,7 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 
 		str << "static auto " << isa->ISAName << "_decode_instr = [](archsim::Address addr, archsim::MemoryInterface *interface, gensim::BaseDecode &decode){ return ((gensim::" << Manager.GetArch().Name << "::Decode&)decode).DecodeInstr(addr, " << (uint32_t)isa->isa_mode_id << ", *interface); };";
 		str << "static auto " << isa->ISAName << "_newdecoder = []() { return new gensim::" << Manager.GetArch().Name << "::Decode(); };";
-		str << "static auto " << isa->ISAName << "_newjumpinfo = []() { return new gensim::" << Manager.GetArch().Name << "::JumpInfo(); };";
+		str << "static auto " << isa->ISAName << "_newjumpinfo = []() { return new gensim::" << Manager.GetArch().Name << "::JumpInfoProvider(); };";
 		str << "static auto " << isa->ISAName << "_newdtc = []() { return nullptr; };";
 
 		str << "static archsim::ISADescriptor isa_" << isa->ISAName << " (\"" << isa->ISAName << "\", " << (uint32_t)isa->isa_mode_id << ", " << isa->ISAName << "_decode_instr, " << isa->ISAName << "_newdecoder, " << isa->ISAName << "_newjumpinfo, " << isa->ISAName << "_newdtc, get_behaviours_" << isa->ISAName << "());";

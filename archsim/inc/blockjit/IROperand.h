@@ -40,11 +40,14 @@ namespace captive
 			IROperandType type : 4;
 
 			// size in BYTES
-			uint8_t size : 4;
+			uint8_t size;
 
 			IROperand() : value(0), alloc_data(0), alloc_mode(NOT_ALLOCATED), type(NONE), size(0) { }
 
-			IROperand(IROperandType type, uint64_t value, uint8_t size) : value(value), alloc_data(0), alloc_mode(NOT_ALLOCATED), type(type), size(size) { }
+			IROperand(IROperandType type, uint64_t value, uint8_t size) : value(value), alloc_data(0), alloc_mode(NOT_ALLOCATED), type(type), size(size)
+			{
+				assert((size | (size << 1)) == (size * 3));
+			}
 
 			inline bool is_allocated() const
 			{

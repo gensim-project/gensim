@@ -246,11 +246,11 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 	}
 
 	if(processor->GetTraceSource()) {
-		IRRegId pc_reg = builder.alloc_reg(4);
-		builder.ldpc(IROperand::vreg(pc_reg, 4));
-		builder.bitwise_and(IROperand::const32(0xfffff000), IROperand::vreg(pc_reg, 4));
-		builder.bitwise_or(IROperand::const32(pc.GetPageOffset()), IROperand::vreg(pc_reg, 4));
-		builder.call(IROperand::func((void*)cpuTraceInstruction), IROperand::vreg(pc_reg, 4), IROperand::const32(decode->GetIR()), IROperand::const8(decode->isa_mode), IROperand::const8(0));
+		IRRegId pc_reg = builder.alloc_reg(8);
+		builder.ldpc(IROperand::vreg(pc_reg, 8));
+		builder.bitwise_and(IROperand::const64(0xfffffffffffff000), IROperand::vreg(pc_reg, 8));
+		builder.bitwise_or(IROperand::const64(pc.GetPageOffset()), IROperand::vreg(pc_reg, 8));
+		builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceInstruction), IROperand::vreg(pc_reg, 8), IROperand::const32(decode->GetIR()), IROperand::const8(decode->isa_mode), IROperand::const8(0));
 	}
 
 	translate_instruction(decode, builder, processor->GetTraceSource() != nullptr);
@@ -285,28 +285,24 @@ bool BaseBlockJITTranslate::can_merge_jump(archsim::core::thread::ThreadInstance
 	// can only merge if the isa mode is still valid
 	if(!_isa_mode_valid) return false;
 
-	bool indirect = false, direct = false;
-	uint32_t target;
-	_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target);
+	JumpInfo info;
+	_jumpinfo->GetJumpInfo(decode, pc, info);
 
 	// If this isn't a direct jump, then we can't chain
-	if(!direct) return false;
+	if(info.IsIndirect) return false;
+	if(info.IsConditional) return false;
 
 	// Return true if this jump lands within the same page as it starts
-	if(archsim::Address(target).GetPageIndex() == pc.GetPageIndex()) return true;
+	if(info.JumpTarget.GetPageIndex() == pc.GetPageIndex()) return true;
 	else return false;
 }
 
 archsim::Address BaseBlockJITTranslate::get_jump_target(archsim::core::thread::ThreadInstance *processor, BaseDecode *decode, Address pc)
 {
-	bool indirect = false, direct = false;
-	uint32_t target;
+	JumpInfo info;
+	_jumpinfo->GetJumpInfo(decode, pc, info);
 
-	_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target);
-
-	assert(direct || indirect);
-
-	return Address(target);
+	return Address(info.JumpTarget);
 }
 
 bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *processor, archsim::Address block_address, captive::shared::IRBuilder &builder, std::unordered_set<Address> &block_heads)
@@ -390,19 +386,14 @@ bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *pr
 	if(decode->GetEndOfBlock() && _supportChaining && _isa_mode_valid && _features_valid) {
 		Address target_pc = 0_ga, fallthrough_pc = 0_ga;
 
-		bool direct = false, indirect = false;
-
-		// Try to figure out where this branch will end up.
-		uint32_t target_pc_naked;
+		JumpInfo jump_info;
 		// TODO: change target_pc_naked to actually be an Address instead of a uint32
-		_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target_pc_naked);
-		target_pc = Address(target_pc_naked);
-
+		_jumpinfo->GetJumpInfo(decode, pc, jump_info);
 		fallthrough_pc = pc + decode->Instr_Length;
 
 		// Can only chain on a direct jump
-		if(direct) {
-			auto target_page = target_pc.GetPageBase();
+		if(!jump_info.IsIndirect) {
+			auto target_page = jump_info.JumpTarget.GetPageBase();
 			auto fallthrough_page = fallthrough_pc.GetPageBase();
 
 			// Can only chain if the target of the jump is on the same page as the rest of the block

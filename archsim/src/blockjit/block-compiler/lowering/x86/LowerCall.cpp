@@ -22,6 +22,10 @@ bool LowerCall::Lower(const captive::shared::IRInstruction *&insn)
 	const IROperand *rval = &insn->operands[0];
 	const IROperand *target = &insn->operands[1];
 
+	if(!target->is_func()) {
+		UNEXPECTED;
+	}
+
 	const IRInstruction *prev_insn = insn-1;
 	const IRInstruction *next_insn = insn+1;
 

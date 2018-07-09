@@ -43,6 +43,7 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "rol",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "clz",		.format = "IOXXXX", .has_side_effects = false },
 	{ .mnemonic = "popcnt",		.format = "IOXXXX", .has_side_effects = false },
+	{ .mnemonic = "bswap",		.format = "IOXXXX", .has_side_effects = false },
 
 	{ .mnemonic = "and",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "or",			.format = "IBXXXX", .has_side_effects = false },
@@ -129,6 +130,13 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "vsubf",	.format = "NIIOXX", .has_side_effects = false },
 	{ .mnemonic = "vmuli",	.format = "NIIOXX", .has_side_effects = false },
 	{ .mnemonic = "vmulf",	.format = "NIIOXX", .has_side_effects = false },
+	{ .mnemonic = "vori",	.format = "NIIOXX", .has_side_effects = false },
+	{ .mnemonic = "vandi",	.format = "NIIOXX", .has_side_effects = false },
+	{ .mnemonic = "vxori",	.format = "NIIOXX", .has_side_effects = false },
+
+	{ .mnemonic = "vcmpeqi",	.format = "NIIOXX", .has_side_effects = false },
+	{ .mnemonic = "vcmpgti",	.format = "NIIOXX", .has_side_effects = false },
+	{ .mnemonic = "vcmpgtei",	.format = "NIIOXX", .has_side_effects = false },
 
 };
 

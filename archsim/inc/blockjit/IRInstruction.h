@@ -67,6 +67,7 @@ namespace captive
 				ROL,
 				CLZ,
 				POPCNT,
+				BSWAP,
 
 				AND,
 				OR,
@@ -154,6 +155,9 @@ namespace captive
 				VSUBF,
 				VMULI,
 				VMULF,
+				VORI,
+				VANDI,
+				VXORI,
 
 				VCMPEQI,
 				VCMPGTI,
