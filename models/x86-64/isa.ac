@@ -1,0 +1,18 @@
+/*
+ * GenSim X86 Model
+ *
+ * Copyright (C) University of Edinburgh 2016.  All Rights Reserved.
+ *
+ */
+AC_ISA(x86)
+{
+	ac_fetchsize 8;
+	
+	include("x86-base.ac")
+	
+	ISA_CTOR(x86)
+	{
+		ac_behaviours("behaviours.x86");
+		ac_execute("execute.x86-base");
+	}
+}
