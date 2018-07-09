@@ -163,13 +163,14 @@ TranslationInstructionUnit *TranslationBlockUnit::AddInstruction(gensim::BaseDec
 
 void TranslationBlockUnit::GetCtrlFlowInfo(bool &direct_jump, bool &indirect_jump, int32_t &direct_offset, int32_t &fallthrough_offset) const
 {
-	uint32_t direct_target;
+	auto ji_provider = twu.GetThread()->GetArch().GetISA(twu.GetThread()->GetModeID()).GetNewJumpInfo();
+	gensim::JumpInfo info;
+	ji_provider->GetJumpInfo(&GetLastInstruction().GetDecode(), Address(0), info);
+	delete ji_provider;
 
-	auto jumpinfo = twu.GetThread()->GetArch().GetISA(twu.GetThread()->GetModeID()).GetNewJumpInfo();
-	jumpinfo->GetJumpInfo(&GetLastInstruction().GetDecode(), 0, indirect_jump, direct_jump, direct_target);
-	delete jumpinfo;
-
-	direct_offset = (int32_t)direct_target;
+	direct_offset = (int64_t)info.JumpTarget.Get();
+	direct_jump = !info.IsIndirect;
+	indirect_jump = info.IsIndirect;
 	fallthrough_offset = GetLastInstruction().GetOffset().Get() + GetLastInstruction().GetDecode().Instr_Length;
 }
 

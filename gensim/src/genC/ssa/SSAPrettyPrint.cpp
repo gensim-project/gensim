@@ -36,18 +36,19 @@ namespace gensim
 
 			void SSAConstantStatement::PrettyPrint(std::ostringstream &str) const
 			{
+				str << GetName() << " = constant " << GetType().PrettyPrint() << " ";
 				switch(Constant.Type()) {
 					case IRConstant::Type_Integer:
-						str << GetName() << " = (" << GetType().PrettyPrint() << ") " << std::hex << Constant.Int() << " (const)";
+						str << std::hex << Constant.Int() << " (const)";
 						break;
 					case IRConstant::Type_Float_Single:
-						str << GetName() << " = (" << GetType().PrettyPrint() << ") " << std::hex << Constant.Flt() << " (const)";
+						str << std::hex << Constant.Flt() << " (const)";
 						break;
 					case IRConstant::Type_Float_Double:
-						str << GetName() << " = (" << GetType().PrettyPrint() << ") " << std::hex << Constant.Dbl() << " (const)";
+						str << std::hex << Constant.Dbl() << " (const)";
 						break;
 					case IRConstant::Type_Vector:
-						str << GetName() << " = {} (const)";
+						str << "{}" << " (const)";
 						break;
 					default:
 						throw std::logic_error("");

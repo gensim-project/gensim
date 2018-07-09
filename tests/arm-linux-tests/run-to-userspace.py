@@ -36,6 +36,7 @@ def find_archsim_binary():
 def main():
 	parser = ArgumentParser()
 	parser.add_argument("-e", "--zimage", dest="zimage")
+	parser.add_argument("-v", "--verbose", dest="verbose", type=int, choices=[1,0])
 	command_line_args = parser.parse_args()
 	
 	args='virtio_mmio.device=1K@0x10200000:34 earlyprintk=serial console=ttyAMA0 root=/dev/vda1 rw norandmaps verbose text'
@@ -43,6 +44,10 @@ def main():
 	model_flags='-s armv7a -m arm-realview -l contiguous --sys-model base '
 	zimage = command_line_args.zimage
 	kernel_flags='--bdev-file /dev/null --binary-format zimage -e ' + zimage + ' --kernel-args "' + args + '"'
+	verbose_flags = ''
+	
+	if(command_line_args.verbose):
+		verbose_flags = '--verbose'
 
 	# If we use Popen with shell=True and then try and kill the process,
 	# the shell will be killed but the process will live on. So, use 'exec'

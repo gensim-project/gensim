@@ -83,6 +83,7 @@ bool X86LoweringContext::Prepare(const TranslationContext &ctx)
 	A(IRInstruction::READ_DEVICE, ReadDevice);
 	A(IRInstruction::PROBE_DEVICE, ProbeDevice);
 	A(IRInstruction::CLZ, Clz);
+	A(IRInstruction::BSWAP, BSwap);
 	A(IRInstruction::AND, Bitwise);
 	A(IRInstruction::OR, Bitwise);
 	A(IRInstruction::XOR, Bitwise);

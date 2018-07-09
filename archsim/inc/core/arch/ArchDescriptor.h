@@ -29,7 +29,7 @@ namespace gensim
 {
 	class DecodeContext;
 	class BaseDecode;
-	class BaseJumpInfo;
+	class BaseJumpInfoProvider;
 }
 
 namespace archsim
@@ -137,7 +137,7 @@ namespace archsim
 
 	using DecodeFunction = std::function<uint32_t(archsim::Address addr, archsim::MemoryInterface *, gensim::BaseDecode&)>;
 	using NewDecoderFunction = std::function<gensim::BaseDecode*()>;
-	using NewJumpInfoFunction = std::function<gensim::BaseJumpInfo*()>;
+	using NewJumpInfoFunction = std::function<gensim::BaseJumpInfoProvider*()>;
 	using NewDTCFunction = std::function<gensim::DecodeTranslateContext*()>;
 
 	/**
@@ -159,7 +159,7 @@ namespace archsim
 		{
 			return new_decoder_();
 		}
-		gensim::BaseJumpInfo *GetNewJumpInfo() const
+		gensim::BaseJumpInfoProvider *GetNewJumpInfo() const
 		{
 			return new_jump_info_();
 		}
