@@ -364,8 +364,8 @@ AC_ISA(a64)
 		bcond.set_asm("b.%cond %reladdr", cond, imms64);
 		bcond.set_behaviour(bcond);
 		bcond.set_end_of_block();
-		bcond.set_fixed_predicated_jump(imms64, RELATIVE, 0);
-		//bcond.set_variable_jump();
+		//bcond.set_fixed_predicated_jump(imms64, RELATIVE, 0);
+		bcond.set_variable_jump();
 		
 		// Exception Generation
 		exgen.set_decoder(opc=0,op2=0,ll=1);	// SVC

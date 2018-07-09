@@ -109,6 +109,21 @@ bool BlockJITSDIVLowering::Lower(const captive::shared::IRInstruction*& insn)
 
 	return true;
 }
+bool BlockJITUDIVLowering::Lower(const captive::shared::IRInstruction*& insn)
+{
+	auto lhs = GetValueFor(insn->operands[1]);
+	auto rhs = GetValueFor(insn->operands[0]);
+
+	auto &dest = insn->operands[1];
+
+	auto value = GetBuilder().CreateUDiv(lhs, rhs);
+
+	SetValueFor(dest, value);
+
+	insn++;
+
+	return true;
+}
 
 bool BlockJITUMULLLowering::Lower(const captive::shared::IRInstruction*& insn)
 {

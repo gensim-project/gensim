@@ -197,6 +197,17 @@ void X86Encoder::lea(const X86Memory& addr, const X86Register& dst)
 	encode_opcode_mod_rm(0x8d, dst, addr);
 }
 
+void X86Encoder::bswap(const X86Register& dst)
+{
+	if(dst.size == 2) {
+		emit8(0x66);
+	}
+	encode_rex_prefix(dst.hireg, 0, 0, dst.size == 8);
+	emit8(0x0f);
+	emit8(0xc8 + dst.raw_index);
+}
+
+
 void X86Encoder::mov(const X86Register& src, const X86Register& dst)
 {
 	assert(src.size == dst.size);

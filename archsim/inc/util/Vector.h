@@ -15,9 +15,29 @@
 
 namespace archsim
 {
+	template <unsigned Size> struct VDT {
+		using Type = uint64_t;
+	};
+	template<> struct VDT<1> {
+		using Type = uint8_t;
+	};
+	template<> struct VDT<2> {
+		using Type = uint16_t;
+	};
+	template<> struct VDT<4> {
+		using Type = uint32_t;
+	};
+	template<> struct VDT<8> {
+		using Type = uint64_t;
+	};
+	template<> struct VDT<16> {
+		using Type = __int128;
+	};
+
 	template <typename ElementT, unsigned Width> class Vector
 	{
 	public:
+		using VectorDataType = typename VDT<sizeof(ElementT) * Width>::Type;
 
 		Vector()
 		{
@@ -118,6 +138,11 @@ namespace archsim
 		size_t size() const
 		{
 			return sizeof(ElementT) * Width;
+		}
+
+		VectorDataType toData()
+		{
+			return *(VectorDataType*)data();
 		}
 
 	private:

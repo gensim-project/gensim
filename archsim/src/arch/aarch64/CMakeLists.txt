@@ -1,6 +1,7 @@
 
 archsim_add_sources(
 	Aarch64LinuxUserEmulationModel.cpp
+	Aarch64DecodeTranslationContext.cpp
 )
 
 SET(ARCHSIM_EXTRA_SOURCES "${ARCHSIM_EXTRA_SOURCES}" PARENT_SCOPE)
