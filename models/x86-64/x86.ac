@@ -1,0 +1,47 @@
+/*
+ * GenSim x86 Model (XED Supported)
+ *
+ * Copyright (C) University of Edinburgh 2016.  All Rights Reserved.
+ *
+ * Harry Wagstaff <harry.wagstaff@gmail.com>
+ */
+AC_ARCH(aarch64)
+{
+	ac_mem Data(64, 64, little, 0);
+	ac_mem Fetch(64, 64, little, 1);
+	
+	// General Purpose Registers
+	ac_regspace(248) {
+		// bank NAME (TYPE, OFFSET, COUNT, REG-STRIDE, # ELEMS, ELEM-SIZE, ELEM-STRIDE)
+		
+		bank RQ (uint64, 0, 16, 8, 1, 8, 8);
+		bank RD (uint32, 0, 16, 8, 1, 4, 8);
+		bank RW (uint16, 0, 16, 8, 1, 2, 8);
+		bank RB (uint8 , 0, 16, 8, 1, 1, 8);
+	}
+	
+	ac_regspace(8) {
+		slot IP (uint64, 8, 0) PC;
+	}
+	
+	// Flags
+	ac_regspace(10) {
+		slot CF (uint8, 1, 0) C;
+		slot PF (uint8, 1, 1);
+		slot AF (uint8, 1, 2);
+		slot ZF (uint8, 1, 3) Z;
+		slot SF (uint8, 1, 4) N;
+		slot OF (uint8, 1, 6) V;
+	}
+	
+	ac_wordsize 64;
+	
+	ac_features {
+	}
+
+	ARCH_CTOR(x86)
+	{
+		ac_isa("isa.ac");
+		set_endian("little");
+	};
+};
