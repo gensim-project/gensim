@@ -46,6 +46,8 @@ TARGET_LINK_LIBRARIES(archsim-core
 	${CMAKE_DL_LIBS}
 )
 
+TARGET_INCLUDE_DIRECTORIES(archsim-core PRIVATE "${ARCHSIM_XED_DIRECTORY}/include")
+TARGET_LINK_LIBRARIES(archsim-core "${ARCHSIM_XED_DIRECTORY}/lib/libxed.so")
 
 # Add each provided source file along with its source directory
 function(archsim_add_sources)
