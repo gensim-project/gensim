@@ -10,6 +10,7 @@ archsim_add_sources(
 )
 
 ADD_SUBDIRECTORY(arm)
+ADD_SUBDIRECTORY(aarch64)
 ADD_SUBDIRECTORY(generic)
 ADD_SUBDIRECTORY(gfx)
 ADD_SUBDIRECTORY(virtio)

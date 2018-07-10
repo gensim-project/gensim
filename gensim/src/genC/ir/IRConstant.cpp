@@ -5,6 +5,23 @@
 
 using namespace gensim::genc;
 
+std::string IRConstant::GetValueTypeName(ValueType type)
+{
+	switch(type) {
+		case Type_Float_Double:
+			return "double";
+		case Type_Float_LongDouble:
+			return "long double";
+		case Type_Float_Single:
+			return "float";
+		case Type_Integer:
+			return "uint64_t";
+		default:
+			UNIMPLEMENTED;
+	}
+}
+
+
 IRConstant::IRConstant() : type_(Type_Invalid), integer_(0), vector_(nullptr), struct_(nullptr)
 {
 }

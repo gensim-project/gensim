@@ -19,7 +19,7 @@ SSAActionValidator::SSAActionValidator()
 bool SSAActionValidator::Run(SSAFormAction* action, DiagnosticContext& diag)
 {
 	// validate every statement in the action, then the action itself
-	for(auto block : action->Blocks) {
+	for(auto block : action->GetBlocks()) {
 		for(auto stmt : block->GetStatements()) {
 			if(!statement_validator_.Run(stmt, diag)) {
 				diag.Error("Statement " + stmt->GetName() + " failed validation");

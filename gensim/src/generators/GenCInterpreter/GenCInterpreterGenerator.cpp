@@ -30,14 +30,34 @@ namespace gensim
 			return true;
 		}
 
-		bool GenCInterpreterGenerator::GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action, bool addTemplateDefaultValue) const
+		std::string GenCInterpreterGenerator::GeneratePrototype(const gensim::isa::ISADescription& isa, const genc::ssa::SSAFormAction& action, HelperPrototypeVariant variant) const
 		{
-			if(addTemplateDefaultValue)
-				stream << "template<bool trace=false> ";
-			else
-				stream << "template<bool trace> ";
+			util::cppformatstream str;
+			GeneratePrototype(str, isa, action, variant);
+			return str.str();
+		}
 
-			stream << action.GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action.GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
+
+		bool GenCInterpreterGenerator::GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action, HelperPrototypeVariant variant) const
+		{
+			if(variant == HelperPrototypeVariant::DeclarationWithDefault) {
+				stream << "template<bool trace=false> ";
+			} else if(variant == HelperPrototypeVariant::DeclarationNoDefault) {
+				stream << "template<bool trace> ";
+			} else {
+				// template instantiation: no angle brackets
+				stream << "template ";
+			}
+
+			stream << action.GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action.GetPrototype().GetIRSignature().GetName();
+
+			if(variant == HelperPrototypeVariant::SpecialisationNoTracing) {
+				stream << "<false>";
+			} else if(variant == HelperPrototypeVariant::SpecialisationWithTracing) {
+				stream << "<true>";
+			}
+
+			stream << "(archsim::core::thread::ThreadInstance *thread";
 
 			for(auto i : action.ParamSymbols) {
 				// if we're accessing a struct, assume that it's an instruction
@@ -49,6 +69,47 @@ namespace gensim
 				}
 			}
 			stream << ")";
+
+			return true;
+		}
+
+		bool GenCInterpreterGenerator::Generate() const
+		{
+			for(auto isa : Manager.GetArch().ISAs) {
+				RegisterHelpers(*isa);
+			}
+			return InterpretiveExecutionEngineGenerator::Generate();
+		}
+
+
+		bool GenCInterpreterGenerator::RegisterHelpers(const isa::ISADescription &isa) const
+		{
+			using namespace gensim::genc;
+			for (const auto& action_item : isa.GetSSAContext().Actions()) {
+				if (!action_item.second->HasAttribute(ActionAttribute::Helper)) continue;
+
+				auto action = dynamic_cast<const gensim::genc::ssa::SSAFormAction *>(action_item.second);
+
+				if (action->GetPrototype().GetIRSignature().GetName() == "instruction_predicate") continue;
+				if (action->GetPrototype().GetIRSignature().GetName() == "instruction_is_predicated") continue;
+
+				util::cppformatstream prototype_stream;
+				GeneratePrototype(prototype_stream, isa, *action, HelperPrototypeVariant::DeclarationNoDefault);
+
+				util::cppformatstream body_stream;
+				body_stream << prototype_stream.str();
+				body_stream << "{";
+				body_stream << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
+				// generate helper function code inline here
+
+				GenerateExecuteBodyFor(body_stream, *action);
+
+				body_stream << "}";
+
+
+
+				Manager.AddFunctionEntry(FunctionEntry(prototype_stream.str(), body_stream.str(), {}, {"cstdint", "core/thread/ThreadInstance.h","util/Vector.h"}, {GeneratePrototype(isa, *action, HelperPrototypeVariant::SpecialisationNoTracing), GeneratePrototype(isa, *action, HelperPrototypeVariant::SpecialisationWithTracing)},true));
+			}
 
 			return true;
 		}
@@ -74,9 +135,9 @@ namespace gensim
 			str << "goto __block_" << action.EntryBlock->GetName() << ";";
 
 			// now iterate over the blocks in the action and emit them
-			for (SSAFormAction::BlockListConstIterator block_ci = action.Blocks.begin(); block_ci != action.Blocks.end(); ++block_ci) {
+			for (auto block_ : action.GetBlocks()) {
 				GenCInterpreterNodeFactory fact;
-				const SSABlock &block = **block_ci;
+				const SSABlock &block = *block_;
 
 				str << "{";
 				str << "__block_" << block.GetName() << ": (void)0;";

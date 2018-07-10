@@ -75,7 +75,7 @@ namespace gensim
 			/**
 			 * Get the size of this type in bytes
 			 */
-			uint32_t Size() const;
+			uint32_t SizeInBytes() const;
 
 			/**
 			 * If this is a vector, return the size of a single element. Otherwise, return the total size.
