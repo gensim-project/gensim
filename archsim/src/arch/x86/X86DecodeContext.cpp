@@ -5,7 +5,7 @@
 #include "util/ComponentManager.h"
 #include "core/thread/ThreadInstance.h"
 
-using namespace archsim::arch::riscv;
+using namespace archsim::arch::x86;
 
 uint32_t X86DecodeContext::DecodeSync(archsim::MemoryInterface &interface, Address address, uint32_t mode, gensim::BaseDecode& target)
 {

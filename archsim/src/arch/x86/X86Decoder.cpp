@@ -95,6 +95,9 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 		case XED_ICLASS_XOR:
 			Instr_Code = INST_x86_xor;
 			break;
+		case XED_ICLASS_MOV:
+			Instr_Code = INST_x86_mov;
+			break;
 		default:
 			UNIMPLEMENTED;
 	}

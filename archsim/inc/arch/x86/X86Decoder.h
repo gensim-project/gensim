@@ -21,6 +21,7 @@ typedef uint64_t uint64;
 
 enum X86Opcodes {
 	INST_x86_mov,
+	INST_x86_pop,
 	INST_x86_xor
 };
 

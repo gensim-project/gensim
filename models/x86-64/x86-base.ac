@@ -2,9 +2,9 @@ AC_ISA(x86)
 {
 	ac_format FORMAT_DUMMY = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY> mov, xor;
+	ac_instr<FORMAT_DUMMY> mov, xor, pop;
 	
-	ac_behaviour mov, xor;
+	ac_behaviour mov, xor, pop;
 	
 	ac_field<uint32> op0_size;
 	ac_field<uint32> op1_size;
@@ -17,6 +17,9 @@ AC_ISA(x86)
 	ISA_CTOR(x86) {
 		mov.set_decoder();
 		mov.set_behaviour(mov);
+		
+		pop.set_decoder();
+		pop.set_behaviour(pop);
 		
 		xor.set_decoder();
 		xor.set_behaviour(xor);

@@ -1,7 +1,15 @@
 helper void nothing() { return; }
 
 execute(mov) {
-	
+	uint64 value = read_op1(inst);
+	write_op0(inst, value);
+}
+
+execute(pop) {
+	uint64 sp = read_register(SP);
+	uint64 data = 0;
+	mem_read_64(Data, sp, data);
+	write_op0(inst, data);
 }
 
 helper uint64 read_op_reg(uint8 reg_idx, uint8 reg_size)
@@ -23,21 +31,70 @@ helper uint64 read_op_reg(uint8 reg_idx, uint8 reg_size)
 			trap();
 		}
 	}
+	
+	return 0;
 }
 
-helper uint64 read_op0()
+helper uint64 read_op0(Instruction &inst)
 {
 	if(inst.op0_is_reg) {
 		return read_op_reg(inst.op0_reg, inst.op0_size);
 	}
 	trap();
+	
+	return 0;
+}
+
+helper uint64 read_op1(Instruction &inst)
+{
+	if(inst.op1_is_reg) {
+		return read_op_reg(inst.op1_reg, inst.op1_size);
+	}
+	trap();
+	
+	return 0;
+}
+
+helper void write_op_reg(uint32 reg, uint32 size, uint64 value)
+{
+	switch(size) {
+		case 8: {
+			write_register_bank(RB, reg, value);
+			break;
+		}
+		case 16: {
+			write_register_bank(RW, reg, value);
+			break;
+		}
+		case 32: {
+			write_register_bank(RD, reg, value);
+			break;
+		}
+		case 64: {
+			write_register_bank(RQ, reg, value);
+			break;
+		}
+	}
+	
+	return;
+}
+
+helper void write_op0(Instruction &inst, uint64 value)
+{
+	if(inst.op0_is_reg) {
+		write_op_reg(inst.op0_reg, inst.op0_size, value);
+		return;
+	}
+	trap();
+
+	return;
 }
 
 execute(xor) {
-	uint64 op1 = read_op0();
-	uint64 op2 = read_op1();
+	uint64 op1 = read_op0(inst);
+	uint64 op2 = read_op1(inst);
 	
 	uint64 result = op1 ^ op2;
 	
-	write_result(result);
+	write_op0(inst, result);
 }

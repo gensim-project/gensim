@@ -18,13 +18,12 @@ AC_ARCH(x86)
 		bank RD (uint32, 0, 16, 8, 1, 4, 8);
 		bank RW (uint16, 0, 16, 8, 1, 2, 8);
 		bank RB (uint8 , 0, 16, 8, 1, 1, 8);
+		
+		slot SP (uint64, 8, 32) SP;
 	}
 	
 	ac_regspace(8) {
 		slot IP (uint64, 8, 0) PC;
-	}
-	ac_regspace(8) {
-		slot SP (uint64, 8, 0) SP;
 	}
 	
 	// Flags
