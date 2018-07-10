@@ -1,5 +1,43 @@
 helper void nothing() { return; }
 
 execute(mov) {
-	uint8 reg = inst.register;
+	
+}
+
+helper uint64 read_op_reg(uint8 reg_idx, uint8 reg_size)
+{
+	switch(reg_size) {
+		case 8: {
+			return read_register_bank(RB, reg_idx);
+		}
+		case 16: {
+			return read_register_bank(RW, reg_idx);
+		}
+		case 32: {
+			return read_register_bank(RD, reg_idx);
+		}
+		case 64: {
+			return read_register_bank(RQ, reg_idx);
+		}
+		default: {
+			trap();
+		}
+	}
+}
+
+helper uint64 read_op0()
+{
+	if(inst.op0_is_reg) {
+		return read_op_reg(inst.op0_reg, inst.op0_size);
+	}
+	trap();
+}
+
+execute(xor) {
+	uint64 op1 = read_op0();
+	uint64 op2 = read_op1();
+	
+	uint64 result = op1 ^ op2;
+	
+	write_result(result);
 }
