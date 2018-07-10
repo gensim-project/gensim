@@ -1,7 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 /*
- * File:   RiscVDecodeContext.h
+ * File:   X86DecodeContext.h
  * Author: harry
  *
  * Created on 30 June 2017, 11:54
@@ -26,7 +26,7 @@ namespace archsim
 
 	namespace arch
 	{
-		namespace riscv
+		namespace x86
 		{
 			class X86DecodeContext : public gensim::DecodeContext
 			{
