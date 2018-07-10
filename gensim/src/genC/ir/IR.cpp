@@ -126,13 +126,6 @@ namespace gensim
 				success = false;
 			}
 
-			// Cannot pass structs
-			if(givenType.IsStruct()) {
-				std::string errstring = Format("In call to %s, parameter %u: Cannot pass struct to helper", TargetName.c_str(), idx);
-				Context.Diag().Error(errstring, Diag());
-				success = false;
-			}
-
 			// If the user gives a parameter which is an integer, but a float is expected, give an error
 			if(!givenType.IsFloating() && paramType.IsFloating()) {
 				std::string errstring = Format("In call to %s, parameter %u: An integer parameter was given but a floating point value was expected", TargetName.c_str(), idx);
@@ -154,12 +147,12 @@ namespace gensim
 			if(IRExpression *variable = dynamic_cast<IRExpression*>(givenParameter)) {
 				IRType::PromoteResult res = givenType.AutoPromote(paramType);
 				if(res == IRType::PROMOTE_TRUNCATE) {
-					std::string errstring = Format("In call to %s, parameter %u: Value of type %s is to large to fit in parameter type %s", TargetName.c_str(), idx, givenType.PrettyPrint().c_str(), paramType.PrettyPrint().c_str());
-					Context.Diag().Warning(errstring, Diag());
+//					std::string errstring = Format("In call to %s, parameter %u: Value of type %s is to large to fit in parameter type %s", TargetName.c_str(), idx, givenType.PrettyPrint().c_str(), paramType.PrettyPrint().c_str());
+//					Context.Diag().Warning(errstring, Diag());
 				}
 				if(res == IRType::PROMOTE_SIGN_CHANGE) {
-					std::string errstring = Format("In call to %s, parameter %u: Parameter sign changed", TargetName.c_str(), idx, givenType.PrettyPrint().c_str(), paramType.PrettyPrint().c_str());
-					Context.Diag().Warning(errstring, Diag());
+//					std::string errstring = Format("In call to %s, parameter %u: Parameter sign changed", TargetName.c_str(), idx, givenType.PrettyPrint().c_str(), paramType.PrettyPrint().c_str());
+//					Context.Diag().Warning(errstring, Diag());
 				}
 			}
 

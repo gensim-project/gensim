@@ -56,10 +56,8 @@ static SSAType parse_type(SSAContext &ctx, pANTLR3_BASE_TREE tree)
 	char *text = (char*)tree->getText(tree)->chars;
 
 	if(strcmp(text, "Instruction") == 0) {
-		return ctx.GetTypeManager().GetStructType(text);
-	}
-
-	if(!gensim::genc::IRType::ParseType(text, out)) {
+		out = ctx.GetTypeManager().GetStructType(text);
+	} else if(!gensim::genc::IRType::ParseType(text, out)) {
 		throw std::logic_error("Could not parse type");
 	}
 
@@ -839,7 +837,8 @@ SSAStatement* StatementAssembler::Assemble(pANTLR3_BASE_TREE tree, SSABlock *blo
 SSAStatement* StatementAssembler::get_statement(pANTLR3_BASE_TREE stmt_id_node)
 {
 	auto stmt_name = (char*)stmt_id_node->getText(stmt_id_node)->chars;
-	auto stmt = dynamic_cast<SSAStatement*>(ctx_.Get(stmt_name));
+	auto uncast_stmt = ctx_.Get(stmt_name);
+	auto stmt = dynamic_cast<SSAStatement*>(uncast_stmt);
 
 	if(stmt == nullptr) {
 		throw std::invalid_argument("Could not find statement");
