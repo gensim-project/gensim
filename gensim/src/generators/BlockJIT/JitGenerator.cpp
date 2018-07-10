@@ -110,32 +110,7 @@ bool JitGenerator::RegisterHelpers(const isa::ISADescription *isa) const
 //SSAContext::ActionListConstIterator HI = isa->GetSSAContext().HelpersBegin(), HE = isa->GetSSAContext().HelpersEnd(); HI != HE; ++HI
 
 	GenCInterpreterGenerator interp (Manager);
-
-	for (const auto& action_item : isa->GetSSAContext().Actions()) {
-		if (!action_item.second->HasAttribute(ActionAttribute::Helper)) continue;
-
-		auto action = dynamic_cast<const SSAFormAction *>(action_item.second);
-
-		if (action->GetPrototype().GetIRSignature().GetName() == "instruction_predicate") continue;
-		if (action->GetPrototype().GetIRSignature().GetName() == "instruction_is_predicated") continue;
-
-		util::cppformatstream prototype_stream;
-		interp.GeneratePrototype(prototype_stream, *isa, *action, true);
-
-		util::cppformatstream body_stream;
-		interp.GeneratePrototype(body_stream, *isa, *action, false);
-		body_stream << "{";
-		body_stream << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
-		// generate helper function code inline here
-
-		interp.GenerateExecuteBodyFor(body_stream, *action);
-
-		body_stream << "}";
-
-		Manager.AddFunctionEntry(FunctionEntry(prototype_stream.str(), body_stream.str(), {}, {"cstdint", "core/thread/ThreadInstance.h","util/Vector.h"}, {},true));
-	}
-
-	return true;
+	return interp.RegisterHelpers(*isa);
 }
 
 bool JitGenerator::GenerateHeader(util::cppformatstream & hdr_stream) const
@@ -247,7 +222,9 @@ bool JitGenerator::GenerateTranslation(util::cppformatstream& src_stream) const
 	for (auto isa : arch.ISAs) {
 		for (auto fmt : isa->Formats) {
 			if (fmt.second->CanBePredicated()) {
-				GeneratePredicateFunction(src_stream, *isa, *fmt.second);
+				if(isa->HasBehaviourAction("instruction_predicate")) {
+					GeneratePredicateFunction(src_stream, *isa, *fmt.second);
+				}
 			}
 		}
 	}
@@ -336,7 +313,7 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 {
 	JitNodeWalkerFactory factory;
 
-	for (const auto block : action.Blocks) {
+	for (const auto block : action.GetBlocks()) {
 		src_stream << "// Block " << block->GetName() << "\n";
 		src_stream << "const IRBlockId block_idx_" << block->GetName() << " = builder.alloc_block();\n";
 	}
@@ -347,11 +324,11 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 		}
 		src_stream << "// Reg " << symbol->GetName() << std::endl;
 		src_stream << symbol->GetType().GetCType() << " CV_" << symbol->GetName() << ";";
-		src_stream << "const IRRegId ir_idx_" << symbol->GetName() << " = builder.alloc_reg(" << symbol->GetType().Size() << ");";
+		src_stream << "const IRRegId ir_idx_" << symbol->GetName() << " = builder.alloc_reg(" << symbol->GetType().SizeInBytes() << ");";
 	}
 
 	src_stream << "goto block_" << action.EntryBlock->GetName() << ";\n";
-	for (const auto block : action.Blocks) {
+	for (const auto block : action.GetBlocks()) {
 		if (block->IsFixed() != BLOCK_ALWAYS_CONST) {
 			src_stream << "// BLOCK " << block->GetName() << " not fully fixed\n";
 			continue;
@@ -393,7 +370,7 @@ bool JitGenerator::EmitJITFunction(util::cppformatstream &src_stream, const SSAF
 	            << "if(emitted_blocks.find(block_index) != emitted_blocks.end()) continue;"
 	            << "emitted_blocks.insert(block_index);";
 
-	for (const auto block : action.Blocks) {
+	for (const auto block : action.GetBlocks()) {
 		if (block->IsFixed() == BLOCK_ALWAYS_CONST) continue;
 
 		src_stream << "if (block_index == block_idx_" << block->GetName() << ") // BLOCK START LINE " << block->GetStartLine() << ", END LINE " << block->GetEndLine() << "\n";

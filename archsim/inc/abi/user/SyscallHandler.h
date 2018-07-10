@@ -75,7 +75,7 @@ namespace archsim
 				};
 			};
 
-#define DEFINE_SYSCALL(arch, nr, fn, dbg) archsim::abi::user::SyscallRegistration __syscall_##fn##_##nr(arch, nr, (archsim::abi::user::SYSCALL_FN_GENERIC)fn, dbg)
+#define DEFINE_SYSCALL(arch, nr, fn, dbg) archsim::abi::user::SyscallRegistration __syscall_##arch##_##fn##_##nr(#arch, nr, (archsim::abi::user::SYSCALL_FN_GENERIC)fn, dbg)
 		}
 	}
 }

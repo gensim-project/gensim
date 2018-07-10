@@ -28,7 +28,7 @@ public:
 	bool Run(SSAFormAction& action) const  override
 	{
 		bool changed = false;
-		for(auto &block : action.Blocks) {
+		for(auto &block : action.GetBlocks()) {
 			changed |= DoValuePropagation(block);
 		}
 		return changed;

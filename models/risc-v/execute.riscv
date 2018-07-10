@@ -769,6 +769,11 @@ execute(ebreak)
 }
 
 
+internal helper uint8 instruction_is_predicated(Instruction inst)
+{
+	return 0;
+}
+
 internal helper uint8 instruction_predicate(Instruction inst)
 {
 	return 1;

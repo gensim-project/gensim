@@ -6,6 +6,7 @@
 #include "core/MemoryInterface.h"
 #include "system.h"
 #include "translate/jit_funs.h"
+#include "gensim/gensim_processor_api.h"
 #include "core/execution/ExecutionEngineFactory.h"
 
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
@@ -98,16 +99,16 @@ bool BlockLLVMExecutionEngine::buildBlockJITIR(thread::ThreadInstance* thread, a
 	translator->AttachFeaturesTo(txln);
 
 	// optimise ir
-	captive::arch::jit::transforms::SortIRTransform().Apply(ctx);
-	captive::arch::jit::transforms::ReorderBlocksTransform().Apply(ctx);
-	captive::arch::jit::transforms::ThreadJumpsTransform().Apply(ctx);
-	captive::arch::jit::transforms::DeadBlockEliminationTransform().Apply(ctx);
-	captive::arch::jit::transforms::MergeBlocksTransform().Apply(ctx);
-	captive::arch::jit::transforms::ConstantPropTransform().Apply(ctx);
-	captive::arch::jit::transforms::SortIRTransform().Apply(ctx);
-	captive::arch::jit::transforms::RegValueReuseTransform().Apply(ctx);
-	captive::arch::jit::transforms::RegStoreEliminationTransform().Apply(ctx);
-	captive::arch::jit::transforms::SortIRTransform().Apply(ctx);
+//	captive::arch::jit::transforms::SortIRTransform().Apply(ctx);
+//	captive::arch::jit::transforms::ReorderBlocksTransform().Apply(ctx);
+//	captive::arch::jit::transforms::ThreadJumpsTransform().Apply(ctx);
+//	captive::arch::jit::transforms::DeadBlockEliminationTransform().Apply(ctx);
+//	captive::arch::jit::transforms::MergeBlocksTransform().Apply(ctx);
+//	captive::arch::jit::transforms::ConstantPropTransform().Apply(ctx);
+//	captive::arch::jit::transforms::SortIRTransform().Apply(ctx);
+//	captive::arch::jit::transforms::RegValueReuseTransform().Apply(ctx);
+//	captive::arch::jit::transforms::RegStoreEliminationTransform().Apply(ctx);
+//	captive::arch::jit::transforms::SortIRTransform().Apply(ctx);
 
 	delete decode_ctx;
 
@@ -171,9 +172,11 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	jit_symbols["blkRead8"] = (void*)blkRead8;
 	jit_symbols["blkRead16"] = (void*)blkRead16;
 	jit_symbols["blkRead32"] = (void*)blkRead32;
+	jit_symbols["blkRead64"] = (void*)blkRead64;
 	jit_symbols["blkWrite8"] = (void*)cpuWrite8;
 	jit_symbols["blkWrite16"] = (void*)cpuWrite16;
 	jit_symbols["blkWrite32"] = (void*)cpuWrite32;
+	jit_symbols["blkWrite64"] = (void*)cpuWrite64;
 
 	auto resolver = llvm::orc::createLambdaResolver(
 	[&](const std::string &name) {

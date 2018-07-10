@@ -23,7 +23,7 @@
 
 #include "util/LogContext.h"
 #include "abi/devices/MMU.h"
-#include "util/wutils/tick-timer.h"
+#include <wutils/tick-timer.h>
 #include "blockjit/PerfMap.h"
 #include "blockjit/IRPrinter.h"
 
@@ -67,7 +67,7 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 	InitialiseFeatures(processor);
 	InitialiseIsaMode(processor);
 
-	tick_timer timer (0, stdout);
+	wutils::tick_timer timer (0, stdout);
 	timer.reset();
 
 	// Build the IR for this block
@@ -246,11 +246,11 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 	}
 
 	if(processor->GetTraceSource()) {
-		IRRegId pc_reg = builder.alloc_reg(4);
-		builder.ldpc(IROperand::vreg(pc_reg, 4));
-		builder.bitwise_and(IROperand::const32(0xfffff000), IROperand::vreg(pc_reg, 4));
-		builder.bitwise_or(IROperand::const32(pc.GetPageOffset()), IROperand::vreg(pc_reg, 4));
-		builder.call(IROperand::func((void*)cpuTraceInstruction), IROperand::vreg(pc_reg, 4), IROperand::const32(decode->GetIR()), IROperand::const8(decode->isa_mode), IROperand::const8(0));
+		IRRegId pc_reg = builder.alloc_reg(8);
+		builder.ldpc(IROperand::vreg(pc_reg, 8));
+		builder.bitwise_and(IROperand::const64(0xfffffffffffff000), IROperand::vreg(pc_reg, 8));
+		builder.bitwise_or(IROperand::const64(pc.GetPageOffset()), IROperand::vreg(pc_reg, 8));
+		builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceInstruction), IROperand::vreg(pc_reg, 8), IROperand::const32(decode->GetIR()), IROperand::const8(decode->isa_mode), IROperand::const8(0));
 	}
 
 	translate_instruction(decode, builder, processor->GetTraceSource() != nullptr);
@@ -264,7 +264,7 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 	decode_txlt_ctx->Translate(processor, *decode, *_decode_ctx, builder);
 
 	if(processor->GetTraceSource()) {
-		builder.call(IROperand::func((void*)cpuTraceInsnEnd));
+		builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceInsnEnd));
 	}
 
 	return true;
@@ -285,28 +285,24 @@ bool BaseBlockJITTranslate::can_merge_jump(archsim::core::thread::ThreadInstance
 	// can only merge if the isa mode is still valid
 	if(!_isa_mode_valid) return false;
 
-	bool indirect = false, direct = false;
-	uint32_t target;
-	_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target);
+	JumpInfo info;
+	_jumpinfo->GetJumpInfo(decode, pc, info);
 
 	// If this isn't a direct jump, then we can't chain
-	if(!direct) return false;
+	if(info.IsIndirect) return false;
+	if(info.IsConditional) return false;
 
 	// Return true if this jump lands within the same page as it starts
-	if(archsim::Address(target).GetPageIndex() == pc.GetPageIndex()) return true;
+	if(info.JumpTarget.GetPageIndex() == pc.GetPageIndex()) return true;
 	else return false;
 }
 
 archsim::Address BaseBlockJITTranslate::get_jump_target(archsim::core::thread::ThreadInstance *processor, BaseDecode *decode, Address pc)
 {
-	bool indirect = false, direct = false;
-	uint32_t target;
+	JumpInfo info;
+	_jumpinfo->GetJumpInfo(decode, pc, info);
 
-	_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target);
-
-	assert(direct || indirect);
-
-	return Address(target);
+	return Address(info.JumpTarget);
 }
 
 bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *processor, archsim::Address block_address, captive::shared::IRBuilder &builder, std::unordered_set<Address> &block_heads)
@@ -388,33 +384,31 @@ bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *pr
 	// if we are at the end of a block, if chaining is enabled, and if the
 	// context is valid (isa mode and features).)
 	if(decode->GetEndOfBlock() && _supportChaining && _isa_mode_valid && _features_valid) {
-		uint32_t target_pc = 0, fallthrough_pc = 0;
+		Address target_pc = 0_ga, fallthrough_pc = 0_ga;
 
-		bool direct = false, indirect = false;
-
-		// Try to figure out where this branch will end up.
-		_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target_pc);
-
-		fallthrough_pc = pc.Get() + decode->Instr_Length;
+		JumpInfo jump_info;
+		// TODO: change target_pc_naked to actually be an Address instead of a uint32
+		_jumpinfo->GetJumpInfo(decode, pc, jump_info);
+		fallthrough_pc = pc + decode->Instr_Length;
 
 		// Can only chain on a direct jump
-		if(direct) {
-			uint32_t target_page = archsim::translate::profile::RegionArch::PageBaseOf(target_pc);
-			uint32_t fallthrough_page = archsim::translate::profile::RegionArch::PageBaseOf(fallthrough_pc);
+		if(!jump_info.IsIndirect) {
+			auto target_page = jump_info.JumpTarget.GetPageBase();
+			auto fallthrough_page = fallthrough_pc.GetPageBase();
 
 			// Can only chain if the target of the jump is on the same page as the rest of the block
 			if(target_page == pc.GetPageBase()) {
 				// If instruction is not predicated, don't use a fallthrough pc
 				// XXX ARM HAX
 				if(!decode->GetIsPredicated()) {
-					fallthrough_pc = 0;
+					fallthrough_pc = 0_ga;
 				}
 
 				//need to translate target and fallthrough PCs
 
 				Address target_ppc(0), fallthrough_ppc(0);
-				if(target_pc) processor->GetFetchMI().PerformTranslation(Address(target_pc), target_ppc, false, true, false);
-				if(fallthrough_pc) processor->GetFetchMI().PerformTranslation(Address(fallthrough_pc), fallthrough_ppc, false, true, false);
+				if(target_pc != Address::NullPtr) processor->GetFetchMI().PerformTranslation(target_pc, target_ppc, false, true, false);
+				if(fallthrough_pc != Address::NullPtr) processor->GetFetchMI().PerformTranslation(fallthrough_pc, fallthrough_ppc, false, true, false);
 
 				archsim::blockjit::BlockTranslation target_fn;
 				archsim::blockjit::BlockTranslation fallthrough_fn;
@@ -438,7 +432,7 @@ bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *pr
 				}
 
 				if(fallthrough_fn_ptr != nullptr || target_fn_ptr != nullptr) {
-					builder.dispatch(IROperand::const32(target_pc), IROperand::const32(fallthrough_pc), IROperand::const64((uint64_t)target_fn_ptr), IROperand::const64((uint64_t)fallthrough_fn_ptr));
+					builder.dispatch(IROperand::const32(target_pc.Get()), IROperand::const32(fallthrough_pc.Get()), IROperand::const64((uint64_t)target_fn_ptr), IROperand::const64((uint64_t)fallthrough_fn_ptr));
 					return true;
 				}
 			} else {

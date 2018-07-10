@@ -85,12 +85,12 @@ bool AngelSyscallHandler::HandleOpen(uint32_t arg, uint32_t &out)
 		uint32_t filename_length;
 	} syscall_args;
 
-	memory_model.ReadN(arg, (uint8_t*)&syscall_args, sizeof(syscall_args));
+	memory_model.ReadN(Address(arg), (uint8_t*)&syscall_args, sizeof(syscall_args));
 
 	LC_DEBUG1(LogAngel) << "Handling open(" << syscall_args.filename << ", " << syscall_args.mode << ", " << syscall_args.filename_length << ")";
 
 	char filename [syscall_args.filename_length+1];
-	memory_model.ReadN(syscall_args.filename, (uint8_t*)filename, syscall_args.filename_length);
+	memory_model.ReadN(Address(syscall_args.filename), (uint8_t*)filename, syscall_args.filename_length);
 	filename[syscall_args.filename_length] = 0;
 
 	static constexpr const char* mode_strings[12] = {
@@ -134,7 +134,7 @@ bool AngelSyscallHandler::HandleClose(uint32_t arg, uint32_t &out)
 {
 	uint32_t fd;
 
-	memory_model.Read32(arg, fd);
+	memory_model.Read32(Address(arg), fd);
 
 	LC_DEBUG1(LogAngel) << "Closing fd " << fd;
 
@@ -148,7 +148,7 @@ bool AngelSyscallHandler::HandleClose(uint32_t arg, uint32_t &out)
 bool AngelSyscallHandler::HandleWriteC(uint32_t arg, uint32_t &out)
 {
 	uint32_t ch;
-	memory_model.Read32(arg, ch);
+	memory_model.Read32(Address(arg), ch);
 	printf("%c", ch);
 
 	return true;
@@ -159,7 +159,7 @@ bool AngelSyscallHandler::HandleWrite0(uint32_t arg, uint32_t &out)
 	std::string str;
 	unsigned char c;
 	do {
-		memory_model.Read8(arg, c);
+		memory_model.Read8(Address(arg), c);
 		str += c;
 	} while(c != 0);
 
@@ -175,12 +175,12 @@ bool AngelSyscallHandler::HandleWrite(uint32_t arg, uint32_t &out)
 		uint32_t length;
 	} syscall_args;
 
-	memory_model.ReadN(arg, (uint8_t*)&syscall_args, sizeof(syscall_args));
+	memory_model.ReadN(Address(arg), (uint8_t*)&syscall_args, sizeof(syscall_args));
 
 	LC_DEBUG1(LogAngel) << "Write (" << syscall_args.handle << ", " << syscall_args.data << ", " << syscall_args.length << ")";
 
 	char *buffer = (char*)malloc(syscall_args.length);
-	memory_model.ReadN(syscall_args.data, (uint8_t*)buffer, syscall_args.length);
+	memory_model.ReadN(Address(syscall_args.data), (uint8_t*)buffer, syscall_args.length);
 
 	out = write(syscall_args.handle, buffer, syscall_args.length);
 	free(buffer);
@@ -196,12 +196,12 @@ bool AngelSyscallHandler::HandleRead(uint32_t arg, uint32_t &out)
 		uint32_t mode; // ???
 	} syscall_args;
 
-	memory_model.ReadN(arg, (uint8_t*)&syscall_args, sizeof(syscall_args));
+	memory_model.ReadN(Address(arg), (uint8_t*)&syscall_args, sizeof(syscall_args));
 
 	char *buffer = (char*)malloc(syscall_args.length);
 
 	if(read(syscall_args.handle, buffer, syscall_args.length) != -1) {
-		memory_model.WriteN(syscall_args.buffer, (uint8_t*)buffer, syscall_args.length);
+		memory_model.WriteN(Address(syscall_args.buffer), (uint8_t*)buffer, syscall_args.length);
 		out = 0;
 	} else {
 		out = syscall_args.length;
@@ -219,7 +219,7 @@ bool AngelSyscallHandler::HandleSeek(uint32_t arg, uint32_t &out)
 		uint32_t pos;
 	} syscall_args;
 
-	memory_model.ReadN(arg, (uint8_t*)&syscall_args, sizeof(syscall_args));
+	memory_model.ReadN(Address(arg), (uint8_t*)&syscall_args, sizeof(syscall_args));
 
 	if(lseek(syscall_args.handle, syscall_args.pos, SEEK_SET) == -1)
 		out = -1;
@@ -254,11 +254,11 @@ bool AngelSyscallHandler::HandleSystem(uint32_t arg, uint32_t &out)
 		uint32_t length;
 	} syscall_args;
 
-	memory_model.ReadN(arg, (uint8_t*)&syscall_args, sizeof(syscall_args));
+	memory_model.ReadN(Address(arg), (uint8_t*)&syscall_args, sizeof(syscall_args));
 
 	uint8_t *buffer = (uint8_t*)malloc(syscall_args.length);
 
-	memory_model.ReadN(syscall_args.string, buffer, syscall_args.length);
+	memory_model.ReadN(Address(syscall_args.string), buffer, syscall_args.length);
 	LC_DEBUG1(LogAngel) << "Handling system(" << buffer << ");";
 
 	free(buffer);
@@ -274,7 +274,7 @@ bool AngelSyscallHandler::HandleErrno(uint32_t arg, uint32_t &out)
 bool AngelSyscallHandler::HandleIsTty(uint32_t arg, uint32_t &out)
 {
 	uint32_t handle;
-	memory_model.Read32(arg, handle);
+	memory_model.Read32(Address(arg), handle);
 
 	if(isatty(handle)) out = -1;
 	else out = 0;
@@ -290,9 +290,9 @@ bool AngelSyscallHandler::HandleGetCmdline(uint32_t arg, uint32_t &out)
 	} info;
 
 	const char cmdline[] = "some kind of command line";
-	memory_model.ReadN(arg, (uint8_t*)&info, sizeof(info));
+	memory_model.ReadN(Address(arg), (uint8_t*)&info, sizeof(info));
 
-	memory_model.WriteN(info.buffer, (uint8_t*)cmdline, strlen(cmdline));
+	memory_model.WriteN(Address(info.buffer), (uint8_t*)cmdline, strlen(cmdline));
 	info.length = strlen(cmdline);
 
 	out = arg;
@@ -313,8 +313,8 @@ bool AngelSyscallHandler::HandleHeapInfo(uint32_t arg, uint32_t &out)
 	} heapinfo;
 
 	uint32_t block_ptr;
-	memory_model.Read32(arg, block_ptr);
-	memory_model.ReadN(block_ptr, (uint8_t*)&heapinfo, sizeof(heapinfo));
+	memory_model.Read32(Address(arg), block_ptr);
+	memory_model.ReadN(Address(block_ptr), (uint8_t*)&heapinfo, sizeof(heapinfo));
 
 	LC_DEBUG1(LogAngel) << "GetHeapInfo(" << arg << " -> " << block_ptr << ")";
 
@@ -323,7 +323,7 @@ bool AngelSyscallHandler::HandleHeapInfo(uint32_t arg, uint32_t &out)
 	heapinfo.stack_base = stack_base;
 	heapinfo.stack_limit = stack_limit;
 
-	memory_model.WriteN(block_ptr, (uint8_t*)&heapinfo, sizeof(heapinfo));
+	memory_model.WriteN(Address(block_ptr), (uint8_t*)&heapinfo, sizeof(heapinfo));
 
 	out = arg;
 
@@ -332,7 +332,7 @@ bool AngelSyscallHandler::HandleHeapInfo(uint32_t arg, uint32_t &out)
 
 bool AngelSyscallHandler::HandleKill(uint32_t arg, uint32_t &out)
 {
-	memory_model.Read32(arg, arg);
+	memory_model.Read32(Address(arg), arg);
 	LC_DEBUG1(LogAngel) << "Kill(" << arg << ")";
 	// The simulation should only be able to kill itself. The easiest way to achieve that
 	// is to just return false here.
