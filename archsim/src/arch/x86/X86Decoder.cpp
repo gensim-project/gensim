@@ -9,6 +9,12 @@ extern "C" {
 using namespace archsim;
 using namespace archsim::arch::x86;
 
+static int get_register_index(xed_reg_enum_t reg)
+{
+	ASSERT(xed_reg_class(reg) == XED_REG_CLASS_GPR);
+	return xed_get_largest_enclosing_register(reg) - XED_REG_RAX;
+}
+
 int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 {
 	// read 15 bytes
@@ -34,7 +40,64 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 
 	Instr_Length = xed_decoded_inst_get_length(&xedd);
 
-	printf("%p %u %u\n", addr.Get(), category, iclass);
+	auto noperands = xed_decoded_inst_noperands(&xedd);
+	auto inst = xed_decoded_inst_inst(&xedd);
+
+	if(noperands > 0) {
+		auto op0 = xed_inst_operand(inst, 0);
+		auto op_name = xed_operand_name(op0);
+		switch(op_name) {
+			case XED_OPERAND_REG0:
+			case XED_OPERAND_REG1:
+			case XED_OPERAND_REG2:
+			case XED_OPERAND_REG3:
+			case XED_OPERAND_REG4:
+			case XED_OPERAND_REG5:
+			case XED_OPERAND_REG6:
+			case XED_OPERAND_REG7:
+			case XED_OPERAND_REG8: {
+				auto reg = xed_decoded_inst_get_reg(&xedd, op_name);
+				op0_is_reg = 1;
+				op0_reg = get_register_index(reg);
+				op0_size = xed_get_register_width_bits64(reg);
+				break;
+			}
+			default:
+				UNIMPLEMENTED;
+		}
+	}
+
+	if(noperands > 1) {
+		auto op = xed_inst_operand(inst, 1);
+		auto op_name = xed_operand_name(op);
+		switch(op_name) {
+			case XED_OPERAND_REG0:
+			case XED_OPERAND_REG1:
+			case XED_OPERAND_REG2:
+			case XED_OPERAND_REG3:
+			case XED_OPERAND_REG4:
+			case XED_OPERAND_REG5:
+			case XED_OPERAND_REG6:
+			case XED_OPERAND_REG7:
+			case XED_OPERAND_REG8: {
+				auto reg = xed_decoded_inst_get_reg(&xedd, op_name);
+				op1_is_reg = 1;
+				op1_reg = get_register_index(reg);
+				op1_size = xed_get_register_width_bits64(reg);
+				break;
+			}
+			default:
+				UNIMPLEMENTED;
+		}
+	}
+
+	switch(iclass) {
+		case XED_ICLASS_XOR:
+			Instr_Code = INST_x86_xor;
+			break;
+		default:
+			UNIMPLEMENTED;
+	}
 
 	return 0;
 }

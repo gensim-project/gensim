@@ -20,7 +20,8 @@ typedef uint32_t uint32;
 typedef uint64_t uint64;
 
 enum X86Opcodes {
-	INST_x86_mov
+	INST_x86_mov,
+	INST_x86_xor
 };
 
 namespace archsim
@@ -33,6 +34,15 @@ namespace archsim
 			{
 			public:
 				int DecodeInstr(Address addr, int mode,  MemoryInterface &interface);
+
+				uint32_t op0_size;
+				bool op0_is_reg;
+				uint32_t op0_reg;
+
+				uint32_t op1_size;
+				bool op1_is_reg;
+				uint32_t op1_reg;
+
 			};
 		}
 	}
