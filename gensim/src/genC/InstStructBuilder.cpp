@@ -5,34 +5,46 @@
 
 using namespace gensim::genc;
 
-IRType GetGenCType(std::string typeName)
+IRType StructBuilder::BuildStruct(const gensim::isa::ISADescription* isa, const gensim::isa::StructDescription* struct_desc) const
+{
+	IRStructType *stype = new IRStructType();
+	stype->Name = struct_desc->GetName();
+
+	for(auto member : struct_desc->GetMembers()) {
+		stype->AddMember(member.GetName(), GetGenCType(isa, member.GetType()));
+	}
+	stype->MakeFullyConst();
+
+	return IRType::CreateStruct(stype);
+}
+
+
+IRType StructBuilder::GetGenCType(const gensim::isa::ISADescription *isa, const std::string &typeName) const
 {
 	IRType type = IRTypes::Void;
 
-	std::string::reverse_iterator c = typeName.rbegin();
-	while (*c == '*') {
-		c++;
-	}
-	typeName = gensim::util::Util::FindReplace(typeName, "*", "");
+	std::string raw_typename = gensim::util::Util::FindReplace(typeName, "*", "");
 
-	if (!typeName.compare("uint8")) {
+	if (!raw_typename.compare("uint8")) {
 		type.BaseType.PlainOldDataType = IRPlainOldDataType::INT8;
 		type.Signed = false;
-	} else if (!typeName.compare("uint16")) {
+	} else if (!raw_typename.compare("uint16")) {
 		type.BaseType.PlainOldDataType = IRPlainOldDataType::INT16;
 		type.Signed = false;
-	} else if (!typeName.compare("uint32")) {
+	} else if (!raw_typename.compare("uint32")) {
 		type.BaseType.PlainOldDataType = IRPlainOldDataType::INT32;
 		type.Signed = false;
-	} else if (!typeName.compare("uint64")) {
+	} else if (!raw_typename.compare("uint64")) {
 		type.BaseType.PlainOldDataType = IRPlainOldDataType::INT64;
 		type.Signed = false;
-	} else if (!typeName.compare("sint32")) {
+	} else if (!raw_typename.compare("sint32")) {
 		type.BaseType.PlainOldDataType = IRPlainOldDataType::INT32;
 		type.Signed = true;
-	} else if (!typeName.compare("sint64")) {
+	} else if (!raw_typename.compare("sint64")) {
 		type.BaseType.PlainOldDataType = IRPlainOldDataType::INT64;
 		type.Signed = true;
+	} else if(isa->HasUserStructType(typeName)) {
+		type = BuildStruct(isa, &isa->GetUserStructType(typeName));
 	} else {
 		throw std::logic_error("Unknown type: " + typeName);
 	}
@@ -41,27 +53,21 @@ IRType GetGenCType(std::string typeName)
 
 IRType InstStructBuilder::BuildType(const gensim::isa::ISADescription* isa) const
 {
-	IRStructType &Struct = *(new IRStructType());
-	Struct.Name = "Instruction";
+	gensim::isa::StructDescription inst_description("Instruction");
 
-	Struct.AddMember("Instr_Length", IRTypes::UInt8);
-	Struct.AddMember("Instr_Code", IRTypes::UInt32);
-	Struct.AddMember("ir", IRTypes::UInt32);
-	Struct.AddMember("End_Of_Block", IRTypes::UInt8);
-	Struct.AddMember("Uses_PC", IRTypes::UInt8);
-	Struct.AddMember("IsPredicated", IRTypes::UInt8);
-	Struct.AddMember("PredicateInfo", IRTypes::UInt32);
-	Struct.AddMember("IsBranch", IRTypes::UInt8);
+	inst_description.AddMember("Instr_Length", "uint8");
+	inst_description.AddMember("Instr_Code", "uint32");
+	inst_description.AddMember("ir", "uint32");
+	inst_description.AddMember("End_Of_Block", "uint8");
+	inst_description.AddMember("Uses_PC", "uint8");
+	inst_description.AddMember("IsPredicated", "uint8");
+	inst_description.AddMember("PredicateInfo", "uint32");
+	inst_description.AddMember("IsBranch", "uint8");
 
 	const std::map<std::string, std::string> &fields = isa->Get_Disasm_Fields();
 	for (std::map<std::string, std::string>::const_iterator ci = fields.begin(); ci != fields.end(); ++ci) {
-		IRType FieldType = GetGenCType(ci->second);
-		Struct.AddMember(ci->first, FieldType);
+		inst_description.AddMember(ci->first, ci->second);
 	}
 
-	Struct.MakeFullyConst();
-
-	IRType structType = IRType::CreateStruct(Struct);
-	structType.Const = true;
-	return structType;
+	return StructBuilder().BuildStruct(isa, &inst_description);
 }

@@ -200,11 +200,11 @@ namespace gensim
 		const IRType IRTypes::Block = IRType::_Block();
 		const IRType IRTypes::Function = IRType::_Function();
 
-		IRType IRType::CreateStruct(const IRStructType &Type)
+		IRType IRType::CreateStruct(const IRStructType* const Type)
 		{
 			IRType g;
 			g.DataType = Struct;
-			g.BaseType.StructType = &Type;
+			g.BaseType.StructType = Type;
 			return g;
 		}
 

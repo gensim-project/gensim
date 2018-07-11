@@ -3674,12 +3674,12 @@ internal helper void return_from_exception() noinline
 	return;
 }
 
-internal helper uint8 instruction_is_predicated(Instruction inst)
+internal helper uint8 instruction_is_predicated(struct Instruction &inst)
 {
 	return (inst.ir & 0xf0000000) < 0xe0000000;
 }
 
-internal helper uint8 instruction_predicate(Instruction inst)
+internal helper uint8 instruction_predicate(struct Instruction &inst)
 {
 	uint8 cond = inst.cond >> 1;
 	uint8 invert = inst.cond & 1;
@@ -3729,7 +3729,7 @@ internal helper uint8 instruction_predicate(Instruction inst)
 }
 
 
-helper void write_coproc_reg_inst(uint32 cp_num, Instruction &inst, uint32 data)
+helper void write_coproc_reg_inst(uint32 cp_num, struct Instruction &inst, uint32 data)
 {
 	write_coproc_reg(cp_num, inst.funcc2, inst.funcc3, inst.crn, inst.crm, data);
 	return;

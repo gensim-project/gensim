@@ -33,6 +33,7 @@ tokens
   GENC_ATTR_NOINLINE = 'noinline';
   GENC_ATTR_GLOBAL = 'global';
   GENC_ATTR_EXPORT = 'export';
+  GENC_STRUCT = 'struct';
 
   PARAM;
   PARAMS;
@@ -105,7 +106,9 @@ UNICODE_ESC
 
 HEX_VAL	:	'0x' HEX_DIGIT+ 'U'? 'L'?;
 
-type : (numeric_type) type_annotation* -> ^(TYPE numeric_type type_annotation*);
+struct_type : GENC_STRUCT GENC_ID -> GENC_ID;
+base_type : (GENC_STRUCT! GENC_ID) | numeric_type;
+type : (base_type) type_annotation* -> ^(TYPE base_type type_annotation*);
 
 //base_type :
 //	struct_type | numeric_type;
@@ -128,7 +131,6 @@ numeric_type :
   | 'float'
   | 'double'
   | 'longdouble'
-  | 'Instruction'
   ;
 
 type_annotation :

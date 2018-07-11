@@ -206,7 +206,7 @@ namespace gensim
 			IRStatement *Parse_Statement(pANTLR3_BASE_TREE node, IRScope &containing_scope);
 			IRExpression *Parse_Expression(pANTLR3_BASE_TREE node, IRScope &containing_scope);
 
-			void Build_Inst_Struct();
+			void BuildStructTypes();
 
 			void AddIntrinsic(const std::string& name, const IRType& retty, const IRSignature::param_type_list_t& ptl, IntrinsicEmitterFn emitter, ssa::SSAIntrinsicStatement::IntrinsicType);
 			void AddExternalFunction(const std::string& name, const IRType& retty, const IRSignature::param_type_list_t& ptl);

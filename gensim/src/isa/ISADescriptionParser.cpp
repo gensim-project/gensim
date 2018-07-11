@@ -436,7 +436,7 @@ bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::strin
 	isa->CleanupBehaviours();
 
 //	printf("Loading behaviours...\n");
-	success &= load_behaviours();
+//	success &= load_behaviours();
 
 	return success;
 }

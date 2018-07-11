@@ -51,14 +51,16 @@ static IRConstant parse_constant_value(pANTLR3_BASE_TREE tree)
 
 static SSAType parse_type(SSAContext &ctx, pANTLR3_BASE_TREE tree)
 {
-	GASSERT(tree->getType(tree) == SSAASM_TYPE);
+	GASSERT(tree->getType(tree) == NUMERIC_TYPE || tree->getType(tree) == SSAASM_ID);
 	gensim::genc::IRType out;
 	char *text = (char*)tree->getText(tree)->chars;
 
-	if(strcmp(text, "Instruction") == 0) {
-		out = ctx.GetTypeManager().GetStructType(text);
-	} else if(!gensim::genc::IRType::ParseType(text, out)) {
-		throw std::logic_error("Could not parse type");
+	if(!gensim::genc::IRType::ParseType(text, out)) {
+		if(ctx.GetTypeManager().HasStructType(text)) {
+			out = ctx.GetTypeManager().GetStructType(text);
+		} else {
+			throw std::logic_error("Unknown type");
+		}
 	}
 
 	for(unsigned i = 0; i < tree->getChildCount(tree); ++i) {

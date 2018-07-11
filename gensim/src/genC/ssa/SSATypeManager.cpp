@@ -66,3 +66,8 @@ const SSAType& SSATypeManager::GetStructType(const std::string& name)
 {
 	return struct_types_.at(name);
 }
+
+bool SSATypeManager::HasStructType(const std::string& name) const
+{
+	return struct_types_.count(name);
+}
