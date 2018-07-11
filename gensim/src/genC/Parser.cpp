@@ -253,12 +253,17 @@ ssa::SSAContext *GenCContext::EmitSSA()
 }
 
 
-void GenCContext::Build_Inst_Struct()
+void GenCContext::BuildStructTypes()
 {
 	gensim::genc::InstStructBuilder isb;
 	auto structType = isb.BuildType(&ISA);
 
 	StructTypeTable["Instruction"] = structType;
+
+	gensim::genc::StructBuilder sb;
+	for(auto &struct_type : ISA.UserStructTypes) {
+		StructTypeTable[struct_type.GetName()] = sb.BuildStruct(&ISA, &struct_type);
+	}
 }
 
 FileContents::FileContents(const std::string& filename) : Filename(filename), TokenStream(GetFile(filename))
@@ -275,7 +280,7 @@ FileContents::FileContents(const std::string& filename, const std::string& filet
 GenCContext::GenCContext(const gensim::arch::ArchDescription &arch, const isa::ISADescription &isa, DiagnosticContext &diag_ctx) : Valid(true), Arch(arch), ISA(isa), GlobalScope(IRScope::CreateGlobalScope(*this)), diag_ctx(diag_ctx)
 {
 	// build the instruction structure
-	Build_Inst_Struct();
+	BuildStructTypes();
 
 	// Load register and register file names
 	LoadRegisterNames();
@@ -567,11 +572,14 @@ IRType GenCContext::Parse_Type(pANTLR3_BASE_TREE node)
 		type = IRTypes::LongDouble;
 	} else if (baseType == "void") {
 		type = IRTypes::Void;
-	} else if (baseType == "Instruction") {
-		type = StructTypeTable["Instruction"];
 	} else {
-		Diag().Error("Unrecognized base type " + baseType, DiagNode(CurrFilename, node));
-		type = IRTypes::Void;
+		// look for a struct
+		if(StructTypeTable.count(baseType)) {
+			type = StructTypeTable.at(baseType);
+		} else {
+			Diag().Error("Unrecognized base type " + baseType, DiagNode(CurrFilename, node));
+			type = IRTypes::Void;
+		}
 	}
 
 	for (uint32_t i = 1; i < node->getChildCount(node); ++i) {

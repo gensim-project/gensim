@@ -104,8 +104,21 @@ namespace gensim
 			}
 
 			if(paramType.Reference) {
-				// parameter must be a variable expression
-				if(dynamic_cast<IRVariableExpression*>(givenParameter) == nullptr) {
+				// parameter must be a variable expression or a read struct member
+				bool ok_parameter = false;
+
+				if(dynamic_cast<IRVariableExpression*>(givenParameter) != nullptr) {
+					ok_parameter = true;
+				}
+
+				if(dynamic_cast<IRUnaryExpression*>(givenParameter) != nullptr) {
+					IRUnaryExpression *exp = (IRUnaryExpression*)givenParameter;
+					if(exp->Type == IRUnaryOperator::Member) {
+						ok_parameter = true;
+					}
+				}
+
+				if(!ok_parameter) {
 					std::string errstring = Format("In call to %s, parameter %u: Reference parameter must be a simple variable expression", TargetName.c_str(), idx, paramType.PrettyPrint().c_str(), givenType.PrettyPrint().c_str());
 					Context.Diag().Error(errstring, Diag());
 					success = false;

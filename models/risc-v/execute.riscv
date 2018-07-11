@@ -769,7 +769,7 @@ execute(ebreak)
 }
 
 
-internal helper uint8 instruction_predicate(Instruction inst)
+internal helper uint8 instruction_predicate(struct Instruction &inst)
 {
 	return 1;
 }

@@ -107,7 +107,7 @@ namespace gensim
 			static std::vector<std::string> Tokenize(const std::string source, const std::string breaks, bool match_brackets);
 			static std::string clean(const std::string str);
 
-			static std::string FindReplace(const std::string input, const std::string find, const std::string replace);
+			static std::string FindReplace(const std::string &input, const std::string &find, const std::string &replace);
 			static size_t Match(const std::string str, size_t begin, char inc, char dec);
 
 			static std::string TypeString(uint32_t width);

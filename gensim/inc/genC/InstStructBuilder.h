@@ -11,6 +11,7 @@
 #define INSTSTRUCTBUILDER_H
 
 #include "ir/IRType.h"
+#include "isa/StructDescription.h"
 
 namespace gensim
 {
@@ -20,6 +21,15 @@ namespace gensim
 	}
 	namespace genc
 	{
+		class StructBuilder
+		{
+		public:
+			IRType BuildStruct(const gensim::isa::ISADescription *isa, const gensim::isa::StructDescription *struct_desc) const;
+
+		private:
+			IRType GetGenCType(const gensim::isa::ISADescription *isa, const std::string &tname) const;
+		};
+
 		class InstStructBuilder
 		{
 		public:

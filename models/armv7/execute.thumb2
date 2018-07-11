@@ -5772,12 +5772,12 @@ helper void update_zn_flags(uint32 val) {
 	return;
 }
 
-internal helper uint8 instruction_is_predicated(Instruction inst)
+internal helper uint8 instruction_is_predicated(struct Instruction &inst)
 {
 	return inst.IsPredicated;
 }
 
-helper uint8 instruction_predicate(Instruction inst) 
+helper uint8 instruction_predicate(struct Instruction &inst) 
 {
 	if(!inst.IsPredicated) {
 		return 1;
