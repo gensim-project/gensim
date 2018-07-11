@@ -104,7 +104,8 @@ tokens
     AC_SET_FEATURE = 'set_feature';
         
     PSEUDO_INSTR = 'pseudo_instr';
-    
+	AC_STRUCT = 'struct';
+
 	GROUP;
 	GROUP_LRULE;
 	STRINGS_LRULE;
@@ -243,8 +244,14 @@ arch_isa
 	:	AC_ISA_BLOCK OPAREN AC_ID CPAREN OBRACE isa_resource* CBRACE SEMICOLON -> ^(AC_ISA_BLOCK AC_ID isa_resource*);
 
 isa_resource
-	:	(ar_fetchsize | ar_include | format | isa_instruction | isa_field | isa_behaviour | isa_CTOR | isa_asm_map | ar_predicated);
-	
+	:	(ar_fetchsize | ar_include | format | isa_instruction | isa_field | isa_behaviour | isa_CTOR | isa_asm_map | ar_predicated | isa_struct_definition);
+
+isa_struct_definition
+	: AC_STRUCT AC_ID OBRACE isa_struct_definition_entry* CBRACE SEMICOLON -> ^(AC_STRUCT AC_ID isa_struct_definition_entry*);
+
+isa_struct_definition_entry
+	: AC_ID AC_ID SEMICOLON!;
+
 isa_instruction
 	:	AC_INSTR OANGLE AC_ID CANGLE AC_ID (COMMA AC_ID)* SEMICOLON -> ^(AC_INSTR AC_ID*);
 
