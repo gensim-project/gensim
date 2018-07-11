@@ -12,13 +12,13 @@ class SSA_Functional_PassStruct : public SSATestFixture {};
 TEST_F(SSA_Functional_PassStruct, BasicInstructionPass)
 {
 	const std::string ssaasm = R"||(
-action void callee ( Instruction & reference) [] < b_0 > { 
+action void callee (struct Instruction & reference) [] < b_0 > { 
 block b_0 {
 s1: return;
 }
 }
 
-action void caller ( Instruction & reference) [] < b_0 > { 
+action void caller (struct Instruction & reference) [] < b_0 > { 
 block b_0 {
 s1: call callee reference;
 s2: return;

@@ -66,6 +66,7 @@ s6 : return s4;
 )||";
 
 auto test_action = CompileAsm(ssaasm, "the_action");
+ASSERT_NE(nullptr, test_action);
 
 BasicInterpreter bi (*GetTestArch());
 bi.SetRegisterState(0, 0, gensim::genc::IRConstant::Integer(0));
@@ -105,6 +106,7 @@ s6 : return s4;
 )||";
 
 auto test_action = CompileAsm(ssaasm, "the_action");
+ASSERT_NE(nullptr, test_action);
 
 BasicInterpreter bi (*GetTestArch());
 bi.SetRegisterState(0, 0, gensim::genc::IRConstant::Integer(0));
