@@ -1,17 +1,101 @@
 AC_ISA(x86)
 {
+	// Most of the actual decoding for this model is handled by XED
+	// through an external decoder.
 	ac_format FORMAT_DUMMY = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY> mov, xor, pop;
+	ac_instr<FORMAT_DUMMY> add, and, call, cmp, cpuid, jbe, jnbe, je, jne, jle, jmp, lea, mov, movzx, movsxd, nop, or, pop, push, ret, setz, sub, test, xgetbv, xor;
 	
-	ac_behaviour mov, xor, pop;
+	ac_behaviour add, and, call, cmp, cpuid, jbe, jnbe, je, jne, jle, jmp, lea, mov, movzx, movsxd, nop, or, pop, push, ret, setz, sub, test, xgetbv, xor;
 
 	ISA_CTOR(x86) {
+		add.set_decoder();
+		add.set_behaviour(add);
+		
+		and.set_decoder();
+		and.set_behaviour(and);
+	
+		call.set_decoder();
+		call.set_behaviour(call);
+		call.set_end_of_block();
+		call.set_variable_jump();
+		
+		cmp.set_decoder();
+		cmp.set_behaviour(cmp);
+	
+		cpuid.set_decoder();
+		cpuid.set_behaviour(cpuid);
+	
+		je.set_decoder();
+		je.set_behaviour(je);
+		je.set_end_of_block();
+		je.set_variable_jump();
+	
+		jne.set_decoder();
+		jne.set_behaviour(jne);
+		jne.set_end_of_block();
+		jne.set_variable_jump();
+	
+		jbe.set_decoder();
+		jbe.set_behaviour(jbe);
+		jbe.set_end_of_block();
+		jbe.set_variable_jump();
+	
+		jnbe.set_decoder();
+		jnbe.set_behaviour(jnbe);
+		jnbe.set_end_of_block();
+		jnbe.set_variable_jump();
+	
+		jle.set_decoder();
+		jle.set_behaviour(jle);
+		jle.set_end_of_block();
+		jle.set_variable_jump();
+	
+		jmp.set_decoder();
+		jmp.set_behaviour(jmp);
+		jmp.set_end_of_block();
+		jmp.set_variable_jump();
+	
+		lea.set_decoder();
+		lea.set_behaviour(lea);
+	
 		mov.set_decoder();
 		mov.set_behaviour(mov);
 		
+		movzx.set_decoder();
+		movzx.set_behaviour(movzx);
+		
+		movsxd.set_decoder();
+		movsxd.set_behaviour(movsxd);
+		
+		nop.set_decoder();
+		nop.set_behaviour(nop);
+		
+		or.set_decoder();
+		or.set_behaviour(or);
+		
 		pop.set_decoder();
 		pop.set_behaviour(pop);
+		
+		push.set_decoder();
+		push.set_behaviour(push);
+		
+		ret.set_decoder();
+		ret.set_behaviour(ret);
+		ret.set_end_of_block();
+		ret.set_variable_jump();
+		
+		setz.set_decoder();
+		setz.set_behaviour(setz);
+		
+		sub.set_decoder();
+		sub.set_behaviour(sub);
+		
+		test.set_decoder();
+		test.set_behaviour(test);
+		
+		xgetbv.set_decoder();
+		xgetbv.set_behaviour(xgetbv);
 		
 		xor.set_decoder();
 		xor.set_behaviour(xor);

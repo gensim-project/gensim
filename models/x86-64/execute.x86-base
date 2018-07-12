@@ -1,48 +1,414 @@
-helper void nothing() { return; }
+execute(add) {
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = read_operand(inst.op1);
+	
+	uint64 result = addition(op0, op1);
+	
+	write_operand(inst.op0, result);
+}
+
+execute(and) {
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = read_operand(inst.op1);
+	
+	uint64 result = op0 & op1;
+	
+	write_operand(inst.op0, result);
+}
+
+execute(call) {
+	uint64 target = read_operand(inst.op0);
+	
+	stack_push(read_pc() + inst.Instr_Length);
+	
+	write_register(IP, target);
+}
+
+execute(cmp) {
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = read_operand(inst.op1);
+	
+	subtract(op0, op1);
+}
+
+execute(cpuid) {
+
+}
+
+execute(je) {
+	if(read_register(ZF)) {
+		// equal
+		write_pc(read_operand(inst.op0));
+	} else {
+		write_pc(read_pc() + inst.Instr_Length);
+	}
+}
+
+execute(jne) {
+	if(!read_register(ZF)) {
+		// not equal
+		write_pc(read_operand(inst.op0));
+	} else {
+		write_pc(read_pc() + inst.Instr_Length);
+	}
+}
+
+execute(jbe) {
+	if(read_register(CF) || read_register(ZF)) {
+		write_pc(read_operand(inst.op0));
+	} else {
+		write_pc(read_pc() + inst.Instr_Length);
+	}
+}
+
+execute(jnbe) {
+	if(!(read_register(CF) || read_register(ZF))) {
+		write_pc(read_operand(inst.op0));
+	} else {
+		write_pc(read_pc() + inst.Instr_Length);
+	}
+}
+
+execute(jle) {
+	uint8 cond = read_register(ZF) || (read_register(ZF) != read_register(OF));
+	if(cond) {
+		// not equal
+		write_pc(read_operand(inst.op0));
+	} else {
+		write_pc(read_pc() + inst.Instr_Length);
+	}
+}
+
+execute(jmp) {
+	write_pc(read_operand(inst.op0));
+}
+
+execute(lea) {
+	uint64 value = mem_get_addr(inst.op1.memory);
+	
+	write_operand(inst.op0, value);
+}
 
 execute(mov) {
 	uint64 value = read_operand(inst.op1);
 	write_operand(inst.op0, value);
 }
 
+execute(movzx) {
+	// same as mov, zero extension is handled by operand reading/writing
+	uint64 value = read_operand(inst.op1);
+	write_operand(inst.op0, value);
+}
+
+execute(movsxd) {
+	uint64 value = read_operand(inst.op1);
+	
+	// sign extend to 64 bits
+	switch(operand_get_size(inst.op1)) {
+		case 8:  { value = (sint64)(sint8)value; break; }
+		case 16: { value = (sint64)(sint16)value; break; }
+		case 32: { value = (sint64)(sint32)value; break; }
+		case 64: { break; }
+		default: { trap(); }
+	}
+	
+	write_operand(inst.op0, value);
+}
+
+execute(nop) {
+	//nothing to do
+}
+
+execute(or) {
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = read_operand(inst.op1);
+	
+	uint64 result = bitwise_or(op0, op1);
+	
+	write_operand(inst.op0, result);
+}
+
 execute(pop) {
+	uint64 value = stack_pop();
+	write_operand(inst.op0, value);
+}
+
+execute(push) {
+	uint64 data = read_operand(inst.op0);
+	
+	stack_push(data);
+}
+
+execute(ret) {
+	uint64 r_addr = stack_pop();
+	write_pc(r_addr);
+}
+
+execute(setz) {
+	write_operand(inst.op0, read_register(ZF));
+}
+
+execute(sub) {
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = read_operand(inst.op1);
+	
+	uint64 result = subtract(op0, op1);
+	
+	write_operand(inst.op0, result);
+}
+
+execute(test) {
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = read_operand(inst.op1);
+	
+	uint64 result = bitwise_and(op0, op1);
+}
+
+execute(xgetbv) {
+	// edx and eax <= 0
+	write_register_bank(RQ, 0, 0);
+	write_register_bank(RQ, 3, 0);
+}
+
+execute(xor) {
+	uint64 op1 = read_operand(inst.op0);
+	uint64 op2 = read_operand(inst.op1);
+	
+	uint64 result = op1 ^ op2;
+	
+	write_operand(inst.op0, result);
+}
+
+helper uint64 bitwise_and(uint64 op0, uint64 op1)
+{
+	sint64 result = op0 & op1;
+	
+	write_register(ZF, result == 0);
+	write_register(SF, result < 0);
+	
+	return (uint64)result;
+}
+
+helper uint64 bitwise_or(uint64 op0, uint64 op1)
+{
+	sint64 result = op0 | op1;
+	
+	write_register(ZF, result == 0);
+	write_register(SF, result < 0);
+	
+	return (uint64)result;
+}
+
+helper uint64 addition(uint64 op0, uint64 op1)
+{
+	sint64 result = op0 + op1;
+	
+	write_register(ZF, result == 0);
+	write_register(SF, result < 0);
+	
+	return (uint64)result;
+}
+
+helper uint64 subtract(uint64 op0, uint64 op1)
+{
+	sint64 result = op0 - op1;
+	
+	write_register(ZF, result == 0);
+	write_register(SF, result < 0);
+	
+	return (uint64)result;
+}
+
+helper void stack_push(uint64 value)
+{
+	uint64 sp = read_register(SP) - 8;
+	write_register(SP, sp);
+	
+	mem_write_64(Data, sp, value);
+	
+	return;
+}
+
+helper uint64 stack_pop()
+{
 	uint64 sp = read_register(SP);
 	uint64 data = 0;
 	mem_read_64(Data, sp, data);
-	write_operand(inst.op0, data);
+	write_register(SP, sp + 8);
+	
+	return data;
+}
+
+helper uint64 read_reg(uint8 index, uint8 width)
+{
+	if(index == 0xff) { // SPECIAL_RIP_INDEX
+		return read_pc();
+	} else {
+		switch(width) {
+			case 8: {
+				return read_register_bank(RB, index);
+			}
+			case 16: {
+				return read_register_bank(RW, index);
+			}
+			case 32: {
+				return read_register_bank(RD, index);
+			}
+			case 64: {
+				return read_register_bank(RQ, index);
+			}
+			default: {
+				trap();
+			}
+		}
+	}
+	trap();
+	return 0;
+}
+
+helper uint8 operand_get_size_reg(struct Register &reg)
+{
+	return reg.width;
+}
+
+helper uint8 operand_get_size_mem(struct Memory &mem)
+{
+	return mem.width;
+}
+
+helper uint8 operand_get_size(struct Operand &op)
+{
+	if(op.is_reg) {
+		return operand_get_size_reg(op.reg);
+	} else if(op.is_mem) {
+		return operand_get_size_mem(op.memory);
+	}
+	trap();
+	return 0;
 }
 
 helper uint64 read_op_reg(struct Register &reg)
 {
-	switch(reg.width) {
-		case 8: {
-			return read_register_bank(RB, reg.index);
-		}
-		case 16: {
-			return read_register_bank(RW, reg.index);
-		}
-		case 32: {
-			return read_register_bank(RD, reg.index);
-		}
-		case 64: {
-			return read_register_bank(RQ, reg.index);
-		}
-		default: {
-			trap();
-		}
-	}
-	
-	return 0;
+	return read_reg(reg.index, reg.width);
+}
+
+helper uint64 read_op_imm(struct Immediate &op) 
+{
+	return op.value;
+}
+
+helper uint64 read_op_relbr(struct Immediate &op)
+{
+	return op.value + read_pc();
+}
+
+helper uint64 read_op_mem(struct Memory &mem)
+{
+	return read_mem(mem_get_addr(mem), mem.width);
 }
 
 helper uint64 read_operand(struct Operand &op)
 {
 	if(op.is_reg) {
 		return read_op_reg(op.reg);
+	} else if(op.is_imm) {
+		return read_op_imm(op.imm);
+	} else if(op.is_relbr) {
+		return read_op_relbr(op.imm);
+	} else if(op.is_mem) {
+		return read_op_mem(op.memory);
 	}
 	trap();
 	
 	return 0;
+}
+
+helper uint64 mem_get_addr(struct Memory &mem)
+{
+	uint64 address = 0;
+	
+	if(mem.has_segment) {
+		address += read_register_bank(SEGMENT, mem.segment);
+	}
+	
+	if(mem.has_base) {
+		address += read_reg(mem.base_reg, 64);
+	}
+	if(mem.has_index) {
+		address += (read_reg(mem.index_reg, 64) * mem.scale) + mem.displacement;
+	}
+
+	address += mem.displacement;
+	
+	return address;
+}
+
+helper uint64 read_mem(uint64 addr, uint8 width_bits)
+{
+	uint64 final_data;
+	switch(width_bits)
+	{
+		case 8: {
+			uint8 temp_data;
+			mem_read_8(Data, addr, temp_data);
+			final_data = temp_data;
+			break;
+		}
+		case 16: {
+			uint16 temp_data;
+			mem_read_16(Data, addr, temp_data);
+			final_data = temp_data;
+			break;
+		}
+		case 32: {
+			uint32 temp_data;
+			mem_read_32(Data, addr, temp_data);
+			final_data = temp_data;
+			break;
+		}
+		case 64: {
+			mem_read_64(Data, addr, final_data);
+			break;
+		}
+	}
+	
+	return final_data;
+}
+
+helper void write_mem(uint64 addr, uint64 value, uint8 width_bits)
+{
+	switch(width_bits)
+	{
+		case 8: {
+			mem_write_8(Data, addr, value);
+			break;
+		}
+		case 16: {
+			mem_write_16(Data, addr, value);
+			break;
+		}
+		case 32: {
+			mem_write_32(Data, addr, value);
+			break;
+		}
+		case 64: {
+			mem_write_64(Data, addr, value);
+			break;
+		}
+		default: {
+			trap();
+			break;
+		}
+	}
+	
+	return;
+}
+
+helper void write_op_mem(struct Memory &mem, uint64 value)
+{
+	uint64 addr = mem_get_addr(mem);
+	write_mem(addr, value, mem.width);
+	return;
 }
 
 helper void write_op_reg(struct Register &reg, uint64 value)
@@ -57,11 +423,15 @@ helper void write_op_reg(struct Register &reg, uint64 value)
 			break;
 		}
 		case 32: {
-			write_register_bank(RD, reg.index, value);
+			write_register_bank(RQ, reg.index, value & 0xffffffff);
 			break;
 		}
 		case 64: {
 			write_register_bank(RQ, reg.index, value);
+			break;
+		}
+		default: {
+			trap();
 			break;
 		}
 	}
@@ -74,17 +444,11 @@ helper void write_operand(struct Operand &op, uint64 value)
 	if(op.is_reg) {
 		write_op_reg(op.reg, value);
 		return;
+	} else if(op.is_mem) {
+		write_op_mem(op.memory, value);
+		return;
 	}
 	trap();
 
 	return;
-}
-
-execute(xor) {
-	uint64 op1 = read_operand(inst.op0);
-	uint64 op2 = read_operand(inst.op1);
-	
-	uint64 result = op1 ^ op2;
-	
-	write_operand(inst.op0, result);
 }
