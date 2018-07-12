@@ -2074,6 +2074,8 @@ execute(mvni)
 {
 	if (inst.Q == 0) {
 		write_vector_reg64(inst.rd, (~inst.immu64));
+	} else {
+		write_vector_reg128(inst.rd, (~inst.immu64), (~inst.immu64));
 	}
 }
 
@@ -2107,8 +2109,6 @@ execute(fmovi)
 
 execute(pmull)
 {
-	if (inst.ta == 1) trap();
-	
 	switch (inst.tb) {
 	case 0: {	// 8b -> 8h
 		uint8[8] rn = read_register_bank(VB8B, inst.rn);
@@ -2141,6 +2141,14 @@ execute(pmull)
 		uint64 rm = read_register_bank(VD, inst.rm);
 		
 		uint128 rd = __builtin_polymul64(rn, rm);
+		write_register_bank(VB1Q, inst.rd, rd);
+		break;
+	}
+	case 3: {	// 2d -> 1q
+		uint64[2] rn = read_register_bank(VB2D, inst.rn);
+		uint64[2] rm = read_register_bank(VB2D, inst.rm);
+		
+		uint128 rd = __builtin_polymul64(rn[1], rm[1]);
 		write_register_bank(VB1Q, inst.rd, rd);
 		break;
 	}
