@@ -453,14 +453,30 @@ SSAStatement *IRUnaryExpression::EmitSSAForm(SSABuilder &bldr) const
 			return load;
 		}
 		case Member: {
-			IRVariableExpression *var = dynamic_cast<IRVariableExpression *> (BaseExpression);
-			assert(var);
+			SSAStatement *stmt = nullptr;
 
-			SSASymbol *structSym = bldr.GetSymbol(var->Symbol);
+			// If we're reading directly from a symbol, then just emit a read struct member statement.
+			if(dynamic_cast<IRVariableExpression*>(BaseExpression)) {
+				IRVariableExpression *var = dynamic_cast<IRVariableExpression *> (BaseExpression);
+				assert(var);
 
-			auto stmt = new SSAReadStructMemberStatement(&bldr.GetBlock(), structSym, MemberStr, -1);
-			stmt->SetDiag(Diag());
+				SSASymbol *structSym = bldr.GetSymbol(var->Symbol);
 
+				stmt = new SSAReadStructMemberStatement(&bldr.GetBlock(), structSym, MemberStr, -1);
+				stmt->SetDiag(Diag());
+			} else {
+				// otherwise, we're probably reading from a read struct member
+				// statement. Create a temporary, store the result there, and
+				// then read from that.
+
+				auto base_expression = BaseExpression->EmitSSAForm(bldr);
+
+				auto temp = bldr.GetTemporarySymbol(base_expression->GetType());
+				auto write = new SSAVariableWriteStatement(&bldr.GetBlock(), temp, base_expression);
+				write->SetDiag(Diag());
+				stmt = new SSAReadStructMemberStatement(&bldr.GetBlock(), temp, MemberStr, -1);
+				stmt->SetDiag(Diag());
+			}
 			return stmt;
 		}
 
