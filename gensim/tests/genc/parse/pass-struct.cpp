@@ -28,8 +28,8 @@ execute(test_insn) { testfn(inst); }
 	auto gencctx = gensim::genc::testing::TestContext::GetTestContext(false, root_context);
 	auto ctx = gensim::genc::testing::TestContext::CompileSource(gencctx, sourcecode);
 
-	// Should parse
-	ASSERT_NE(nullptr, ctx);
+	// Should fail
+	ASSERT_EQ(nullptr, ctx);
 }
 
 TEST(GenC_Parse, PassStructReference)
@@ -53,6 +53,6 @@ execute(test_insn) { testfn(inst); }
 
 	std::cerr << root_context;
 
-	// should fail
-	ASSERT_EQ(nullptr, ctx);
+	// should succeed
+	ASSERT_NE(nullptr, ctx);
 }

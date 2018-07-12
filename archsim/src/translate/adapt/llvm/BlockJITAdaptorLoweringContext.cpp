@@ -20,6 +20,7 @@ BlockJITValues::BlockJITValues(::llvm::Module* module)
 	auto i8Ty = llvm::Type::getInt8Ty(ctx);
 	auto i16Ty = llvm::Type::getInt16Ty(ctx);
 	auto i32Ty = llvm::Type::getInt32Ty(ctx);
+	auto i64Ty = llvm::Type::getInt64Ty(ctx);
 	auto i32PtrTy = llvm::Type::getInt32Ty(ctx)->getPointerTo(0);
 
 	cpuTakeExceptionPtr = (llvm::Function*)module->getOrInsertFunction("cpuTakeException", voidTy, i8PtrTy, i32Ty, i32Ty);
@@ -45,19 +46,23 @@ BlockJITValues::BlockJITValues(::llvm::Module* module)
 	cpuGetFlushModePtr = (llvm::Function*)module->getOrInsertFunction("cpuGetFlushMode", voidTy, i8PtrTy);
 	cpuGetFlushModePtr->setLinkage(llvm::Function::ExternalLinkage);
 
-	blkRead8Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead8", i8Ty, i8PtrPtrTy, i32Ty, i32Ty);
+	blkRead8Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead8", i8Ty, i8PtrPtrTy, i64Ty, i32Ty);
 	blkRead8Ptr->setLinkage(llvm::Function::ExternalLinkage);
-	blkRead16Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead16", i16Ty, i8PtrPtrTy, i32Ty, i32Ty);
+	blkRead16Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead16", i16Ty, i8PtrPtrTy, i64Ty, i32Ty);
 	blkRead16Ptr->setLinkage(llvm::Function::ExternalLinkage);
-	blkRead32Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead32", i32Ty, i8PtrPtrTy, i32Ty, i32Ty);
+	blkRead32Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead32", i32Ty, i8PtrPtrTy, i64Ty, i32Ty);
 	blkRead32Ptr->setLinkage(llvm::Function::ExternalLinkage);
+	blkRead64Ptr = (llvm::Function*)module->getOrInsertFunction("blkRead64", i64Ty, i8PtrPtrTy, i64Ty, i32Ty);
+	blkRead64Ptr->setLinkage(llvm::Function::ExternalLinkage);
 
-	blkWrite8Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite8", voidTy, i8PtrTy, i32Ty, i32Ty, i8Ty);
+	blkWrite8Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite8", voidTy, i8PtrTy, i32Ty, i64Ty, i8Ty);
 	blkWrite8Ptr->setLinkage(llvm::Function::ExternalLinkage);
-	blkWrite16Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite16", voidTy, i8PtrTy, i32Ty, i32Ty, i16Ty);
+	blkWrite16Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite16", voidTy, i8PtrTy, i32Ty, i64Ty, i16Ty);
 	blkWrite16Ptr->setLinkage(llvm::Function::ExternalLinkage);
-	blkWrite32Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite32", voidTy, i8PtrTy, i32Ty, i32Ty, i32Ty);
+	blkWrite32Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite32", voidTy, i8PtrTy, i32Ty, i64Ty, i32Ty);
 	blkWrite32Ptr->setLinkage(llvm::Function::ExternalLinkage);
+	blkWrite64Ptr = (llvm::Function*)module->getOrInsertFunction("blkWrite64", voidTy, i8PtrTy, i32Ty, i64Ty, i64Ty);
+	blkWrite64Ptr->setLinkage(llvm::Function::ExternalLinkage);
 
 	genc_adc_flags_ptr = (llvm::Function*)module->getOrInsertFunction("genc_adc_flags", i16Ty, i32Ty, i32Ty, i8Ty);
 	genc_adc_flags_ptr->setLinkage(llvm::Function::ExternalLinkage);
@@ -71,6 +76,7 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx)
 	AddLowerer(IRInstruction::ADD, new BlockJITADDLowering());
 	AddLowerer(IRInstruction::AND, new BlockJITANDLowering());
 	AddLowerer(IRInstruction::BARRIER, new BlockJITBARRIERLowering());
+	AddLowerer(IRInstruction::BSWAP, new BlockJITBSWAPLowering());
 	AddLowerer(IRInstruction::BRANCH, new BlockJITBRANCHLowering());
 	AddLowerer(IRInstruction::CALL, new BlockJITCALLLowering());
 	AddLowerer(IRInstruction::CLZ, new BlockJITCLZLowering());
@@ -98,6 +104,7 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx)
 	AddLowerer(IRInstruction::RET, new BlockJITRETLowering());
 	AddLowerer(IRInstruction::ROR, new BlockJITRORLowering());
 	AddLowerer(IRInstruction::SDIV, new BlockJITSDIVLowering());
+	AddLowerer(IRInstruction::UDIV, new BlockJITUDIVLowering());
 	AddLowerer(IRInstruction::SET_CPU_MODE, new BlockJITSCMLowering());
 	AddLowerer(IRInstruction::SET_CPU_FEATURE, new BlockJITSETFEATURELowering());
 	AddLowerer(IRInstruction::SHL, new BlockJITSHLLowering());
@@ -131,6 +138,10 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx)
 	AddLowerer(IRInstruction::FCTRL_SET_ROUND, new BlockJITFCNTL_SETROUNDLowering());
 	AddLowerer(IRInstruction::FCTRL_GET_FLUSH_DENORMAL, new BlockJITFCNTL_GETFLUSHLowering());
 	AddLowerer(IRInstruction::FCTRL_SET_FLUSH_DENORMAL, new BlockJITFCNTL_SETFLUSHLowering());
+
+	AddLowerer(IRInstruction::VCMPEQI, new BlockJITVCMPILowering(IRInstruction::VCMPEQI));
+
+	AddLowerer(IRInstruction::VORI, new BlockJITVORILowering());
 	return true;
 }
 
@@ -303,19 +314,7 @@ void BlockJITLoweringContext::SetValueFor(const IROperand& operand, ::llvm::Valu
 
 ::llvm::Type* BlockJITLoweringContext::GetLLVMType(uint32_t bytes)
 {
-	switch(bytes) {
-		case 1:
-			return ::llvm::Type::getInt8Ty(GetLLVMContext());
-		case 2:
-			return ::llvm::Type::getInt16Ty(GetLLVMContext());
-		case 4:
-			return ::llvm::Type::getInt32Ty(GetLLVMContext());
-		case 8:
-			return ::llvm::Type::getInt64Ty(GetLLVMContext());
-		default:
-			UNIMPLEMENTED;
-	}
-	return nullptr;
+	return ::llvm::Type::getIntNTy(GetLLVMContext(), bytes*8);
 }
 
 ::llvm::Type* BlockJITLoweringContext::GetLLVMType(const IROperand& op)
@@ -325,6 +324,13 @@ void BlockJITLoweringContext::SetValueFor(const IROperand& operand, ::llvm::Valu
 	}
 	return GetLLVMType(op.size);
 }
+
+::llvm::Type* BlockJITLoweringContext::GetVectorType(const IROperand& aggregate, const IROperand& count)
+{
+	ASSERT(count.is_constant());
+	return ::llvm::VectorType::get(GetLLVMType(aggregate.size / count.value), count.value);
+}
+
 
 ::llvm::Value* BlockJITLoweringContext::GetRegPtr(const IROperand &op)
 {

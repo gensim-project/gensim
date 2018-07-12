@@ -3,6 +3,7 @@ archsim_add_sources(
 	LowerAddSub.cpp
 	LowerBitwise.cpp
 	LowerBranch.cpp
+	LowerBSwap.cpp
 	LowerCall.cpp
 	LowerClz.cpp
 	LowerCMov.cpp

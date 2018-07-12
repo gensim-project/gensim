@@ -145,6 +145,8 @@ namespace captive
 						void invlpg(const X86Memory& addr);
 						void lea(const X86Memory& addr, const X86Register& dst);
 
+						void bswap(const X86Register &dst);
+
 						// No encoding for register src, memory dst
 						void movzx(uint8_t src_size, const X86Memory& src, const X86Register& dst);
 						void movzx(const X86Register& src, const X86Register& dst);

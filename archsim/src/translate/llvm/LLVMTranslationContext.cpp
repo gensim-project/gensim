@@ -618,10 +618,10 @@ bool LLVMTranslationContext::Translate(Translation*& translation, TranslationTim
 
 	// Fill in the jump table with block addresses of indirect targets.
 	for (auto indirect_target_block : indirect_targets) {
-		addr_t block_offset = indirect_target_block->GetOffset();
-		assert(block_offset < PageSize);
+		Address block_offset = indirect_target_block->GetOffset();
+		assert(block_offset.Get() < PageSize);
 
-		uint32_t slot = block_offset >> BLOCK_ALIGN_BITS;
+		uint32_t slot = block_offset.Get() >> BLOCK_ALIGN_BITS;
 		rtc.jump_table_entries[slot] = ::llvm::BlockAddress::get(llvm_block_map[block_offset]);
 	}
 
@@ -789,9 +789,9 @@ void LLVMRegionTranslationContext::EmitPublishEvent(PubSubType::PubSubType type,
 
 }
 
-void LLVMRegionTranslationContext::EmitLeaveInstruction(LeaveReasons reason, addr_t pc_offset, ::llvm::Value *condition, ::llvm::BasicBlock *cont_block, bool invert)
+void LLVMRegionTranslationContext::EmitLeaveInstruction(LeaveReasons reason, archsim::Address pc_offset, ::llvm::Value *condition, ::llvm::BasicBlock *cont_block, bool invert)
 {
-	EmitLeaveInstruction(reason, txln.GetConstantInt32(pc_offset), condition, cont_block, invert);
+	EmitLeaveInstruction(reason, txln.GetConstantInt32(pc_offset.Get()), condition, cont_block, invert);
 }
 
 void LLVMRegionTranslationContext::EmitLeaveInstruction(LeaveReasons reason, ::llvm::Value *pc_offset, ::llvm::Value *condition, ::llvm::BasicBlock *cont_block, bool invert)
@@ -846,9 +846,9 @@ void LLVMRegionTranslationContext::EmitLeaveInstructionTrace(LeaveReasons reason
 	}
 }
 
-void LLVMRegionTranslationContext::EmitTakeException(addr_t pc_offset, ::llvm::Value *arg0, ::llvm::Value *arg1)
+void LLVMRegionTranslationContext::EmitTakeException(archsim::Address pc_offset, ::llvm::Value *arg0, ::llvm::Value *arg1)
 {
-	EmitTakeException(txln.GetConstantInt32(pc_offset), arg0, arg1);
+	EmitTakeException(txln.GetConstantInt32(pc_offset.Get()), arg0, arg1);
 }
 
 void LLVMRegionTranslationContext::EmitTakeException(::llvm::Value *pc_offset, ::llvm::Value *arg0, ::llvm::Value *arg1)
@@ -904,7 +904,7 @@ bool LLVMBlockTranslationContext::Translate()
 		}
 	}
 
-	::llvm::Value *pc = region.txln.GetConstantInt32(tbu.GetOffset() + region.txln.twu.GetRegion().GetPhysicalBaseAddress());
+	::llvm::Value *pc = region.txln.GetConstantInt32(tbu.GetOffset().Get() + region.txln.twu.GetRegion().GetPhysicalBaseAddress().Get());
 	::llvm::Value *insn_count = region.txln.GetConstantInt32(tbu.GetInstructions().size());
 	region.EmitPublishEvent(PubSubType::BlockExecute, { pc, insn_count });
 
@@ -923,17 +923,17 @@ bool LLVMBlockTranslationContext::Translate()
 
 	uint32_t jump_target, fallthrough_target;
 	bool direct_jump, indirect_jump;
-	region.txln.gensim_translate->GetJumpInfo(&last_insn.GetDecode(), last_insn.GetOffset(), indirect_jump, direct_jump, jump_target);
+	region.txln.gensim_translate->GetJumpInfo(&last_insn.GetDecode(), last_insn.GetOffset().Get(), indirect_jump, direct_jump, jump_target);
 
-	fallthrough_target = last_insn.GetOffset() + last_insn.GetDecode().Instr_Length;
+	fallthrough_target = last_insn.GetOffset().Get() + last_insn.GetDecode().Instr_Length;
 
 	if (archsim::options::JitDisableBranchOpt) {
 		region.builder.CreateBr(region.dispatch_block);
 	} else {
 		if (direct_jump) {
-			return EmitDirectJump(jump_target, fallthrough_target, last_insn.GetDecode().GetIsPredicated());
+			return EmitDirectJump(Address(jump_target), Address(fallthrough_target), last_insn.GetDecode().GetIsPredicated());
 		} else if (indirect_jump) {
-			return EmitIndirectJump(jump_target, fallthrough_target, last_insn.GetDecode().GetIsPredicated());
+			return EmitIndirectJump(Address(jump_target), Address(fallthrough_target), last_insn.GetDecode().GetIsPredicated());
 		} else {
 //			LC_WARNING(LogTranslate) << "Invalid jump info for instruction " << std::hex <<  last_insn.GetOffset() << " " << region.txln.twu.GetThread().GetDisasm()->DisasmInstr(last_insn.GetDecode(), last_insn.GetOffset());
 			region.builder.CreateBr(region.dispatch_block);
@@ -968,14 +968,14 @@ bool LLVMBlockTranslationContext::EmitInterruptCheck()
 	return true;
 }
 
-bool LLVMBlockTranslationContext::EmitDirectJump(virt_addr_t jump_target, virt_addr_t fallthrough_target, bool predicated)
+bool LLVMBlockTranslationContext::EmitDirectJump(Address jump_target, Address fallthrough_target, bool predicated)
 {
 	if (predicated) {
 		// We need to read the PC at this point to determine where the program is actually going to go.
 		::llvm::Value *target_pc = region.builder.CreateCall(region.txln.jit_functions.cpu_read_pc, {region.values.state_val, region.values.reg_state_val}, "target_pc");
 
 		// Now, we must determine if the target PC matches our intended target.
-		::llvm::Value *take_jump = region.builder.CreateICmpEQ(target_pc, region.CreateMaterialise(jump_target));
+		::llvm::Value *take_jump = region.builder.CreateICmpEQ(target_pc, region.CreateMaterialise(jump_target.Get()));
 
 		// Try and look up the target block, and the fall through block.
 		::llvm::BasicBlock *target_block = region.txln.GetLLVMBlock(jump_target);
@@ -984,7 +984,7 @@ bool LLVMBlockTranslationContext::EmitDirectJump(virt_addr_t jump_target, virt_a
 		if (!target_block) {
 			// If we can't find the target, then it might be because actually the target lies in another region.  If
 			// that is the case, then we should branch to the chaining logic.  Otherwise, we just have to exit.
-			if (profile::RegionArch::PageIndexOf(jump_target) != 0)
+			if (jump_target.GetPageIndex() != 0)
 				target_block = region.chain_block;
 			else
 				target_block = region.GetExitBlock(LLVMRegionTranslationContext::NoBlockAvailable);
@@ -993,7 +993,7 @@ bool LLVMBlockTranslationContext::EmitDirectJump(virt_addr_t jump_target, virt_a
 		if (!fallthrough_block) {
 			// Similarly, if we can't find the fallthrough, we could be right at the edge of a region and so we
 			// can chain into the fallthrough (if the jump is not taken).  Again, otherwise we have to give up.
-			if (profile::RegionArch::PageIndexOf(fallthrough_target) != 0)
+			if (fallthrough_target.GetPageIndex() != 0)
 				fallthrough_block = region.chain_block;
 			else
 				fallthrough_block = region.GetExitBlock(LLVMRegionTranslationContext::NoBlockAvailable);
@@ -1012,7 +1012,7 @@ bool LLVMBlockTranslationContext::EmitDirectJump(virt_addr_t jump_target, virt_a
 		if (target == nullptr) {
 			// We don't know about the jump target, so as a last ditch attempt to do something clever, let's see if
 			// we can chain.
-			if (profile::RegionArch::PageIndexOf(jump_target) != 0)
+			if (jump_target.GetPageIndex() != 0)
 				region.builder.CreateBr(region.chain_block);
 			else
 				region.builder.CreateBr(region.GetExitBlock(LLVMRegionTranslationContext::NoBlockAvailable));
@@ -1024,7 +1024,7 @@ bool LLVMBlockTranslationContext::EmitDirectJump(virt_addr_t jump_target, virt_a
 	return true;
 }
 
-bool LLVMBlockTranslationContext::EmitIndirectJump(virt_addr_t jump_target, virt_addr_t fallthrough_target, bool predicated)
+bool LLVMBlockTranslationContext::EmitIndirectJump(Address jump_target, Address fallthrough_target, bool predicated)
 {
 	// Add all the successors that we know about into the IBTT.
 	for (auto succ : tbu.GetSuccessors()) {
@@ -1041,7 +1041,7 @@ bool LLVMBlockTranslationContext::EmitIndirectJump(virt_addr_t jump_target, virt
 		::llvm::Value *target_pc = region.builder.CreateCall(region.txln.jit_functions.cpu_read_pc, {region.values.state_val, region.values.reg_state_val}, "target_pc");
 
 		// Now, decide if the target PC is actually the fallthrough block.
-		::llvm::Value *take_fallthrough = region.builder.CreateICmpEQ(target_pc, region.CreateMaterialise(fallthrough_target));
+		::llvm::Value *take_fallthrough = region.builder.CreateICmpEQ(target_pc, region.CreateMaterialise(fallthrough_target.Get()));
 
 		// Try and lookup the fallthrough block, but if we can't find it we should exit.
 		::llvm::BasicBlock *fallthrough_block = region.txln.GetLLVMBlock(fallthrough_target);
@@ -1062,7 +1062,7 @@ bool LLVMBlockTranslationContext::EmitIndirectJump(virt_addr_t jump_target, virt
 
 bool LLVMBlockTranslationContext::EmitSpanningControlFlow(TranslationInstructionUnit& last_insn)
 {
-	::llvm::Value *new_pc = region.CreateMaterialise(last_insn.GetOffset() + last_insn.GetDecode().Instr_Length);
+	::llvm::Value *new_pc = region.CreateMaterialise(last_insn.GetOffset().Get() + last_insn.GetDecode().Instr_Length);
 	region.builder.CreateCall(region.txln.jit_functions.cpu_write_pc, {region.values.state_val, region.values.reg_state_val, new_pc});
 	region.builder.CreateBr(region.chain_block);
 
@@ -1082,7 +1082,7 @@ bool LLVMInstructionTranslationContext::Translate()
 	}
 
 //	if(tiu.GetDecode().GetUsesPC() || archsim::options::Verify || block.region.txln.twu.GetProcessor().GetMemoryModel().HasEventHandlers() || block.region.txln.twu.ShouldEmitTracing()) {
-	::llvm::Value *new_pc = block.region.CreateMaterialise(tiu.GetOffset());
+	::llvm::Value *new_pc = block.region.CreateMaterialise(tiu.GetOffset().Get());
 	block.region.builder.CreateCall(block.region.txln.jit_functions.cpu_write_pc, {block.region.values.state_val, block.region.values.reg_state_val,new_pc});
 //	}
 
@@ -1101,7 +1101,7 @@ bool LLVMInstructionTranslationContext::Translate()
 
 	if(block.region.txln.twu.ShouldEmitTracing()) {
 		std::vector< ::llvm::Value *> args;
-		::llvm::Value *new_pc = block.region.CreateMaterialise(tiu.GetOffset());
+		::llvm::Value *new_pc = block.region.CreateMaterialise(tiu.GetOffset().Get());
 
 		::llvm::Value *exec_mode = block.region.builder.CreateCall(block.region.txln.jit_functions.cpu_exec_mode, block.region.values.cpu_ctx_val);
 		exec_mode = block.region.builder.CreateZExtOrTrunc(exec_mode, block.region.txln.types.i8);
@@ -1127,7 +1127,7 @@ bool LLVMInstructionTranslationContext::Translate()
 		block.region.builder.CreateCall(block.region.txln.jit_functions.trace_end_insn, block.region.values.cpu_ctx_val);
 	}
 
-	block.region.EmitPublishEvent(PubSubType::InstructionExecute, {block.region.txln.GetConstantInt32(tiu.GetOffset() + block.region.txln.twu.GetRegion().GetPhysicalBaseAddress()), block.region.txln.GetConstantInt32(tiu.GetDecode().Instr_Code)});
+	block.region.EmitPublishEvent(PubSubType::InstructionExecute, {block.region.txln.GetConstantInt32(tiu.GetOffset().Get() + block.region.txln.twu.GetRegion().GetPhysicalBaseAddress().Get()), block.region.txln.GetConstantInt32(tiu.GetDecode().Instr_Code)});
 
 	return success;
 }
@@ -1150,7 +1150,7 @@ bool LLVMInstructionTranslationContext::TranslatePredicated()
 		else_block = ::llvm::BasicBlock::Create(block.region.txln.llvm_ctx, else_name.str(), block.region.region_fn);
 
 		::llvm::IRBuilder<> else_block_builder(else_block);
-		::llvm::Value *new_pc = block.region.CreateMaterialise(tiu.GetOffset() + tiu.GetDecode().Instr_Length);
+		::llvm::Value *new_pc = block.region.CreateMaterialise(tiu.GetOffset().Get() + tiu.GetDecode().Instr_Length);
 		else_block_builder.CreateCall(block.region.txln.jit_functions.cpu_write_pc, {block.region.values.state_val, block.region.values.reg_state_val, new_pc});
 		else_block_builder.CreateBr(post_block);
 	} else {

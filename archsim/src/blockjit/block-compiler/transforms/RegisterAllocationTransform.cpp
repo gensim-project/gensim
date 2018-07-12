@@ -1,9 +1,9 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "blockjit/block-compiler/transforms/Transform.h"
-#include "util/wutils/maybe-map.h"
-#include "util/wutils/dense-set.h"
-#include "util/wutils/small-set.h"
+#include <wutils/maybe-map.h>
+#include <wutils/dense-set.h>
+#include <wutils/small-set.h>
 
 #include <vector>
 
@@ -35,13 +35,13 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 	used_phys_regs_.clear();
 
 	std::vector<int32_t> allocation (ctx.reg_count());
-	maybe_map<IRRegId, uint32_t, 128> global_allocation (ctx.reg_count());	// global register allocation
+	wutils::maybe_map<IRRegId, uint32_t, 128> global_allocation (ctx.reg_count());	// global register allocation
 
-	typedef dense_set<IRRegId> live_set_t;
+	typedef wutils::dense_set<IRRegId> live_set_t;
 	live_set_t live_ins(ctx.reg_count()), live_outs(ctx.reg_count());
 	std::vector<live_set_t::iterator> to_erase;
 
-	archsim::util::vbitset avail_regs (number_allocable_registers_); // Register indicies that are available for allocation.
+	wutils::vbitset avail_regs (number_allocable_registers_); // Register indicies that are available for allocation.
 	uint32_t next_global = 0;	// Next stack location for globally allocated register.
 
 	std::vector<int32_t> vreg_seen_block (ctx.reg_count(), -1);
@@ -234,7 +234,7 @@ uint32_t RegisterAllocationTransform::GetStackFrameSize() const
 	return stack_frame_size_;
 }
 
-archsim::util::vbitset RegisterAllocationTransform::GetUsedPhysRegs() const
+wutils::vbitset RegisterAllocationTransform::GetUsedPhysRegs() const
 {
 	return used_phys_regs_;
 }

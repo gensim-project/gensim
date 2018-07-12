@@ -34,10 +34,10 @@ bool LoopExists(const SSAFormAction& action)
 {
 	std::unordered_map<SSABlock*, int> block_idxs;
 	// perform a depth first traversal of the graph
-	std::vector<bool> visited (action.Blocks.size(), false);
-	std::vector<bool> rec_stack (action.Blocks.size(), false);
+	std::vector<bool> visited (action.GetBlocks().size(), false);
+	std::vector<bool> rec_stack (action.GetBlocks().size(), false);
 
-	for(auto i : action.Blocks) {
+	for(auto i : action.GetBlocks()) {
 		block_idxs[i] = block_idxs.size();
 	}
 

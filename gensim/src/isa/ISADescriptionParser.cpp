@@ -85,11 +85,11 @@ bool ISADescriptionParser::parse_struct(pANTLR3_BASE_TREE node)
 	StructDescription sd(std::string((char*)struct_name_node->getText(struct_name_node)->chars));
 
 	for(unsigned i = 1; i < node->getChildCount(node); i += 2) {
-		auto entry_name_node = (pANTLR3_BASE_TREE)node->getChild(node, i);
-		auto entry_type_node = (pANTLR3_BASE_TREE)node->getChild(node, i+1);
+		auto entry_name_node = (pANTLR3_BASE_TREE)node->getChild(node, i+1);
+		auto entry_type_node = (pANTLR3_BASE_TREE)node->getChild(node, i);
 
 		std::string entry_name = std::string((char*)entry_name_node->getText(entry_name_node)->chars);
-		std::string entry_type = std::string((char*)entry_type_node->getText(entry_name_node)->chars);
+		std::string entry_type = std::string((char*)entry_type_node->getText(entry_type_node)->chars);
 
 		sd.AddMember(entry_name, entry_type);
 	}
@@ -468,7 +468,7 @@ bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::strin
 	isa->CleanupBehaviours();
 
 //	printf("Loading behaviours...\n");
-//	success &= load_behaviours();
+	success &= load_behaviours();
 
 	return success;
 }
@@ -587,6 +587,6 @@ bool ISADescriptionParser::load_behaviours()
 	bool success = true;
 	for (std::vector<std::string>::iterator ci = isa->BehaviourFiles.begin(); ci != isa->BehaviourFiles.end(); ++ci) success &= load_behaviour_file(*ci);
 	for (std::vector<std::string>::iterator ci = isa->DecodeFiles.begin(); ci != isa->DecodeFiles.end(); ++ci) success &= load_behaviour_file(*ci);
-	for (std::vector<std::string>::iterator ci = isa->ExecuteFiles.begin(); ci != isa->ExecuteFiles.end(); ++ci) success &= load_behaviour_file(*ci);
+//	for (std::vector<std::string>::iterator ci = isa->ExecuteFiles.begin(); ci != isa->ExecuteFiles.end(); ++ci) success &= load_behaviour_file(*ci);
 	return success;
 }

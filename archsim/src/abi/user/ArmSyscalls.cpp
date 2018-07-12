@@ -54,7 +54,7 @@ static unsigned int sys_uname(archsim::core::thread::ThreadInstance* cpu, unsign
 	if (addr == 0) {
 		return -EFAULT;
 	}
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	interface.WriteString(Address(addr), "Linux");
 
@@ -62,13 +62,14 @@ static unsigned int sys_uname(archsim::core::thread::ThreadInstance* cpu, unsign
 	interface.WriteString(Address(addr), "archsim");
 
 	addr += 64;
-	interface.WriteString(Address(addr), "3.6.3");
+	interface.WriteString(Address(addr), "4.8.0");
 
 	addr += 64;
 	interface.WriteString(Address(addr), "#1");
 
 	addr += 64;
-	interface.WriteString(Address(addr), "arm");
+	// HACK:
+	interface.WriteString(Address(addr), "arm64");
 
 	return 0;
 }
@@ -76,7 +77,7 @@ static unsigned int sys_uname(archsim::core::thread::ThreadInstance* cpu, unsign
 static unsigned int sys_open(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int flags, unsigned int mode)
 {
 	char filename[256];
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	int host_fd = open(filename, flags, mode);
@@ -93,7 +94,7 @@ static unsigned int sys_openat(archsim::core::thread::ThreadInstance* cpu, int d
 		return sys_open(cpu, filename_addr, flags, mode);
 	}
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	char filename[256];
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
@@ -119,7 +120,7 @@ static unsigned int sys_writev(archsim::core::thread::ThreadInstance* cpu, unsig
 	struct iovec host_vectors[cnt];
 	struct arm_iovec arm_vectors[cnt];
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.Read(Address(iov_addr), (uint8_t *)&arm_vectors, cnt * sizeof(struct arm_iovec));
 
 	for (int i = 0; i < cnt; i++) {
@@ -152,7 +153,7 @@ static unsigned int sys_llseek(archsim::core::thread::ThreadInstance* cpu, unsig
 {
 	loff_t result;
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	fd = translate_fd(cpu, fd);
 	uint64_t offset;
@@ -173,7 +174,7 @@ static unsigned int sys_llseek(archsim::core::thread::ThreadInstance* cpu, unsig
 static unsigned int sys_unlink(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr)
 {
 	char filename[256];
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	if (unlink(filename)) return -errno;
@@ -193,7 +194,7 @@ static unsigned int sys_mmap(archsim::core::thread::ThreadInstance* cpu, unsigne
 		return -EINVAL;
 	}
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 //	if (!cpu.GetMemoryModel().IsAligned(len)) {
 //		return -EINVAL;
@@ -250,7 +251,7 @@ static unsigned int sys_read(archsim::core::thread::ThreadInstance* cpu, unsigne
 	fd = translate_fd(cpu, fd);
 	res = read(fd, (void*)rd_buf, len);
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	if (res > 0) {
 		interface.Write(Address(addr), (uint8_t *)rd_buf, res);
@@ -271,7 +272,7 @@ static unsigned int sys_write(archsim::core::thread::ThreadInstance* cpu, unsign
 	char *buffer = (char *)malloc(len);
 	bzero(buffer, len);
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	if (interface.Read(Address(addr), (uint8_t *)buffer, len) != archsim::MemoryResult::OK) {
 		free(buffer);
 		return -EFAULT;
@@ -316,7 +317,7 @@ static unsigned int sys_fstat64(archsim::core::thread::ThreadInstance* cpu, unsi
 	result_st.target_st_ctime = (uint32_t)st.st_ctime;
 	result_st.st_blksize = 4096;
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
 
 	return 0;
@@ -348,7 +349,43 @@ static unsigned int sys_fstat(archsim::core::thread::ThreadInstance* cpu, unsign
 	result_st.target_st_ctime = (uint32_t)st.st_ctime;
 	result_st.st_blksize = 4096;
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
+	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
+
+	return 0;
+}
+
+static unsigned int sys64_fstat(archsim::core::thread::ThreadInstance *cpu, unsigned int fd, unsigned long addr)
+{
+	struct stat st;
+	struct aarch64_stat result_st;
+
+	fd = translate_fd(cpu, fd);
+	if (fstat(fd, &st)) {
+		return -errno;
+	}
+
+	memset(&result_st, 0, sizeof(result_st));
+
+//	result_st.st_dev = st.st_dev;
+//	result_st.__st_ino = st.st_ino;
+	result_st.st_mode = st.st_mode;
+//	result_st.st_nlink = st.st_nlink;
+//	result_st.st_uid = st.st_uid;
+//	result_st.st_gid = st.st_gid;
+//	result_st.st_rdev = st.st_rdev;
+//	result_st.st_size = st.st_size;
+//	result_st.st_blksize = st.st_blksize;
+//	result_st.st_blocks = st.st_blocks;
+//	result_st.target_st_atime = st.st_atim.tv_sec;
+//	result_st.st_atime_nsec = st.st_atim.tv_nsec;
+//	result_st.target_st_mtime = st.st_mtim.tv_sec;
+//	result_st.st_mtime_nsec = st.st_mtim.tv_nsec;
+//	result_st.target_st_ctime = st.st_ctim.tv_sec;
+//	result_st.st_ctime_nsec = st.st_ctim.tv_nsec;
+//	result_st.st_blksize = 4096;
+
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
 
 	return 0;
@@ -360,7 +397,7 @@ static unsigned int sys_stat64(archsim::core::thread::ThreadInstance* cpu, unsig
 	struct arm_stat64 result_st;
 
 	char filename[256];
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	if (stat64(filename, &st)) {
@@ -394,7 +431,7 @@ static unsigned int sys_lstat64(archsim::core::thread::ThreadInstance* cpu, unsi
 	struct arm_stat64 result_st;
 
 	char filename[256];
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	if (lstat64(filename, &st)) {
@@ -422,10 +459,10 @@ static unsigned int sys_lstat64(archsim::core::thread::ThreadInstance* cpu, unsi
 	return 0;
 }
 
-static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int request, unsigned int a0)
+static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int request, unsigned long a0)
 {
 	fd = translate_fd(cpu, fd);
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	switch (request) {
 		case 0x5401: {
@@ -436,7 +473,8 @@ static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsign
 				return -errno;
 			}
 
-			interface.Write(Address(a0), (uint8_t *)&host, sizeof(host));
+// HACK:
+//			interface.Write(Address(a0), (uint8_t *)&host, sizeof(host));
 			return 0;
 		}
 
@@ -456,7 +494,7 @@ static unsigned int sys_fcntl64(archsim::core::thread::ThreadInstance* cpu, unsi
 static unsigned int sys_mkdir(archsim::core::thread::ThreadInstance* cpu, unsigned int filename_addr, unsigned int mode)
 {
 	char filename[256];
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
 	int rc = mkdir(filename, mode);
@@ -479,7 +517,7 @@ static unsigned int sys_getcwd(archsim::core::thread::ThreadInstance* cpu, unsig
 	}
 
 	cwd[size] = '\0';
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.WriteString(Address(buffer_addr), cwd);
 	free(cwd);
 
@@ -490,7 +528,7 @@ static unsigned int sys_arm_settls(archsim::core::thread::ThreadInstance* cpu, u
 {
 	LC_DEBUG1(LogSyscalls) << "TLS Set to 0x" << std::hex << addr;
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	interface.Write(Address(0xffff0ff0), (uint8_t *)&addr, sizeof(addr));
 
 	// also need to write the TPIDRURO control register which is an alternative way of accessing the TLS value
@@ -503,10 +541,10 @@ static unsigned int sys_brk(archsim::core::thread::ThreadInstance* cpu, unsigned
 {
 	archsim::abi::UserEmulationModel& uem = static_cast<archsim::abi::UserEmulationModel&>(cpu->GetEmulationModel());
 	auto oldbrk = uem.GetBreak();
-	if (new_brk >= uem.GetInitialBreak()) uem.SetBreak(new_brk);
+	if (new_brk >= uem.GetInitialBreak()) uem.SetBreak(Address(new_brk));
 
 	LC_DEBUG1(LogSyscalls) << "BRK: old=" << std::hex << oldbrk << ", requested=" << std::hex << new_brk << ", new=" << std::hex << uem.GetBreak();
-	return uem.GetBreak();
+	return uem.GetBreak().Get();
 }
 
 static unsigned int sys_gettimeofday(archsim::core::thread::ThreadInstance* cpu, unsigned int tv_addr, unsigned int tz_addr)
@@ -515,7 +553,7 @@ static unsigned int sys_gettimeofday(archsim::core::thread::ThreadInstance* cpu,
 	struct timezone host_tz;
 
 	struct arm_timeval guest_tv;
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	if (tv_addr == 0) {
 		return -EFAULT;
@@ -549,7 +587,7 @@ static unsigned int sys_rt_sigprocmask(archsim::core::thread::ThreadInstance* cp
 static unsigned int sys_rt_sigaction(archsim::core::thread::ThreadInstance* cpu, unsigned int signum, unsigned int act_ptr, unsigned int oldact_ptr)
 {
 	if(!archsim::options::UserPermitSignalHandling) return -EINVAL;
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 	if (act_ptr == 0) {
 		if (oldact_ptr == 0) {
 			return -EINVAL;
@@ -587,7 +625,7 @@ static unsigned int sys_times(archsim::core::thread::ThreadInstance* cpu, unsign
 
 	struct tms host_buf;
 	struct arm_tms guest_buf;
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	if(archsim::options::Verify) {
 		guest_buf.tms_utime = (uint32_t)0;
@@ -629,7 +667,7 @@ static unsigned int sys_clock_gettime(archsim::core::thread::ThreadInstance *cpu
 {
 	struct arm_timespec arm_ts;
 	struct timespec ts;
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	if(archsim::options::Verify) {
 		arm_ts.tv_nsec = 0;
@@ -652,7 +690,7 @@ static unsigned int sys_nanosleep(archsim::core::thread::ThreadInstance* cpu, un
 	struct timespec req, rem;
 	int rc;
 
-	auto interface = cpu->GetMemoryInterface("Mem");
+	auto interface = cpu->GetMemoryInterface(0);
 
 	bzero(&req, sizeof(req));
 	bzero(&rem, sizeof(rem));
@@ -686,6 +724,25 @@ static unsigned int sys_dup(archsim::core::thread::ThreadInstance *cpu, int oldf
 	else return -errno;
 }
 
+static unsigned int sys_readlinkat(archsim::core::thread::ThreadInstance *cpu, int dirfd, unsigned long long pathname, unsigned long long buf, size_t bufsiz)
+{
+	char buffer[256];
+	cpu->GetMemoryInterface(0).ReadString(Address(pathname), buffer, 256);
+	std::string requested_path = std::string(buffer);
+
+	if(requested_path == "/proc/self/exe") {
+
+		// HACK:
+		std::string my_name_is = "/home/a.out";
+		cpu->GetMemoryInterface(0).WriteString(Address(buf), my_name_is.c_str());
+		return my_name_is.size()+1;
+	} else {
+		return -1;
+	}
+
+
+}
+
 static unsigned int syscall_return_zero(archsim::core::thread::ThreadInstance* cpu)
 {
 	return 0;
@@ -695,76 +752,89 @@ static unsigned int syscall_return_enosys(archsim::core::thread::ThreadInstance*
 	return -ENOSYS;
 }
 
-DEFINE_SYSCALL("arm", __NR_exit, sys_exit, "exit()");
-DEFINE_SYSCALL("arm", __NR_exit_group, sys_exit, "exit_group()");
+DEFINE_SYSCALL(arm, __NR_exit, sys_exit, "exit()");
+DEFINE_SYSCALL(arm, __NR_exit_group, sys_exit, "exit_group()");
 
-DEFINE_SYSCALL("arm", __NR_open, sys_open, "open(path=%p, mode=%d, flags=%d)");
-DEFINE_SYSCALL("arm", __NR_openat, sys_openat, "open(dirfd=%u, path=%p, mode=%d, flags=%d)");
-DEFINE_SYSCALL("arm", __NR_close, sys_close, "close(fd=%d)");
-DEFINE_SYSCALL("arm", __NR_read, sys_read, "read(fd=%d, addr=%p, len=%d)");
-DEFINE_SYSCALL("arm", __NR_write, sys_write, "write(fd=%d, addr=%p, len=%d)");
-DEFINE_SYSCALL("arm", __NR_lseek, sys_lseek, "lseek(fd=%d, offset=%d, whence=%d)");
-DEFINE_SYSCALL("arm", __NR__llseek, sys_llseek, "llseek(fd=%d, offset_high=%d, offset_low=%d, offset_result=%x, whence=%d)");
-DEFINE_SYSCALL("arm", __NR_unlink, sys_unlink, "unlink(path=%p)");
+DEFINE_SYSCALL(arm, __NR_open, sys_open, "open(path=%p, mode=%d, flags=%d)");
+DEFINE_SYSCALL(arm, __NR_openat, sys_openat, "open(dirfd=%u, path=%p, mode=%d, flags=%d)");
+DEFINE_SYSCALL(arm, __NR_close, sys_close, "close(fd=%d)");
+DEFINE_SYSCALL(arm, __NR_read, sys_read, "read(fd=%d, addr=%p, len=%d)");
+DEFINE_SYSCALL(arm, __NR_write, sys_write, "write(fd=%d, addr=%p, len=%d)");
+DEFINE_SYSCALL(arm, __NR_lseek, sys_lseek, "lseek(fd=%d, offset=%d, whence=%d)");
+DEFINE_SYSCALL(arm, __NR__llseek, sys_llseek, "llseek(fd=%d, offset_high=%d, offset_low=%d, offset_result=%x, whence=%d)");
+DEFINE_SYSCALL(arm, __NR_unlink, sys_unlink, "unlink(path=%p)");
 
-DEFINE_SYSCALL("arm", __NR_dup, sys_dup, "dup(oldfd=%d)");
+DEFINE_SYSCALL(arm, __NR_dup, sys_dup, "dup(oldfd=%d)");
 
-DEFINE_SYSCALL("arm", __NR_uname, sys_uname, "uname(addr=%p)");
-DEFINE_SYSCALL("arm", __NR_writev, sys_writev, "writev()");
-DEFINE_SYSCALL("arm", __NR_mmap, sys_mmap, "mmap()");
-DEFINE_SYSCALL("arm", __NR_mmap2, sys_mmap2, "mmap2(addr=%p, size=%u, prot=%d, flags=%d, fd=%d, pgoff=%u)");
-DEFINE_SYSCALL("arm", __NR_mremap, sys_mremap, "mremap()");
-DEFINE_SYSCALL("arm", __NR_munmap, sys_munmap, "munmap(addr=%p, size=%d)");
-DEFINE_SYSCALL("arm", __NR_mprotect, sys_mprotect, "mprotect(addr=%p, size=%d, prot=%d)");
-DEFINE_SYSCALL("arm", __NR_fstat64, sys_fstat64, "fstat64(fd=%d, addr=%p)");
-DEFINE_SYSCALL("arm", __NR_stat64, sys_stat64, "stat64(path=%p, addr=%p)");
-DEFINE_SYSCALL("arm", __NR_lstat64, sys_lstat64, "lstat64(path=%p, addr=%p)");
-DEFINE_SYSCALL("arm", __NR_ioctl, sys_ioctl, "ioctl(fd=%d, request=%d, ...)");
-DEFINE_SYSCALL("arm", __NR_fcntl64, sys_fcntl64, "fcntl64(fd=%d, cmd=%d, ...)");
+DEFINE_SYSCALL(arm, __NR_uname, sys_uname, "uname(addr=%p)");
+DEFINE_SYSCALL(arm, __NR_writev, sys_writev, "writev()");
+DEFINE_SYSCALL(arm, __NR_mmap, sys_mmap, "mmap()");
+DEFINE_SYSCALL(arm, __NR_mmap2, sys_mmap2, "mmap2(addr=%p, size=%u, prot=%d, flags=%d, fd=%d, pgoff=%u)");
+DEFINE_SYSCALL(arm, __NR_mremap, sys_mremap, "mremap()");
+DEFINE_SYSCALL(arm, __NR_munmap, sys_munmap, "munmap(addr=%p, size=%d)");
+DEFINE_SYSCALL(arm, __NR_mprotect, sys_mprotect, "mprotect(addr=%p, size=%d, prot=%d)");
+DEFINE_SYSCALL(arm, __NR_fstat64, sys_fstat64, "fstat64(fd=%d, addr=%p)");
+DEFINE_SYSCALL(arm, __NR_stat64, sys_stat64, "stat64(path=%p, addr=%p)");
+DEFINE_SYSCALL(arm, __NR_lstat64, sys_lstat64, "lstat64(path=%p, addr=%p)");
+DEFINE_SYSCALL(arm, __NR_ioctl, sys_ioctl, "ioctl(fd=%d, request=%d, ...)");
+DEFINE_SYSCALL(arm, __NR_fcntl64, sys_fcntl64, "fcntl64(fd=%d, cmd=%d, ...)");
 
-DEFINE_SYSCALL("arm", __NR_mkdir, sys_mkdir, "mkdir(path=%s, mode=%d)");
-DEFINE_SYSCALL("arm", __NR_getcwd, sys_getcwd, "getcwd(path=%p, size=%d)");
+DEFINE_SYSCALL(arm, __NR_mkdir, sys_mkdir, "mkdir(path=%s, mode=%d)");
+DEFINE_SYSCALL(arm, __NR_getcwd, sys_getcwd, "getcwd(path=%p, size=%d)");
 
-DEFINE_SYSCALL("arm", __ARM_NR_set_tls, sys_arm_settls, "settls(addr=%p)");
-DEFINE_SYSCALL("arm", __NR_brk, sys_brk, "brk(new_brk=%p)");
+DEFINE_SYSCALL(arm, __ARM_NR_set_tls, sys_arm_settls, "settls(addr=%p)");
+DEFINE_SYSCALL(arm, __NR_brk, sys_brk, "brk(new_brk=%p)");
 
-DEFINE_SYSCALL("arm", __NR_gettid, syscall_return_zero, "gettid()");
-DEFINE_SYSCALL("arm", __NR_getpid, syscall_return_zero, "getpid()");
-DEFINE_SYSCALL("arm", __NR_getuid, syscall_return_zero, "getuid()");
-DEFINE_SYSCALL("arm", __NR_getgid, syscall_return_zero, "getgid()");
-DEFINE_SYSCALL("arm", __NR_geteuid, syscall_return_zero, "geteuid()");
-DEFINE_SYSCALL("arm", __NR_getegid, syscall_return_zero, "getegid()");
-DEFINE_SYSCALL("arm", __NR_getuid32, syscall_return_zero, "getuid32()");
-DEFINE_SYSCALL("arm", __NR_getgid32, syscall_return_zero, "getgid32()");
-DEFINE_SYSCALL("arm", __NR_geteuid32, syscall_return_zero, "geteuid32()");
-DEFINE_SYSCALL("arm", __NR_getegid32, syscall_return_zero, "getegid32()");
+DEFINE_SYSCALL(arm, __NR_gettid, syscall_return_zero, "gettid()");
+DEFINE_SYSCALL(arm, __NR_getpid, syscall_return_zero, "getpid()");
+DEFINE_SYSCALL(arm, __NR_getuid, syscall_return_zero, "getuid()");
+DEFINE_SYSCALL(arm, __NR_getgid, syscall_return_zero, "getgid()");
+DEFINE_SYSCALL(arm, __NR_geteuid, syscall_return_zero, "geteuid()");
+DEFINE_SYSCALL(arm, __NR_getegid, syscall_return_zero, "getegid()");
+DEFINE_SYSCALL(arm, __NR_getuid32, syscall_return_zero, "getuid32()");
+DEFINE_SYSCALL(arm, __NR_getgid32, syscall_return_zero, "getgid32()");
+DEFINE_SYSCALL(arm, __NR_geteuid32, syscall_return_zero, "geteuid32()");
+DEFINE_SYSCALL(arm, __NR_getegid32, syscall_return_zero, "getegid32()");
 
-DEFINE_SYSCALL("arm", __NR_gettimeofday, sys_gettimeofday, "gettimeofday()");
+DEFINE_SYSCALL(arm, __NR_gettimeofday, sys_gettimeofday, "gettimeofday()");
 
-DEFINE_SYSCALL("arm", __NR_rt_sigprocmask, sys_rt_sigprocmask, "rt_sigprocmask(how=%d, set=%p, old_set=%p)");
-DEFINE_SYSCALL("arm", __NR_rt_sigaction, sys_rt_sigaction, "rt_sigaction(signum=%d, act=%p, old_act=%p)");
-DEFINE_SYSCALL("arm", __NR_nanosleep, sys_nanosleep, "nanosleep(req=%p, rem=%p)");
-DEFINE_SYSCALL("arm", __NR_times, sys_times, "times(buf=%p)");
-DEFINE_SYSCALL("arm", __NR_clock_gettime, sys_clock_gettime, "clock_gettime(clk_id=%u, timespec=%p)");
+DEFINE_SYSCALL(arm, __NR_rt_sigprocmask, sys_rt_sigprocmask, "rt_sigprocmask(how=%d, set=%p, old_set=%p)");
+DEFINE_SYSCALL(arm, __NR_rt_sigaction, sys_rt_sigaction, "rt_sigaction(signum=%d, act=%p, old_act=%p)");
+DEFINE_SYSCALL(arm, __NR_nanosleep, sys_nanosleep, "nanosleep(req=%p, rem=%p)");
+DEFINE_SYSCALL(arm, __NR_times, sys_times, "times(buf=%p)");
+DEFINE_SYSCALL(arm, __NR_clock_gettime, sys_clock_gettime, "clock_gettime(clk_id=%u, timespec=%p)");
 
-DEFINE_SYSCALL("arm", __ARM_NR_cacheflush, sys_cacheflush, "cacheflush(%p, %p)");
+DEFINE_SYSCALL(arm, __ARM_NR_cacheflush, sys_cacheflush, "cacheflush(%p, %p)");
 
+/* Aarch64 System calls */
+DEFINE_SYSCALL(aarch64, 1, sys_exit, "exit()");
+DEFINE_SYSCALL(aarch64, 3, sys_read, "read()");
+DEFINE_SYSCALL(aarch64, 4, sys_write, "write()");
+DEFINE_SYSCALL(aarch64, 29, sys_ioctl, "ioctl()");
+DEFINE_SYSCALL(aarch64, 56, sys_openat, "openat()");
+DEFINE_SYSCALL(aarch64, 64, sys_write, "write(%u, %lu, %u)");
+DEFINE_SYSCALL(aarch64, 66, sys_writev, "writev()");
+DEFINE_SYSCALL(aarch64, 78, sys_readlinkat, "readlinkat()");
+DEFINE_SYSCALL(aarch64, 80, sys64_fstat, "fstat()");
+DEFINE_SYSCALL(aarch64, 160, sys_uname, "uname()");
+DEFINE_SYSCALL(aarch64, 214, sys_brk, "brk()");
+DEFINE_SYSCALL(aarch64, 222, sys_mmap2, "brk()");
 
 /* RISC-V SYSTEM CALLS */
-DEFINE_SYSCALL("risc-v", 64, sys_write, "write(fd=%d, addr=%p, len=%d)");
-DEFINE_SYSCALL("risc-v", 160, sys_uname, "uname(addr=%p)");
-DEFINE_SYSCALL("risc-v", 214, sys_brk, "brk(new_brk=%p)");
-DEFINE_SYSCALL("risc-v", 78, syscall_return_enosys, "readlinkat(dirfd=%d, pathname=%p, buf=%p, bufsiz=%u)");
-DEFINE_SYSCALL("risc-v", 222, sys_mmap, "mmap()");
+DEFINE_SYSCALL(riscv, 64, sys_write, "write(fd=%d, addr=%p, len=%d)");
+DEFINE_SYSCALL(riscv, 160, sys_uname, "uname(addr=%p)");
+DEFINE_SYSCALL(riscv, 214, sys_brk, "brk(new_brk=%p)");
+DEFINE_SYSCALL(riscv, 78, syscall_return_enosys, "readlinkat(dirfd=%d, pathname=%p, buf=%p, bufsiz=%u)");
+DEFINE_SYSCALL(riscv, 222, sys_mmap, "mmap()");
 //DEFINE_SYSCALL("risc-v", 80, sys_fstat, "fstat()");
-DEFINE_SYSCALL("risc-v", 93, sys_exit, "exit()");
-DEFINE_SYSCALL("risc-v", 94, sys_exit, "exit_group()");
-DEFINE_SYSCALL("risc-v", 215, sys_munmap, "fstat()");
+DEFINE_SYSCALL(riscv, 93, sys_exit, "exit()");
+DEFINE_SYSCALL(riscv, 94, sys_exit, "exit_group()");
+DEFINE_SYSCALL(riscv, 215, sys_munmap, "fstat()");
 
 
-DEFINE_SYSCALL("risc-v", 56, sys_openat, "openat(dirfd=%d, pathname=%p, flags=%d, mode=%d)");
-DEFINE_SYSCALL("risc-v", 23, syscall_return_enosys, "_unknown_()");
+DEFINE_SYSCALL(riscv, 56, sys_openat, "openat(dirfd=%d, pathname=%p, flags=%d, mode=%d)");
+DEFINE_SYSCALL(riscv, 23, syscall_return_enosys, "_unknown_()");
 //DEFINE_SYSCALL("risc-v", 25, sys_fcntl, "fcntl()");
-DEFINE_SYSCALL("risc-v", 80, sys_fstat, "fstat()");
-DEFINE_SYSCALL("risc-v", 57, sys_close, "close()");
-DEFINE_SYSCALL("risc-v", 63, sys_read, "read()");
+DEFINE_SYSCALL(riscv, 80, sys_fstat, "fstat()");
+DEFINE_SYSCALL(riscv, 57, sys_close, "close()");
+DEFINE_SYSCALL(riscv, 63, sys_read, "read()");

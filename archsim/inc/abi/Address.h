@@ -25,26 +25,28 @@ namespace archsim
 	class Address
 	{
 	public:
-		using underlying_t = uint32_t;
+		static const Address NullPtr;
 
-		explicit Address(underlying_t address) : _address(address) {}
-		Address() = delete;
+		using underlying_t = uint64_t;
+
+		explicit Address(underlying_t address) : address_(address) {}
+		Address() : address_(0) {};
 		underlying_t Get() const
 		{
-			return _address;
+			return address_;
 		}
 
 		underlying_t GetPageBase() const
 		{
-			return RegionArch::PageBaseOf(Get());
+			return Get() & ~archsim::RegionArch::PageMask;
 		}
 		underlying_t GetPageOffset() const
 		{
-			return RegionArch::PageOffsetOf(Get());
+			return Get() & archsim::RegionArch::PageMask;
 		}
 		underlying_t GetPageIndex() const
 		{
-			return RegionArch::PageIndexOf(Get());
+			return Get() >> archsim::RegionArch::PageBits;
 		}
 
 		Address PageBase() const
@@ -56,30 +58,50 @@ namespace archsim
 			return Address(GetPageOffset());
 		}
 
-		Address operator+(int b) const
+		bool operator>(const Address &other) const
 		{
-			return Address(Get() + b);
+			return Get() > other.Get();
+		}
+		bool operator>=(const Address &other) const
+		{
+			return Get() >= other.Get();
+		}
+		bool operator<(const Address &other) const
+		{
+			return Get() < other.Get();
+		}
+		bool operator<=(const Address &other) const
+		{
+			return Get() <= other.Get();
 		}
 
 		void operator+=(const underlying_t other)
 		{
-			_address += other;
+			address_ += other;
 		}
 		void operator-=(const underlying_t other)
 		{
-			_address += other;
+			address_ -= other;
+		}
+		void operator&=(const underlying_t other)
+		{
+			address_ &= other;
 		}
 
 		bool operator==(const Address &other) const
 		{
 			return Get() == other.Get();
 		}
+		bool operator!=(const Address &other) const
+		{
+			return Get() != other.Get();
+		}
 
 		friend std::ostream &operator<<(std::ostream &str, const archsim::Address& address);
 
 	private:
-		underlying_t _address;
-	};
+		underlying_t address_;
+	} __attribute__((packed));
 
 	class PhysicalAddress : public Address
 	{
@@ -168,4 +190,55 @@ namespace std
 
 }
 
-#endif /* INC_ABI_ADDRESS_H_ */
+template<typename T> T &operator<<(T& str, const archsim::Address &address);
+
+inline bool operator>=(archsim::Address::underlying_t a, archsim::Address b)
+{
+	return a >= b.Get();
+}
+
+inline archsim::Address operator+(archsim::Address a, archsim::Address b)
+{
+	return archsim::Address(a.Get() + b.Get());
+}
+inline archsim::Address operator+(archsim::Address a, archsim::Address::underlying_t b)
+{
+	return archsim::Address(a.Get() + b);
+}
+inline archsim::Address operator+(archsim::Address::underlying_t a, archsim::Address b)
+{
+	return archsim::Address(a + b.Get());
+}
+
+inline archsim::Address operator-(archsim::Address a, archsim::Address b)
+{
+	return archsim::Address(a.Get() - b.Get());
+}
+inline archsim::Address operator-(archsim::Address a, archsim::Address::underlying_t b)
+{
+	return archsim::Address(a.Get() - b);
+}
+inline archsim::Address operator-(archsim::Address::underlying_t a, archsim::Address b)
+{
+	return archsim::Address(a - b.Get());
+}
+
+inline archsim::Address operator&(archsim::Address a, archsim::Address::underlying_t b)
+{
+	return archsim::Address(a.Get() & b);
+}
+inline archsim::Address operator|(archsim::Address a, archsim::Address::underlying_t b)
+{
+	return archsim::Address(a.Get() | b);
+}
+inline archsim::Address operator|(archsim::Address a, archsim::Address b)
+{
+	return archsim::Address(a.Get() | b.Get());
+}
+
+inline archsim::Address operator "" _ga(unsigned long long a)
+{
+	return archsim::Address(a);
+}
+
+#endif
