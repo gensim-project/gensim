@@ -43,23 +43,23 @@ namespace archsim
 			virtual void Install(captive::shared::block_txln_fn *location) = 0;
 			virtual uint32_t GetCodeSize() const = 0;
 
-			inline void AddContainedBlock(virt_addr_t addr)
+			inline void AddContainedBlock(Address addr)
 			{
 				contained_blocks.insert(addr);
 			}
 
-			inline bool ContainsBlock(virt_addr_t addr) const
+			inline bool ContainsBlock(Address addr) const
 			{
 				return contained_blocks.count(addr) > 0;
 			}
 
-			inline const std::unordered_set<virt_addr_t>& GetBlocks() const
+			inline const std::unordered_set<Address>& GetBlocks() const
 			{
 				return contained_blocks;
 			}
 
 		private:
-			std::unordered_set<virt_addr_t> contained_blocks;
+			std::unordered_set<Address> contained_blocks;
 			bool is_registered;
 		};
 	}

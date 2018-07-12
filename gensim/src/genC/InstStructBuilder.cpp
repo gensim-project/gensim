@@ -2,16 +2,17 @@
 
 #include "isa/ISADescription.h"
 #include "genC/InstStructBuilder.h"
+#include "genC/Parser.h"
 
 using namespace gensim::genc;
 
-IRType StructBuilder::BuildStruct(const gensim::isa::ISADescription* isa, const gensim::isa::StructDescription* struct_desc) const
+IRType StructBuilder::BuildStruct(const gensim::isa::ISADescription* isa, const gensim::isa::StructDescription* struct_desc, ssa::SSATypeManager &man) const
 {
 	IRStructType *stype = new IRStructType();
 	stype->Name = struct_desc->GetName();
 
 	for(auto member : struct_desc->GetMembers()) {
-		stype->AddMember(member.GetName(), GetGenCType(isa, member.GetType()));
+		stype->AddMember(member.GetName(), GetGenCType(isa, member.GetType(), man));
 	}
 	stype->MakeFullyConst();
 
@@ -19,7 +20,7 @@ IRType StructBuilder::BuildStruct(const gensim::isa::ISADescription* isa, const 
 }
 
 
-IRType StructBuilder::GetGenCType(const gensim::isa::ISADescription *isa, const std::string &typeName) const
+IRType StructBuilder::GetGenCType(const gensim::isa::ISADescription *isa, const std::string &typeName, ssa::SSATypeManager &man) const
 {
 	IRType type = IRTypes::Void;
 
@@ -44,14 +45,17 @@ IRType StructBuilder::GetGenCType(const gensim::isa::ISADescription *isa, const 
 		type.BaseType.PlainOldDataType = IRPlainOldDataType::INT64;
 		type.Signed = true;
 	} else if(isa->HasUserStructType(typeName)) {
-		type = BuildStruct(isa, &isa->GetUserStructType(typeName));
+		if(!man.HasStructType(typeName)) {
+			man.InsertStructType(typeName, BuildStruct(isa, &isa->GetUserStructType(typeName), man));
+		}
+		type = man.GetStructType(typeName);
 	} else {
 		throw std::logic_error("Unknown type: " + typeName);
 	}
 	return type;
 }
 
-IRType InstStructBuilder::BuildType(const gensim::isa::ISADescription* isa) const
+IRType InstStructBuilder::BuildType(const gensim::isa::ISADescription* isa, ssa::SSATypeManager &man) const
 {
 	gensim::isa::StructDescription inst_description("Instruction");
 
@@ -69,5 +73,5 @@ IRType InstStructBuilder::BuildType(const gensim::isa::ISADescription* isa) cons
 		inst_description.AddMember(ci->first, ci->second);
 	}
 
-	return StructBuilder().BuildStruct(isa, &inst_description);
+	return StructBuilder().BuildStruct(isa, &inst_description, man);
 }

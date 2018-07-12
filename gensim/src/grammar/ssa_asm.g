@@ -90,7 +90,7 @@ EXTERNAL = 'external';
 
 }
 
-NUMERIC_TYPE: 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'sint8' | 'sint16' | 'sint32' | 'sint64' | 'float' | 'double' | 'void';
+NUMERIC_TYPE: 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'uint128' | 'sint8' | 'sint16' | 'sint32' | 'sint64' | 'sint128' | 'float' | 'double' | 'void';
 
 vector_size : '[' constant_value ']' -> ^(SSAASM_TYPE_VECTOR constant_value);
 

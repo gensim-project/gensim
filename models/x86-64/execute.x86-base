@@ -1,0 +1,90 @@
+helper void nothing() { return; }
+
+execute(mov) {
+	uint64 value = read_operand(inst.op1);
+	write_operand(inst.op0, value);
+}
+
+execute(pop) {
+	uint64 sp = read_register(SP);
+	uint64 data = 0;
+	mem_read_64(Data, sp, data);
+	write_operand(inst.op0, data);
+}
+
+helper uint64 read_op_reg(struct Register &reg)
+{
+	switch(reg.width) {
+		case 8: {
+			return read_register_bank(RB, reg.index);
+		}
+		case 16: {
+			return read_register_bank(RW, reg.index);
+		}
+		case 32: {
+			return read_register_bank(RD, reg.index);
+		}
+		case 64: {
+			return read_register_bank(RQ, reg.index);
+		}
+		default: {
+			trap();
+		}
+	}
+	
+	return 0;
+}
+
+helper uint64 read_operand(struct Operand &op)
+{
+	if(op.is_reg) {
+		return read_op_reg(op.reg);
+	}
+	trap();
+	
+	return 0;
+}
+
+helper void write_op_reg(struct Register &reg, uint64 value)
+{
+	switch(reg.width) {
+		case 8: {
+			write_register_bank(RB, reg.index, value);
+			break;
+		}
+		case 16: {
+			write_register_bank(RW, reg.index, value);
+			break;
+		}
+		case 32: {
+			write_register_bank(RD, reg.index, value);
+			break;
+		}
+		case 64: {
+			write_register_bank(RQ, reg.index, value);
+			break;
+		}
+	}
+	
+	return;
+}
+
+helper void write_operand(struct Operand &op, uint64 value)
+{
+	if(op.is_reg) {
+		write_op_reg(op.reg, value);
+		return;
+	}
+	trap();
+
+	return;
+}
+
+execute(xor) {
+	uint64 op1 = read_operand(inst.op0);
+	uint64 op2 = read_operand(inst.op1);
+	
+	uint64 result = op1 ^ op2;
+	
+	write_operand(inst.op0, result);
+}

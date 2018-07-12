@@ -123,7 +123,7 @@ void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& st
 
 		str << "<" << std::endl;
 		str << indent << indent << action->EntryBlock->GetName() << std::endl;
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			if(block == action->EntryBlock) {
 				continue;
 			}
@@ -134,7 +134,7 @@ void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& st
 		str << " {" << std::endl;
 		// blocks
 		BlockDisassembler bd;
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			bd.Disassemble(block, str);
 		}
 		str << "}" << std::endl;
@@ -225,6 +225,9 @@ void TypeDisassembler::DisassemblePOD(const SSAType& type, std::ostream& str)
 				break;
 			case IRPlainOldDataType::INT64:
 				str << "int64";
+				break;
+			case IRPlainOldDataType::INT128:
+				str << "int128";
 				break;
 			default:
 				throw std::logic_error("");
@@ -336,24 +339,41 @@ public:
 
 		str_ << Header(stmt) << " = cast " << cast_type << " " << cast_option << " " << DisassembleType(stmt.GetType()) << " " << stmt.Expr()->GetName() << ";";
 	}
-	void VisitConstantStatement(SSAConstantStatement& stmt) override
+
+	std::string FormatConstant(const gensim::genc::IRConstant &constant)
 	{
 		std::string constant_string;
-		switch(stmt.Constant.Type()) {
+		switch(constant.Type()) {
 				using gensim::genc::IRConstant;
 			case IRConstant::Type_Integer:
-				constant_string = std::to_string(stmt.Constant.Int());
+				constant_string = std::to_string(constant.Int());
 				break;
 			case IRConstant::Type_Float_Single:
-				constant_string = std::to_string(stmt.Constant.Flt());
+				constant_string = std::to_string(constant.Flt());
 				break;
 			case IRConstant::Type_Float_Double:
-				constant_string = std::to_string(stmt.Constant.Dbl());
+				constant_string = std::to_string(constant.Dbl());
+				break;
+			case IRConstant::Type_Vector:
+				constant_string = "{";
+				for(int i = 0; i < constant.VSize(); ++i) {
+					if(i > 0) {
+						constant_string += ", ";
+					}
+					constant_string += FormatConstant(constant.VGet(i));
+				}
+				constant_string += "}";
 				break;
 			default:
 				throw std::logic_error("Unknown constant type");
 				break;
 		}
+		return constant_string;
+	}
+
+	void VisitConstantStatement(SSAConstantStatement& stmt) override
+	{
+		std::string constant_string = FormatConstant(stmt.Constant);
 		str_ << Header(stmt) << " = constant " << DisassembleType(stmt.GetType()) << " " << constant_string << ";";
 	}
 	void VisitControlFlowStatement(SSAControlFlowStatement& stmt) override

@@ -355,7 +355,7 @@ bool VNCScreen::Reset()
 bool VNCScreen::SetFramebufferPointer(uint32_t guest_addr)
 {
 	host_addr_t addr;
-	GetMemory()->LockRegion(guest_addr, 4096, addr);
+	GetMemory()->LockRegion(archsim::Address(guest_addr), 4096, addr);
 	fb_ptr_ = addr;
 	return true;
 }

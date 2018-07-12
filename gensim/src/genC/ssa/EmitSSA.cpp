@@ -307,6 +307,7 @@ Standard_Operator:
 						using namespace IRUnaryOperator;
 					case Member: {
 						assert(false && "Unimplemented");
+						break;
 					}
 					case Index: {
 						IRVariableExpression *variable = dynamic_cast<IRVariableExpression*> (var->BaseExpression);
@@ -452,23 +453,6 @@ SSAStatement *IRUnaryExpression::EmitSSAForm(SSABuilder &bldr) const
 			return load;
 		}
 		case Member: {
-			/*
-			 //Structs are passed around by reference, so we can load a member of a struct by:
-			 // 1. Getting the offset of the member we are trying to load
-			 SSAConstantStatement *offset = new SSAConstantStatement(&bldr.GetBlock(), this, BaseExpression->EvaluateType().BaseType.StructType->GetOffset(MemberStr), IRTypes::UInt32);
-			 // 2. Adding the offset to the struct pointer
-			 SSABinaryArithmeticStatement *addr = new SSABinaryArithmeticStatement(&bldr.GetBlock(), this, *offset, *stmt, BinaryOperator::Add);
-
-			 IRType memberType = BaseExpression->EvaluateType().BaseType.StructType->GetMemberType(MemberStr);
-			 // 3. Cast the pointer to the correct type
-			 SSACastStatement *cast = new SSACastStatement(&bldr.GetBlock(), this, IRType::Ptr(memberType), *addr);
-			 // 4. Load the pointer value
-			 SSAHostMemoryStatement *load = new SSAHostMemoryStatement(&bldr.GetBlock(), this, *cast, SSAHostMemoryStatement::MemoryRead, memberType);
-
-			 if (BaseExpression->EvaluateType().Const) load->IsConstifiable = true;
-
-			 return load;
-			 */
 			IRVariableExpression *var = dynamic_cast<IRVariableExpression *> (BaseExpression);
 			assert(var);
 
@@ -568,8 +552,10 @@ ssa::SSAStatement* IRCallExpression::EmitHelperCall(ssa::SSABuilder& bldr, const
 				args.push_back(bldr.GetSymbol(read->Symbol));
 			} else if(dynamic_cast<IRUnaryExpression*>(*ci)) {
 				IRUnaryExpression *member = (IRUnaryExpression*)(*ci);
-				SSAStatement *stmt = (*ci)->EmitSSAForm(bldr);
-				args.push_back(stmt);
+				SSAStatement *read = (*ci)->EmitSSAForm(bldr);
+				SSASymbol *temp = bldr.GetTemporarySymbol(member->EvaluateType());
+				auto stmt = new SSAVariableWriteStatement(&bldr.GetBlock(), temp, read);
+				args.push_back(temp);
 			} else {
 				throw std::logic_error("");
 			}

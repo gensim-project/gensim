@@ -20,7 +20,7 @@ class SingleControlFlowStatementValidationPass : public SSAActionValidationPass
 	{
 		bool success = true;
 
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			bool found = false;
 			for(auto stmt : block->GetStatements()) {
 				if(dynamic_cast<const SSAControlFlowStatement*>(stmt)) {

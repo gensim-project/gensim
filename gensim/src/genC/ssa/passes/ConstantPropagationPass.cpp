@@ -56,7 +56,7 @@ public:
 		DPRINTF("%s\n", printer.ToString().c_str());
 		std::vector<SSAVariableWriteStatement*> candidates;
 
-		for(auto block : action.Blocks) {
+		for(auto block : action.GetBlocks()) {
 			for(auto statement : block->GetStatements()) {
 				DPRINTF("Checking %s for candidacy\n", statement->GetName().c_str());
 				if(IsACandidate(statement)) {
@@ -67,8 +67,13 @@ public:
 		}
 
 		bool changed = false;
-		for(auto i : candidates) {
-			changed |= RunOnStatement(&action, i);
+		if(candidates.size()) {
+			analysis::SSADominance dominancecalc;
+			auto dominance = dominancecalc.Calculate(&action);
+
+			for(auto i : candidates) {
+				changed |= RunOnStatement(&action, dominance, i);
+			}
 		}
 
 		return changed;
@@ -110,7 +115,7 @@ private:
 
 	// Runs this optimisation on this statement. Returns true if a change was
 	// made
-	bool RunOnStatement(SSAFormAction *action, SSAVariableWriteStatement *statement) const
+	bool RunOnStatement(SSAFormAction *action, analysis::SSADominance::dominance_info_t &dominance, SSAVariableWriteStatement *statement) const
 	{
 		assert(dynamic_cast<SSAVariableWriteStatement*>(statement));
 
@@ -118,10 +123,6 @@ private:
 
 		// check each use of the symbol this write targets
 		auto uses = ((SSAValue*)statement->Target())->GetUses();
-
-		analysis::SSADominance dominancecalc;
-		auto dominance = dominancecalc.Calculate(action);
-		DPRINTF("Dominance: %s\n", dominancecalc.Print(dominance).c_str());
 
 		SSAStatement *cst = (SSAStatement*)statement->Expr();
 

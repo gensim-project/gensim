@@ -77,7 +77,7 @@ behaviour(get_status_string)
 {
 }
 
-behaviour(is_predicated)
+behaviour(instruction_is_predicated)
 {
 	return false;
 }

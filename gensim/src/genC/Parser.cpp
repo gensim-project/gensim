@@ -233,11 +233,7 @@ ssa::SSAContext *GenCContext::EmitSSA()
 {
 	if (!Valid) return NULL;
 
-	auto context = new ssa::SSAContext(ISA, Arch);
-
-	for(auto i : StructTypeTable) {
-		context->GetTypeManager().InsertStructType(i.first, i.second);
-	}
+	auto context = new ssa::SSAContext(ISA, Arch, type_manager_);
 
 	for (std::map<std::string, IRHelperAction *>::const_iterator ci = HelperTable.begin(); ci != HelperTable.end(); ++ci) {
 		auto ssa_form = ci->second->GetSSAForm(*context);
@@ -256,13 +252,12 @@ ssa::SSAContext *GenCContext::EmitSSA()
 void GenCContext::BuildStructTypes()
 {
 	gensim::genc::InstStructBuilder isb;
-	auto structType = isb.BuildType(&ISA);
-
-	StructTypeTable["Instruction"] = structType;
+	auto structType = isb.BuildType(&ISA, *type_manager_);
+	GetTypeManager()->InsertStructType("Instruction", structType);
 
 	gensim::genc::StructBuilder sb;
 	for(auto &struct_type : ISA.UserStructTypes) {
-		StructTypeTable[struct_type.GetName()] = sb.BuildStruct(&ISA, &struct_type);
+		GetTypeManager()->InsertStructType(struct_type.GetName(), sb.BuildStruct(&ISA, &struct_type, *type_manager_));
 	}
 }
 
@@ -279,6 +274,8 @@ FileContents::FileContents(const std::string& filename, const std::string& filet
 
 GenCContext::GenCContext(const gensim::arch::ArchDescription &arch, const isa::ISADescription &isa, DiagnosticContext &diag_ctx) : Valid(true), Arch(arch), ISA(isa), GlobalScope(IRScope::CreateGlobalScope(*this)), diag_ctx(diag_ctx)
 {
+	type_manager_ = std::shared_ptr<ssa::SSATypeManager>(new ssa::SSATypeManager());
+
 	// build the instruction structure
 	BuildStructTypes();
 
@@ -379,7 +376,7 @@ bool GenCContext::Parse_Execute(pANTLR3_BASE_TREE Execute)
 		return false;
 	}
 
-	IRExecuteAction *execute = new IRExecuteAction(nameStr, *this, StructTypeTable["Instruction"]);
+	IRExecuteAction *execute = new IRExecuteAction(nameStr, *this, GetTypeManager()->GetStructType("Instruction"));
 	execute->SetDiag(DiagNode("", Execute));
 
 	IRBody *body = Parse_Body(bodyNode, *execute->GetFunctionScope());
@@ -574,8 +571,8 @@ IRType GenCContext::Parse_Type(pANTLR3_BASE_TREE node)
 		type = IRTypes::Void;
 	} else {
 		// look for a struct
-		if(StructTypeTable.count(baseType)) {
-			type = StructTypeTable.at(baseType);
+		if(GetTypeManager()->HasStructType(baseType)) {
+			type = GetTypeManager()->GetStructType(baseType);
 		} else {
 			Diag().Error("Unrecognized base type " + baseType, DiagNode(CurrFilename, node));
 			type = IRTypes::Void;

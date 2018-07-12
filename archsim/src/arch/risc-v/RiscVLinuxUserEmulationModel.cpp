@@ -27,7 +27,7 @@ DeclareChildLogContext(LogEmulationModelRiscVLinux, LogEmulationModelUser, "RISC
 
 RegisterComponent(archsim::abi::EmulationModel, RiscVLinuxUserEmulationModel, "riscv-user", "ARM Linux user emulation model");
 
-RiscVLinuxUserEmulationModel::RiscVLinuxUserEmulationModel() : LinuxUserEmulationModel("risc-v") { }
+RiscVLinuxUserEmulationModel::RiscVLinuxUserEmulationModel() : LinuxUserEmulationModel("risc-v", false) { }
 
 RiscVLinuxUserEmulationModel::~RiscVLinuxUserEmulationModel() { }
 
@@ -51,14 +51,14 @@ bool RiscVLinuxUserEmulationModel::PrepareBoot(System& system)
 
 	LC_DEBUG1(LogEmulationModelRiscVLinux) << "Initialising RISC-V Kernel Helpers";
 
-	memory::guest_addr_t kernel_helper_region = 0xffff0000;
+	memory::guest_addr_t kernel_helper_region = 0xffff0000_ga;
 	GetMemoryModel().GetMappingManager()->MapRegion(kernel_helper_region, 0x4000, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[eabi]");
 
 	/* random data */
-	GetMemoryModel().Write32(0xffff0000, 0xbabecafe);
-	GetMemoryModel().Write32(0xffff0004, 0xdeadbabe);
-	GetMemoryModel().Write32(0xffff0008, 0xfeedc0de);
-	GetMemoryModel().Write32(0xffff000c, 0xcafedead);
+	GetMemoryModel().Write32(0xffff0000_ga, 0xbabecafe);
+	GetMemoryModel().Write32(0xffff0004_ga, 0xdeadbabe);
+	GetMemoryModel().Write32(0xffff0008_ga, 0xfeedc0de);
+	GetMemoryModel().Write32(0xffff000c_ga, 0xcafedead);
 
 	return true;
 }

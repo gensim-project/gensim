@@ -135,7 +135,7 @@ SSAExternalAction* ExternalActionAssembler::Assemble(pANTLR3_BASE_TREE tree, SSA
 
 	IRSignature::param_type_list_t params;
 	auto action_params_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 3);
-	for(unsigned i = 0; i < action_params_node->getChildCount(action_params_node); i += 2) {
+	for(unsigned i = 0; i < action_params_node->getChildCount(action_params_node); i += 1) {
 		auto type_node = (pANTLR3_BASE_TREE)action_params_node->getChild(action_params_node,i);
 		std::string name = "p" + std::to_string(i);
 

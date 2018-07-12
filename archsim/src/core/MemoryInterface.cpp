@@ -12,10 +12,8 @@ TranslationResult MMUTranslationProvider::Translate(Address virt_addr, Address& 
 	info.SideEffects = side_effects;
 	info.Write = is_write;
 	info.Kernel = thread_->GetExecutionRing() != 0;
-	uint32_t physaddr;
 
-	auto result = mmu_->Translate(thread_, virt_addr.Get(), physaddr, info);
-	phys_addr = Address(physaddr);
+	auto result = mmu_->Translate(thread_, virt_addr, phys_addr, info);
 	switch(result) {
 		case archsim::abi::devices::MMU::TXLN_OK:
 			return TranslationResult::OK;
@@ -77,57 +75,57 @@ MemoryResult MemoryInterface::Write(Address address, const unsigned char *data, 
 
 MemoryResult LegacyMemoryInterface::Read8(Address address, uint8_t& data)
 {
-	return mem_model_.Read8(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+	return mem_model_.Read8(address, data) ? MemoryResult::Error : MemoryResult::OK;
 }
 
 MemoryResult LegacyMemoryInterface::Read16(Address address, uint16_t& data)
 {
-	return mem_model_.Read16(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+	return mem_model_.Read16(address, data) ? MemoryResult::Error : MemoryResult::OK;
 }
 
 MemoryResult LegacyMemoryInterface::Read32(Address address, uint32_t& data)
 {
-	return mem_model_.Read32(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+	return mem_model_.Read32(address, data) ? MemoryResult::Error : MemoryResult::OK;
 }
 
 MemoryResult LegacyMemoryInterface::Read64(Address address, uint64_t& data)
 {
-	return mem_model_.Read64(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+	return mem_model_.Read64(address, data) ? MemoryResult::Error : MemoryResult::OK;
 }
 
 MemoryResult LegacyMemoryInterface::Write8(Address address, uint8_t data)
 {
-	return mem_model_.Write8(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+	return mem_model_.Write8(address, data) ? MemoryResult::Error : MemoryResult::OK;
 }
 
 MemoryResult LegacyMemoryInterface::Write16(Address address, uint16_t data)
 {
-	return mem_model_.Write16(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+	return mem_model_.Write16(address, data) ? MemoryResult::Error : MemoryResult::OK;
 }
 
 MemoryResult LegacyMemoryInterface::Write32(Address address, uint32_t data)
 {
-	return mem_model_.Write32(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+	return mem_model_.Write32(address, data) ? MemoryResult::Error : MemoryResult::OK;
 }
 
 MemoryResult LegacyMemoryInterface::Write64(Address address, uint64_t data)
 {
-	return mem_model_.Write64(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+	return mem_model_.Write64(address, data) ? MemoryResult::Error : MemoryResult::OK;
 }
 
 MemoryResult LegacyFetchMemoryInterface::Read8(Address address, uint8_t& data)
 {
-	return mem_model_.Fetch8(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+	return mem_model_.Fetch8(address, data) ? MemoryResult::Error : MemoryResult::OK;
 }
 
 MemoryResult LegacyFetchMemoryInterface::Read16(Address address, uint16_t& data)
 {
-	return mem_model_.Fetch16(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+	return mem_model_.Fetch16(address, data) ? MemoryResult::Error : MemoryResult::OK;
 }
 
 MemoryResult LegacyFetchMemoryInterface::Read32(Address address, uint32_t& data)
 {
-	return mem_model_.Fetch32(address.Get(), data) ? MemoryResult::Error : MemoryResult::OK;
+	return mem_model_.Fetch32(address, data) ? MemoryResult::Error : MemoryResult::OK;
 }
 
 MemoryResult LegacyFetchMemoryInterface::Read64(Address address, uint64_t& data)
