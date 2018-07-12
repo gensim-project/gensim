@@ -20,8 +20,32 @@ typedef uint32_t uint32;
 typedef uint64_t uint64;
 
 enum X86Opcodes {
+	INST_x86_add,
+	INST_x86_and,
+	INST_x86_call,
+	INST_x86_cmp,
+	INST_x86_cpuid,
+
+	INST_x86_jbe,
+	INST_x86_jnbe,
+	INST_x86_je,
+	INST_x86_jne,
+	INST_x86_jle,
+
+	INST_x86_jmp,
+	INST_x86_lea,
 	INST_x86_mov,
+	INST_x86_movsxd,
+	INST_x86_movzx,
+	INST_x86_nop,
+	INST_x86_or,
 	INST_x86_pop,
+	INST_x86_push,
+	INST_x86_ret,
+	INST_x86_setz,
+	INST_x86_sub,
+	INST_x86_test,
+	INST_x86_xgetbv,
 	INST_x86_xor
 };
 
@@ -35,7 +59,19 @@ namespace archsim
 			{
 			public:
 				struct Memory {
+					uint8_t has_segment;
+					uint8_t segment;
 
+					uint8_t has_base;
+					uint8_t base_reg;
+
+					uint8_t width;
+
+					uint8_t has_index;
+					uint8_t index_reg;
+					uint8_t scale;
+
+					uint64_t displacement;
 				};
 
 				struct Register {
@@ -43,15 +79,25 @@ namespace archsim
 					uint8_t width;
 				};
 
-				struct Operand {
-					uint8_t is_reg;
-
-					Register reg;
-					Memory mem;
+				struct Immediate {
+					uint64_t value;
 				};
 
-				Operand op0, op1;
+				struct Operand {
+					uint8_t is_reg;
+					uint8_t is_imm;
+					uint8_t is_mem;
+					uint8_t is_relbr;
 
+					Register reg;
+					Memory memory;
+					Immediate imm;
+				};
+
+
+				Operand op0, op1, op2;
+
+				X86Decoder();
 				int DecodeInstr(Address addr, int mode,  MemoryInterface &interface);
 
 			};

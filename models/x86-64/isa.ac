@@ -12,9 +12,14 @@ AC_ISA(x86)
 
 	struct Operand {
 		uint8 is_reg;
+		uint8 is_imm;
+		uint8 is_mem;
+		
+		uint8 is_relbr;
 		
 		Register reg;
 		Memory memory;
+		Immediate imm;
 	};
 	
 	struct Register {
@@ -23,7 +28,23 @@ AC_ISA(x86)
 	};
 	
 	struct Memory {
+		uint8 has_segment;
+		uint8 segment;
+	
+		uint8 has_base;
+		uint8 base_reg;
 		
+		uint8 width;
+		
+		uint8 has_index;
+		uint8 index_reg;
+		uint8 scale;
+		
+		uint64 displacement;
+	};
+	
+	struct Immediate {
+		uint64 value;
 	};
 	
 	ac_field<Operand> op0;

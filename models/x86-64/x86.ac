@@ -36,6 +36,11 @@ AC_ARCH(x86)
 		slot OF (uint8, 1, 6) V;
 	}
 	
+	// segment base registers
+	ac_regspace(48) {
+		bank SEGMENT(uint64, 0, 6, 8, 1, 8, 8);
+	}
+	
 	ac_wordsize 64;
 	
 
