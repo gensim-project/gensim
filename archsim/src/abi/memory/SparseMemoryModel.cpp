@@ -130,7 +130,7 @@ bool SparseMemoryTranslationModel::EmitMemoryWrite(archsim::internal::translate:
 #endif
 #endif
 
-SparseMemoryModel::SparseMemoryModel()
+SparseMemoryModel::SparseMemoryModel() : prev_page_data_(nullptr)
 {
 }
 
@@ -190,6 +190,9 @@ bool SparseMemoryModel::ResizeVMA(GuestVMA &vma, guest_size_t new_size)
 
 char* SparseMemoryModel::GetPage(Address addr)
 {
+	if(prev_page_data_ && addr.PageBase() == prev_page_base_) {
+		return prev_page_data_;
+	}
 	if(!data_.count(addr.PageBase())) {
 		auto ptr = (char*)malloc(4096);
 		if(ptr == nullptr) {
@@ -202,7 +205,11 @@ char* SparseMemoryModel::GetPage(Address addr)
 		return ptr;
 	}
 
-	return data_.at(addr.PageBase());
+	char *ptr = data_.at(addr.PageBase());
+	prev_page_base_ = addr.PageBase();
+	prev_page_data_ = ptr;
+
+	return ptr;
 }
 
 
