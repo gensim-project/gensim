@@ -20,9 +20,9 @@ execute(addi)
 	
 	if (inst.S) {
 		if (inst.sf == 0) {
-			write_gpr(0, inst.rd, __builtin_adc_flags((uint32)op1, (uint32)imm, 0));
+			write_gpr32(inst.rd, __builtin_adc_flags((uint32)op1, (uint32)imm, 0));
 		} else {
-			write_gpr(1, inst.rd, __builtin_adc64_flags(op1, imm, 0));
+			write_gpr64(inst.rd, __builtin_adc64_flags(op1, imm, 0));
 		}
 	} else {
 		write_gpr_sp(inst.sf, inst.rd, op1 + imm);
@@ -36,9 +36,9 @@ execute(subi)
 	
 	if (inst.S) {
 		if (inst.sf == 0) {
-			write_gpr(0, inst.rd, __builtin_adc_flags((uint32)op1, (uint32)~imm, 1));
+			write_gpr32(inst.rd, __builtin_sbc_flags((uint32)op1, (uint32)imm, 0));
 		} else {
-			write_gpr(1, inst.rd, __builtin_adc64_flags(op1, ~imm, 1));
+			write_gpr64(inst.rd, __builtin_sbc64_flags(op1, imm, 0));
 		}
 	} else {
 		write_gpr_sp(inst.sf, inst.rd, op1 - imm);
@@ -1823,9 +1823,9 @@ execute(sub_ereg)
 	
 	if (inst.S) {
 		if (inst.sf) {
-			write_gpr(1, inst.rd, __builtin_adc64_flags(rn, ~rm, 1));
+			write_gpr(1, inst.rd, __builtin_sbc64_flags(rn, rm, 0));
 		} else {
-			write_gpr(0, inst.rd, (uint64)__builtin_adc_flags(rn, ~rm, 1));
+			write_gpr(0, inst.rd, (uint64)__builtin_sbc_flags(rn, rm, 0));
 		}
 	} else {
 		write_gpr_sp(inst.sf, inst.rd, rn - rm);
@@ -1871,7 +1871,7 @@ execute(sub_sreg)
 		uint64 result;
 		
 		if (inst.S) {
-			result = __builtin_adc64_flags(read_gpr64(inst.rn), ~op2, 1);
+			result = __builtin_sbc64_flags(read_gpr64(inst.rn), op2, 0);
 		} else {
 			result = read_gpr64(inst.rn) - op2;
 		}
@@ -1881,7 +1881,7 @@ execute(sub_sreg)
 		uint32 result;
 		
 		if (inst.S) {
-			result = __builtin_adc_flags(read_gpr32(inst.rn), (uint32)~op2, 1);
+			result = __builtin_sbc_flags(read_gpr32(inst.rn), (uint32)op2, 0);
 		} else {
 			result = read_gpr32(inst.rn) - (uint32)op2;
 		}
