@@ -301,10 +301,6 @@ AC_ISA(a64)
 		mvni.set_decoder(op=1, cmode=0xc, o2=0);	// 32-bit shifting ones
 		mvni.set_decoder(op=1, cmode=0xd, o2=0);	// 32-bit shifting ones
 		
-		mvni.set_asm("mvni %vreg.8b, #%imm", rd, immu64, Q=0, op=0, cmode=0xe);
-		mvni.set_asm("mvni %vreg.16b, #%imm", rd, immu64, Q=1, op=0, cmode=0xe);
-		
-		mvni.set_asm("mvni %dreg, #%imm", rd, immu64, Q=0, op=1, cmode=0xe);
 		mvni.set_behaviour(mvni);
 		
 		// -----------
