@@ -671,11 +671,11 @@ namespace gensim
 				auto interface = stmt.GetInterface();
 
 				output << "{";
-				output << "auto &interface = thread->GetMemoryInterface(" << interface->GetID() << ");";
+				output << "auto &mem_interface = thread->GetMemoryInterface(" << interface->GetID() << ");";
 				output << "archsim::Address addr = archsim::Address(" << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ");";
-				output << "archsim::MemoryResult _value = interface.Write" << (stmt.Width * 8) << "(addr," << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ");";
+				output << "archsim::MemoryResult _value = mem_interface.Write" << (stmt.Width * 8) << "(addr," << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ");";
 				output << "if(_value != archsim::MemoryResult::OK) {";
-				output << "  thread->TakeMemoryException(interface, addr);";
+				output << "  thread->TakeMemoryException(mem_interface, addr);";
 				output << "}";
 				output << "if(trace) { thread->GetTraceSource()->Trace_Mem_Write(1, " << Factory.GetOrCreate(stmt.Addr())->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Value())->GetFixedValue() << ", " << (uint32_t)stmt.Width << "); }";
 				output << "}";
