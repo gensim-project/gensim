@@ -63,6 +63,9 @@ namespace archsim
 			private:
 				char *GetPage(Address addr);
 
+				Address prev_page_base_;
+				char *prev_page_data_;
+
 				SparseMemoryTranslationModel* translation_model;
 				std::map<Address, char*> data_;
 			};
