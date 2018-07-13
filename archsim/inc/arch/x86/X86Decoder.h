@@ -23,14 +23,13 @@ enum X86Opcodes {
 	INST_x86_add,
 	INST_x86_and,
 	INST_x86_call,
+
+	INST_x86_cmov,
+
 	INST_x86_cmp,
 	INST_x86_cpuid,
 
-	INST_x86_jbe,
-	INST_x86_jnbe,
-	INST_x86_je,
-	INST_x86_jne,
-	INST_x86_jle,
+	INST_x86_jcond,
 
 	INST_x86_jmp,
 	INST_x86_lea,
@@ -44,6 +43,7 @@ enum X86Opcodes {
 	INST_x86_ret,
 	INST_x86_setz,
 	INST_x86_sub,
+	INST_x86_syscall,
 	INST_x86_test,
 	INST_x86_xgetbv,
 	INST_x86_xor
@@ -58,25 +58,26 @@ namespace archsim
 			class X86Decoder : public gensim::BaseDecode
 			{
 			public:
-				struct Memory {
-					uint8_t has_segment;
-					uint8_t segment;
-
-					uint8_t has_base;
-					uint8_t base_reg;
-
-					uint8_t width;
-
-					uint8_t has_index;
-					uint8_t index_reg;
-					uint8_t scale;
-
-					uint64_t displacement;
-				};
 
 				struct Register {
 					uint8_t index;
 					uint8_t width;
+
+					// If this register is RIP, we need to offset the value by
+					// the size of the instruction.
+					uint32_t offset;
+				};
+
+				struct Memory {
+					uint8_t has_segment;
+					uint8_t segment;
+
+					Register base;
+					Register index;
+
+					uint8_t width;
+					uint8_t scale;
+					uint64_t displacement;
 				};
 
 				struct Immediate {
@@ -96,10 +97,19 @@ namespace archsim
 
 
 				Operand op0, op1, op2;
+				uint8_t condition;
 
 				X86Decoder();
 				int DecodeInstr(Address addr, int mode,  MemoryInterface &interface);
 
+			private:
+				// These take pointers to xed_decoded_inst_t, but I don't want
+				// XED to be part of the interface to the decoder. Forward
+				// declarations are a bit of a nightmare because the decoded
+				// inst struct is typedef'd. So, void* for now.
+				void DecodeOperands(void *inst);
+				void DecodeFlow(void *inst);
+				void DecodeClass(void *inst);
 			};
 		}
 	}

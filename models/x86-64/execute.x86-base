@@ -24,6 +24,14 @@ execute(call) {
 	write_register(IP, target);
 }
 
+execute(cmov) {
+	uint8 condition = check_condition(inst.condition);
+	if(condition) {
+		uint64 value = read_operand(inst.op1);
+		write_operand(inst.op0, value);
+	}
+}
+
 execute(cmp) {
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
@@ -35,42 +43,8 @@ execute(cpuid) {
 
 }
 
-execute(je) {
-	if(read_register(ZF)) {
-		// equal
-		write_pc(read_operand(inst.op0));
-	} else {
-		write_pc(read_pc() + inst.Instr_Length);
-	}
-}
-
-execute(jne) {
-	if(!read_register(ZF)) {
-		// not equal
-		write_pc(read_operand(inst.op0));
-	} else {
-		write_pc(read_pc() + inst.Instr_Length);
-	}
-}
-
-execute(jbe) {
-	if(read_register(CF) || read_register(ZF)) {
-		write_pc(read_operand(inst.op0));
-	} else {
-		write_pc(read_pc() + inst.Instr_Length);
-	}
-}
-
-execute(jnbe) {
-	if(!(read_register(CF) || read_register(ZF))) {
-		write_pc(read_operand(inst.op0));
-	} else {
-		write_pc(read_pc() + inst.Instr_Length);
-	}
-}
-
-execute(jle) {
-	uint8 cond = read_register(ZF) || (read_register(ZF) != read_register(OF));
+execute(jcond) {
+	uint8 cond = check_condition(inst.condition);
 	if(cond) {
 		// not equal
 		write_pc(read_operand(inst.op0));
@@ -243,6 +217,8 @@ helper uint64 read_reg(uint8 index, uint8 width)
 {
 	if(index == 0xff) { // SPECIAL_RIP_INDEX
 		return read_pc();
+	} else if(index == 0xfe) { // SPECIAL_RIZ_INDEX
+		return 0;
 	} else {
 		switch(width) {
 			case 8: {
@@ -264,6 +240,11 @@ helper uint64 read_reg(uint8 index, uint8 width)
 	}
 	trap();
 	return 0;
+}
+
+helper uint64 read_reg_struct(struct Register &reg)
+{
+	return read_reg(reg.index, reg.width) + reg.offset;
 }
 
 helper uint8 operand_get_size_reg(struct Register &reg)
@@ -331,14 +312,8 @@ helper uint64 mem_get_addr(struct Memory &mem)
 		address += read_register_bank(SEGMENT, mem.segment);
 	}
 	
-	if(mem.has_base) {
-		address += read_reg(mem.base_reg, 64);
-	}
-	if(mem.has_index) {
-		address += (read_reg(mem.index_reg, 64) * mem.scale) + mem.displacement;
-	}
-
-	address += mem.displacement;
+	address += read_reg_struct(mem.base);
+	address += (read_reg_struct(mem.index) * mem.scale) + mem.displacement;
 	
 	return address;
 }
@@ -451,4 +426,45 @@ helper void write_operand(struct Operand &op, uint64 value)
 	trap();
 
 	return;
+}
+
+helper uint8 check_condition(uint8 condition)
+{
+	switch(condition) {
+		// B
+		case 0: { return read_register(CF); }
+		// BE
+		case 1: { return read_register(CF) | read_register(ZF); }
+		// L
+		case 2: { return read_register(SF) ^ read_register(OF); }
+		// LE
+		case 3: { return read_register(ZF) | (read_register(SF) ^ read_register(OF)); }
+		// NB
+		case 4: { return !read_register(CF); }
+		// NBE
+		case 5: { return !(read_register(CF) | read_register(ZF)); }
+		// NL
+		case 6: { return !(read_register(SF) ^ read_register(OF));}
+		// NLE
+		case 7: { return (read_register(ZF) | (read_register(SF) ^ read_register(OF))); }
+		// NO
+		case 8: { return !read_register(OF); }
+		// NP
+		case 9: { return !read_register(PF); }
+		// NS
+		case 10: { return !read_register(SF); }
+		// NZ
+		case 11: { return !read_register(ZF); }
+		// O
+		case 12: { return read_register(OF); }
+		// P
+		case 13: { return read_register(PF); }
+		// S
+		case 14: { return read_register(SF); }
+		// Z
+		case 15: { return read_register(ZF); }
+	
+		default: { trap(); }
+	}
+	return 0;
 }
