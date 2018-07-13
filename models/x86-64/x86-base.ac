@@ -4,9 +4,9 @@ AC_ISA(x86)
 	// through an external decoder.
 	ac_format FORMAT_DUMMY = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY> add, and, call, cmov, cmp, cpuid, jcond, jmp, lea, mov, movzx, movsxd, nop, or, pop, push, ret, setz, sub, test, xgetbv, xor;
+	ac_instr<FORMAT_DUMMY> add, and, call, cmov, cmp, cpuid, div, jcond, jmp, lea, mov, movzx, movsxd, neg, nop, or, pop, push, ret, setcc, sub, syscall, test, xgetbv, xor;
 	
-	ac_behaviour add, and, call, cmp, cmov, cpuid, jcond, jmp, lea, mov, movzx, movsxd, nop, or, pop, push, ret, setz, sub, test, xgetbv, xor;
+	ac_behaviour add, and, call, cmp, cmov, cpuid, div, jcond, jmp, lea, mov, movzx, movsxd, neg, nop, or, pop, push, ret, setcc, sub, syscall, test, xgetbv, xor;
 
 	ISA_CTOR(x86) {
 		add.set_decoder();
@@ -28,6 +28,9 @@ AC_ISA(x86)
 	
 		cpuid.set_decoder();
 		cpuid.set_behaviour(cpuid);
+	
+		div.set_decoder();
+		div.set_behaviour(div);
 	
 		jcond.set_decoder();
 		jcond.set_behaviour(jcond);
@@ -51,6 +54,9 @@ AC_ISA(x86)
 		movsxd.set_decoder();
 		movsxd.set_behaviour(movsxd);
 		
+		neg.set_decoder();
+		neg.set_behaviour(neg);
+		
 		nop.set_decoder();
 		nop.set_behaviour(nop);
 		
@@ -68,11 +74,14 @@ AC_ISA(x86)
 		ret.set_end_of_block();
 		ret.set_variable_jump();
 		
-		setz.set_decoder();
-		setz.set_behaviour(setz);
+		setcc.set_decoder();
+		setcc.set_behaviour(setcc);
 		
 		sub.set_decoder();
 		sub.set_behaviour(sub);
+		
+		syscall.set_decoder();
+		syscall.set_behaviour(syscall);
 		
 		test.set_decoder();
 		test.set_behaviour(test);

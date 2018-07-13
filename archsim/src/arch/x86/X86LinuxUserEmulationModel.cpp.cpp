@@ -85,23 +85,23 @@ archsim::abi::ExceptionAction X86LinuxUserEmulationModel::HandleException(archsi
 	}
 
 	if(category == 0) {
-		uint32_t* registers = (uint32_t*)cpu->GetRegisterFile();
+		uint64_t* registers = (uint64_t*)cpu->GetRegisterFileInterface().GetData();
 
 		archsim::abi::SyscallRequest request {0, cpu};
-		request.syscall = registers[17];
+		request.syscall = registers[0];
 
 		archsim::abi::SyscallResponse response;
 		response.action = ResumeNext;
 
-		request.arg0 = registers[10];
-		request.arg1 = registers[11];
-		request.arg2 = registers[12];
-		request.arg3 = registers[13];
-		request.arg4 = registers[14];
-		request.arg5 = registers[15];
+		request.arg0 = registers[4];
+		request.arg1 = registers[5];
+		request.arg2 = registers[3];
+		request.arg3 = registers[10];
+		request.arg4 = registers[8];
+		request.arg5 = registers[9];
 
 		if(EmulateSyscall(request, response)) {
-			registers[10] = response.result;
+			registers[0] = response.result;
 		} else {
 			LC_ERROR(LogEmulationModelX86Linux) << "Syscall not supported: " << std::hex << "0x" << request.syscall << "(" << std::dec << request.syscall << ")";
 			registers[0] = -1;

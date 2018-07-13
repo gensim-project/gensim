@@ -28,6 +28,7 @@ enum X86Opcodes {
 
 	INST_x86_cmp,
 	INST_x86_cpuid,
+	INST_x86_div,
 
 	INST_x86_jcond,
 
@@ -36,12 +37,13 @@ enum X86Opcodes {
 	INST_x86_mov,
 	INST_x86_movsxd,
 	INST_x86_movzx,
+	INST_x86_neg,
 	INST_x86_nop,
 	INST_x86_or,
 	INST_x86_pop,
 	INST_x86_push,
 	INST_x86_ret,
-	INST_x86_setz,
+	INST_x86_setcc,
 	INST_x86_sub,
 	INST_x86_syscall,
 	INST_x86_test,
