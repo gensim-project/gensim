@@ -29,51 +29,67 @@ uint8_t GetCondition(xed_iclass_enum_t iclass)
 	switch(iclass) {
 		case XED_ICLASS_JB:
 		case XED_ICLASS_CMOVB:
+		case XED_ICLASS_SETB:
 			return 0;
 		case XED_ICLASS_JBE:
 		case XED_ICLASS_CMOVBE:
+		case XED_ICLASS_SETBE:
 			return 1;
 		case XED_ICLASS_JL:
 		case XED_ICLASS_CMOVL:
+		case XED_ICLASS_SETL:
 			return 2;
 		case XED_ICLASS_JLE:
 		case XED_ICLASS_CMOVLE:
+		case XED_ICLASS_SETLE:
 			return 3;
 		case XED_ICLASS_JNB:
 		case XED_ICLASS_CMOVNB:
+		case XED_ICLASS_SETNB:
 			return 4;
 		case XED_ICLASS_JNBE:
 		case XED_ICLASS_CMOVNBE:
+		case XED_ICLASS_SETNBE:
 			return 5;
 		case XED_ICLASS_JNL:
 		case XED_ICLASS_CMOVNL:
+		case XED_ICLASS_SETNL:
 			return 6;
 		case XED_ICLASS_JNLE:
 		case XED_ICLASS_CMOVNLE:
+		case XED_ICLASS_SETNLE:
 			return 7;
 		case XED_ICLASS_JNO:
 		case XED_ICLASS_CMOVNO:
+		case XED_ICLASS_SETNO:
 			return 8;
 		case XED_ICLASS_JNP:
 		case XED_ICLASS_CMOVNP:
+		case XED_ICLASS_SETNP:
 			return 9;
 		case XED_ICLASS_JNS:
 		case XED_ICLASS_CMOVNS:
+		case XED_ICLASS_SETNS:
 			return 10;
 		case XED_ICLASS_JNZ:
 		case XED_ICLASS_CMOVNZ:
+		case XED_ICLASS_SETNZ:
 			return 11;
 		case XED_ICLASS_JO:
 		case XED_ICLASS_CMOVO:
+		case XED_ICLASS_SETO:
 			return 12;
 		case XED_ICLASS_JP:
 		case XED_ICLASS_CMOVP:
+		case XED_ICLASS_SETP:
 			return 13;
 		case XED_ICLASS_JS:
 		case XED_ICLASS_CMOVS:
+		case XED_ICLASS_SETS:
 			return 14;
 		case XED_ICLASS_JZ:
 		case XED_ICLASS_CMOVZ:
+		case XED_ICLASS_SETZ:
 			return 15;
 
 		// Unconditional
@@ -287,27 +303,40 @@ void X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_CALL_NEAR, INST_x86_call);
 
 			MAP(XED_ICLASS_CMOVNZ, INST_x86_cmov);
+			MAP(XED_ICLASS_CMOVZ, INST_x86_cmov);
 
 			MAP(XED_ICLASS_CMP, INST_x86_cmp);
 			MAP(XED_ICLASS_CPUID, INST_x86_cpuid);
+			MAP(XED_ICLASS_DIV, INST_x86_div);
 
 			MAP(XED_ICLASS_JZ, INST_x86_jcond);
 			MAP(XED_ICLASS_JNZ, INST_x86_jcond);
 			MAP(XED_ICLASS_JBE, INST_x86_jcond);
 			MAP(XED_ICLASS_JNBE, INST_x86_jcond);
+			MAP(XED_ICLASS_JB, INST_x86_jcond);
+			MAP(XED_ICLASS_JNB, INST_x86_jcond);
 			MAP(XED_ICLASS_JLE, INST_x86_jcond);
+			MAP(XED_ICLASS_JNLE, INST_x86_jcond);
+			MAP(XED_ICLASS_JS, INST_x86_jcond);
+			MAP(XED_ICLASS_JNS, INST_x86_jcond);
 
 			MAP(XED_ICLASS_JMP, INST_x86_jmp);
 			MAP(XED_ICLASS_LEA, INST_x86_lea);
 			MAP(XED_ICLASS_MOV, INST_x86_mov);
 			MAP(XED_ICLASS_MOVSXD, INST_x86_movsxd);
 			MAP(XED_ICLASS_MOVZX, INST_x86_movzx);
+			MAP(XED_ICLASS_NEG, INST_x86_neg);
 			MAP(XED_ICLASS_NOP, INST_x86_nop);
 			MAP(XED_ICLASS_OR, INST_x86_or);
 			MAP(XED_ICLASS_POP, INST_x86_pop);
 			MAP(XED_ICLASS_PUSH, INST_x86_push);
 			MAP(XED_ICLASS_RET_NEAR, INST_x86_ret);
-			MAP(XED_ICLASS_SETZ, INST_x86_setz);
+
+			MAP(XED_ICLASS_SETB, INST_x86_setcc);
+			MAP(XED_ICLASS_SETNB, INST_x86_setcc);
+			MAP(XED_ICLASS_SETZ, INST_x86_setcc);
+			MAP(XED_ICLASS_SETNZ, INST_x86_setcc);
+
 			MAP(XED_ICLASS_SUB, INST_x86_sub);
 			MAP(XED_ICLASS_SYSCALL, INST_x86_syscall);
 			MAP(XED_ICLASS_TEST, INST_x86_test);

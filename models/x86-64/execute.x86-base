@@ -43,6 +43,17 @@ execute(cpuid) {
 
 }
 
+execute(div) {
+	uint8 width = operand_get_size(inst.op0);
+
+	// calculate divident
+	uint64 dividend = get_cd_pair(width*2);
+	uint64 divisor = read_operand(inst.op0);
+	
+	write_register_bank(RQ, 0, dividend / divisor);
+	write_register_bank(RQ, 3, dividend % divisor);
+}
+
 execute(jcond) {
 	uint8 cond = check_condition(inst.condition);
 	if(cond) {
@@ -89,6 +100,14 @@ execute(movsxd) {
 	write_operand(inst.op0, value);
 }
 
+execute(neg) {
+	uint64 value = read_operand(inst.op0);
+	
+	value = subtract(0, value);
+	
+	write_operand(inst.op0, value);
+}
+
 execute(nop) {
 	//nothing to do
 }
@@ -118,8 +137,8 @@ execute(ret) {
 	write_pc(r_addr);
 }
 
-execute(setz) {
-	write_operand(inst.op0, read_register(ZF));
+execute(setcc) {
+	write_operand(inst.op0, check_condition(inst.condition));
 }
 
 execute(sub) {
@@ -129,6 +148,10 @@ execute(sub) {
 	uint64 result = subtract(op0, op1);
 	
 	write_operand(inst.op0, result);
+}
+
+execute(syscall) {
+	take_exception(0, 0);
 }
 
 execute(test) {
@@ -211,6 +234,25 @@ helper uint64 stack_pop()
 	write_register(SP, sp + 8);
 	
 	return data;
+}
+
+helper uint64 get_cd_pair(uint8 width_bits)
+{
+	switch(width_bits) {
+		case 16: { return read_register_bank(RW, 0); }
+		case 32: { return read_register_bank(RW, 0) | (((uint32)read_register_bank(RW, 3)) << 16); }
+		case 64: { return read_register_bank(RD, 0) | (((uint64)read_register_bank(RD, 3)) << 32); }
+		case 128: { 
+			uint64 a = read_register_bank(RQ, 0);
+			uint64 d = read_register_bank(RQ, 3);
+			if(d != 0) { trap(); }
+			
+			return a;
+		}
+		
+		default: { trap(); }
+	}
+	return 0;
 }
 
 helper uint64 read_reg(uint8 index, uint8 width)

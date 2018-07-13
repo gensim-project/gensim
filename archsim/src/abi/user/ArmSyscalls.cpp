@@ -806,6 +806,14 @@ DEFINE_SYSCALL(arm, __NR_clock_gettime, sys_clock_gettime, "clock_gettime(clk_id
 
 DEFINE_SYSCALL(arm, __ARM_NR_cacheflush, sys_cacheflush, "cacheflush(%p, %p)");
 
+/* x86-64 Syscalls */
+DEFINE_SYSCALL(x86, 12, sys_brk, "brk()");
+DEFINE_SYSCALL(x86, 21, syscall_return_enosys, "access()");
+DEFINE_SYSCALL(x86, 102, syscall_return_zero, "getuid()");
+DEFINE_SYSCALL(x86, 104, syscall_return_zero, "getgid()");
+DEFINE_SYSCALL(x86, 107, syscall_return_zero, "geteuid()");
+DEFINE_SYSCALL(x86, 108, syscall_return_zero, "getegid()");
+
 /* Aarch64 System calls */
 DEFINE_SYSCALL(aarch64, 1, sys_exit, "exit()");
 DEFINE_SYSCALL(aarch64, 3, sys_read, "read()");
