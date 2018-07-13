@@ -25,21 +25,18 @@ AC_ISA(x86)
 	struct Register {
 		uint8 index;
 		uint8 width;
+		uint32 offset;
 	};
 	
 	struct Memory {
 		uint8 has_segment;
 		uint8 segment;
 	
-		uint8 has_base;
-		uint8 base_reg;
+		Register base;
+		Register index;
 		
 		uint8 width;
-		
-		uint8 has_index;
-		uint8 index_reg;
 		uint8 scale;
-		
 		uint64 displacement;
 	};
 	
@@ -49,6 +46,7 @@ AC_ISA(x86)
 	
 	ac_field<Operand> op0;
 	ac_field<Operand> op1;
+	ac_field<uint8> condition;
 	
 	ISA_CTOR(x86)
 	{

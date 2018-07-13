@@ -4,9 +4,9 @@ AC_ISA(x86)
 	// through an external decoder.
 	ac_format FORMAT_DUMMY = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY> add, and, call, cmp, cpuid, jbe, jnbe, je, jne, jle, jmp, lea, mov, movzx, movsxd, nop, or, pop, push, ret, setz, sub, test, xgetbv, xor;
+	ac_instr<FORMAT_DUMMY> add, and, call, cmov, cmp, cpuid, jcond, jmp, lea, mov, movzx, movsxd, nop, or, pop, push, ret, setz, sub, test, xgetbv, xor;
 	
-	ac_behaviour add, and, call, cmp, cpuid, jbe, jnbe, je, jne, jle, jmp, lea, mov, movzx, movsxd, nop, or, pop, push, ret, setz, sub, test, xgetbv, xor;
+	ac_behaviour add, and, call, cmp, cmov, cpuid, jcond, jmp, lea, mov, movzx, movsxd, nop, or, pop, push, ret, setz, sub, test, xgetbv, xor;
 
 	ISA_CTOR(x86) {
 		add.set_decoder();
@@ -20,36 +20,19 @@ AC_ISA(x86)
 		call.set_end_of_block();
 		call.set_variable_jump();
 		
+		cmov.set_decoder();
+		cmov.set_behaviour(cmov);
+	
 		cmp.set_decoder();
 		cmp.set_behaviour(cmp);
 	
 		cpuid.set_decoder();
 		cpuid.set_behaviour(cpuid);
 	
-		je.set_decoder();
-		je.set_behaviour(je);
-		je.set_end_of_block();
-		je.set_variable_jump();
-	
-		jne.set_decoder();
-		jne.set_behaviour(jne);
-		jne.set_end_of_block();
-		jne.set_variable_jump();
-	
-		jbe.set_decoder();
-		jbe.set_behaviour(jbe);
-		jbe.set_end_of_block();
-		jbe.set_variable_jump();
-	
-		jnbe.set_decoder();
-		jnbe.set_behaviour(jnbe);
-		jnbe.set_end_of_block();
-		jnbe.set_variable_jump();
-	
-		jle.set_decoder();
-		jle.set_behaviour(jle);
-		jle.set_end_of_block();
-		jle.set_variable_jump();
+		jcond.set_decoder();
+		jcond.set_behaviour(jcond);
+		jcond.set_end_of_block();
+		jcond.set_variable_jump();
 	
 		jmp.set_decoder();
 		jmp.set_behaviour(jmp);

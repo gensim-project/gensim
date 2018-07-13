@@ -10,6 +10,7 @@ using namespace archsim;
 using namespace archsim::arch::x86;
 
 #define SPECIAL_RIP_INDEX 0xff
+#define SPECIAL_RIZ_INDEX 0xfe
 
 static int get_register_index(xed_reg_enum_t reg)
 {
@@ -20,6 +21,64 @@ static int get_register_index(xed_reg_enum_t reg)
 			return SPECIAL_RIP_INDEX;
 		default:
 			UNIMPLEMENTED;
+	}
+}
+
+uint8_t GetCondition(xed_iclass_enum_t iclass)
+{
+	switch(iclass) {
+		case XED_ICLASS_JB:
+		case XED_ICLASS_CMOVB:
+			return 0;
+		case XED_ICLASS_JBE:
+		case XED_ICLASS_CMOVBE:
+			return 1;
+		case XED_ICLASS_JL:
+		case XED_ICLASS_CMOVL:
+			return 2;
+		case XED_ICLASS_JLE:
+		case XED_ICLASS_CMOVLE:
+			return 3;
+		case XED_ICLASS_JNB:
+		case XED_ICLASS_CMOVNB:
+			return 4;
+		case XED_ICLASS_JNBE:
+		case XED_ICLASS_CMOVNBE:
+			return 5;
+		case XED_ICLASS_JNL:
+		case XED_ICLASS_CMOVNL:
+			return 6;
+		case XED_ICLASS_JNLE:
+		case XED_ICLASS_CMOVNLE:
+			return 7;
+		case XED_ICLASS_JNO:
+		case XED_ICLASS_CMOVNO:
+			return 8;
+		case XED_ICLASS_JNP:
+		case XED_ICLASS_CMOVNP:
+			return 9;
+		case XED_ICLASS_JNS:
+		case XED_ICLASS_CMOVNS:
+			return 10;
+		case XED_ICLASS_JNZ:
+		case XED_ICLASS_CMOVNZ:
+			return 11;
+		case XED_ICLASS_JO:
+		case XED_ICLASS_CMOVO:
+			return 12;
+		case XED_ICLASS_JP:
+		case XED_ICLASS_CMOVP:
+			return 13;
+		case XED_ICLASS_JS:
+		case XED_ICLASS_CMOVS:
+			return 14;
+		case XED_ICLASS_JZ:
+		case XED_ICLASS_CMOVZ:
+			return 15;
+
+		// Unconditional
+		default:
+			return -1;
 	}
 }
 
@@ -48,24 +107,30 @@ uint64_t UnpackImmediate(uint64_t bits, bool is_signed, uint8_t width_bits)
 	return value;
 }
 
-bool DecodeRegister(xed_decoded_inst_t *xedd, xed_operand_enum_t op_name, X86Decoder::Operand &output_op)
+bool DecodeRegister(xed_decoded_inst_t *xedd, xed_reg_enum_t reg, X86Decoder::Register &output_reg)
 {
-	auto reg = xed_decoded_inst_get_reg(xedd, op_name);
-
 	switch(xed_reg_class(reg)) {
 		case XED_REG_CLASS_GPR:
-			output_op.is_reg = 1;
-			output_op.reg.index = get_register_index(reg);
-			output_op.reg.width = xed_get_register_width_bits64(reg);
-			break;
-
-		case XED_REG_CLASS_PSEUDO:
-		case XED_REG_CLASS_FLAGS:
+			output_reg.index = get_register_index(reg);
+			output_reg.width = xed_get_register_width_bits64(reg);
+			output_reg.offset = 0;
 			break;
 
 		case XED_REG_CLASS_IP:
-			// need to do something with this
+			output_reg.index = get_register_index(reg);
+			output_reg.width = 8;
+			output_reg.offset = xed_decoded_inst_get_length(xedd);
 			break;
+
+		case XED_REG_CLASS_INVALID:
+		case XED_REG_CLASS_PSEUDO:
+		case XED_REG_CLASS_FLAGS:
+			// 'zero' register
+			output_reg.index = SPECIAL_RIZ_INDEX;
+			output_reg.width = 8;
+			output_reg.offset = 0;
+			break;
+
 
 		default:
 			UNIMPLEMENTED;
@@ -73,6 +138,13 @@ bool DecodeRegister(xed_decoded_inst_t *xedd, xed_operand_enum_t op_name, X86Dec
 	}
 
 	return true;
+}
+
+bool DecodeRegisterOperand(xed_decoded_inst_t *xedd, xed_operand_enum_t op_name, X86Decoder::Operand &output_op)
+{
+	auto reg = xed_decoded_inst_get_reg(xedd, op_name);
+	output_op.is_reg = 1;
+	return DecodeRegister(xedd, reg, output_op.reg);
 }
 
 bool DecodeMemory(xed_decoded_inst_t *xedd, xed_operand_enum_t op_name, X86Decoder::Operand &output_op)
@@ -91,22 +163,16 @@ bool DecodeMemory(xed_decoded_inst_t *xedd, xed_operand_enum_t op_name, X86Decod
 	}
 
 	auto base_reg = xed_decoded_inst_get_base_reg(xedd, mem_idx);
-	if(base_reg != XED_REG_INVALID) {
-		output_op.memory.has_base = true;
-		output_op.memory.base_reg = get_register_index(base_reg);
-	}
+	DecodeRegister(xedd, base_reg, output_op.memory.base);
+
+	auto idx_reg = xed_decoded_inst_get_index_reg(xedd, mem_idx);
+	DecodeRegister(xedd, idx_reg, output_op.memory.index);
+	output_op.memory.scale = xed_decoded_inst_get_scale(xedd, mem_idx);
 
 	uint64_t disp_value = xed_decoded_inst_get_memory_displacement(xedd, mem_idx);
 	uint8_t disp_size = xed_decoded_inst_get_memory_displacement_width_bits(xedd, mem_idx);
 	output_op.memory.displacement = UnpackImmediate(disp_value, true, disp_size);
 	output_op.memory.width = xed_decoded_inst_get_memory_operand_length(xedd, mem_idx) * 8;
-
-	auto idx_reg = xed_decoded_inst_get_index_reg(xedd, mem_idx);
-	if(idx_reg != XED_REG_INVALID) {
-		output_op.memory.has_index = 1;
-		output_op.memory.index_reg = get_register_index(idx_reg);
-		output_op.memory.scale = xed_decoded_inst_get_scale(xedd, mem_idx);
-	}
 
 	return true;
 }
@@ -150,7 +216,7 @@ bool DecodeOperand(xed_decoded_inst_t *xedd, int op_idx, X86Decoder::Operand &ou
 		case XED_OPERAND_REG6:
 		case XED_OPERAND_REG7:
 		case XED_OPERAND_REG8:
-			return DecodeRegister(xedd, op_name, output_op);
+			return DecodeRegisterOperand(xedd, op_name, output_op);
 
 		case XED_OPERAND_AGEN:
 		case XED_OPERAND_MEM0:
@@ -182,18 +248,99 @@ static void ResetOperand(X86Decoder::Operand &op)
 
 X86Decoder::X86Decoder()
 {
+
+}
+
+void X86Decoder::DecodeOperands(void* inst_)
+{
+	xed_decoded_inst_t *inst = (xed_decoded_inst_t*)inst_;
 	ResetOperand(op0);
 	ResetOperand(op1);
 	ResetOperand(op2);
+
+	auto noperands = xed_decoded_inst_noperands(inst);
+
+	if(noperands > 0) {
+		DecodeOperand(inst, 0, op0);
+	}
+
+	if(noperands > 1) {
+		DecodeOperand(inst, 1, op1);
+	}
+
+	if(noperands > 2) {
+		DecodeOperand(inst, 2, op2);
+	}
+}
+
+void X86Decoder::DecodeClass(void* inst_)
+{
+	xed_decoded_inst_t *inst = (xed_decoded_inst_t*)inst_;
+	auto iclass = xed_decoded_inst_get_iclass(inst);
+
+	condition = GetCondition(iclass);
+
+	switch(iclass) {
+#define MAP(xed, model) case xed: Instr_Code = model; break;
+			MAP(XED_ICLASS_ADD, INST_x86_add);
+			MAP(XED_ICLASS_AND, INST_x86_and);
+			MAP(XED_ICLASS_CALL_NEAR, INST_x86_call);
+
+			MAP(XED_ICLASS_CMOVNZ, INST_x86_cmov);
+
+			MAP(XED_ICLASS_CMP, INST_x86_cmp);
+			MAP(XED_ICLASS_CPUID, INST_x86_cpuid);
+
+			MAP(XED_ICLASS_JZ, INST_x86_jcond);
+			MAP(XED_ICLASS_JNZ, INST_x86_jcond);
+			MAP(XED_ICLASS_JBE, INST_x86_jcond);
+			MAP(XED_ICLASS_JNBE, INST_x86_jcond);
+			MAP(XED_ICLASS_JLE, INST_x86_jcond);
+
+			MAP(XED_ICLASS_JMP, INST_x86_jmp);
+			MAP(XED_ICLASS_LEA, INST_x86_lea);
+			MAP(XED_ICLASS_MOV, INST_x86_mov);
+			MAP(XED_ICLASS_MOVSXD, INST_x86_movsxd);
+			MAP(XED_ICLASS_MOVZX, INST_x86_movzx);
+			MAP(XED_ICLASS_NOP, INST_x86_nop);
+			MAP(XED_ICLASS_OR, INST_x86_or);
+			MAP(XED_ICLASS_POP, INST_x86_pop);
+			MAP(XED_ICLASS_PUSH, INST_x86_push);
+			MAP(XED_ICLASS_RET_NEAR, INST_x86_ret);
+			MAP(XED_ICLASS_SETZ, INST_x86_setz);
+			MAP(XED_ICLASS_SUB, INST_x86_sub);
+			MAP(XED_ICLASS_SYSCALL, INST_x86_syscall);
+			MAP(XED_ICLASS_TEST, INST_x86_test);
+			MAP(XED_ICLASS_XGETBV, INST_x86_xgetbv);
+			MAP(XED_ICLASS_XOR, INST_x86_xor);
+
+		default:
+			UNIMPLEMENTED;
+#undef MAP
+	}
+}
+
+void X86Decoder::DecodeFlow(void* inst_)
+{
+	xed_decoded_inst_t *inst = (xed_decoded_inst_t*)inst_;
+	auto category = xed_decoded_inst_get_category(inst);
+
+	switch(category) {
+		case XED_CATEGORY_COND_BR:
+		case XED_CATEGORY_UNCOND_BR:
+		case XED_CATEGORY_CALL:
+		case XED_CATEGORY_RET:
+			SetEndOfBlock();
+			break;
+		default:
+			ClearEndOfBlock();
+			break;
+	}
 }
 
 
 int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 {
-	ResetOperand(op0);
-	ResetOperand(op1);
-	ResetOperand(op2);
-
 	// read 15 bytes
 	uint8_t data[15];
 	interface.Read(addr, data, 15);
@@ -219,67 +366,10 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 		printf("%p (%u) %s\n", addr.Get(), Instr_Length, dump_buffer);
 	}
 
-	auto category = xed_decoded_inst_get_category(&xedd);
-	auto iclass = xed_decoded_inst_get_iclass(&xedd);
+	DecodeOperands((void*)&xedd);
+	DecodeFlow((void*)&xedd);
+	DecodeClass((void*)&xedd);
 
-	auto noperands = xed_decoded_inst_noperands(&xedd);
-
-	switch(category) {
-		case XED_CATEGORY_COND_BR:
-		case XED_CATEGORY_UNCOND_BR:
-		case XED_CATEGORY_CALL:
-		case XED_CATEGORY_RET:
-			SetEndOfBlock();
-			break;
-		default:
-			ClearEndOfBlock();
-			break;
-	}
-
-	if(noperands > 0) {
-		DecodeOperand(&xedd, 0, op0);
-	}
-
-	if(noperands > 1) {
-		DecodeOperand(&xedd, 1, op1);
-	}
-
-	if(noperands > 2) {
-		DecodeOperand(&xedd, 2, op2);
-	}
-
-	switch(iclass) {
-#define MAP(xed, model) case xed: Instr_Code = model; break;
-			MAP(XED_ICLASS_ADD, INST_x86_add);
-			MAP(XED_ICLASS_AND, INST_x86_and);
-			MAP(XED_ICLASS_CALL_NEAR, INST_x86_call);
-			MAP(XED_ICLASS_CMP, INST_x86_cmp);
-			MAP(XED_ICLASS_CPUID, INST_x86_cpuid);
-			MAP(XED_ICLASS_JZ, INST_x86_je);
-			MAP(XED_ICLASS_JNZ, INST_x86_jne);
-			MAP(XED_ICLASS_JBE, INST_x86_jbe);
-			MAP(XED_ICLASS_JNBE, INST_x86_jnbe);
-			MAP(XED_ICLASS_JLE, INST_x86_jle);
-			MAP(XED_ICLASS_JMP, INST_x86_jmp);
-			MAP(XED_ICLASS_LEA, INST_x86_lea);
-			MAP(XED_ICLASS_MOV, INST_x86_mov);
-			MAP(XED_ICLASS_MOVSXD, INST_x86_movsxd);
-			MAP(XED_ICLASS_MOVZX, INST_x86_movzx);
-			MAP(XED_ICLASS_NOP, INST_x86_nop);
-			MAP(XED_ICLASS_OR, INST_x86_or);
-			MAP(XED_ICLASS_POP, INST_x86_pop);
-			MAP(XED_ICLASS_PUSH, INST_x86_push);
-			MAP(XED_ICLASS_RET_NEAR, INST_x86_ret);
-			MAP(XED_ICLASS_SETZ, INST_x86_setz);
-			MAP(XED_ICLASS_SUB, INST_x86_sub);
-			MAP(XED_ICLASS_TEST, INST_x86_test);
-			MAP(XED_ICLASS_XGETBV, INST_x86_xgetbv);
-			MAP(XED_ICLASS_XOR, INST_x86_xor);
-
-		default:
-			UNIMPLEMENTED;
-#undef MAP
-	}
 
 	return 0;
 }
