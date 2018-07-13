@@ -257,7 +257,9 @@ void GenCContext::BuildStructTypes()
 
 	gensim::genc::StructBuilder sb;
 	for(auto &struct_type : ISA.UserStructTypes) {
-		GetTypeManager()->InsertStructType(struct_type.GetName(), sb.BuildStruct(&ISA, &struct_type, *type_manager_));
+		if(!GetTypeManager()->HasStructType(struct_type.GetName())) {
+			GetTypeManager()->InsertStructType(struct_type.GetName(), sb.BuildStruct(&ISA, &struct_type, *type_manager_));
+		}
 	}
 }
 

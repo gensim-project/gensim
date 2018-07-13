@@ -59,6 +59,9 @@ const SSAType& SSATypeManager::GetVoidType()
 
 void SSATypeManager::InsertStructType(const std::string& name, const SSAType& struct_type)
 {
+	if(struct_types_.count(name)) {
+		throw std::logic_error("Type manager already has a struct type called " + name);
+	}
 	struct_types_[name] = struct_type;
 }
 
