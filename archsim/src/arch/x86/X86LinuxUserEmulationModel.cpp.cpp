@@ -93,9 +93,9 @@ archsim::abi::ExceptionAction X86LinuxUserEmulationModel::HandleException(archsi
 		archsim::abi::SyscallResponse response;
 		response.action = ResumeNext;
 
-		request.arg0 = registers[4];
-		request.arg1 = registers[5];
-		request.arg2 = registers[3];
+		request.arg0 = registers[7];
+		request.arg1 = registers[6];
+		request.arg2 = registers[2];
 		request.arg3 = registers[10];
 		request.arg4 = registers[8];
 		request.arg5 = registers[9];
@@ -118,5 +118,6 @@ archsim::abi::ExceptionAction X86LinuxUserEmulationModel::HandleException(archsi
 		return response.action;
 	}
 
+	cpu->SendMessage(archsim::core::thread::ThreadMessage::Halt);
 	return AbortSimulation;
 }

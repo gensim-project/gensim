@@ -25,6 +25,7 @@ AC_ISA(x86)
 	struct Register {
 		uint8 index;
 		uint8 width;
+		uint8 h_reg;
 		uint32 offset;
 	};
 	
