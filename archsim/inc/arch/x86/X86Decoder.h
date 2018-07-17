@@ -23,18 +23,27 @@ enum X86Opcodes {
 	INST_x86_add,
 	INST_x86_and,
 	INST_x86_call,
+	INST_x86_cld,
 
 	INST_x86_cmov,
 
 	INST_x86_cmp,
+	INST_x86_cmpxchg,
 	INST_x86_cpuid,
+	INST_x86_cqo,
+	INST_x86_dec,
 	INST_x86_div,
+	INST_x86_idiv,
+	INST_x86_imul2,
+	INST_x86_inc,
 
 	INST_x86_jcond,
 
 	INST_x86_jmp,
 	INST_x86_lea,
+	INST_x86_leave,
 	INST_x86_mov,
+	INST_x86_movsb,
 	INST_x86_movsxd,
 	INST_x86_movzx,
 	INST_x86_neg,
@@ -42,11 +51,16 @@ enum X86Opcodes {
 	INST_x86_or,
 	INST_x86_pop,
 	INST_x86_push,
+	INST_x86_rep_movsb,
 	INST_x86_ret,
+	INST_x86_sar,
 	INST_x86_setcc,
+	INST_x86_shl,
+	INST_x86_shr,
 	INST_x86_sub,
 	INST_x86_syscall,
 	INST_x86_test,
+	INST_x86_xchg,
 	INST_x86_xgetbv,
 	INST_x86_xor
 };
@@ -61,9 +75,14 @@ namespace archsim
 			{
 			public:
 
+				using Instruction = X86Decoder;
+
 				struct Register {
 					uint8_t index;
 					uint8_t width;
+
+					// is this an 'h' reg (ah etc)
+					uint8_t h_reg;
 
 					// If this register is RIP, we need to offset the value by
 					// the size of the instruction.
@@ -109,9 +128,9 @@ namespace archsim
 				// XED to be part of the interface to the decoder. Forward
 				// declarations are a bit of a nightmare because the decoded
 				// inst struct is typedef'd. So, void* for now.
-				void DecodeOperands(void *inst);
-				void DecodeFlow(void *inst);
-				void DecodeClass(void *inst);
+				bool DecodeOperands(void *inst);
+				bool DecodeFlow(void *inst);
+				bool DecodeClass(void *inst);
 			};
 		}
 	}
