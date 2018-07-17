@@ -213,6 +213,7 @@ bool ArchDescriptorGenerator::GenerateHeader(util::cppformatstream &str) const
 
 	str << "#include <util/int128.h>\n";
 	str << "using uint128_t = wutils::int128<false>;";
+	str << "using int128_t = wutils::int128<true>;";
 
 	str << "namespace gensim {";
 	str << "namespace " << Manager.GetArch().Name << " {";
