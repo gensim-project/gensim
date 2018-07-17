@@ -15,6 +15,7 @@ namespace wutils
 	template<bool signedness> class int128
 	{
 	public:
+		int128() : low_(0), high_(0) {}
 		int128(uint64_t v) : low_(v), high_(0) {}
 		operator uint64_t()
 		{
