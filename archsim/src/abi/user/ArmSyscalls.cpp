@@ -16,6 +16,7 @@
 #include "util/SimOptions.h"
 #include "util/LogContext.h"
 
+#include <asm/prctl.h>
 #include <stdio.h>
 #include <sys/uio.h>
 #include <sys/stat.h>
@@ -743,6 +744,30 @@ static unsigned int sys_readlinkat(archsim::core::thread::ThreadInstance *cpu, i
 
 }
 
+static unsigned int sys_x86_arch_prctl(archsim::core::thread::ThreadInstance *thread, uint32_t code, uint64_t addr)
+{
+	switch(code) {
+		case ARCH_SET_FS:
+			*thread->GetRegisterFileInterface().GetEntry<uint64_t>("FS") = addr;
+			break;
+		case ARCH_SET_GS:
+			*thread->GetRegisterFileInterface().GetEntry<uint64_t>("GS") = addr;
+			break;
+
+		case ARCH_GET_FS:
+			thread->GetMemoryInterface(0).Write64(Address(addr), *thread->GetRegisterFileInterface().GetEntry<uint64_t>("FS"));
+			break;
+		case ARCH_GET_GS:
+			thread->GetMemoryInterface(0).Write64(Address(addr), *thread->GetRegisterFileInterface().GetEntry<uint64_t>("GS"));
+			break;
+
+		default:
+			return -EINVAL;
+	}
+
+	return 0;
+}
+
 static unsigned int syscall_return_zero(archsim::core::thread::ThreadInstance* cpu)
 {
 	return 0;
@@ -807,12 +832,16 @@ DEFINE_SYSCALL(arm, __NR_clock_gettime, sys_clock_gettime, "clock_gettime(clk_id
 DEFINE_SYSCALL(arm, __ARM_NR_cacheflush, sys_cacheflush, "cacheflush(%p, %p)");
 
 /* x86-64 Syscalls */
+DEFINE_SYSCALL(x86, 1, sys_write, "write()");
 DEFINE_SYSCALL(x86, 12, sys_brk, "brk()");
+DEFINE_SYSCALL(x86, 16, sys_ioctl, "ioctl()");
 DEFINE_SYSCALL(x86, 21, syscall_return_enosys, "access()");
 DEFINE_SYSCALL(x86, 102, syscall_return_zero, "getuid()");
 DEFINE_SYSCALL(x86, 104, syscall_return_zero, "getgid()");
 DEFINE_SYSCALL(x86, 107, syscall_return_zero, "geteuid()");
 DEFINE_SYSCALL(x86, 108, syscall_return_zero, "getegid()");
+DEFINE_SYSCALL(x86, 158, sys_x86_arch_prctl, "arch_prctl()");
+DEFINE_SYSCALL(x86, 231, sys_exit, "exit_group()");
 
 /* Aarch64 System calls */
 DEFINE_SYSCALL(aarch64, 1, sys_exit, "exit()");
