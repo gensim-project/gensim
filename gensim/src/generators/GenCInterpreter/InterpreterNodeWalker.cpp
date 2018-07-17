@@ -472,10 +472,15 @@ namespace gensim
 						auto c = Factory.GetOrCreate(stmt.Args(2));
 						output << "{";
 						output << "uint16_t flags = genc_adc_flags(" << a->GetFixedValue() << "," << b->GetFixedValue() << "," << c->GetFixedValue() << ");";
-						output << "interface.write_register_C<trace>((flags >> 8) & 1);";
-						output << "interface.write_register_V<trace>(flags & 1);";
-						output << "interface.write_register_Z<trace>((flags >> 14) & 1);";
-						output << "interface.write_register_N<trace>((flags >> 15) & 1);";
+						auto C_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("C");
+						auto V_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("V");
+						auto N_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("N");
+						auto Z_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("Z");
+
+						output << "interface.write_register_" << C_desc->GetID() << "<trace>((flags >> 8) & 1);";
+						output << "interface.write_register_" << V_desc->GetID() <<"<trace>(flags & 1);";
+						output << "interface.write_register_" << Z_desc->GetID() << "<trace>((flags >> 14) & 1);";
+						output << "interface.write_register_" << N_desc->GetID() <<"<trace>((flags >> 15) & 1);";
 						output << "}";
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << a->GetFixedValue() << " + " << b->GetFixedValue() << " + " << c->GetFixedValue() << ";";
 						break;
@@ -487,10 +492,15 @@ namespace gensim
 						auto c = Factory.GetOrCreate(stmt.Args(2));
 						output << "{";
 						output << "uint16_t flags = genc_adc64_flags(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						output << "interface.write_register_C<trace>((flags >> 8) & 1);";
-						output << "interface.write_register_V<trace>(flags & 1);";
-						output << "interface.write_register_Z<trace>((flags >> 14) & 1);";
-						output << "interface.write_register_N<trace>((flags >> 15) & 1);";
+						auto C_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("C");
+						auto V_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("V");
+						auto N_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("N");
+						auto Z_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("Z");
+
+						output << "interface.write_register_" << C_desc->GetID() << "<trace>((flags >> 8) & 1);";
+						output << "interface.write_register_" << V_desc->GetID() <<"<trace>(flags & 1);";
+						output << "interface.write_register_" << Z_desc->GetID() << "<trace>((flags >> 14) & 1);";
+						output << "interface.write_register_" << N_desc->GetID() <<"<trace>((flags >> 15) & 1);";
 						output << "}";
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << a->GetFixedValue() << " + " << b->GetFixedValue() << " + " << c->GetFixedValue() << ";";
 						break;
@@ -502,10 +512,15 @@ namespace gensim
 						auto c = Factory.GetOrCreate(stmt.Args(2));
 						output << "{";
 						output << "uint16_t flags = genc_sbc_flags(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						output << "interface.write_register_C<trace>((flags >> 8) & 1);";
-						output << "interface.write_register_V<trace>(flags & 1);";
-						output << "interface.write_register_Z<trace>((flags >> 14) & 1);";
-						output << "interface.write_register_N<trace>((flags >> 15) & 1);";
+						auto C_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("C");
+						auto V_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("V");
+						auto N_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("N");
+						auto Z_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("Z");
+
+						output << "interface.write_register_" << C_desc->GetID() << "<trace>((flags >> 8) & 1);";
+						output << "interface.write_register_" << V_desc->GetID() <<"<trace>(flags & 1);";
+						output << "interface.write_register_" << Z_desc->GetID() << "<trace>((flags >> 14) & 1);";
+						output << "interface.write_register_" << N_desc->GetID() <<"<trace>((flags >> 15) & 1);";
 						output << "}";
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << a->GetFixedValue() << " - " << b->GetFixedValue() << " - " << c->GetFixedValue() << ";";
 						break;
@@ -517,10 +532,15 @@ namespace gensim
 						auto c = Factory.GetOrCreate(stmt.Args(2));
 						output << "{";
 						output << "uint16_t flags = genc_sbc64_flags(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						output << "interface.write_register_C<trace>((flags >> 8) & 1);";
-						output << "interface.write_register_V<trace>(flags & 1);";
-						output << "interface.write_register_Z<trace>((flags >> 14) & 1);";
-						output << "interface.write_register_N<trace>((flags >> 15) & 1);";
+						auto C_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("C");
+						auto V_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("V");
+						auto N_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("N");
+						auto Z_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("Z");
+
+						output << "interface.write_register_" << C_desc->GetID() << "<trace>((flags >> 8) & 1);";
+						output << "interface.write_register_" << V_desc->GetID() <<"<trace>(flags & 1);";
+						output << "interface.write_register_" << Z_desc->GetID() << "<trace>((flags >> 14) & 1);";
+						output << "interface.write_register_" << N_desc->GetID() <<"<trace>((flags >> 15) & 1);";
 						output << "}";
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << a->GetFixedValue() << " - " << b->GetFixedValue() << " - " << c->GetFixedValue() << ";";
 						break;
