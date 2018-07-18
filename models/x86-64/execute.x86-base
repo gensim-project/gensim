@@ -24,6 +24,12 @@ execute(call) {
 	write_register(IP, target);
 }
 
+execute(cdqe) {
+	sint32 source = read_register(EAX);
+	sint64 extended = source;
+	write_register(RAX, extended);
+}
+
 execute(cld) {
 	write_register(DF, 0);
 }
@@ -76,7 +82,7 @@ execute(dec) {
 execute(div) {
 	uint8 width = operand_get_size(inst.op0);
 
-	// calculate divident
+	// calculate dividend
 	uint128 dividend = get_cd_pair(width*2);
 	uint64 divisor = read_operand(inst.op0);
 
@@ -174,6 +180,24 @@ execute(movzx) {
 	write_operand(inst.op0, value);
 }
 
+execute(mul) {
+	uint8 width = operand_get_size(inst.op0);
+	uint128 op0 = read_operand(inst.op0);
+	uint128 op1 = read_operand(inst.op1);
+	
+	uint128 result = op0 * op1;
+	
+	if(result >> 64) {
+		write_register(OF, 0);
+		write_register(CF, 0);
+	} else {
+		write_register(OF, 1);
+		write_register(CF, 1);
+	}
+	
+	write_cd_pair(result, width);
+}
+
 execute(neg) {
 	uint64 value = read_operand(inst.op0);
 	
@@ -223,6 +247,30 @@ execute(rep_movsb) {
 	}
 }
 
+execute(rep_movsd) {
+	if(rep_should_run(inst)) {
+		
+		do_movsd(inst);
+		
+		rep_decrement_counter(inst);
+		
+	} else {
+		write_pc(read_pc() + inst.Instr_Length);
+	}
+}
+
+execute(rep_stosd) {
+	if(rep_should_run(inst)) {
+		
+		do_stosd(inst);
+		
+		rep_decrement_counter(inst);
+		
+	} else {
+		write_pc(read_pc() + inst.Instr_Length);
+	}
+}
+
 execute(ret) {
 	uint64 r_addr = stack_pop();
 	write_pc(r_addr);
@@ -234,6 +282,15 @@ execute(sar) {
 	
 	sint64 result = op0 >> op1;
 	//todo: flags
+	
+	write_operand(inst.op0, result);
+}
+
+execute(sbb) {
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = read_operand(inst.op1);
+	
+	uint64 result = subtract(op0, (op1 + read_register(CF)));
 	
 	write_operand(inst.op0, result);
 }
@@ -361,6 +418,42 @@ helper void do_movsb(struct Instruction &inst)
 	return;
 }
 
+
+helper void do_movsd(struct Instruction &inst)
+{
+	// read RSI
+	uint64 src_addr = read_reg(6, 64);
+	
+	// read RDI
+	uint64 dest_addr = read_reg(7, 64);
+	
+	uint32 value;
+	mem_read_32(Data, src_addr, value);
+	mem_write_32(Data, dest_addr, value);
+	
+	write_reg(6, 64, src_addr + 4);
+	write_reg(7, 64, dest_addr + 4);
+	
+	return;
+}
+
+helper void do_stosd(struct Instruction &inst)
+{
+	// read rdi
+	uint64 dest = read_reg(7, 64);
+	
+	uint64 data = read_reg(0, 32); // todo: data depends on size
+	mem_write_32(Data, dest, data);
+	
+	if(read_register(DF)) {
+		write_reg(7, 64, dest - 4);
+	} else {
+		write_reg(7, 64, dest + 4);
+	}
+	
+	return;
+}
+
 helper uint64 subtract(uint64 op0, uint64 op1)
 {
 	sint64 result = op0 - op1;
@@ -406,6 +499,24 @@ helper uint128 get_cd_pair(uint8 width_bits)
 		default: { trap(); }
 	}
 	return 0;
+}
+
+helper void write_cd_pair(uint128 value, uint8 width_bits)
+{
+	switch(width_bits) {
+		case 16:  { write_register_bank(RW, 0, value); break; }
+		case 32:  { write_register_bank(RW, 2, (value >> 16) & 0xffff); write_register_bank(RW, 0, value & 0xffff); break; }
+		case 64:  { write_register_bank(RD, 2, (value >> 32) & 0xffffffff); write_register_bank(RD, 0, value & 0xffffffff); break; }
+		case 128: { 
+			uint64 upper = value >> 64;
+			write_register_bank(RQ, 2, upper);
+			write_register_bank(RQ, 0, value);
+			break;
+		}
+		
+		default: { trap(); }
+	}
+	return;
 }
 
 helper uint8 read_h_reg(uint8 reg)
@@ -679,7 +790,7 @@ helper uint8 check_condition(uint8 condition)
 		// NL
 		case 6: { return !(read_register(SF) ^ read_register(OF));}
 		// NLE
-		case 7: { return (read_register(ZF) | (read_register(SF) ^ read_register(OF))); }
+		case 7: { return !(read_register(ZF) | (read_register(SF) ^ read_register(OF))); }
 		// NO
 		case 8: { return !read_register(OF); }
 		// NP
