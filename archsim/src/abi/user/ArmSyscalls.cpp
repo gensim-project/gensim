@@ -86,6 +86,8 @@ static unsigned int sys_open(archsim::core::thread::ThreadInstance* cpu, unsigne
 
 	int guest_fd = cpu->GetEmulationModel().GetSystem().OpenFD(host_fd);
 
+	LC_DEBUG2(LogSyscalls) << "Open: Opened " << filename << " with host FD " << host_fd << ", guest FD " << guest_fd;
+
 	return guest_fd;
 }
 
@@ -190,10 +192,10 @@ static unsigned int sys_mmap(archsim::core::thread::ThreadInstance* cpu, unsigne
 		return -EINVAL;
 	}
 
-	if (fd != (unsigned int)-1) {
-		LC_ERROR(LogSyscalls) << "Attempted to MMAP a file";
-		return -EINVAL;
-	}
+//	if (fd != (unsigned int)-1) {
+//		LC_ERROR(LogSyscalls) << "Attempted to MMAP a file";
+//		return -EINVAL;
+//	}
 
 	auto interface = cpu->GetMemoryInterface(0);
 
@@ -832,7 +834,11 @@ DEFINE_SYSCALL(arm, __NR_clock_gettime, sys_clock_gettime, "clock_gettime(clk_id
 DEFINE_SYSCALL(arm, __ARM_NR_cacheflush, sys_cacheflush, "cacheflush(%p, %p)");
 
 /* x86-64 Syscalls */
+DEFINE_SYSCALL(x86, 0, sys_read, "read()");
 DEFINE_SYSCALL(x86, 1, sys_write, "write()");
+DEFINE_SYSCALL(x86, 2, sys_open, "open()");
+DEFINE_SYSCALL(x86, 9, sys_mmap, "mmap()");
+DEFINE_SYSCALL(x86, 10, sys_mprotect, "mprotect()");
 DEFINE_SYSCALL(x86, 12, sys_brk, "brk()");
 DEFINE_SYSCALL(x86, 16, sys_ioctl, "ioctl()");
 DEFINE_SYSCALL(x86, 21, syscall_return_enosys, "access()");

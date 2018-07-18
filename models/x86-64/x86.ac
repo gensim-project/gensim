@@ -21,6 +21,7 @@ AC_ARCH(x86)
 		bank RBH(uint8 , 1, 4, 8, 1, 1, 8);
 		
 		slot RAX(uint64, 8, 0);
+		slot EAX(uint32, 4, 0);
 		
 		slot RCX(uint64, 8, 8);
 		slot ECX(uint32, 4, 8);

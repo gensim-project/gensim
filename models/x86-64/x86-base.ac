@@ -4,9 +4,9 @@ AC_ISA(x86)
 	// through an external decoder.
 	ac_format FORMAT_DUMMY = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY> add, and, call, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, inc, jcond, jmp, lea, leave, mov, movsb, movzx, movsxd, neg, nop, not, or, pop, push, rep_movsb, ret, sar, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
+	ac_instr<FORMAT_DUMMY> add, and, call, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, inc, jcond, jmp, lea, leave, mov, movsb, movzx, movsxd, mul, neg, nop, not, or, pop, push, rep_movsb, rep_movsd, rep_stosd, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
 	
-	ac_behaviour add, and, call, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, inc, jcond, jmp, lea, leave, mov, movsb, movzx, movsxd, neg, nop, not, or, pop, push, rep_movsb, ret, sar, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
+	ac_behaviour add, and, call, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, inc, jcond, jmp, lea, leave, mov, movsb, movzx, movsxd, mul, neg, nop, not, or, pop, push, rep_movsb, rep_movsd, rep_stosd, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
 
 	ISA_CTOR(x86) {
 		add.set_decoder();
@@ -20,6 +20,9 @@ AC_ISA(x86)
 		call.set_end_of_block();
 		call.set_variable_jump();
 		
+		cdqe.set_decoder();
+		cdqe.set_behaviour(cdqe);
+	
 		cld.set_decoder();
 		cld.set_behaviour(cld);
 	
@@ -81,6 +84,9 @@ AC_ISA(x86)
 		movzx.set_decoder();
 		movzx.set_behaviour(movzx);
 		
+		mul.set_decoder();
+		mul.set_behaviour(mul);
+		
 		neg.set_decoder();
 		neg.set_behaviour(neg);
 		
@@ -102,6 +108,12 @@ AC_ISA(x86)
 		rep_movsb.set_decoder();
 		rep_movsb.set_behaviour(rep_movsb);
 		
+		rep_movsd.set_decoder();
+		rep_movsd.set_behaviour(rep_movsd);
+		
+		rep_stosd.set_decoder();
+		rep_stosd.set_behaviour(rep_stosd);
+		
 		ret.set_decoder();
 		ret.set_behaviour(ret);
 		ret.set_end_of_block();
@@ -109,6 +121,9 @@ AC_ISA(x86)
 		
 		sar.set_decoder();
 		sar.set_behaviour(sar);
+		
+		sbb.set_decoder();
+		sbb.set_behaviour(sbb);
 		
 		setcc.set_decoder();
 		setcc.set_behaviour(setcc);
