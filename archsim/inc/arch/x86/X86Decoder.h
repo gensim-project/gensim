@@ -48,6 +48,7 @@ enum X86Opcodes {
 	INST_x86_movzx,
 	INST_x86_neg,
 	INST_x86_nop,
+	INST_x86_not,
 	INST_x86_or,
 	INST_x86_pop,
 	INST_x86_push,

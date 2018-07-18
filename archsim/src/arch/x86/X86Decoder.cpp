@@ -355,6 +355,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_MOVZX, INST_x86_movzx);
 			MAP(XED_ICLASS_NEG, INST_x86_neg);
 			MAP(XED_ICLASS_NOP, INST_x86_nop);
+			MAP(XED_ICLASS_NOT, INST_x86_not);
 			MAP(XED_ICLASS_OR, INST_x86_or);
 			MAP(XED_ICLASS_POP, INST_x86_pop);
 			MAP(XED_ICLASS_PUSH, INST_x86_push);

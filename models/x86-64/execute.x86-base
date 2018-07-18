@@ -84,8 +84,8 @@ execute(div) {
 		take_exception(1,0);
 	}
 	
-	write_register_bank(RQ, 0, dividend / divisor);
-	write_register_bank(RQ, 3, dividend % divisor);
+	write_register(RAX, dividend / divisor);
+	write_register(RDX, dividend % divisor);
 }
 
 execute(idiv) {
@@ -184,6 +184,11 @@ execute(neg) {
 
 execute(nop) {
 	//nothing to do
+}
+
+execute(not) {
+	uint64 value = read_operand(inst.op0);
+	write_operand(inst.op0, ~value);
 }
 
 execute(or) {
@@ -469,7 +474,7 @@ helper uint8 operand_get_size(struct Operand &op)
 
 helper uint64 read_op_reg(struct Register &reg)
 {
-	return read_reg(reg.index, reg.width);
+	return read_reg_struct(reg);
 }
 
 helper uint64 read_op_imm(struct Immediate &op) 

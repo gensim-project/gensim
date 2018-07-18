@@ -117,11 +117,11 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 
 	GetMemoryModel().GetMappingManager()->MapRegion(_initial_stack_pointer - _stack_size, _stack_size, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[stack]");
 
-	unsigned long envp_ptrs[1];
-	unsigned long argv_ptrs[global_argc + 1];
+	std::vector<Address> envp_ptrs (global_envc);
+	std::vector<Address> argv_ptrs (global_argc + 1);
 
 	int argc = global_argc + 1;
-	int envc = 1;
+	int envc = global_envc;
 
 	Address sp = _initial_stack_pointer;
 
@@ -135,19 +135,19 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 
 	PUSH(0);
 	PUSHSTR(archsim::options::TargetBinary.GetValue().c_str()); // global_argv[0]);
-	argv_ptrs[0] = sp.Get();
+	argv_ptrs[0] = sp;
 
 	for (int i = 0; i < global_envc; i++) {
 		if(environ[i][0] == '_')
 			PUSHSTR("_=/home/a.out");
 		else
 			PUSHSTR(environ[i]);
-		envp_ptrs[i] = sp.Get();
+		envp_ptrs[i] = sp;
 	}
 
 	for(int i = 0; i < global_argc; ++i) {
 		PUSHSTR(global_argv[i]);
-		argv_ptrs[i+1] = sp.Get();
+		argv_ptrs[i+1] = sp;
 	}
 
 	for(int i = 0; i < 16; ++i) {
@@ -188,11 +188,11 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 #define WRITE_STACK(value) do { if(Is64BitBinary()) {GetMemoryModel().Write64(sp, value); sp += 8;} else { GetMemoryModel().Write32(sp, value); sp += 4;} } while(0)
 	WRITE_STACK(argc);
 	for(auto i : argv_ptrs) {
-		WRITE_STACK(i);
+		WRITE_STACK(i.Get());
 	}
 	WRITE_STACK(0);
 	for(auto i : envp_ptrs) {
-		WRITE_STACK(i);
+		WRITE_STACK(i.Get());
 	}
 	WRITE_STACK(0);
 
