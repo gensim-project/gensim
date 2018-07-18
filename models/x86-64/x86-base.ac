@@ -4,9 +4,9 @@ AC_ISA(x86)
 	// through an external decoder.
 	ac_format FORMAT_DUMMY = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY> add, and, call, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, inc, jcond, jmp, lea, leave, mov, movsb, movzx, movsxd, neg, nop, or, pop, push, rep_movsb, ret, sar, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
+	ac_instr<FORMAT_DUMMY> add, and, call, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, inc, jcond, jmp, lea, leave, mov, movsb, movzx, movsxd, neg, nop, not, or, pop, push, rep_movsb, ret, sar, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
 	
-	ac_behaviour add, and, call, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, inc, jcond, jmp, lea, leave, mov, movsb, movzx, movsxd, neg, nop, or, pop, push, rep_movsb, ret, sar, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
+	ac_behaviour add, and, call, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, inc, jcond, jmp, lea, leave, mov, movsb, movzx, movsxd, neg, nop, not, or, pop, push, rep_movsb, ret, sar, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
 
 	ISA_CTOR(x86) {
 		add.set_decoder();
@@ -86,6 +86,9 @@ AC_ISA(x86)
 		
 		nop.set_decoder();
 		nop.set_behaviour(nop);
+		
+		not.set_decoder();
+		not.set_behaviour(not);
 		
 		or.set_decoder();
 		or.set_behaviour(or);
