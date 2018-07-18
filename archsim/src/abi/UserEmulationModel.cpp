@@ -11,6 +11,8 @@
 #include "core/MemoryInterface.h"
 #include "core/execution/ExecutionEngineFactory.h"
 
+#include <sys/param.h>
+
 extern char **environ;
 
 UseLogContext(LogEmulationModel);
@@ -134,14 +136,18 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 #define PUSH_AUX_ENT(_id, _value) do { PUSH(_value); PUSH(_id); } while (0)
 
 	PUSH(0);
-	PUSHSTR(archsim::options::TargetBinary.GetValue().c_str()); // global_argv[0]);
+	char the_realpath[MAXPATHLEN];
+	realpath(archsim::options::TargetBinary.GetValue().c_str(), the_realpath);
+	PUSHSTR(the_realpath); // global_argv[0]);
 	argv_ptrs[0] = sp;
 
 	for (int i = 0; i < global_envc; i++) {
-		if(environ[i][0] == '_')
-			PUSHSTR("_=/home/a.out");
-		else
+		if(environ[i][0] == '_') {
+			std::string envstr = "_=" + archsim::options::TargetBinary.GetValue();
+			PUSHSTR(envstr.c_str());
+		} else {
 			PUSHSTR(environ[i]);
+		}
 		envp_ptrs[i] = sp;
 	}
 
