@@ -222,7 +222,7 @@ public:
 
 			for (std::list<SSACastStatement *>::iterator i = cast_candidates.begin(); i != cast_candidates.end(); ++i) {
 				SSACastStatement *cast_stmt = *i;
-				if(cast_stmt->GetCastType() != SSACastStatement::Cast_Reinterpret) {
+				if(cast_stmt->GetCastType() != SSACastStatement::Cast_Reinterpret && cast_stmt->GetType().BaseType.PlainOldDataType != gensim::genc::IRPlainOldDataType::INT128) {
 					ConstantFoldCastOp(cast_stmt);
 					change_made = true;
 				}

@@ -341,7 +341,7 @@ namespace gensim
 				}
 			}
 
-			if(to.BaseType.PlainOldDataType == IRPlainOldDataType::INT64) {
+			if(to.BaseType.PlainOldDataType == IRPlainOldDataType::INT64 || to.BaseType.PlainOldDataType == IRPlainOldDataType::INT128) {
 				uint64_t result;
 				switch(value.Type()) {
 					case IRConstant::Type_Integer:
@@ -359,7 +359,7 @@ namespace gensim
 				return IRConstant::Integer(result);
 			}
 
-			uint64_t mask = (1ULL << (to.SizeInBytes()*8))-1;
+			uint64_t mask = (((uint64_t)1) << (to.SizeInBytes()*8))-1;
 			cast_value = result.Int() & mask;
 
 			return IRConstant::Integer(cast_value);
