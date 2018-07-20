@@ -4,9 +4,9 @@ AC_ISA(x86)
 	// through an external decoder.
 	ac_format FORMAT_DUMMY = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY> add, and, call, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, inc, jcond, jmp, lea, leave, mov, movsb, movzx, movsxd, mul, neg, nop, not, or, pop, push, rep_movsb, rep_movsd, rep_stosd, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
+	ac_instr<FORMAT_DUMMY> add, and, bt, call, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, repne_scasb, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
 	
-	ac_behaviour add, and, call, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, inc, jcond, jmp, lea, leave, mov, movsb, movzx, movsxd, mul, neg, nop, not, or, pop, push, rep_movsb, rep_movsd, rep_stosd, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
+	ac_behaviour add, and, bt, call, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, repne_scasb, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
 
 	ISA_CTOR(x86) {
 		add.set_decoder();
@@ -14,6 +14,9 @@ AC_ISA(x86)
 		
 		and.set_decoder();
 		and.set_behaviour(and);
+	
+		bt.set_decoder();
+		bt.set_behaviour(bt);
 	
 		call.set_decoder();
 		call.set_behaviour(call);
@@ -53,6 +56,9 @@ AC_ISA(x86)
 		imul2.set_decoder();
 		imul2.set_behaviour(imul2);
 	
+		imul3.set_decoder();
+		imul3.set_behaviour(imul3);
+	
 		inc.set_decoder();
 		inc.set_behaviour(inc);
 	
@@ -81,6 +87,9 @@ AC_ISA(x86)
 		movsxd.set_decoder();
 		movsxd.set_behaviour(movsxd);
 		
+		movsx.set_decoder();
+		movsx.set_behaviour(movsx);
+		
 		movzx.set_decoder();
 		movzx.set_behaviour(movzx);
 		
@@ -102,8 +111,14 @@ AC_ISA(x86)
 		pop.set_decoder();
 		pop.set_behaviour(pop);
 		
+		popf.set_decoder();
+		popf.set_behaviour(popf);
+		
 		push.set_decoder();
 		push.set_behaviour(push);
+		
+		pushfq.set_decoder();
+		pushfq.set_behaviour(pushfq);
 		
 		rep_movsb.set_decoder();
 		rep_movsb.set_behaviour(rep_movsb);
@@ -111,8 +126,17 @@ AC_ISA(x86)
 		rep_movsd.set_decoder();
 		rep_movsd.set_behaviour(rep_movsd);
 		
+		rep_movsq.set_decoder();
+		rep_movsq.set_behaviour(rep_movsq);
+		
+		rep_stosb.set_decoder();
+		rep_stosb.set_behaviour(rep_stosb);
+		
 		rep_stosd.set_decoder();
 		rep_stosd.set_behaviour(rep_stosd);
+		
+		repne_scasb.set_decoder();
+		repne_scasb.set_behaviour(repne_scasb);
 		
 		ret.set_decoder();
 		ret.set_behaviour(ret);

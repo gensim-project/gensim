@@ -22,11 +22,16 @@ AC_ARCH(x86)
 		
 		slot RAX(uint64, 8, 0);
 		slot EAX(uint32, 4, 0);
+		slot AX (uint16, 2, 0);
+		slot AL (uint8,  1, 0);
 		
 		slot RCX(uint64, 8, 8);
 		slot ECX(uint32, 4, 8);
 		
 		slot RDX(uint64, 8, 16);
+		slot EDX(uint32, 4, 16);
+		slot  DX(uint16, 2, 16);
+		slot  DL(uint8, 1, 16);
 		
 		slot RSP (uint64, 8, 32) SP;
 		slot RBP (uint64, 8, 40);

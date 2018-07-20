@@ -101,7 +101,7 @@ archsim::abi::ExceptionAction X86LinuxUserEmulationModel::HandleException(archsi
 		request.arg5 = registers[9];
 
 		if(EmulateSyscall(request, response)) {
-			registers[0] = response.result;
+			registers[0] = (int64_t)(int32_t)response.result;
 		} else {
 			LC_ERROR(LogEmulationModelX86Linux) << "Syscall not supported: " << std::hex << "0x" << request.syscall << "(" << std::dec << request.syscall << ")";
 			registers[0] = -1;

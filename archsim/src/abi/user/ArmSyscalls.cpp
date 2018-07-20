@@ -44,7 +44,7 @@ static unsigned int translate_fd(archsim::core::thread::ThreadInstance* cpu, int
 
 static unsigned int sys_exit(archsim::core::thread::ThreadInstance* cpu, unsigned int exit_code)
 {
-//	cpu->Halt();
+	cpu->SendMessage(archsim::core::thread::ThreadMessage::Halt);
 	cpu->GetEmulationModel().GetSystem().exit_code = exit_code;
 
 	return 0;
@@ -86,7 +86,7 @@ static unsigned int sys_open(archsim::core::thread::ThreadInstance* cpu, unsigne
 
 	int guest_fd = cpu->GetEmulationModel().GetSystem().OpenFD(host_fd);
 
-	LC_DEBUG2(LogSyscalls) << "Open: Opened " << filename << " with host FD " << host_fd << ", guest FD " << guest_fd;
+	LC_DEBUG1(LogSyscalls) << "Open: Opened " << filename << " with host FD " << host_fd << ", guest FD " << guest_fd;
 
 	return guest_fd;
 }
@@ -271,6 +271,13 @@ static unsigned int sys_read(archsim::core::thread::ThreadInstance* cpu, unsigne
 static unsigned int sys_write(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int addr, unsigned int len)
 {
 	ssize_t res;
+
+	LC_DEBUG1(LogSyscalls) << "write: Writing to FD " << fd << ", from address " << Address(addr) << ", " << len << " bytes";
+
+	if(len > 0x1000000) {
+		cpu->SendMessage(archsim::core::thread::ThreadMessage::Halt);
+		return -EINVAL;
+	}
 
 	char *buffer = (char *)malloc(len);
 	bzero(buffer, len);
