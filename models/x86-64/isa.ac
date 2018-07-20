@@ -47,6 +47,7 @@ AC_ISA(x86)
 	
 	ac_field<Operand> op0;
 	ac_field<Operand> op1;
+	ac_field<Operand> op2;
 	ac_field<uint8> condition;
 	
 	ISA_CTOR(x86)

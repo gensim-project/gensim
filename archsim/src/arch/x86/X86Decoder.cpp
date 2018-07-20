@@ -315,6 +315,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 #define MAP(xed, model) case xed: Instr_Code = model; return true;
 			MAP(XED_ICLASS_ADD, INST_x86_add);
 			MAP(XED_ICLASS_AND, INST_x86_and);
+			MAP(XED_ICLASS_BT, INST_x86_bt);
 			MAP(XED_ICLASS_CALL_NEAR, INST_x86_call);
 			MAP(XED_ICLASS_CDQE, INST_x86_cdqe);
 			MAP(XED_ICLASS_CLD, INST_x86_cld);
@@ -327,6 +328,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_CMOVZ, INST_x86_cmov);
 			MAP(XED_ICLASS_CMOVNS, INST_x86_cmov);
 			MAP(XED_ICLASS_CMOVS, INST_x86_cmov);
+			MAP(XED_ICLASS_CMOVNLE, INST_x86_cmov);
+			MAP(XED_ICLASS_CMOVLE, INST_x86_cmov);
 
 			MAP(XED_ICLASS_CMP, INST_x86_cmp);
 			MAP(XED_ICLASS_CMPXCHG, INST_x86_cmpxchg);
@@ -335,7 +338,22 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_DEC, INST_x86_dec);
 			MAP(XED_ICLASS_DIV, INST_x86_div);
 			MAP(XED_ICLASS_IDIV, INST_x86_idiv);
-			MAP(XED_ICLASS_IMUL, INST_x86_imul2);
+
+		// need to be careful with imul - XED encodes it as a single opcode
+		// but we handle it as 3 different instructions
+		case XED_ICLASS_IMUL:
+			switch(xed_decoded_inst_noperands(inst)) {
+				case 4:
+					Instr_Code = INST_x86_imul3;
+					return true;
+				case 3:
+					Instr_Code = INST_x86_imul2;
+					return true;
+				default:
+					return false;
+			}
+			break;
+
 			MAP(XED_ICLASS_INC, INST_x86_inc);
 
 			MAP(XED_ICLASS_JZ, INST_x86_jcond);
@@ -357,6 +375,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_MOV, INST_x86_mov);
 			MAP(XED_ICLASS_MOVSB, INST_x86_movsb);
 			MAP(XED_ICLASS_MOVSXD, INST_x86_movsxd);
+			MAP(XED_ICLASS_MOVSX, INST_x86_movsx);
 			MAP(XED_ICLASS_MOVZX, INST_x86_movzx);
 			MAP(XED_ICLASS_MUL, INST_x86_mul);
 			MAP(XED_ICLASS_NEG, INST_x86_neg);
@@ -364,14 +383,26 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_NOT, INST_x86_not);
 			MAP(XED_ICLASS_OR, INST_x86_or);
 			MAP(XED_ICLASS_POP, INST_x86_pop);
+
+			// TODO: fix variants of popf
+			MAP(XED_ICLASS_POPF, INST_x86_popf);
+			MAP(XED_ICLASS_POPFD, INST_x86_popf);
+			MAP(XED_ICLASS_POPFQ, INST_x86_popf);
+
 			MAP(XED_ICLASS_PUSH, INST_x86_push);
+			MAP(XED_ICLASS_PUSHFQ, INST_x86_pushfq);
 			MAP(XED_ICLASS_REP_MOVSB, INST_x86_rep_movsb);
 			MAP(XED_ICLASS_REP_MOVSD, INST_x86_rep_movsd);
+			MAP(XED_ICLASS_REP_MOVSQ, INST_x86_rep_movsq);
+			MAP(XED_ICLASS_REP_STOSB, INST_x86_rep_stosb);
 			MAP(XED_ICLASS_REP_STOSD, INST_x86_rep_stosd);
+			MAP(XED_ICLASS_REPNE_SCASB, INST_x86_repne_scasb);
 			MAP(XED_ICLASS_RET_NEAR, INST_x86_ret);
 			MAP(XED_ICLASS_SAR, INST_x86_sar);
 			MAP(XED_ICLASS_SBB, INST_x86_sbb);
 
+			MAP(XED_ICLASS_SETBE, INST_x86_setcc);
+			MAP(XED_ICLASS_SETNBE, INST_x86_setcc);
 			MAP(XED_ICLASS_SETB, INST_x86_setcc);
 			MAP(XED_ICLASS_SETNB, INST_x86_setcc);
 			MAP(XED_ICLASS_SETZ, INST_x86_setcc);
@@ -439,7 +470,7 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 
 	Instr_Length = xed_decoded_inst_get_length(&xedd);
 
-	if(archsim::options::Verbose) {
+	if(archsim::options::Debug) {
 		xed_decoded_inst_dump(&xedd, dump_buffer, sizeof(dump_buffer));
 		printf("%p (%u) %s\n", addr.Get(), Instr_Length, dump_buffer);
 	}
