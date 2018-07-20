@@ -28,20 +28,25 @@ BinaryFileTraceSink::~BinaryFileTraceSink()
 
 void BinaryFileTraceSink::Flush()
 {
-	fwrite(records_.data(), records_.size(), sizeof(TraceRecord), outfile_);
+	// this is a nightmare, thanks PIN.
+	fwrite(&records_.at(0), records_.size(), sizeof(TraceRecord), outfile_);
 	fflush(outfile_);
 	records_.clear();
 }
 
 void BinaryFileTraceSink::SinkPackets(const TraceRecord* start, const TraceRecord* end)
 {
-	auto *ptr = start;
-	auto oldsize = records_.size();
-	records_.resize(records_.size() + (end - start));
-	memcpy(records_.data() + oldsize, start, (end-start) * sizeof(*start));
+	if(end - start != 0) {
+		auto *ptr = start;
+		auto oldsize = records_.size();
+		records_.resize(records_.size() + (end - start));
 
-	if(records_.size() >= TraceSource::RecordBufferSize) {
-		Flush();
+		// this is a nightmare, thanks PIN.
+		memcpy(&records_.at(0) + oldsize, start, (end-start) * sizeof(*start));
+
+		if(records_.size() >= TraceSource::RecordBufferSize) {
+			Flush();
+		}
 	}
 }
 
