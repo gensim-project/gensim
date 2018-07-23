@@ -19,6 +19,8 @@ static int get_register_index(xed_reg_enum_t reg)
 			return xed_get_largest_enclosing_register(reg) - XED_REG_RAX;
 		case XED_REG_CLASS_IP:
 			return SPECIAL_RIP_INDEX;
+		case XED_REG_CLASS_XMM:
+			return xed_get_largest_enclosing_register(reg) - XED_REG_XMM0;
 		default:
 			UNIMPLEMENTED;
 	}
@@ -136,6 +138,12 @@ bool DecodeRegister(xed_decoded_inst_t *xedd, xed_reg_enum_t reg, X86Decoder::Re
 			output_reg.index = get_register_index(reg);
 			output_reg.width = xed_get_register_width_bits64(reg);
 			output_reg.offset = 0;
+			break;
+
+		case XED_REG_CLASS_XMM:
+			output_reg.index = get_register_index(reg);
+			output_reg.width = xed_get_register_width_bits64(reg);
+			output_reg.regclass = 1;
 			break;
 
 		case XED_REG_CLASS_IP:
@@ -315,6 +323,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 #define MAP(xed, model) case xed: Instr_Code = model; return true;
 			MAP(XED_ICLASS_ADD, INST_x86_add);
 			MAP(XED_ICLASS_AND, INST_x86_and);
+			MAP(XED_ICLASS_BSF, INST_x86_bsf);
 			MAP(XED_ICLASS_BT, INST_x86_bt);
 			MAP(XED_ICLASS_CALL_NEAR, INST_x86_call);
 			MAP(XED_ICLASS_CDQE, INST_x86_cdqe);
@@ -373,6 +382,10 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_LEA, INST_x86_lea);
 			MAP(XED_ICLASS_LEAVE, INST_x86_leave);
 			MAP(XED_ICLASS_MOV, INST_x86_mov);
+			MAP(XED_ICLASS_MOVD, INST_x86_movd);
+			MAP(XED_ICLASS_MOVDQU, INST_x86_movdqu);
+			MAP(XED_ICLASS_MOVDQA, INST_x86_movdqu);
+			MAP(XED_ICLASS_MOVQ, INST_x86_movq);
 			MAP(XED_ICLASS_MOVSB, INST_x86_movsb);
 			MAP(XED_ICLASS_MOVSXD, INST_x86_movsxd);
 			MAP(XED_ICLASS_MOVSX, INST_x86_movsx);
@@ -382,6 +395,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_NOP, INST_x86_nop);
 			MAP(XED_ICLASS_NOT, INST_x86_not);
 			MAP(XED_ICLASS_OR, INST_x86_or);
+			MAP(XED_ICLASS_PCMPEQB, INST_x86_pcmpeqb);
+			MAP(XED_ICLASS_PMOVMSKB, INST_x86_pmovmskb);
 			MAP(XED_ICLASS_POP, INST_x86_pop);
 
 			// TODO: fix variants of popf
@@ -389,8 +404,15 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_POPFD, INST_x86_popf);
 			MAP(XED_ICLASS_POPFQ, INST_x86_popf);
 
+			MAP(XED_ICLASS_POR, INST_x86_por);
+			MAP(XED_ICLASS_PUNPCKLBW, INST_x86_punpcklbw);
+			MAP(XED_ICLASS_PUNPCKLWD, INST_x86_punpcklwd);
 			MAP(XED_ICLASS_PUSH, INST_x86_push);
 			MAP(XED_ICLASS_PUSHFQ, INST_x86_pushfq);
+			MAP(XED_ICLASS_PSHUFD, INST_x86_pshufd);
+			MAP(XED_ICLASS_PXOR, INST_x86_pxor);
+			MAP(XED_ICLASS_RDTSC, INST_x86_rdtsc);
+			MAP(XED_ICLASS_REPE_CMPSB, INST_x86_repe_cmpsb);
 			MAP(XED_ICLASS_REP_MOVSB, INST_x86_rep_movsb);
 			MAP(XED_ICLASS_REP_MOVSD, INST_x86_rep_movsd);
 			MAP(XED_ICLASS_REP_MOVSQ, INST_x86_rep_movsq);

@@ -2,7 +2,7 @@ execute(add) {
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
-	uint64 result = addition(op0, op1);
+	uint64 result = addition(op0, op1, operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, result);
 }
@@ -16,11 +16,29 @@ execute(and) {
 	write_operand(inst.op0, result);
 }
 
+helper uint8 do_bsf(uint64 op, uint8 size) 
+{
+	for(uint8 i = 0; i < size; ++i) {
+		if(op & (1 << i)) {
+			return i;
+		}
+	}
+	return 0;
+}
+
+execute(bsf) {
+	
+	uint64 op1 = read_operand(inst.op1);
+	uint8 value = do_bsf(op1, operand_get_size(inst.op1));
+	
+	write_operand(inst.op0, value);
+}
+
 execute(bt) {
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
-	uint64 mask = 1 << op1;
+	uint64 mask = 1 << (op1 & (operand_get_size(inst.op0) - 1));
 	write_register(CF, (op0 & mask) != 0);
 }
 
@@ -114,30 +132,35 @@ execute(idiv) {
 }
 
 execute(imul2) {
-	sint64 op0 = read_operand(inst.op0);
-	sint64 op1 = read_operand(inst.op1);
+	sint128 op0 = read_operand(inst.op0);
+	sint128 op1 = read_operand(inst.op1);
 	
-	sint64 result = op0 * op1;
+	sint128 result = op0 * op1;
 	
 	// todo: flags
-	
+	uint8 truncation = result != (sint64)result;
+	write_register(CF, truncation);
+	write_register(OF, truncation);
+		
 	write_operand(inst.op0, result);
 }
 
 execute(imul3) {
-	sint64 op0 = read_operand(inst.op1);
-	sint64 op1 = read_operand(inst.op2);
+	sint128 op0 = read_operand(inst.op1);
+	sint128 op1 = read_operand(inst.op2);
 	
-	sint64 result = op0 * op1;
+	sint128 result = op0 * op1;
 	
-	// todo: flags
+	uint8 truncation = result != (sint64)result;
+	write_register(CF, truncation);
+	write_register(OF, truncation);
 	
 	write_operand(inst.op0, result);
 }
 
 execute(inc) {
 	uint64 op0 = read_operand(inst.op0);
-	write_operand(inst.op0, addition(op0, 1));
+	write_operand(inst.op0, addition(op0, 1, operand_get_size(inst.op0)));
 }
 
 execute(jcond) {
@@ -266,6 +289,23 @@ execute(pushfq) {
 	uint64 data = read_eflags();
 	
 	stack_push(data);
+}
+
+execute(rdtsc) {
+	take_exception(1, 0);
+}
+
+execute(repe_cmpsb) {
+	if(repe_should_run(inst)) {
+		
+		do_cmpsb(inst);
+		
+		rep_decrement_counter(inst);
+		
+	} 
+	if(!repe_should_run(inst)) {
+		write_pc(read_pc() + inst.Instr_Length);
+	}
 }
 
 execute(rep_movsb) {
@@ -446,6 +486,7 @@ helper uint64 bitwise_and(uint64 op0, uint64 op1, uint8 op_size)
 	result = sign_extend(result, op_size);
 	write_register(ZF, result == 0);
 	write_register(SF, result < 0);
+	update_parity(result);
 	
 	return (uint64)result;
 }
@@ -457,6 +498,7 @@ helper uint64 bitwise_or(uint64 op0, uint64 op1, uint8 op_size)
 	
 	write_register(ZF, result == 0);
 	write_register(SF, result < 0);
+	update_parity(result);
 	
 	return (uint64)result;
 }
@@ -468,15 +510,24 @@ helper uint64 bitwise_xor(uint64 op0, uint64 op1, uint8 op_size)
 	
 	write_register(ZF, result == 0);
 	write_register(SF, result < 0);
+	update_parity(result);
 	
 	return (uint64)result;
 }
 
-helper uint64 addition(uint64 op0, uint64 op1)
+helper uint64 addition(uint64 op0, uint64 op1, uint8 op_size)
 {
 	sint64 result = op0 + op1;
 	
-	__builtin_adc64_flags(op0, op1, 0);
+	switch(op_size) {
+		case 8: { __builtin_adc8_flags(op0, op1, 0); break; }
+		case 16: { __builtin_adc16_flags(op0, op1, 0); break; }
+		case 32: { __builtin_adc_flags(op0, op1, 0); break; } 
+		case 64: { __builtin_adc64_flags(op0, op1, 0); break; }
+		default: { trap(); }
+	}
+
+	update_parity(result);
 	
 	return (uint64)result;
 }
@@ -485,6 +536,32 @@ helper void set_zsp_flags(sint64 result)
 {
 	write_register(ZF, result == 0);
 	write_register(SF, result < 0);
+	update_parity(result);
+	
+	return;
+}
+
+helper void do_cmpsb(struct Instruction &inst)
+{
+	// read RSI
+	uint64 src_addr = read_reg(6, 64);
+	
+	// read RDI
+	uint64 dest_addr = read_reg(7, 64);
+	
+	uint8 value0;
+	uint8 value1;
+	mem_read_8(Data, src_addr, value0);
+	mem_read_8(Data, dest_addr, value1);
+	subtract(value0, value1, 8);
+
+	if(read_register(DF)) {
+		write_reg(6, 64, src_addr - 1);
+		write_reg(7, 64, dest_addr - 1);
+	} else {
+		write_reg(6, 64, src_addr + 1);
+		write_reg(7, 64, dest_addr + 1);
+	}
 	
 	return;
 }
@@ -605,9 +682,42 @@ helper uint64 subtract(uint64 op0, uint64 op1, uint8 size)
 	op1 = sign_extend(op1, size);
 	sint64 result = op0 - op1;
 	
-	__builtin_sbc64_flags(op0, op1, 0);
+	switch(size) {
+		case 8: { __builtin_sbc8_flags(op0, op1, 0); break; }
+		case 16: { __builtin_sbc16_flags(op0, op1, 0); break; }
+		case 32: { __builtin_sbc_flags(op0, op1, 0); break; } 
+		case 64: { __builtin_sbc64_flags(op0, op1, 0); break; }
+		default: { trap(); }
+	}
+	
+	update_parity(result);
 	
 	return (uint64)result;
+}
+
+helper void sbc8(uint8 op0, uint8 op1, uint8 carry)
+{
+	uint16 result = (uint16)op0 - ((uint16)op1 + (uint16)carry);
+	set_zsp_flags((uint8)result);
+	write_register(CF, result > 0xff);
+	
+	sint8 sop0 = op0;
+	sint8 sop1 = op1;
+	uint8 cond1 = (sop0 < 0) && (sop1 < 0) && ((sint8)result >= 0);
+	uint8 cond2 = (sop0 >= 0) && (sop1 >= 0) && ((sint8)result < 0);
+	
+	write_register(OF, cond1 | cond2); 
+	
+	return;
+}
+
+helper void sbc16(uint16 op0, uint16 op1, uint8 carry)
+{	
+	uint32 result = (uint32)op0 - ((uint32)op1 + (uint32)carry);
+	set_zsp_flags((uint16)result);
+	write_register(CF, result > 0xffff);
+	write_register(OF, ((op0 & 0x8000) == (op1 & 0x8000)) && ((op0 & 0x8000) != (result & 0x8000))); 
+	return;
 }
 
 helper void stack_push(uint64 value)
@@ -770,10 +880,11 @@ helper uint64 read_eflags()
 {
 	uint64 value = 0;
 	value |= read_register(CF);
-	value |= read_register(ZF) << 6;
-	value |= read_register(SF) << 7;
-	value |= read_register(DF) << 10;
-	value |= read_register(OF) << 11;
+	value |= read_register(PF) << (uint32)2;
+	value |= read_register(ZF) << (uint32)6;
+	value |= read_register(SF) << (uint32)7;
+	value |= read_register(DF) << (uint32)10;
+	value |= read_register(OF) << (uint32)11;
 
 	return value;
 }
@@ -923,6 +1034,7 @@ helper void write_operand(struct Operand &op, uint64 value)
 helper void write_eflags(uint64 value)
 {
 	write_register(CF, value & 1);
+	write_register(PF, (value >> 2) & 1);
 	write_register(ZF, (value >> 6) & 1);
 	write_register(SF, (value >> 7) & 1);
 	write_register(DF, (value >> 10) & 1);
@@ -939,6 +1051,11 @@ helper uint8 rep_should_run(struct Instruction &inst)
 helper uint8 repne_should_run(struct Instruction &inst)
 {
 	return (read_register(ECX) != 0) && (read_register(ZF) != 1);
+}
+
+helper uint8 repe_should_run(struct Instruction &inst)
+{
+	return (read_register(ECX) != 0) && (read_register(ZF) == 1);
 }
 
 helper void rep_decrement_counter(struct Instruction &inst)
@@ -959,6 +1076,39 @@ helper uint64 sign_extend(uint64 value, uint8 width)
 	}
 	
 	return value;
+}
+
+helper void update_zs_flags(uint64 value, uint8 width)
+{
+	switch(width) {
+		case 8: {
+			write_register(ZF, ((uint8)value) == 0);
+			write_register(SF, (sint8)value < 0);
+			break;
+		}
+		case 16: {
+			write_register(ZF, ((uint16)value) == 0);
+			write_register(SF, (sint16)value < 0);
+			break;
+		}
+		case 32: {
+			write_register(ZF, ((uint32)value) == 0);
+			write_register(SF, (sint32)value < 0);
+			break;
+		}
+		case 64: {
+			write_register(ZF, ((uint64)value) == 0);
+			write_register(SF, (sint64)value < 0);
+			break;
+		}
+	}
+	return;
+}
+
+helper void update_parity(uint8 value)
+{
+	write_register(PF, (__builtin_popcount(value) & 1) == 0);
+	return;
 }
 
 helper uint8 check_condition(uint8 condition)
