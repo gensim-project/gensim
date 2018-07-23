@@ -48,6 +48,13 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 		case SSAIntrinsic_DoubleAbs:
 			return IRTypes::Double;
 
+		case SSAIntrinsic_Adc8WithFlags:
+		case SSAIntrinsic_Sbc8WithFlags:
+			return IRTypes::UInt8;
+		case SSAIntrinsic_Adc16WithFlags:
+		case SSAIntrinsic_Sbc16WithFlags:
+			return IRTypes::UInt16;
+
 		case SSAIntrinsic_Adc:
 		case SSAIntrinsic_Sbc:
 		case SSAIntrinsic_AdcWithFlags:

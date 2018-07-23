@@ -83,10 +83,9 @@ archsim::abi::ExceptionAction X86LinuxUserEmulationModel::HandleException(archsi
 		GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, (void*)(uint64_t)0);
 		return archsim::abi::ResumeNext;
 	}
+	uint64_t* registers = (uint64_t*)cpu->GetRegisterFileInterface().GetData();
 
 	if(category == 0) {
-		uint64_t* registers = (uint64_t*)cpu->GetRegisterFileInterface().GetData();
-
 		archsim::abi::SyscallRequest request {0, cpu};
 		request.syscall = registers[0];
 
@@ -116,6 +115,15 @@ archsim::abi::ExceptionAction X86LinuxUserEmulationModel::HandleException(archsi
 		}
 
 		return response.action;
+	} else if(category == 1) {
+		// support call
+		switch(data) {
+			case 0: { // rdtsc
+				asm volatile ("rdtsc" : "=a"(registers[0]), "=d"(registers[2]));
+				return ResumeNext;
+			}
+		}
+
 	}
 
 	cpu->SendMessage(archsim::core::thread::ThreadMessage::Halt);

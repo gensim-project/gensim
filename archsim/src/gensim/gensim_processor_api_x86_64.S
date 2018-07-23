@@ -41,6 +41,42 @@ genc_adc_flags:
 	retq
 .size genc_adc_flags, .-genc_adc_flags
 
+.globl genc_adc8_flags
+genc_adc8_flags:
+	mov %edi, %r11d
+	// set carry flag and clear ecx
+	movb $0xff, %al
+	addb %dl, %al
+
+	// perform add with carry
+	adc %sil, %r11b
+
+	// read out flags into correct format
+	lahf
+	seto %al
+
+	// return
+	retq
+.size genc_adc_flags, .-genc_adc_flags
+
+.globl genc_adc16_flags
+genc_adc16_flags:
+	mov %edi, %r11d
+	// set carry flag and clear ecx
+	movb $0xff, %al
+	addb %dl, %al
+
+	// perform add with carry
+	adc %si, %r11w
+
+	// read out flags into correct format
+	lahf
+	seto %al
+
+	// return
+	retq
+.size genc_adc_flags, .-genc_adc_flags
+
 .globl genc_adc64_flags
 genc_adc64_flags:
 	mov %rdi, %r11
@@ -68,6 +104,42 @@ genc_sbc_flags:
 
 	// perform add with carry
 	sbb %esi, %r11d
+
+	// read out flags into correct format
+	lahf
+	seto %al
+
+	// return
+	retq
+.size genc_sbc_flags, .-genc_sbc_flags
+
+.globl genc_sbc8_flags
+genc_sbc8_flags:
+	mov %edi, %r11d
+	// set carry flag and clear ecx
+	movb $0xff, %al
+	addb %dl, %al
+
+	// perform add with carry
+	sbb %sil, %r11b
+
+	// read out flags into correct format
+	lahf
+	seto %al
+
+	// return
+	retq
+.size genc_sbc_flags, .-genc_sbc_flags
+
+.globl genc_sbc16_flags
+genc_sbc16_flags:
+	mov %edi, %r11d
+	// set carry flag and clear ecx
+	movb $0xff, %al
+	addb %dl, %al
+
+	// perform add with carry
+	sbb %si, %r11w
 
 	// read out flags into correct format
 	lahf

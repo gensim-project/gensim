@@ -22,6 +22,7 @@ typedef uint64_t uint64;
 enum X86Opcodes {
 	INST_x86_add,
 	INST_x86_and,
+	INST_x86_bsf,
 	INST_x86_bt,
 	INST_x86_call,
 	INST_x86_cdqe,
@@ -46,6 +47,9 @@ enum X86Opcodes {
 	INST_x86_lea,
 	INST_x86_leave,
 	INST_x86_mov,
+	INST_x86_movd,
+	INST_x86_movdqu,
+	INST_x86_movq,
 	INST_x86_movsb,
 	INST_x86_movsxd,
 	INST_x86_movsx,
@@ -55,10 +59,19 @@ enum X86Opcodes {
 	INST_x86_nop,
 	INST_x86_not,
 	INST_x86_or,
+	INST_x86_pcmpeqb,
+	INST_x86_pmovmskb,
 	INST_x86_pop,
 	INST_x86_popf,
+	INST_x86_por,
+	INST_x86_punpcklbw,
+	INST_x86_punpcklwd,
 	INST_x86_push,
 	INST_x86_pushfq,
+	INST_x86_pshufd,
+	INST_x86_pxor,
+	INST_x86_rdtsc,
+	INST_x86_repe_cmpsb,
 	INST_x86_rep_movsb,
 	INST_x86_rep_movsd,
 	INST_x86_rep_movsq,
@@ -94,6 +107,7 @@ namespace archsim
 				struct Register {
 					uint8_t index;
 					uint8_t width;
+					uint8_t regclass;
 
 					// is this an 'h' reg (ah etc)
 					uint8_t h_reg;
