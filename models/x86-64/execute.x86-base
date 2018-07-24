@@ -50,6 +50,11 @@ execute(call) {
 	write_register(IP, target);
 }
 
+execute(cdq) {
+	sint32 extended = ((sint32)read_register(EAX)) >> 31;
+	write_register(EDX, extended);
+}
+
 execute(cdqe) {
 	sint32 source = read_register(EAX);
 	sint64 extended = source;
@@ -112,8 +117,13 @@ execute(div) {
 	uint128 dividend = get_cd_pair(width*2);
 	uint64 divisor = read_operand(inst.op0);
 	
-	write_register(RAX, dividend / divisor);
-	write_register(RDX, dividend % divisor);
+	if(width == 8) {
+		write_register(AL, dividend / divisor);
+		write_register(AH, dividend % divisor);
+	} else {
+		write_reg(0, width, dividend / divisor);
+		write_reg(2, width, dividend % divisor);
+	}
 }
 
 execute(idiv) {
@@ -122,13 +132,14 @@ execute(idiv) {
 	// calculate divident
 	sint128 dividend = get_cd_pair(width*2);
 	sint64 divisor = read_operand(inst.op0);
-	
-	if(divisor == 0) {
-		take_exception(1,0);
+		
+	if(width == 8) {
+		write_register(AL, dividend / divisor);
+		write_register(AH, dividend % divisor);
+	} else {
+		write_reg(0, width, dividend / divisor);
+		write_reg(2, width, dividend % divisor);
 	}
-	
-	write_register_bank(RQ, 0, dividend / divisor);
-	write_register_bank(RQ, 3, dividend % divisor);
 }
 
 execute(imul2) {
@@ -347,6 +358,19 @@ execute(rep_movsq) {
 	}
 }
 
+execute(rep_stosb) {
+	if(rep_should_run(inst)) {
+		
+		do_stosb(inst);
+		
+		rep_decrement_counter(inst);
+		
+	} 
+	if(!rep_should_run(inst)) {
+		write_pc(read_pc() + inst.Instr_Length);
+	}
+}
+
 execute(rep_stosd) {
 	if(rep_should_run(inst)) {
 		
@@ -360,10 +384,10 @@ execute(rep_stosd) {
 	}
 }
 
-execute(rep_stosb) {
+execute(rep_stosq) {
 	if(rep_should_run(inst)) {
 		
-		do_stosb(inst);
+		do_stosq(inst);
 		
 		rep_decrement_counter(inst);
 		
@@ -671,6 +695,23 @@ helper void do_stosd(struct Instruction &inst)
 		write_reg(7, 64, dest - 4);
 	} else {
 		write_reg(7, 64, dest + 4);
+	}
+	
+	return;
+}
+
+helper void do_stosq(struct Instruction &inst)
+{
+	// read rdi
+	uint64 dest = read_reg(7, 64);
+	
+	uint64 data = read_reg(0, 64);
+	mem_write_64(Data, dest, data);
+	
+	if(read_register(DF)) {
+		write_reg(7, 64, dest - 8);
+	} else {
+		write_reg(7, 64, dest + 8);
 	}
 	
 	return;

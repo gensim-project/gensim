@@ -25,6 +25,7 @@ enum X86Opcodes {
 	INST_x86_bsf,
 	INST_x86_bt,
 	INST_x86_call,
+	INST_x86_cdq,
 	INST_x86_cdqe,
 	INST_x86_cld,
 
@@ -75,8 +76,9 @@ enum X86Opcodes {
 	INST_x86_rep_movsb,
 	INST_x86_rep_movsd,
 	INST_x86_rep_movsq,
-	INST_x86_rep_stosd,
 	INST_x86_rep_stosb,
+	INST_x86_rep_stosd,
+	INST_x86_rep_stosq,
 	INST_x86_repne_scasb,
 	INST_x86_ret,
 	INST_x86_sar,

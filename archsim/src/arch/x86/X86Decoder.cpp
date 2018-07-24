@@ -326,6 +326,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_BSF, INST_x86_bsf);
 			MAP(XED_ICLASS_BT, INST_x86_bt);
 			MAP(XED_ICLASS_CALL_NEAR, INST_x86_call);
+			MAP(XED_ICLASS_CDQ, INST_x86_cdq);
 			MAP(XED_ICLASS_CDQE, INST_x86_cdqe);
 			MAP(XED_ICLASS_CLD, INST_x86_cld);
 
@@ -339,6 +340,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_CMOVS, INST_x86_cmov);
 			MAP(XED_ICLASS_CMOVNLE, INST_x86_cmov);
 			MAP(XED_ICLASS_CMOVLE, INST_x86_cmov);
+			MAP(XED_ICLASS_CMOVL, INST_x86_cmov);
+			MAP(XED_ICLASS_CMOVNL, INST_x86_cmov);
 
 			MAP(XED_ICLASS_CMP, INST_x86_cmp);
 			MAP(XED_ICLASS_CMPXCHG, INST_x86_cmpxchg);
@@ -389,6 +392,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_MOVSB, INST_x86_movsb);
 			MAP(XED_ICLASS_MOVSXD, INST_x86_movsxd);
 			MAP(XED_ICLASS_MOVSX, INST_x86_movsx);
+			MAP(XED_ICLASS_MOVNTI, INST_x86_mov);
 			MAP(XED_ICLASS_MOVZX, INST_x86_movzx);
 			MAP(XED_ICLASS_MUL, INST_x86_mul);
 			MAP(XED_ICLASS_NEG, INST_x86_neg);
@@ -418,6 +422,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_REP_MOVSQ, INST_x86_rep_movsq);
 			MAP(XED_ICLASS_REP_STOSB, INST_x86_rep_stosb);
 			MAP(XED_ICLASS_REP_STOSD, INST_x86_rep_stosd);
+			MAP(XED_ICLASS_REP_STOSQ, INST_x86_rep_stosq);
 			MAP(XED_ICLASS_REPNE_SCASB, INST_x86_repne_scasb);
 			MAP(XED_ICLASS_RET_NEAR, INST_x86_ret);
 			MAP(XED_ICLASS_SAR, INST_x86_sar);
@@ -429,6 +434,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_SETNB, INST_x86_setcc);
 			MAP(XED_ICLASS_SETZ, INST_x86_setcc);
 			MAP(XED_ICLASS_SETNZ, INST_x86_setcc);
+			MAP(XED_ICLASS_SETLE, INST_x86_setcc);
+			MAP(XED_ICLASS_SETNLE, INST_x86_setcc);
 
 			MAP(XED_ICLASS_SHL, INST_x86_shl);
 			MAP(XED_ICLASS_SHR, INST_x86_shr);
@@ -492,16 +499,17 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 
 	Instr_Length = xed_decoded_inst_get_length(&xedd);
 
-	if(archsim::options::Debug) {
-		xed_decoded_inst_dump(&xedd, dump_buffer, sizeof(dump_buffer));
-		printf("%p (%u) %s\n", addr.Get(), Instr_Length, dump_buffer);
-	}
 
 	bool success = true;
 
 	success &= DecodeOperands((void*)&xedd);
 	success &= DecodeFlow((void*)&xedd);
 	success &= DecodeClass((void*)&xedd);
+
+	if(!success) {
+		xed_decoded_inst_dump(&xedd, dump_buffer, sizeof(dump_buffer));
+		printf("%p (%u) %s\n", addr.Get(), Instr_Length, dump_buffer);
+	}
 
 	return !success;
 }

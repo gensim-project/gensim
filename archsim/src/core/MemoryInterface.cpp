@@ -54,6 +54,28 @@ MemoryResult MemoryInterface::ReadString(Address address, char *data, size_t max
 
 MemoryResult MemoryInterface::Read(Address address, unsigned char *data, size_t size)
 {
+	while(size >= 8) {
+		auto result = Read64(address, *(uint64_t*)data);
+
+		if(result != MemoryResult::OK) {
+			return result;
+		}
+
+		address += 8;
+		data += 8;
+		size -= 8;
+	}
+	while(size >= 4) {
+		auto result = Read32(address, *(uint32_t*)data);
+
+		if(result != MemoryResult::OK) {
+			return result;
+		}
+
+		address += 4;
+		data += 4;
+		size -= 4;
+	}
 	for(unsigned int i = 0; i < size; ++i) {
 		auto result = Read8(address + i, data[i]);
 		if(result != MemoryResult::OK) {
