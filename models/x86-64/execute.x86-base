@@ -112,10 +112,14 @@ execute(dec) {
 
 execute(div) {
 	uint8 width = operand_get_size(inst.op0);
+	uint64 divisor = read_operand(inst.op0);
+	do_div(width, divisor);
+}
 
+helper void do_div(uint8 width, uint64 divisor) noinline
+{
 	// calculate dividend
 	uint128 dividend = get_cd_pair(width*2);
-	uint64 divisor = read_operand(inst.op0);
 	
 	if(width == 8) {
 		write_register(AL, dividend / divisor);
@@ -124,14 +128,19 @@ execute(div) {
 		write_reg(0, width, dividend / divisor);
 		write_reg(2, width, dividend % divisor);
 	}
+	return;
 }
 
 execute(idiv) {
 	uint8 width = operand_get_size(inst.op0);
+	uint64 divisor = read_operand(inst.op0);
+	do_idiv(width, divisor);
+}
 
+helper void do_idiv(uint8 width, sint64 divisor) noinline
+{
 	// calculate divident
 	sint128 dividend = get_cd_pair(width*2);
-	sint64 divisor = read_operand(inst.op0);
 		
 	if(width == 8) {
 		write_register(AL, dividend / divisor);
@@ -140,6 +149,8 @@ execute(idiv) {
 		write_reg(0, width, dividend / divisor);
 		write_reg(2, width, dividend % divisor);
 	}
+	
+	return;
 }
 
 execute(imul2) {
@@ -1148,7 +1159,7 @@ helper void update_zs_flags(uint64 value, uint8 width)
 
 helper void update_parity(uint8 value)
 {
-	write_register(PF, (__builtin_popcount(value) & 1) == 0);
+	//write_register(PF, (__builtin_popcount(value) & 1) == 0);
 	return;
 }
 
