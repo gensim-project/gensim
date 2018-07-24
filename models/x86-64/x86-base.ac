@@ -4,9 +4,9 @@ AC_ISA(x86)
 	// through an external decoder.
 	ac_format FORMAT_DUMMY = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY> add, and, bsf, bt, call, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, repne_scasb, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
+	ac_instr<FORMAT_DUMMY> add, and, bsf, bt, call, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
 	
-	ac_behaviour add, and, bsf, bt, call, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, repne_scasb, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
+	ac_behaviour add, and, bsf, bt, call, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, dec, div, idiv, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
 
 	ISA_CTOR(x86) {
 		add.set_decoder();
@@ -28,6 +28,9 @@ AC_ISA(x86)
 		
 		cdqe.set_decoder();
 		cdqe.set_behaviour(cdqe);
+	
+		cdq.set_decoder();
+		cdq.set_behaviour(cdq);
 	
 		cld.set_decoder();
 		cld.set_behaviour(cld);
@@ -143,6 +146,9 @@ AC_ISA(x86)
 		
 		rep_stosd.set_decoder();
 		rep_stosd.set_behaviour(rep_stosd);
+		
+		rep_stosq.set_decoder();
+		rep_stosq.set_behaviour(rep_stosq);
 		
 		repne_scasb.set_decoder();
 		repne_scasb.set_behaviour(repne_scasb);

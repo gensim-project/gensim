@@ -24,6 +24,7 @@ AC_ARCH(x86)
 		slot EAX(uint32, 4, 0);
 		slot AX (uint16, 2, 0);
 		slot AL (uint8,  1, 0);
+		slot AH (uint8,  1, 1);
 		
 		slot RCX(uint64, 8, 8);
 		slot ECX(uint32, 4, 8);
