@@ -109,6 +109,8 @@ execute(punpcklwd) {
 }
 
 execute(pshufd) {
+	trap();
+/*
 	// figure out variant
 	if(operand_get_size(inst.op0) == 128) {
 		uint32[4] op1 = read_xmm_u32(inst.op1);
@@ -124,7 +126,7 @@ execute(pshufd) {
 		
 	} else {
 		trap();
-	}
+	}*/
 }
 
 execute(pxor) {
