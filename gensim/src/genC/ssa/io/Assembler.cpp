@@ -663,7 +663,7 @@ SSAStatement *StatementAssembler::parse_struct_statement(pANTLR3_BASE_TREE tree,
 	GASSERT(struct_symbol->GetType().IsStruct());
 	GASSERT(struct_symbol->GetType().BaseType.StructType->HasMember(member_name));
 
-	return new SSAReadStructMemberStatement(block, get_symbol(struct_var_node), member_name);
+	return new SSAReadStructMemberStatement(block, get_symbol(struct_var_node), {member_name});
 }
 
 SSAStatement *StatementAssembler::parse_switch_statement(pANTLR3_BASE_TREE tree, SSABlock *block)

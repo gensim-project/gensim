@@ -993,7 +993,7 @@ namespace gensim
 							assert(false);
 					}
 
-					output << "(insn." << Statement.MemberName << ");";
+					output << "(insn" << Statement.FormatMembers() << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 					if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 						output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
@@ -1007,17 +1007,11 @@ namespace gensim
 					const SSAReadStructMemberStatement &stmt = static_cast<const SSAReadStructMemberStatement &> (this->Statement);
 					std::stringstream str;
 
-					if (stmt.Index != -1)
-						str << "((uint32_t *)(";
-
-					if (stmt.MemberName == "IsPredicated") {
+					if (stmt.MemberNames.at(0) == "IsPredicated") {
 						str << "insn.is_predicated";
 					} else {
-						str << "insn" << "." << stmt.MemberName;
+						str << "insn" << stmt.FormatMembers();
 					}
-
-					if (stmt.Index != -1)
-						str << "))[" << stmt.Index << "]";
 
 					return str.str();
 				}

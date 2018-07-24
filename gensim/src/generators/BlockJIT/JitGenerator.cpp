@@ -269,7 +269,7 @@ bool JitGenerator::RegisterJITFunction(const ISADescription& isa, const Instruct
 
 	src_stream << "IRBlockId __exit_block = 0xf0f0f0f0;\n";
 
-	if (insn.Format->CanBePredicated()) {
+	if (isa.GetSSAContext().HasAction("instruction_predicate") && insn.Format->CanBePredicated()) {
 //		XXX ARM HAX
 		src_stream << "if (insn.GetIsPredicated()) {";
 //		src_stream << "if(((uint32_t)insn.GetIR() & 0xf0000000UL) < 0xe0000000UL) {";
@@ -282,7 +282,7 @@ bool JitGenerator::RegisterJITFunction(const ISADescription& isa, const Instruct
 		src_stream << "__exit_block = builder.alloc_block();";
 		src_stream << "builder.branch(IROperand::vreg(predicate_result, 1), IROperand::block(__predicate_taken), IROperand::block(__predicate_not_taken));\n";
 		src_stream << "builder.SetBlock(__predicate_not_taken);";
-		src_stream << "builder.increment_pc(" << (insn.Format->GetLength()/8) << ");";
+		src_stream << "builder.increment_pc(insn.Instr_Length);";
 		src_stream << "builder.jump(IROperand::block(__exit_block));";
 		src_stream << "} else {";
 		src_stream << "__exit_block = builder.alloc_block();";
@@ -298,7 +298,7 @@ bool JitGenerator::RegisterJITFunction(const ISADescription& isa, const Instruct
 	EmitJITFunction(src_stream, action);
 
 	src_stream << "if (!insn.GetEndOfBlock()) {";
-	src_stream << "builder.increment_pc(" << (insn.Format->GetLength()/8) << ");";
+	src_stream << "builder.increment_pc(insn.Instr_Length);";
 	src_stream << "}";
 
 	src_stream	<< "	return true;"

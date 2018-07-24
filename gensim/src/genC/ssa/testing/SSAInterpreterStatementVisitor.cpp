@@ -529,7 +529,8 @@ void SSAInterpreterStatementVisitor::VisitPhiStatement(SSAPhiStatement& stmt)
 
 void SSAInterpreterStatementVisitor::VisitReadStructMemberStatement(SSAReadStructMemberStatement& stmt)
 {
-	_vmstate.SetStatementValue(&stmt, _machine_state.Instruction().GetField(stmt.MemberName));
+	UNIMPLEMENTED; // TODO: Fix this
+//	_vmstate.SetStatementValue(&stmt, _machine_state.Instruction().GetField(stmt.MemberName));
 	_vmstate.SetResult(Interpret_Normal);
 }
 

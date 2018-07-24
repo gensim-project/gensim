@@ -105,6 +105,7 @@ bool BlockJITLoweringContext::Prepare(const TranslationContext& ctx)
 	AddLowerer(IRInstruction::ROR, new BlockJITRORLowering());
 	AddLowerer(IRInstruction::SDIV, new BlockJITSDIVLowering());
 	AddLowerer(IRInstruction::UDIV, new BlockJITUDIVLowering());
+	AddLowerer(IRInstruction::SBC_WITH_FLAGS, new BlockJITSBCFLAGSLowering());
 	AddLowerer(IRInstruction::SET_CPU_MODE, new BlockJITSCMLowering());
 	AddLowerer(IRInstruction::SET_CPU_FEATURE, new BlockJITSETFEATURELowering());
 	AddLowerer(IRInstruction::SHL, new BlockJITSHLLowering());

@@ -142,7 +142,7 @@ public:
 	}
 	void VisitReadStructMemberStatement(SSAReadStructMemberStatement& stmt) override
 	{
-		auto newstmt = new SSAReadStructMemberStatement(_block, _clone_context.get(stmt.Target()), stmt.MemberName, stmt.Index);
+		auto newstmt = new SSAReadStructMemberStatement(_block, _clone_context.get(stmt.Target()), stmt.MemberNames);
 		_clone_context.add(&stmt, newstmt);
 	}
 
