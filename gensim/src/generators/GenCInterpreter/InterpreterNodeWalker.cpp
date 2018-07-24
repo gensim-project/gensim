@@ -697,15 +697,12 @@ namespace gensim
 				const SSAReadStructMemberStatement &stmt = (const SSAReadStructMemberStatement &) (Statement);
 				std::stringstream str;
 
-				if (stmt.MemberName == "IsPredicated")
+				if (stmt.MemberNames.at(0) == "IsPredicated") {
 					str << stmt.Target()->GetName() << ".GetIsPredicated()";
-				else if(stmt.MemberName == "PredicateInfo") {
+				} else if(stmt.MemberNames.at(0) == "PredicateInfo") {
 					str << stmt.Target()->GetName() << ".GetPredicateInfo()";
 				} else {
-					if (Statement.Parent->Parent->Isa->IsFieldOrthogonal(stmt.MemberName))
-						str << "inst.GetField_" << Statement.Parent->Parent->Isa->ISAName << "_" << stmt.MemberName << "()";
-					else
-						str << stmt.Target()->GetName() << "." << stmt.MemberName;
+					str << stmt.Target()->GetName() << stmt.FormatMembers();
 				}
 				return str.str();
 			}

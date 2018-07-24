@@ -105,6 +105,7 @@ bool X86LoweringContext::Prepare(const TranslationContext &ctx)
 	A(IRInstruction::FLUSH_DTLB_ENTRY, FlushTlbEntry);
 	A(IRInstruction::FLUSH_ITLB_ENTRY, FlushTlbEntry);
 	A(IRInstruction::ADC_WITH_FLAGS, AdcFlags);
+	A(IRInstruction::SBC_WITH_FLAGS, SbcFlags);
 	A(IRInstruction::SET_ZN_FLAGS, ZNFlags);
 	A(IRInstruction::TAKE_EXCEPTION, TakeException);
 	A(IRInstruction::VERIFY, Verify);

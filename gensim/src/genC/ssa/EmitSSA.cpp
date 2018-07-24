@@ -462,7 +462,7 @@ SSAStatement *IRUnaryExpression::EmitSSAForm(SSABuilder &bldr) const
 
 				SSASymbol *structSym = bldr.GetSymbol(var->Symbol);
 
-				stmt = new SSAReadStructMemberStatement(&bldr.GetBlock(), structSym, MemberStr, -1);
+				stmt = new SSAReadStructMemberStatement(&bldr.GetBlock(), structSym, {MemberStr});
 				stmt->SetDiag(Diag());
 			} else {
 				// otherwise, we're probably reading from a read struct member
@@ -474,7 +474,7 @@ SSAStatement *IRUnaryExpression::EmitSSAForm(SSABuilder &bldr) const
 				auto temp = bldr.GetTemporarySymbol(base_expression->GetType());
 				auto write = new SSAVariableWriteStatement(&bldr.GetBlock(), temp, base_expression);
 				write->SetDiag(Diag());
-				stmt = new SSAReadStructMemberStatement(&bldr.GetBlock(), temp, MemberStr, -1);
+				stmt = new SSAReadStructMemberStatement(&bldr.GetBlock(), temp, {MemberStr});
 				stmt->SetDiag(Diag());
 			}
 			return stmt;

@@ -238,7 +238,7 @@ void TypeDisassembler::DisassemblePOD(const SSAType& type, std::ostream& str)
 void TypeDisassembler::DisassembleStruct(const SSAType& type, std::ostream& str)
 {
 	GASSERT(type.DataType == SSAType::Struct);
-	str << type.BaseType.StructType->Name;
+	str << "struct " << type.BaseType.StructType->Name;
 }
 
 
@@ -424,7 +424,11 @@ public:
 	}
 	void VisitReadStructMemberStatement(SSAReadStructMemberStatement& stmt) override
 	{
-		str_ << Header(stmt) << " = struct " << stmt.Target()->GetName() << " " << stmt.MemberName << ";";
+		str_ << Header(stmt) << " = struct " << stmt.Target()->GetName();
+		for(auto i : stmt.MemberNames) {
+			str_ << " " << i;
+		}
+		str_ << ";";
 	}
 	void VisitRegisterStatement(SSARegisterStatement& stmt) override
 	{

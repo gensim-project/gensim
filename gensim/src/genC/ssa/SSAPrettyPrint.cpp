@@ -57,8 +57,11 @@ namespace gensim
 
 			void SSAReadStructMemberStatement::PrettyPrint(std::ostringstream &str) const
 			{
-				str << GetName() << "=" << Target()->GetName() << "->" << MemberName;
-				if (IsFixed()) str << "(const)";
+				str << GetName() << "=" << Target()->GetName();
+				for(auto i : MemberNames) {
+					str << "." << i;
+				}
+				if (IsFixed()) str << " (const)";
 			}
 
 			void SSAVariableReadStatement::PrettyPrint(std::ostringstream &str) const

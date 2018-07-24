@@ -103,6 +103,7 @@ namespace captive
 			INSN2(bitwise_or, OR);
 			INSN2(bitwise_xor, XOR);
 			INSN3(adc_with_flags, ADC_WITH_FLAGS);
+			INSN3(sbc_with_flags, SBC_WITH_FLAGS);
 
 			INSN4(vaddi, VADDI);
 			INSN4(vaddf, VADDF);

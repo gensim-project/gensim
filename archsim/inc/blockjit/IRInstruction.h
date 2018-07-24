@@ -108,6 +108,7 @@ namespace captive
 				FLUSH_DTLB_ENTRY,
 
 				ADC_WITH_FLAGS,
+				SBC_WITH_FLAGS,
 				SET_ZN_FLAGS,
 
 				BARRIER,

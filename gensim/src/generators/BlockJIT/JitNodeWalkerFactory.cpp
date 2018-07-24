@@ -67,9 +67,9 @@ namespace gensim
 					} else if(node.Statement.GetType() == IRTypes::Double) {
 						return "IROperand::const_double(" + node.GetFixedValue() + ")";
 					} else if(node.Statement.GetType() == IRTypes::Int128) {
-						return "IROperand::const_128(" + node.GetFixedValue() + ")";
+						return "IROperand::const128(" + node.GetFixedValue() + ")";
 					} else if(node.Statement.GetType() == IRTypes::UInt128) {
-						return "IROperand::const_128(" + node.GetFixedValue() + ")";
+						return "IROperand::const128(" + node.GetFixedValue() + ")";
 					} else if(node.Statement.GetType() == IRTypes::LongDouble) {
 						return "IROperand::const_long_double(" + node.GetFixedValue() + ")";
 					} else {
@@ -1021,17 +1021,26 @@ namespace gensim
 							output << "builder.ldpc(IROperand::vreg(" << Statement.GetName() << ", " << Statement.GetType().SizeInBytes() << "));";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_WritePc: {
-							auto pc_descriptor = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetSlot("PC");
+							auto pc_descriptor = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("PC");
 
-							output << "builder.streg(" << operand_for_node(*arg0) << ", IROperand::const32(" << pc_descriptor.GetRegFileOffset() << "));";
+							output << "builder.streg(" << operand_for_node(*arg0) << ", IROperand::const32(" << pc_descriptor->GetRegFileOffset() << "));";
 
 							break;
 						}
 
+						case SSAIntrinsicStatement::SSAIntrinsic_Adc8WithFlags:
+						case SSAIntrinsicStatement::SSAIntrinsic_Adc16WithFlags:
 						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
 						case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.adc_with_flags(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
+							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_Sbc8WithFlags:
+						case SSAIntrinsicStatement::SSAIntrinsic_Sbc16WithFlags:
+						case SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags:
+						case SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags:
+							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
+							output << "builder.sbc_with_flags(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_Adc:
 						case SSAIntrinsicStatement::SSAIntrinsic_Adc64:
@@ -1276,7 +1285,7 @@ namespace gensim
 							assert(false);
 					}
 
-					output << "(insn." << Statement.MemberName << "), " << operand_for_stmt(Statement) << "));";
+					output << "(insn" << Statement.FormatMembers() << "), " << operand_for_stmt(Statement) << "));";
 					return true;
 				}
 
@@ -1285,19 +1294,13 @@ namespace gensim
 					const SSAReadStructMemberStatement &stmt = static_cast<const SSAReadStructMemberStatement &> (this->Statement);
 					std::stringstream str;
 
-					if (stmt.Index != -1)
-						str << "((uint32_t *)(";
-
-					if (stmt.MemberName == "IsPredicated") {
+					if (stmt.MemberNames.at(0) == "IsPredicated") {
 						str << "insn.GetIsPredicated()";
-					} else if(stmt.MemberName == "PredicateInfo") {
+					} else if(stmt.MemberNames.at(0) == "PredicateInfo") {
 						str << "insn.GetPredicateInfo()";
 					} else {
-						str << "insn" << "." << stmt.MemberName;
+						str << "insn" << stmt.FormatMembers();
 					}
-
-					if (stmt.Index != -1)
-						str << "))[" << stmt.Index << "]";
 
 					return str.str();
 				}

@@ -264,6 +264,10 @@ namespace captive
 						void adc(const X86Memory& src, const X86Register& dst);
 						void adc(const X86Register& src, const X86Register& dst);
 
+						void sbc(uint32_t src, const X86Register& dst);
+						void sbc(const X86Memory& src, const X86Register& dst);
+						void sbc(const X86Register& src, const X86Register& dst);
+
 						void add(const X86Register& src, const X86Register& dst);
 						void add(const X86Memory& src, const X86Register& dst);
 						void add(uint32_t val, const X86Register& dst);
