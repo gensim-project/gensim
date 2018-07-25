@@ -14,7 +14,7 @@
 
 namespace wutils
 {
-	class vbitset
+	template<typename StorageT = std::vector<bool>> class vbitset
 	{
 	public:
 		vbitset(unsigned int size) : storage_(size, false) {}
@@ -140,7 +140,7 @@ namespace wutils
 		}
 
 	private:
-		std::vector<bool> storage_;
+		StorageT storage_;
 	};
 }
 
