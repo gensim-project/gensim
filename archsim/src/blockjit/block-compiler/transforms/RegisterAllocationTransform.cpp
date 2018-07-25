@@ -41,7 +41,7 @@ bool RegisterAllocationTransform::Apply(TranslationContext& ctx)
 	live_set_t live_ins(ctx.reg_count()), live_outs(ctx.reg_count());
 	std::vector<live_set_t::iterator> to_erase;
 
-	wutils::vbitset avail_regs (number_allocable_registers_); // Register indicies that are available for allocation.
+	wutils::vbitset<> avail_regs (number_allocable_registers_); // Register indicies that are available for allocation.
 	uint32_t next_global = 0;	// Next stack location for globally allocated register.
 
 	std::vector<int32_t> vreg_seen_block (ctx.reg_count(), -1);
@@ -234,7 +234,7 @@ uint32_t RegisterAllocationTransform::GetStackFrameSize() const
 	return stack_frame_size_;
 }
 
-wutils::vbitset RegisterAllocationTransform::GetUsedPhysRegs() const
+wutils::vbitset<> RegisterAllocationTransform::GetUsedPhysRegs() const
 {
 	return used_phys_regs_;
 }
