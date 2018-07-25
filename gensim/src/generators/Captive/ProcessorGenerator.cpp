@@ -214,7 +214,7 @@ namespace gensim
 					str << "#include <" << arch.Name << "-env.h>\n";
 					str << "#include <" << arch.Name << "-decode.h>\n";
 					str << "#include <" << arch.Name << "-disasm.h>\n";
-					str << "#include <" << arch.Name << "-jit2.h>\n";
+					str << "#include <" << arch.Name << "-dbt.h>\n";
 
 					str << "using namespace captive::arch::" << arch.Name << ";";
 
@@ -318,8 +318,8 @@ namespace gensim
 					str << "{";
 
 					str << "_trace = new Trace(*new " << arch.Name << "_disasm());";
-					str << "_dbt = new " << arch.Name << "_jit2<false>();";
-					str << "_tracing_dbt = new " << arch.Name << "_jit2<true>();";
+					str << "_dbt = new " << arch.Name << "_dbt<false>();";
+					str << "_tracing_dbt = new " << arch.Name << "_dbt<true>();";
 
 					/*str << "jit_state.registers = &regs;";
 					str << "jit_state.registers_size = sizeof(regs);";

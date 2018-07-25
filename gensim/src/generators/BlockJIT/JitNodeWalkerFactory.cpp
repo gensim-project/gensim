@@ -1028,19 +1028,6 @@ namespace gensim
 							break;
 						}
 
-						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
-							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
-							output << "builder.adc_with_flags(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
-							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc64:
-							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
-							output << "builder.mov(" << operand_for_node(*arg0) << ", " << operand_for_node(*this) << ");";
-							output << "builder.add(" << operand_for_node(*arg1) << ", " << operand_for_node(*this) << ");";
-							output << "builder.add(" << operand_for_node(*arg2) << ", " << operand_for_node(*this) << ");";
-							break;
-
 						case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
 							output << "builder.take_exception(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");";
 							break;
@@ -1053,12 +1040,7 @@ namespace gensim
 							output << "UNIMPLEMENTED; // enterusermode\n";
 //							output << "builder.call(IROperand::func((void*)cpuEnterUserMode));";
 							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32:
-						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN64:
-							output << "builder.updatezn(" << operand_for_node(*arg0) << ");";
-							break;
-
+							
 						case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatAbs:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";

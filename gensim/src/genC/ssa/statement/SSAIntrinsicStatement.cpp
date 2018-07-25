@@ -48,18 +48,6 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 		case SSAIntrinsic_DoubleAbs:
 			return IRTypes::Double;
 
-		case SSAIntrinsic_Adc:
-		case SSAIntrinsic_Sbc:
-		case SSAIntrinsic_AdcWithFlags:
-		case SSAIntrinsic_SbcWithFlags:
-			return IRTypes::UInt32;
-
-		case SSAIntrinsic_Adc64:
-		case SSAIntrinsic_Sbc64:
-		case SSAIntrinsic_Adc64WithFlags:
-		case SSAIntrinsic_Sbc64WithFlags:
-			return IRTypes::UInt64;
-
 		case SSAIntrinsic_BSwap32:
 			return IRTypes::UInt32;
 		case SSAIntrinsic_BSwap64:
@@ -69,18 +57,6 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 			return IRTypes::UInt32;
 		case SSAIntrinsic_Clz64:
 			return IRTypes::UInt64;
-
-		case SSAIntrinsic_UMULL:
-		case SSAIntrinsic_UMULH:
-		case SSAIntrinsic_SMULL:
-		case SSAIntrinsic_SMULH:
-			return IRTypes::UInt64;
-
-		case SSAIntrinsic_FMA32:
-			return IRTypes::Float;
-
-		case SSAIntrinsic_FMA64:
-			return IRTypes::Double;
 
 		default:
 			return IRTypes::Void;
