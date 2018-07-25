@@ -39,10 +39,10 @@ namespace captive
 			{
 			public:
 				CompileResult(bool Success) : Success(Success), UsedPhysRegs(0) {}
-				CompileResult(bool Success, uint32_t StackFrameSize, const wutils::vbitset &bitset) : Success(Success), StackFrameSize(StackFrameSize), UsedPhysRegs(bitset) {}
+				CompileResult(bool Success, uint32_t StackFrameSize, const wutils::vbitset<> &bitset) : Success(Success), StackFrameSize(StackFrameSize), UsedPhysRegs(bitset) {}
 
 				bool Success;
-				wutils::vbitset UsedPhysRegs;
+				wutils::vbitset<> UsedPhysRegs;
 				uint32_t StackFrameSize;
 			};
 

@@ -40,7 +40,7 @@ namespace captive
 					public:
 						typedef X86Encoder encoder_t;
 
-						X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder,  const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd, const wutils::vbitset &used_regs);
+						X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder,  const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd, const wutils::vbitset<> &used_regs);
 						virtual ~X86LoweringContext();
 
 						encoder_t &GetEncoder()
@@ -145,7 +145,7 @@ namespace captive
 							return tmp;
 						}
 
-						wutils::vbitset used_phys_regs;
+						wutils::vbitset<> used_phys_regs;
 
 						// Get a list of registers which should be saved on entry
 						// and restored on exit (i.e. pushed in prologue and

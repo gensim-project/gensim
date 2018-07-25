@@ -20,7 +20,7 @@ using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;
 
-GlobalRegisterReuseTransform::GlobalRegisterReuseTransform(const wutils::vbitset& used_registers, int max_regs) : used_pregs_(used_registers), max_regs_(max_regs)
+GlobalRegisterReuseTransform::GlobalRegisterReuseTransform(const wutils::vbitset<>& used_registers, int max_regs) : used_pregs_(used_registers), max_regs_(max_regs)
 {
 
 }
