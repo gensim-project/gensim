@@ -776,43 +776,6 @@ namespace gensim
 							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(txln_ctx.jit_functions.float_abs, " << arg0->GetDynamicValue() << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags: {
-							auto V = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("V");
-							auto C = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("C");
-							auto Z = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("Z");
-							auto N = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("N");
-							output << "{";
-							output << "llvm::Value *res = __irBuilder.CreateCall3(txln_ctx.jit_functions.genc_adc_flags, " << arg0->GetDynamicValue() << "," << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << ");";
-							output << "llvm::Value *c = __irBuilder.CreateLShr(res, 8);"
-							       "c = __irBuilder.CreateAnd(c, 1);";
-							output << "llvm::Value *v = res;"
-							       "v = __irBuilder.CreateAnd(v, 1);";
-							output << "llvm::Value *z = __irBuilder.CreateLShr(res, 14);"
-							       "z = __irBuilder.CreateAnd(z, 1);";
-							output << "llvm::Value *n = __irBuilder.CreateLShr(res, 15);"
-							       "n = __irBuilder.CreateAnd(n, 1);";
-
-							output << "EmitRegisterWrite(ctx, " << (uint32_t)C->GetIndex() << ", __irBuilder.CreateIntCast(c, " << C->GetIRType().GetLLVMType() << ", false) , __trace);";
-							output << "EmitRegisterWrite(ctx, " << (uint32_t)V->GetIndex() << ", __irBuilder.CreateIntCast(v, " << V->GetIRType().GetLLVMType() << ", false) , __trace);";
-							output << "EmitRegisterWrite(ctx, " << (uint32_t)Z->GetIndex() << ", __irBuilder.CreateIntCast(z, " << Z->GetIRType().GetLLVMType() << ", false) , __trace);";
-							output << "EmitRegisterWrite(ctx, " << (uint32_t)N->GetIndex() << ", __irBuilder.CreateIntCast(n, " << N->GetIRType().GetLLVMType() << ", false) , __trace);";
-							output << "}";
-							break;
-						}
-
-						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32: {
-							auto Z = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("Z");
-							auto N = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("N");
-
-							output << "{"
-							       "llvm::Value *n = __irBuilder.CreateLShr(" << arg0->GetDynamicValue() << ", 31);"
-							       "llvm::Value *z = __irBuilder.CreateICmpEQ(" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(txln_ctx.types.i32, 0, false));"
-							       "EmitRegisterWrite(ctx, " << (uint32_t)Z->GetIndex() << ", __irBuilder.CreateIntCast(z, " << Z->GetIRType().GetLLVMType() << ", false), __trace);"
-							       "EmitRegisterWrite(ctx, " << (uint32_t)N->GetIndex() << ", __irBuilder.CreateIntCast(n, " << N->GetIRType().GetLLVMType() << ", false), __trace);"
-							       "}";
-							break;
-						}
-
 						case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
 						case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
@@ -846,8 +809,6 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatSqrt:
 						case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatAbs:
-
-						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:

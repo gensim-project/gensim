@@ -452,80 +452,6 @@ namespace gensim
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = sqrt(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 
-					case SSAIntrinsicStatement::SSAIntrinsic_Adc:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = genc_adc(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						break;
-					case SSAIntrinsicStatement::SSAIntrinsic_Adc64:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = genc_adc64(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						break;
-					case SSAIntrinsicStatement::SSAIntrinsic_Sbc:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = genc_sbc(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						break;
-					case SSAIntrinsicStatement::SSAIntrinsic_Sbc64:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = genc_sbc64(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						break;
-
-					case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags: {
-						//SZ0A0P1C0000000V
-						auto a = Factory.GetOrCreate(stmt.Args(0));
-						auto b = Factory.GetOrCreate(stmt.Args(1));
-						auto c = Factory.GetOrCreate(stmt.Args(2));
-						output << "{";
-						output << "uint16_t flags = genc_adc_flags(" << a->GetFixedValue() << "," << b->GetFixedValue() << "," << c->GetFixedValue() << ");";
-						output << "interface.write_register_C<trace>((flags >> 8) & 1);";
-						output << "interface.write_register_V<trace>(flags & 1);";
-						output << "interface.write_register_Z<trace>((flags >> 14) & 1);";
-						output << "interface.write_register_N<trace>((flags >> 15) & 1);";
-						output << "}";
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << a->GetFixedValue() << " + " << b->GetFixedValue() << " + " << c->GetFixedValue() << ";";
-						break;
-					}
-					case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags: {
-						//SZ0A0P1C0000000V
-						auto a = Factory.GetOrCreate(stmt.Args(0));
-						auto b = Factory.GetOrCreate(stmt.Args(1));
-						auto c = Factory.GetOrCreate(stmt.Args(2));
-						output << "{";
-						output << "uint16_t flags = genc_adc64_flags(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						output << "interface.write_register_C<trace>((flags >> 8) & 1);";
-						output << "interface.write_register_V<trace>(flags & 1);";
-						output << "interface.write_register_Z<trace>((flags >> 14) & 1);";
-						output << "interface.write_register_N<trace>((flags >> 15) & 1);";
-						output << "}";
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << a->GetFixedValue() << " + " << b->GetFixedValue() << " + " << c->GetFixedValue() << ";";
-						break;
-					}
-					case SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags: {
-						//SZ0A0P1C0000000V
-						auto a = Factory.GetOrCreate(stmt.Args(0));
-						auto b = Factory.GetOrCreate(stmt.Args(1));
-						auto c = Factory.GetOrCreate(stmt.Args(2));
-						output << "{";
-						output << "uint16_t flags = genc_sbc_flags(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						output << "interface.write_register_C<trace>((flags >> 8) & 1);";
-						output << "interface.write_register_V<trace>(flags & 1);";
-						output << "interface.write_register_Z<trace>((flags >> 14) & 1);";
-						output << "interface.write_register_N<trace>((flags >> 15) & 1);";
-						output << "}";
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << a->GetFixedValue() << " - " << b->GetFixedValue() << " - " << c->GetFixedValue() << ";";
-						break;
-					}
-					case SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags: {
-						//SZ0A0P1C0000000V
-						auto a = Factory.GetOrCreate(stmt.Args(0));
-						auto b = Factory.GetOrCreate(stmt.Args(1));
-						auto c = Factory.GetOrCreate(stmt.Args(2));
-						output << "{";
-						output << "uint16_t flags = genc_sbc64_flags(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << "," << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
-						output << "interface.write_register_C<trace>((flags >> 8) & 1);";
-						output << "interface.write_register_V<trace>(flags & 1);";
-						output << "interface.write_register_Z<trace>((flags >> 14) & 1);";
-						output << "interface.write_register_N<trace>((flags >> 15) & 1);";
-						output << "}";
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << a->GetFixedValue() << " - " << b->GetFixedValue() << " - " << c->GetFixedValue() << ";";
-						break;
-					}
-
 					/*
 					case SSAIntrinsicStatement::SSAIntrinsic_RotateRight:
 					output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
@@ -536,15 +462,6 @@ namespace gensim
 						   "}";
 					break;
 					 */
-
-					case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32:
-						output << "interface.write_register_Z(!(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
-						output << "interface.write_register_N(((" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ") & 0x80000000) != 0);";
-						break;
-					case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN64:
-						output << "interface.write_register_Z(!(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << "));";
-						output << "interface.write_register_N(((" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ") & 0x8000000000000000ull) != 0);";
-						break;
 
 					case SSAIntrinsicStatement::SSAIntrinsic_GetFeature:
 //						output << "UNIMPLEMENTED; // getfeature\n";
@@ -566,28 +483,6 @@ namespace gensim
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
 						output << "thread->GetFPState().SetRoundingMode((archsim::core::thread::RoundingMode)" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
-						break;
-
-					case SSAIntrinsicStatement::SSAIntrinsic_UMULH:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
-						output << "{";
-						output << "unsigned __int128 a = " << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ";";
-						output << "unsigned __int128 b = " << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ";";
-						output << "unsigned __int128 c = a * b;";
-						output << stmt.GetName() << " = c >> 64;";
-						output << "}";
-						break;
-
-					case SSAIntrinsicStatement::SSAIntrinsic_FMA32:
-					case SSAIntrinsicStatement::SSAIntrinsic_FMA64:
-					case SSAIntrinsicStatement::SSAIntrinsic_TriggerIRQ:
-					case SSAIntrinsicStatement::SSAIntrinsic_SMULH:
-					case SSAIntrinsicStatement::SSAIntrinsic_SMULL:
-					case SSAIntrinsicStatement::SSAIntrinsic_UMULL:
-						if(stmt.HasValue()) {
-							output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
-						}
-						output << "UNIMPLEMENTED;";
 						break;
 
 					default:

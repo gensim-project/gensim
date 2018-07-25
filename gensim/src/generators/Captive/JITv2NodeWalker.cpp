@@ -708,69 +708,6 @@ namespace gensim
 							output << "emitter.call(__captive_popcnt32, " << operand_for_node(*arg0) << ");\n";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
-							output << "auto " << Statement.GetName() << " = emitter.adcf(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
-#ifdef REGISTER_ALLOCATION_HINTS
-							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
-								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
-							}
-#endif
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc64:
-							output << "auto " << Statement.GetName() << " = emitter.adc(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
-#ifdef REGISTER_ALLOCATION_HINTS
-							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
-								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
-							}
-#endif
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags:
-							output << "auto " << Statement.GetName() << " = emitter.sbcf(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
-#ifdef REGISTER_ALLOCATION_HINTS
-							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
-								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
-							}
-#endif
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc:
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc64:
-							output << "auto " << Statement.GetName() << " = emitter.sbc(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
-#ifdef REGISTER_ALLOCATION_HINTS
-							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
-								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
-							}
-#endif
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_SMULH:
-							output << "auto " << Statement.GetName() << " = emitter.smulh(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");";
-#ifdef REGISTER_ALLOCATION_HINTS
-							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
-								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
-							}
-#endif
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_UMULH:
-							output << "auto " << Statement.GetName() << " = emitter.umulh(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");";
-#ifdef REGISTER_ALLOCATION_HINTS
-							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
-								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
-							}
-#endif
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32:
-						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN64:
-							output << "emitter.set_zn(" << operand_for_node(*arg0) << ");";
-							break;
-
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
 							output << "auto " << Statement.GetName() << " = emitter.bswap(" << operand_for_node(*arg0) << ");";
@@ -815,15 +752,6 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
 							output << "auto " << Statement.GetName() << " = ";
 							output << "emitter.call(__captive_get_rounding_mode);\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_FMA32:
-							output << "auto " << Statement.GetName() << " = ";
-							output << "emitter.call(__captive_fma32, " << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");\n";
-							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_FMA64:
-							output << "auto " << Statement.GetName() << " = ";
-							output << "emitter.call(__captive_fma64, " << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");\n";
 							break;
 
 						default:
