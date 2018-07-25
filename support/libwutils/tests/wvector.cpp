@@ -59,3 +59,42 @@ TEST(wvector, iterate)
 		count++;
 	}
 }
+
+TEST(wvector, objects)
+{
+	wutils::wvector<std::string, allocator> v;
+
+	v.push_back("hello");
+	v.push_back("world");
+
+	ASSERT_EQ(v.back(), "world");
+
+	v.pop_back();
+	ASSERT_EQ(v.back(), "hello");
+}
+
+TEST(wvector, resize)
+{
+	wutils::wvector<std::string, allocator> v;
+
+	v.resize(3, "hello");
+
+	for(auto i : v) {
+		ASSERT_EQ(i, "hello");
+	}
+}
+
+TEST(wvector, access)
+{
+	wutils::wvector<std::string, allocator> v;
+
+	v.push_back("hello");
+
+	ASSERT_EQ(v.at(0), "hello");
+	ASSERT_EQ(v[0], "hello");
+
+	v[0] = "world";
+
+	ASSERT_EQ(v.at(0), "world");
+	ASSERT_EQ(v[0], "world");
+}
