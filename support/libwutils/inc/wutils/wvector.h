@@ -34,6 +34,8 @@ namespace wutils
 			for(wsize_t i = 0; i < size_; ++i) {
 				storage_[i].~T();
 			}
+
+			allocator_.realloc(storage_, 0);
 		}
 
 		iterator begin()
@@ -48,12 +50,14 @@ namespace wutils
 		void push_back(const T& t)
 		{
 			ensure_capacity(size_+1);
-			storage_[size_] = t;
+
+			new (&storage_[size_]) T(t);
 			size_++;
 		}
 		void pop_back()
 		{
 			size_--;
+			storage_[size_].~T();
 		}
 
 		T &front()
@@ -92,7 +96,7 @@ namespace wutils
 		{
 			ensure_capacity(new_size);
 			while(size_ < new_size) {
-				storage_[size_] = value;
+				new (&storage_[size_]) T(value);
 				size_++;
 			}
 		}
@@ -127,7 +131,13 @@ namespace wutils
 				resize = true;
 			}
 			if(resize) {
-				storage_ = (T*)allocator_.realloc(storage_, new_capacity * sizeof(T));
+				// Create new storage and move all contained objects to it
+				auto new_storage = (T*)allocator_.realloc(nullptr, capacity_ * sizeof(T));
+				for(wsize_t i = 0; i < size_; ++i) {
+					new (&new_storage[i]) T(std::move(storage_[i]));
+				}
+				allocator_.realloc(storage_, 0);
+				storage_ = new_storage;
 			}
 		}
 
