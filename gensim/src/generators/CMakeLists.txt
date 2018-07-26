@@ -21,6 +21,7 @@ TARGET_ADD_SOURCES(gensim-lib
 ADD_SUBDIRECTORY(BlockJIT)
 ADD_SUBDIRECTORY(Captive)
 ADD_SUBDIRECTORY(ExecutionEngine)
+ADD_SUBDIRECTORY(LLVMBCBuilderGenerator)
 
 # This stuff needs refactoring into something a bit more manageable
 ADD_SUBDIRECTORY(GenCInterpreter)
