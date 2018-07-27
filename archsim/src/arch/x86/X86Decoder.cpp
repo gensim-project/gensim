@@ -347,6 +347,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_CMPXCHG, INST_x86_cmpxchg);
 			MAP(XED_ICLASS_CPUID, INST_x86_cpuid);
 			MAP(XED_ICLASS_CQO, INST_x86_cqo);
+			MAP(XED_ICLASS_CWDE, INST_x86_cwde);
 			MAP(XED_ICLASS_DEC, INST_x86_dec);
 			MAP(XED_ICLASS_DIV, INST_x86_div);
 			MAP(XED_ICLASS_IDIV, INST_x86_idiv);

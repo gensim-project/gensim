@@ -104,6 +104,11 @@ execute(cqo) {
 	write_register(RDX, op0);
 }
 
+execute(cwde) {
+	sint16 ax = read_register(AX);
+	write_register(EAX, (sint32)ax);
+}
+
 execute(dec) {
 	uint64 op0 = read_operand(inst.op0);
 	write_operand(inst.op0, subtract(op0, 1, operand_get_size(inst.op0)));

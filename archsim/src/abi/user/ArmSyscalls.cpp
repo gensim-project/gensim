@@ -845,6 +845,7 @@ DEFINE_SYSCALL(x86, 0, sys_read, "read()");
 DEFINE_SYSCALL(x86, 1, sys_write, "write()");
 DEFINE_SYSCALL(x86, 2, sys_open, "open()");
 DEFINE_SYSCALL(x86, 5, sys_fstat64, "fstat()");
+DEFINE_SYSCALL(x86, 8, sys_lseek, "lseek()");
 DEFINE_SYSCALL(x86, 9, sys_mmap, "mmap()");
 DEFINE_SYSCALL(x86, 10, sys_mprotect, "mprotect()");
 DEFINE_SYSCALL(x86, 12, sys_brk, "brk()");
