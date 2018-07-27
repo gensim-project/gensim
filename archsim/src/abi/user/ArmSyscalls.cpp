@@ -226,13 +226,13 @@ static unsigned int sys_mremap(archsim::core::thread::ThreadInstance* cpu, unsig
 
 static unsigned int sys_munmap(archsim::core::thread::ThreadInstance* cpu, unsigned int addr, unsigned int len)
 {
-	UNIMPLEMENTED;
+//	UNIMPLEMENTED;
 //	if (!cpu.GetMemoryModel().IsAligned(len)) {
 //		return -EINVAL;
 //	}
 //
 //	cpu.GetMemoryModel().GetMappingManager()->UnmapRegion(addr, len);
-//	return 0;
+	return 0;
 }
 
 static unsigned int sys_mprotect(archsim::core::thread::ThreadInstance *cpu, unsigned int addr, unsigned int len, unsigned int flags)
