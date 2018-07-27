@@ -355,12 +355,23 @@ bool X86Decoder::DecodeClass(void* inst_)
 		// need to be careful with imul - XED encodes it as a single opcode
 		// but we handle it as 3 different instructions
 		case XED_ICLASS_IMUL:
-			switch(xed_decoded_inst_noperands(inst)) {
-				case 4:
-					Instr_Code = INST_x86_imul3;
+
+			switch(xed_decoded_inst_get_iform_enum(inst)) {
+				case XED_IFORM_IMUL_GPR8:
+				case XED_IFORM_IMUL_GPRv:
+				case XED_IFORM_IMUL_MEMb:
+				case XED_IFORM_IMUL_MEMv:
+					Instr_Code = INST_x86_imul1;
 					return true;
-				case 3:
+				case XED_IFORM_IMUL_GPRv_GPRv:
+				case XED_IFORM_IMUL_GPRv_MEMv:
 					Instr_Code = INST_x86_imul2;
+					return true;
+				case XED_IFORM_IMUL_GPRv_GPRv_IMMb:
+				case XED_IFORM_IMUL_GPRv_GPRv_IMMz:
+				case XED_IFORM_IMUL_GPRv_MEMv_IMMb:
+				case XED_IFORM_IMUL_GPRv_MEMv_IMMz:
+					Instr_Code = INST_x86_imul3;
 					return true;
 				default:
 					return false;
@@ -507,7 +518,7 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 	success &= DecodeFlow((void*)&xedd);
 	success &= DecodeClass((void*)&xedd);
 
-	if(!success) {
+	if(!success || (archsim::options::Verbose && archsim::options::Debug)) {
 		xed_decoded_inst_dump(&xedd, dump_buffer, sizeof(dump_buffer));
 		printf("%p (%u) %s\n", addr.Get(), Instr_Length, dump_buffer);
 	}

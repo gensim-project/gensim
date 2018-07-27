@@ -39,6 +39,7 @@ enum X86Opcodes {
 	INST_x86_dec,
 	INST_x86_div,
 	INST_x86_idiv,
+	INST_x86_imul1,
 	INST_x86_imul2,
 	INST_x86_imul3,
 	INST_x86_inc,
