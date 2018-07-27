@@ -109,7 +109,11 @@ bool UserEmulationModel::InitialiseProgramArguments()
 
 bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location, uint32_t elf_phnum, uint32_t elf_phentsize)
 {
-	_initial_stack_pointer = Address(0xc0000000);
+	if(Is64BitBinary()) {
+		_initial_stack_pointer = Address(0xc0000000);
+	} else {
+		_initial_stack_pointer = Address(0xc0000000);
+	}
 	_stack_size = archsim::options::GuestStackSize;
 
 	if(_stack_size & ((1 << 12)-1)) {

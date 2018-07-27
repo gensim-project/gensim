@@ -158,6 +158,19 @@ helper void do_idiv(uint8 width, sint64 divisor) noinline
 	return;
 }
 
+execute(imul1) {
+	sint128 op0 = (sint64)read_operand(inst.op0);
+	sint128 op1 = (sint64)sign_extend(read_reg(0, 64), operand_get_size(inst.op0));
+	
+	sint128 result = op0 * op1;
+	
+	uint8 truncation = result != (sint64)result;
+	write_register(CF, truncation);
+	write_register(OF, truncation);
+	
+	write_cd_pair(result, operand_get_size(inst.op0) * 2);
+}
+
 execute(imul2) {
 	sint128 op0 = read_operand(inst.op0);
 	sint128 op1 = read_operand(inst.op1);
@@ -432,13 +445,28 @@ execute(ret) {
 }
 
 execute(sar) {
+	uint8 mask = 0x1f;
+	if(operand_get_size(inst.op0) == 64) {
+		mask = 0x3f;
+	}
+
 	sint64 op0 = read_operand(inst.op0);
-	sint64 op1 = read_operand(inst.op1);
+	op0 = sign_extend(op0, operand_get_size(inst.op0));
 	
-	sint64 result = op0 >> op1;
-	//todo: flags
+	sint64 op1 = read_operand(inst.op1) & mask;
 	
-	write_operand(inst.op0, result);
+	if(op1) {
+		sint64 result = op0 >> op1;
+		
+		uint8 C = (op0 >> (op1 - 1)) & 1;
+		write_register(CF, C);
+		write_register(OF, 0);
+
+		result = sign_extend(result, operand_get_size(inst.op0));
+		set_zsp_flags(result);
+		
+		write_operand(inst.op0, result);
+	}
 }
 
 execute(sbb) {
@@ -455,25 +483,59 @@ execute(setcc) {
 }
 
 execute(shl) {
-	uint64 op0 = read_operand(inst.op0);
-	uint64 op1 = read_operand(inst.op1);
+	uint8 mask = 0x1f;
+	uint8 operand0_size = operand_get_size(inst.op0);
+	if(operand0_size == 64) {
+		mask = 0x3f;
+	}
+
+	sint64 op0 = read_operand(inst.op0);
+	sint64 op1 = read_operand(inst.op1) & mask;
 	
-	uint64 result = op0 << op1;
-	//todo: flags
+	if(op1) {
+		sint64 result = op0;
+		uint8 C = 0;
+		for(uint8 i = 0; i < op1; ++i) {
+			C = result >> (operand0_size - 1);
+			result <<= 1;
+		}
 	
-	write_operand(inst.op0, result);
+		write_register(CF, C);
+		
+		if(op1 == 1) {
+			write_register(OF, C ^ (result >> (operand0_size - 1)));
+		}
+
+		result = sign_extend(result, operand0_size);
+		set_zsp_flags(result);
+		
+		write_operand(inst.op0, result);
+	}
 }
 
 execute(shr) {
-	uint64 op0 = read_operand(inst.op0);
-	uint64 op1 = read_operand(inst.op1);
+	uint8 mask = 0x1f;
+	uint8 operand0_size = operand_get_size(inst.op0);
+	if(operand0_size == 64) {
+		mask = 0x3f;
+	}
+
+	uint64 op0 = read_operand(inst.op0);	
+	uint64 op1 = read_operand(inst.op1) & mask;
 	
-	write_register(CF, (op0 >> (op1 - 1)) & 1);
-	uint64 result = op0 >> op1;
-	
-	set_zsp_flags(result);
-	
-	write_operand(inst.op0, result);
+	if(op1) {
+		uint64 result = op0 >> op1;
+		
+		uint8 C = (op0 >> (op1 - 1)) & 1;
+		write_register(CF, C);
+
+		write_register(OF, result >> (operand0_size - 1));
+
+		result = sign_extend(result, operand0_size);
+		set_zsp_flags(result);
+		
+		write_operand(inst.op0, result);
+	}
 }
 
 execute(sub) {
@@ -1164,7 +1226,7 @@ helper void update_zs_flags(uint64 value, uint8 width)
 
 helper void update_parity(uint8 value)
 {
-	//write_register(PF, (__builtin_popcount(value) & 1) == 0);
+	write_register(PF, (__builtin_popcount(value) & 1) == 0);
 	return;
 }
 
