@@ -372,7 +372,7 @@ bool GtkScreen::Initialise()
 		framebuffer = (uint8_t*)malloc(3 * GetWidth() * GetHeight());
 
 		host_addr_t guest_fb_ptr;
-		GetMemory()->LockRegion(fb_ptr.Get(), GetWidth() * GetHeight(), guest_fb_ptr);
+		GetMemory()->LockRegion(Address(fb_ptr), GetWidth() * GetHeight(), guest_fb_ptr);
 		guest_fb = (uint8_t*)guest_fb_ptr;
 
 		running = true;

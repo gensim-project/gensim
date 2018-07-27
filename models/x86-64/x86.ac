@@ -1,0 +1,87 @@
+/*
+ * GenSim x86 Model (XED Supported)
+ *
+ * Copyright (C) University of Edinburgh 2018.  All Rights Reserved.
+ *
+ * Harry Wagstaff <harry.wagstaff@gmail.com>
+ */
+AC_ARCH(x86)
+{
+	ac_mem Data(64, 64, little, 0);
+	ac_mem Fetch(64, 64, little, 1);
+	
+	// General Purpose Registers
+	ac_regspace(128) {
+		// bank NAME (TYPE, OFFSET, COUNT, REG-STRIDE, # ELEMS, ELEM-SIZE, ELEM-STRIDE)
+		
+		bank RQ (uint64, 0, 16, 8, 1, 8, 8);
+		bank RD (uint32, 0, 16, 8, 1, 4, 8);
+		bank RW (uint16, 0, 16, 8, 1, 2, 8);
+		bank RB (uint8 , 0, 16, 8, 1, 1, 8);
+		bank RBH(uint8 , 1, 4, 8, 1, 1, 8);
+		
+		slot RAX(uint64, 8, 0);
+		slot EAX(uint32, 4, 0);
+		slot AX (uint16, 2, 0);
+		slot AL (uint8,  1, 0);
+		slot AH (uint8,  1, 1);
+		
+		slot RCX(uint64, 8, 8);
+		slot ECX(uint32, 4, 8);
+		
+		slot RDX(uint64, 8, 16);
+		slot EDX(uint32, 4, 16);
+		slot  DX(uint16, 2, 16);
+		slot  DL(uint8, 1, 16);
+		
+		slot RSP (uint64, 8, 32) SP;
+		slot RBP (uint64, 8, 40);
+	}
+	
+	ac_regspace(8) {
+		slot IP (uint64, 8, 0) PC;
+	}
+	
+	ac_regspace(16384) {
+		bank XMM_U64 (uint64, 0, 32, 16, 2, 8, 8);
+		bank XMM_U64L(uint64, 0, 32, 16, 1, 8, 8);
+		bank XMM_U32 (uint32, 0, 32, 16, 4, 4, 4);
+		bank XMM_U16 (uint16, 0, 32, 16, 8, 2, 2);
+		bank XMM_U8  (uint8, 0, 32, 16, 16, 1, 1);
+		
+	}
+	
+	// Flags
+	ac_regspace(10) {
+		slot CF (uint8, 1, 0) C;
+		slot PF (uint8, 1, 1);
+		slot AF (uint8, 1, 2);
+		slot ZF (uint8, 1, 3) Z;
+		slot SF (uint8, 1, 4) N;
+		slot DF (uint8, 1, 5);
+		slot OF (uint8, 1, 6) V;
+	}
+	
+	// segment base registers
+	ac_regspace(48) {
+		bank SEGMENT(uint64, 0, 6, 8, 1, 8, 8);
+	// E
+	// C
+	// S
+	// D
+	// F
+		slot FS (uint64, 8, 32);
+	// G
+		slot GS (uint64, 8, 40);
+		
+	}
+	
+	ac_wordsize 64;
+	
+
+	ARCH_CTOR(x86)
+	{
+		ac_isa("isa.ac");
+		set_endian("little");
+	};
+};

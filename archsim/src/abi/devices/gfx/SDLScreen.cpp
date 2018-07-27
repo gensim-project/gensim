@@ -339,7 +339,7 @@ bool SDLScreen::draw_rgb()
 	}
 
 	int pitch = GetWidth() * pixel_size;
-	if(!GetMemory()->LockRegion(fb_ptr.Get(), GetHeight() * pitch, addr)) {
+	if(!GetMemory()->LockRegion(Address(fb_ptr), GetHeight() * pitch, addr)) {
 		LC_ERROR(LogSDLScreen) << "Could not lock region!";
 		terminate();
 		return false;
@@ -356,8 +356,8 @@ bool SDLScreen::draw_doom()
 {
 	host_addr_t fb, palette;
 
-	GetMemory()->LockRegion(fb_ptr.Get(), GetWidth() * GetHeight(), fb);
-	GetMemory()->LockRegion(p_ptr.Get(), GetWidth() * GetHeight(), palette);
+	GetMemory()->LockRegion(Address(fb_ptr), GetWidth() * GetHeight(), fb);
+	GetMemory()->LockRegion(Address(p_ptr), GetWidth() * GetHeight(), palette);
 
 	uint8_t *pixels;
 	int pitch;

@@ -258,7 +258,127 @@ namespace archsim
 				{
 					pubsub_.Publish(PubSubType::FlushTranslations, 0);
 				}
-				void fn_flush_dtlb_entry(Address::underlying_t entry) {}
+				void fn_flush_dtlb_entry(Address::underlying_t entry)
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_pgt_change()
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_flush()
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_mmu_notify_asid_change(uint32_t)
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_mmu_notify_pgt_change()
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_mmu_flush_all()
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_mmu_flush_va(uint64_t)
+				{
+					UNIMPLEMENTED;
+				}
+
+				uint32_t fn___builtin_polymul8(uint8_t, uint8_t)
+				{
+					UNIMPLEMENTED;
+				}
+				uint32_t fn___builtin_polymul16(uint8_t, uint8_t)
+				{
+					UNIMPLEMENTED;
+				}
+				uint32_t fn___builtin_polymul64(uint8_t, uint8_t)
+				{
+					UNIMPLEMENTED;
+				}
+
+				void fn___builtin_cmpf32_flags(float a, float b)
+				{
+					UNIMPLEMENTED;
+				}
+				void fn___builtin_cmpf64_flags(double a, double b)
+				{
+					// do it aarch64 style
+
+					// N Z C V
+					uint8_t *N = GetRegisterFileInterface().GetEntry<uint8_t>("N");
+					uint8_t *Z = GetRegisterFileInterface().GetEntry<uint8_t>("Z");
+					uint8_t *C = GetRegisterFileInterface().GetEntry<uint8_t>("C");
+					uint8_t *V = GetRegisterFileInterface().GetEntry<uint8_t>("V");
+
+					uint32_t result = 0;
+
+					if(a == b) {
+						result = 6;
+					} else if(a < b) {
+						result = 8;
+					} else if(a > b) {
+						result = 2;
+					}
+
+					*N = (result & 8) != 0;
+					*Z = (result & 4) != 0;
+					*C = (result & 2) != 0;
+					*V = (result & 1) != 0;
+				}
+				void fn___builtin_cmpf32e_flags(float a, float b)
+				{
+					UNIMPLEMENTED;
+				}
+				void fn___builtin_cmpf64e_flags(double a, double b)
+				{
+					UNIMPLEMENTED;
+				}
+
+				int32_t fn___builtin_fcvt_f32_s32(float f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				int32_t fn___builtin_fcvt_f64_s32(double f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				int64_t fn___builtin_fcvt_f32_s64(float f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				int64_t fn___builtin_fcvt_f64_s64(double f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				uint32_t fn___builtin_fcvt_f32_u32(float f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				uint32_t fn___builtin_fcvt_f64_u32(double f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				uint64_t fn___builtin_fcvt_f32_u64(float f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				uint64_t fn___builtin_fcvt_f64_u64(double f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+
+				float fn___builtin_f32_round(float f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				double fn___builtin_f64_round(double f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
 
 				// Functions to do with manipulating state according to the architecture
 				archsim::abi::ExceptionAction TakeException(uint64_t category, uint64_t data);

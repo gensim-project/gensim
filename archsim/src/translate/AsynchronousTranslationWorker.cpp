@@ -7,7 +7,7 @@
 #include "translate/llvm/LLVMTranslation.h"
 #include "translate/adapt/BlockJITToLLVM.h"
 #include "blockjit/BlockJitTranslate.h"
-
+#include "gensim/gensim_processor_api.h"
 
 #include "util/LogContext.h"
 #include "translate/profile/Block.h"
@@ -188,7 +188,7 @@ static llvm::Function *BuildDispatchFunction(llvm::Module *module, const Transla
 	auto page_base = builder.CreateAnd(pc, ~archsim::RegionArch::PageMask);
 	llvm::Value *on_page = nullptr;
 	if(unit.potential_virtual_bases.size() == 1) {
-		on_page = builder.CreateICmpEQ(page_base, llvm::ConstantInt::get(i32Ty, *unit.potential_virtual_bases.begin()));
+		on_page = builder.CreateICmpEQ(page_base, llvm::ConstantInt::get(i32Ty, unit.potential_virtual_bases.begin()->Get()));
 	} else {
 		UNIMPLEMENTED;
 	}
@@ -305,7 +305,7 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 	LLVMOptimiser opt;
 
 	// Create a new llvm module to contain the translation
-	llvm::Module *module = new llvm::Module("region_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress()), llvm_ctx);
+	llvm::Module *module = new llvm::Module("region_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()), llvm_ctx);
 	module->setDataLayout(GetNativeMachine()->createDataLayout());
 
 	translate::adapt::BlockJITToLLVMAdaptor adaptor(llvm_ctx);
@@ -329,8 +329,8 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 		}
 		builder.ret();
 
-		auto fn = adaptor.AdaptIR(unit.GetThread(), module, "block_" + std::to_string(block.first), blockjit_ctx);
-		block_map[block.first] = fn;
+		auto fn = adaptor.AdaptIR(unit.GetThread(), module, "block_" + std::to_string(block.first.Get()), blockjit_ctx);
+		block_map[block.first.Get()] = fn;
 	}
 
 	// build a dispatch function

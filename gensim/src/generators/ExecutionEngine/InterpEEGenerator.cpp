@@ -6,6 +6,7 @@
 #include "generators/GenCInterpreter/GenCInterpreterGenerator.h"
 #include "genC/ssa/SSAContext.h"
 #include "genC/ssa/SSASymbol.h"
+#include "genC/ssa/SSATypeFormatter.h"
 
 using namespace gensim::generator;
 
@@ -15,6 +16,9 @@ void InterpEEGenerator::Setup(GenerationSetupManager& Setup)
 		for(auto j : i->Instructions) {
 			RegisterStepInstruction(*j.second);
 		}
+
+		GenCInterpreterGenerator interp(Manager);
+		interp.RegisterHelpers(*i);
 	}
 }
 
@@ -23,8 +27,13 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const
 {
 	str <<
 	    "#ifndef " << Manager.GetArch().Name << "_INTERP_H\n"
-	    "#define " << Manager.GetArch().Name << "_INTERP_H\n"
-	    "#include \"decode.h\"\n"
+	    "#define " << Manager.GetArch().Name << "_INTERP_H\n";
+
+	if(Manager.GetComponent(GenerationManager::FnDecode)) {
+		str << "#include \"decode.h\"\n";
+	}
+
+	str <<
 	    "#include <interpret/Interpreter.h>\n"
 	    "#include <cstdint>\n"
 
@@ -85,16 +94,14 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const
 
 static void GenerateHelperFunctionPrototype(gensim::util::cppformatstream &str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction *action)
 {
+	gensim::genc::ssa::SSATypeFormatter formatter;
+	formatter.SetStructPrefix("gensim::" + action->Arch->Name + "::Decode::");
+
 	str << "template<bool trace> " << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
 
 	for(auto i : action->ParamSymbols) {
-		// if we're accessing a struct, assume that it's an instruction
-		if(i->GetType().IsStruct()) {
-			str << ", Interpreter::decode_t &inst";
-		} else {
-			auto type_string = i->GetType().GetCType();
-			str << ", " << type_string << " " << i->GetName();
-		}
+		auto type_string = formatter.FormatType(i->GetType());
+		str << ", " << type_string << " " << i->GetName();
 	}
 	str << ")";
 }
@@ -200,13 +207,15 @@ bool InterpEEGenerator::RegisterStepInstruction(isa::InstructionDescription& ins
 	std::stringstream prototype_str;
 	prototype_str << "template<bool trace=false> archsim::core::execution::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(archsim::core::thread::ThreadInstance *thread, gensim::" << Manager.GetArch().Name << "::Interpreter::decode_t &inst)";
 
+	auto action = static_cast<const gensim::genc::ssa::SSAFormAction*>(insn.ISA.GetSSAContext().GetAction(insn.BehaviourName));
+
 	util::cppformatstream body_str;
-	body_str << "template<bool trace> archsim::core::execution::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(archsim::core::thread::ThreadInstance *thread, gensim::" << Manager.GetArch().Name << "::Interpreter::decode_t &inst)";
+	body_str << "template<bool trace> archsim::core::execution::ExecutionResult StepInstruction_" << insn.ISA.ISAName << "_" << insn.Name << "(archsim::core::thread::ThreadInstance *thread, gensim::" << Manager.GetArch().Name << "::Interpreter::decode_t &" << action->ParamSymbols.at(0)->GetName() <<  ")";
 	body_str << "{";
 	body_str << "gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 
 	gensim::generator::GenCInterpreterGenerator gci (Manager);
-	gci.GenerateExecuteBodyFor(body_str, *static_cast<const gensim::genc::ssa::SSAFormAction*>(insn.ISA.GetSSAContext().GetAction(insn.BehaviourName)));
+	gci.GenerateExecuteBodyFor(body_str, *action);
 
 	body_str << "return archsim::core::execution::ExecutionResult::Continue;";
 	body_str << "}";
@@ -225,7 +234,11 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 	bool has_is_predicated = isa.GetSSAContext().HasAction("instruction_is_predicated");
 	bool has_instruction_predicate = isa.GetSSAContext().HasAction("instruction_predicate");
 	if(has_is_predicated != has_instruction_predicate) {
-		// bad times
+		if(has_is_predicated) {
+			throw std::logic_error("Architecture has predicate checker but no predicate function");
+		} else {
+			throw std::logic_error("Architecture has predicate function but no predicate checker");
+		}
 	}
 	if(has_is_predicated) {
 		str << "bool " << isa.ISAName << "_is_predicated(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_is_predicated<false>(thread, insn); }";

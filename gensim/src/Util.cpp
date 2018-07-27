@@ -260,7 +260,7 @@ namespace gensim
 			return stream.str();
 		}
 
-		std::string Util::FindReplace(const std::string input, const std::string find, const std::string replace)
+		std::string Util::FindReplace(const std::string &input, const std::string &find, const std::string &replace)
 		{
 			size_t pos;
 			std::string in = std::string(input);

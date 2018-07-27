@@ -22,7 +22,7 @@ bool ArmDoomLinuxUserEmulationModel::Initialise(System& system, uarch::uArch& ua
 
 	auto screen = screen_man->CreateScreenInstance("lcd", &GetMemoryModel(), &GetSystem());
 
-	GetMemoryModel().GetMappingManager()->MapRegion(Address(0xe0000000).Get(), 640 * 480 * 3, archsim::abi::memory::RegFlagReadWrite, "Screen");
+	GetMemoryModel().GetMappingManager()->MapRegion(Address(0xe0000000), 640 * 480 * 3, archsim::abi::memory::RegFlagReadWrite, "Screen");
 	screen->SetFramebufferPointer(Address(0xe0000000));
 	screen->Configure(640, 480, archsim::abi::devices::gfx::VirtualScreenMode::VSM_RGB);
 	screen->Initialise();

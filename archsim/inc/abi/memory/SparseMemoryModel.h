@@ -53,19 +53,21 @@ namespace archsim
 				virtual uint32_t Poke(guest_addr_t addr, uint8_t *data, int size) override;
 
 				MemoryTranslationModel& GetTranslationModel();
+				bool SynchroniseVMAProtection(GuestVMA& vma) override;
+
 
 			protected:
 				bool AllocateVMA(GuestVMA &vma);
 				bool DeallocateVMA(GuestVMA &vma);
 				bool ResizeVMA(GuestVMA &vma, guest_size_t new_size);
-				bool SynchroniseVMAProtection(GuestVMA &vma);
-
 			private:
-				void SyncPageMap(GuestVMA &vma);
-				void ErasePageMap(GuestVMA &vma);
+				char *GetPage(Address addr);
+
+				Address prev_page_base_;
+				char *prev_page_data_;
 
 				SparseMemoryTranslationModel* translation_model;
-				void **_page_map;
+				std::map<Address, char*> data_;
 			};
 		}
 	}

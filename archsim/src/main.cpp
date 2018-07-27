@@ -133,7 +133,10 @@ int main(int argc, char *argv[])
 
 	// Now, load modules. We still haven't initialised logging, so any messages
 	// will go to the early log.
-	session.GetModuleManager().LoadStandardModuleDirectory();
+	if(!session.GetModuleManager().LoadStandardModuleDirectory()) {
+		rc = 1;
+		goto out;
+	}
 
 
 	// By default, we only show errors;
