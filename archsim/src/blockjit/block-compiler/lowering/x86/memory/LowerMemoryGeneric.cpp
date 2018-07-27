@@ -63,6 +63,11 @@ bool LowerReadMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 		case 4:
 			Encoder().call((void*)blkRead32, BLKJIT_RETURN(8));
 			break;
+		case 8:
+			Encoder().call((void*)blkRead64, BLKJIT_RETURN(8));
+			break;
+		default:
+			UNEXPECTED;
 	}
 	if(dest->is_alloc_reg()) {
 		Encoder().mov(REGS_RAX(dest->size), GetLoweringContext().register_from_operand(dest, dest->size));
@@ -118,10 +123,16 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 	} else if(value->is_alloc_stack()) {
 		// already loaded
 	} else if(value->is_constant()) {
-		if(value->size != 4) {
-			assert(false);
+		switch(value->size) {
+			case 4:
+				Encoder().mov((uint32_t)value->value, BLKJIT_ARG3(4));
+				break;
+			case 8:
+				Encoder().mov((uint64_t)value->value, BLKJIT_ARG3(4));
+				break;
+			default:
+				UNEXPECTED;
 		}
-		Encoder().mov(value->value, BLKJIT_ARG3(4));
 	} else {
 		assert(false);
 	}
@@ -136,6 +147,11 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 		case 4:
 			Encoder().mov((uint64_t)cpuWrite32, BLKJIT_RETURN(8));
 			break;
+		case 8:
+			Encoder().mov((uint64_t)cpuWrite64, BLKJIT_RETURN(8));
+			break;
+		default:
+			UNEXPECTED;
 	}
 
 	Encoder().call(BLKJIT_RETURN(8));

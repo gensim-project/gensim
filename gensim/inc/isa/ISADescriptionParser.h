@@ -40,6 +40,8 @@ namespace gensim
 			bool load_behaviours();
 			bool load_behaviour_file(std::string filename);
 
+			bool parse_struct(pANTLR3_BASE_TREE node);
+
 			std::set<std::string> parsed_files;
 			std::set<std::string> loaded_files;
 		};

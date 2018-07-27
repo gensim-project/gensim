@@ -8,6 +8,7 @@
 #include "genC/ssa/SSAContext.h"
 #include "genC/ssa/SSAFormAction.h"
 #include "genC/ssa/SSASymbol.h"
+#include "genC/ssa/SSATypeFormatter.h"
 
 using namespace gensim::generator;
 
@@ -42,21 +43,18 @@ const std::vector<std::string> ArchDescriptorGenerator::GetSources() const
 
 static void GenerateHelperFunctionPrototype(gensim::util::cppformatstream &str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction *action, bool addTemplateDefaultValue)
 {
+	gensim::genc::ssa::SSATypeFormatter formatter;
+	formatter.SetStructPrefix("gensim::" + action->Arch->Name + "::decode_t::");
+
 	if(addTemplateDefaultValue)
 		str << "template<bool trace=false> ";
 	else
 		str << "template<bool trace> ";
 
-	str << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
+	str << formatter.FormatType(action->GetPrototype().ReturnType()) << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
 
 	for(auto i : action->ParamSymbols) {
-		// if we're accessing a struct, assume that it's an instruction
-		if(i->GetType().IsStruct()) {
-			str << ", Decode &inst";
-		} else {
-			auto type_string = i->GetType().GetCType();
-			str << ", " << type_string << " " << i->GetName();
-		}
+		str << ", " << formatter.FormatType(i->GetType()) << " " << i->GetName();
 	}
 	str << ")";
 }
@@ -66,7 +64,11 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 	str << "#include <core/thread/ThreadInstance.h>\n";
 	str << "#include <core/execution/ExecutionEngine.h>\n";
 	str << "#include \"arch.h\"\n";
-	str << "#include \"decode.h\"\n";
+
+	if(Manager.GetComponent(GenerationManager::FnDecode)) {
+		str << "#include \"decode.h\"\n";
+	}
+
 	str << "#include \"jumpinfo.h\"\n";
 
 	str << "using namespace gensim::" << Manager.GetArch().Name << ";";
@@ -188,7 +190,7 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 
 		str << "static auto " << isa->ISAName << "_decode_instr = [](archsim::Address addr, archsim::MemoryInterface *interface, gensim::BaseDecode &decode){ return ((gensim::" << Manager.GetArch().Name << "::Decode&)decode).DecodeInstr(addr, " << (uint32_t)isa->isa_mode_id << ", *interface); };";
 		str << "static auto " << isa->ISAName << "_newdecoder = []() { return new gensim::" << Manager.GetArch().Name << "::Decode(); };";
-		str << "static auto " << isa->ISAName << "_newjumpinfo = []() { return new gensim::" << Manager.GetArch().Name << "::JumpInfo(); };";
+		str << "static auto " << isa->ISAName << "_newjumpinfo = []() { return new gensim::" << Manager.GetArch().Name << "::JumpInfoProvider(); };";
 		str << "static auto " << isa->ISAName << "_newdtc = []() { return nullptr; };";
 
 		str << "static archsim::ISADescriptor isa_" << isa->ISAName << " (\"" << isa->ISAName << "\", " << (uint32_t)isa->isa_mode_id << ", " << isa->ISAName << "_decode_instr, " << isa->ISAName << "_newdecoder, " << isa->ISAName << "_newjumpinfo, " << isa->ISAName << "_newdtc, get_behaviours_" << isa->ISAName << "());";
@@ -208,6 +210,11 @@ bool ArchDescriptorGenerator::GenerateHeader(util::cppformatstream &str) const
 	str << "#include <core/thread/ThreadInstance.h>\n";
 	str << "#include <gensim/gensim_processor_api.h>\n";
 	str << "#include <util/Vector.h>\n";
+
+	str << "#include <util/int128.h>\n";
+	str << "using uint128_t = __uint128_t;";
+	str << "using int128_t = __int128_t;";
+
 	str << "namespace gensim {";
 	str << "namespace " << Manager.GetArch().Name << " {";
 	str << "class ArchDescriptor : public archsim::ArchDescriptor {";
@@ -232,12 +239,15 @@ bool ArchDescriptorGenerator::GenerateThreadInterface(util::cppformatstream &str
 	for(gensim::arch::RegBankViewDescriptor *rbank : Manager.GetArch().GetRegFile().GetBanks()) {
 		std::string read_trace_string = "";
 		std::string write_trace_string = "";
-		if(rbank->GetRegisterIRType().VectorWidth > 1) {
-			read_trace_string = ""; // not currently supported
-			write_trace_string = ""; // not currently supported
+		if(rbank->GetElementSize() > 8) {
+			read_trace_string = "";
+			write_trace_string = "";
+		} else if(rbank->GetRegisterIRType().VectorWidth > 1) {
+			read_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Read(true, " + std::to_string(rbank->GetIndex()) + ", idx, (char*)value.data(), " + std::to_string(rbank->GetRegisterWidth()) + "); }";
+			write_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Write(true, " + std::to_string(rbank->GetIndex()) + ", idx, (char*)value.data(), " + std::to_string(rbank->GetRegisterWidth()) + "); }";
 		} else {
-			read_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Read(true, " + std::to_string(rbank->GetIndex()) + ", idx, value); }";
-			write_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Write(true, " + std::to_string(rbank->GetIndex()) + ", idx, value); }";
+			read_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Read(true, " + std::to_string(rbank->GetIndex()) + ", idx, (" + rbank->GetElementIRType().GetCType() + ")value); }";
+			write_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Write(true, " + std::to_string(rbank->GetIndex()) + ", idx, (" + rbank->GetElementIRType().GetCType() + ") value); }";
 		}
 		str << "template<bool trace=false> " << rbank->GetRegisterIRType().GetCType() << " read_register_bank_" << rbank->ID << "(uint32_t idx) const { auto value = *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")); " << read_trace_string << " return value; }";
 		str << "template<bool trace=false> void write_register_bank_" << rbank->ID << "(uint32_t idx, " << rbank->GetRegisterIRType().GetCType() << " value) { *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")) = value; " << write_trace_string << " }";

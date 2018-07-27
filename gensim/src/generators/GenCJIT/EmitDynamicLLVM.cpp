@@ -1079,20 +1079,17 @@ namespace gensim
 					const SSAReadStructMemberStatement &Statement = static_cast<const SSAReadStructMemberStatement &>(this->Statement);
 
 					std::stringstream str;
-					if (Statement.Index != -1) str << "((uint32*)(";
-					// XXX just assume we only ever access the inst struct
-					// str << "CV_" << TargetStruct->GetName() << "->" << MemberName;
 
-					if(Statement.MemberName == "IsPredicated") {
+					UNIMPLEMENTED;
+					if(Statement.MemberNames.at(0) == "IsPredicated") {
 						str << "CV_top_inst->GetIsPredicated()";
-					} else if(Statement.MemberName == "PredicateInfo") {
+					} else if(Statement.MemberNames.at(0) == "PredicateInfo") {
 						str << "CV_top_inst->GetPredicateInfo()";
 					} else {
 						str << "CV_top_inst"
-						    << "->" << Statement.MemberName;
+						    << "->" << Statement.FormatMembers();
 					}
 					// XXX
-					if (Statement.Index != -1) str << "))[" << Statement.Index << "]";
 					return str.str();
 				}
 
@@ -1100,14 +1097,13 @@ namespace gensim
 				{
 					const SSAReadStructMemberStatement &Statement = static_cast<const SSAReadStructMemberStatement &>(this->Statement);
 
+					UNIMPLEMENTED;
 					std::stringstream str;
-					if (Statement.Index != -1) str << "((uint32*)(";
 					// XXX just assume we only ever access the inst struct
 					// str << "CV_" << TargetStruct->GetName() << "->" << MemberName;
 					str << "CV_top_inst"
-					    << "->" << Statement.MemberName;
+					    << "->" << Statement.FormatMembers();
 					// XXX
-					if (Statement.Index != -1) str << "))[" << Statement.Index << "]";
 					return GetLLVMValue(Statement.GetType(), str.str());
 				}
 			};

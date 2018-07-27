@@ -68,7 +68,7 @@ void FBScreen::run()
 	running_ = true;
 	while(running_) {
 		// copy target framebuffer to host framebuffer
-		GetMemory()->Read(fb_ptr.Get(), (uint8_t*)fb_buffer_, GetWidth() * GetHeight());
+		GetMemory()->Read(fb_ptr, (uint8_t*)fb_buffer_, GetWidth() * GetHeight());
 		usleep(100000);
 	}
 }

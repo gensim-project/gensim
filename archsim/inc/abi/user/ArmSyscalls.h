@@ -451,6 +451,29 @@ struct arm_stat {
 	uint32_t target_st_ctime_nsec;
 } __attribute__((packed));
 
+struct aarch64_stat {
+	uint64_t st_dev;
+	uint64_t __st_ino;
+	uint32_t st_mode;
+	uint32_t st_nlink;
+	uint32_t st_uid;
+	uint32_t st_gid;
+	uint64_t st_rdev;
+	uint64_t padding;
+	int64_t st_size;
+	int32_t st_blksize;
+	int32_t padding2;
+	int64_t st_blocks;
+	int64_t target_st_atime;
+	uint64_t st_atime_nsec;
+	int64_t target_st_mtime;
+	uint64_t st_mtime_nsec;
+	int64_t target_st_ctime;
+	uint64_t st_ctime_nsec;
+	uint32_t padding3;
+	uint32_t padding4;
+} __attribute__((packed));
+
 struct arm_timeval {
 	unsigned int tv_sec;
 	unsigned int tv_usec;

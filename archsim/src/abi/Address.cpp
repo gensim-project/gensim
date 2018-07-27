@@ -6,6 +6,8 @@
 
 using namespace archsim;
 
+const archsim::Address archsim::Address::NullPtr (0);
+
 namespace archsim
 {
 
