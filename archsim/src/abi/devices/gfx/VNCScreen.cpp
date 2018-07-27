@@ -16,6 +16,7 @@ VNCScreen::VNCScreen(std::string id, memory::MemoryModel* mem_model, System* sys
 
 libgvnc::FB_PixelFormat Format_16bit (16, 16, 0, 1, 31, 63, 31, 11, 5, 0);
 libgvnc::FB_PixelFormat Format_RGB32 (32, 24, 0, 1, 255, 255, 255, 16, 8, 0);
+libgvnc::FB_PixelFormat Format_RGB24 (24, 24, 0, 1, 255, 255, 255, 16, 8, 0);
 
 
 static uint32_t MapSym(uint32_t xsym)
@@ -323,18 +324,26 @@ void mouse_callback(generic::Mouse &mouse, const libgvnc::PointerEvent &event)
 bool VNCScreen::Configure(uint32_t width, uint32_t height, VirtualScreenMode mode)
 {
 	// figure out pixel format
-	libgvnc::FB_PixelFormat pixelformat = Format_16bit;
+	libgvnc::FB_PixelFormat pixelformat = Format_RGB24;
 
 	vnc_framebuffer_ = new libgvnc::Framebuffer(width, height, pixelformat);
 	vnc_framebuffer_ ->SetData(fb_ptr_);
 	vnc_server_ = new libgvnc::Server(vnc_framebuffer_);
 
-	vnc_server_->GetKeyboard().SetCallback([this](const libgvnc::KeyEvent &event) {
-		key_callback(*keyboard_, event);
-	});
-	vnc_server_->GetPointer().SetCallback([this](const libgvnc::PointerEvent &event) {
-		mouse_callback(*mouse_, event);
-	});
+	if(keyboard_ != nullptr) {
+		vnc_server_->GetKeyboard().SetCallback([this](const libgvnc::KeyEvent &event) {
+			key_callback(*keyboard_, event);
+		});
+	} else {
+		vnc_server_->GetKeyboard().SetCallback([](const libgvnc::KeyEvent &event) {});
+	}
+	if(mouse_ != nullptr) {
+		vnc_server_->GetPointer().SetCallback([this](const libgvnc::PointerEvent &event) {
+			mouse_callback(*mouse_, event);
+		});
+	} else {
+		vnc_server_->GetPointer().SetCallback([](const libgvnc::PointerEvent &event) {});
+	}
 
 	vnc_server_->Open(5900);
 
@@ -352,10 +361,10 @@ bool VNCScreen::Reset()
 	return true;
 }
 
-bool VNCScreen::SetFramebufferPointer(uint32_t guest_addr)
+bool VNCScreen::SetFramebufferPointer(Address guest_addr)
 {
 	host_addr_t addr;
-	GetMemory()->LockRegion(guest_addr, 4096, addr);
+	GetMemory()->LockRegion(guest_addr.Get(), 4096, addr);
 	fb_ptr_ = addr;
 	return true;
 }

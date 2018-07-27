@@ -30,13 +30,13 @@ bool VirtualScreen::Configure(uint32_t width, uint32_t height, VirtualScreenMode
 	return true;
 }
 
-bool VirtualScreen::SetFramebufferPointer(uint32_t guest_addr)
+bool VirtualScreen::SetFramebufferPointer(Address guest_addr)
 {
 	fb_ptr = guest_addr;
 	return true;
 }
 
-bool VirtualScreen::SetPalettePointer(uint32_t guest_addr)
+bool VirtualScreen::SetPalettePointer(Address guest_addr)
 {
 	p_ptr = guest_addr;
 	return true;

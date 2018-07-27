@@ -286,26 +286,35 @@ void archsim::abi::devices::gfx::draw_callback(GtkWidget *widget, cairo_t *cr, v
 	GtkScreen *screen = (GtkScreen*)data;
 
 
-	uint16_t *fbp = (uint16_t*)screen->guest_fb;
-	uint16_t *fbp_end = fbp + (screen->GetHeight() * screen->GetWidth());
-
 	GdkPixbuf *pb = screen->pb_;
 	guchar *pixels = gdk_pixbuf_get_pixels(pb);
 
-	for(; fbp != fbp_end;) {
-		uint16_t pxl = *fbp++;
-		uint16_t r, g, b;
+	if(screen->GetMode() == VirtualScreenMode::VSM_16bit) {
+		uint16_t *fbp = (uint16_t*)screen->guest_fb;
+		uint16_t *fbp_end = fbp + (screen->GetHeight() * screen->GetWidth());
 
-		// Extract the RGB565 data
-		r = pxl >> 11;
-		g = (pxl >> 5) & 0x3f;
-		b = pxl & 0x1f;
+		for(; fbp != fbp_end;) {
+			uint16_t pxl = *fbp++;
+			uint16_t r, g, b;
 
-		// Repack it into 24-bit RGB
-		uint32_t out = (b << 19) | (g << 10) | (r << 3);
+			// Extract the RGB565 data
+			r = pxl >> 11;
+			g = (pxl >> 5) & 0x3f;
+			b = pxl & 0x1f;
 
-		*(uint32_t*)pixels = out;
-		pixels += 3;
+			// Repack it into 24-bit RGB
+			uint32_t out = (b << 19) | (g << 10) | (r << 3);
+
+			*(uint32_t*)pixels = out;
+			pixels += 3;
+		}
+	} else if(screen->GetMode() == VirtualScreenMode::VSM_RGB) {
+		uint8_t *fbp = (uint8_t*)screen->guest_fb;
+		size_t screen_size = (screen->GetHeight() * screen->GetWidth() * 3);
+
+		memcpy(pixels, fbp, screen_size);
+	} else {
+		throw std::logic_error("Unsupported mode in GTK Screen");
 	}
 
 
@@ -345,12 +354,16 @@ bool GtkScreen::Initialise()
 		gtk_window_set_title((GtkWindow*)window, GetId().c_str());
 		gtk_window_set_resizable((GtkWindow*)window,false);
 
-		g_signal_connect(window, "key-press-event", G_CALLBACK(key_press_event), this);
-		g_signal_connect(window, "key-release-event", G_CALLBACK(key_release_event), this);
+		if(kbd != nullptr) {
+			g_signal_connect(window, "key-press-event", G_CALLBACK(key_press_event), this);
+			g_signal_connect(window, "key-release-event", G_CALLBACK(key_release_event), this);
+		}
 
 //		g_signal_connect(window, "motion-notify-event", G_CALLBACK(motion_notify_event), this);
-		g_signal_connect(window, "button-press-event", G_CALLBACK(button_press_event), this);
-		g_signal_connect(window, "button-release-event", G_CALLBACK(button_press_event), this);
+		if(mouse != nullptr) {
+			g_signal_connect(window, "button-press-event", G_CALLBACK(button_press_event), this);
+			g_signal_connect(window, "button-release-event", G_CALLBACK(button_press_event), this);
+		}
 
 		g_signal_connect(draw_area, "draw", G_CALLBACK(draw_callback), this);
 
@@ -359,7 +372,7 @@ bool GtkScreen::Initialise()
 		framebuffer = (uint8_t*)malloc(3 * GetWidth() * GetHeight());
 
 		host_addr_t guest_fb_ptr;
-		GetMemory()->LockRegion(fb_ptr, GetWidth() * GetHeight(), guest_fb_ptr);
+		GetMemory()->LockRegion(fb_ptr.Get(), GetWidth() * GetHeight(), guest_fb_ptr);
 		guest_fb = (uint8_t*)guest_fb_ptr;
 
 		running = true;
