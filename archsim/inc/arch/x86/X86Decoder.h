@@ -35,6 +35,7 @@ enum X86Opcodes {
 	INST_x86_cmpxchg,
 	INST_x86_cpuid,
 	INST_x86_cqo,
+	INST_x86_cwde,
 	INST_x86_dec,
 	INST_x86_div,
 	INST_x86_idiv,
