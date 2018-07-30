@@ -59,6 +59,10 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 	ring_offset_ = state_block_.AddBlock("RingID", sizeof(uint32_t));
 	state_block_.SetEntry<uint32_t>("RingID", 0);
 
+	// Get a pointer to the PC
+	pc_ptr_ = GetRegisterFileInterface().GetTaggedSlotPointer<void*>("PC");
+	pc_is_64bit_ = GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC").GetEntrySize() == 8;
+
 	message_waiting_ = false;
 	trace_source_ = nullptr;
 }

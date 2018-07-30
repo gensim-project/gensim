@@ -25,6 +25,7 @@ namespace archsim
 		public:
 			virtual ~Interpreter();
 			virtual core::execution::ExecutionResult StepBlock(archsim::core::thread::ThreadInstance *thread) = 0;
+
 		};
 	}
 }

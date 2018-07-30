@@ -39,6 +39,7 @@ namespace archsim
 				void motion_notify_event(GtkWidget *widget, GdkEventMotion *event, void *screen);
 				void button_press_event(GtkWidget *widget, GdkEventButton *event, void *screen);
 				void draw_callback(GtkWidget *widget, cairo_t *cr, void *screen);
+				void configure_callback(GtkWidget *widget, GdkEventConfigure *cr, void *screen);
 
 				class GtkScreen : public archsim::abi::devices::gfx::VirtualScreen, public archsim::concurrent::Thread
 				{
@@ -61,6 +62,8 @@ namespace archsim
 					bool running;
 
 				private:
+					uint32_t GetPixelRGB(uint32_t x, uint32_t y);
+
 					void run() override;
 
 					GtkWidget *window, *draw_area;
@@ -72,6 +75,8 @@ namespace archsim
 					uint32_t last_mouse_x, last_mouse_y;
 					uint32_t mouse_x, mouse_y;
 
+					// The 'target' size (i.e., what should the guest image be resized to
+					uint32_t target_width_, target_height_;
 
 					void draw_framebuffer();
 
@@ -80,6 +85,7 @@ namespace archsim
 					friend void motion_notify_event(GtkWidget *widget, GdkEventMotion *event, void *screen);
 					friend void button_press_event(GtkWidget *widget, GdkEventButton *event, void *screen);
 					friend void draw_callback(GtkWidget *widget, cairo_t *cr, void *screen);
+					friend void configure_callback(GtkWidget *widget, GdkEventConfigure *cr, void *screen);
 
 					void grab();
 					void ungrab();

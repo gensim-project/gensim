@@ -404,6 +404,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_MOVSB, INST_x86_movsb);
 			MAP(XED_ICLASS_MOVSXD, INST_x86_movsxd);
 			MAP(XED_ICLASS_MOVSX, INST_x86_movsx);
+			MAP(XED_ICLASS_MOVAPS, INST_x86_movups);
+			MAP(XED_ICLASS_MOVUPS, INST_x86_movups);
 			MAP(XED_ICLASS_MOVNTI, INST_x86_mov);
 			MAP(XED_ICLASS_MOVZX, INST_x86_movzx);
 			MAP(XED_ICLASS_MUL, INST_x86_mul);
@@ -411,7 +413,11 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_NOP, INST_x86_nop);
 			MAP(XED_ICLASS_NOT, INST_x86_not);
 			MAP(XED_ICLASS_OR, INST_x86_or);
+			MAP(XED_ICLASS_PADDD, INST_x86_paddd);
+			MAP(XED_ICLASS_PADDQ, INST_x86_paddq);
 			MAP(XED_ICLASS_PCMPEQB, INST_x86_pcmpeqb);
+			MAP(XED_ICLASS_PCMPGTW, INST_x86_pcmpgtw);
+			MAP(XED_ICLASS_PCMPGTD, INST_x86_pcmpgtd);
 			MAP(XED_ICLASS_PMOVMSKB, INST_x86_pmovmskb);
 			MAP(XED_ICLASS_POP, INST_x86_pop);
 
@@ -423,9 +429,14 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_POR, INST_x86_por);
 			MAP(XED_ICLASS_PUNPCKLBW, INST_x86_punpcklbw);
 			MAP(XED_ICLASS_PUNPCKLWD, INST_x86_punpcklwd);
+			MAP(XED_ICLASS_PUNPCKLDQ, INST_x86_punpckldq);
+			MAP(XED_ICLASS_PUNPCKHWD, INST_x86_punpckhwd);
+			MAP(XED_ICLASS_PUNPCKHDQ, INST_x86_punpckhdq);
+			MAP(XED_ICLASS_PUNPCKLQDQ, INST_x86_punpcklqdq);
 			MAP(XED_ICLASS_PUSH, INST_x86_push);
 			MAP(XED_ICLASS_PUSHFQ, INST_x86_pushfq);
 			MAP(XED_ICLASS_PSHUFD, INST_x86_pshufd);
+			MAP(XED_ICLASS_PSLLD, INST_x86_pslld);
 			MAP(XED_ICLASS_PXOR, INST_x86_pxor);
 			MAP(XED_ICLASS_RDTSC, INST_x86_rdtsc);
 			MAP(XED_ICLASS_REPE_CMPSB, INST_x86_repe_cmpsb);
@@ -448,6 +459,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_SETNZ, INST_x86_setcc);
 			MAP(XED_ICLASS_SETLE, INST_x86_setcc);
 			MAP(XED_ICLASS_SETNLE, INST_x86_setcc);
+			MAP(XED_ICLASS_SETL, INST_x86_setcc);
+			MAP(XED_ICLASS_SETNL, INST_x86_setcc);
 
 			MAP(XED_ICLASS_SHL, INST_x86_shl);
 			MAP(XED_ICLASS_SHR, INST_x86_shr);
@@ -500,7 +513,11 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 	xed_decoded_inst_t xedd;
 	xed_error_enum_t xed_error;
 
-	xed_tables_init();
+	static bool tables_inited = false;
+	if(!tables_inited) {
+		xed_tables_init();
+		tables_inited = true;
+	}
 	xed_state_zero(&dstate);
 	dstate.mmode = XED_MACHINE_MODE_LONG_64;
 

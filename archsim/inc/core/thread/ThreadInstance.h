@@ -218,11 +218,19 @@ namespace archsim
 				}
 				Address GetPC()
 				{
-					return GetRegisterFileInterface().GetTaggedSlot("PC");
+					if(pc_is_64bit_) {
+						return Address(*(uint64_t*)pc_ptr_);
+					} else {
+						return Address(*(uint32_t*)pc_ptr_);
+					}
 				}
 				void SetPC(Address target)
 				{
-					GetRegisterFileInterface().SetTaggedSlot("PC", target);
+					if(pc_is_64bit_) {
+						*(uint64_t*)pc_ptr_ = target.Get();
+					} else {
+						*(uint32_t*)pc_ptr_ = target.Get();
+					}
 				}
 				Address GetSP()
 				{
@@ -448,6 +456,9 @@ namespace archsim
 
 				uint32_t mode_offset_;
 				uint32_t ring_offset_;
+
+				void *pc_ptr_;
+				bool pc_is_64bit_;
 
 				std::mutex message_lock_;
 				std::queue<ThreadMessage> message_queue_;

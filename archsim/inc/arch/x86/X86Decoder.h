@@ -56,22 +56,32 @@ enum X86Opcodes {
 	INST_x86_movsb,
 	INST_x86_movsxd,
 	INST_x86_movsx,
+	INST_x86_movups,
 	INST_x86_movzx,
 	INST_x86_mul,
 	INST_x86_neg,
 	INST_x86_nop,
 	INST_x86_not,
 	INST_x86_or,
+	INST_x86_paddd,
+	INST_x86_paddq,
 	INST_x86_pcmpeqb,
+	INST_x86_pcmpgtw,
+	INST_x86_pcmpgtd,
 	INST_x86_pmovmskb,
 	INST_x86_pop,
 	INST_x86_popf,
 	INST_x86_por,
 	INST_x86_punpcklbw,
 	INST_x86_punpcklwd,
+	INST_x86_punpckldq,
+	INST_x86_punpckhwd,
+	INST_x86_punpckhdq,
+	INST_x86_punpcklqdq,
 	INST_x86_push,
 	INST_x86_pushfq,
 	INST_x86_pshufd,
+	INST_x86_pslld,
 	INST_x86_pxor,
 	INST_x86_rdtsc,
 	INST_x86_repe_cmpsb,
@@ -143,9 +153,11 @@ namespace archsim
 					uint8_t is_mem;
 					uint8_t is_relbr;
 
-					Register reg;
-					Memory memory;
-					Immediate imm;
+					union {
+						Register reg;
+						Memory memory;
+						Immediate imm;
+					};
 				};
 
 

@@ -144,8 +144,8 @@ execute(idiv) {
 
 helper void do_idiv(uint8 width, sint64 divisor) noinline
 {
-	// calculate divident
-	sint128 dividend = get_cd_pair(width*2);
+	// calculate dividend
+	sint128 dividend = sign_extend128(get_cd_pair(width*2), width*2);
 		
 	if(width == 8) {
 		write_register(AL, dividend / divisor);
@@ -159,26 +159,29 @@ helper void do_idiv(uint8 width, sint64 divisor) noinline
 }
 
 execute(imul1) {
-	sint128 op0 = (sint64)read_operand(inst.op0);
-	sint128 op1 = (sint64)sign_extend(read_reg(0, 64), operand_get_size(inst.op0));
+	uint8 op0_size = operand_get_size(inst.op0);
+
+	sint128 op0 = (sint64)sign_extend(read_operand(inst.op0), op0_size);
+	sint128 op1 = (sint64)sign_extend(read_reg(0, 64), op0_size);
 	
 	sint128 result = op0 * op1;
 	
-	uint8 truncation = result != (sint64)result;
+	uint8 truncation = result != sign_extend(result, op0_size);
 	write_register(CF, truncation);
 	write_register(OF, truncation);
 	
-	write_cd_pair(result, operand_get_size(inst.op0) * 2);
+	write_cd_pair(result, op0_size * 2);
 }
 
 execute(imul2) {
+	uint8 op0_size = operand_get_size(inst.op0);
+	
 	sint128 op0 = read_operand(inst.op0);
 	sint128 op1 = read_operand(inst.op1);
 	
 	sint128 result = op0 * op1;
 	
-	// todo: flags
-	uint8 truncation = result != (sint64)result;
+	uint8 truncation = result != sign_extend(result, op0_size);
 	write_register(CF, truncation);
 	write_register(OF, truncation);
 		
@@ -186,12 +189,14 @@ execute(imul2) {
 }
 
 execute(imul3) {
+	uint8 op0_size = operand_get_size(inst.op0);
+
 	sint128 op0 = read_operand(inst.op1);
 	sint128 op1 = read_operand(inst.op2);
 	
 	sint128 result = op0 * op1;
 	
-	uint8 truncation = result != (sint64)result;
+	uint8 truncation = result != sign_extend(result, op0_size);
 	write_register(CF, truncation);
 	write_register(OF, truncation);
 	
@@ -335,14 +340,10 @@ execute(rdtsc) {
 	take_exception(1, 0);
 }
 
-execute(repe_cmpsb) {
-	if(repe_should_run(inst)) {
-		
-		do_cmpsb(inst);
-		
-		rep_decrement_counter(inst);
-		
-	} 
+execute(repe_cmpsb) {		
+	do_cmpsb(inst);
+	rep_decrement_counter(inst); 
+	
 	if(!repe_should_run(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
@@ -1182,6 +1183,19 @@ helper void rep_decrement_counter(struct Instruction &inst)
 	write_register(ECX, read_register(ECX) - 1);
 	
 	return;
+}
+
+helper uint128 sign_extend128(uint128 value,uint8 width)
+{
+	switch(width) {
+		case 8: { value = (sint128)(sint8)value; break; }
+		case 16: { value = (sint128)(sint16)value; break; }
+		case 32: { value = (sint128)(sint32)value; break; }
+		case 64: { value = (sint128)(sint64)value; break; }
+		default: { break; }
+	}
+	
+	return value;
 }
 
 // Sign extends the given value from width bits to 64 bits

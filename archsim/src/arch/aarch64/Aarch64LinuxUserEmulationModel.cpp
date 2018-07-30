@@ -21,12 +21,13 @@ namespace archsim
 			public:
 				Aarch64DecodeContext(const ArchDescriptor &arch) : arch_(arch) {}
 
-				uint32_t DecodeSync(archsim::MemoryInterface& mem_interface, archsim::Address address, uint32_t mode, gensim::BaseDecode& target) override
+				uint32_t DecodeSync(archsim::MemoryInterface& mem_interface, archsim::Address address, uint32_t mode, gensim::BaseDecode *&target) override
 				{
-					auto result = arch_.GetISA(0).DecodeInstr(address, &mem_interface, target);
+					target = arch_.GetISA(mode).GetNewDecode();
+					auto result = arch_.GetISA(0).DecodeInstr(address, &mem_interface, *target);
 
-					if((target.ir & 0xff000010) == 0x54000000) {
-						target.SetIsPredicated();
+					if((target->ir & 0xff000010) == 0x54000000) {
+						target->SetIsPredicated();
 					}
 
 					return result;

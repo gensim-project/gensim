@@ -65,7 +65,14 @@ bool X86LinuxUserEmulationModel::PrepareBoot(System& system)
 
 gensim::DecodeContext* X86LinuxUserEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu)
 {
-	return new arch::x86::X86DecodeContext(cpu.GetArch());
+	auto &isa = cpu.GetArch().GetISA(0);
+	gensim::DecodeContext *ctx = new arch::x86::X86DecodeContext(cpu.GetArch());
+	if(!archsim::options::AggressiveCodeInvalidation) {
+		ctx = new gensim::CachedDecodeContext(ctx, [&isa]() {
+			return isa.GetNewDecode();
+		});
+	}
+	return ctx;
 }
 
 bool X86LinuxUserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, SignalData* data)
