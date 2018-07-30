@@ -11,6 +11,7 @@
 #define GENSIM_DECODE_CONTEXT_H
 
 #include "abi/Address.h"
+#include "util/Cache.h"
 
 namespace captive
 {
@@ -49,10 +50,25 @@ namespace gensim
 	public:
 		DecodeContext();
 		virtual ~DecodeContext();
-		virtual uint32_t DecodeSync(archsim::MemoryInterface &mem_interface, archsim::Address address, uint32_t mode, BaseDecode &target) = 0;
+		virtual uint32_t DecodeSync(archsim::MemoryInterface &mem_interface, archsim::Address address, uint32_t mode, BaseDecode *&target) = 0;
 
 		virtual void Reset(archsim::core::thread::ThreadInstance *thread);
 		virtual void WriteBackState(archsim::core::thread::ThreadInstance *thread);
+	};
+
+	class CachedDecodeContext : public DecodeContext
+	{
+	public:
+		CachedDecodeContext(DecodeContext *underlying_ctx, std::function<gensim::BaseDecode*()> new_decode_fn) : underlying_ctx_(underlying_ctx), new_decode_fn_(new_decode_fn) {}
+		uint32_t DecodeSync(archsim::MemoryInterface& mem_interface, archsim::Address address, uint32_t mode, BaseDecode *&target) override;
+
+		void Reset(archsim::core::thread::ThreadInstance* thread) override;
+		void WriteBackState(archsim::core::thread::ThreadInstance* thread) override;
+
+	private:
+		archsim::util::Cache<archsim::Address, gensim::BaseDecode*> decode_cache_;
+		std::function<gensim::BaseDecode*()> new_decode_fn_;
+		DecodeContext *underlying_ctx_;
 	};
 
 	// This class is used to emit operations which should happen unconditionally

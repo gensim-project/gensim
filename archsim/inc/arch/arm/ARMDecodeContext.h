@@ -75,7 +75,7 @@ namespace archsim
 				 * It should be called synchronously with the processor executing
 				 * or translating instructions i.e., not for tracing.
 				 */
-				virtual uint32_t DecodeSync(archsim::MemoryInterface &interface, Address address, uint32_t mode, gensim::BaseDecode &target) override;
+				virtual uint32_t DecodeSync(archsim::MemoryInterface &interface, Address address, uint32_t mode, gensim::BaseDecode *&target) override;
 
 			private:
 				uint8_t itstate_;

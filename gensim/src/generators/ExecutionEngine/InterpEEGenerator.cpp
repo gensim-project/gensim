@@ -46,7 +46,7 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const
 	    "	using decode_t = gensim::" << Manager.GetArch().Name << "::Decode;"
 	    "private:"
 	    "	gensim::DecodeContext *decode_context_;"
-	    "  uint32_t DecodeInstruction(archsim::core::thread::ThreadInstance *thread, decode_t &inst);"
+	    "  uint32_t DecodeInstruction(archsim::core::thread::ThreadInstance *thread, decode_t *&inst);"
 	    "  archsim::core::execution::ExecutionResult StepInstruction(archsim::core::thread::ThreadInstance *thread, decode_t &inst);"
 
 	    "};"
@@ -146,10 +146,12 @@ bool InterpEEGenerator::GenerateHelperFunction(util::cppformatstream& str, const
 
 bool InterpEEGenerator::GenerateDecodeInstruction(util::cppformatstream& str) const
 {
-	str << "uint32_t Interpreter::DecodeInstruction(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &inst) {";
+	str << "uint32_t Interpreter::DecodeInstruction(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t *&inst) {";
 	str << "  if(decode_context_ == nullptr) { decode_context_ = thread->GetEmulationModel().GetNewDecodeContext(*thread); }";
 	str << "  gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
-	str << "  auto result = decode_context_->DecodeSync(thread->GetFetchMI(), archsim::Address(interface.read_pc()), thread->GetModeID(), inst);";
+	str << "  gensim::BaseDecode *instr;";
+	str << "  auto result = decode_context_->DecodeSync(thread->GetFetchMI(), archsim::Address(interface.read_pc()), thread->GetModeID(), instr);";
+	str << "  inst = (Interpreter::decode_t*)instr;";
 	str << "  return result;";
 	str << "}";
 
@@ -162,13 +164,14 @@ bool InterpEEGenerator::GenerateBlockExecutor(util::cppformatstream& str) const
 	str <<
 	    "while(true) {"
 
-	    "  decode_t inst;"
-	    "  uint32_t dcode_exception = DecodeInstruction(thread, inst);"
+	    "  decode_t *inst_;"
+	    "  uint32_t dcode_exception = DecodeInstruction(thread, inst_);"
 	    "  if(thread->HasMessage()) { return thread->HandleMessage(); }"
 	    "  if(dcode_exception) { thread->TakeMemoryException(thread->GetFetchMI(), thread->GetPC()); return archsim::core::execution::ExecutionResult::Exception; }"
 	    "  if(archsim::options::InstructionTick) { thread->GetPubsub().Publish(PubSubType::InstructionExecute, nullptr); } "
-	    "  auto result = StepInstruction(thread, inst);"
-	    "  if(inst.GetEndOfBlock()) { return archsim::core::execution::ExecutionResult::Continue; }"
+	    "  auto result = StepInstruction(thread, *inst_);"
+	    "  inst_->Release();"
+	    "  if(inst_->GetEndOfBlock()) { return archsim::core::execution::ExecutionResult::Continue; }"
 	    "  if(result != archsim::core::execution::ExecutionResult::Continue) { return result; }"
 	    "}";
 

@@ -167,7 +167,7 @@ namespace std
 	public:
 		size_t operator()(const archsim::Address &x) const
 		{
-			std::hash<uint32_t> uhash;
+			std::hash<archsim::Address::underlying_t> uhash;
 			return uhash(x.Get());
 		}
 	};
@@ -175,7 +175,7 @@ namespace std
 	public:
 		size_t operator()(const archsim::VirtualAddress &x) const
 		{
-			std::hash<uint32_t> uhash;
+			std::hash<archsim::Address::underlying_t> uhash;
 			return uhash(x.Get());
 		}
 	};
@@ -183,7 +183,7 @@ namespace std
 	public:
 		size_t operator()(const archsim::PhysicalAddress &x) const
 		{
-			std::hash<uint32_t> uhash;
+			std::hash<archsim::Address::underlying_t> uhash;
 			return uhash(x.Get());
 		}
 	};

@@ -65,7 +65,7 @@ namespace archsim
 		template<typename OtherTy> Vector(const Vector<OtherTy, Width> &otherVector)
 		{
 			for(unsigned i = 0; i < Width; ++i) {
-				elements[i] = otherVector.elements[i];
+				elements[i] = otherVector.ExtractElement(i);
 			}
 		}
 
@@ -168,6 +168,15 @@ template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector
 	return output;
 }
 
+template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector<ElementT1, Width> operator>(const archsim::Vector<ElementT1, Width> &v1, const archsim::Vector<ElementT2, Width> &v2)
+{
+	archsim::Vector<ElementT1, Width> output;
+	for(unsigned int i = 0; i < Width; ++i) {
+		output.InsertElement(i, v1.ExtractElement(i) > v2.ExtractElement(i) ? ~(uint64_t)0 : 0);
+	}
+	return output;
+}
+
 #define OPERATE(op) \
 template <typename ElementT, unsigned Width> archsim::Vector<ElementT, Width> operator op(const archsim::Vector<ElementT, Width> &v1, const archsim::Vector<ElementT, Width> &v2) { \
 	archsim::Vector<ElementT, Width> result; \
@@ -183,6 +192,8 @@ OPERATE(/)
 OPERATE(&)
 OPERATE(|)
 OPERATE(^)
+OPERATE(<<)
+OPERATE(>>)
 
 #undef OPERATE
 #endif /* INC_UTIL_VECTOR_H_ */
