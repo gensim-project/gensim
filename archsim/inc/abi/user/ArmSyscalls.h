@@ -397,21 +397,21 @@ struct arm_iovec {
 } __attribute__((packed));
 
 struct arm_stat64 {
-	unsigned long long st_dev;
-	unsigned int __pad1;
-	abi_ulong __st_ino;
-	unsigned int st_mode;
-	unsigned int st_nlink;
+	uint64_t st_dev;
+	uint64_t __st_ino;
+	uint64_t st_nlink;
+	uint32_t st_mode;
 
-	abi_ulong st_uid;
-	abi_ulong st_gid;
+	uint32_t st_uid;
+	uint32_t st_gid;
 
-	unsigned long long st_rdev;
-	unsigned int __pad2[2];
+	uint32_t pad0;
 
+	uint64_t st_rdev;
 	long long st_size;
+
+
 	abi_ulong st_blksize;
-	unsigned int __pad3;
 	unsigned long long st_blocks;
 
 	abi_ulong target_st_atime;
@@ -424,6 +424,23 @@ struct arm_stat64 {
 	abi_ulong target_st_ctime_nsec;
 
 	unsigned long long st_ino;
+} __attribute__((packed));
+
+struct x86_64_stat64 {
+	dev_t st_dev;
+	ino64_t st_ino;
+	mode_t st_mode;
+	nlink_t st_nlink;
+	uid_t st_uid;
+	gid_t st_gid;
+	dev_t st_rdev;
+	off64_t st_size;
+	time_t st_atime;
+	time_t st_mtime;
+	time_t st_ctime;
+	blksize_t st_blksize;
+	blkcnt64_t st_blocks;
+	mode_t st_attr;
 } __attribute__((packed));
 
 struct arm_stat {

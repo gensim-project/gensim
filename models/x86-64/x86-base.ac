@@ -4,9 +4,9 @@ AC_ISA(x86)
 	// through an external decoder.
 	ac_format FORMAT_DUMMY = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY> add, and, bsf, bt, call, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwde, dec, div, idiv, imul1, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
+	ac_instr<FORMAT_DUMMY> add, and, bsf, bsr, bt, bts, call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde, dec, div, idiv, imul1, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, rol, ror, sar, sbb, setcc, shl, shr, sub, syscall, test, xadd, xchg, xgetbv, xor;
 	
-	ac_behaviour add, and, bsf, bt, call, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwde, dec, div, idiv, imul1, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, sar, sbb, setcc, shl, shr, sub, syscall, test, xchg, xgetbv, xor;
+	ac_behaviour add, and, bsf, bsr, bt, bts, call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde, dec, div, idiv, imul1, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, rol, ror, sar, sbb, setcc, shl, shr, sub, syscall, test, xadd, xchg, xgetbv, xor;
 
 	ISA_CTOR(x86) {
 		add.set_decoder();
@@ -18,14 +18,23 @@ AC_ISA(x86)
 		bsf.set_decoder();
 		bsf.set_behaviour(bsf);
 	
+		bsr.set_decoder();
+		bsr.set_behaviour(bsr);
+	
 		bt.set_decoder();
 		bt.set_behaviour(bt);
+	
+		bts.set_decoder();
+		bts.set_behaviour(bts);
 	
 		call.set_decoder();
 		call.set_behaviour(call);
 		call.set_end_of_block();
 		call.set_variable_jump();
 		
+		cbw.set_decoder();
+		cbw.set_behaviour(cbw);
+	
 		cdqe.set_decoder();
 		cdqe.set_behaviour(cdqe);
 	
@@ -52,6 +61,9 @@ AC_ISA(x86)
 	
 		cwde.set_decoder();
 		cwde.set_behaviour(cwde);
+	
+		cwd.set_decoder();
+		cwd.set_behaviour(cwd);
 	
 		dec.set_decoder();
 		dec.set_behaviour(dec);
@@ -163,7 +175,13 @@ AC_ISA(x86)
 		ret.set_behaviour(ret);
 		ret.set_end_of_block();
 		ret.set_variable_jump();
-		
+
+		rol.set_decoder();
+		rol.set_behaviour(rol);
+
+		ror.set_decoder();
+		ror.set_behaviour(ror);
+
 		sar.set_decoder();
 		sar.set_behaviour(sar);
 		
@@ -187,6 +205,9 @@ AC_ISA(x86)
 		
 		test.set_decoder();
 		test.set_behaviour(test);
+		
+		xadd.set_decoder();
+		xadd.set_behaviour(xadd);
 		
 		xchg.set_decoder();
 		xchg.set_behaviour(xchg);

@@ -28,6 +28,19 @@ void DecodeContext::WriteBackState(archsim::core::thread::ThreadInstance* thread
 
 }
 
+void FlushCallback(PubSubType::PubSubType, void *ctx, const void *data)
+{
+	CachedDecodeContext *d = (CachedDecodeContext*)ctx;
+	d->Flush();
+}
+
+CachedDecodeContext::CachedDecodeContext(archsim::util::PubSubContext& pubsub, DecodeContext* underlying_ctx, std::function<gensim::BaseDecode*() > new_decode_fn) : underlying_ctx_(underlying_ctx), new_decode_fn_(new_decode_fn), pubsub_(pubsub)
+{
+	pubsub_.Subscribe(PubSubType::FlushTranslations, FlushCallback, this);
+	pubsub_.Subscribe(PubSubType::FlushAllTranslations, FlushCallback, this);
+}
+
+
 uint32_t CachedDecodeContext::DecodeSync(archsim::MemoryInterface& mem_interface, archsim::Address address, uint32_t mode, BaseDecode*& target)
 {
 	gensim::BaseDecode **cache_ptr;
@@ -60,6 +73,11 @@ void CachedDecodeContext::Reset(archsim::core::thread::ThreadInstance* thread)
 void CachedDecodeContext::WriteBackState(archsim::core::thread::ThreadInstance* thread)
 {
 	underlying_ctx_->WriteBackState(thread);
+}
+
+void CachedDecodeContext::Flush()
+{
+	decode_cache_.purge();
 }
 
 

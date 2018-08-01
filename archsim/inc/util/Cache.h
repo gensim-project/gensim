@@ -41,7 +41,7 @@ namespace archsim
 			void purge()
 			{
 				for (int i = 0; i < way_count; ++i) {
-					tags[i] = 1;
+					tags[i] = KeyT(1);
 				}
 			}
 		};
@@ -74,19 +74,26 @@ namespace archsim
 			}
 			void purge()
 			{
-				if(!dirty) return;
-				for(uint32_t i = 0; i < kCachePageCount; ++i) {
-					if(pages_dirty.test(i)) {
-						uint32_t page_start = i * kCachePageSize;
-						uint32_t page_end = (i+1) * kCachePageSize;
-						for(uint32_t entry = page_start; entry != page_end; ++entry) {
-							cache[entry].purge();
-						}
-					}
+				for(auto &i : cache) {
+					i.purge();
 				}
 
 				pages_dirty.reset();
 				dirty = false;
+//
+//				if(!dirty) return;
+//				for(uint32_t i = 0; i < kCachePageCount; ++i) {
+//					if(pages_dirty.test(i)) {
+//						uint32_t page_start = i * kCachePageSize;
+//						uint32_t page_end = (i+1) * kCachePageSize;
+//						for(uint32_t entry = page_start; entry != page_end; ++entry) {
+//							cache[entry].purge();
+//						}
+//					}
+//				}
+//
+//				pages_dirty.reset();
+//				dirty = false;
 			}
 
 			// A function to attempt a cache fetch and simultaneously update the cache

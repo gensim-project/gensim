@@ -18,7 +18,7 @@ execute(and) {
 
 helper uint8 do_bsf(uint64 op, uint8 size) 
 {
-	for(uint8 i = 0; i < size; ++i) {
+	for(sint64 i = 0; i < size; ++i) {
 		if(op & (1 << i)) {
 			return i;
 		}
@@ -29,9 +29,36 @@ helper uint8 do_bsf(uint64 op, uint8 size)
 execute(bsf) {
 	
 	uint64 op1 = read_operand(inst.op1);
-	uint8 value = do_bsf(op1, operand_get_size(inst.op1));
 	
-	write_operand(inst.op0, value);
+	if(op1 == 0) {
+		write_register(ZF, 1);
+	} else {
+		uint8 value = do_bsf(op1, operand_get_size(inst.op1));
+		write_register(ZF, 0);
+		write_operand(inst.op0, value);
+	}
+}
+
+helper uint8 do_bsr(uint64 op, uint8 size) 
+{
+	uint64 bit = size - 1;
+	
+	while((op & ((uint64)1 << bit)) == 0) {
+		bit -= 1;
+	}
+	
+	return bit;
+}
+
+execute(bsr) {
+	uint64 op1 = read_operand(inst.op1);
+	if(op1 == 0) {
+		write_register(ZF, 1);
+	} else {
+		uint8 value = do_bsr(op1, operand_get_size(inst.op1));
+		write_register(ZF, 0);
+		write_operand(inst.op0, value);
+	}
 }
 
 execute(bt) {
@@ -42,12 +69,27 @@ execute(bt) {
 	write_register(CF, (op0 & mask) != 0);
 }
 
+execute(bts) {
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = read_operand(inst.op1);
+	
+	uint64 mask = 1 << (op1 & (operand_get_size(inst.op0) - 1));
+	write_register(CF, (op0 & mask) != 0);
+	
+	write_operand(inst.op0, op0 | mask);
+}
+
 execute(call) {
 	uint64 target = read_operand(inst.op0);
 	
 	stack_push(read_pc() + inst.Instr_Length);
 	
 	write_register(IP, target);
+}
+
+execute(cbw) {
+	sint8 val = read_reg(0, 8);
+	write_reg(0, 16, (sint16)val);
 }
 
 execute(cdq) {
@@ -83,25 +125,28 @@ execute(cmp) {
 execute(cmpxchg) {
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
-	uint64 rax = read_register(RAX);
+	uint64 rax = read_reg(0, operand_get_size(inst.op0));
 	
-	if(op0 == rax) {
-		write_register(ZF, 1);
+	if(subtract(rax, op0, operand_get_size(inst.op0)) == 0) {
 		write_operand(inst.op0, op1);
 	} else {
-		write_register(ZF, 0);
-		write_register(RAX, op0);
+		write_reg(0, operand_get_size(inst.op0), op0);
 	}
 }
 
 execute(cpuid) {
-
+	take_exception(1, 2);
 }
 
 execute(cqo) {
 	sint64 op0 = read_register(RAX);
 	op0 >>= 63;
 	write_register(RDX, op0);
+}
+
+execute(cwd) {
+	sint16 ax = read_register(AX);
+	write_cd_pair((sint32)ax, 32);
 }
 
 execute(cwde) {
@@ -111,8 +156,10 @@ execute(cwde) {
 
 execute(dec) {
 	uint64 op0 = read_operand(inst.op0);
+	
+	uint8 C_backup = read_register(CF);
 	write_operand(inst.op0, subtract(op0, 1, operand_get_size(inst.op0)));
-	//todo: flags
+	write_register(CF, C_backup);
 }
 
 execute(div) {
@@ -205,7 +252,9 @@ execute(imul3) {
 
 execute(inc) {
 	uint64 op0 = read_operand(inst.op0);
+	uint8 C = read_register(CF);
 	write_operand(inst.op0, addition(op0, 1, operand_get_size(inst.op0)));
+	write_register(CF, C);
 }
 
 execute(jcond) {
@@ -273,11 +322,11 @@ execute(mul) {
 	uint8 width = operand_get_size(inst.op0);
 	uint128 op0 = read_operand(inst.op0);
 	uint128 op1 = read_register(RAX);
-	op1 = sign_extend(op1, width);
+	op1 = zero_extend(op1, width);
 	
 	uint128 result = op0 * op1;
 	
-	if(result >> 64) {
+	if(zero_extend(result >> width, width) == 0) {
 		write_register(OF, 0);
 		write_register(CF, 0);
 	} else {
@@ -285,7 +334,7 @@ execute(mul) {
 		write_register(CF, 1);
 	}
 	
-	write_cd_pair(result, 128);
+	write_cd_pair(result, width*2);
 }
 
 execute(neg) {
@@ -445,14 +494,65 @@ execute(ret) {
 	write_pc(r_addr);
 }
 
+execute(rol) {
+	uint8 mask = 0x1f;
+	uint8 op0_size = operand_get_size(inst.op0);
+	if(op0_size == 64) {
+		mask = 0x3f;
+	}
+
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = (read_operand(inst.op1) & mask) % op0_size;
+	uint64 count = (op1 & mask) % op0_size;
+	
+	uint64 result = op0;
+	for(uint8 i = 0; i < count; ++i) {
+		uint64 temp = result >> (op0_size - 1);
+		result = (result << 1) | (temp);
+	}
+	
+	// TODO: Flags
+	if(op1 & mask) {
+		write_register(CF, result & 1);
+		write_register(OF, (result & 1) ^ (op0 >> (op0_size - 1)));
+	}
+	
+	write_operand(inst.op0, result);
+}
+execute(ror) {
+	uint8 mask = 0x1f;
+	uint8 op0_size = operand_get_size(inst.op0);
+	if(op0_size == 64) {
+		mask = 0x3f;
+	}
+
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = read_operand(inst.op1);
+	uint64 count = (op1 & mask) % op0_size;
+	
+	uint64 result = op0;
+	for(uint8 i = 0; i < count; ++i) {
+		uint64 temp = result & 1;
+		result = (result >> 1) | (temp << (op0_size - 1));
+	}
+	
+	// TODO: Flags
+	if(op1 & mask) {
+		write_register(CF, result >> (op0_size - 1));
+		write_register(OF, ((result >> op0_size - 1) ^ (result >> op0_size - 1)) & 1);
+	}
+	write_operand(inst.op0, result);
+}
+
 execute(sar) {
 	uint8 mask = 0x1f;
-	if(operand_get_size(inst.op0) == 64) {
+	uint8 op0_size = operand_get_size(inst.op0);
+	if(op0_size == 64) {
 		mask = 0x3f;
 	}
 
 	sint64 op0 = read_operand(inst.op0);
-	op0 = sign_extend(op0, operand_get_size(inst.op0));
+	op0 = sign_extend(op0, op0_size);
 	
 	sint64 op1 = read_operand(inst.op1) & mask;
 	
@@ -463,8 +563,7 @@ execute(sar) {
 		write_register(CF, C);
 		write_register(OF, 0);
 
-		result = sign_extend(result, operand_get_size(inst.op0));
-		set_zsp_flags(result);
+		set_zsp_flags(result, op0_size);
 		
 		write_operand(inst.op0, result);
 	}
@@ -501,14 +600,13 @@ execute(shl) {
 			result <<= 1;
 		}
 	
-		write_register(CF, C);
+		write_register(CF, C & 1);
 		
 		if(op1 == 1) {
 			write_register(OF, C ^ (result >> (operand0_size - 1)));
 		}
 
-		result = sign_extend(result, operand0_size);
-		set_zsp_flags(result);
+		set_zsp_flags(result, operand0_size);
 		
 		write_operand(inst.op0, result);
 	}
@@ -532,8 +630,7 @@ execute(shr) {
 
 		write_register(OF, result >> (operand0_size - 1));
 
-		result = sign_extend(result, operand0_size);
-		set_zsp_flags(result);
+		set_zsp_flags(result, operand0_size);
 		
 		write_operand(inst.op0, result);
 	}
@@ -560,6 +657,14 @@ execute(test) {
 	uint64 result = bitwise_and(op0, op1, op_size);
 }
 
+execute(xadd) {
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = read_operand(inst.op1);
+	
+	write_operand(inst.op1, op0);
+	write_operand(inst.op0, addition(op0, op1, operand_get_size(inst.op0)));
+}
+
 execute(xchg) {
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
@@ -569,8 +674,8 @@ execute(xchg) {
 
 execute(xgetbv) {
 	// edx and eax <= 0
-	write_register_bank(RQ, 0, 0);
-	write_register_bank(RQ, 3, 0);
+	write_register_bank(RQ, 0, 0x1f);
+	write_register_bank(RQ, 2, 0x1f);
 }
 
 execute(xor) {
@@ -635,10 +740,10 @@ helper uint64 addition(uint64 op0, uint64 op1, uint8 op_size)
 	return (uint64)result;
 }
 
-helper void set_zsp_flags(sint64 result)
+helper void set_zsp_flags(sint64 result, uint8 width)
 {
-	write_register(ZF, result == 0);
-	write_register(SF, result < 0);
+	write_register(ZF, zero_extend(result, width) == 0);
+	write_register(SF, (result >> (width - 1)) & 1);
 	update_parity(result);
 	
 	return;
@@ -818,7 +923,7 @@ helper uint64 subtract(uint64 op0, uint64 op1, uint8 size)
 helper void sbc8(uint8 op0, uint8 op1, uint8 carry)
 {
 	uint16 result = (uint16)op0 - ((uint16)op1 + (uint16)carry);
-	set_zsp_flags((uint8)result);
+	set_zsp_flags((uint8)result, 8);
 	write_register(CF, result > 0xff);
 	
 	sint8 sop0 = op0;
@@ -834,7 +939,7 @@ helper void sbc8(uint8 op0, uint8 op1, uint8 carry)
 helper void sbc16(uint16 op0, uint16 op1, uint8 carry)
 {	
 	uint32 result = (uint32)op0 - ((uint32)op1 + (uint32)carry);
-	set_zsp_flags((uint16)result);
+	set_zsp_flags((uint16)result, 16);
 	write_register(CF, result > 0xffff);
 	write_register(OF, ((op0 & 0x8000) == (op1 & 0x8000)) && ((op0 & 0x8000) != (result & 0x8000))); 
 	return;
@@ -1205,6 +1310,19 @@ helper uint64 sign_extend(uint64 value, uint8 width)
 		case 8: { value = (sint64)(sint8)value; break; }
 		case 16: { value = (sint64)(sint16)value; break; }
 		case 32: { value = (sint64)(sint32)value; break; }
+		default: { break; }
+	}
+	
+	return value;
+}
+
+// Sign extends the given value from width bits to 64 bits
+helper uint64 zero_extend(uint64 value, uint8 width)
+{
+	switch(width) {
+		case 8: { value = (uint8)value; break; }
+		case 16: { value = (uint16)value; break; }
+		case 32: { value = (uint32)value; break; }
 		default: { break; }
 	}
 	
