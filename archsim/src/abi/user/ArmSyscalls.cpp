@@ -306,6 +306,8 @@ static unsigned int sys_fstat64(archsim::core::thread::ThreadInstance* cpu, unsi
 	struct stat64 st;
 	struct arm_stat64 result_st;
 
+	printf("Doing an fstat! %u %lx\n", fd, (uint64_t)addr);
+
 	fd = translate_fd(cpu, fd);
 	if (fstat64(fd, &st)) {
 		return -errno;
@@ -314,18 +316,31 @@ static unsigned int sys_fstat64(archsim::core::thread::ThreadInstance* cpu, unsi
 	memset(&result_st, 0, sizeof(result_st));
 
 	result_st.st_dev = st.st_dev;
+	printf("st_dev %lx\n", result_st.st_dev);
 	result_st.st_ino = result_st.__st_ino = st.st_ino;
+	printf("st_ino %lx\n", result_st.st_ino);
 	result_st.st_mode = st.st_mode;
+	printf("st_mode %lx\n", result_st.st_mode);
 	result_st.st_nlink = st.st_nlink;
+	printf("st_nlink %lx\n", result_st.st_nlink);
 	result_st.st_uid = st.st_uid;
+	printf("st_uid %lx\n", result_st.st_uid);
 	result_st.st_gid = st.st_gid;
+	printf("st_gid %lx\n", result_st.st_gid);
 	result_st.st_rdev = st.st_rdev;
+	printf("st_rdev %lx\n", result_st.st_rdev);
 	result_st.st_size = st.st_size;
+	printf("st_size %lx\n", result_st.st_size);
 	result_st.st_blocks = st.st_blocks;
+	printf("st_blocks %lx\n", result_st.st_blocks);
 	result_st.target_st_atime = (uint32_t)st.st_atime;
+	printf("st_atime %lx\n", result_st.target_st_atime);
 	result_st.target_st_mtime = (uint32_t)st.st_mtime;
+	printf("st_mtime %lx\n", result_st.target_st_mtime);
 	result_st.target_st_ctime = (uint32_t)st.st_ctime;
-	result_st.st_blksize = 4096;
+	printf("st_ctime %lx\n", result_st.target_st_ctime);
+	result_st.st_blksize = st.st_blksize;
+	printf("st_blksize %lx\n", result_st.st_blksize);
 
 	auto interface = cpu->GetMemoryInterface(0);
 	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
@@ -345,19 +360,34 @@ static unsigned int sys_fstat(archsim::core::thread::ThreadInstance* cpu, unsign
 
 	memset(&result_st, 0, sizeof(result_st));
 
+	printf("Doing an fstat! %u %lx\n", fd, (uint64_t)addr);
+
 	result_st.st_dev = st.st_dev;
+	printf("st_dev %lx\n", result_st.st_dev);
 	result_st.__st_ino = st.st_ino;
+	printf("st_ino %lx\n", result_st.__st_ino);
 	result_st.st_mode = st.st_mode;
+	printf("st_mode %lx\n", result_st.st_mode);
 	result_st.st_nlink = st.st_nlink;
+	printf("st_nlink %lx\n", result_st.st_nlink);
 	result_st.st_uid = st.st_uid;
+	printf("st_uid %lx\n", result_st.st_uid);
 	result_st.st_gid = st.st_gid;
+	printf("st_gid %lx\n", result_st.st_gid);
 	result_st.st_rdev = st.st_rdev;
+	printf("st_rdev %lx\n", result_st.st_rdev);
 	result_st.st_size = st.st_size;
+	printf("st_size %lx\n", result_st.st_size);
 	result_st.st_blocks = st.st_blocks;
+	printf("st_blocks %lx\n", result_st.st_blocks);
 	result_st.target_st_atime = (uint32_t)st.st_atime;
+	printf("st_atime %lx\n", result_st.target_st_atime);
 	result_st.target_st_mtime = (uint32_t)st.st_mtime;
+	printf("st_mtime %lx\n", result_st.target_st_mtime);
 	result_st.target_st_ctime = (uint32_t)st.st_ctime;
+	printf("st_ctime %lx\n", result_st.target_st_ctime);
 	result_st.st_blksize = 4096;
+	printf("st_blksize %lx\n", result_st.st_blksize);
 
 	auto interface = cpu->GetMemoryInterface(0);
 	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));

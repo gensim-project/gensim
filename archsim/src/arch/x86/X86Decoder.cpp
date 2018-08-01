@@ -324,11 +324,15 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_ADD, INST_x86_add);
 			MAP(XED_ICLASS_AND, INST_x86_and);
 			MAP(XED_ICLASS_BSF, INST_x86_bsf);
+			MAP(XED_ICLASS_BSR, INST_x86_bsr);
 			MAP(XED_ICLASS_BT, INST_x86_bt);
+			MAP(XED_ICLASS_BTS, INST_x86_bts);
 			MAP(XED_ICLASS_CALL_NEAR, INST_x86_call);
+			MAP(XED_ICLASS_CBW, INST_x86_cbw);
 			MAP(XED_ICLASS_CDQ, INST_x86_cdq);
 			MAP(XED_ICLASS_CDQE, INST_x86_cdqe);
 			MAP(XED_ICLASS_CLD, INST_x86_cld);
+			MAP(XED_ICLASS_CLFLUSH, INST_x86_clflush);
 
 			MAP(XED_ICLASS_CMOVNB, INST_x86_cmov);
 			MAP(XED_ICLASS_CMOVB, INST_x86_cmov);
@@ -345,8 +349,10 @@ bool X86Decoder::DecodeClass(void* inst_)
 
 			MAP(XED_ICLASS_CMP, INST_x86_cmp);
 			MAP(XED_ICLASS_CMPXCHG, INST_x86_cmpxchg);
+			MAP(XED_ICLASS_CMPXCHG_LOCK, INST_x86_cmpxchg);
 			MAP(XED_ICLASS_CPUID, INST_x86_cpuid);
 			MAP(XED_ICLASS_CQO, INST_x86_cqo);
+			MAP(XED_ICLASS_CWD, INST_x86_cwd);
 			MAP(XED_ICLASS_CWDE, INST_x86_cwde);
 			MAP(XED_ICLASS_DEC, INST_x86_dec);
 			MAP(XED_ICLASS_DIV, INST_x86_div);
@@ -401,6 +407,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_MOVDQU, INST_x86_movdqu);
 			MAP(XED_ICLASS_MOVDQA, INST_x86_movdqu);
 			MAP(XED_ICLASS_MOVQ, INST_x86_movq);
+			MAP(XED_ICLASS_MOVLPD, INST_x86_movlpd);
+			MAP(XED_ICLASS_MOVHPD, INST_x86_movhpd);
 			MAP(XED_ICLASS_MOVSB, INST_x86_movsb);
 			MAP(XED_ICLASS_MOVSXD, INST_x86_movsxd);
 			MAP(XED_ICLASS_MOVSX, INST_x86_movsx);
@@ -415,10 +423,14 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_OR, INST_x86_or);
 			MAP(XED_ICLASS_PADDD, INST_x86_paddd);
 			MAP(XED_ICLASS_PADDQ, INST_x86_paddq);
+			MAP(XED_ICLASS_PAND, INST_x86_pand);
 			MAP(XED_ICLASS_PCMPEQB, INST_x86_pcmpeqb);
+			MAP(XED_ICLASS_PCMPEQD, INST_x86_pcmpeqd);
+			MAP(XED_ICLASS_PCMPGTB, INST_x86_pcmpgtb);
 			MAP(XED_ICLASS_PCMPGTW, INST_x86_pcmpgtw);
 			MAP(XED_ICLASS_PCMPGTD, INST_x86_pcmpgtd);
 			MAP(XED_ICLASS_PMOVMSKB, INST_x86_pmovmskb);
+			MAP(XED_ICLASS_PMINUB, INST_x86_pminub);
 			MAP(XED_ICLASS_POP, INST_x86_pop);
 
 			// TODO: fix variants of popf
@@ -427,16 +439,21 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_POPFQ, INST_x86_popf);
 
 			MAP(XED_ICLASS_POR, INST_x86_por);
+			MAP(XED_ICLASS_PSUBB, INST_x86_psubb);
 			MAP(XED_ICLASS_PUNPCKLBW, INST_x86_punpcklbw);
 			MAP(XED_ICLASS_PUNPCKLWD, INST_x86_punpcklwd);
 			MAP(XED_ICLASS_PUNPCKLDQ, INST_x86_punpckldq);
 			MAP(XED_ICLASS_PUNPCKHWD, INST_x86_punpckhwd);
 			MAP(XED_ICLASS_PUNPCKHDQ, INST_x86_punpckhdq);
+			MAP(XED_ICLASS_PUNPCKHQDQ, INST_x86_punpckhqdq);
 			MAP(XED_ICLASS_PUNPCKLQDQ, INST_x86_punpcklqdq);
 			MAP(XED_ICLASS_PUSH, INST_x86_push);
 			MAP(XED_ICLASS_PUSHFQ, INST_x86_pushfq);
 			MAP(XED_ICLASS_PSHUFD, INST_x86_pshufd);
 			MAP(XED_ICLASS_PSLLD, INST_x86_pslld);
+			MAP(XED_ICLASS_PSLLQ, INST_x86_psllq);
+			MAP(XED_ICLASS_PSLLDQ, INST_x86_pslldq);
+			MAP(XED_ICLASS_PSRLDQ, INST_x86_psrldq);
 			MAP(XED_ICLASS_PXOR, INST_x86_pxor);
 			MAP(XED_ICLASS_RDTSC, INST_x86_rdtsc);
 			MAP(XED_ICLASS_REPE_CMPSB, INST_x86_repe_cmpsb);
@@ -448,6 +465,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_REP_STOSQ, INST_x86_rep_stosq);
 			MAP(XED_ICLASS_REPNE_SCASB, INST_x86_repne_scasb);
 			MAP(XED_ICLASS_RET_NEAR, INST_x86_ret);
+			MAP(XED_ICLASS_ROL, INST_x86_rol);
+			MAP(XED_ICLASS_ROR, INST_x86_ror);
 			MAP(XED_ICLASS_SAR, INST_x86_sar);
 			MAP(XED_ICLASS_SBB, INST_x86_sbb);
 
@@ -467,6 +486,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_SUB, INST_x86_sub);
 			MAP(XED_ICLASS_SYSCALL, INST_x86_syscall);
 			MAP(XED_ICLASS_TEST, INST_x86_test);
+			MAP(XED_ICLASS_XADD, INST_x86_xadd);
+			MAP(XED_ICLASS_XADD_LOCK, INST_x86_xadd);
 			MAP(XED_ICLASS_XCHG, INST_x86_xchg);
 			MAP(XED_ICLASS_XGETBV, INST_x86_xgetbv);
 			MAP(XED_ICLASS_XOR, INST_x86_xor);

@@ -12,6 +12,7 @@
 
 #include "abi/Address.h"
 #include "util/Cache.h"
+#include "util/PubSubSync.h"
 
 namespace captive
 {
@@ -59,16 +60,19 @@ namespace gensim
 	class CachedDecodeContext : public DecodeContext
 	{
 	public:
-		CachedDecodeContext(DecodeContext *underlying_ctx, std::function<gensim::BaseDecode*()> new_decode_fn) : underlying_ctx_(underlying_ctx), new_decode_fn_(new_decode_fn) {}
+		CachedDecodeContext(archsim::util::PubSubContext &pubsub, DecodeContext *underlying_ctx, std::function<gensim::BaseDecode*()> new_decode_fn);
 		uint32_t DecodeSync(archsim::MemoryInterface& mem_interface, archsim::Address address, uint32_t mode, BaseDecode *&target) override;
 
 		void Reset(archsim::core::thread::ThreadInstance* thread) override;
 		void WriteBackState(archsim::core::thread::ThreadInstance* thread) override;
 
+		void Flush();
+
 	private:
 		archsim::util::Cache<archsim::Address, gensim::BaseDecode*> decode_cache_;
 		std::function<gensim::BaseDecode*()> new_decode_fn_;
 		DecodeContext *underlying_ctx_;
+		archsim::util::PubSubContext &pubsub_;
 	};
 
 	// This class is used to emit operations which should happen unconditionally

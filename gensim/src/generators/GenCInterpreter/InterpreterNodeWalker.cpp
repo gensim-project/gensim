@@ -391,7 +391,7 @@ namespace gensim
 						// nothing here
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_Trap:
-						output << "throw std::logic_error(\"Trap.\");";
+						output << "throw std::logic_error(\"Trap. " << Statement.GetDiag().Filename() << ":" << std::to_string(Statement.GetDiag().Line()) << "\");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
 						output << "thread->SetModeID(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";

@@ -208,6 +208,118 @@ VOID trace_insn_end(void *inst_ptr)
 	trace_source->Trace_End_Insn();
 }
 
+static uint32_t eax_leaf, ecx_leaf;
+
+VOID my_cpuid_before(CONTEXT *ctx)
+{
+	//record EAX and ECX to figure out what leaf we're using for later
+	eax_leaf = PIN_GetContextReg(ctx, REG_RAX);
+	ecx_leaf = PIN_GetContextReg(ctx, REG_RCX);
+}
+
+VOID my_cpuid_after(CONTEXT *ctx)
+{
+	printf("CPUID %x %x\n", eax_leaf, ecx_leaf);
+
+	uint32_t eax, ebx, ecx, edx;
+	eax = 0x0;
+	ebx = 0x0;
+	ecx = 0x0;
+	edx = 0x0;
+
+	switch(eax_leaf) {
+		case 0:
+			ebx = 'G' << 0 | 'e' << 8 | 'n' << 16 | 'u' << 24;
+			ecx = 'n' << 0 | 't' << 8 | 'e' << 16 | 'l' << 24;
+			edx = 'i' << 0 | 'n' << 8 | 'e' << 16 | 'I' << 24;
+			eax = 0x16;
+			break;
+		case 1:
+			eax = 0x000506e3;
+
+			ecx = 0;
+			ecx |= (0 << 0); // SSE3
+			ecx |= (0 << 1); // PCLMULQDQ
+			ecx |= (0 << 2); // 64 bit debug store
+			ecx |= (0 << 3); // MONITOR and MWAIT
+			ecx |= (0 << 4); // CPL qualified debug store
+			ecx |= (0 << 5); // VMX
+			ecx |= (0 << 6); // SMX
+			ecx |= (0 << 7); // EST
+			ecx |= (0 << 8); // TM2
+			ecx |= (0 << 9); // SSSE3
+			ecx |= (0 << 10); // CNXT-ID
+			ecx |= (0 << 11); // Silicon Debug Interface
+			ecx |= (0 << 12); // FMA3
+			ecx |= (0 << 13); // CMPXCHG16B
+			ecx |= (0 << 14); // XTPR
+			ecx |= (0 << 15); // PDCM
+			ecx |= (0 << 16); // RESERVED
+			ecx |= (0 << 17); // PCID
+			ecx |= (0 << 18); // DCA
+			ecx |= (0 << 19); // SSE4.1
+			ecx |= (0 << 20); // SSE4.2
+			ecx |= (0 << 21); // X2APIC
+			ecx |= (0 << 22); // MOVBE
+			ecx |= (1 << 23); // POPCNT
+			ecx |= (0 << 24); // TSC-DEADLINE
+			ecx |= (0 << 25); // AES
+			ecx |= (1 << 26); // XSAVE
+			ecx |= (0 << 27); // OSXSAVE
+			ecx |= (0 << 28); // AVX
+			ecx |= (0 << 29); // F16C
+			ecx |= (0 << 30); // RDRAND
+			ecx |= (0 << 31); // HYPERVISOR
+
+			edx = 0;
+			edx |= (1 << 0); // FPU
+			edx |= (0 << 1); // VME
+			edx |= (0 << 2); // DE
+			edx |= (0 << 3); // PSE
+			edx |= (0 << 4); // TSC
+			edx |= (0 << 5); // MSR
+			edx |= (0 << 6); // PAE
+			edx |= (0 << 7); // MCE
+			edx |= (1 << 8); // CX8
+			edx |= (0 << 9); // APIC
+			edx |= (0 << 10); // RESERVED
+			edx |= (0 << 11); // SEP
+			edx |= (0 << 12); // MTRR
+			edx |= (0 << 13); // PGE
+			edx |= (0 << 14); // MCA
+			edx |= (1 << 15); // CMOV
+			edx |= (0 << 16); // PAT
+			edx |= (0 << 17); // PSE-36
+			edx |= (0 << 18); // PSN
+			edx |= (1 << 19); // CFSH
+			edx |= (0 << 20); // RESERVED
+			edx |= (0 << 21); // DS
+			edx |= (0 << 22); // ACPI
+			edx |= (1 << 23); // MMX
+			edx |= (0 << 24); // FXSR
+			edx |= (1 << 25); // SSE
+			edx |= (1 << 26); // SSE2
+			edx |= (0 << 27); // SS
+			edx |= (0 << 28); // HTT
+			edx |= (0 << 29); // TM
+			edx |= (0 << 30); // IA64
+			edx |= (0 << 31); // PBE
+
+			ebx = 0; //ebx;
+			break;
+		default:
+			printf("Unknown CPUID leaf %x!\n", eax_leaf);
+			break;
+	}
+
+	PIN_SetContextReg(ctx, REG_RAX, eax);
+	PIN_SetContextReg(ctx, REG_RBX, ebx);
+	PIN_SetContextReg(ctx, REG_RCX, ecx);
+	PIN_SetContextReg(ctx, REG_RDX, edx);
+
+	PIN_ExecuteAt(ctx);
+}
+
 VOID Trace(TRACE trace, VOID *v)
 {
 	for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
@@ -223,6 +335,11 @@ VOID Trace(TRACE trace, VOID *v)
 			}
 
 			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(trace_insn_end), IARG_END);
+
+			if(INS_Opcode(ins) == XED_ICLASS_CPUID) {
+				INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(my_cpuid_before), IARG_CONTEXT, IARG_END);
+				INS_InsertCall(ins, IPOINT_AFTER, AFUNPTR(my_cpuid_after), IARG_CONTEXT, IARG_END);
+			}
 		}
 	}
 }
