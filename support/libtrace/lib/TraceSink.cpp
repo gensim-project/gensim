@@ -28,6 +28,9 @@ BinaryFileTraceSink::~BinaryFileTraceSink()
 
 void BinaryFileTraceSink::Flush()
 {
+	if(records_.size() == 0) {
+		return;
+	}
 	// this is a nightmare, thanks PIN.
 	fwrite(&records_.at(0), records_.size(), sizeof(TraceRecord), outfile_);
 	fflush(outfile_);

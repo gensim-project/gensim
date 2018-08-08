@@ -170,8 +170,8 @@ bool InterpEEGenerator::GenerateBlockExecutor(util::cppformatstream& str) const
 	    "  if(dcode_exception) { thread->TakeMemoryException(thread->GetFetchMI(), thread->GetPC()); return archsim::core::execution::ExecutionResult::Exception; }"
 	    "  if(archsim::options::InstructionTick) { thread->GetPubsub().Publish(PubSubType::InstructionExecute, nullptr); } "
 	    "  auto result = StepInstruction(thread, *inst_);"
+	    "  if(inst_->GetEndOfBlock()) { inst_->Release(); return archsim::core::execution::ExecutionResult::Continue; }"
 	    "  inst_->Release();"
-	    "  if(inst_->GetEndOfBlock()) { return archsim::core::execution::ExecutionResult::Continue; }"
 	    "  if(result != archsim::core::execution::ExecutionResult::Continue) { return result; }"
 	    "}";
 

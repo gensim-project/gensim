@@ -11,7 +11,7 @@
 #include "abi/UserEmulationModel.h"
 #include "abi/memory/MemoryModel.h"
 #include "core/MemoryInterface.h"
-
+#include <sys/utsname.h>
 
 #include "util/SimOptions.h"
 #include "util/LogContext.h"
@@ -71,6 +71,30 @@ static unsigned int sys_uname(archsim::core::thread::ThreadInstance* cpu, unsign
 	addr += 64;
 	// HACK:
 	interface.WriteString(Address(addr), "arm64");
+
+	return 0;
+}
+static unsigned int sys_uname_x86(archsim::core::thread::ThreadInstance* cpu, unsigned int addr)
+{
+	if (addr == 0) {
+		return -EFAULT;
+	}
+	auto interface = cpu->GetMemoryInterface(0);
+
+	interface.WriteString(Address(addr), "Linux");
+
+	addr += 65;
+	interface.WriteString(Address(addr), "archsim");
+
+	addr += 65;
+	interface.WriteString(Address(addr), "4.16.11-100");
+
+	addr += 65;
+	interface.WriteString(Address(addr), "#1");
+
+	addr += 65;
+	// HACK:
+	interface.WriteString(Address(addr), "x86_64");
 
 	return 0;
 }
@@ -312,6 +336,7 @@ static unsigned int sys_fstat64(archsim::core::thread::ThreadInstance* cpu, unsi
 	if (fstat64(fd, &st)) {
 		return -errno;
 	}
+	fprintf(stderr, "Host fd %u\n", fd);
 
 	memset(&result_st, 0, sizeof(result_st));
 
@@ -773,14 +798,21 @@ static unsigned int sys_readlinkat(archsim::core::thread::ThreadInstance *cpu, i
 	if(requested_path == "/proc/self/exe") {
 
 		// HACK:
-		std::string my_name_is = "/home/a.out";
-		cpu->GetMemoryInterface(0).WriteString(Address(buf), my_name_is.c_str());
-		return my_name_is.size()+1;
+		std::string my_name_is = archsim::options::TargetBinary.GetValue();
+		char *realname = realpath(my_name_is.c_str(), NULL);
+		unsigned int sz = strlen(realname);
+		cpu->GetMemoryInterface(0).Write(Address(buf), (unsigned char*)realname, sz);
+		free(realname);
+		return sz;
 	} else {
 		return -1;
 	}
+}
 
 
+static unsigned int sys_readlink(archsim::core::thread::ThreadInstance *cpu, unsigned long pathname, unsigned long buf, unsigned long bufsize)
+{
+	return sys_readlinkat(cpu, AT_FDCWD, pathname, buf, bufsize);
 }
 
 static unsigned int sys_x86_arch_prctl(archsim::core::thread::ThreadInstance *thread, uint32_t code, uint64_t addr)
@@ -874,13 +906,17 @@ DEFINE_SYSCALL(arm, __ARM_NR_cacheflush, sys_cacheflush, "cacheflush(%p, %p)");
 DEFINE_SYSCALL(x86, 0, sys_read, "read()");
 DEFINE_SYSCALL(x86, 1, sys_write, "write()");
 DEFINE_SYSCALL(x86, 2, sys_open, "open()");
+DEFINE_SYSCALL(x86, 3, sys_close, "close()");
 DEFINE_SYSCALL(x86, 5, sys_fstat64, "fstat()");
 DEFINE_SYSCALL(x86, 8, sys_lseek, "lseek()");
 DEFINE_SYSCALL(x86, 9, sys_mmap, "mmap()");
 DEFINE_SYSCALL(x86, 10, sys_mprotect, "mprotect()");
 DEFINE_SYSCALL(x86, 12, sys_brk, "brk()");
 DEFINE_SYSCALL(x86, 16, sys_ioctl, "ioctl()");
+DEFINE_SYSCALL(x86, 20, sys_writev, "writev()");
 DEFINE_SYSCALL(x86, 21, syscall_return_enosys, "access()");
+DEFINE_SYSCALL(x86, 63, sys_uname_x86, "uname()");
+DEFINE_SYSCALL(x86, 89, sys_readlink, "readlink()");
 DEFINE_SYSCALL(x86, 102, syscall_return_zero, "getuid()");
 DEFINE_SYSCALL(x86, 104, syscall_return_zero, "getgid()");
 DEFINE_SYSCALL(x86, 107, syscall_return_zero, "geteuid()");

@@ -74,6 +74,19 @@ bool VirtualScreen::SetPaletteEntry(uint32_t index, uint32_t data)
 	return true;
 }
 
+size_t VirtualScreen::GetPixelSize() const
+{
+	switch(GetMode()) {
+		case VSM_16bit:
+			return 2;
+		case VSM_RGB:
+			return 3;
+		default:
+			UNIMPLEMENTED;
+	}
+}
+
+
 NullScreen::NullScreen(std::string id, memory::MemoryModel *mem_model, System *) : VirtualScreen(id, mem_model) {}
 NullScreen::~NullScreen() {}
 bool NullScreen::Initialise()

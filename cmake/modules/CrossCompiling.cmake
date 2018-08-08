@@ -55,12 +55,19 @@ function(cross_compile_prefix arch outvar)
 
 	MESSAGE(STATUS "Looking for a compiler prefix for ${arch}...")
 
+	IF("${arch}" STREQUAL "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+		SET(${CC_PREFIX_${arch}} "" GLOBAL)
+		SET(${outvar} "" PARENT_SCOPE)
+		RETURN()
+	ENDIF()
+
 #	arm-linux-gnu is for building kernels, not user space programs, so remove that one from the list
 	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnu-")
 
 	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnueabi-")
 	cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnueabi-")
 	cross_compile_try_arch_prefix("${arch}" "${arch}-none-eabi-")
+	cross_compile_try_arch_prefix("${arch}" "${arch}-redhat-linux-")
 	
 	IF(CC_PREFIX_${arch})
 		MESSAGE(STATUS "Found ${arch} cross compiler prefix: ${CC_PREFIX_${arch}}")
@@ -119,7 +126,7 @@ function(cross_compile_bin ARCHITECTURE FLAGS SOURCE_FILE SYMBOL_NAME)
 		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_start: >> ${CC_OUTPUT_FILE}"
 		COMMAND "sh" "-c" "echo .incbin \\\"${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_FILE}.o.bin\\\"" >> ${CC_OUTPUT_FILE}
 		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_end: .word 0 >> ${CC_OUTPUT_FILE}"
-		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_size: .word ${SYMBOL_NAME}_end - ${SYMBOL_NAME}_start >> ${CC_OUTPUT_FILE}"
+		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_size: .4byte ${SYMBOL_NAME}_end - ${SYMBOL_NAME}_start >> ${CC_OUTPUT_FILE}"
 		DEPENDS ${CC_SOURCE_FILE} 
 		COMMENT "Repacking ${SOURCE_FILE}"
 		VERBATIM

@@ -144,6 +144,41 @@ bool SparseMemoryModel::SynchroniseVMAProtection(GuestVMA& vma)
 	return true;
 }
 
+bool SparseMemoryModel::LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr)
+{
+	if(guest_addr.GetPageIndex() != (guest_addr + guest_size - 1).GetPageIndex()) {
+		return false;
+	}
+
+	auto page = GetPage(guest_addr);
+	host_addr = page + guest_addr.GetPageOffset();
+	return true;
+}
+
+bool SparseMemoryModel::LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion& regions)
+{
+	std::vector<void*> ptrs;
+
+	// lock each page
+	guest_addr = guest_addr.PageBase();
+	for(Address addr = guest_addr; addr < (guest_addr + guest_size); addr += Address::PageSize) {
+		void *ptr;
+		if(!LockRegion(addr, Address::PageSize, ptr)) {
+			return false;
+		}
+
+		ptrs.push_back(ptr);
+	}
+
+	regions = LockedMemoryRegion(guest_addr, ptrs);
+	return true;
+}
+
+
+bool SparseMemoryModel::UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr)
+{
+	return false;
+}
 
 bool SparseMemoryModel::Initialise()
 {
@@ -190,11 +225,15 @@ bool SparseMemoryModel::ResizeVMA(GuestVMA &vma, guest_size_t new_size)
 
 char* SparseMemoryModel::GetPage(Address addr)
 {
+	std::lock_guard<std::mutex> lock_guard(map_lock_);
+
 	if(prev_page_data_ && addr.PageBase() == prev_page_base_) {
 		return prev_page_data_;
 	}
+
+	char *ptr = nullptr;
 	if(!data_.count(addr.PageBase())) {
-		auto ptr = (char*)malloc(4096);
+		ptr = (char*)malloc(4096);
 		if(ptr == nullptr) {
 			throw std::bad_alloc();
 		}
@@ -202,10 +241,10 @@ char* SparseMemoryModel::GetPage(Address addr)
 		bzero(ptr, 4096);
 
 		data_[addr.PageBase()] = ptr;
-		return ptr;
+	} else {
+		ptr = data_.at(addr.PageBase());
 	}
 
-	char *ptr = data_.at(addr.PageBase());
 	prev_page_base_ = addr.PageBase();
 	prev_page_data_ = ptr;
 

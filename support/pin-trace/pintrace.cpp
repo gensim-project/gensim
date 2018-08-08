@@ -307,6 +307,12 @@ VOID my_cpuid_after(CONTEXT *ctx)
 
 			ebx = 0; //ebx;
 			break;
+		case 7:
+			eax = 0;
+			ebx = 0;
+			ecx = 0;
+			edx = 0;
+			break;
 		default:
 			printf("Unknown CPUID leaf %x!\n", eax_leaf);
 			break;

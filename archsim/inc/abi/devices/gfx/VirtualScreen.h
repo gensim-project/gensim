@@ -121,6 +121,8 @@ namespace archsim
 						return mode;
 					}
 
+					size_t GetPixelSize() const;
+
 				protected:
 					inline bool SetWidth(uint32_t nwidth)
 					{

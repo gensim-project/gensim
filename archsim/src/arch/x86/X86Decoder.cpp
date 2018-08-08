@@ -548,7 +548,7 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 	xed_error = xed_decode(&xedd, XED_REINTERPRET_CAST(const xed_uint8_t*, data), 15);
 
 	Instr_Length = xed_decoded_inst_get_length(&xedd);
-
+	ir = 0;
 
 	bool success = true;
 
@@ -558,8 +558,12 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 
 	if(!success || (archsim::options::Verbose && archsim::options::Debug)) {
 		xed_decoded_inst_dump(&xedd, dump_buffer, sizeof(dump_buffer));
+		printf("%p decode error\n", this);
 		printf("%p (%u) %s\n", addr.Get(), Instr_Length, dump_buffer);
+
 	}
+
+	ASSERT(Instr_Length == xed_decoded_inst_get_length(&xedd));
 
 	return !success;
 }

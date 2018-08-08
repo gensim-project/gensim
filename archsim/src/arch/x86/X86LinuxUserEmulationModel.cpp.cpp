@@ -11,6 +11,9 @@
 #include "util/SimOptions.h"
 #include "system.h"
 
+#include <sys/auxv.h>
+#include <sys/mman.h>
+
 #ifdef CONFIG_GFX
 #ifdef CONFIG_SDL
 #include "abi/devices/gfx/SDLScreen.h"
@@ -44,10 +47,16 @@ void X86LinuxUserEmulationModel::Destroy()
 	LinuxUserEmulationModel::Destroy();
 }
 
+extern char x86_linux_vdso_start, x86_linux_vdso_end;
+extern uint32_t x86_linux_vdso_size;
+
+
 bool X86LinuxUserEmulationModel::PrepareBoot(System& system)
 {
-	if (!LinuxUserEmulationModel::PrepareBoot(system))
+	if (!LinuxUserEmulationModel::PrepareBoot(system)) {
+		LC_ERROR(LogEmulationModelX86Linux) << "Failed to init linux user system";
 		return false;
+	}
 
 	LC_DEBUG1(LogEmulationModelX86Linux) << "Initialising X86 Kernel Helpers";
 
@@ -59,6 +68,12 @@ bool X86LinuxUserEmulationModel::PrepareBoot(System& system)
 	GetMemoryModel().Write32(0xffff0004_ga, 0xdeadbabe);
 	GetMemoryModel().Write32(0xffff0008_ga, 0xfeedc0de);
 	GetMemoryModel().Write32(0xffff000c_ga, 0xcafedead);
+
+	/* Copy host vdso to guest */
+	vdso_ptr_ = 0x7fff00000000_ga;
+	LC_DEBUG1(LogEmulationModelX86Linux) << "Writing VDSO into guest memory (" << x86_linux_vdso_size << " bytes)";
+	GetMemoryModel().GetMappingManager()->MapRegion(vdso_ptr_, x86_linux_vdso_size, RegFlagReadWriteExecute, "vdso");
+	GetMemoryModel().Write(vdso_ptr_, (uint8_t*)&x86_linux_vdso_start, x86_linux_vdso_size);
 
 	return true;
 }
@@ -236,9 +251,9 @@ archsim::abi::ExceptionAction X86LinuxUserEmulationModel::HandleException(archsi
 					case 7: {
 						registers[0] = 0;
 
-						registers[1] = 0;
-						registers[2] = 0xc000000;
-						registers[3] = 0x29c6fbf;
+						registers[1] = 0; // ecx
+						registers[2] = 0xc000000; //edx
+						registers[3] = 0; //ebx
 
 						break;
 					}

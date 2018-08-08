@@ -102,6 +102,11 @@ bool MemoryModel::LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, h
 	return false;
 }
 
+bool MemoryModel::LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion& regions)
+{
+	return false;
+}
+
 bool MemoryModel::UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr)
 {
 	return false;

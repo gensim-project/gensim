@@ -98,6 +98,43 @@ namespace archsim
 
 			class MemoryEventHandler;
 
+			class LockedMemoryRegion
+			{
+			public:
+				LockedMemoryRegion() {}
+				LockedMemoryRegion(Address base, std::vector<void*> host_ptrs) : guest_base_(base), host_ptrs_(host_ptrs) {}
+
+				uint8_t Read8(Address addr)
+				{
+					return *(uint8_t*)GetPtr(addr, 1);
+				}
+				uint16_t Read16(Address addr)
+				{
+					return Read8(addr) | (((uint16_t)Read8(addr+1)) << 8);
+				}
+				uint32_t Read32(Address addr)
+				{
+					return Read16(addr) | (((uint32_t)Read16(addr+2)) << 16);
+				}
+
+			private:
+				void *GetPtr(Address addr, uint8_t size) const
+				{
+					ASSERT(addr >= guest_base_);
+					ASSERT(addr < guest_base_ + (host_ptrs_.size() * Address::PageSize));
+
+					return ((uint8_t*)GetPage(addr)) + addr.GetPageOffset();
+				}
+
+				void *GetPage(Address addr) const
+				{
+					return host_ptrs_.at((addr - guest_base_).GetPageIndex());
+				}
+
+				Address guest_base_;
+				std::vector<void*> host_ptrs_;
+			};
+
 			/**
 			 * Base memory model class. A memory model supports reading and writing, which may affect state,
 			 * and 'peeking' and 'poking' which should read/modify memory without otherwise affecting the
@@ -134,6 +171,8 @@ namespace archsim
 				 * succeeded.
 				 */
 				virtual bool LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr);
+
+				virtual bool LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion &regions);
 
 				/**
 				 * Unlock a region of memory previously locked by a LockRegion call.
