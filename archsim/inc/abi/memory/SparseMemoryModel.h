@@ -13,6 +13,7 @@
 #include "abi/memory/MemoryModel.h"
 #include "abi/memory/MemoryTranslationModel.h"
 #include <map>
+#include <mutex>
 #include <string>
 
 namespace archsim
@@ -55,6 +56,10 @@ namespace archsim
 				MemoryTranslationModel& GetTranslationModel();
 				bool SynchroniseVMAProtection(GuestVMA& vma) override;
 
+				bool LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr) override;
+				bool UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr) override;
+				bool LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion& regions) override;
+
 
 			protected:
 				bool AllocateVMA(GuestVMA &vma);
@@ -65,6 +70,7 @@ namespace archsim
 
 				Address prev_page_base_;
 				char *prev_page_data_;
+				std::mutex map_lock_;
 
 				SparseMemoryTranslationModel* translation_model;
 				std::map<Address, char*> data_;

@@ -26,6 +26,7 @@ namespace archsim
 	{
 	public:
 		static const Address NullPtr;
+		static const size_t PageSize = 4096;
 
 		using underlying_t = uint64_t;
 

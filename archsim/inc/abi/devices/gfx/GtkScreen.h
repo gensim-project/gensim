@@ -12,6 +12,7 @@
 
 #include "abi/devices/gfx/VirtualScreen.h"
 #include "abi/devices/gfx/VirtualScreenManager.h"
+#include "abi/memory/MemoryModel.h"
 
 #include "concurrent/Thread.h"
 
@@ -96,6 +97,7 @@ namespace archsim
 					bool ignore_next_;
 					GdkPixbuf *pb_;
 					GdkCursor *cursor_;
+					archsim::abi::memory::LockedMemoryRegion regions_;
 				};
 
 				extern VirtualScreenManager<GtkScreen> GtkScreenManager;

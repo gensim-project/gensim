@@ -399,91 +399,63 @@ execute(repe_cmpsb) {
 }
 
 execute(rep_movsb) {
-	if(rep_should_run(inst)) {
-		
-		do_movsb(inst);
-		
-		rep_decrement_counter(inst);
-		
-	} 
+	do_movsb(inst);	
+	rep_decrement_counter(inst);
+	
 	if(!rep_should_run(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(rep_movsd) {
-	if(rep_should_run(inst)) {
-		
-		do_movsd(inst);
-		
-		rep_decrement_counter(inst);
-		
-	} 
+	do_movsd(inst);
+	rep_decrement_counter(inst);
+
 	if(!rep_should_run(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(rep_movsq) {
-	if(rep_should_run(inst)) {
+	do_movsq(inst);
+	rep_decrement_counter(inst);
 		
-		do_movsq(inst);
-		
-		rep_decrement_counter(inst);
-		
-	} 
 	if(!rep_should_run(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(rep_stosb) {
-	if(rep_should_run(inst)) {
+	do_stosb(inst);		
+	rep_decrement_counter(inst);
 		
-		do_stosb(inst);
-		
-		rep_decrement_counter(inst);
-		
-	} 
 	if(!rep_should_run(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(rep_stosd) {
-	if(rep_should_run(inst)) {
+	do_stosd(inst);
+	rep_decrement_counter(inst);
 		
-		do_stosd(inst);
-		
-		rep_decrement_counter(inst);
-		
-	} 
 	if(!rep_should_run(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(rep_stosq) {
-	if(rep_should_run(inst)) {
-		
-		do_stosq(inst);
-		
-		rep_decrement_counter(inst);
-		
-	} 
+	do_stosq(inst);
+	rep_decrement_counter(inst);
+
 	if(!rep_should_run(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(repne_scasb) {
-	if(repne_should_run(inst)) {
-	
-		do_scasb(inst);
+	do_scasb(inst);
+	rep_decrement_counter(inst);
 
-		rep_decrement_counter(inst);
-	
-	} 
 	if(!repne_should_run(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}

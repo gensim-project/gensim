@@ -282,7 +282,7 @@ void archsim::abi::devices::gfx::configure_callback(GtkWidget *widget, GdkEventC
 	gtk_widget_set_size_request(scr->draw_area, cr->width, cr->height);
 }
 
-GtkScreen::GtkScreen(std::string id, memory::MemoryModel *mem_model, System* sys) : VirtualScreen(id, mem_model), Thread("Gtk Screen"), running(false), draw_area(NULL), window(NULL), last_mouse_x(0), last_mouse_y(0)
+GtkScreen::GtkScreen(std::string id, memory::MemoryModel *mem_model, System* sys) : VirtualScreen(id, mem_model), Thread("Gtk Screen"), grabbed_(false), kbd(nullptr), mouse(nullptr), running(false), draw_area(NULL), window(NULL), last_mouse_x(0), last_mouse_y(0)
 {
 
 }
@@ -344,7 +344,8 @@ uint32_t GtkScreen::GetPixelRGB(uint32_t x, uint32_t y)
 
 	switch(GetMode()) {
 		case VSM_16bit: {
-			uint16_t pxl = ((uint16_t*)guest_fb)[pxl_idx];
+			uint16_t pxl = regions_.Read16(fb_ptr + (pxl_idx * 2));
+
 			uint16_t r, g, b;
 
 			// Extract the RGB565 data
@@ -357,7 +358,7 @@ uint32_t GtkScreen::GetPixelRGB(uint32_t x, uint32_t y)
 			return out;
 		}
 		case VSM_RGB: {
-			uint32_t pxl = *(uint32_t*)((uint8_t*)guest_fb + (pxl_idx*3));
+			uint32_t pxl = regions_.Read32(fb_ptr + (pxl_idx * 3));
 			pxl &= 0x00ffffff;
 			return pxl;
 		}
@@ -411,9 +412,7 @@ bool GtkScreen::Initialise()
 		g_signal_connect(window, "configure-event", G_CALLBACK(configure_callback), this);
 
 
-		host_addr_t guest_fb_ptr;
-		GetMemory()->LockRegion(Address(fb_ptr), GetWidth() * GetHeight(), guest_fb_ptr);
-		guest_fb = (uint8_t*)guest_fb_ptr;
+		GetMemory()->LockRegions(fb_ptr, GetWidth() * GetHeight() * GetPixelSize(), regions_);
 
 		running = true;
 	}

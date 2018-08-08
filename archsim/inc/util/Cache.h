@@ -41,6 +41,7 @@ namespace archsim
 			void purge()
 			{
 				for (int i = 0; i < way_count; ++i) {
+					ways[i] = T();
 					tags[i] = KeyT(1);
 				}
 			}
@@ -53,7 +54,10 @@ namespace archsim
 			using this_t = Cache<KeyT, T, size, collect_stats>;
 			using entry_t = CacheEntry<KeyT, T>;
 
-			Cache() : hit_count(0), access_count(0), lru(0), mask(size-1), dirty(true) {};
+			Cache() : hit_count(0), access_count(0), lru(0), mask(size-1), dirty(true)
+			{
+				construct();
+			}
 
 			uint64_t get_access_count()
 			{

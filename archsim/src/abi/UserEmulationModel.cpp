@@ -109,8 +109,9 @@ bool UserEmulationModel::InitialiseProgramArguments()
 
 bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location, uint32_t elf_phnum, uint32_t elf_phentsize)
 {
+
 	if(Is64BitBinary()) {
-		_initial_stack_pointer = Address(0xc0000000);
+		_initial_stack_pointer = Address(0x800000000000);
 	} else {
 		_initial_stack_pointer = Address(0xc0000000);
 	}
@@ -172,20 +173,24 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	std::vector<std::pair<uint64_t, uint64_t>> auxv_entries;
 	int elf_info_idx = 0;
 #define NEW_AUXV_ENTRY(a, b) do { auxv_entries.push_back({a, b}); elf_info_idx += 2; } while(0)
-	NEW_AUXV_ENTRY(AT_HWCAP, 0x8197);
+	NEW_AUXV_ENTRY(AT_SYSINFO_EHDR, 0x7fff00000000);
+	NEW_AUXV_ENTRY(AT_HWCAP, 0xbfebfbff);
 	NEW_AUXV_ENTRY(AT_PAGESZ, 4096);
 	NEW_AUXV_ENTRY(AT_PHDR, elf_phdr_location.Get());
 	NEW_AUXV_ENTRY(AT_PHENT, elf_phentsize);
 	NEW_AUXV_ENTRY(AT_PHNUM, elf_phnum);
+	NEW_AUXV_ENTRY(AT_BASE, 0);
 	NEW_AUXV_ENTRY(AT_FLAGS, 0x0);
 	NEW_AUXV_ENTRY(AT_ENTRY, _initial_entry_point.Get());
-	NEW_AUXV_ENTRY(AT_UID, 0);
-	NEW_AUXV_ENTRY(AT_EUID, 0);
-	NEW_AUXV_ENTRY(AT_GID, 0);
-	NEW_AUXV_ENTRY(AT_EGID, 0);
+	NEW_AUXV_ENTRY(AT_UID, 1000);
+	NEW_AUXV_ENTRY(AT_EUID, 1000);
+	NEW_AUXV_ENTRY(AT_GID, 1000);
+	NEW_AUXV_ENTRY(AT_EGID, 1000);
 	NEW_AUXV_ENTRY(AT_SECURE, 0);
 	NEW_AUXV_ENTRY(AT_RANDOM, random_ptr.Get());
+	NEW_AUXV_ENTRY(AT_HWCAP2, 0x0);
 	NEW_AUXV_ENTRY(AT_EXECFN, 0x4321);
+	NEW_AUXV_ENTRY(AT_PLATFORM, 0x1234);
 
 	NEW_AUXV_ENTRY(AT_NULL, 0);
 
@@ -196,16 +201,18 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	_initial_stack_pointer = sp;
 
 #define WRITE_STACK(value) do { if(Is64BitBinary()) {GetMemoryModel().Write64(sp, value); sp += 8;} else { GetMemoryModel().Write32(sp, value); sp += 4;} } while(0)
+//	printf("ARGC at %p\n", sp.Get());
 	WRITE_STACK(argc);
 	for(auto i : argv_ptrs) {
 		WRITE_STACK(i.Get());
 	}
 	WRITE_STACK(0);
+//	printf("ENVPs at %p\n", sp.Get());
 	for(auto i : envp_ptrs) {
 		WRITE_STACK(i.Get());
 	}
 	WRITE_STACK(0);
-
+//	printf("AUXVs at %p\n", sp.Get());
 	for(auto i : auxv_entries) {
 		WRITE_STACK(i.first);
 		WRITE_STACK(i.second);

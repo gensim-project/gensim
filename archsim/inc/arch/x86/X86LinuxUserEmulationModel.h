@@ -36,7 +36,7 @@ namespace archsim
 
 
 			private:
-
+				Address vdso_ptr_;
 			};
 		}
 	}

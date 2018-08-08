@@ -126,6 +126,11 @@ template<typename elfclass> bool ElfBinaryLoader<elfclass>::ProcessBinary(bool l
 		PHeader *prog_header = (PHeader *)((unsigned long)prog_header_base + (i * _elf_header->e_phentsize));
 
 		if (prog_header->p_type == PT_LOAD) {
+
+			if(_ph_loc == Address::NullPtr) {
+				_ph_loc = Address(prog_header->p_vaddr + _elf_header->e_phoff);
+			}
+
 			LC_DEBUG1(LogElf) << "Encountered loadable ELF segment: vaddr=" << std::hex << prog_header->p_vaddr << ", memsz=" << std::hex << prog_header->p_memsz << ", filesz=" << std::hex << prog_header->p_filesz;
 			if (!LoadSegment(prog_header)) {
 				LC_DEBUG1(LogElf) << "Could not load segment.";
@@ -136,6 +141,7 @@ template<typename elfclass> bool ElfBinaryLoader<elfclass>::ProcessBinary(bool l
 			_ph_loc = Address(prog_header->p_vaddr);
 		}
 	}
+
 
 	return true;
 }
