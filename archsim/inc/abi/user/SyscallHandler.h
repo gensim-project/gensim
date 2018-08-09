@@ -35,7 +35,7 @@ namespace archsim
 		namespace user
 		{
 
-			typedef unsigned int (*SYSCALL_FN_GENERIC)(archsim::core::thread::ThreadInstance*, unsigned int...);
+			typedef unsigned long (*SYSCALL_FN_GENERIC)(archsim::core::thread::ThreadInstance*, unsigned long...);
 			typedef std::string arch_descriptor_t;
 
 			class SyscallHandler;
@@ -75,7 +75,7 @@ namespace archsim
 				};
 			};
 
-#define DEFINE_SYSCALL(arch, nr, fn, dbg) archsim::abi::user::SyscallRegistration __syscall_##arch##_##fn##_##nr(#arch, nr, (archsim::abi::user::SYSCALL_FN_GENERIC)fn, dbg)
+#define DEFINE_SYSCALL(arch, nr, fn, dbg) archsim::abi::user::SyscallRegistration __syscall_##arch##_##nr(#arch, nr, (archsim::abi::user::SYSCALL_FN_GENERIC)fn, dbg)
 		}
 	}
 }

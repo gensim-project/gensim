@@ -90,6 +90,7 @@ namespace archsim
 				virtual bool MapRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot, std::string name) = 0;
 				virtual bool RemapRegion(guest_addr_t addr, guest_size_t size) = 0;
 				virtual bool UnmapRegion(guest_addr_t addr, guest_size_t size) = 0;
+				virtual bool UnmapSubregion(guest_addr_t addr, guest_size_t size) = 0;
 				virtual bool ProtectRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot) = 0;
 				virtual bool GetRegionProtection(guest_addr_t addr, RegionFlags& prot) = 0;
 				virtual guest_addr_t MapAnonymousRegion(guest_size_t size, RegionFlags prot) = 0;
@@ -360,6 +361,8 @@ namespace archsim
 				guest_addr_t MapAnonymousRegion(guest_size_t size, RegionFlags prot) override;
 				bool RemapRegion(guest_addr_t addr, guest_size_t size) override;
 				bool UnmapRegion(guest_addr_t addr, guest_size_t size) override;
+				bool UnmapSubregion(guest_addr_t addr, guest_size_t size) override;
+
 				bool ProtectRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot) override;
 				bool GetRegionProtection(guest_addr_t addr, RegionFlags& prot) override;
 				void DumpRegions() override;

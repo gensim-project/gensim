@@ -25,10 +25,11 @@ namespace archsim
 	class Address
 	{
 	public:
-		static const Address NullPtr;
-		static const size_t PageSize = 4096;
-
 		using underlying_t = uint64_t;
+
+		static const Address NullPtr;
+		static const underlying_t PageSize = 4096;
+		static const underlying_t PageMask = PageSize-1;
 
 		explicit Address(underlying_t address) : address_(address) {}
 		Address() : address_(0) {};
@@ -39,15 +40,15 @@ namespace archsim
 
 		underlying_t GetPageBase() const
 		{
-			return Get() & ~archsim::RegionArch::PageMask;
+			return Get() & ~PageMask;
 		}
 		underlying_t GetPageOffset() const
 		{
-			return Get() & archsim::RegionArch::PageMask;
+			return Get() & (PageSize-1);
 		}
 		underlying_t GetPageIndex() const
 		{
-			return Get() >> archsim::RegionArch::PageBits;
+			return Get() / PageSize;
 		}
 
 		Address PageBase() const

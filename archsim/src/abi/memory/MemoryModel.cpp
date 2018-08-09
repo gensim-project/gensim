@@ -432,12 +432,12 @@ bool RegionBasedMemoryModel::MapRegion(guest_addr_t addr, guest_size_t size, Reg
 {
 	size = AlignUp(Address(size)).Get();
 
-	if (HasIntersectingRegions(addr, size)) {
-		LC_ERROR(LogMemoryModel) << "Overlapping regions not supported";
-		return false;
-	}
-
 	LC_DEBUG1(LogMemoryModel) << "Map Region: addr = " << std::hex << addr << ", size = " << std::hex << size << ", prot = " << prot << ", name = " << name;
+
+	if (HasIntersectingRegions(addr, size)) {
+		LC_DEBUG1(LogMemoryModel) << " - Overlap detected";
+		UnmapSubregion(addr, size);
+	}
 
 	GuestVMA *vma = new GuestVMA();
 
@@ -517,6 +517,68 @@ bool RegionBasedMemoryModel::UnmapRegion(guest_addr_t addr, guest_size_t size)
 	DeleteVMA(addr);
 	return true;
 }
+
+bool RegionBasedMemoryModel::UnmapSubregion(guest_addr_t addr, guest_size_t size)
+{
+	Address u_start = addr;
+	Address u_end = addr + size;
+
+	LC_DEBUG1(LogMemoryModel) << "Subregion " << u_start << " to " << u_end;
+
+	for(auto &i : guest_vmas) {
+		auto i_start = Address(i.second->base);
+		auto i_end = Address(i.second->base + i.second->size);
+
+		LC_DEBUG1(LogMemoryModel) << "Checking against " << i_start << " to " << i_end;
+
+		// 6 possible situations:
+		// 1. i is completely before the unmapped subregion
+		//    - do nothing
+		// 2. i is completely covered by the unmapped subregion
+		//    - unmap i
+		// 3. i overlaps the start of the unmapped subregion
+		//    - move the start of i to the end of the unmapped subregion
+		// 4. i overlaps the middle of the unmapped subregion
+		//    - resize i to end at the start of the unmapped region
+		//    - create a new guest vma after the end of the unmapped region
+		// 5. i overlaps the end of the unmapped subregion
+		//    - move the start of i to the end of the unmapped region
+		// 6. i is completely after the unmapped subregion
+		//    - do nothing
+
+		// 2:
+		if(i_start >= u_start && u_end >= i_end) {
+			LC_DEBUG1(LogMemoryModel) << "Unmapping entire region and recursing";
+			UnmapRegion(addr, size);
+			return UnmapSubregion(addr, size);
+		}
+
+		// 3:
+		if(i_start < u_start && i_end > u_start && i_end < u_end) {
+			LC_DEBUG1(LogMemoryModel) << "Shifting start of region";
+			i.second->base = u_end;
+		}
+
+		// 4:
+		if(u_start > i_start && u_end < i_end) {
+			LC_DEBUG1(LogMemoryModel) << "Splitting existing vma and recursing";
+			// shift the end of the current vma and also create a new one, then recurse
+			auto new_size = u_start - i_start;
+			i.second->size = new_size.Get();
+
+			MapRegion(u_end, (i_end - u_end).Get(), i.second->protection, i.second->name);
+			return UnmapSubregion(addr, size);
+		}
+
+		// 5:
+		if(i_start > u_start && i_start < u_end) {
+			UNIMPLEMENTED;
+		}
+	}
+
+	return true;
+}
+
 
 bool RegionBasedMemoryModel::ProtectRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot)
 {

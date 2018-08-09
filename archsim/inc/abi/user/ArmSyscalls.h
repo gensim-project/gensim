@@ -396,6 +396,11 @@ struct arm_iovec {
 	unsigned int iov_len;
 } __attribute__((packed));
 
+struct x86_iovec {
+	uint64_t iov_base;
+	uint64_t iov_len;
+} __attribute__((packed));
+
 struct arm_stat64 {
 	uint64_t st_dev;
 	uint64_t __st_ino;

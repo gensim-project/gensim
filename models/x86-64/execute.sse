@@ -24,6 +24,14 @@ execute(movhpd) {
 	write_xmm_u64(inst.op0, src);
 }
 
+execute(movhps) {
+	uint32[4] src = read_xmm_u32(inst.op0);
+	uint64 mm = read_operand(inst.op1);
+	src[2] = mm;
+	src[3] = mm >> 32;
+	write_xmm_u32(inst.op0, src);
+}
+
 execute(movq) {
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	write_operand_sse_scalar(inst.op0, op1);

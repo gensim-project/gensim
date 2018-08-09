@@ -60,6 +60,7 @@ enum X86Opcodes {
 	INST_x86_movq,
 	INST_x86_movlpd,
 	INST_x86_movhpd,
+	INST_x86_movhps,
 	INST_x86_movsb,
 	INST_x86_movsxd,
 	INST_x86_movsx,
