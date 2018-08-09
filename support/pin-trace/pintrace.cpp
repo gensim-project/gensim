@@ -193,14 +193,50 @@ bool shouldTrace(REG reg)
 	return getBankOf(reg) != BANK_INVALID && getIndexOf(reg) != INDEX_INVALID;
 }
 
-VOID trace_insn(void *inst_ptr)
+VOID trace_insn(void *inst_ptr, uint32_t inst_data)
 {
-	trace_source->Trace_Insn((uint64_t)inst_ptr, (uint32_t)0, 0, 0, 0, 0);
+	trace_source->Trace_Insn((uint64_t)inst_ptr, inst_data, 0, 0, 0, 0);
 }
 
 VOID trace_read_reg(uint32_t bank, uint32_t index, uint64_t value)
 {
 	trace_source->Trace_Bank_Reg_Read(true, bank, index, (uint64_t)value);
+}
+
+VOID trace_mem_read(uint64_t addr, uint8_t width)
+{
+	uint64_t data;
+	switch(width) {
+		case 1:
+			data = *(uint8_t*)addr;
+			break;
+		case 2:
+			data = *(uint16_t*)addr;
+			break;
+		case 4:
+			data = *(uint32_t*)addr;
+			break;
+		case 8:
+			data = *(uint64_t*)addr;
+			break;
+		default:
+			//		printf("Unknown memory access size %u\n", width);
+			//		abort();
+			data = 0;
+			break;
+	}
+
+	trace_source->Trace_Mem_Read(0, (uint64_t)addr, (uint64_t)data, width);
+}
+
+VOID trace_mem_write_prep(uint64_t addr, uint8_t width)
+{
+
+}
+
+VOID trace_mem_write(uint64_t addr, uint8_t width)
+{
+	trace_source->Trace_Mem_Write(0, (uint64_t)addr, (uint64_t)0, width);
 }
 
 VOID trace_insn_end(void *inst_ptr)
@@ -330,7 +366,14 @@ VOID Trace(TRACE trace, VOID *v)
 {
 	for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
 		for ( INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
-			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(trace_insn), IARG_INST_PTR, IARG_END);
+			char ins_data[4] = {0};
+			void *ins_addr = (void*)INS_Address(ins);
+			uint32_t size = MIN(4, INS_Size(ins));
+			for(int i = 0; i < size; ++i) {
+				ins_data[i] = ((uint8_t*)ins_addr)[i];
+			}
+
+			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(trace_insn), IARG_INST_PTR, IARG_UINT32, *(uint32_t*)ins_data, IARG_END);
 
 			// trace register accesses
 			for(uint32_t i = 0; i < INS_MaxNumRRegs(ins); ++i) {
@@ -340,7 +383,20 @@ VOID Trace(TRACE trace, VOID *v)
 				}
 			}
 
+			// trace memory access (assume only one)
+			uint32_t memops = INS_MemoryOperandCount(ins);
+			for(uint32_t i = 0; i < memops; ++i) {
+				if(INS_MemoryOperandIsRead(ins, i)) {
+					INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(trace_mem_read), IARG_MEMORYOP_EA, i, IARG_MEMORYREAD_SIZE, IARG_END);
+				} else {
+					INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(trace_mem_write), IARG_MEMORYOP_EA, i, IARG_MEMORYWRITE_SIZE, IARG_END);
+				}
+
+			}
+
 			INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(trace_insn_end), IARG_END);
+
+
 
 			if(INS_Opcode(ins) == XED_ICLASS_CPUID) {
 				INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(my_cpuid_before), IARG_CONTEXT, IARG_END);

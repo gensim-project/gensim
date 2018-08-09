@@ -44,10 +44,23 @@ InstructionPrinter::InstructionPrinter()
 
 std::string InstructionPrinter::operator()(TracePacketStreamInterface *stream)
 {
-	std::stringstream str;
-	PrintInstruction(str, stream);
-	return str.str();
+	std::string output;
+	if(!TryFormat(stream, output)) {
+		return "(malformed instruction)";
+	}
+	return output;
 }
+
+bool InstructionPrinter::TryFormat(TracePacketStreamInterface* stream, std::string& output)
+{
+	std::stringstream str;
+	if(!PrintInstruction(str, stream)) {
+		return false;
+	}
+	output = str.str();
+	return true;
+}
+
 
 class InstructionPrinterVisitor : public TraceRecordPacketVisitor
 {
@@ -100,8 +113,12 @@ bool InstructionPrinter::PrintInstruction(std::ostream& str, TracePacketStreamIn
 	TraceRecordPacket header_packet = stream->Get();
 	TraceRecordPacket code_packet = stream->Get();
 
-	assert(header_packet.GetRecord().GetType() == InstructionHeader);
-	assert(code_packet.GetRecord().GetType() == InstructionCode);
+	if(header_packet.GetRecord().GetType() != InstructionHeader) {
+		return false;
+	}
+	if(code_packet.GetRecord().GetType() != InstructionCode) {
+		return false;
+	}
 
 	InstructionHeaderReader hdr  (*(InstructionHeaderRecord*)&header_packet.GetRecord(), header_packet.GetExtensions());
 	InstructionCodeReader   code (*(InstructionCodeRecord*)&code_packet.GetRecord(), code_packet.GetExtensions());

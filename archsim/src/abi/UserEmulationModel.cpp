@@ -140,6 +140,9 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 #define ALIGN_STACK(v) do { sp -= ((uint64_t)sp.Get() & (v - 1)); } while (0)
 #define PUSH_AUX_ENT(_id, _value) do { PUSH(_value); PUSH(_id); } while (0)
 
+	PUSHSTR("x86_64");
+	Address platform_ptr = sp;
+
 	PUSH(0);
 	char the_realpath[MAXPATHLEN];
 	realpath(archsim::options::TargetBinary.GetValue().c_str(), the_realpath);
@@ -179,18 +182,19 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	NEW_AUXV_ENTRY(AT_PHDR, elf_phdr_location.Get());
 	NEW_AUXV_ENTRY(AT_PHENT, elf_phentsize);
 	NEW_AUXV_ENTRY(AT_PHNUM, elf_phnum);
-	NEW_AUXV_ENTRY(AT_BASE, 0);
-	NEW_AUXV_ENTRY(AT_FLAGS, 0x0);
+//	NEW_AUXV_ENTRY(AT_BASE, 0);
+	NEW_AUXV_ENTRY(AT_CLKTCK, 0x64);
+//	NEW_AUXV_ENTRY(AT_FLAGS, 0x0);
 	NEW_AUXV_ENTRY(AT_ENTRY, _initial_entry_point.Get());
 	NEW_AUXV_ENTRY(AT_UID, 1000);
 	NEW_AUXV_ENTRY(AT_EUID, 1000);
 	NEW_AUXV_ENTRY(AT_GID, 1000);
 	NEW_AUXV_ENTRY(AT_EGID, 1000);
-	NEW_AUXV_ENTRY(AT_SECURE, 0);
+//	NEW_AUXV_ENTRY(AT_SECURE, 0);
 	NEW_AUXV_ENTRY(AT_RANDOM, random_ptr.Get());
-	NEW_AUXV_ENTRY(AT_HWCAP2, 0x0);
-	NEW_AUXV_ENTRY(AT_EXECFN, 0x4321);
-	NEW_AUXV_ENTRY(AT_PLATFORM, 0x1234);
+//	NEW_AUXV_ENTRY(AT_HWCAP2, 0);
+	NEW_AUXV_ENTRY(AT_EXECFN, argv_ptrs.at(0).Get());
+	NEW_AUXV_ENTRY(AT_PLATFORM, platform_ptr.Get());
 
 	NEW_AUXV_ENTRY(AT_NULL, 0);
 
@@ -212,7 +216,7 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 		WRITE_STACK(i.Get());
 	}
 	WRITE_STACK(0);
-//	printf("AUXVs at %p\n", sp.Get());
+	printf("AUXVs at %p\n", sp.Get());
 	for(auto i : auxv_entries) {
 		WRITE_STACK(i.first);
 		WRITE_STACK(i.second);

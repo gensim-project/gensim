@@ -1,6 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "arch/x86/X86Decoder.h"
+#include <algorithm>
 
 extern "C" {
 #include <xed/xed-interface.h>
@@ -8,6 +9,8 @@ extern "C" {
 
 using namespace archsim;
 using namespace archsim::arch::x86;
+
+DeclareLogContext(LogX86Decode, "X86Decode")
 
 #define SPECIAL_RIP_INDEX 0xff
 #define SPECIAL_RIZ_INDEX 0xfe
@@ -165,8 +168,8 @@ bool DecodeRegister(xed_decoded_inst_t *xedd, xed_reg_enum_t reg, X86Decoder::Re
 
 
 		default:
-			UNIMPLEMENTED;
-			break;
+			LC_ERROR(LogX86Decode) << "Unknown register type " << xed_reg_enum_t2str(reg);
+			return false;
 	}
 
 	return true;
@@ -322,6 +325,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 	switch(iclass) {
 #define MAP(xed, model) case xed: Instr_Code = model; return true;
 			MAP(XED_ICLASS_ADD, INST_x86_add);
+			MAP(XED_ICLASS_ADD_LOCK, INST_x86_add); // TODO: Lock prefix
 			MAP(XED_ICLASS_AND, INST_x86_and);
 			MAP(XED_ICLASS_BSF, INST_x86_bsf);
 			MAP(XED_ICLASS_BSR, INST_x86_bsr);
@@ -355,7 +359,10 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_CWD, INST_x86_cwd);
 			MAP(XED_ICLASS_CWDE, INST_x86_cwde);
 			MAP(XED_ICLASS_DEC, INST_x86_dec);
+			MAP(XED_ICLASS_DEC_LOCK, INST_x86_dec); // TODO: LOCK PREFIX
 			MAP(XED_ICLASS_DIV, INST_x86_div);
+			MAP(XED_ICLASS_FXSAVE, INST_x86_nop); // TODO
+			MAP(XED_ICLASS_FXRSTOR, INST_x86_nop); // TODO
 			MAP(XED_ICLASS_IDIV, INST_x86_idiv);
 
 		// need to be careful with imul - XED encodes it as a single opcode
@@ -409,6 +416,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_MOVQ, INST_x86_movq);
 			MAP(XED_ICLASS_MOVLPD, INST_x86_movlpd);
 			MAP(XED_ICLASS_MOVHPD, INST_x86_movhpd);
+			MAP(XED_ICLASS_MOVHPS, INST_x86_movhps);
 			MAP(XED_ICLASS_MOVSB, INST_x86_movsb);
 			MAP(XED_ICLASS_MOVSXD, INST_x86_movsxd);
 			MAP(XED_ICLASS_MOVSX, INST_x86_movsx);
@@ -527,7 +535,9 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 {
 	// read 15 bytes
 	uint8_t data[15];
-	interface.Read(addr, data, 15);
+	if(interface.Read(addr, data, 15) != MemoryResult::OK) {
+		return 1;
+	}
 
 	// pass data to XED
 	xed_state_t dstate;
@@ -548,7 +558,12 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 	xed_error = xed_decode(&xedd, XED_REINTERPRET_CAST(const xed_uint8_t*, data), 15);
 
 	Instr_Length = xed_decoded_inst_get_length(&xedd);
-	ir = 0;
+
+	uint8_t irdata[4] = {0};
+	for(int i = 0; i < std::min((uint8_t)4, Instr_Length); ++i) {
+		irdata[i] = data[i];
+	}
+	ir = *(uint32_t*)irdata;
 
 	bool success = true;
 

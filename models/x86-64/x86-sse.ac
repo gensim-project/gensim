@@ -2,9 +2,9 @@ AC_ISA(x86)
 {
 	ac_format FORMAT_DUMMY_SSE = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY_SSE> clflush, movd, movdqu, movlpd, movhpd, movq, movups, paddd, paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pminub, pmovmskb, por, pslldq, psrldq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
+	ac_instr<FORMAT_DUMMY_SSE> clflush, movd, movdqu, movlpd, movhpd, movhps, movq, movups, paddd, paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pminub, pmovmskb, por, pslldq, psrldq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
 
-	ac_behaviour clflush, movd, movdqu, movlpd, movhpd, movq, movups, paddd, paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pminub, pmovmskb, por, pslldq, psrldq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
+	ac_behaviour clflush, movd, movdqu, movlpd, movhpd, movhps, movq, movups, paddd, paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pminub, pmovmskb, por, pslldq, psrldq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
 
 	ISA_CTOR(x86) {
 		clflush.set_decoder();
@@ -24,6 +24,9 @@ AC_ISA(x86)
 		
 		movhpd.set_decoder();
 		movhpd.set_behaviour(movhpd);
+		
+		movhps.set_decoder();
+		movhps.set_behaviour(movhps);
 		
 		movups.set_decoder();
 		movups.set_behaviour(movups);

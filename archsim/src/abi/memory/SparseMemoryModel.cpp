@@ -265,11 +265,16 @@ uint32_t SparseMemoryModel::Read(guest_addr_t addr, uint8_t *data, int size)
 		return 0;
 	}
 
-	auto offset = addr.GetPageOffset();
+	RegionFlags flags;
+	if(GetMappingManager()->GetRegionProtection(addr, flags) && (flags & RegFlagRead)) {
+		auto offset = addr.GetPageOffset();
 
-	memcpy(data, GetPage(addr) + offset, size);
+		memcpy(data, GetPage(addr) + offset, size);
 
-	return 0;
+		return 0;
+	} else {
+		return 1;
+	}
 }
 
 uint32_t SparseMemoryModel::Fetch(guest_addr_t addr, uint8_t *data, int size)
@@ -316,4 +321,5 @@ uint32_t SparseMemoryModel::Peek(guest_addr_t addr, uint8_t *data, int size)
 uint32_t SparseMemoryModel::Poke(guest_addr_t addr, uint8_t *data, int size)
 {
 	Write(addr, data, size);
+	return 0;
 }

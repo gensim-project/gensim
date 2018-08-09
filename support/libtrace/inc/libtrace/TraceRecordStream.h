@@ -23,7 +23,7 @@ namespace libtrace
 	class RecordBufferInterface
 	{
 	public:
-		virtual Record Get(size_t i) = 0;
+		virtual bool Get(size_t i, Record &r) = 0;
 		virtual uint64_t Size() = 0;
 	};
 

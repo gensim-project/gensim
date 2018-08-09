@@ -20,6 +20,7 @@ namespace libtrace
 		InstructionPrinter();
 
 		std::string operator()(TracePacketStreamInterface *stream);
+		bool TryFormat(TracePacketStreamInterface *stream, std::string &output);
 
 		bool PrintInstruction(std::ostream &str, TracePacketStreamInterface *stream);
 

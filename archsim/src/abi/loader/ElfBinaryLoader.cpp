@@ -103,8 +103,8 @@ template<typename elfclass> bool ElfBinaryLoader<elfclass>::ProcessBinary(bool l
 
 	// If the ELF file is dynamic, create a load bias.
 	if (_elf_header->e_type == ET_DYN) {
-		_load_bias = Address(0xF0000000);
-		_entry_point += 0xF0000000;
+		_load_bias = Address(0x7ffff7dd7000);
+		_entry_point = _entry_point + _load_bias;
 	} else
 		_load_bias = Address(0);
 
@@ -128,7 +128,8 @@ template<typename elfclass> bool ElfBinaryLoader<elfclass>::ProcessBinary(bool l
 		if (prog_header->p_type == PT_LOAD) {
 
 			if(_ph_loc == Address::NullPtr) {
-				_ph_loc = Address(prog_header->p_vaddr + _elf_header->e_phoff);
+				_ph_loc = Address(prog_header->p_vaddr + _elf_header->e_phoff + _load_bias);
+				LC_DEBUG1(LogElf) << "Assuming PHDR location is " << _ph_loc;
 			}
 
 			LC_DEBUG1(LogElf) << "Encountered loadable ELF segment: vaddr=" << std::hex << prog_header->p_vaddr << ", memsz=" << std::hex << prog_header->p_memsz << ", filesz=" << std::hex << prog_header->p_filesz;

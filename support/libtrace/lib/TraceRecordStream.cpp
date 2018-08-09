@@ -19,12 +19,18 @@ RecordBufferStreamAdaptor::~RecordBufferStreamAdaptor()
 
 Record RecordBufferStreamAdaptor::Get()
 {
-	return buffer_->Get(index_++);
+	Record r;
+	bool success = buffer_->Get(index_++, r);
+	assert(success);
+	return r;
 }
 
 Record RecordBufferStreamAdaptor::Peek()
 {
-	return buffer_->Get(index_);
+	Record r;
+	bool success = buffer_->Get(index_, r);
+	assert(success);
+	return r;
 }
 
 void RecordBufferStreamAdaptor::Skip(size_t i)
@@ -84,6 +90,9 @@ bool TracePacketStreamAdaptor::PreparePacket()
 
 	std::vector<DataExtensionRecord> extensions;
 	for(int i = 0; i < packet_head.GetExtensionCount(); ++i) {
+		if(!input_stream_->Good()) {
+			return false;
+		}
 		Record record = input_stream_->Get();
 		DataExtensionRecord trecord = *(DataExtensionRecord*)&record;
 		extensions.push_back(trecord);
