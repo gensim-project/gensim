@@ -3,8 +3,26 @@
 #include "core/execution/InterpreterExecutionEngine.h"
 #include "core/thread/ThreadInstance.h"
 #include "core/execution/ExecutionEngineFactory.h"
+#include "system.h"
 
 using namespace archsim::core::execution;
+
+InterpreterExecutionEngineThreadContext::InterpreterExecutionEngineThreadContext(ExecutionEngine* engine, thread::ThreadInstance* thread) : ExecutionEngineThreadContext(engine, thread)
+{
+	auto &isa = thread->GetArch().GetISA(0);
+	decode_ctx_ = thread->GetEmulationModel().GetNewDecodeContext(*thread);
+	if(!archsim::options::AggressiveCodeInvalidation) {
+		decode_ctx_ = new gensim::CachedDecodeContext(thread->GetEmulationModel().GetSystem().GetPubSub(), decode_ctx_, [&isa]() {
+			return isa.GetNewDecode();
+		});
+	}
+}
+
+InterpreterExecutionEngineThreadContext::~InterpreterExecutionEngineThreadContext()
+{
+
+}
+
 
 InterpreterExecutionEngine::InterpreterExecutionEngine(archsim::interpret::Interpreter* interpreter) : interpreter_(interpreter)
 {
@@ -32,7 +50,7 @@ ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext
 			}
 		}
 
-		auto result = interpreter_->StepBlock(thread);
+		auto result = interpreter_->StepBlock(thread_ctx);
 		switch(result) {
 			case ExecutionResult::Continue:
 			case ExecutionResult::Exception:
@@ -47,7 +65,7 @@ ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext
 
 ExecutionEngineThreadContext* InterpreterExecutionEngine::GetNewContext(thread::ThreadInstance* thread)
 {
-	return new ExecutionEngineThreadContext(this, thread);
+	return new InterpreterExecutionEngineThreadContext(this, thread);
 }
 
 ExecutionEngine* InterpreterExecutionEngine::Factory(const archsim::module::ModuleInfo* module, const std::string& cpu_prefix)

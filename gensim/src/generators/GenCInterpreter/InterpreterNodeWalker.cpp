@@ -586,6 +586,22 @@ namespace gensim
 						output << "UNIMPLEMENTED;";
 						break;
 
+					case SSAIntrinsicStatement::SSAIntrinsic_MemLock: {
+						auto interface_id = stmt.Args(0);
+						output << "{";
+						output << "auto &interface = thread->GetMemoryInterface(" << Factory.GetOrCreate(interface_id)->GetFixedValue() << ");";
+						output << "interface.Lock();";
+						output << "}";
+						break;
+					}
+					case SSAIntrinsicStatement::SSAIntrinsic_MemUnlock: {
+						auto interface_id = stmt.Args(0);
+						output << "{";
+						output << "auto &interface = thread->GetMemoryInterface(" << Factory.GetOrCreate(interface_id)->GetFixedValue() << ");";
+						output << "interface.Unlock();";
+						output << "}";
+						break;
+					}
 					default:
 						throw std::logic_error("Unrecognised intrinsic: " + std::to_string(stmt.Type));
 				}

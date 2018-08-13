@@ -132,6 +132,7 @@ bool SparseMemoryTranslationModel::EmitMemoryWrite(archsim::internal::translate:
 
 SparseMemoryModel::SparseMemoryModel() : prev_page_data_(nullptr)
 {
+	pages_remaining_ = 1024*1024;
 }
 
 SparseMemoryModel::~SparseMemoryModel()
@@ -233,6 +234,11 @@ char* SparseMemoryModel::GetPage(Address addr)
 
 	char *ptr = nullptr;
 	if(!data_.count(addr.PageBase())) {
+
+		if(pages_remaining_ == 0) {
+			throw std::bad_alloc();
+		}
+		pages_remaining_--;
 		ptr = (char*)malloc(4096);
 		if(ptr == nullptr) {
 			throw std::bad_alloc();

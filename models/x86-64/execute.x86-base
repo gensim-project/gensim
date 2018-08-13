@@ -1,4 +1,5 @@
 execute(adc) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	uint8 c = read_register(CF);
@@ -6,24 +7,29 @@ execute(adc) {
 	uint64 result = addition(op0, op1, c, operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, result);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(add) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
 	uint64 result = addition(op0, op1, 0, operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, result);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(and) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
 	uint64 result = bitwise_and(op0, op1, operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, result);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 helper uint8 do_bsf(uint64 op, uint8 size) 
@@ -80,6 +86,7 @@ execute(bt) {
 }
 
 execute(bts) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
@@ -87,6 +94,7 @@ execute(bts) {
 	write_register(CF, (op0 & mask) != 0);
 	
 	write_operand(inst.op0, op0 | mask);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(bswap) {
@@ -148,6 +156,7 @@ execute(cmp) {
 }
 
 execute(cmpxchg) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	uint64 rax = read_reg(0, operand_get_size(inst.op0));
@@ -157,6 +166,7 @@ execute(cmpxchg) {
 	} else {
 		write_reg(0, operand_get_size(inst.op0), op0);
 	}
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(cpuid) {
@@ -180,11 +190,13 @@ execute(cwde) {
 }
 
 execute(dec) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	
 	uint8 C_backup = read_register(CF);
 	write_operand(inst.op0, subtract(op0, 1, operand_get_size(inst.op0)));
 	write_register(CF, C_backup);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(div) {
@@ -276,10 +288,12 @@ execute(imul3) {
 }
 
 execute(inc) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	uint8 C = read_register(CF);
 	write_operand(inst.op0, addition(op0, 1, 0, operand_get_size(inst.op0)));
 	write_register(CF, C);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(jcond) {
@@ -371,11 +385,13 @@ execute(mul) {
 }
 
 execute(neg) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 value = read_operand(inst.op0);
 	
 	value = subtract(0, value, operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, value);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(nop) {
@@ -383,17 +399,21 @@ execute(nop) {
 }
 
 execute(not) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 value = read_operand(inst.op0);
 	write_operand(inst.op0, ~value);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(or) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
 	uint64 result = bitwise_or(op0, op1, operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, result);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(pop) {
@@ -583,12 +603,14 @@ execute(sar) {
 }
 
 execute(sbb) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
 	uint64 result = subtract(op0, (op1 + read_register(CF)), operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, result);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(setcc) {
@@ -674,12 +696,14 @@ execute(shr) {
 }
 
 execute(sub) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
 	uint64 result = subtract(op0, op1, operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, result);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(syscall) {
@@ -695,18 +719,22 @@ execute(test) {
 }
 
 execute(xadd) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
 	write_operand(inst.op1, op0);
 	write_operand(inst.op0, addition(op0, op1, 0, operand_get_size(inst.op0)));
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(xchg) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	write_operand(inst.op0, op1);
 	write_operand(inst.op1, op0);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 execute(xgetbv) {
@@ -716,12 +744,14 @@ execute(xgetbv) {
 }
 
 execute(xor) {
+	if(inst.lock) { mem_lock(Data); }
 	uint64 op1 = read_operand(inst.op0);
 	uint64 op2 = read_operand(inst.op1);
 	
 	uint64 result = bitwise_xor(op1, op2, operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, result);
+	if(inst.lock) { mem_unlock(Data); }
 }
 
 helper uint64 bitwise_and(uint64 op0, uint64 op1, uint8 op_size)

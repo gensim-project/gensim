@@ -71,7 +71,9 @@ namespace archsim
 
 				Address prev_page_base_;
 				char *prev_page_data_;
-				archsim::concurrent::LWLock map_lock_;
+				std::mutex map_lock_;
+
+				uint64_t pages_remaining_;
 
 				SparseMemoryTranslationModel* translation_model;
 				std::map<Address, char*> data_;
