@@ -19,6 +19,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <mutex>
 
 #ifndef CONFIG_NO_MEMORY_EVENTS
 #ifndef CONFIG_MEMORY_EVENTS
@@ -307,7 +308,17 @@ namespace archsim
 
 				bool RaiseEvent(MemoryEventType type, guest_addr_t addr, uint8_t size);
 
+				void Lock()
+				{
+					lock_.lock();
+				}
+				void Unlock()
+				{
+					lock_.unlock();
+				}
+
 			private:
+				std::mutex lock_;
 				std::vector<MemoryEventHandler *> event_handlers;
 			};
 

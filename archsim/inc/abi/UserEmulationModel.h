@@ -13,6 +13,7 @@
 #include "abi/EmulationModel.h"
 #include "abi/memory/MemoryModel.h"
 #include "abi/user/SyscallHandler.h"
+#include "core/execution/ExecutionEngine.h"
 #include "core/thread/ThreadInstance.h"
 #include "abi/loader/BinaryLoader.h"
 
@@ -66,6 +67,10 @@ namespace archsim
 			Address MapAnonymousRegion(size_t size, archsim::abi::memory::RegionFlags flags);
 			bool MapRegion(Address addr, size_t size, archsim::abi::memory::RegionFlags flags, const std::string &region_name);
 
+			archsim::core::thread::ThreadInstance *CreateThread(archsim::core::thread::ThreadInstance *cloned_thread = nullptr);
+			void StartThread(archsim::core::thread::ThreadInstance *thread);
+			unsigned int GetThreadID(const archsim::core::thread::ThreadInstance *thread) const;
+
 			void SetInitialBreak(Address brk);
 			void SetBreak(Address brk);
 			Address GetBreak();
@@ -98,7 +103,10 @@ namespace archsim
 			Address _program_break;
 			unsigned int _stack_size;
 
-			archsim::core::thread::ThreadInstance *main_thread_;
+			std::vector<archsim::core::thread::ThreadInstance*> threads_;
+			archsim::core::execution::ExecutionEngine *execution_engine_;
+
+
 		};
 	}
 }

@@ -80,13 +80,7 @@ bool X86LinuxUserEmulationModel::PrepareBoot(System& system)
 
 gensim::DecodeContext* X86LinuxUserEmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu)
 {
-	auto &isa = cpu.GetArch().GetISA(0);
 	gensim::DecodeContext *ctx = new arch::x86::X86DecodeContext(cpu.GetArch());
-	if(!archsim::options::AggressiveCodeInvalidation) {
-		ctx = new gensim::CachedDecodeContext(GetSystem().GetPubSub(), ctx, [&isa]() {
-			return isa.GetNewDecode();
-		});
-	}
 	return ctx;
 }
 

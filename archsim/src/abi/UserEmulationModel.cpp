@@ -50,23 +50,56 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 
 	auto module = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName);
+
+	execution_engine_ = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
+	GetSystem().GetECM().AddEngine(execution_engine_);
+
+	auto main_thread = CreateThread(nullptr);
+	StartThread(main_thread);
+
+	return true;
+}
+
+archsim::core::thread::ThreadInstance* UserEmulationModel::CreateThread(archsim::core::thread::ThreadInstance* cloned_thread)
+{
+	auto module = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName);
 	auto archentry = module->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
 	if(archentry == nullptr) {
-		return false;
+		return nullptr;
 	}
 	auto arch = archentry->Get();
-	auto engine = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
-	GetSystem().GetECM().AddEngine(engine);
-	main_thread_ = new archsim::core::thread::ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 
-	for(auto i : main_thread_->GetMemoryInterfaces()) {
+	auto thread = new archsim::core::thread::ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
+	for(auto i : thread->GetMemoryInterfaces()) {
 		i->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
 		i->ConnectTranslationProvider(*new archsim::IdentityTranslationProvider());
 	}
 
-	engine->AttachThread(main_thread_);
+	if(cloned_thread) {
+		memcpy(thread->GetRegisterFile(), cloned_thread->GetRegisterFile(), thread->GetArch().GetRegisterFileDescriptor().GetSize());
+	}
 
-	return true;
+	threads_.push_back(thread);
+
+	return thread;
+}
+
+void UserEmulationModel::StartThread(archsim::core::thread::ThreadInstance* thread)
+{
+	execution_engine_->AttachThread(thread);
+}
+
+unsigned int UserEmulationModel::GetThreadID(const archsim::core::thread::ThreadInstance* thread) const
+{
+	unsigned int id = 0;
+	for(auto i : threads_) {
+		id++;
+		if(thread == i) {
+			return id;
+		}
+	}
+
+	UNEXPECTED;
 }
 
 void UserEmulationModel::Destroy()
@@ -81,7 +114,7 @@ gensim::Processor *UserEmulationModel::GetCore(int id)
 
 archsim::core::thread::ThreadInstance* UserEmulationModel::GetMainThread()
 {
-	return main_thread_;
+	return threads_.at(0);
 }
 
 void UserEmulationModel::ResetCores()
@@ -91,7 +124,7 @@ void UserEmulationModel::ResetCores()
 
 void UserEmulationModel::HaltCores()
 {
-	main_thread_->SendMessage(core::thread::ThreadMessage::Halt);
+	GetMainThread()->SendMessage(core::thread::ThreadMessage::Halt);
 }
 
 bool UserEmulationModel::InitialiseProgramArguments()

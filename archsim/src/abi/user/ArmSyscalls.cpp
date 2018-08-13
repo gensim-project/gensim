@@ -27,6 +27,7 @@
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
 #include <time.h>
+#include <linux/futex.h>
 #include <sys/times.h>
 
 #include "termios.h"
@@ -35,18 +36,18 @@ UseLogContext(LogSyscalls);
 
 using archsim::Address;
 
-static unsigned long syscall(unsigned int syscall_no, unsigned long a0 = 0, unsigned long a1 = 0, unsigned long a2 = 0, unsigned long a3 = 0, unsigned long a4 = 0, unsigned long a5 = 0)
-{
-	unsigned long result;
-
-	asm volatile (
-	    "mov %4, %%r10"
-	    "mov %5, %%r9"
-	    "mov %6, %%r8"
-	    "syscall" : "=a"(result) : "D"(a0), "S"(a1), "d"(a2), "m"(a3), "m"(a4), "m"(a5) : "r8", "r9", "r10");
-
-	return result;
-}
+//static unsigned long syscall(unsigned int syscall_no, unsigned long a0 = 0, unsigned long a1 = 0, unsigned long a2 = 0, unsigned long a3 = 0, unsigned long a4 = 0, unsigned long a5 = 0)
+//{
+//	unsigned long result;
+//
+//	asm volatile (
+//	    "mov %4, %%r10"
+//	    "mov %5, %%r9"
+//	    "mov %6, %%r8"
+//	    "syscall" : "=a"(result) : "D"(a0), "S"(a1), "d"(a2), "m"(a3), "m"(a4), "m"(a5) : "r8", "r9", "r10");
+//
+//	return result;
+//}
 
 static unsigned int translate_fd(archsim::core::thread::ThreadInstance* cpu, int fd)
 {
@@ -921,6 +922,46 @@ static unsigned long sys_getdents_x86_64(archsim::core::thread::ThreadInstance *
 
 static unsigned long sys_futex(archsim::core::thread::ThreadInstance *thread, unsigned long addr, unsigned int op, unsigned int val, unsigned long timespec_addr, unsigned long uaddr2, unsigned int val3)
 {
+	LC_DEBUG1(LogSyscalls) << "Futex: addr=" << Address(addr) << ", op=" << op << ", val=" << val << ", timespec=" << Address(timespec_addr) << ", addr2=" << Address(uaddr2) << ", val3=" << val3;
+
+	if(op & FUTEX_PRIVATE_FLAG == FUTEX_PRIVATE_FLAG) {
+		LC_DEBUG1(LogSyscalls) << " - PRIVATE";
+	}
+	if(op & FUTEX_CLOCK_REALTIME == FUTEX_CLOCK_REALTIME) {
+		LC_DEBUG1(LogSyscalls) << " - REALTIME";
+	}
+
+	unsigned int raw_op = op & FUTEX_CMD_MASK;
+	switch(raw_op) {
+		case FUTEX_WAIT:
+			LC_DEBUG1(LogSyscalls) << " - WAIT";
+			break;
+		case FUTEX_WAIT_BITSET:
+			LC_DEBUG1(LogSyscalls) << " - WAIT BITSET";
+			break;
+		case FUTEX_WAKE:
+			LC_DEBUG1(LogSyscalls) << " - WAKE";
+			break;
+		case FUTEX_WAKE_BITSET:
+			LC_DEBUG1(LogSyscalls) << " - WAKE BITSET";
+			break;
+		case FUTEX_FD:
+			LC_DEBUG1(LogSyscalls) << " - FD";
+			break;
+		case FUTEX_REQUEUE:
+			LC_DEBUG1(LogSyscalls) << " - REQUEUE";
+			break;
+		case FUTEX_CMP_REQUEUE:
+			LC_DEBUG1(LogSyscalls) << " - CMP_REQUEUE";
+			break;
+		case FUTEX_WAKE_OP:
+			LC_DEBUG1(LogSyscalls) << " - WAKE_OP";
+			break;
+		default:
+			LC_DEBUG1(LogSyscalls) << " - Unknown operation!";
+			break;
+	}
+
 	archsim::abi::memory::LockedMemoryRegion guest_region0, guest_region1;
 
 	thread->GetEmulationModel().GetMemoryModel().LockRegions(Address(addr), 4, guest_region0);
@@ -932,14 +973,122 @@ static unsigned long sys_futex(archsim::core::thread::ThreadInstance *thread, un
 		ptr1 = guest_region1.GetPtr(Address(uaddr2), 4);
 	}
 
-	struct timespec timeout;
+	struct timespec timeout, *timeout_ptr = nullptr;
 	if(timespec_addr) {
-		thread->GetEmulationModel().GetMemoryModel().Read(Address(timespec_addr), (uint8_t*)&timeout, 16);
+		thread->GetEmulationModel().GetMemoryModel().Read(Address(timespec_addr), (uint8_t*)&timeout, sizeof(timeout));
+		timeout_ptr = &timeout;
 	}
 
-	unsigned long result = syscall(202, ptr0, op, val, &timeout, ptr1, val3);
+	unsigned long result = syscall(202, ptr0, op, val, timeout_ptr, ptr1, val3);
 
+	LC_DEBUG1(LogSyscalls) << " - Futex returned " << result << "(" << std::hex << result << ")";
+
+	if(result == -1) {
+		LC_DEBUG1(LogSyscalls) << " - Error " << strerror(errno);
+		return -errno;
+	}
 	return result;
+}
+
+static unsigned long sys_clone_x86(archsim::core::thread::ThreadInstance *thread, unsigned long clone_flags, unsigned long newsp, unsigned long parent_tid_addr, unsigned long child_tid_addr, unsigned long newtls)
+{
+	LC_DEBUG1(LogSyscalls) << "X86 Clone: " << std::hex << clone_flags << " newsp=" << Address(newsp) << ", parent_tid=" << Address(parent_tid_addr) << ", child_tid=" << Address(child_tid_addr) << ", newtls=" << Address(newtls);
+
+	if(clone_flags & CLONE_CHILD_CLEARTID) {
+		LC_DEBUG1(LogSyscalls) << " - CHILD_CLEARTID";
+	}
+	if(clone_flags & CLONE_CHILD_SETTID) {
+		LC_DEBUG1(LogSyscalls) << " - CHILD_SETTID";
+	}
+	if(clone_flags & CLONE_FILES) {
+		LC_DEBUG1(LogSyscalls) << " - FILES";
+	}
+	if(clone_flags & CLONE_FS) {
+		LC_DEBUG1(LogSyscalls) << " - FS";
+	}
+	if(clone_flags & CLONE_IO) {
+		LC_DEBUG1(LogSyscalls) << " - IO";
+	}
+	if(clone_flags & CLONE_NEWCGROUP) {
+		LC_DEBUG1(LogSyscalls) << " - NEWCGROUP";
+	}
+	if(clone_flags & CLONE_NEWIPC) {
+		LC_DEBUG1(LogSyscalls) << " - NEWIPC";
+	}
+	if(clone_flags & CLONE_NEWNET) {
+		LC_DEBUG1(LogSyscalls) << " - NEWNET";
+	}
+	if(clone_flags & CLONE_NEWNS) {
+		LC_DEBUG1(LogSyscalls) << " - NEWNS";
+	}
+	if(clone_flags & CLONE_NEWPID) {
+		LC_DEBUG1(LogSyscalls) << " - NEWPID";
+	}
+	if(clone_flags & CLONE_NEWUSER) {
+		LC_DEBUG1(LogSyscalls) << " - NEWUSER";
+	}
+	if(clone_flags & CLONE_NEWUTS) {
+		LC_DEBUG1(LogSyscalls) << " - NEWUTS";
+	}
+	if(clone_flags & CLONE_PARENT) {
+		LC_DEBUG1(LogSyscalls) << " - PARENT";
+	}
+	if(clone_flags & CLONE_PARENT_SETTID) {
+		LC_DEBUG1(LogSyscalls) << " - PARENT_SETTID";
+	}
+//	if(clone_flags & CLONE_PID) {
+//		LC_DEBUG1(LogSyscalls) << " - PID";
+//	}
+	if(clone_flags & CLONE_PTRACE) {
+		LC_DEBUG1(LogSyscalls) << " - PTRACE";
+	}
+	if(clone_flags & CLONE_SETTLS) {
+		LC_DEBUG1(LogSyscalls) << " - SETTLS";
+	}
+	if(clone_flags & CLONE_SIGHAND) {
+		LC_DEBUG1(LogSyscalls) << " - SIGHAND";
+	}
+//	if(clone_flags & CLONE_STOPPED) {
+//		LC_DEBUG1(LogSyscalls) << " - STOPPED";
+//	}
+	if(clone_flags & CLONE_SYSVSEM) {
+		LC_DEBUG1(LogSyscalls) << " - SYSVSEM";
+	}
+	if(clone_flags & CLONE_THREAD) {
+		LC_DEBUG1(LogSyscalls) << " - THREAD";
+	}
+	if(clone_flags & CLONE_UNTRACED) {
+		LC_DEBUG1(LogSyscalls) << " - UNTRACED";
+	}
+	if(clone_flags & CLONE_VFORK) {
+		LC_DEBUG1(LogSyscalls) << " - VFORK";
+	}
+	if(clone_flags & CLONE_VM) {
+		LC_DEBUG1(LogSyscalls) << " - VM";
+	}
+
+	// we only support one variation just now
+	if(clone_flags != 0x3d0f00) {
+		LC_ERROR(LogSyscalls) << "Attempted to clone with invalid flags";
+		return -EINVAL;
+	}
+
+	archsim::abi::UserEmulationModel *uemu = static_cast<archsim::abi::UserEmulationModel*>(&thread->GetEmulationModel());
+
+	// Clone this thread, except with the correct syscall return value and stack pointer
+	auto new_thread = uemu->CreateThread(thread);
+	((uint64_t*)new_thread->GetRegisterFile())[0] = 0;
+	new_thread->SetSP(Address(newsp));
+	new_thread->SetPC(new_thread->GetPC() + 2); // skip over syscall instruction
+	auto tid = uemu->GetThreadID(new_thread);
+
+	// set tls
+	*new_thread->GetRegisterFileInterface().GetEntry<uint64_t>("FS") = newtls;
+
+	uemu->GetMemoryModel().Write32(Address(parent_tid_addr), tid);
+
+	uemu->StartThread(new_thread);
+	return tid;
 }
 
 static unsigned long syscall_return_zero(archsim::core::thread::ThreadInstance* cpu)
@@ -1021,6 +1170,7 @@ DEFINE_SYSCALL(x86, 16, sys_ioctl, "ioctl()");
 DEFINE_SYSCALL(x86, 20, sys_writev<struct x86_iovec>, "writev()");
 DEFINE_SYSCALL(x86, 21, syscall_return_enosys, "access()");
 DEFINE_SYSCALL(x86, 39, syscall_return_zero, "getpid()");
+DEFINE_SYSCALL(x86, 56, sys_clone_x86, "clone()");
 DEFINE_SYSCALL(x86, 63, sys_uname_x86, "uname()");
 DEFINE_SYSCALL(x86, 72, sys_fcntl64, "fcntl()");
 DEFINE_SYSCALL(x86, 78, sys_getdents_x86_64, "getdents()");

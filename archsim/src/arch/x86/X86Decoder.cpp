@@ -341,6 +341,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_ADD_LOCK, INST_x86_add); // TODO: Lock prefix
 			MAP(XED_ICLASS_ADDSD, INST_x86_addsd); // TODO: Lock prefix
 			MAP(XED_ICLASS_AND, INST_x86_and);
+			MAP(XED_ICLASS_AND_LOCK, INST_x86_and);
 			MAP(XED_ICLASS_BSF, INST_x86_bsf);
 			MAP(XED_ICLASS_BSR, INST_x86_bsr);
 			MAP(XED_ICLASS_BSWAP, INST_x86_bswap);
@@ -454,6 +455,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_NOP, INST_x86_nop);
 			MAP(XED_ICLASS_NOT, INST_x86_not);
 			MAP(XED_ICLASS_OR, INST_x86_or);
+			MAP(XED_ICLASS_OR_LOCK, INST_x86_or);
 			MAP(XED_ICLASS_PADDD, INST_x86_paddd);
 			MAP(XED_ICLASS_PADDQ, INST_x86_paddq);
 			MAP(XED_ICLASS_PAND, INST_x86_pand);
@@ -559,6 +561,41 @@ bool X86Decoder::DecodeFlow(void* inst_)
 	return true;
 }
 
+bool X86Decoder::DecodeLock(void* inst)
+{
+	xed_decoded_inst_t *xedd = (xed_decoded_inst_t*)inst;
+
+	// No really easy way to tell if a instruction is locked so just look at
+	// all of the lockable iclasses
+	switch(xed_decoded_inst_get_iclass(xedd)) {
+		case XED_ICLASS_ADC_LOCK:
+		case XED_ICLASS_ADD_LOCK:
+		case XED_ICLASS_AND_LOCK:
+		case XED_ICLASS_BTC_LOCK:
+		case XED_ICLASS_BTR_LOCK:
+		case XED_ICLASS_BTS_LOCK:
+		case XED_ICLASS_CMPXCHG_LOCK:
+		case XED_ICLASS_CMPXCHG8B_LOCK:
+		case XED_ICLASS_CMPXCHG16B_LOCK:
+		case XED_ICLASS_DEC_LOCK:
+		case XED_ICLASS_INC_LOCK:
+		case XED_ICLASS_NEG_LOCK:
+		case XED_ICLASS_NOT_LOCK:
+		case XED_ICLASS_OR_LOCK:
+		case XED_ICLASS_SBB_LOCK:
+		case XED_ICLASS_SUB_LOCK:
+		case XED_ICLASS_XOR_LOCK:
+		case XED_ICLASS_XADD_LOCK:
+		case XED_ICLASS_XCHG:
+			lock = true;
+		default:
+			lock = false;
+	}
+
+	return true;
+}
+
+
 int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 {
 	// read 15 bytes
@@ -598,6 +635,7 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 	success &= DecodeOperands((void*)&xedd);
 	success &= DecodeFlow((void*)&xedd);
 	success &= DecodeClass((void*)&xedd);
+	success &= DecodeLock((void*)&xedd);
 
 	if(!success || (archsim::options::Verbose && archsim::options::Debug)) {
 		xed_decoded_inst_dump(&xedd, dump_buffer, sizeof(dump_buffer));

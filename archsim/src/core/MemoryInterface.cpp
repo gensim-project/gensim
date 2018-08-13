@@ -5,6 +5,8 @@
 
 using namespace archsim;
 
+MemoryDevice::~MemoryDevice() {}
+
 TranslationResult MMUTranslationProvider::Translate(Address virt_addr, Address& phys_addr, bool is_write, bool is_fetch, bool side_effects)
 {
 	AccessInfo info;

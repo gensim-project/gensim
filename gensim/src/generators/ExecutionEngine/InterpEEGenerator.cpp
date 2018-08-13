@@ -35,6 +35,7 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const
 
 	str <<
 	    "#include <interpret/Interpreter.h>\n"
+	    "#include <core/execution/InterpreterExecutionEngine.h>\n"
 	    "#include <cstdint>\n"
 
 	    "namespace gensim {"
@@ -42,11 +43,11 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const
 
 	    "class Interpreter : public archsim::interpret::Interpreter {"
 	    "public:"
-	    "   virtual archsim::core::execution::ExecutionResult StepBlock(archsim::core::thread::ThreadInstance *thread);"
+	    "   virtual archsim::core::execution::ExecutionResult StepBlock(archsim::core::execution::ExecutionEngineThreadContext *thread);"
 	    "	using decode_t = gensim::" << Manager.GetArch().Name << "::Decode;"
 	    "private:"
 	    "	gensim::DecodeContext *decode_context_;"
-	    "  uint32_t DecodeInstruction(archsim::core::thread::ThreadInstance *thread, decode_t *&inst);"
+	    "  uint32_t DecodeInstruction(archsim::core::execution::InterpreterExecutionEngineThreadContext *thread_ctx, decode_t *&inst);"
 	    "  archsim::core::execution::ExecutionResult StepInstruction(archsim::core::thread::ThreadInstance *thread, decode_t &inst);"
 
 	    "};"
@@ -70,6 +71,7 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const
 	    "#include <module/Module.h>\n"
 	    "#include <util/Vector.h>\n"
 	    "#include <translate/jit_funs.h>\n"
+	    "#include <core/execution/InterpreterExecutionEngine.h>\n"
 	    "#include <gensim/gensim_processor_api.h>\n"
 	    "#include <abi/devices/Device.h>\n"
 	    "#include <gensim/gensim_decode_context.h>\n"
@@ -80,7 +82,8 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const
 
 	GenerateDecodeInstruction(str);
 
-	str << "archsim::core::execution::ExecutionResult Interpreter::StepBlock(archsim::core::thread::ThreadInstance *thread) { ";
+	str << "archsim::core::execution::ExecutionResult Interpreter::StepBlock(archsim::core::execution::ExecutionEngineThreadContext *thread_ctx) { ";
+	str << "auto thread = thread_ctx->GetThread();";
 	GenerateBlockExecutor(str);
 	str << "}";
 
@@ -146,11 +149,11 @@ bool InterpEEGenerator::GenerateHelperFunction(util::cppformatstream& str, const
 
 bool InterpEEGenerator::GenerateDecodeInstruction(util::cppformatstream& str) const
 {
-	str << "uint32_t Interpreter::DecodeInstruction(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t *&inst) {";
-	str << "  if(decode_context_ == nullptr) { decode_context_ = thread->GetEmulationModel().GetNewDecodeContext(*thread); }";
+	str << "uint32_t Interpreter::DecodeInstruction(archsim::core::execution::InterpreterExecutionEngineThreadContext *thread_ctx, Interpreter::decode_t *&inst) {";
+	str << "  auto thread = thread_ctx->GetThread();";
 	str << "  gensim::" << Manager.GetArch().Name << "::ArchInterface interface(thread);";
 	str << "  gensim::BaseDecode *instr;";
-	str << "  auto result = decode_context_->DecodeSync(thread->GetFetchMI(), archsim::Address(interface.read_pc()), thread->GetModeID(), instr);";
+	str << "  auto result = thread_ctx->GetDC()->DecodeSync(thread->GetFetchMI(), archsim::Address(interface.read_pc()), thread->GetModeID(), instr);";
 	str << "  inst = (Interpreter::decode_t*)instr;";
 	str << "  return result;";
 	str << "}";
@@ -165,7 +168,7 @@ bool InterpEEGenerator::GenerateBlockExecutor(util::cppformatstream& str) const
 	    "while(true) {"
 
 	    "  decode_t *inst_;"
-	    "  uint32_t dcode_exception = DecodeInstruction(thread, inst_);"
+	    "  uint32_t dcode_exception = DecodeInstruction(static_cast<archsim::core::execution::InterpreterExecutionEngineThreadContext*>(thread_ctx), inst_);"
 	    "  if(thread->HasMessage()) { return thread->HandleMessage(); }"
 	    "  if(dcode_exception) { thread->TakeMemoryException(thread->GetFetchMI(), thread->GetPC()); return archsim::core::execution::ExecutionResult::Exception; }"
 	    "  if(archsim::options::InstructionTick) { thread->GetPubsub().Publish(PubSubType::InstructionExecute, nullptr); } "

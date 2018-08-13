@@ -529,7 +529,7 @@ bool RegionBasedMemoryModel::UnmapSubregion(guest_addr_t addr, guest_size_t size
 		auto i_start = Address(i.second->base);
 		auto i_end = Address(i.second->base + i.second->size);
 
-		LC_DEBUG1(LogMemoryModel) << "Checking against " << i_start << " to " << i_end;
+		LC_DEBUG2(LogMemoryModel) << "Checking against " << i_start << " to " << i_end;
 
 		// 6 possible situations:
 		// 1. i is completely before the unmapped subregion

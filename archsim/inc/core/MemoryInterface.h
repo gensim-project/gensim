@@ -83,6 +83,7 @@ namespace archsim
 	class MemoryDevice
 	{
 	public:
+		virtual ~MemoryDevice();
 
 		virtual MemoryResult Read8(Address address, uint8_t &data) = 0;
 		virtual MemoryResult Read16(Address address, uint16_t &data) = 0;
@@ -94,8 +95,8 @@ namespace archsim
 		virtual MemoryResult Write64(Address address, uint64_t data) = 0;
 		virtual MemoryResult Write16(Address address, uint16_t data) = 0;
 
-	private:
-
+		virtual void Lock() = 0;
+		virtual void Unlock() = 0;
 	};
 
 	class LegacyMemoryInterface : public MemoryDevice
@@ -111,6 +112,15 @@ namespace archsim
 		MemoryResult Write16(Address address, uint16_t data) override;
 		MemoryResult Write32(Address address, uint32_t data) override;
 		MemoryResult Write64(Address address, uint64_t data) override;
+
+		void Lock() override
+		{
+			mem_model_.Lock();
+		}
+		void Unlock() override
+		{
+			mem_model_.Unlock();
+		}
 
 	private:
 		archsim::abi::memory::MemoryModel &mem_model_;
@@ -129,6 +139,15 @@ namespace archsim
 		MemoryResult Write16(Address address, uint16_t data) override;
 		MemoryResult Write32(Address address, uint32_t data) override;
 		MemoryResult Write64(Address address, uint64_t data) override;
+
+		void Lock() override
+		{
+			UNIMPLEMENTED;
+		}
+		void Unlock() override
+		{
+			UNIMPLEMENTED;
+		}
 
 	private:
 		archsim::abi::memory::MemoryModel &mem_model_;
@@ -199,6 +218,15 @@ namespace archsim
 		void ConnectTranslationProvider(MemoryTranslationProvider &provider)
 		{
 			provider_ = &provider;
+		}
+
+		void Lock()
+		{
+			device_->Lock();
+		}
+		void Unlock()
+		{
+			device_->Unlock();
 		}
 
 	private:

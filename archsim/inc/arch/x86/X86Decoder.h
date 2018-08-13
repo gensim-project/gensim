@@ -195,6 +195,7 @@ namespace archsim
 
 				Operand op0, op1, op2;
 				uint8_t condition;
+				uint8_t lock;
 
 				X86Decoder();
 				int DecodeInstr(Address addr, int mode,  MemoryInterface &interface);
@@ -207,6 +208,7 @@ namespace archsim
 				bool DecodeOperands(void *inst);
 				bool DecodeFlow(void *inst);
 				bool DecodeClass(void *inst);
+				bool DecodeLock(void *inst);
 			};
 		}
 	}

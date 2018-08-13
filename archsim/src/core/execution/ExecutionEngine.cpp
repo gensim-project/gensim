@@ -51,8 +51,10 @@ void ExecutionEngineThreadContext::Halt()
 
 void ExecutionEngineThreadContext::Join()
 {
-	worker_.join();
-	state_ = ExecutionState::Ready;
+	if(state_ == ExecutionState::Running) {
+		worker_.join();
+		state_ = ExecutionState::Ready;
+	}
 }
 
 ExecutionEngineThreadContext::ExecutionEngineThreadContext(ExecutionEngine *engine, ThreadInstance *thread) : worker_(), engine_(engine), thread_(thread)
@@ -74,9 +76,6 @@ ExecutionEngine::ExecutionEngine() : state_(ExecutionState::Ready), trace_sink_(
 void ExecutionEngine::AttachThread(thread::ThreadInstance* thread)
 {
 	std::lock_guard<std::mutex> lg(lock_);
-	if(state_ == ExecutionState::Running) {
-		throw std::logic_error("Cannot attach a thread while engine is running");
-	}
 
 	if(thread_contexts_.count(thread)) {
 		throw std::logic_error("Thread already attached to this engine");
@@ -90,6 +89,10 @@ void ExecutionEngine::AttachThread(thread::ThreadInstance* thread)
 
 	thread_contexts_[thread] = GetNewContext(thread);
 	threads_.insert(thread);
+
+	if(state_ == ExecutionState::Running) {
+		thread_contexts_[thread]->Start();
+	}
 }
 
 void ExecutionEngine::DetachThread(thread::ThreadInstance* thread)
@@ -118,6 +121,8 @@ void ExecutionEngine::Start()
 {
 	std::lock_guard<std::mutex> lg(lock_);
 
+	state_ = ExecutionState::Running;
+
 	for(auto i : thread_contexts_) {
 		i.second->Start();
 	}
@@ -127,15 +132,17 @@ void ExecutionEngine::Suspend()
 {
 	std::lock_guard<std::mutex> lg(lock_);
 
+	state_ = ExecutionState::Suspending;
+
 	for(auto i : thread_contexts_) {
 		i.second->Suspend();
 	}
+
+	state_ = ExecutionState::Ready;
 }
 
 void ExecutionEngine::Join()
 {
-	std::lock_guard<std::mutex> lg(lock_);
-
 	for(auto i : thread_contexts_) {
 		i.second->Join();
 	}
@@ -145,7 +152,9 @@ void ExecutionEngine::Halt()
 {
 	std::lock_guard<std::mutex> lg(lock_);
 
+	state_ = ExecutionState::Halting;
 	for(auto i : thread_contexts_) {
 		i.second->Halt();
 	}
+	state_ = ExecutionState::Halted;
 }
