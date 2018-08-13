@@ -225,7 +225,7 @@ bool SparseMemoryModel::ResizeVMA(GuestVMA &vma, guest_size_t new_size)
 
 char* SparseMemoryModel::GetPage(Address addr)
 {
-	std::lock_guard<std::mutex> lock_guard(map_lock_);
+	std::lock_guard<decltype(map_lock_)> lock_guard(map_lock_);
 
 	if(prev_page_data_ && addr.PageBase() == prev_page_base_) {
 		return prev_page_data_;

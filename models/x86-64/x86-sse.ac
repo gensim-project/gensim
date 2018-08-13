@@ -2,13 +2,19 @@ AC_ISA(x86)
 {
 	ac_format FORMAT_DUMMY_SSE = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY_SSE> clflush, movd, movdqu, movlpd, movhpd, movhps, movq, movups, paddd, paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pminub, pmovmskb, por, pslldq, psrldq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
+	ac_instr<FORMAT_DUMMY_SSE> addsd, clflush, cvtsd2ss, movd, movdqu, movlpd, movhpd, movhps, movq, movsd_xmm, movss, movups, paddd, paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pmaxub, pminub, pmovmskb, por, pslldq, psrldq, psrlq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
 
-	ac_behaviour clflush, movd, movdqu, movlpd, movhpd, movhps, movq, movups, paddd, paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pminub, pmovmskb, por, pslldq, psrldq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
+	ac_behaviour addsd, clflush, cvtsd2ss, movd, movdqu, movlpd, movhpd, movhps, movq, movsd_xmm, movss, movups, paddd, paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pmaxub, pminub, pmovmskb, por, pslldq, psrldq, psrlq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
 
 	ISA_CTOR(x86) {
+		addsd.set_decoder();
+		addsd.set_behaviour(addsd);
+		
 		clflush.set_decoder();
 		clflush.set_behaviour(clflush);
+		
+		cvtsd2ss.set_decoder();
+		cvtsd2ss.set_behaviour(cvtsd2ss);
 		
 		movd.set_decoder();
 		movd.set_behaviour(movd);
@@ -19,6 +25,9 @@ AC_ISA(x86)
 		movq.set_decoder();
 		movq.set_behaviour(movq);
 		
+		movsd_xmm.set_decoder();
+		movsd_xmm.set_behaviour(movsd_xmm);
+		
 		movlpd.set_decoder();
 		movlpd.set_behaviour(movlpd);
 		
@@ -27,6 +36,9 @@ AC_ISA(x86)
 		
 		movhps.set_decoder();
 		movhps.set_behaviour(movhps);
+		
+		movss.set_decoder();
+		movss.set_behaviour(movss);
 		
 		movups.set_decoder();
 		movups.set_behaviour(movups);
@@ -55,6 +67,9 @@ AC_ISA(x86)
 		pcmpgtd.set_decoder();
 		pcmpgtd.set_behaviour(pcmpgtd);
 		
+		pmaxub.set_decoder();
+		pmaxub.set_behaviour(pmaxub);
+		
 		pminub.set_decoder();
 		pminub.set_behaviour(pminub);
 		
@@ -72,6 +87,10 @@ AC_ISA(x86)
 
 		psrldq.set_decoder();
 		psrldq.set_behaviour(psrldq);
+
+
+		psrlq.set_decoder();
+		psrlq.set_behaviour(psrlq);
 
 		psllq.set_decoder();
 		psllq.set_behaviour(psllq);

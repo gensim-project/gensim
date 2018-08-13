@@ -4,11 +4,42 @@ AC_ISA(x86)
 	// through an external decoder.
 	ac_format FORMAT_DUMMY = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY> add, and, bsf, bsr, bt, bts, call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde, dec, div, idiv, imul1, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, rol, ror, sar, sbb, setcc, shl, shr, sub, syscall, test, xadd, xchg, xgetbv, xor;
+	ac_instr<FORMAT_DUMMY> adc, add, and;
+	ac_instr<FORMAT_DUMMY> bsf, bsr, bswap, bt, bts;
+	ac_instr<FORMAT_DUMMY> call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde;
+	ac_instr<FORMAT_DUMMY> dec, div;
+	ac_instr<FORMAT_DUMMY> idiv, imul1, imul2, imul3, inc;
+	ac_instr<FORMAT_DUMMY> jcond, jmp;
+	ac_instr<FORMAT_DUMMY> lea, leave;
+	ac_instr<FORMAT_DUMMY> mov, movsb, movsd, movsq, movsx, movzx, movsxd, mul;
+	ac_instr<FORMAT_DUMMY> neg, nop, not;
+	ac_instr<FORMAT_DUMMY> or;
+	ac_instr<FORMAT_DUMMY> pop, popf, push, pushfq;
+	ac_instr<FORMAT_DUMMY> rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, rol, ror;
+	ac_instr<FORMAT_DUMMY> sar, sbb, setcc, shl, shld, shr, sub, syscall;
+	ac_instr<FORMAT_DUMMY> test;
+	ac_instr<FORMAT_DUMMY> xadd, xchg, xgetbv, xor;
 	
-	ac_behaviour add, and, bsf, bsr, bt, bts, call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde, dec, div, idiv, imul1, imul2, imul3, inc, jcond, jmp, lea, leave, mov, movsb, movsx, movzx, movsxd, mul, neg, nop, not, or, pop, popf, push, pushfq, rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, rol, ror, sar, sbb, setcc, shl, shr, sub, syscall, test, xadd, xchg, xgetbv, xor;
+	ac_behaviour adc, add, and;
+	ac_behaviour bsf, bsr, bt, bts, bswap;
+	ac_behaviour call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde;
+	ac_behaviour dec, div;
+	ac_behaviour idiv, imul1, imul2, imul3, inc;
+	ac_behaviour jcond, jmp;
+	ac_behaviour lea, leave;
+	ac_behaviour mov, movsb, movsd, movsq, movsx, movzx, movsxd, mul;
+	ac_behaviour neg, nop, not;
+	ac_behaviour or, pop, popf, push, pushfq;
+	ac_behaviour rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, rol, ror;
+	ac_behaviour sar, sbb, setcc, shl, shld, shr, sub, syscall;
+	ac_behaviour test;
+	ac_behaviour xadd, xchg, xgetbv, xor;
 
 	ISA_CTOR(x86) {
+		
+		adc.set_decoder();
+		adc.set_behaviour(adc);
+		
 		add.set_decoder();
 		add.set_behaviour(add);
 		
@@ -20,6 +51,9 @@ AC_ISA(x86)
 	
 		bsr.set_decoder();
 		bsr.set_behaviour(bsr);
+	
+		bswap.set_decoder();
+		bswap.set_behaviour(bswap);
 	
 		bt.set_decoder();
 		bt.set_behaviour(bt);
@@ -107,6 +141,12 @@ AC_ISA(x86)
 		
 		movsb.set_decoder();
 		movsb.set_behaviour(movsb);
+		
+		movsd.set_decoder();
+		movsd.set_behaviour(movsd);
+		
+		movsq.set_decoder();
+		movsq.set_behaviour(movsq);
 		
 		movsxd.set_decoder();
 		movsxd.set_behaviour(movsxd);

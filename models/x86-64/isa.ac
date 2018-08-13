@@ -9,6 +9,7 @@ AC_ISA(x86)
 	ac_fetchsize 8;
 	
 	include("x86-base.ac");
+	include("x86-x87.ac");
 	include("x86-sse.ac");
 
 	struct Operand {
@@ -56,6 +57,7 @@ AC_ISA(x86)
 	{
 		ac_behaviours("behaviours.x86");
 		ac_execute("execute.x86-base");
+		ac_execute("execute.x87");
 		ac_execute("execute.sse");
 	};
 };

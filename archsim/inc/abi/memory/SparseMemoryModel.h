@@ -12,6 +12,7 @@
 
 #include "abi/memory/MemoryModel.h"
 #include "abi/memory/MemoryTranslationModel.h"
+#include "concurrent/LWLock.h"
 #include <map>
 #include <mutex>
 #include <string>
@@ -70,7 +71,7 @@ namespace archsim
 
 				Address prev_page_base_;
 				char *prev_page_data_;
-				std::mutex map_lock_;
+				archsim::concurrent::LWLock map_lock_;
 
 				SparseMemoryTranslationModel* translation_model;
 				std::map<Address, char*> data_;

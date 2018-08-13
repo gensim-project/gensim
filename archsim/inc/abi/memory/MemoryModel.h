@@ -118,7 +118,6 @@ namespace archsim
 					return Read16(addr) | (((uint32_t)Read16(addr+2)) << 16);
 				}
 
-			private:
 				void *GetPtr(Address addr, uint8_t size) const
 				{
 					ASSERT(addr >= guest_base_);
@@ -127,6 +126,7 @@ namespace archsim
 					return ((uint8_t*)GetPage(addr)) + addr.GetPageOffset();
 				}
 
+			private:
 				void *GetPage(Address addr) const
 				{
 					return host_ptrs_.at((addr - guest_base_).GetPageIndex());

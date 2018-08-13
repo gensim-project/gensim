@@ -1,8 +1,18 @@
+execute(adc) {
+	uint64 op0 = read_operand(inst.op0);
+	uint64 op1 = read_operand(inst.op1);
+	uint8 c = read_register(CF);
+	
+	uint64 result = addition(op0, op1, c, operand_get_size(inst.op0));
+	
+	write_operand(inst.op0, result);
+}
+
 execute(add) {
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
-	uint64 result = addition(op0, op1, operand_get_size(inst.op0));
+	uint64 result = addition(op0, op1, 0, operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, result);
 }
@@ -77,6 +87,21 @@ execute(bts) {
 	write_register(CF, (op0 & mask) != 0);
 	
 	write_operand(inst.op0, op0 | mask);
+}
+
+execute(bswap) {
+	// need to do different things depending on operand size
+	if(operand_get_size(inst.op0) == 32) {
+		// bswap r32
+		uint32 op1 = read_operand(inst.op0);
+		write_operand(inst.op0, __builtin_bswap32(op1));
+		
+	} else if(operand_get_size(inst.op0) == 64) {
+		// bswap r64
+		uint64 op1 = read_operand(inst.op0);
+		write_operand(inst.op0, __builtin_bswap64(op1));
+		
+	}
 }
 
 execute(call) {
@@ -253,7 +278,7 @@ execute(imul3) {
 execute(inc) {
 	uint64 op0 = read_operand(inst.op0);
 	uint8 C = read_register(CF);
-	write_operand(inst.op0, addition(op0, 1, operand_get_size(inst.op0)));
+	write_operand(inst.op0, addition(op0, 1, 0, operand_get_size(inst.op0)));
 	write_register(CF, C);
 }
 
@@ -289,6 +314,14 @@ execute(mov) {
 
 execute(movsb) {
 	trap();
+}
+
+execute(movsd) {
+	do_movsd(inst);
+}
+
+execute(movsq) {
+	do_movsq(inst);
 }
 
 execute(movsxd) {
@@ -390,73 +423,81 @@ execute(rdtsc) {
 }
 
 execute(repe_cmpsb) {		
-	do_cmpsb(inst);
-	rep_decrement_counter(inst); 
-	
-	if(!repe_should_run(inst)) {
+	if(rep_check_counter(inst)) {
+		do_cmpsb(inst);
+		rep_decrement_counter(inst); 
+		
+		if(!repe_check_condition(inst)) {
+			write_pc(read_pc() + inst.Instr_Length);
+		}
+	} else {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(rep_movsb) {
-	do_movsb(inst);	
-	rep_decrement_counter(inst);
-	
-	if(!rep_should_run(inst)) {
+	if(rep_check_counter(inst)) {
+		do_movsb(inst);	
+		rep_decrement_counter(inst);
+	} else {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(rep_movsd) {
-	do_movsd(inst);
-	rep_decrement_counter(inst);
-
-	if(!rep_should_run(inst)) {
+	if(rep_check_counter(inst)) {
+		do_movsd(inst);
+		rep_decrement_counter(inst);
+	} else {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(rep_movsq) {
-	do_movsq(inst);
-	rep_decrement_counter(inst);
-		
-	if(!rep_should_run(inst)) {
+	if(rep_check_counter(inst)) {
+		do_movsq(inst);
+		rep_decrement_counter(inst);
+	} else {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(rep_stosb) {
-	do_stosb(inst);		
-	rep_decrement_counter(inst);
-		
-	if(!rep_should_run(inst)) {
+	if(rep_check_counter(inst)) {
+		do_stosb(inst);		
+		rep_decrement_counter(inst);
+	} else {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(rep_stosd) {
-	do_stosd(inst);
-	rep_decrement_counter(inst);
-		
-	if(!rep_should_run(inst)) {
+	if(rep_check_counter(inst)) {
+		do_stosd(inst);
+		rep_decrement_counter(inst);
+	} else {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(rep_stosq) {
-	do_stosq(inst);
-	rep_decrement_counter(inst);
-
-	if(!rep_should_run(inst)) {
+	if(rep_check_counter(inst)) {
+		do_stosq(inst);
+		rep_decrement_counter(inst);
+	} else {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
 
 execute(repne_scasb) {
-	do_scasb(inst);
-	rep_decrement_counter(inst);
+	if(rep_check_counter(inst)) {
+		do_scasb(inst);
+		rep_decrement_counter(inst);
 
-	if(!repne_should_run(inst)) {
+		if(!repne_check_condition(inst)) {
+			write_pc(read_pc() + inst.Instr_Length);
+		}
+	} else {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
@@ -584,6 +625,30 @@ execute(shl) {
 	}
 }
 
+execute(shld) {
+	uint8 op_size = operand_get_size(inst.op0);
+	uint64 src = read_operand(inst.op1);
+	uint64 count = read_operand(inst.op2);
+	
+	if(op_size == 64) {
+		count &= 63;
+	} else {
+		count &= 31;
+	}
+	
+	if(count != 0) {
+		uint64 value = read_operand(inst.op0);
+		write_register(CF, (value >> (op_size - count)) & 1);
+		uint8 old_sign = value >> (op_size - 1);
+		value <<= count;
+		value |= src >> (op_size - count);
+		write_operand(inst.op0, value);
+		set_zsp_flags(value, op_size);
+		uint8 new_sign = value >> (op_size - 1);
+		write_register(OF, old_sign != new_sign);
+	}
+}
+
 execute(shr) {
 	uint8 mask = 0x1f;
 	uint8 operand0_size = operand_get_size(inst.op0);
@@ -634,7 +699,7 @@ execute(xadd) {
 	uint64 op1 = read_operand(inst.op1);
 	
 	write_operand(inst.op1, op0);
-	write_operand(inst.op0, addition(op0, op1, operand_get_size(inst.op0)));
+	write_operand(inst.op0, addition(op0, op1, 0, operand_get_size(inst.op0)));
 }
 
 execute(xchg) {
@@ -695,15 +760,15 @@ helper uint64 bitwise_xor(uint64 op0, uint64 op1, uint8 op_size)
 	return (uint64)result;
 }
 
-helper uint64 addition(uint64 op0, uint64 op1, uint8 op_size)
+helper uint64 addition(uint64 op0, uint64 op1, uint8 carry, uint8 op_size)
 {
-	sint64 result = op0 + op1;
+	sint64 result = op0 + op1 + carry;
 	
 	switch(op_size) {
-		case 8: { __builtin_adc8_flags(op0, op1, 0); break; }
-		case 16: { __builtin_adc16_flags(op0, op1, 0); break; }
-		case 32: { __builtin_adc_flags(op0, op1, 0); break; } 
-		case 64: { __builtin_adc64_flags(op0, op1, 0); break; }
+		case 8: { __builtin_adc8_flags(op0, op1, carry); break; }
+		case 16: { __builtin_adc16_flags(op0, op1, carry); break; }
+		case 32: { __builtin_adc_flags(op0, op1, carry); break; } 
+		case 64: { __builtin_adc64_flags(op0, op1, carry); break; }
 		default: { trap(); }
 	}
 
@@ -1240,19 +1305,19 @@ helper void write_eflags(uint64 value)
 	return;
 }
 
-helper uint8 rep_should_run(struct Instruction &inst)
+helper uint8 rep_check_counter(struct Instruction &inst)
 {
 	return read_register(ECX) != 0;
 }
 
-helper uint8 repne_should_run(struct Instruction &inst)
+helper uint8 repne_check_condition(struct Instruction &inst)
 {
-	return (read_register(ECX) != 0) && (read_register(ZF) != 1);
+	return (read_register(ZF) != 1);
 }
 
-helper uint8 repe_should_run(struct Instruction &inst)
+helper uint8 repe_check_condition(struct Instruction &inst)
 {
-	return (read_register(ECX) != 0) && (read_register(ZF) == 1);
+	return (read_register(ZF) == 1);
 }
 
 helper void rep_decrement_counter(struct Instruction &inst)
