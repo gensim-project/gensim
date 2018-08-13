@@ -1,0 +1,13 @@
+AC_ISA(x86)
+{
+	ac_format FORMAT_DUMMY_X87 = "%dummy:32";
+	
+	ac_instr<FORMAT_DUMMY_X87> fnstcw;
+	
+	ac_behaviour fnstcw;
+	
+	ISA_CTOR(x86) {
+		fnstcw.set_decoder();
+		fnstcw.set_behaviour(fnstcw);
+	};
+};

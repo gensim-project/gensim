@@ -1,5 +1,27 @@
+execute(addsd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	double result = dop0 + dop1;
+	
+	uint64 uresult = bitcast_double_u64(result);
+	
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
 execute(clflush) {	
 	take_exception(1, 1);
+}
+
+execute(cvtsd2ss) {
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	double dop1 = bitcast_u64_double(op1);
+	float result = dop1;
+	uint64 uresult = bitcast_float_u32(result);
+	write_operand_sse_scalar(inst.op0, uresult);
 }
 
 execute(movd) {
@@ -35,6 +57,26 @@ execute(movhps) {
 execute(movq) {
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	write_operand_sse_scalar(inst.op0, op1);
+}
+
+execute(movss) {
+	uint32 op1 = read_operand_sse_scalar(inst.op1);
+	write_operand_sse_scalar(inst.op0, op1);
+}
+
+execute(movsd_xmm) {
+	uint64 scalar = read_operand_sse_scalar(inst.op1);
+	
+	// behaviour depends on the variant so we need to be careful here
+	// if we're moving reg to reg, just move bottom quadword
+	if(inst.op0.is_reg) {
+		write_operand_sse_scalar(inst.op0, scalar);
+	} else if(inst.op0.is_mem) {
+		uint64[2] dest;
+		dest[0] = scalar;
+		dest[1] = 0;
+		write_xmm_u64(inst.op0, dest);
+	}
 }
 
 execute(movups) {
@@ -138,6 +180,18 @@ execute(pminub) {
 	uint8[16] dest;
 	for(uint8 i = 0; i < 16; ++i) {
 		dest[i] = op0[i] < op1[i] ? op0[i] : op1[i];
+	}
+	
+	write_xmm_u8(inst.op0, dest);
+}
+
+execute(pmaxub) {
+	uint8[16] op0 = read_xmm_u8(inst.op0);
+	uint8[16] op1 = read_xmm_u8(inst.op1);
+	
+	uint8[16] dest;
+	for(uint8 i = 0; i < 16; ++i) {
+		dest[i] = op0[i] > op1[i] ? op0[i] : op1[i];
 	}
 	
 	write_xmm_u8(inst.op0, dest);
@@ -353,6 +407,19 @@ execute(pslldq) {
 	write_xmm_u128(inst.op0, op);
 }
 
+execute(psrlq) {
+	uint64 shift = read_operand(inst.op1);
+	uint64 op = read_operand(inst.op0);
+	
+	if(shift > 15) {
+		op = 0;
+	} else {
+		op >>= shift * 8;
+	}
+	
+	write_operand(inst.op0, op);
+}
+
 execute(psrldq) {
 	uint64 shift = read_operand(inst.op1);
 	uint128 op = read_xmm_u128(inst.op0);
@@ -562,6 +629,10 @@ helper uint64 read_op_reg_sse(struct Register &reg)
 			uint64[2] vector = read_register_bank(XMM_U64, reg.index);
 			return vector[0];
 		}
+		case 2: { // MMX
+			// return entire mmx register
+			return read_register_bank(MMX, reg.index);
+		}
 		default: {
 			trap();
 			break;
@@ -591,8 +662,12 @@ helper void write_operand_sse_scalar(struct Operand &op, uint64 value)
 helper void write_op_reg_sse(struct Register &reg, uint64 value)
 {
 	switch(reg.regclass) {
-		case 1: { //XMM
+		case 1: { // XMM
 			write_register_bank(XMM_U64L, reg.index, value);
+			return;
+		}
+		case 2: { // MMX
+			write_register_bank(MMX, reg.index, value);
 			return;
 		}
 		default: {

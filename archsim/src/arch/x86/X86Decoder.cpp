@@ -24,6 +24,9 @@ static int get_register_index(xed_reg_enum_t reg)
 			return SPECIAL_RIP_INDEX;
 		case XED_REG_CLASS_XMM:
 			return xed_get_largest_enclosing_register(reg) - XED_REG_XMM0;
+		case XED_REG_CLASS_MMX:
+			return xed_get_largest_enclosing_register(reg) - XED_REG_MMX0;
+
 		default:
 			UNIMPLEMENTED;
 	}
@@ -149,6 +152,12 @@ bool DecodeRegister(xed_decoded_inst_t *xedd, xed_reg_enum_t reg, X86Decoder::Re
 			output_reg.regclass = 1;
 			break;
 
+		case XED_REG_CLASS_MMX:
+			output_reg.index = get_register_index(reg);
+			output_reg.width = xed_get_register_width_bits64(reg);
+			output_reg.regclass = 2;
+			break;
+
 		case XED_REG_CLASS_IP:
 			output_reg.h_reg = false;
 			output_reg.index = get_register_index(reg);
@@ -159,6 +168,8 @@ bool DecodeRegister(xed_decoded_inst_t *xedd, xed_reg_enum_t reg, X86Decoder::Re
 		case XED_REG_CLASS_INVALID:
 		case XED_REG_CLASS_PSEUDO:
 		case XED_REG_CLASS_FLAGS:
+		case XED_REG_CLASS_PSEUDOX87:
+		case XED_REG_CLASS_X87:
 			// 'zero' register
 			output_reg.h_reg = false;
 			output_reg.index = SPECIAL_RIZ_INDEX;
@@ -168,7 +179,7 @@ bool DecodeRegister(xed_decoded_inst_t *xedd, xed_reg_enum_t reg, X86Decoder::Re
 
 
 		default:
-			LC_ERROR(LogX86Decode) << "Unknown register type " << xed_reg_enum_t2str(reg);
+			LC_ERROR(LogX86Decode) << "Unknown register type " << xed_reg_enum_t2str(reg) << " (" << xed_reg_class_enum_t2str(xed_reg_class(reg)) << ")";
 			return false;
 	}
 
@@ -294,6 +305,7 @@ X86Decoder::X86Decoder()
 bool X86Decoder::DecodeOperands(void* inst_)
 {
 	xed_decoded_inst_t *inst = (xed_decoded_inst_t*)inst_;
+	bool success = true;
 	ResetOperand(op0);
 	ResetOperand(op1);
 	ResetOperand(op2);
@@ -301,18 +313,18 @@ bool X86Decoder::DecodeOperands(void* inst_)
 	auto noperands = xed_decoded_inst_noperands(inst);
 
 	if(noperands > 0) {
-		DecodeOperand(inst, 0, op0);
+		success &= DecodeOperand(inst, 0, op0);
 	}
 
 	if(noperands > 1) {
-		DecodeOperand(inst, 1, op1);
+		success &= DecodeOperand(inst, 1, op1);
 	}
 
 	if(noperands > 2) {
-		DecodeOperand(inst, 2, op2);
+		success &= DecodeOperand(inst, 2, op2);
 	}
 
-	return true;
+	return success;
 }
 
 bool X86Decoder::DecodeClass(void* inst_)
@@ -324,11 +336,14 @@ bool X86Decoder::DecodeClass(void* inst_)
 
 	switch(iclass) {
 #define MAP(xed, model) case xed: Instr_Code = model; return true;
+			MAP(XED_ICLASS_ADC, INST_x86_adc);
 			MAP(XED_ICLASS_ADD, INST_x86_add);
 			MAP(XED_ICLASS_ADD_LOCK, INST_x86_add); // TODO: Lock prefix
+			MAP(XED_ICLASS_ADDSD, INST_x86_addsd); // TODO: Lock prefix
 			MAP(XED_ICLASS_AND, INST_x86_and);
 			MAP(XED_ICLASS_BSF, INST_x86_bsf);
 			MAP(XED_ICLASS_BSR, INST_x86_bsr);
+			MAP(XED_ICLASS_BSWAP, INST_x86_bswap);
 			MAP(XED_ICLASS_BT, INST_x86_bt);
 			MAP(XED_ICLASS_BTS, INST_x86_bts);
 			MAP(XED_ICLASS_CALL_NEAR, INST_x86_call);
@@ -356,11 +371,14 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_CMPXCHG_LOCK, INST_x86_cmpxchg);
 			MAP(XED_ICLASS_CPUID, INST_x86_cpuid);
 			MAP(XED_ICLASS_CQO, INST_x86_cqo);
+			MAP(XED_ICLASS_CVTSD2SS, INST_x86_cvtsd2ss);
 			MAP(XED_ICLASS_CWD, INST_x86_cwd);
 			MAP(XED_ICLASS_CWDE, INST_x86_cwde);
 			MAP(XED_ICLASS_DEC, INST_x86_dec);
 			MAP(XED_ICLASS_DEC_LOCK, INST_x86_dec); // TODO: LOCK PREFIX
 			MAP(XED_ICLASS_DIV, INST_x86_div);
+			MAP(XED_ICLASS_EMMS, INST_x86_nop); // TODO
+			MAP(XED_ICLASS_FNSTCW, INST_x86_fnstcw); // TODO
 			MAP(XED_ICLASS_FXSAVE, INST_x86_nop); // TODO
 			MAP(XED_ICLASS_FXRSTOR, INST_x86_nop); // TODO
 			MAP(XED_ICLASS_IDIV, INST_x86_idiv);
@@ -392,6 +410,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			break;
 
 			MAP(XED_ICLASS_INC, INST_x86_inc);
+			MAP(XED_ICLASS_INC_LOCK, INST_x86_inc); // TODO: lock
 
 			MAP(XED_ICLASS_JZ, INST_x86_jcond);
 			MAP(XED_ICLASS_JNZ, INST_x86_jcond);
@@ -405,6 +424,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_JL, INST_x86_jcond);
 			MAP(XED_ICLASS_JS, INST_x86_jcond);
 			MAP(XED_ICLASS_JNS, INST_x86_jcond);
+			MAP(XED_ICLASS_JO, INST_x86_jcond);
+			MAP(XED_ICLASS_JNO, INST_x86_jcond);
 
 			MAP(XED_ICLASS_JMP, INST_x86_jmp);
 			MAP(XED_ICLASS_LEA, INST_x86_lea);
@@ -418,6 +439,10 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_MOVHPD, INST_x86_movhpd);
 			MAP(XED_ICLASS_MOVHPS, INST_x86_movhps);
 			MAP(XED_ICLASS_MOVSB, INST_x86_movsb);
+			MAP(XED_ICLASS_MOVSD, INST_x86_movsd);
+			MAP(XED_ICLASS_MOVSD_XMM, INST_x86_movsd_xmm); // very helpful that two totally different instructions have the same name
+			MAP(XED_ICLASS_MOVSQ, INST_x86_movsq);
+			MAP(XED_ICLASS_MOVSS, INST_x86_movss);
 			MAP(XED_ICLASS_MOVSXD, INST_x86_movsxd);
 			MAP(XED_ICLASS_MOVSX, INST_x86_movsx);
 			MAP(XED_ICLASS_MOVAPS, INST_x86_movups);
@@ -438,6 +463,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_PCMPGTW, INST_x86_pcmpgtw);
 			MAP(XED_ICLASS_PCMPGTD, INST_x86_pcmpgtd);
 			MAP(XED_ICLASS_PMOVMSKB, INST_x86_pmovmskb);
+			MAP(XED_ICLASS_PMAXUB, INST_x86_pmaxub);
 			MAP(XED_ICLASS_PMINUB, INST_x86_pminub);
 			MAP(XED_ICLASS_POP, INST_x86_pop);
 
@@ -462,6 +488,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_PSLLQ, INST_x86_psllq);
 			MAP(XED_ICLASS_PSLLDQ, INST_x86_pslldq);
 			MAP(XED_ICLASS_PSRLDQ, INST_x86_psrldq);
+			MAP(XED_ICLASS_PSRLQ, INST_x86_psrlq);
 			MAP(XED_ICLASS_PXOR, INST_x86_pxor);
 			MAP(XED_ICLASS_RDTSC, INST_x86_rdtsc);
 			MAP(XED_ICLASS_REPE_CMPSB, INST_x86_repe_cmpsb);
@@ -490,6 +517,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_SETNL, INST_x86_setcc);
 
 			MAP(XED_ICLASS_SHL, INST_x86_shl);
+			MAP(XED_ICLASS_SHLD, INST_x86_shld);
 			MAP(XED_ICLASS_SHR, INST_x86_shr);
 			MAP(XED_ICLASS_SUB, INST_x86_sub);
 			MAP(XED_ICLASS_SYSCALL, INST_x86_syscall);

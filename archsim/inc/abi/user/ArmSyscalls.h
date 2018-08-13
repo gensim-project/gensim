@@ -440,9 +440,9 @@ struct x86_64_stat64 {
 	gid_t st_gid;
 	dev_t st_rdev;
 	off64_t st_size;
-	time_t st_atime;
-	time_t st_mtime;
-	time_t st_ctime;
+	timespec st_atim;
+	timespec st_mtim;
+	timespec st_ctim;
 	blksize_t st_blksize;
 	blkcnt64_t st_blocks;
 	mode_t st_attr;
