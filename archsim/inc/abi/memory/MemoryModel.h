@@ -119,7 +119,7 @@ namespace archsim
 					return Read16(addr) | (((uint32_t)Read16(addr+2)) << 16);
 				}
 
-				void *GetPtr(Address addr, uint8_t size) const
+				void *GetPtr(Address addr, uint32_t size) const
 				{
 					ASSERT(addr >= guest_base_);
 					ASSERT(addr < guest_base_ + (host_ptrs_.size() * Address::PageSize));

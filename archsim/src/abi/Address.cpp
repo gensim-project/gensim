@@ -13,7 +13,9 @@ namespace archsim
 
 	std::ostream &operator<<(std::ostream &str, const archsim::Address &address)
 	{
+		auto prevflags = str.flags();
 		str << "0x" << std::hex << std::setw(8) << std::setfill('0') << address.Get();
+		str.flags(prevflags);
 		return str;
 	}
 

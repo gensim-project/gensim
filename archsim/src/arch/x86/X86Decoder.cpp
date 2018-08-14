@@ -338,15 +338,18 @@ bool X86Decoder::DecodeClass(void* inst_)
 #define MAP(xed, model) case xed: Instr_Code = model; return true;
 			MAP(XED_ICLASS_ADC, INST_x86_adc);
 			MAP(XED_ICLASS_ADD, INST_x86_add);
-			MAP(XED_ICLASS_ADD_LOCK, INST_x86_add); // TODO: Lock prefix
-			MAP(XED_ICLASS_ADDSD, INST_x86_addsd); // TODO: Lock prefix
+			MAP(XED_ICLASS_ADD_LOCK, INST_x86_add);
+			MAP(XED_ICLASS_ADDSD, INST_x86_addsd);
 			MAP(XED_ICLASS_AND, INST_x86_and);
 			MAP(XED_ICLASS_AND_LOCK, INST_x86_and);
 			MAP(XED_ICLASS_BSF, INST_x86_bsf);
 			MAP(XED_ICLASS_BSR, INST_x86_bsr);
 			MAP(XED_ICLASS_BSWAP, INST_x86_bswap);
 			MAP(XED_ICLASS_BT, INST_x86_bt);
+			MAP(XED_ICLASS_BTR, INST_x86_btr);
+			MAP(XED_ICLASS_BTR_LOCK, INST_x86_btr);
 			MAP(XED_ICLASS_BTS, INST_x86_bts);
+			MAP(XED_ICLASS_BTS_LOCK, INST_x86_bts);
 			MAP(XED_ICLASS_CALL_NEAR, INST_x86_call);
 			MAP(XED_ICLASS_CBW, INST_x86_cbw);
 			MAP(XED_ICLASS_CDQ, INST_x86_cdq);
@@ -376,7 +379,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_CWD, INST_x86_cwd);
 			MAP(XED_ICLASS_CWDE, INST_x86_cwde);
 			MAP(XED_ICLASS_DEC, INST_x86_dec);
-			MAP(XED_ICLASS_DEC_LOCK, INST_x86_dec); // TODO: LOCK PREFIX
+			MAP(XED_ICLASS_DEC_LOCK, INST_x86_dec);
 			MAP(XED_ICLASS_DIV, INST_x86_div);
 			MAP(XED_ICLASS_EMMS, INST_x86_nop); // TODO
 			MAP(XED_ICLASS_FNSTCW, INST_x86_fnstcw); // TODO
@@ -431,6 +434,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_JMP, INST_x86_jmp);
 			MAP(XED_ICLASS_LEA, INST_x86_lea);
 			MAP(XED_ICLASS_LEAVE, INST_x86_leave);
+			MAP(XED_ICLASS_MFENCE, INST_x86_nop); // TODO: think about fences and other architectures
 			MAP(XED_ICLASS_MOV, INST_x86_mov);
 			MAP(XED_ICLASS_MOVD, INST_x86_movd);
 			MAP(XED_ICLASS_MOVDQU, INST_x86_movdqu);

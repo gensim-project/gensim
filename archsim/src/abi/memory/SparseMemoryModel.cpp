@@ -239,8 +239,8 @@ char* SparseMemoryModel::GetPage(Address addr)
 			throw std::bad_alloc();
 		}
 		pages_remaining_--;
-		ptr = (char*)malloc(4096);
-		if(ptr == nullptr) {
+		ptr = (char*)mmap(0, 4096, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+		if(ptr == MAP_FAILED) {
 			throw std::bad_alloc();
 		}
 
