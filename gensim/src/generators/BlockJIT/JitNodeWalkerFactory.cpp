@@ -417,7 +417,8 @@ namespace gensim
 						case BinaryOperator::GreaterThan:
 						case BinaryOperator::GreaterThanEqual: {
 							std::string comparison = "";
-							if(LHSNode->Statement.GetType().Signed) switch(Statement.Type) {
+							if(LHSNode->Statement.GetType().Signed) {
+								switch(Statement.Type) {
 									case BinaryOperator::LessThan:
 										comparison = "cmpslt";
 										break;
@@ -430,7 +431,12 @@ namespace gensim
 									case BinaryOperator::GreaterThanEqual:
 										comparison = "cmpsgte";
 										break;
-								} else switch(Statement.Type) {
+
+									default:
+										UNEXPECTED;
+								}
+							} else {
+								switch(Statement.Type) {
 									case BinaryOperator::LessThan:
 										comparison = "cmplt";
 										break;
@@ -443,7 +449,11 @@ namespace gensim
 									case BinaryOperator::GreaterThanEqual:
 										comparison = "cmpgte";
 										break;
+
+									default:
+										UNEXPECTED;
 								}
+							}
 
 							output << "{"
 							       "builder." << comparison << "(" << operand_for_node(*LHSNode) << ", " << operand_for_node(*RHSNode) << ", " << operand_for_stmt(Statement) << ");\n"

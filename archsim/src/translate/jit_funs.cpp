@@ -151,11 +151,11 @@ extern "C" {
 
 	void sysPublishInstruction(gensim::Processor *cpu, uint32_t pc, uint32_t type)
 	{
-		struct {
-			uint32_t pc, type;
-		} data;
-		data.pc = pc;
-		data.type = type;
+//		struct {
+//			uint32_t pc, type;
+//		} data;
+//		data.pc = pc;
+//		data.type = type;
 
 		UNIMPLEMENTED;
 //		cpu->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::InstructionExecute, &data);

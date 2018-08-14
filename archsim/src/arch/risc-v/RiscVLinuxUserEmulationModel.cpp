@@ -68,8 +68,6 @@ gensim::DecodeContext* RiscVLinuxUserEmulationModel::GetNewDecodeContext(archsim
 	return new arch::riscv::RiscVDecodeContext(cpu.GetArch());
 }
 
-
-
 bool RiscVLinuxUserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, SignalData* data)
 {
 	assert(false);
@@ -89,7 +87,7 @@ archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(arch
 	if(category == 0) {
 		uint32_t* registers = (uint32_t*)cpu->GetRegisterFile();
 
-		archsim::abi::SyscallRequest request {0, cpu};
+		archsim::abi::SyscallRequest request {0, cpu, 0, 0, 0, 0, 0, 0};
 		request.syscall = registers[17];
 
 		archsim::abi::SyscallResponse response;

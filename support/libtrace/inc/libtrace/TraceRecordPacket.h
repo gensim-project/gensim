@@ -20,7 +20,7 @@ namespace libtrace
 	class TraceRecordPacket
 	{
 	public:
-		TraceRecordPacket(const TraceRecord &record, std::vector<DataExtensionRecord> extensions = {}) : record_(record), extensions_(extensions) {}
+		TraceRecordPacket(const TraceRecord &record, std::vector<DataExtensionRecord> extensions = std::vector<DataExtensionRecord>()) : record_(record), extensions_(extensions) {}
 
 		const TraceRecord &GetRecord() const
 		{

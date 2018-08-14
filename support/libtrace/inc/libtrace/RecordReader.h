@@ -55,7 +55,7 @@ namespace libtrace
 
 	public:
 		typedef std::vector<DataExtensionRecord> extension_list_t;
-		RecordReader(const TraceRecord &record, TraceRecordType type, extension_list_t extensions = {}) : record_(record), extensions_(extensions)
+		RecordReader(const TraceRecord &record, TraceRecordType type, extension_list_t extensions = extension_list_t()) : record_(record), extensions_(extensions)
 		{
 			if(record.GetType() != type) {
 				assert(false);

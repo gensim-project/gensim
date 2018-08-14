@@ -172,7 +172,7 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsi
 		auto bank = thread->GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 		uint32_t* registers = (uint32_t*)bank;
 
-		archsim::abi::SyscallRequest request {0, thread};
+		archsim::abi::SyscallRequest request {0, thread, 0, 0, 0, 0, 0, 0};
 		if(IsOABI()) {
 			request.syscall = data & 0xfffff;
 		} else if(IsEABI()) {

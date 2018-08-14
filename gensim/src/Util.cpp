@@ -8,6 +8,7 @@
 #include <antlr3.h>
 #include <string.h>
 
+#include "define.h"
 #include "Util.h"
 
 namespace gensim
@@ -80,6 +81,8 @@ namespace gensim
 					case EXPNODE_VAL:
 						str << node_val;
 						break;
+					default:
+						GASSERT(false);
 				}
 				if (subexprcount == 2)  // if we have left and right subexprs
 					str << subexprs[1]->ToString(this_str, fn_process_fn);
@@ -368,6 +371,9 @@ namespace gensim
 							line << ':';
 							lines.push_back(line.str());
 							line.str("");
+							break;
+						} else {
+							line << *i;
 							break;
 						}
 					default:
