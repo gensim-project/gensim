@@ -102,7 +102,7 @@ archsim::abi::ExceptionAction X86LinuxUserEmulationModel::HandleException(archsi
 	uint64_t* registers = (uint64_t*)cpu->GetRegisterFileInterface().GetData();
 
 	if(category == 0) {
-		archsim::abi::SyscallRequest request {0, cpu};
+		archsim::abi::SyscallRequest request {0, cpu, 0, 0, 0, 0, 0, 0};
 		request.syscall = registers[0];
 
 		archsim::abi::SyscallResponse response;

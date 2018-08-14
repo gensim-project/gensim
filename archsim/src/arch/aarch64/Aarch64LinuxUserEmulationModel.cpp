@@ -57,7 +57,7 @@ namespace archsim
 						auto bank = thread->GetRegisterFileInterface().GetEntry<uint64_t>("RBX");
 						uint64_t* registers = (uint64_t*)bank;
 
-						archsim::abi::SyscallRequest request {0, thread};
+						archsim::abi::SyscallRequest request {0, thread, 0, 0, 0, 0, 0, 0};
 
 						abi::SyscallResponse response;
 						response.action = abi::ResumeNext;

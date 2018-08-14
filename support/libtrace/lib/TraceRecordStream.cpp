@@ -44,7 +44,7 @@ bool RecordBufferStreamAdaptor::Good()
 	return index_ < buffer_->Size();
 }
 
-TracePacketStreamAdaptor::TracePacketStreamAdaptor(RecordStreamInputInterface* input_stream) : input_stream_(input_stream), packet_ready_(false), packet_(TraceRecordPacket(TraceRecord(), {}))
+TracePacketStreamAdaptor::TracePacketStreamAdaptor(RecordStreamInputInterface* input_stream) : input_stream_(input_stream), packet_ready_(false), packet_(TraceRecordPacket(TraceRecord()))
 {
 
 }
