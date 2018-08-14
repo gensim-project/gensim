@@ -44,10 +44,19 @@ namespace archsim
 			ExceptionAction action;
 		};
 
+		class AuxVectorEntries
+		{
+		public:
+			AuxVectorEntries(const std::string &pn, uint64_t hwcap1, uint64_t hwcap2) : PlatformName(pn), HWCAP(hwcap1), HWCAP2(hwcap2) {}
+
+			std::string PlatformName;
+			uint64_t HWCAP, HWCAP2;
+		};
+
 		class UserEmulationModel : public EmulationModel
 		{
 		public:
-			UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary);
+			UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary, const AuxVectorEntries &auxvs);
 			virtual ~UserEmulationModel();
 
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
@@ -102,6 +111,8 @@ namespace archsim
 			Address _initial_program_break;
 			Address _program_break;
 			unsigned int _stack_size;
+
+			AuxVectorEntries auxvs_;
 
 			std::vector<archsim::core::thread::ThreadInstance*> threads_;
 			archsim::core::execution::ExecutionEngine *execution_engine_;

@@ -21,7 +21,7 @@ DeclareChildLogContext(LogEmulationModelUser, LogEmulationModel, "User");
 using namespace archsim::abi;
 using archsim::Address;
 
-UserEmulationModel::UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary) : syscall_handler_(user::SyscallHandlerProvider::Singleton().Get(arch)), is_64bit_(is_64bit_binary) { }
+UserEmulationModel::UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary, const AuxVectorEntries &auxvs) : syscall_handler_(user::SyscallHandlerProvider::Singleton().Get(arch)), is_64bit_(is_64bit_binary), auxvs_(auxvs) { }
 
 UserEmulationModel::~UserEmulationModel() { }
 
@@ -173,7 +173,7 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 #define ALIGN_STACK(v) do { sp -= ((uint64_t)sp.Get() & (v - 1)); } while (0)
 #define PUSH_AUX_ENT(_id, _value) do { PUSH(_value); PUSH(_id); } while (0)
 
-	PUSHSTR("x86_64");
+	PUSHSTR(auxvs_.PlatformName.c_str());
 	Address platform_ptr = sp;
 
 	PUSH(0);
@@ -210,7 +210,7 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	int elf_info_idx = 0;
 #define NEW_AUXV_ENTRY(a, b) do { auxv_entries.push_back({a, b}); elf_info_idx += 2; } while(0)
 	NEW_AUXV_ENTRY(AT_SYSINFO_EHDR, 0x7fff00000000);
-	NEW_AUXV_ENTRY(AT_HWCAP, 0xbfebfbff);
+	NEW_AUXV_ENTRY(AT_HWCAP, auxvs_.HWCAP);
 	NEW_AUXV_ENTRY(AT_PAGESZ, 4096);
 	NEW_AUXV_ENTRY(AT_PHDR, elf_phdr_location.Get());
 	NEW_AUXV_ENTRY(AT_PHENT, elf_phentsize);
@@ -225,7 +225,11 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	NEW_AUXV_ENTRY(AT_EGID, 1000);
 //	NEW_AUXV_ENTRY(AT_SECURE, 0);
 	NEW_AUXV_ENTRY(AT_RANDOM, random_ptr.Get());
-//	NEW_AUXV_ENTRY(AT_HWCAP2, 0);
+
+	if(auxvs_.HWCAP2 != 0) {
+		NEW_AUXV_ENTRY(AT_HWCAP2, auxvs_.HWCAP2);
+	}
+
 	NEW_AUXV_ENTRY(AT_EXECFN, argv_ptrs.at(0).Get());
 	NEW_AUXV_ENTRY(AT_PLATFORM, platform_ptr.Get());
 

@@ -39,7 +39,7 @@ namespace archsim
 			class Aarch64LinuxUserEmulationModel : public archsim::abi::LinuxUserEmulationModel
 			{
 			public:
-				Aarch64LinuxUserEmulationModel() : archsim::abi::LinuxUserEmulationModel("aarch64", true) {}
+				Aarch64LinuxUserEmulationModel() : archsim::abi::LinuxUserEmulationModel("aarch64", true, archsim::abi::AuxVectorEntries("aarch64", 0, 0)) {}
 				virtual ~Aarch64LinuxUserEmulationModel() {}
 
 				gensim::DecodeContext* GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu) override
