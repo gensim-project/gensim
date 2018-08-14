@@ -30,7 +30,7 @@ DeclareChildLogContext(LogEmulationModelX86Linux, LogEmulationModelUser, "X86-Li
 
 RegisterComponent(archsim::abi::EmulationModel, X86LinuxUserEmulationModel, "x86-user", "X86 Linux user emulation model");
 
-X86LinuxUserEmulationModel::X86LinuxUserEmulationModel() : LinuxUserEmulationModel("x86", true) { }
+X86LinuxUserEmulationModel::X86LinuxUserEmulationModel() : LinuxUserEmulationModel("x86", true, AuxVectorEntries("x86_64", 0xbfebfbff, 0)) { }
 
 X86LinuxUserEmulationModel::~X86LinuxUserEmulationModel() { }
 
