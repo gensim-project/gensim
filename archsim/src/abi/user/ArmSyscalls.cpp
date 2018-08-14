@@ -77,7 +77,7 @@ static unsigned long sys_uname(archsim::core::thread::ThreadInstance* cpu, unsig
 	interface.WriteString(Address(addr), "archsim");
 
 	addr += 64;
-	interface.WriteString(Address(addr), "4.8.0");
+	interface.WriteString(Address(addr), "4.16.0");
 
 	addr += 64;
 	interface.WriteString(Address(addr), "#1");
@@ -117,6 +117,62 @@ static unsigned long sys_uname_x86(archsim::core::thread::ThreadInstance* cpu, u
 static unsigned long sys_open(archsim::core::thread::ThreadInstance* cpu, unsigned long filename_addr, unsigned int flags, unsigned int mode)
 {
 	LC_DEBUG1(LogSyscalls) << "open " << Address(filename_addr) << " flags=" << flags << ", mode=" << mode;
+
+	if(flags & O_APPEND) {
+		LC_DEBUG1(LogSyscalls) << " - APPEND";
+	}
+	if(flags & O_ASYNC) {
+		LC_DEBUG1(LogSyscalls) << " - ASYNC";
+	}
+	if(flags & O_CLOEXEC) {
+		LC_DEBUG1(LogSyscalls) << " - CLOEXEC";
+	}
+	if(flags & O_CREAT) {
+		LC_DEBUG1(LogSyscalls) << " - CREAT";
+	}
+	if(flags & O_DIRECT) {
+		LC_DEBUG1(LogSyscalls) << " - DIRECT";
+	}
+	if(flags & O_DIRECTORY) {
+		LC_DEBUG1(LogSyscalls) << " - DIRECTORY";
+	}
+	if(flags & O_DSYNC) {
+		LC_DEBUG1(LogSyscalls) << " - DSYNC";
+	}
+	if(flags & O_EXCL) {
+		LC_DEBUG1(LogSyscalls) << " - EXCL";
+	}
+	if(flags & O_LARGEFILE) {
+		LC_DEBUG1(LogSyscalls) << " - LARGEFILE";
+	}
+	if(flags & O_NOATIME) {
+		LC_DEBUG1(LogSyscalls) << " - NOATIME";
+	}
+	if(flags & O_NOCTTY) {
+		LC_DEBUG1(LogSyscalls) << " - NOCTTY";
+	}
+	if(flags & O_NOFOLLOW) {
+		LC_DEBUG1(LogSyscalls) << " - NOFOLLOW";
+	}
+	if(flags & O_NONBLOCK) {
+		LC_DEBUG1(LogSyscalls) << " - NONBLOCK";
+	}
+	if(flags & O_NDELAY) {
+		LC_DEBUG1(LogSyscalls) << " - NDELAY";
+	}
+	if(flags & O_PATH) {
+		LC_DEBUG1(LogSyscalls) << " - PATH";
+	}
+	if(flags & O_SYNC) {
+		LC_DEBUG1(LogSyscalls) << " - SYNC";
+	}
+	if(flags & O_TMPFILE) {
+		LC_DEBUG1(LogSyscalls) << " - TMPFILE";
+	}
+	if(flags & O_TRUNC) {
+		LC_DEBUG1(LogSyscalls) << " - TRUNC";
+	}
+
 	char filename[256];
 	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
@@ -152,6 +208,7 @@ static unsigned long sys_openat(archsim::core::thread::ThreadInstance* cpu, int 
 
 static unsigned long sys_close(archsim::core::thread::ThreadInstance* cpu, unsigned int fd)
 {
+	LC_DEBUG1(LogSyscalls) << "Closing Guest FD=" << fd << ", Host FD=" << translate_fd(cpu, fd);
 	if (cpu->GetEmulationModel().GetSystem().CloseFD(fd))
 		return -errno;
 	return 0;
@@ -231,9 +288,26 @@ static unsigned long sys_unlink(archsim::core::thread::ThreadInstance* cpu, unsi
 	return 0;
 }
 
-static unsigned long sys_mmap(archsim::core::thread::ThreadInstance* cpu, unsigned long addr, unsigned int len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned int off)
+static unsigned long sys_mmap(archsim::core::thread::ThreadInstance* cpu, unsigned long addr, unsigned long len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned long off)
 {
-	LC_DEBUG1(LogSyscalls) << "MMAP: " << Address(addr) << ", len=" << len << ", prot=" << prot << ", flags=" << flags << ", fd=" << fd << ", off=" << off;
+	LC_DEBUG1(LogSyscalls) << "MMAP: " << Address(addr) << ", len=" << std::dec << len << ", prot=" << prot << ", flags=" << flags << ", fd=" << fd << ", off=" << off;
+
+	if(flags & MAP_PRIVATE) {
+		LC_DEBUG1(LogSyscalls) << " - Private";
+	}
+	if(flags & MAP_SHARED) {
+		LC_DEBUG1(LogSyscalls) << " - Shared";
+	}
+	if(flags & MAP_ANONYMOUS) {
+		LC_DEBUG1(LogSyscalls) << " - Anonymous";
+	}
+	if(flags & MAP_FIXED) {
+		LC_DEBUG1(LogSyscalls) << " - Fixed";
+	}
+	if(flags & MAP_GROWSDOWN) {
+		LC_DEBUG1(LogSyscalls) << " - Growsdown";
+	}
+
 	archsim::abi::memory::RegionFlags reg_flags = (archsim::abi::memory::RegionFlags)(archsim::abi::memory::RegFlagRead | archsim::abi::memory::RegFlagWrite);
 	if(prot & PROT_EXEC) reg_flags = (archsim::abi::memory::RegionFlags)(reg_flags | archsim::abi::memory::RegFlagExecute);
 
@@ -245,9 +319,32 @@ static unsigned long sys_mmap(archsim::core::thread::ThreadInstance* cpu, unsign
 			return -1;
 	}
 
-	// 'fake' mmap of file
 	if(!(flags & MAP_ANONYMOUS)) {
 		int host_fd = cpu->GetEmulationModel().GetSystem().GetFD(fd);
+
+#ifdef REAL_MMAP
+		auto &mem_model = cpu->GetEmulationModel().GetMemoryModel();
+		archsim::abi::memory::LockedMemoryRegion pages;
+		mem_model.LockRegions(Address(addr), len, pages);
+		// map each page one at a time
+
+		// TODO: reduce number of mappings by grouping mappings together where
+		// possible
+		for(unsigned long pos = 0; pos < len; pos += 4096) {
+			void *ptr = pages.GetPtr(Address(addr + pos), 4096);
+			if(((intptr_t)ptr & 0xfff) != 0) {
+				throw std::logic_error("");
+			}
+
+			unsigned long bytes = std::min(len - pos, 4096ul);
+			auto result = mmap(ptr, bytes, flags & (PROT_READ | PROT_WRITE), MAP_FIXED | MAP_PRIVATE, host_fd, pos + off);
+			LC_DEBUG1(LogSyscalls) << "Mapped " << bytes << " bytes of host FD " << host_fd << " from " << Address(pos+off) << " to " << ptr << "(" << Address(addr + pos) << ")";
+
+			if(result != ptr) {
+				throw std::logic_error("");
+			}
+		}
+#else
 		size_t offset = lseek(host_fd, 0, SEEK_CUR);
 
 		lseek(host_fd, off, SEEK_SET);
@@ -255,6 +352,7 @@ static unsigned long sys_mmap(archsim::core::thread::ThreadInstance* cpu, unsign
 		read(host_fd, buf.data(), len);
 		cpu->GetMemoryInterface(0).Write(Address(addr), (uint8_t*)buf.data(), len);
 		lseek(host_fd, offset, SEEK_SET);
+#endif
 	}
 
 	return addr;
@@ -360,36 +458,43 @@ static unsigned long sys_fstat64(archsim::core::thread::ThreadInstance* cpu, uns
 	memset(&result_st, 0, sizeof(result_st));
 
 	result_st.st_dev = st.st_dev;
-//	printf("st_dev %lx\n", result_st.st_dev);
 	result_st.st_ino = result_st.__st_ino = st.st_ino;
-//	printf("st_ino %lx\n", result_st.st_ino);
 	result_st.st_mode = st.st_mode;
-//	printf("st_mode %lx\n", result_st.st_mode);
 	result_st.st_nlink = st.st_nlink;
-//	printf("st_nlink %lx\n", result_st.st_nlink);
 	result_st.st_uid = st.st_uid;
-//	printf("st_uid %lx\n", result_st.st_uid);
 	result_st.st_gid = st.st_gid;
-//	printf("st_gid %lx\n", result_st.st_gid);
 	result_st.st_rdev = st.st_rdev;
-//	printf("st_rdev %lx\n", result_st.st_rdev);
 	result_st.st_size = st.st_size;
-//	printf("st_size %lx\n", result_st.st_size);
 	result_st.st_blocks = st.st_blocks;
-//	printf("st_blocks %lx\n", result_st.st_blocks);
 	result_st.target_st_atime = (uint32_t)st.st_atime;
-//	printf("st_atime %lx\n", result_st.target_st_atime);
 	result_st.target_st_mtime = (uint32_t)st.st_mtime;
-//	printf("st_mtime %lx\n", result_st.target_st_mtime);
 	result_st.target_st_ctime = (uint32_t)st.st_ctime;
-//	printf("st_ctime %lx\n", result_st.target_st_ctime);
 	result_st.st_blksize = st.st_blksize;
-//	printf("st_blksize %lx\n", result_st.st_blksize);
 
 	auto interface = cpu->GetMemoryInterface(0);
 	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
 
 	return 0;
+}
+
+static unsigned long sys_fstat_x86(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned long addr)
+{
+	LC_DEBUG1(LogSyscalls) << "FSTAT fd=" << fd << ", addr=" << Address(addr);
+	int host_fd = translate_fd(cpu, fd);
+
+	struct stat statbuf;
+	int result = fstat(host_fd, &statbuf);
+	if(result < 0) {
+		return -errno;
+	}
+
+	LC_DEBUG1(LogSyscalls) << " - File appears to be " << statbuf.st_size << " bytes";
+	LC_DEBUG1(LogSyscalls) << " - Block size " << statbuf.st_blksize << " bytes";
+	LC_DEBUG1(LogSyscalls) << " - Block count " << statbuf.st_blocks << " bytes";
+
+	// TODO: Translate from host stat if we're not on x86
+	cpu->GetMemoryInterface(0).Write(Address(addr), (uint8_t*)&statbuf, sizeof(statbuf));
+	return result;
 }
 
 static unsigned long sys_fstat(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned long addr)
@@ -505,6 +610,24 @@ static unsigned long sys_stat64(archsim::core::thread::ThreadInstance* cpu, unsi
 	result_st.st_blksize = 4096;
 
 	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
+
+	return 0;
+}
+
+static unsigned long sys_stat_x86(archsim::core::thread::ThreadInstance* cpu, unsigned long filename_addr, unsigned long addr)
+{
+	LC_DEBUG1(LogSyscalls) << "STAT";
+
+	char filename[256];
+	auto interface = cpu->GetMemoryInterface(0);
+	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
+
+	struct stat st;
+	if (stat(filename, &st)) {
+		return -errno;
+	}
+
+	interface.Write(Address(addr), (uint8_t *)&st, sizeof(st));
 
 	return 0;
 }
@@ -924,10 +1047,10 @@ static unsigned long sys_futex(archsim::core::thread::ThreadInstance *thread, un
 {
 	LC_DEBUG1(LogSyscalls) << "Futex: addr=" << Address(addr) << ", op=" << op << ", val=" << val << ", timespec=" << Address(timespec_addr) << ", addr2=" << Address(uaddr2) << ", val3=" << val3;
 
-	if(op & FUTEX_PRIVATE_FLAG == FUTEX_PRIVATE_FLAG) {
+	if((op & FUTEX_PRIVATE_FLAG) == FUTEX_PRIVATE_FLAG) {
 		LC_DEBUG1(LogSyscalls) << " - PRIVATE";
 	}
-	if(op & FUTEX_CLOCK_REALTIME == FUTEX_CLOCK_REALTIME) {
+	if((op & FUTEX_CLOCK_REALTIME) == FUTEX_CLOCK_REALTIME) {
 		LC_DEBUG1(LogSyscalls) << " - REALTIME";
 	}
 
@@ -1091,6 +1214,113 @@ static unsigned long sys_clone_x86(archsim::core::thread::ThreadInstance *thread
 	return tid;
 }
 
+static unsigned long sys_newfstatat(archsim::core::thread::ThreadInstance *cpu, unsigned int dfd, unsigned long filename_addr, unsigned long statbuf_addr, unsigned int flag)
+{
+	auto guest_dfd = translate_fd(cpu, dfd);
+	char filename[256];
+	cpu->GetMemoryInterface(0).ReadString(Address(filename_addr), filename, 255);
+
+	struct stat statbuf;
+	int result = fstatat(guest_dfd, filename, &statbuf, flag);
+	if(result < 0) {
+		return -errno;
+	}
+
+	// TODO: convert host to guest stat
+	cpu->GetMemoryInterface(0).Write(Address(statbuf_addr), (uint8_t*)&statbuf, sizeof(statbuf));
+
+	return result;
+}
+
+static unsigned int sys_access(archsim::core::thread::ThreadInstance *cpu, unsigned long pathname_addr, unsigned int mod)
+{
+	char filename[256];
+	cpu->GetMemoryInterface(0).ReadString(Address(pathname_addr), filename, 255);
+
+	int result = access(filename, mod);
+	if(result < 0) {
+		result = -errno;
+	}
+
+	return result;
+}
+
+static unsigned long sys_socket(archsim::core::thread::ThreadInstance *cpu, unsigned int domain, unsigned int type, unsigned int protocol)
+{
+	int host_fd = socket(domain, type, protocol);
+
+	if(host_fd < 0) {
+		return -errno;
+	}
+
+	return cpu->GetEmulationModel().GetSystem().OpenFD(host_fd);
+}
+
+static unsigned long sys_connect_x86(archsim::core::thread::ThreadInstance *cpu, unsigned int fd, unsigned long uservaddr_addr, unsigned int addrlen)
+{
+	int host_fd = translate_fd(cpu, fd);
+
+	char buffer[addrlen];
+	cpu->GetMemoryInterface(0).Read(Address(uservaddr_addr), (uint8_t*)buffer, addrlen);
+
+	int result = connect(host_fd, (sockaddr*)buffer, addrlen);
+	if(result < 0) {
+		return -errno;
+	}
+
+	return result;
+}
+
+static unsigned long sys_getpeername(archsim::core::thread::ThreadInstance *cpu, unsigned int fd, unsigned long usockaddr, unsigned long usockaddr_len)
+{
+	int host_fd = translate_fd(cpu, fd);
+
+	socklen_t host_sockaddr_len;
+	cpu->GetMemoryInterface(0).Read(Address(usockaddr_len), (uint8_t*)&host_sockaddr_len, sizeof(host_sockaddr_len));
+
+	char host_usockaddr[host_sockaddr_len];
+
+	int result = getpeername(host_fd, (sockaddr*)host_usockaddr, &host_sockaddr_len);
+	if(result < 0) {
+		return -errno;
+	}
+
+	cpu->GetMemoryInterface(0).Write(Address(usockaddr), (uint8_t*)host_usockaddr, host_sockaddr_len);
+	cpu->GetMemoryInterface(0).Write(Address(usockaddr_len), (uint8_t*)&host_sockaddr_len, sizeof(socklen_t));
+	return result;
+}
+
+static unsigned long sys_getsockname(archsim::core::thread::ThreadInstance *cpu, unsigned int fd, unsigned long usockaddr, unsigned long usockaddr_len)
+{
+	int host_fd = translate_fd(cpu, fd);
+
+	socklen_t host_sockaddr_len;
+	cpu->GetMemoryInterface(0).Read(Address(usockaddr_len), (uint8_t*)&host_sockaddr_len, sizeof(host_sockaddr_len));
+
+	char host_usockaddr[host_sockaddr_len];
+
+	int result = getsockname(host_fd, (sockaddr*)host_usockaddr, &host_sockaddr_len);
+	if(result < 0) {
+		return -errno;
+	}
+
+	cpu->GetMemoryInterface(0).Write(Address(usockaddr), (uint8_t*)host_usockaddr, host_sockaddr_len);
+	cpu->GetMemoryInterface(0).Write(Address(usockaddr_len), (uint8_t*)&host_sockaddr_len, sizeof(socklen_t));
+	return result;
+}
+
+static unsigned long sys_shutdown(archsim::core::thread::ThreadInstance *cpu, unsigned int fd, unsigned long how)
+{
+	int host_fd = translate_fd(cpu, fd);
+
+	int result = shutdown(host_fd, how);
+	if(result < 0) {
+		result = -errno;
+	}
+
+	return result;
+}
+
 static unsigned long syscall_return_zero(archsim::core::thread::ThreadInstance* cpu)
 {
 	return 0;
@@ -1159,8 +1389,8 @@ DEFINE_SYSCALL(x86, 0, sys_read, "read()");
 DEFINE_SYSCALL(x86, 1, sys_write, "write()");
 DEFINE_SYSCALL(x86, 2, sys_open, "open()");
 DEFINE_SYSCALL(x86, 3, sys_close, "close()");
-DEFINE_SYSCALL(x86, 4, sys_stat64, "stat()");
-DEFINE_SYSCALL(x86, 5, sys_fstat64, "fstat()");
+DEFINE_SYSCALL(x86, 4, sys_stat_x86, "stat()");
+DEFINE_SYSCALL(x86, 5, sys_fstat_x86, "fstat()");
 DEFINE_SYSCALL(x86, 6, sys_lstat_x86, "lstat()");
 DEFINE_SYSCALL(x86, 8, sys_lseek, "lseek()");
 DEFINE_SYSCALL(x86, 9, sys_mmap, "mmap()");
@@ -1168,8 +1398,13 @@ DEFINE_SYSCALL(x86, 10, sys_mprotect, "mprotect()");
 DEFINE_SYSCALL(x86, 12, sys_brk, "brk()");
 DEFINE_SYSCALL(x86, 16, sys_ioctl, "ioctl()");
 DEFINE_SYSCALL(x86, 20, sys_writev<struct x86_iovec>, "writev()");
-DEFINE_SYSCALL(x86, 21, syscall_return_enosys, "access()");
-DEFINE_SYSCALL(x86, 39, syscall_return_zero, "getpid()");
+DEFINE_SYSCALL(x86, 21, sys_access, "access()");
+//DEFINE_SYSCALL(x86, 39, syscall_return_zero, "getpid()");
+DEFINE_SYSCALL(x86, 41, sys_socket, "socket()");
+DEFINE_SYSCALL(x86, 42, sys_connect_x86, "connect()");
+DEFINE_SYSCALL(x86, 48, sys_shutdown, "shutdown()");
+DEFINE_SYSCALL(x86, 51, sys_getpeername, "getpeername()");
+DEFINE_SYSCALL(x86, 52, sys_getsockname, "getsockname()");
 DEFINE_SYSCALL(x86, 56, sys_clone_x86, "clone()");
 DEFINE_SYSCALL(x86, 63, sys_uname_x86, "uname()");
 DEFINE_SYSCALL(x86, 72, sys_fcntl64, "fcntl()");
@@ -1179,16 +1414,17 @@ DEFINE_SYSCALL(x86, 81, sys_fchdir, "fchdir()");
 DEFINE_SYSCALL(x86, 83, sys_mkdir, "mkdir()");
 DEFINE_SYSCALL(x86, 89, sys_readlink, "readlink()");
 DEFINE_SYSCALL(x86, 96, sys_gettimeofday, "gettimeofday()");
-DEFINE_SYSCALL(x86, 102, syscall_return_zero, "getuid()");
-DEFINE_SYSCALL(x86, 104, syscall_return_zero, "getgid()");
-DEFINE_SYSCALL(x86, 107, syscall_return_zero, "geteuid()");
-DEFINE_SYSCALL(x86, 108, syscall_return_zero, "getegid()");
+//DEFINE_SYSCALL(x86, 102, syscall_return_zero, "getuid()");
+//DEFINE_SYSCALL(x86, 104, syscall_return_zero, "getgid()");
+//DEFINE_SYSCALL(x86, 107, syscall_return_zero, "geteuid()");
+//DEFINE_SYSCALL(x86, 108, syscall_return_zero, "getegid()");
 DEFINE_SYSCALL(x86, 158, sys_x86_arch_prctl, "arch_prctl()");
-DEFINE_SYSCALL(x86, 186, syscall_return_zero, "gettid()");
+//DEFINE_SYSCALL(x86, 186, syscall_return_zero, "gettid()");
 DEFINE_SYSCALL(x86, 202, sys_futex, "futex()");
 DEFINE_SYSCALL(x86, 228, sys_clock_gettime, "clock_gettime()");
 DEFINE_SYSCALL(x86, 231, sys_exit, "exit_group()");
 DEFINE_SYSCALL(x86, 257, sys_openat, "openat()");
+DEFINE_SYSCALL(x86, 262, sys_newfstatat, "newfstatat()");
 
 /* Aarch64 System calls */
 DEFINE_SYSCALL(aarch64, 1, sys_exit, "exit()");

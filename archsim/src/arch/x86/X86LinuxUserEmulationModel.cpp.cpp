@@ -102,6 +102,7 @@ archsim::abi::ExceptionAction X86LinuxUserEmulationModel::HandleException(archsi
 	uint64_t* registers = (uint64_t*)cpu->GetRegisterFileInterface().GetData();
 
 	if(category == 0) {
+		LC_DEBUG1(LogEmulationModelX86Linux) << "Syscall at " << Address(cpu->GetPC());
 		archsim::abi::SyscallRequest request {0, cpu, 0, 0, 0, 0, 0, 0};
 		request.syscall = registers[0];
 

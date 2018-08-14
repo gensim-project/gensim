@@ -28,6 +28,7 @@ enum X86Opcodes {
 	INST_x86_bsr,
 	INST_x86_bswap,
 	INST_x86_bt,
+	INST_x86_btr,
 	INST_x86_bts,
 	INST_x86_call,
 	INST_x86_cbw,

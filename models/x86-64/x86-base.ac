@@ -5,7 +5,7 @@ AC_ISA(x86)
 	ac_format FORMAT_DUMMY = "%dummy:32";
 	
 	ac_instr<FORMAT_DUMMY> adc, add, and;
-	ac_instr<FORMAT_DUMMY> bsf, bsr, bswap, bt, bts;
+	ac_instr<FORMAT_DUMMY> bsf, bsr, bswap, bt, btr, bts;
 	ac_instr<FORMAT_DUMMY> call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde;
 	ac_instr<FORMAT_DUMMY> dec, div;
 	ac_instr<FORMAT_DUMMY> idiv, imul1, imul2, imul3, inc;
@@ -21,7 +21,7 @@ AC_ISA(x86)
 	ac_instr<FORMAT_DUMMY> xadd, xchg, xgetbv, xor;
 	
 	ac_behaviour adc, add, and;
-	ac_behaviour bsf, bsr, bt, bts, bswap;
+	ac_behaviour bsf, bsr, bt, btr, bts, bswap;
 	ac_behaviour call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde;
 	ac_behaviour dec, div;
 	ac_behaviour idiv, imul1, imul2, imul3, inc;
@@ -57,6 +57,9 @@ AC_ISA(x86)
 	
 		bt.set_decoder();
 		bt.set_behaviour(bt);
+	
+		btr.set_decoder();
+		btr.set_behaviour(btr);
 	
 		bts.set_decoder();
 		bts.set_behaviour(bts);
