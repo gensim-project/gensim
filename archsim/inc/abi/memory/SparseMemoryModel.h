@@ -71,7 +71,7 @@ namespace archsim
 				char *GetPage(Address addr);
 				char *GetPageUncached(Address addr);
 
-				archsim::util::Cache<Address, char*> cache_;
+				archsim::util::Cache<Address::underlying_t, char*> cache_;
 
 				Address prev_page_base_;
 				char *prev_page_data_;

@@ -255,7 +255,7 @@ char* SparseMemoryModel::GetPage(Address addr)
 	std::lock_guard<std::mutex> lg(map_lock_);
 
 	char **ptr_ptr;
-	if(cache_.try_cache_fetch(addr.PageBase(), ptr_ptr) == archsim::util::CACHE_MISS) {
+	if(cache_.try_cache_fetch(addr.GetPageIndex(), ptr_ptr) == archsim::util::CACHE_MISS) {
 		*ptr_ptr = GetPageUncached(addr.PageBase());
 	}
 	return *ptr_ptr;
