@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <sys/uio.h>
 #include <sys/stat.h>
+#include <sys/sysinfo.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/mman.h>
@@ -51,9 +52,11 @@ using archsim::Address;
 
 static unsigned int translate_fd(archsim::core::thread::ThreadInstance* cpu, int fd)
 {
-	fd = cpu->GetEmulationModel().GetSystem().GetFD(fd);
-
-	return fd;
+	auto &system = cpu->GetEmulationModel().GetSystem();
+	if(system.HasFD(fd)) {
+		return system.GetFD(fd);
+	}
+	return -1;
 }
 
 static unsigned int sys_exit(archsim::core::thread::ThreadInstance* cpu, unsigned int exit_code)
@@ -1321,6 +1324,61 @@ static unsigned long sys_shutdown(archsim::core::thread::ThreadInstance *cpu, un
 	return result;
 }
 
+static unsigned long sys_time(archsim::core::thread::ThreadInstance *cpu, unsigned long time_addr)
+{
+	time_t t = time(nullptr);
+	if(t == (time_t)-1) {
+		t = -errno;
+	}
+
+	if(time_addr != 0) {
+		cpu->GetMemoryInterface(0).Write64(Address(time_addr), t);
+	}
+
+	return t;
+}
+
+static unsigned long sys_geteuid(archsim::core::thread::ThreadInstance *cpu)
+{
+	return geteuid();
+}
+
+static unsigned long sys_getuid(archsim::core::thread::ThreadInstance *cpu)
+{
+	return getuid();
+}
+
+static unsigned long sys_getgid(archsim::core::thread::ThreadInstance *cpu)
+{
+	return getgid();
+}
+
+static unsigned long sys_getegid(archsim::core::thread::ThreadInstance *cpu)
+{
+	return getegid();
+}
+
+static unsigned long sys_setuid(archsim::core::thread::ThreadInstance *cpu, unsigned long uid)
+{
+	int result = setuid(uid);
+	if(result < 0) {
+		return -errno;
+	}
+	return result;
+}
+
+static unsigned long sys_sysinfo(archsim::core::thread::ThreadInstance *cpu, unsigned long addr)
+{
+	struct sysinfo s;
+	int result = sysinfo(&s);
+	if(result < 0) {
+		return -errno;
+	}
+
+	cpu->GetMemoryInterface(0).Write(Address(addr), (uint8_t*)&s, sizeof(s));
+	return result;
+}
+
 static unsigned long syscall_return_zero(archsim::core::thread::ThreadInstance* cpu)
 {
 	return 0;
@@ -1399,7 +1457,6 @@ DEFINE_SYSCALL(x86, 12, sys_brk, "brk()");
 DEFINE_SYSCALL(x86, 16, sys_ioctl, "ioctl()");
 DEFINE_SYSCALL(x86, 20, sys_writev<struct x86_iovec>, "writev()");
 DEFINE_SYSCALL(x86, 21, sys_access, "access()");
-//DEFINE_SYSCALL(x86, 39, syscall_return_zero, "getpid()");
 DEFINE_SYSCALL(x86, 41, sys_socket, "socket()");
 DEFINE_SYSCALL(x86, 42, sys_connect_x86, "connect()");
 DEFINE_SYSCALL(x86, 48, sys_shutdown, "shutdown()");
@@ -1414,12 +1471,14 @@ DEFINE_SYSCALL(x86, 81, sys_fchdir, "fchdir()");
 DEFINE_SYSCALL(x86, 83, sys_mkdir, "mkdir()");
 DEFINE_SYSCALL(x86, 89, sys_readlink, "readlink()");
 DEFINE_SYSCALL(x86, 96, sys_gettimeofday, "gettimeofday()");
-//DEFINE_SYSCALL(x86, 102, syscall_return_zero, "getuid()");
-//DEFINE_SYSCALL(x86, 104, syscall_return_zero, "getgid()");
-//DEFINE_SYSCALL(x86, 107, syscall_return_zero, "geteuid()");
-//DEFINE_SYSCALL(x86, 108, syscall_return_zero, "getegid()");
+DEFINE_SYSCALL(x86, 99, sys_sysinfo, "sysinfo()");
+DEFINE_SYSCALL(x86, 102, sys_getuid, "getuid()");
+DEFINE_SYSCALL(x86, 104, sys_getgid, "getgid()");
+DEFINE_SYSCALL(x86, 105, sys_setuid, "setuid()");
+DEFINE_SYSCALL(x86, 107, sys_geteuid, "geteuid()");
+DEFINE_SYSCALL(x86, 108, sys_getegid, "getegid()");
 DEFINE_SYSCALL(x86, 158, sys_x86_arch_prctl, "arch_prctl()");
-//DEFINE_SYSCALL(x86, 186, syscall_return_zero, "gettid()");
+DEFINE_SYSCALL(x86, 201, sys_time, "time()");
 DEFINE_SYSCALL(x86, 202, sys_futex, "futex()");
 DEFINE_SYSCALL(x86, 228, sys_clock_gettime, "clock_gettime()");
 DEFINE_SYSCALL(x86, 231, sys_exit, "exit_group()");

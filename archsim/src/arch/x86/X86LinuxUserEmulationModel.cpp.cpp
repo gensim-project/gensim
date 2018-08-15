@@ -243,6 +243,15 @@ archsim::abi::ExceptionAction X86LinuxUserEmulationModel::HandleException(archsi
 
 						break;
 					}
+
+					case 2: {
+						registers[0] = 0x01060a01;
+						registers[1] = 0;
+						registers[2] = 0;
+						registers[3] = 0;
+						break;
+					}
+
 					case 7: {
 						registers[0] = 0;
 

@@ -13,6 +13,7 @@
 #include "abi/memory/MemoryModel.h"
 #include "abi/memory/MemoryTranslationModel.h"
 #include "concurrent/LWLock.h"
+#include "util/Cache.h"
 #include <map>
 #include <mutex>
 #include <string>
@@ -68,6 +69,9 @@ namespace archsim
 				bool ResizeVMA(GuestVMA &vma, guest_size_t new_size);
 			private:
 				char *GetPage(Address addr);
+				char *GetPageUncached(Address addr);
+
+				archsim::util::Cache<Address, char*> cache_;
 
 				Address prev_page_base_;
 				char *prev_page_data_;

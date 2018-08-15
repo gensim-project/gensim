@@ -340,6 +340,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_ADD, INST_x86_add);
 			MAP(XED_ICLASS_ADD_LOCK, INST_x86_add);
 			MAP(XED_ICLASS_ADDSD, INST_x86_addsd);
+			MAP(XED_ICLASS_ADDSS, INST_x86_addss);
 			MAP(XED_ICLASS_AND, INST_x86_and);
 			MAP(XED_ICLASS_AND_LOCK, INST_x86_and);
 			MAP(XED_ICLASS_BSF, INST_x86_bsf);
@@ -376,6 +377,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_CPUID, INST_x86_cpuid);
 			MAP(XED_ICLASS_CQO, INST_x86_cqo);
 			MAP(XED_ICLASS_CVTSD2SS, INST_x86_cvtsd2ss);
+			MAP(XED_ICLASS_CVTSI2SS, INST_x86_cvtsi2ss);
 			MAP(XED_ICLASS_CWD, INST_x86_cwd);
 			MAP(XED_ICLASS_CWDE, INST_x86_cwde);
 			MAP(XED_ICLASS_DEC, INST_x86_dec);
@@ -460,6 +462,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_NOT, INST_x86_not);
 			MAP(XED_ICLASS_OR, INST_x86_or);
 			MAP(XED_ICLASS_OR_LOCK, INST_x86_or);
+			MAP(XED_ICLASS_PACKUSWB, INST_x86_packuswb);
+			MAP(XED_ICLASS_PADDB, INST_x86_paddb);
 			MAP(XED_ICLASS_PADDD, INST_x86_paddd);
 			MAP(XED_ICLASS_PADDQ, INST_x86_paddq);
 			MAP(XED_ICLASS_PAND, INST_x86_pand);
@@ -493,6 +497,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_PSLLD, INST_x86_pslld);
 			MAP(XED_ICLASS_PSLLQ, INST_x86_psllq);
 			MAP(XED_ICLASS_PSLLDQ, INST_x86_pslldq);
+			MAP(XED_ICLASS_PSRAD, INST_x86_psrad);
 			MAP(XED_ICLASS_PSRLDQ, INST_x86_psrldq);
 			MAP(XED_ICLASS_PSRLQ, INST_x86_psrlq);
 			MAP(XED_ICLASS_PXOR, INST_x86_pxor);
@@ -526,6 +531,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_SHLD, INST_x86_shld);
 			MAP(XED_ICLASS_SHR, INST_x86_shr);
 			MAP(XED_ICLASS_SUB, INST_x86_sub);
+			MAP(XED_ICLASS_SUB_LOCK, INST_x86_sub);
 			MAP(XED_ICLASS_SYSCALL, INST_x86_syscall);
 			MAP(XED_ICLASS_TEST, INST_x86_test);
 			MAP(XED_ICLASS_XADD, INST_x86_xadd);
@@ -533,6 +539,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_XCHG, INST_x86_xchg);
 			MAP(XED_ICLASS_XGETBV, INST_x86_xgetbv);
 			MAP(XED_ICLASS_XOR, INST_x86_xor);
+			MAP(XED_ICLASS_XOR_LOCK, INST_x86_xor);
 
 		default:
 			return false;

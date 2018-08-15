@@ -224,15 +224,10 @@ bool SparseMemoryModel::ResizeVMA(GuestVMA &vma, guest_size_t new_size)
 	return true;
 }
 
-char* SparseMemoryModel::GetPage(Address addr)
+char* SparseMemoryModel::GetPageUncached(Address addr)
 {
-	std::lock_guard<decltype(map_lock_)> lock_guard(map_lock_);
-
-	if(prev_page_data_ && addr.PageBase() == prev_page_base_) {
-		return prev_page_data_;
-	}
-
 	char *ptr = nullptr;
+
 	if(!data_.count(addr.PageBase())) {
 
 		if(pages_remaining_ == 0) {
@@ -251,12 +246,20 @@ char* SparseMemoryModel::GetPage(Address addr)
 		ptr = data_.at(addr.PageBase());
 	}
 
-	prev_page_base_ = addr.PageBase();
-	prev_page_data_ = ptr;
-
 	return ptr;
 }
 
+
+char* SparseMemoryModel::GetPage(Address addr)
+{
+	std::lock_guard<std::mutex> lg(map_lock_);
+
+	char **ptr_ptr;
+	if(cache_.try_cache_fetch(addr.PageBase(), ptr_ptr) == archsim::util::CACHE_MISS) {
+		*ptr_ptr = GetPageUncached(addr.PageBase());
+	}
+	return *ptr_ptr;
+}
 
 uint32_t SparseMemoryModel::Read(guest_addr_t addr, uint8_t *data, int size)
 {
