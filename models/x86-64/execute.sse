@@ -12,6 +12,20 @@ execute(addsd) {
 	write_operand_sse_scalar(inst.op0, uresult);
 }
 
+execute(addss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+	
+	float result = dop0 + dop1;
+	
+	uint64 uresult = bitcast_float_u32(result);
+	
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
 execute(clflush) {	
 	take_exception(1, 1);
 }
@@ -20,6 +34,13 @@ execute(cvtsd2ss) {
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	double dop1 = bitcast_u64_double(op1);
 	float result = dop1;
+	uint64 uresult = bitcast_float_u32(result);
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
+execute(cvtsi2ss) {
+	sint32 op1 = read_operand_sse_scalar(inst.op1);
+	float result = op1;
 	uint64 uresult = bitcast_float_u32(result);
 	write_operand_sse_scalar(inst.op0, uresult);
 }
@@ -82,6 +103,50 @@ execute(movsd_xmm) {
 execute(movups) {
 	uint64[2] src = read_xmm_u64(inst.op1);
 	write_xmm_u64(inst.op0, src);
+}
+
+uint8 saturate_sw_ub(sint16 s)
+{
+	if(s > 0xff) { return 0xff; }
+	if(s < 0) { return 0; }
+	
+	return s;
+}
+
+execute(packuswb) {
+	uint16[8] op0 = read_xmm_u16(inst.op0);
+	uint16[8] op1 = read_xmm_u16(inst.op1);
+	
+	uint8[16] result = read_xmm_u8(inst.op0);
+	
+	result[0] = saturate_sw_ub(op0[0]);
+	result[1] = saturate_sw_ub(op0[1]);
+	result[2] = saturate_sw_ub(op0[2]);
+	result[3] = saturate_sw_ub(op0[3]);
+	
+	result[4] = saturate_sw_ub(op0[4]);
+	result[5] = saturate_sw_ub(op0[5]);
+	result[6] = saturate_sw_ub(op0[6]);
+	result[7] = saturate_sw_ub(op0[7]);
+	
+	result[8] = saturate_sw_ub(op1[0]);
+	result[9] = saturate_sw_ub(op1[1]);
+	result[10] = saturate_sw_ub(op1[2]);
+	result[11] = saturate_sw_ub(op1[3]);
+
+	result[12] = saturate_sw_ub(op1[4]);
+	result[13] = saturate_sw_ub(op1[5]);
+	result[14] = saturate_sw_ub(op1[6]);
+	result[15] = saturate_sw_ub(op1[7]);
+	
+	write_xmm_u8(inst.op0, result);
+}
+
+execute(paddb) {
+	uint8[16] op0 = read_xmm_u8(inst.op0);
+	uint8[16] op1 = read_xmm_u8(inst.op1);
+	
+	write_xmm_u8(inst.op0, op0 + op1);
 }
 
 execute(paddd) {
@@ -407,6 +472,21 @@ execute(pslldq) {
 	write_xmm_u128(inst.op0, op);
 }
 
+execute(psrad) {
+	sint32[4] shift = read_xmm_u32(inst.op1);
+	sint32[4] op = read_xmm_u32(inst.op0);
+	
+	for(uint8 i = 0 ; i < 4; ++i) {
+		if(shift[i] > 31) {
+			op[i] = 0;
+		} else {
+			op[i] = op[i] >> shift[i];
+		}
+	}
+	
+	write_xmm_u32(inst.op0, op);
+}
+
 execute(psrlq) {
 	uint64 shift = read_operand(inst.op1);
 	uint64 op = read_operand(inst.op0);
@@ -584,8 +664,19 @@ helper uint128 read_xmm_u128(struct Operand &op)
 {
 	if(op.is_reg) {
 		return read_register_bank(XMM_U128, op.reg.index);
+	} else if(op.is_mem) {
+		uint128 result = 0;
+		uint64 data;
+		uint64 addr = mem_get_addr(op.memory);
+		
+		mem_read_64(Data, addr, data);
+		result |= data;
+		mem_read_64(Data, addr+8, data);
+		result |= ((uint128)data) << 64;
+		
+		return result;
 	} else {
-		trap();
+		trap(); 
 	}
 	
 	return 0;

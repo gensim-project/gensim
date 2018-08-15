@@ -339,7 +339,7 @@ execute(mov) {
 }
 
 execute(movsb) {
-	trap();
+	do_movsb(inst);
 }
 
 execute(movsd) {

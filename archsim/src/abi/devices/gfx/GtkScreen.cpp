@@ -190,6 +190,8 @@ void archsim::abi::devices::gfx::key_press_event(GtkWidget *widget, GdkEventKey 
 	GtkScreen *scr = (GtkScreen *)screen;
 	uint16_t scancode = 0;
 
+	printf("lol keydown\n");
+
 	if(event->keyval == GDK_KEY_Control_R) {
 		scr->ungrab();
 	}
