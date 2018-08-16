@@ -129,6 +129,8 @@ uint64_t UnpackImmediate(uint64_t bits, bool is_signed, uint8_t width_bits)
 			case 32:
 				value = (int64_t)(int32_t)value;
 				break;
+			case 64:
+				break;
 			default:
 				UNIMPLEMENTED;
 		}
