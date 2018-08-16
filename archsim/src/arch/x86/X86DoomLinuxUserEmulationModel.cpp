@@ -6,6 +6,7 @@
 #include "abi/devices/generic/Keyboard.h"
 
 using namespace archsim::arch::x86;
+using archsim::Address;
 
 RegisterComponent(archsim::abi::EmulationModel, X86DoomLinuxUserEmulationModel, "x86-user-doom", "ARM Linux user emulation model");
 
@@ -20,20 +21,56 @@ public:
 
 	void KeyDown(uint32_t keycode) override
 	{
-		printf("archsim keydown %u\n", keycode);
-		mem_->Write32(base_addr_, keycode);
+		uint32_t ready;
+
+		PushEntry(keycode);
 	}
+
 	void KeyUp(uint32_t keycode) override
 	{
+		uint32_t ready;
+
 		// convert keycode to keyup code
 		keycode |= 0xf000;
-		printf("archsim keyup %u\n", keycode);
-		mem_->Write32(base_addr_, keycode);
+
+		PushEntry(keycode);
+	}
+
+	void PushEntry(uint32_t keycode)
+	{
+		Address writer_ptr_addr = base_addr_;
+		Address reader_ptr_addr = base_addr_ + 4;
+		Address buffer_addr = base_addr_ + 8;
+
+		uint32_t writer_ptr, reader_ptr;
+
+		mem_->Read32(writer_ptr_addr, writer_ptr);
+		mem_->Read32(reader_ptr_addr, reader_ptr);
+		mem_->Write32(buffer_addr + (writer_ptr * 4), keycode);
+
+//		printf(" ** Archsim writing keycode to %u\n", writer_ptr);
+		writer_ptr += 1;
+		writer_ptr %= kEntryCount;
+//		printf(" ** Writer ptr now %u\n", writer_ptr);
+
+		mem_->Write32(writer_ptr_addr, writer_ptr);
+	}
+
+	void Initialise()
+	{
+		Address writer_ptr_addr = base_addr_;
+		Address reader_ptr_addr = base_addr_ + 4;
+		Address buffer_addr = base_addr_ + 8;
+
+		mem_->Write32(writer_ptr_addr, 1);
+		mem_->Write32(reader_ptr_addr, 0);
 	}
 
 private:
 	archsim::abi::memory::MemoryModel *mem_;
 	archsim::Address base_addr_;
+
+	static const uint32_t kEntryCount = 64;
 };
 
 bool X86DoomLinuxUserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
@@ -54,6 +91,8 @@ bool X86DoomLinuxUserEmulationModel::Initialise(System& system, uarch::uArch& ua
 	GetMemoryModel().GetMappingManager()->MapRegion(Address(0xe1000000), 8, archsim::abi::memory::RegFlagReadWrite, "Keyboard");
 
 	DoomKeyboard *dk = new DoomKeyboard(&GetMemoryModel(), Address(0xe1000000));
+	dk->Initialise();
+
 	screen->SetKeyboard(*dk);
 
 	screen->SetFramebufferPointer(Address(0xe0000000));
