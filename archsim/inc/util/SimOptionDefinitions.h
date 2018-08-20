@@ -71,6 +71,7 @@ DefineSetting(System, Mode, "Selects the simulation mode to use", "interp");
 DefineFlag(System, CacheModel, "Enables CPU cache modelling", false);
 
 DefineSetting(System, TargetBinary, "Selects the target binary to execute", "target.x");
+DefineIntSetting(System, StackFaffle, "Initial stack pointer bias used to align stack pointers to external reference", 0);
 DefineSetting(System, TargetBinaryFormat, "Selects the target binary format", "elf");
 DefineSetting(System, ZImageSymbolMap, "Symbol Map for a ZIMAGE binary", "");
 

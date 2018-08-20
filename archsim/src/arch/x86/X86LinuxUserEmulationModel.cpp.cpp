@@ -72,7 +72,10 @@ bool X86LinuxUserEmulationModel::PrepareBoot(System& system)
 	/* Copy host vdso to guest */
 	vdso_ptr_ = 0x7fff00000000_ga;
 	LC_DEBUG1(LogEmulationModelX86Linux) << "Writing VDSO into guest memory (" << x86_linux_vdso_size << " bytes)";
-	GetMemoryModel().GetMappingManager()->MapRegion(vdso_ptr_, x86_linux_vdso_size, RegFlagReadWriteExecute, "vdso");
+
+	// get the host vdso and copy it into memory
+
+	GetMemoryModel().GetMappingManager()->MapRegion(vdso_ptr_, 4096, RegFlagReadWriteExecute, "vdso");
 	GetMemoryModel().Write(vdso_ptr_, (uint8_t*)&x86_linux_vdso_start, x86_linux_vdso_size);
 
 	return true;

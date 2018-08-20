@@ -343,6 +343,12 @@ VOID my_cpuid_after(CONTEXT *ctx)
 
 			ebx = 0; //ebx;
 			break;
+		case 2:
+			eax = 0x01060a01;
+			ebx = 0;
+			ecx = 0;
+			edx = 0;
+			break;
 		case 7:
 			eax = 0;
 			ebx = 0;
@@ -361,6 +367,7 @@ VOID my_cpuid_after(CONTEXT *ctx)
 
 	PIN_ExecuteAt(ctx);
 }
+
 
 VOID Trace(TRACE trace, VOID *v)
 {

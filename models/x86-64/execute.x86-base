@@ -462,7 +462,8 @@ execute(repe_cmpsb) {
 		if(!repe_check_condition(inst)) {
 			write_pc(read_pc() + inst.Instr_Length);
 		}
-	} else {
+	}
+	if(!rep_check_counter(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
@@ -471,7 +472,8 @@ execute(rep_movsb) {
 	if(rep_check_counter(inst)) {
 		do_movsb(inst);	
 		rep_decrement_counter(inst);
-	} else {
+	} 
+	if(!rep_check_counter(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
@@ -480,7 +482,8 @@ execute(rep_movsd) {
 	if(rep_check_counter(inst)) {
 		do_movsd(inst);
 		rep_decrement_counter(inst);
-	} else {
+	}
+	if(!rep_check_counter(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
@@ -489,7 +492,8 @@ execute(rep_movsq) {
 	if(rep_check_counter(inst)) {
 		do_movsq(inst);
 		rep_decrement_counter(inst);
-	} else {
+	} 
+	if(!rep_check_counter(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
@@ -498,7 +502,8 @@ execute(rep_stosb) {
 	if(rep_check_counter(inst)) {
 		do_stosb(inst);		
 		rep_decrement_counter(inst);
-	} else {
+	}
+	if(!rep_check_counter(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
@@ -507,7 +512,8 @@ execute(rep_stosd) {
 	if(rep_check_counter(inst)) {
 		do_stosd(inst);
 		rep_decrement_counter(inst);
-	} else {
+	}
+	if(!rep_check_counter(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
@@ -516,7 +522,8 @@ execute(rep_stosq) {
 	if(rep_check_counter(inst)) {
 		do_stosq(inst);
 		rep_decrement_counter(inst);
-	} else {
+	} 
+	if(!rep_check_counter(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }

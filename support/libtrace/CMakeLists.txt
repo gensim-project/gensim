@@ -33,6 +33,7 @@ if(CURSES_FOUND)
 	add_trace_tool(TraceIRDiff ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordIRDiff.cpp)
 	add_trace_tool(TraceTail ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordTail.cpp)
 	add_trace_tool(TraceLess ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordLess.cpp)
+	add_trace_tool(TraceCut ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecordCut.cpp)
 endif()
 
 SET_PROPERTY(GLOBAL PROPERTY LIBTRACE_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/inc")
