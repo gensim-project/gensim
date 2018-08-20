@@ -388,6 +388,23 @@ namespace archsim
 					UNIMPLEMENTED;
 				}
 
+				bool fn___builtin_f32_is_snan(float f)
+				{
+					UNIMPLEMENTED;
+				}
+				bool fn___builtin_f32_is_qnan(float f)
+				{
+					UNIMPLEMENTED;
+				}
+				bool fn___builtin_f64_is_snan(double f)
+				{
+					UNIMPLEMENTED;
+				}
+				bool fn___builtin_f64_is_qnan(double f)
+				{
+					UNIMPLEMENTED;
+				}
+
 				// Functions to do with manipulating state according to the architecture
 				archsim::abi::ExceptionAction TakeException(uint64_t category, uint64_t data);
 				archsim::abi::ExceptionAction TakeMemoryException(MemoryInterface &interface, Address address);

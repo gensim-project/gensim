@@ -714,6 +714,30 @@ execute(shr) {
 	}
 }
 
+execute(shrd) {
+	uint8 op_size = operand_get_size(inst.op0);
+	uint64 src = read_operand(inst.op1);
+	uint64 count = read_operand(inst.op2);
+	
+	if(op_size == 64) {
+		count &= 63;
+	} else {
+		count &= 31;
+	}
+	
+	if(count != 0) {
+		uint64 value = read_operand(inst.op0);
+		write_register(CF, (value << (op_size - count)) & 1);
+		uint8 old_sign = value >> (op_size - 1);
+		value >>= count;
+		value |= src << (op_size - count);
+		write_operand(inst.op0, value);
+		set_zsp_flags(value, op_size);
+		uint8 new_sign = value >> (op_size - 1);
+		write_register(OF, old_sign != new_sign);
+	}
+}
+
 execute(sub) {
 	if(inst.lock) { mem_lock(Data); }
 	uint64 op0 = read_operand(inst.op0);
@@ -735,6 +759,22 @@ execute(test) {
 	uint8 op_size = operand_get_size(inst.op0);
 	
 	uint64 result = bitwise_and(op0, op1, op_size);
+}
+
+execute(tzcnt) {
+	uint64 op0 = read_operand(inst.op1);
+	
+	write_register(CF, op0 == 0);
+	
+	uint64 result = 0;
+	while((op0 & 1) == 0) {
+		op0 >>= 1;
+		result += 1;
+	}
+	
+	write_register(ZF, result == 0);
+	
+	write_operand(inst.op0, result);
 }
 
 execute(xadd) {

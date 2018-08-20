@@ -16,8 +16,8 @@ AC_ISA(x86)
 	ac_instr<FORMAT_DUMMY> or;
 	ac_instr<FORMAT_DUMMY> pop, popf, push, pushfq;
 	ac_instr<FORMAT_DUMMY> rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, rol, ror;
-	ac_instr<FORMAT_DUMMY> sar, sbb, setcc, shl, shld, shr, sub, syscall;
-	ac_instr<FORMAT_DUMMY> test;
+	ac_instr<FORMAT_DUMMY> sar, sbb, setcc, shl, shld, shr, shrd, sub, syscall;
+	ac_instr<FORMAT_DUMMY> test, tzcnt;
 	ac_instr<FORMAT_DUMMY> xadd, xchg, xgetbv, xor;
 	
 	ac_behaviour adc, add, and;
@@ -31,8 +31,8 @@ AC_ISA(x86)
 	ac_behaviour neg, nop, not;
 	ac_behaviour or, pop, popf, push, pushfq;
 	ac_behaviour rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, rol, ror;
-	ac_behaviour sar, sbb, setcc, shl, shld, shr, sub, syscall;
-	ac_behaviour test;
+	ac_behaviour sar, sbb, setcc, shl, shld, shr, shrd, sub, syscall;
+	ac_behaviour test, tzcnt;
 	ac_behaviour xadd, xchg, xgetbv, xor;
 
 	ISA_CTOR(x86) {
@@ -240,6 +240,9 @@ AC_ISA(x86)
 		shr.set_decoder();
 		shr.set_behaviour(shr);
 		
+		shrd.set_decoder();
+		shrd.set_behaviour(shrd);
+		
 		sub.set_decoder();
 		sub.set_behaviour(sub);
 		
@@ -248,6 +251,9 @@ AC_ISA(x86)
 		
 		test.set_decoder();
 		test.set_behaviour(test);
+		
+		tzcnt.set_decoder();
+		tzcnt.set_behaviour(tzcnt);
 		
 		xadd.set_decoder();
 		xadd.set_behaviour(xadd);
