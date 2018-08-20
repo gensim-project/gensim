@@ -172,6 +172,7 @@ bool DecodeRegister(xed_decoded_inst_t *xedd, xed_reg_enum_t reg, X86Decoder::Re
 		case XED_REG_CLASS_FLAGS:
 		case XED_REG_CLASS_PSEUDOX87:
 		case XED_REG_CLASS_X87:
+		case XED_REG_CLASS_MXCSR:
 			// 'zero' register
 			output_reg.h_reg = false;
 			output_reg.index = SPECIAL_RIZ_INDEX;
@@ -345,6 +346,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_ADDSS, INST_x86_addss);
 			MAP(XED_ICLASS_AND, INST_x86_and);
 			MAP(XED_ICLASS_AND_LOCK, INST_x86_and);
+			MAP(XED_ICLASS_ANDPD, INST_x86_andpd);
+			MAP(XED_ICLASS_ANDPS, INST_x86_andpd); // todo; is this really the same?
 			MAP(XED_ICLASS_BSF, INST_x86_bsf);
 			MAP(XED_ICLASS_BSR, INST_x86_bsr);
 			MAP(XED_ICLASS_BSWAP, INST_x86_bswap);
@@ -374,6 +377,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_CMOVNL, INST_x86_cmov);
 
 			MAP(XED_ICLASS_CMP, INST_x86_cmp);
+			MAP(XED_ICLASS_CMPSD_XMM, INST_x86_cmpsd_xmm); // thanks again
 			MAP(XED_ICLASS_CMPXCHG, INST_x86_cmpxchg);
 			MAP(XED_ICLASS_CMPXCHG_LOCK, INST_x86_cmpxchg);
 			MAP(XED_ICLASS_CPUID, INST_x86_cpuid);
@@ -382,12 +386,14 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_CVTTSD2SI, INST_x86_cvttsd2si);
 			MAP(XED_ICLASS_CVTSI2SS, INST_x86_cvtsi2ss);
 			MAP(XED_ICLASS_CVTSI2SD, INST_x86_cvtsi2sd);
+			MAP(XED_ICLASS_CVTSS2SD, INST_x86_cvtss2sd);
 			MAP(XED_ICLASS_CWD, INST_x86_cwd);
 			MAP(XED_ICLASS_CWDE, INST_x86_cwde);
 			MAP(XED_ICLASS_DEC, INST_x86_dec);
 			MAP(XED_ICLASS_DEC_LOCK, INST_x86_dec);
 			MAP(XED_ICLASS_DIV, INST_x86_div);
 			MAP(XED_ICLASS_DIVSD, INST_x86_divsd);
+			MAP(XED_ICLASS_DIVSS, INST_x86_divss);
 			MAP(XED_ICLASS_EMMS, INST_x86_nop); // TODO
 			MAP(XED_ICLASS_FNSTCW, INST_x86_fnstcw); // TODO
 			MAP(XED_ICLASS_FXSAVE, INST_x86_nop); // TODO
@@ -448,8 +454,10 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_MOVD, INST_x86_movd);
 			MAP(XED_ICLASS_MOVDQU, INST_x86_movdqu);
 			MAP(XED_ICLASS_MOVDQA, INST_x86_movdqu);
+			MAP(XED_ICLASS_MOVNTDQ, INST_x86_movdqu);
 			MAP(XED_ICLASS_MOVQ, INST_x86_movq);
 			MAP(XED_ICLASS_MOVLPD, INST_x86_movlpd);
+			MAP(XED_ICLASS_MOVMSKPD, INST_x86_movmskpd);
 			MAP(XED_ICLASS_MOVHPD, INST_x86_movhpd);
 			MAP(XED_ICLASS_MOVHPS, INST_x86_movhps);
 			MAP(XED_ICLASS_MOVSB, INST_x86_movsb);
@@ -467,11 +475,13 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_MOVZX, INST_x86_movzx);
 			MAP(XED_ICLASS_MUL, INST_x86_mul);
 			MAP(XED_ICLASS_MULSD, INST_x86_mulsd);
+			MAP(XED_ICLASS_MULSS, INST_x86_mulss);
 			MAP(XED_ICLASS_NEG, INST_x86_neg);
 			MAP(XED_ICLASS_NOP, INST_x86_nop);
 			MAP(XED_ICLASS_NOT, INST_x86_not);
 			MAP(XED_ICLASS_OR, INST_x86_or);
 			MAP(XED_ICLASS_OR_LOCK, INST_x86_or);
+			MAP(XED_ICLASS_ORPD, INST_x86_por); // Is this really the same?
 			MAP(XED_ICLASS_PACKUSWB, INST_x86_packuswb);
 			MAP(XED_ICLASS_PADDB, INST_x86_paddb);
 			MAP(XED_ICLASS_PADDD, INST_x86_paddd);
@@ -507,6 +517,9 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_PSLLD, INST_x86_pslld);
 			MAP(XED_ICLASS_PSLLQ, INST_x86_psllq);
 			MAP(XED_ICLASS_PSLLDQ, INST_x86_pslldq);
+			MAP(XED_ICLASS_PREFETCHT0, INST_x86_nop);
+			MAP(XED_ICLASS_PREFETCHT1, INST_x86_nop);
+			MAP(XED_ICLASS_PREFETCHT2, INST_x86_nop);
 			MAP(XED_ICLASS_PSRAD, INST_x86_psrad);
 			MAP(XED_ICLASS_PSRLDQ, INST_x86_psrldq);
 			MAP(XED_ICLASS_PSRLQ, INST_x86_psrlq);
@@ -536,22 +549,32 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_SETNLE, INST_x86_setcc);
 			MAP(XED_ICLASS_SETL, INST_x86_setcc);
 			MAP(XED_ICLASS_SETNL, INST_x86_setcc);
+			MAP(XED_ICLASS_SETP, INST_x86_setcc);
+			MAP(XED_ICLASS_SETNP, INST_x86_setcc);
 
+			MAP(XED_ICLASS_SFENCE, INST_x86_nop);
 			MAP(XED_ICLASS_SHL, INST_x86_shl);
 			MAP(XED_ICLASS_SHLD, INST_x86_shld);
 			MAP(XED_ICLASS_SHR, INST_x86_shr);
+			MAP(XED_ICLASS_SHRD, INST_x86_shrd);
+			MAP(XED_ICLASS_SQRTSD, INST_x86_sqrtsd);
+			MAP(XED_ICLASS_STMXCSR, INST_x86_nop); // TODO
 			MAP(XED_ICLASS_SUB, INST_x86_sub);
 			MAP(XED_ICLASS_SUB_LOCK, INST_x86_sub);
 			MAP(XED_ICLASS_SUBSD, INST_x86_subsd);
+			MAP(XED_ICLASS_SUBSS, INST_x86_subss);
 			MAP(XED_ICLASS_SYSCALL, INST_x86_syscall);
 			MAP(XED_ICLASS_TEST, INST_x86_test);
+			MAP(XED_ICLASS_TZCNT, INST_x86_tzcnt);
 			MAP(XED_ICLASS_UCOMISD, INST_x86_ucomisd);
+			MAP(XED_ICLASS_UCOMISS, INST_x86_ucomiss);
 			MAP(XED_ICLASS_XADD, INST_x86_xadd);
 			MAP(XED_ICLASS_XADD_LOCK, INST_x86_xadd);
 			MAP(XED_ICLASS_XCHG, INST_x86_xchg);
 			MAP(XED_ICLASS_XGETBV, INST_x86_xgetbv);
 			MAP(XED_ICLASS_XOR, INST_x86_xor);
 			MAP(XED_ICLASS_XOR_LOCK, INST_x86_xor);
+			MAP(XED_ICLASS_XORPD, INST_x86_xorpd);
 
 		default:
 			return false;
@@ -655,10 +678,22 @@ int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 
 	bool success = true;
 
-	success &= DecodeOperands((void*)&xedd);
-	success &= DecodeFlow((void*)&xedd);
-	success &= DecodeClass((void*)&xedd);
-	success &= DecodeLock((void*)&xedd);
+	if(!DecodeOperands((void*)&xedd)) {
+		printf("failed to decode operands\n");
+		success = false;
+	}
+	if(!DecodeFlow((void*)&xedd)) {
+		printf("Failed to decode flow\n");
+		success = false;
+	}
+	if(!DecodeClass((void*)&xedd)) {
+		printf("Failed to decode class\n");
+		success = false;
+	}
+	if(!DecodeLock((void*)&xedd)) {
+		printf("Failed to decode lock\n");
+		success = false;
+	}
 
 	if(!success || (archsim::options::Verbose && archsim::options::Debug)) {
 		xed_decoded_inst_dump(&xedd, dump_buffer, sizeof(dump_buffer));

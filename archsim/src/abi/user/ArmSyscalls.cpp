@@ -248,10 +248,13 @@ template<typename guest_iovec> static unsigned long sys_writev(archsim::core::th
 	return res;
 }
 
-static unsigned long sys_lseek(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned int offset, unsigned int whence)
+static unsigned long sys_lseek(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, long offset, int whence)
 {
+	LC_DEBUG1(LogSyscalls) << "LSEEK " << fd << " , " << offset << ", " << whence;
+
 	fd = translate_fd(cpu, fd);
-	int lseek_result = lseek(fd, offset, whence);
+
+	long lseek_result = lseek(fd, offset, whence);
 	if (lseek_result < 0)
 		return -errno;
 	else

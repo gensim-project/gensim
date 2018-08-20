@@ -2,21 +2,23 @@ AC_ISA(x86)
 {
 	ac_format FORMAT_DUMMY_SSE = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY_SSE> addsd, addss;
-	ac_instr<FORMAT_DUMMY_SSE> clflush, cvtsd2ss, cvttsd2si, cvtsi2ss, cvtsi2sd;
-	ac_instr<FORMAT_DUMMY_SSE> divsd;
-	ac_instr<FORMAT_DUMMY_SSE> movd, movdqu, movlpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd;
+	ac_instr<FORMAT_DUMMY_SSE> addsd, addss, andpd;
+	ac_instr<FORMAT_DUMMY_SSE> clflush, cmpsd_xmm, cvtsd2ss, cvttsd2si, cvtsi2ss, cvtsi2sd, cvtss2sd;
+	ac_instr<FORMAT_DUMMY_SSE> divsd, divss;
+	ac_instr<FORMAT_DUMMY_SSE> movd, movdqu, movlpd, movmskpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd, mulss;
 	ac_instr<FORMAT_DUMMY_SSE> packuswb, paddb, paddd, paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pmaxub, pminub, pmovmskb, por, pslldq, psrad, psrldq, psrlq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
-	ac_instr<FORMAT_DUMMY_SSE> subsd;
-	ac_instr<FORMAT_DUMMY_SSE> ucomisd;
+	ac_instr<FORMAT_DUMMY_SSE> sqrtsd, subsd, subss;
+	ac_instr<FORMAT_DUMMY_SSE> ucomisd, ucomiss;
+	ac_instr<FORMAT_DUMMY_SSE> xorpd;
 
-	ac_behaviour addsd, addss;
-	ac_behaviour clflush, cvtsd2ss, cvttsd2si, cvtsi2ss, cvtsi2sd;
-	ac_behaviour divsd;
-	ac_behaviour movd, movdqu, movlpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd;
+	ac_behaviour addsd, addss, andpd;
+	ac_behaviour clflush, cmpsd_xmm, cvtsd2ss, cvttsd2si, cvtsi2ss, cvtsi2sd, cvtss2sd;
+	ac_behaviour divsd, divss;
+	ac_behaviour movd, movdqu, movlpd, movmskpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd, mulss;
 	ac_behaviour packuswb, paddb, paddd,paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pmaxub, pminub, pmovmskb, por, pslldq, psrad, psrldq, psrlq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
-	ac_behaviour subsd;
-	ac_behaviour ucomisd;
+	ac_behaviour sqrtsd, subsd, subss;
+	ac_behaviour ucomisd, ucomiss;
+	ac_behaviour xorpd;
 
 	ISA_CTOR(x86) {
 		addsd.set_decoder();
@@ -25,8 +27,14 @@ AC_ISA(x86)
 		addss.set_decoder();
 		addss.set_behaviour(addss);
 		
+		andpd.set_decoder();
+		andpd.set_behaviour(andpd);
+		
 		clflush.set_decoder();
 		clflush.set_behaviour(clflush);
+		
+		cmpsd_xmm.set_decoder();
+		cmpsd_xmm.set_behaviour(cmpsd_xmm);
 		
 		cvtsd2ss.set_decoder();
 		cvtsd2ss.set_behaviour(cvtsd2ss);
@@ -40,8 +48,14 @@ AC_ISA(x86)
 		cvtsi2sd.set_decoder();
 		cvtsi2sd.set_behaviour(cvtsi2sd);
 		
+		cvtss2sd.set_decoder();
+		cvtss2sd.set_behaviour(cvtss2sd);
+		
 		divsd.set_decoder();
 		divsd.set_behaviour(divsd);
+		
+		divss.set_decoder();
+		divss.set_behaviour(divss);
 		
 		movd.set_decoder();
 		movd.set_behaviour(movd);
@@ -64,6 +78,9 @@ AC_ISA(x86)
 		movhps.set_decoder();
 		movhps.set_behaviour(movhps);
 		
+		movmskpd.set_decoder();
+		movmskpd.set_behaviour(movmskpd);
+		
 		movss.set_decoder();
 		movss.set_behaviour(movss);
 		
@@ -72,6 +89,9 @@ AC_ISA(x86)
 		
 		mulsd.set_decoder();
 		mulsd.set_behaviour(mulsd);
+		
+		mulss.set_decoder();
+		mulss.set_behaviour(mulss);
 		
 		packuswb.set_decoder();
 		packuswb.set_behaviour(packuswb);
@@ -160,11 +180,24 @@ AC_ISA(x86)
 		pslld.set_decoder();
 		pslld.set_behaviour(pslld);
 		
+		sqrtsd.set_decoder();
+		sqrtsd.set_behaviour(sqrtsd);
+		
 		subsd.set_decoder();
 		subsd.set_behaviour(subsd);
 		
+		subss.set_decoder();
+		subss.set_behaviour(subss);
+		
 		ucomisd.set_decoder();
 		ucomisd.set_behaviour(ucomisd);
+		
+		ucomiss.set_decoder();
+		ucomiss.set_behaviour(ucomiss);
+		
+		xorpd.set_decoder();
+		xorpd.set_behaviour(xorpd);
+		
 		
 	};
 };
