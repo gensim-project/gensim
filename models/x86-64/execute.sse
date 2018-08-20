@@ -30,6 +30,13 @@ execute(clflush) {
 	take_exception(1, 1);
 }
 
+execute(cvttsd2si) {
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	double dop1 = bitcast_u64_double(op1);
+	uint64 result = dop1;
+	write_operand_sse_scalar(inst.op0, result);
+}
+
 execute(cvtsd2ss) {
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	double dop1 = bitcast_u64_double(op1);
@@ -42,6 +49,27 @@ execute(cvtsi2ss) {
 	sint32 op1 = read_operand_sse_scalar(inst.op1);
 	float result = op1;
 	uint64 uresult = bitcast_float_u32(result);
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
+execute(cvtsi2sd) {
+	sint64 op1 = read_operand_sse_scalar(inst.op1);
+	double result = op1;
+	uint64 uresult = bitcast_double_u64(result);
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
+execute(divsd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	double result = dop0 / dop1;
+	
+	uint64 uresult = bitcast_double_u64(result);
+	
 	write_operand_sse_scalar(inst.op0, uresult);
 }
 
@@ -93,16 +121,28 @@ execute(movsd_xmm) {
 	if(inst.op0.is_reg) {
 		write_operand_sse_scalar(inst.op0, scalar);
 	} else if(inst.op0.is_mem) {
-		uint64[2] dest;
-		dest[0] = scalar;
-		dest[1] = 0;
-		write_xmm_u64(inst.op0, dest);
+		uint64 addr = mem_get_addr(inst.op0.memory);
+		mem_write_64(Data, addr, scalar);
 	}
 }
 
 execute(movups) {
 	uint64[2] src = read_xmm_u64(inst.op1);
 	write_xmm_u64(inst.op0, src);
+}
+
+execute(mulsd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	double result = dop0 * dop1;
+	
+	uint64 uresult = bitcast_double_u64(result);
+	
+	write_operand_sse_scalar(inst.op0, uresult);
 }
 
 uint8 saturate_sw_ub(sint16 s)
@@ -529,6 +569,46 @@ execute(pxor) {
 	uint64[2] op1 = read_xmm_u64(inst.op1);
 	
 	write_xmm_u64(inst.op0, op0 ^ op1);
+}
+
+execute(subsd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	double result = dop0 - dop1;
+	
+	uint64 uresult = bitcast_double_u64(result);
+	
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
+execute(ucomisd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+
+	if(dop0 > dop1) {
+		write_zpc(0,0,0);
+	} else if(dop0 < dop1) {
+		write_zpc(0,0,1);
+	} else if(dop0 == dop1) {
+		write_zpc(1,0,0);
+	} else {
+		write_zpc(1,1,1);
+	}
+}
+
+helper void write_zpc(uint8 z, uint8 p, uint8 c) {
+	write_register(ZF, z);
+	write_register(PF, p);
+	write_register(CF, c);
+	
+	return;
 }
 
 helper uint8[16] read_xmm_u8(struct Operand &op)

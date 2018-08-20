@@ -619,11 +619,11 @@ static unsigned long sys_stat64(archsim::core::thread::ThreadInstance* cpu, unsi
 
 static unsigned long sys_stat_x86(archsim::core::thread::ThreadInstance* cpu, unsigned long filename_addr, unsigned long addr)
 {
-	LC_DEBUG1(LogSyscalls) << "STAT";
-
 	char filename[256];
 	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
+
+	LC_DEBUG1(LogSyscalls) << "STAT " << filename << ", addr=" << Address(addr);
 
 	struct stat st;
 	if (stat(filename, &st)) {
@@ -788,7 +788,12 @@ static unsigned long sys_brk(archsim::core::thread::ThreadInstance* cpu, unsigne
 	auto oldbrk = uem.GetBreak();
 	if (new_brk >= uem.GetInitialBreak()) uem.SetBreak(Address(new_brk));
 
-	LC_DEBUG1(LogSyscalls) << "BRK: old=" << std::hex << oldbrk << ", requested=" << std::hex << new_brk << ", new=" << std::hex << uem.GetBreak();
+	LC_DEBUG1(LogSyscalls) << "BRK: old=" << Address(oldbrk) << ", requested=" << Address(new_brk) << ", new=" << Address(uem.GetBreak());
+
+	for(Address i = oldbrk; i < Address(new_brk); i += 1) {
+		uem.GetMemoryModel().Write8(i, 0);
+	}
+
 	return uem.GetBreak().Get();
 }
 
@@ -1219,12 +1224,16 @@ static unsigned long sys_clone_x86(archsim::core::thread::ThreadInstance *thread
 
 static unsigned long sys_newfstatat(archsim::core::thread::ThreadInstance *cpu, unsigned int dfd, unsigned long filename_addr, unsigned long statbuf_addr, unsigned int flag)
 {
-	auto guest_dfd = translate_fd(cpu, dfd);
+	if(dfd != AT_FDCWD) {
+		dfd = translate_fd(cpu, dfd);
+	}
 	char filename[256];
 	cpu->GetMemoryInterface(0).ReadString(Address(filename_addr), filename, 255);
 
+	LC_ERROR(LogSyscalls) << "newfstatat dfd=" << Address(dfd) << ", filename=" << filename << ", statbufaddr=" << Address(statbuf_addr) << ", flag=" << flag;
+
 	struct stat statbuf;
-	int result = fstatat(guest_dfd, filename, &statbuf, flag);
+	int result = fstatat(dfd, filename, &statbuf, flag);
 	if(result < 0) {
 		return -errno;
 	}
@@ -1447,25 +1456,27 @@ DEFINE_SYSCALL(x86, 0, sys_read, "read()");
 DEFINE_SYSCALL(x86, 1, sys_write, "write()");
 DEFINE_SYSCALL(x86, 2, sys_open, "open()");
 DEFINE_SYSCALL(x86, 3, sys_close, "close()");
-DEFINE_SYSCALL(x86, 4, sys_stat_x86, "stat()");
-DEFINE_SYSCALL(x86, 5, sys_fstat_x86, "fstat()");
-DEFINE_SYSCALL(x86, 6, sys_lstat_x86, "lstat()");
+DEFINE_SYSCALL(x86, 4, sys_stat_x86, "stat[x86]()");
+DEFINE_SYSCALL(x86, 5, sys_fstat_x86, "fstat[x86]()");
+DEFINE_SYSCALL(x86, 6, sys_lstat_x86, "lstat[x86]()");
 DEFINE_SYSCALL(x86, 8, sys_lseek, "lseek()");
 DEFINE_SYSCALL(x86, 9, sys_mmap, "mmap()");
 DEFINE_SYSCALL(x86, 10, sys_mprotect, "mprotect()");
+DEFINE_SYSCALL(x86, 11, syscall_return_zero, "munmap()");
 DEFINE_SYSCALL(x86, 12, sys_brk, "brk()");
+DEFINE_SYSCALL(x86, 13, syscall_return_zero, "rt_sigaction()");
 DEFINE_SYSCALL(x86, 16, sys_ioctl, "ioctl()");
-DEFINE_SYSCALL(x86, 20, sys_writev<struct x86_iovec>, "writev()");
+DEFINE_SYSCALL(x86, 20, sys_writev<struct x86_iovec>, "writev[x86]()");
 DEFINE_SYSCALL(x86, 21, sys_access, "access()");
 DEFINE_SYSCALL(x86, 41, sys_socket, "socket()");
-DEFINE_SYSCALL(x86, 42, sys_connect_x86, "connect()");
+DEFINE_SYSCALL(x86, 42, sys_connect_x86, "connect[x86]()");
 DEFINE_SYSCALL(x86, 48, sys_shutdown, "shutdown()");
 DEFINE_SYSCALL(x86, 51, sys_getpeername, "getpeername()");
 DEFINE_SYSCALL(x86, 52, sys_getsockname, "getsockname()");
-DEFINE_SYSCALL(x86, 56, sys_clone_x86, "clone()");
-DEFINE_SYSCALL(x86, 63, sys_uname_x86, "uname()");
+DEFINE_SYSCALL(x86, 56, sys_clone_x86, "clone[x86]()");
+DEFINE_SYSCALL(x86, 63, sys_uname_x86, "uname[x86]()");
 DEFINE_SYSCALL(x86, 72, sys_fcntl64, "fcntl()");
-DEFINE_SYSCALL(x86, 78, sys_getdents_x86_64, "getdents()");
+DEFINE_SYSCALL(x86, 78, sys_getdents_x86_64, "getdents[x86]()");
 DEFINE_SYSCALL(x86, 79, sys_getcwd, "getcwd()");
 DEFINE_SYSCALL(x86, 81, sys_fchdir, "fchdir()");
 DEFINE_SYSCALL(x86, 83, sys_mkdir, "mkdir()");
@@ -1477,7 +1488,7 @@ DEFINE_SYSCALL(x86, 104, sys_getgid, "getgid()");
 DEFINE_SYSCALL(x86, 105, sys_setuid, "setuid()");
 DEFINE_SYSCALL(x86, 107, sys_geteuid, "geteuid()");
 DEFINE_SYSCALL(x86, 108, sys_getegid, "getegid()");
-DEFINE_SYSCALL(x86, 158, sys_x86_arch_prctl, "arch_prctl()");
+DEFINE_SYSCALL(x86, 158, sys_x86_arch_prctl, "arch_prctl[x86]()");
 DEFINE_SYSCALL(x86, 201, sys_time, "time()");
 DEFINE_SYSCALL(x86, 202, sys_futex, "futex()");
 DEFINE_SYSCALL(x86, 228, sys_clock_gettime, "clock_gettime()");

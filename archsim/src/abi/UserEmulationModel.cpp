@@ -164,6 +164,8 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	int envc = global_envc;
 
 	Address sp = _initial_stack_pointer;
+	// bias the stack pointer by the given stack faffle
+	sp -= archsim::options::StackFaffle.GetValue();
 
 //	printf("Start (%08x)\n", sp);
 
@@ -182,7 +184,7 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	PUSHSTR(the_realpath); // global_argv[0]);
 	argv_ptrs[0] = sp;
 
-	for (int i = 0; i < global_envc; i++) {
+	for (int i = global_envc-1; i >= 0; i--) {
 		if(environ[i][0] == '_') {
 			std::string envstr = "_=" + archsim::options::TargetBinary.GetValue();
 			PUSHSTR(envstr.c_str());
