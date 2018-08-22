@@ -23,9 +23,9 @@ static int get_register_index(xed_reg_enum_t reg)
 		case XED_REG_CLASS_IP:
 			return SPECIAL_RIP_INDEX;
 		case XED_REG_CLASS_XMM:
-			return xed_get_largest_enclosing_register(reg) - XED_REG_XMM0;
+			return reg - XED_REG_XMM0;
 		case XED_REG_CLASS_MMX:
-			return xed_get_largest_enclosing_register(reg) - XED_REG_MMX0;
+			return reg - XED_REG_MMX0;
 
 		default:
 			UNIMPLEMENTED;
@@ -347,6 +347,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_AND, INST_x86_and);
 			MAP(XED_ICLASS_AND_LOCK, INST_x86_and);
 			MAP(XED_ICLASS_ANDPD, INST_x86_andpd);
+			MAP(XED_ICLASS_ANDNPD, INST_x86_andnpd);
 			MAP(XED_ICLASS_ANDPS, INST_x86_andpd); // todo; is this really the same?
 			MAP(XED_ICLASS_BSF, INST_x86_bsf);
 			MAP(XED_ICLASS_BSR, INST_x86_bsr);
@@ -384,6 +385,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_CQO, INST_x86_cqo);
 			MAP(XED_ICLASS_CVTSD2SS, INST_x86_cvtsd2ss);
 			MAP(XED_ICLASS_CVTTSD2SI, INST_x86_cvttsd2si);
+			MAP(XED_ICLASS_CVTTSS2SI, INST_x86_cvttss2si);
 			MAP(XED_ICLASS_CVTSI2SS, INST_x86_cvtsi2ss);
 			MAP(XED_ICLASS_CVTSI2SD, INST_x86_cvtsi2sd);
 			MAP(XED_ICLASS_CVTSS2SD, INST_x86_cvtss2sd);
@@ -394,10 +396,10 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_DIV, INST_x86_div);
 			MAP(XED_ICLASS_DIVSD, INST_x86_divsd);
 			MAP(XED_ICLASS_DIVSS, INST_x86_divss);
-			MAP(XED_ICLASS_EMMS, INST_x86_nop); // TODO
+//			MAP(XED_ICLASS_EMMS, INST_x86_nop); // TODO
 			MAP(XED_ICLASS_FNSTCW, INST_x86_fnstcw); // TODO
-			MAP(XED_ICLASS_FXSAVE, INST_x86_nop); // TODO
-			MAP(XED_ICLASS_FXRSTOR, INST_x86_nop); // TODO
+//			MAP(XED_ICLASS_FXSAVE, INST_x86_nop); // TODO
+//			MAP(XED_ICLASS_FXRSTOR, INST_x86_nop); // TODO
 			MAP(XED_ICLASS_IDIV, INST_x86_idiv);
 
 		// need to be careful with imul - XED encodes it as a single opcode
@@ -449,7 +451,9 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_JMP, INST_x86_jmp);
 			MAP(XED_ICLASS_LEA, INST_x86_lea);
 			MAP(XED_ICLASS_LEAVE, INST_x86_leave);
+			MAP(XED_ICLASS_MAXSS, INST_x86_maxss);
 			MAP(XED_ICLASS_MFENCE, INST_x86_nop); // TODO: think about fences and other architectures
+			MAP(XED_ICLASS_MINSS, INST_x86_minss);
 			MAP(XED_ICLASS_MOV, INST_x86_mov);
 			MAP(XED_ICLASS_MOVD, INST_x86_movd);
 			MAP(XED_ICLASS_MOVDQU, INST_x86_movdqu);
@@ -551,6 +555,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_SETNL, INST_x86_setcc);
 			MAP(XED_ICLASS_SETP, INST_x86_setcc);
 			MAP(XED_ICLASS_SETNP, INST_x86_setcc);
+			MAP(XED_ICLASS_SETS, INST_x86_setcc);
+			MAP(XED_ICLASS_SETNS, INST_x86_setcc);
 
 			MAP(XED_ICLASS_SFENCE, INST_x86_nop);
 			MAP(XED_ICLASS_SHL, INST_x86_shl);

@@ -47,6 +47,7 @@ AC_ARCH(x86)
 		bank XMM_U64 (uint64, 0, 32, 16,  2,  8,  8);
 		bank XMM_U64L(uint64, 0, 32, 16,  1,  8,  8);
 		bank XMM_U32 (uint32, 0, 32, 16,  4,  4,  4);
+		bank XMM_U32L(uint32, 0, 32, 16,  1,  4,  4);
 		bank XMM_U16 (uint16, 0, 32, 16,  8,  2,  2);
 		bank XMM_U8  (uint8,  0, 32, 16, 16,  1,  1);
 	}

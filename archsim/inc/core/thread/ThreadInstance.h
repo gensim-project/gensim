@@ -390,19 +390,43 @@ namespace archsim
 
 				bool fn___builtin_f32_is_snan(float f)
 				{
-					UNIMPLEMENTED;
+					union {
+						float x;
+						uint32_t y;
+					} u;
+					u.x = f;
+
+					return (u.y & 0x7fc00000) == 0x7fc00000;
 				}
 				bool fn___builtin_f32_is_qnan(float f)
 				{
-					UNIMPLEMENTED;
+					union {
+						float x;
+						uint32_t y;
+					} u;
+					u.x = f;
+
+					return (u.y & 0x7fc00000) == 0x7f800000;
 				}
 				bool fn___builtin_f64_is_snan(double f)
 				{
-					UNIMPLEMENTED;
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+
+					return (u.y & 0x7ff8000000000000) == 0x7ff8000000000000;
 				}
 				bool fn___builtin_f64_is_qnan(double f)
 				{
-					UNIMPLEMENTED;
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+
+					return (u.y & 0x7ff8000000000000) == 0x7ff0000000000000;
 				}
 
 				// Functions to do with manipulating state according to the architecture

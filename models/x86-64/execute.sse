@@ -23,7 +23,7 @@ execute(addss) {
 	
 	uint64 uresult = bitcast_float_u32(result);
 	
-	write_operand_sse_scalar(inst.op0, uresult);
+	write_operand_sse_scalar32(inst.op0, uresult);
 }
 
 execute(andpd) {
@@ -31,6 +31,13 @@ execute(andpd) {
 	uint64[2] op1 = read_xmm_u64(inst.op1);
 	
 	write_xmm_u64(inst.op0, op0 & op1);
+}
+
+execute(andnpd) {
+	uint64[2] op0 = read_xmm_u64(inst.op0);
+	uint64[2] op1 = read_xmm_u64(inst.op1);
+	
+	write_xmm_u64(inst.op0, op0 & (~op1));
 }
 
 execute(clflush) {	
@@ -69,14 +76,109 @@ execute(cmpsd_xmm) {
 	}
 	
 	uint64 totalresult = result ? 0xffffffffffffffffUL : 0x0000000000000000UL;
-	write_operand_sse_scalar(inst.op0, result);
+	write_operand_sse_scalar(inst.op0, totalresult);
 	
+}
+
+helper uint32 double_to_int32(double f) 
+{
+	if(__builtin_f64_is_qnan(f) || __builtin_f64_is_snan(f)) {
+		return 0x80000000;
+	}
+
+	if(f > (double)0x7fffffff) {
+		return 0x80000000;
+	} else if(f < -(double)0x7fffffff) {
+		return 0x80000000;
+	}
+	
+	return (uint32)f;
+}
+
+helper uint64 double_to_int64(double f) 
+{
+	if(__builtin_f64_is_qnan(f) || __builtin_f64_is_snan(f)) {
+		return 0x8000000000000000;
+	}
+
+	if(f > (double)0x7fffffffffffffff) {
+		return 0x8000000000000000;
+	} else if(f < -(double)0x7fffffffffffffff) {
+		return 0x8000000000000000;
+	}
+	
+	return (uint64)f;
+}
+
+helper uint64 double_to_int(double f, uint8 op_size)
+{
+	switch(op_size) {
+		case 32: { return double_to_int32(f); }
+		case 64: { return double_to_int64(f); }
+		default: { trap(); break; }
+	}
+	
+	return 0;
 }
 
 execute(cvttsd2si) {
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	double dop1 = bitcast_u64_double(op1);
-	uint64 result = dop1;
+	
+	uint64 result = double_to_int(dop1, operand_get_size(inst.op0));
+	
+	write_operand_sse_scalar(inst.op0, result);
+}
+
+helper uint32 float_to_int32(float f) 
+{
+	if(__builtin_f32_is_qnan(f) || __builtin_f32_is_snan(f)) {
+		return 0x80000000;
+	}
+
+	if(f > (float)0x7fffffff) {
+		return 0x80000000;
+	} else if(f < -(float)0x7fffffff) {
+		return 0x80000000;
+	}
+	
+	return (uint32)f;
+}
+
+helper uint64 float_to_int64(float f) 
+{
+	if(__builtin_f32_is_qnan(f) || __builtin_f32_is_snan(f)) {
+		return 0x8000000000000000;
+	}
+
+	if(f > (float)0x7fffffffffffffff) {
+		return 0x8000000000000000;
+	} else if(f < -(float)0x7fffffffffffffff) {
+		return 0x8000000000000000;
+	}
+	
+	return (uint64)f;
+}
+
+helper uint64 float_to_int(float f, uint8 op_size)
+{
+	switch(op_size) {
+		case 32: { return float_to_int32(f); }
+		case 64: { return float_to_int64(f); }
+		default: { trap(); break; }
+	}
+	
+	return 0;
+}
+
+execute(cvttss2si) {
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	float dop1 = bitcast_u32_float(op1);
+	uint64 result;
+	
+	uint8 op_size = operand_get_size(inst.op0);
+	result = float_to_int(dop1, op_size);
+	
 	write_operand_sse_scalar(inst.op0, result);
 }
 
@@ -85,18 +187,28 @@ execute(cvtsd2ss) {
 	double dop1 = bitcast_u64_double(op1);
 	float result = dop1;
 	uint64 uresult = bitcast_float_u32(result);
-	write_operand_sse_scalar(inst.op0, uresult);
+	write_operand_sse_scalar32(inst.op0, uresult);
 }
 
 execute(cvtsi2ss) {
-	sint32 op1 = read_operand_sse_scalar(inst.op1);
+	sint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	if(operand_get_size(inst.op1) == 32) {
+		op1 = sign_extend(op1, 32);
+	}
+	
 	float result = op1;
 	uint64 uresult = bitcast_float_u32(result);
-	write_operand_sse_scalar(inst.op0, uresult);
+	write_operand_sse_scalar32(inst.op0, uresult);
 }
 
 execute(cvtsi2sd) {
 	sint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	if(operand_get_size(inst.op1) == 32) {
+		op1 = sign_extend(op1, 32);
+	}
+	
 	double result = op1;
 	uint64 uresult = bitcast_double_u64(result);
 	write_operand_sse_scalar(inst.op0, uresult);
@@ -135,7 +247,35 @@ execute(divss) {
 	
 	uint64 uresult = bitcast_float_u32(result);
 	
-	write_operand_sse_scalar(inst.op0, uresult);
+	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+execute(maxss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+	
+	float result = dop0 > dop1 ? dop0 : dop1;
+	
+	uint64 uresult = bitcast_float_u32(result);
+	
+	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+execute(minss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+	
+	float result = dop0 < dop1 ? dop0 : dop1;
+	
+	uint64 uresult = bitcast_float_u32(result);
+	
+	write_operand_sse_scalar32(inst.op0, uresult);
 }
 
 execute(movd) {
@@ -185,7 +325,7 @@ execute(movq) {
 
 execute(movss) {
 	uint32 op1 = read_operand_sse_scalar(inst.op1);
-	write_operand_sse_scalar(inst.op0, op1);
+	write_operand_sse_scalar32(inst.op0, op1);
 }
 
 execute(movsd_xmm) {
@@ -231,7 +371,7 @@ execute(mulss) {
 	
 	uint64 uresult = bitcast_float_u32(result);
 	
-	write_operand_sse_scalar(inst.op0, uresult);
+	write_operand_sse_scalar32(inst.op0, uresult);
 }
 
 uint8 saturate_sw_ub(sint16 s)
@@ -695,7 +835,7 @@ execute(subss) {
 	
 	uint64 uresult = bitcast_float_u32(result);
 	
-	write_operand_sse_scalar(inst.op0, uresult);
+	write_operand_sse_scalar32(inst.op0, uresult);
 }
 
 execute(ucomisd) {
@@ -705,15 +845,20 @@ execute(ucomisd) {
 	double dop0 = bitcast_u64_double(op0);
 	double dop1 = bitcast_u64_double(op1);
 
-	if(dop0 > dop1) {
+	if(unordered(dop0, dop1)) {
+		write_zpc(1,1,1);
+	} else if(dop0 > dop1) {
 		write_zpc(0,0,0);
 	} else if(dop0 < dop1) {
 		write_zpc(0,0,1);
 	} else if(dop0 == dop1) {
 		write_zpc(1,0,0);
 	} else {
-		write_zpc(1,1,1);
+		trap();
 	}
+	write_register(OF, 0);
+	write_register(SF, 0);
+	write_register(AF, 0);
 }
 
 execute(ucomiss) {
@@ -823,6 +968,8 @@ helper uint32[4] read_xmm_u32(struct Operand &op)
 		return read_register_bank(XMM_U32, op.reg.index);
 	} else if(op.is_imm) {
 		return op.imm.value;
+	} else {
+		trap();
 	}
 	return 0;
 }
@@ -935,8 +1082,8 @@ helper uint64 read_op_reg_sse(struct Register &reg)
 {
 	switch(reg.regclass) {
 		case 1: { //XMM
-			uint64[2] vector = read_register_bank(XMM_U64, reg.index);
-			return vector[0];
+			uint64 val = read_register_bank(XMM_U64L, reg.index);
+			return val;
 		}
 		case 2: { // MMX
 			// return entire mmx register
@@ -968,11 +1115,48 @@ helper void write_operand_sse_scalar(struct Operand &op, uint64 value)
 	return;
 }
 
+helper void write_operand_sse_scalar32(struct Operand &op, uint64 value)
+{
+	if(op.is_reg) {
+		if(op.reg.regclass == 0) {
+			write_op_reg(op.reg, value);
+		} else {
+			write_op_reg_sse32(op.reg, value);
+		}
+		return;
+	} else if(op.is_mem) {
+		write_op_mem(op.memory, value);
+		return;
+	}
+	trap();
+
+	return;
+}
+
 helper void write_op_reg_sse(struct Register &reg, uint64 value)
 {
 	switch(reg.regclass) {
 		case 1: { // XMM
 			write_register_bank(XMM_U64L, reg.index, value);
+			return;
+		}
+		case 2: { // MMX
+			write_register_bank(MMX, reg.index, value);
+			return;
+		}
+		default: {
+			trap();
+			break;
+		}
+	}
+	return;
+}
+
+helper void write_op_reg_sse32(struct Register &reg, uint64 value)
+{
+	switch(reg.regclass) {
+		case 1: { // XMM
+			write_register_bank(XMM_U32L, reg.index, value);
 			return;
 		}
 		case 2: { // MMX

@@ -177,6 +177,15 @@ template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector
 	return output;
 }
 
+template<typename ElementT1, unsigned Width> archsim::Vector<ElementT1, Width> operator~(const archsim::Vector<ElementT1, Width> &v1)
+{
+	archsim::Vector<ElementT1, Width> output;
+	for(unsigned int i = 0; i < Width; ++i) {
+		output.InsertElement(i, ~v1.ExtractElement(i));
+	}
+	return output;
+}
+
 #define OPERATE(op) \
 template <typename ElementT, unsigned Width> archsim::Vector<ElementT, Width> operator op(const archsim::Vector<ElementT, Width> &v1, const archsim::Vector<ElementT, Width> &v2) { \
 	archsim::Vector<ElementT, Width> result; \

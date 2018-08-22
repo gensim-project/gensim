@@ -270,33 +270,35 @@ execute(imul1) {
 }
 
 execute(imul2) {
-	uint8 op0_size = operand_get_size(inst.op0);
+	uint8 op0_size = operand_get_size(inst.op1);
 	
 	sint128 op0 = read_operand(inst.op0);
 	sint128 op1 = read_operand(inst.op1);
 	
-	sint128 result = op0 * op1;
+	sint128 tmpxp = op0 * op1;
+	sint128 dest = zero_extend(tmpxp, op0_size);
 	
-	uint8 truncation = result != sign_extend(result, op0_size);
+	uint8 truncation = sign_extend(dest, op0_size) != tmpxp;
 	write_register(CF, truncation);
 	write_register(OF, truncation);
 		
-	write_operand(inst.op0, result);
+	write_operand(inst.op0, dest);
 }
 
 execute(imul3) {
-	uint8 op0_size = operand_get_size(inst.op0);
+	uint8 op0_size = operand_get_size(inst.op1);
 
 	sint128 op0 = read_operand(inst.op1);
 	sint128 op1 = read_operand(inst.op2);
 	
-	sint128 result = op0 * op1;
+	sint128 tmpxp = op0 * op1;
+	sint128 dest = zero_extend(tmpxp, op0_size);
 	
-	uint8 truncation = result != sign_extend(result, op0_size);
+	uint8 truncation = sign_extend(dest, op0_size) != tmpxp;
 	write_register(CF, truncation);
 	write_register(OF, truncation);
 	
-	write_operand(inst.op0, result);
+	write_operand(inst.op0, dest);
 }
 
 execute(inc) {
@@ -1430,12 +1432,13 @@ helper uint128 sign_extend128(uint128 value,uint8 width)
 }
 
 // Sign extends the given value from width bits to 64 bits
-helper uint64 sign_extend(uint64 value, uint8 width)
+helper uint128 sign_extend(uint128 value, uint8 width)
 {
 	switch(width) {
-		case 8: { value = (sint64)(sint8)value; break; }
-		case 16: { value = (sint64)(sint16)value; break; }
-		case 32: { value = (sint64)(sint32)value; break; }
+		case 8: { value = (sint128)(sint8)value; break; }
+		case 16: { value = (sint128)(sint16)value; break; }
+		case 32: { value = (sint128)(sint32)value; break; }
+		case 64: { value = (sint128)(sint64)value; break; }
 		default: { break; }
 	}
 	
@@ -1443,12 +1446,13 @@ helper uint64 sign_extend(uint64 value, uint8 width)
 }
 
 // Sign extends the given value from width bits to 64 bits
-helper uint64 zero_extend(uint64 value, uint8 width)
+helper uint128 zero_extend(uint128 value, uint8 width)
 {
 	switch(width) {
 		case 8: { value = (uint8)value; break; }
 		case 16: { value = (uint16)value; break; }
 		case 32: { value = (uint32)value; break; }
+		case 64: { value = (uint64)value; break; }
 		default: { break; }
 	}
 	

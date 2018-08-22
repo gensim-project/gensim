@@ -86,6 +86,23 @@ uint32_t getBankOf(REG reg)
 		case REG_R15B:
 			return 3;
 
+		case REG_XMM0:
+		case REG_XMM1:
+		case REG_XMM2:
+		case REG_XMM3:
+		case REG_XMM4:
+		case REG_XMM5:
+		case REG_XMM6:
+		case REG_XMM7:
+		case REG_XMM8:
+		case REG_XMM9:
+		case REG_XMM10:
+		case REG_XMM11:
+		case REG_XMM12:
+		case REG_XMM13:
+		case REG_XMM14:
+		case REG_XMM15:
+			return 7;
 		default:
 			return BANK_INVALID;
 	}
@@ -182,6 +199,25 @@ uint32_t getIndexOf(REG reg)
 		case REG_R15B:
 			return 15;
 
+
+		case REG_XMM0:
+		case REG_XMM1:
+		case REG_XMM2:
+		case REG_XMM3:
+		case REG_XMM4:
+		case REG_XMM5:
+		case REG_XMM6:
+		case REG_XMM7:
+		case REG_XMM8:
+		case REG_XMM9:
+		case REG_XMM10:
+		case REG_XMM11:
+		case REG_XMM12:
+		case REG_XMM13:
+		case REG_XMM14:
+		case REG_XMM15:
+			return reg - (int)REG_XMM0;
+
 		default:
 			return INDEX_INVALID;
 	}
@@ -198,9 +234,34 @@ VOID trace_insn(void *inst_ptr, uint32_t inst_data)
 	trace_source->Trace_Insn((uint64_t)inst_ptr, inst_data, 0, 0, 0, 0);
 }
 
-VOID trace_read_reg(uint32_t bank, uint32_t index, uint64_t value)
+VOID trace_read_reg(uint32_t bank, uint32_t index, REG reg, CONTEXT* context)
 {
-	trace_source->Trace_Bank_Reg_Read(true, bank, index, (uint64_t)value);
+	union {
+		uint64_t rval;
+		char rdata[16];
+	};
+	PIN_GetContextRegval(context, reg, (uint8_t*)&rdata);
+	int width;
+
+	switch(bank) {
+		case 0:
+			width = 8;
+			break;
+		case 1:
+			width = 4;
+			break;
+		case 2:
+			width = 2;
+			break;
+		case 3:
+			width = 1;
+			break;
+		case 7:
+			width = 16;
+			break;
+
+	}
+	trace_source->Trace_Bank_Reg_Read(true, bank, index, rdata, width);
 }
 
 VOID trace_mem_read(uint64_t addr, uint8_t width)
@@ -219,6 +280,10 @@ VOID trace_mem_read(uint64_t addr, uint8_t width)
 		case 8:
 			data = *(uint64_t*)addr;
 			break;
+		case 16:
+			trace_source->Trace_Mem_Read(0, (uint64_t)addr, *(uint64_t*)addr, width);
+			trace_source->Trace_Mem_Read(0, (uint64_t)addr+8, *(uint64_t*)(addr+8), width);
+			return;
 		default:
 			//		printf("Unknown memory access size %u\n", width);
 			//		abort();
@@ -386,7 +451,7 @@ VOID Trace(TRACE trace, VOID *v)
 			for(uint32_t i = 0; i < INS_MaxNumRRegs(ins); ++i) {
 				REG reg = INS_RegR(ins, i);
 				if(shouldTrace(reg)) {
-					INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(trace_read_reg), IARG_UINT32, getBankOf(reg), IARG_UINT32, getIndexOf(reg), IARG_REG_VALUE, reg, IARG_END);
+					INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(trace_read_reg), IARG_UINT32, getBankOf(reg), IARG_UINT32, getIndexOf(reg), IARG_UINT32, reg, IARG_CONTEXT, IARG_END);
 				}
 			}
 

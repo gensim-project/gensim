@@ -243,4 +243,7 @@ inline archsim::Address operator "" _ga(unsigned long long a)
 	return archsim::Address(a);
 }
 
+// handy for debugging
+archsim::Address _get_address(archsim::Address::underlying_t);
+
 #endif
