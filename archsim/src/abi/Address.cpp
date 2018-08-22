@@ -20,3 +20,8 @@ namespace archsim
 	}
 
 }
+
+archsim::Address _get_address(Address::underlying_t addr)
+{
+	return Address(addr);
+}

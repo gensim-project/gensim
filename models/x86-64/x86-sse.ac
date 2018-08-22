@@ -2,19 +2,19 @@ AC_ISA(x86)
 {
 	ac_format FORMAT_DUMMY_SSE = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY_SSE> addsd, addss, andpd;
-	ac_instr<FORMAT_DUMMY_SSE> clflush, cmpsd_xmm, cvtsd2ss, cvttsd2si, cvtsi2ss, cvtsi2sd, cvtss2sd;
+	ac_instr<FORMAT_DUMMY_SSE> addsd, addss, andpd, andnpd;
+	ac_instr<FORMAT_DUMMY_SSE> clflush, cmpsd_xmm, cvtsd2ss, cvttsd2si, cvttss2si, cvtsi2ss, cvtsi2sd, cvtss2sd;
 	ac_instr<FORMAT_DUMMY_SSE> divsd, divss;
-	ac_instr<FORMAT_DUMMY_SSE> movd, movdqu, movlpd, movmskpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd, mulss;
+	ac_instr<FORMAT_DUMMY_SSE> maxss, minss, movd, movdqu, movlpd, movmskpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd, mulss;
 	ac_instr<FORMAT_DUMMY_SSE> packuswb, paddb, paddd, paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pmaxub, pminub, pmovmskb, por, pslldq, psrad, psrldq, psrlq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
 	ac_instr<FORMAT_DUMMY_SSE> sqrtsd, subsd, subss;
 	ac_instr<FORMAT_DUMMY_SSE> ucomisd, ucomiss;
 	ac_instr<FORMAT_DUMMY_SSE> xorpd;
 
-	ac_behaviour addsd, addss, andpd;
-	ac_behaviour clflush, cmpsd_xmm, cvtsd2ss, cvttsd2si, cvtsi2ss, cvtsi2sd, cvtss2sd;
+	ac_behaviour addsd, addss, andpd, andnpd;
+	ac_behaviour clflush, cmpsd_xmm, cvtsd2ss, cvttsd2si, cvttss2si, cvtsi2ss, cvtsi2sd, cvtss2sd;
 	ac_behaviour divsd, divss;
-	ac_behaviour movd, movdqu, movlpd, movmskpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd, mulss;
+	ac_behaviour maxss, minss, movd, movdqu, movlpd, movmskpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd, mulss;
 	ac_behaviour packuswb, paddb, paddd,paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pmaxub, pminub, pmovmskb, por, pslldq, psrad, psrldq, psrlq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
 	ac_behaviour sqrtsd, subsd, subss;
 	ac_behaviour ucomisd, ucomiss;
@@ -30,6 +30,9 @@ AC_ISA(x86)
 		andpd.set_decoder();
 		andpd.set_behaviour(andpd);
 		
+		andnpd.set_decoder();
+		andnpd.set_behaviour(andnpd);
+		
 		clflush.set_decoder();
 		clflush.set_behaviour(clflush);
 		
@@ -41,6 +44,9 @@ AC_ISA(x86)
 		
 		cvttsd2si.set_decoder();
 		cvttsd2si.set_behaviour(cvttsd2si);
+		
+		cvttss2si.set_decoder();
+		cvttss2si.set_behaviour(cvttss2si);
 		
 		cvtsi2ss.set_decoder();
 		cvtsi2ss.set_behaviour(cvtsi2ss);
@@ -56,6 +62,12 @@ AC_ISA(x86)
 		
 		divss.set_decoder();
 		divss.set_behaviour(divss);
+		
+		maxss.set_decoder();
+		maxss.set_behaviour(maxss);
+		
+		minss.set_decoder();
+		minss.set_behaviour(minss);
 		
 		movd.set_decoder();
 		movd.set_behaviour(movd);
