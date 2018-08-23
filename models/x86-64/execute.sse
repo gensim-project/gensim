@@ -37,7 +37,7 @@ execute(andnpd) {
 	uint64[2] op0 = read_xmm_u64(inst.op0);
 	uint64[2] op1 = read_xmm_u64(inst.op1);
 	
-	write_xmm_u64(inst.op0, op0 & (~op1));
+	write_xmm_u64(inst.op0, (~op0) & op1);
 }
 
 execute(clflush) {	
@@ -262,6 +262,20 @@ execute(maxss) {
 	uint64 uresult = bitcast_float_u32(result);
 	
 	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+execute(maxsd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	double result = dop0 > dop1 ? dop0 : dop1;
+	
+	uint64 uresult = bitcast_double_u64(result);
+	
+	write_operand_sse_scalar(inst.op0, uresult);
 }
 
 execute(minss) {
@@ -879,6 +893,17 @@ execute(ucomiss) {
 	}
 }
 
+execute(unpcklpd) {
+	uint64[2] op0 = read_xmm_u64(inst.op0);
+	uint64[2] op1 = read_xmm_u64(inst.op1);
+	
+	uint64[2] result;
+	result[0] = op0[0];
+	result[1] = op1[0];
+	
+	write_xmm_u64(inst.op0, result);
+}
+
 execute(xorpd) {
 	uint64[2] op0 = read_xmm_u64(inst.op0);
 	uint64[2] op1 = read_xmm_u64(inst.op1);
@@ -968,6 +993,21 @@ helper uint32[4] read_xmm_u32(struct Operand &op)
 		return read_register_bank(XMM_U32, op.reg.index);
 	} else if(op.is_imm) {
 		return op.imm.value;
+	} else if(op.is_mem) {
+		uint64 addr = mem_get_addr(op.memory);
+		uint32 data;
+		uint32[4] output;
+		
+		mem_read_32(Data, addr, data);
+		output[0] = data;
+		mem_read_32(Data, addr+4, data);
+		output[1] = data;
+		mem_read_32(Data, addr+8, data);
+		output[2] = data;
+		mem_read_32(Data, addr+12, data);
+		output[3] = data;
+		
+		return output;
 	} else {
 		trap();
 	}
