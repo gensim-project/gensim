@@ -388,6 +388,25 @@ namespace archsim
 					UNIMPLEMENTED;
 				}
 
+				bool fn___builtin_f64_is_posinfinity(double f)
+				{
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+					return u.y == 0x7ff0000000000000;
+				}
+				bool fn___builtin_f64_is_neginfinity(double f)
+				{
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+					return u.y == 0xfff0000000000000;
+				}
+
 				bool fn___builtin_f32_is_snan(float f)
 				{
 					union {
@@ -426,7 +445,7 @@ namespace archsim
 					} u;
 					u.x = f;
 
-					return (u.y & 0x7ff8000000000000) == 0x7ff0000000000000;
+					return ((u.y & 0x7ff8000000000000) == 0x7ff0000000000000) && !fn___builtin_f64_is_posinfinity(f) && !fn___builtin_f64_is_neginfinity(f);
 				}
 
 				// Functions to do with manipulating state according to the architecture

@@ -485,8 +485,10 @@ static unsigned long sys_fstat64(archsim::core::thread::ThreadInstance* cpu, uns
 
 static unsigned long sys_fstat_x86(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned long addr)
 {
-	LC_DEBUG1(LogSyscalls) << "FSTAT fd=" << fd << ", addr=" << Address(addr);
+
 	int host_fd = translate_fd(cpu, fd);
+
+	LC_DEBUG1(LogSyscalls) << "FSTAT fd=" << fd << ", hostfd=" << host_fd << ",  addr=" << Address(addr);
 
 	struct stat statbuf;
 	int result = fstat(host_fd, &statbuf);
@@ -681,10 +683,14 @@ static unsigned long sys_lstat_x86(archsim::core::thread::ThreadInstance* cpu, u
 	auto interface = cpu->GetMemoryInterface(0);
 	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
 
+	LC_DEBUG1(LogSyscalls) << "LSTAT filename=" << filename << ", addr = " << Address(addr);
+
 	if (lstat64(filename, &st)) {
+		LC_DEBUG1(LogSyscalls) << " - returned error: " << strerror(errno);
 		return -errno;
 	}
 
+	LC_DEBUG1(LogSyscalls) << " - OK";
 	result_st.st_atim = st.st_atim;
 	result_st.st_mtim = st.st_mtim;
 	result_st.st_ctim = st.st_ctim;
@@ -763,13 +769,16 @@ static unsigned long sys_getcwd(archsim::core::thread::ThreadInstance* cpu, unsi
 		free(cwd);
 		return -errno;
 	}
+	int count = strlen(cwd);
 
-	cwd[size] = '\0';
+	LC_DEBUG1(LogSyscalls) << "GETCWD returning " << cwd;
+
+	cwd[count] = '\0';
 	auto interface = cpu->GetMemoryInterface(0);
-	interface.WriteString(Address(buffer_addr), cwd);
+	interface.Write(Address(buffer_addr), (uint8_t*)cwd, count+1);
 	free(cwd);
 
-	return 0;
+	return count + 1;
 }
 
 static unsigned long sys_arm_settls(archsim::core::thread::ThreadInstance* cpu, unsigned long addr)

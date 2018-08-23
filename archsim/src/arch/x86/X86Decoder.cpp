@@ -348,7 +348,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_AND_LOCK, INST_x86_and);
 			MAP(XED_ICLASS_ANDPD, INST_x86_andpd);
 			MAP(XED_ICLASS_ANDNPD, INST_x86_andnpd);
-			MAP(XED_ICLASS_ANDPS, INST_x86_andpd); // todo; is this really the same?
+			MAP(XED_ICLASS_ANDNPS, INST_x86_andnpd); // todo: is this really the same as andnpd
+			MAP(XED_ICLASS_ANDPS, INST_x86_andpd); // todo; is this really the same as andpd?
 			MAP(XED_ICLASS_BSF, INST_x86_bsf);
 			MAP(XED_ICLASS_BSR, INST_x86_bsr);
 			MAP(XED_ICLASS_BSWAP, INST_x86_bswap);
@@ -450,7 +451,9 @@ bool X86Decoder::DecodeClass(void* inst_)
 
 			MAP(XED_ICLASS_JMP, INST_x86_jmp);
 			MAP(XED_ICLASS_LEA, INST_x86_lea);
+			MAP(XED_ICLASS_LDMXCSR, INST_x86_nop);
 			MAP(XED_ICLASS_LEAVE, INST_x86_leave);
+			MAP(XED_ICLASS_MAXSD, INST_x86_maxsd);
 			MAP(XED_ICLASS_MAXSS, INST_x86_maxss);
 			MAP(XED_ICLASS_MFENCE, INST_x86_nop); // TODO: think about fences and other architectures
 			MAP(XED_ICLASS_MINSS, INST_x86_minss);
@@ -574,6 +577,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_TZCNT, INST_x86_tzcnt);
 			MAP(XED_ICLASS_UCOMISD, INST_x86_ucomisd);
 			MAP(XED_ICLASS_UCOMISS, INST_x86_ucomiss);
+			MAP(XED_ICLASS_UNPCKLPD, INST_x86_unpcklpd);
 			MAP(XED_ICLASS_XADD, INST_x86_xadd);
 			MAP(XED_ICLASS_XADD_LOCK, INST_x86_xadd);
 			MAP(XED_ICLASS_XCHG, INST_x86_xchg);

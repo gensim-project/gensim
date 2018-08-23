@@ -5,19 +5,19 @@ AC_ISA(x86)
 	ac_instr<FORMAT_DUMMY_SSE> addsd, addss, andpd, andnpd;
 	ac_instr<FORMAT_DUMMY_SSE> clflush, cmpsd_xmm, cvtsd2ss, cvttsd2si, cvttss2si, cvtsi2ss, cvtsi2sd, cvtss2sd;
 	ac_instr<FORMAT_DUMMY_SSE> divsd, divss;
-	ac_instr<FORMAT_DUMMY_SSE> maxss, minss, movd, movdqu, movlpd, movmskpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd, mulss;
+	ac_instr<FORMAT_DUMMY_SSE> maxss, maxsd, minss, movd, movdqu, movlpd, movmskpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd, mulss;
 	ac_instr<FORMAT_DUMMY_SSE> packuswb, paddb, paddd, paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pmaxub, pminub, pmovmskb, por, pslldq, psrad, psrldq, psrlq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
 	ac_instr<FORMAT_DUMMY_SSE> sqrtsd, subsd, subss;
-	ac_instr<FORMAT_DUMMY_SSE> ucomisd, ucomiss;
+	ac_instr<FORMAT_DUMMY_SSE> ucomisd, ucomiss, unpcklpd;
 	ac_instr<FORMAT_DUMMY_SSE> xorpd;
 
 	ac_behaviour addsd, addss, andpd, andnpd;
 	ac_behaviour clflush, cmpsd_xmm, cvtsd2ss, cvttsd2si, cvttss2si, cvtsi2ss, cvtsi2sd, cvtss2sd;
 	ac_behaviour divsd, divss;
-	ac_behaviour maxss, minss, movd, movdqu, movlpd, movmskpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd, mulss;
+	ac_behaviour maxss, maxsd, minss, movd, movdqu, movlpd, movmskpd, movhpd, movhps, movq, movsd_xmm, movss, movups, mulsd, mulss;
 	ac_behaviour packuswb, paddb, paddd,paddq, pand, pcmpeqb, pcmpeqd, pcmpgtb, pcmpgtw, pcmpgtd, pmaxub, pminub, pmovmskb, por, pslldq, psrad, psrldq, psrlq, psllq, psubb, punpcklbw, punpcklwd, punpckldq, punpckhdq, punpckhqdq, punpckhwd, punpcklqdq, pshufd, pslld, pxor;
 	ac_behaviour sqrtsd, subsd, subss;
-	ac_behaviour ucomisd, ucomiss;
+	ac_behaviour ucomisd, ucomiss, unpcklpd;
 	ac_behaviour xorpd;
 
 	ISA_CTOR(x86) {
@@ -65,6 +65,9 @@ AC_ISA(x86)
 		
 		maxss.set_decoder();
 		maxss.set_behaviour(maxss);
+
+		maxsd.set_decoder();
+		maxsd.set_behaviour(maxsd);
 		
 		minss.set_decoder();
 		minss.set_behaviour(minss);
@@ -206,6 +209,9 @@ AC_ISA(x86)
 		
 		ucomiss.set_decoder();
 		ucomiss.set_behaviour(ucomiss);
+		
+		unpcklpd.set_decoder();
+		unpcklpd.set_behaviour(unpcklpd);
 		
 		xorpd.set_decoder();
 		xorpd.set_behaviour(xorpd);

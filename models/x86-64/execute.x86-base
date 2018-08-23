@@ -28,6 +28,9 @@ execute(and) {
 	
 	uint64 result = bitwise_and(op0, op1, operand_get_size(inst.op0));
 	
+	write_register(OF, 0);
+	write_register(CF, 0);
+	
 	write_operand(inst.op0, result);
 	if(inst.lock) { mem_unlock(Data); }
 }
@@ -164,7 +167,7 @@ execute(cmp) {
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
-	subtract(op0, op1, operand_get_size(inst.op0));
+	subtract(op0, op1, 0, operand_get_size(inst.op0));
 }
 
 execute(cmpxchg) {
@@ -173,7 +176,7 @@ execute(cmpxchg) {
 	uint64 op1 = read_operand(inst.op1);
 	uint64 rax = read_reg(0, operand_get_size(inst.op0));
 	
-	if(subtract(rax, op0, operand_get_size(inst.op0)) == 0) {
+	if(subtract(rax, op0, 0, operand_get_size(inst.op0)) == 0) {
 		write_operand(inst.op0, op1);
 	} else {
 		write_reg(0, operand_get_size(inst.op0), op0);
@@ -206,7 +209,7 @@ execute(dec) {
 	uint64 op0 = read_operand(inst.op0);
 	
 	uint8 C_backup = read_register(CF);
-	write_operand(inst.op0, subtract(op0, 1, operand_get_size(inst.op0)));
+	write_operand(inst.op0, subtract(op0, 1, 0, operand_get_size(inst.op0)));
 	write_register(CF, C_backup);
 	if(inst.lock) { mem_unlock(Data); }
 }
@@ -286,15 +289,15 @@ execute(imul2) {
 }
 
 execute(imul3) {
-	uint8 op0_size = operand_get_size(inst.op1);
+	uint8 op1_size = operand_get_size(inst.op1);
 
-	sint128 op0 = read_operand(inst.op1);
-	sint128 op1 = read_operand(inst.op2);
+	sint128 op1 = read_operand(inst.op1);
+	sint128 op2 = read_operand(inst.op2);
 	
-	sint128 tmpxp = op0 * op1;
-	sint128 dest = zero_extend(tmpxp, op0_size);
+	sint128 tmpxp = op1 * op2;
+	sint128 dest = zero_extend(tmpxp, op1_size);
 	
-	uint8 truncation = sign_extend(dest, op0_size) != tmpxp;
+	uint8 truncation = sign_extend(dest, op1_size) != tmpxp;
 	write_register(CF, truncation);
 	write_register(OF, truncation);
 	
@@ -402,7 +405,7 @@ execute(neg) {
 	if(inst.lock) { mem_lock(Data); }
 	uint64 value = read_operand(inst.op0);
 	
-	value = subtract(0, value, operand_get_size(inst.op0));
+	value = subtract(0, value, 0, operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, value);
 	if(inst.lock) { mem_unlock(Data); }
@@ -426,6 +429,8 @@ execute(or) {
 	
 	uint64 result = bitwise_or(op0, op1, operand_get_size(inst.op0));
 	
+	write_register(CF, 0);
+	write_register(OF, 0);
 	write_operand(inst.op0, result);
 	if(inst.lock) { mem_unlock(Data); }
 }
@@ -460,12 +465,8 @@ execute(repe_cmpsb) {
 	if(rep_check_counter(inst)) {
 		do_cmpsb(inst);
 		rep_decrement_counter(inst); 
-		
-		if(!repe_check_condition(inst)) {
-			write_pc(read_pc() + inst.Instr_Length);
-		}
 	}
-	if(!rep_check_counter(inst)) {
+	if(!rep_check_counter(inst) || !repe_check_condition(inst)) {
 		write_pc(read_pc() + inst.Instr_Length);
 	}
 }
@@ -628,7 +629,7 @@ execute(sbb) {
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
-	uint64 result = subtract(op0, (op1 + read_register(CF)), operand_get_size(inst.op0));
+	uint64 result = subtract(op0, op1, read_register(CF), operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, result);
 	if(inst.lock) { mem_unlock(Data); }
@@ -745,7 +746,7 @@ execute(sub) {
 	uint64 op0 = read_operand(inst.op0);
 	uint64 op1 = read_operand(inst.op1);
 	
-	uint64 result = subtract(op0, op1, operand_get_size(inst.op0));
+	uint64 result = subtract(op0, op1, 0, operand_get_size(inst.op0));
 	
 	write_operand(inst.op0, result);
 	if(inst.lock) { mem_unlock(Data); }
@@ -761,6 +762,8 @@ execute(test) {
 	uint8 op_size = operand_get_size(inst.op0);
 	
 	uint64 result = bitwise_and(op0, op1, op_size);
+	write_register(CF, 0);
+	write_register(OF, 0);
 }
 
 execute(tzcnt) {
@@ -810,6 +813,9 @@ execute(xor) {
 	uint64 op2 = read_operand(inst.op1);
 	
 	uint64 result = bitwise_xor(op1, op2, operand_get_size(inst.op0));
+	
+	write_register(CF, 0);
+	write_register(OF, 0);
 	
 	write_operand(inst.op0, result);
 	if(inst.lock) { mem_unlock(Data); }
@@ -889,7 +895,7 @@ helper void do_cmpsb(struct Instruction &inst)
 	uint8 value1;
 	mem_read_8(Data, src_addr, value0);
 	mem_read_8(Data, dest_addr, value1);
-	subtract(value0, value1, 8);
+	subtract(value0, value1, 0, 8);
 
 	if(read_register(DF)) {
 		write_reg(6, 64, src_addr - 1);
@@ -966,7 +972,7 @@ helper void do_scasb(struct Instruction &inst)
 	uint8 mem;
 	mem_read_8(Data, rdi, mem);
 	
-	subtract(al, mem, 8);
+	subtract(al, mem, 0, 8);
 
 
 	if(read_register(DF)) {
@@ -1029,17 +1035,17 @@ helper void do_stosq(struct Instruction &inst)
 	return;
 }
 
-helper uint64 subtract(uint64 op0, uint64 op1, uint8 size)
+helper uint64 subtract(uint64 op0, uint64 op1, uint8 carry, uint8 size)
 {
 	op0 = sign_extend(op0, size);
 	op1 = sign_extend(op1, size);
-	sint64 result = op0 - op1;
+	sint64 result = op0 - (op1 + carry);
 	
 	switch(size) {
-		case 8: { __builtin_sbc8_flags(op0, op1, 0); break; }
-		case 16: { __builtin_sbc16_flags(op0, op1, 0); break; }
-		case 32: { __builtin_sbc_flags(op0, op1, 0); break; } 
-		case 64: { __builtin_sbc64_flags(op0, op1, 0); break; }
+		case 8: { __builtin_sbc8_flags(op0, op1, carry); break; }
+		case 16: { __builtin_sbc16_flags(op0, op1, carry); break; }
+		case 32: { __builtin_sbc_flags(op0, op1, carry); break; } 
+		case 64: { __builtin_sbc64_flags(op0, op1, carry); break; }
 		default: { trap(); }
 	}
 	
