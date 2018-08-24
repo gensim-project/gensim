@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "genC/ssa/analysis/FeatureDominanceAnalysis.h"
 #include "genC/ssa/analysis/ControlFlowGraphAnalyses.h"
 #include "genC/ssa/analysis/SSADominance.h"

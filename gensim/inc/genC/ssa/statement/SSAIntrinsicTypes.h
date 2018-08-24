@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 ENUM_ENTRY(HaltCpu)
 ENUM_ENTRY(ReadPc)
 ENUM_ENTRY(WritePc)
@@ -7,6 +9,9 @@ ENUM_ENTRY(Clz32)
 ENUM_ENTRY(Clz64)
 ENUM_ENTRY(BSwap32)
 ENUM_ENTRY(BSwap64)
+
+ENUM_ENTRY(MemLock)
+ENUM_ENTRY(MemUnlock)
 
 ENUM_ENTRY(SetCpuMode)
 ENUM_ENTRY(GetCpuMode)
@@ -47,14 +52,19 @@ ENUM_ENTRY(FloatSqrt)
 ENUM_ENTRY(DoubleAbs)
 ENUM_ENTRY(FloatAbs)
 
-ENUM_ENTRY(Adc)
+
+ENUM_ENTRY(Adc8WithFlags)
+ENUM_ENTRY(Adc16WithFlags)
 ENUM_ENTRY(AdcWithFlags)
-ENUM_ENTRY(Sbc)
-ENUM_ENTRY(SbcWithFlags)
-ENUM_ENTRY(Adc64)
 ENUM_ENTRY(Adc64WithFlags)
-ENUM_ENTRY(Sbc64)
+ENUM_ENTRY(SbcWithFlags)
+ENUM_ENTRY(Sbc8WithFlags)
+ENUM_ENTRY(Sbc16WithFlags)
 ENUM_ENTRY(Sbc64WithFlags)
+ENUM_ENTRY(Adc)
+ENUM_ENTRY(Sbc)
+ENUM_ENTRY(Adc64)
+ENUM_ENTRY(Sbc64)
 
 ENUM_ENTRY(UMULL)
 ENUM_ENTRY(UMULH)

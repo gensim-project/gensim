@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * Finalisation.h
  *
@@ -25,18 +27,19 @@ namespace captive
 			{
 
 				class LoweringContext;
-				
-				namespace x86 {
+
+				namespace x86
+				{
 					class X86LoweringContext;
 				}
-				
+
 				class Finalisation
 				{
 				public:
 					virtual ~Finalisation();
 					virtual bool Finalise(LoweringContext &context) = 0;
 				};
-				
+
 				class X86Finalisation : public Finalisation
 				{
 				public:

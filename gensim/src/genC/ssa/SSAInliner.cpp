@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "define.h"
 #include "genC/ssa/SSACloner.h"
@@ -44,7 +40,7 @@ void SSAInliner::Inline(SSACallStatement* call_site) const
 	// 1. clone all of the blocks of the callee into the caller
 	SSACloneContext ctx (caller);
 	SSACloner cloner;
-	for(auto callee_block : callee->Blocks) {
+	for(auto callee_block : callee->GetBlocks()) {
 		cloner.Clone(callee_block, caller, ctx);
 	}
 
@@ -116,7 +112,7 @@ void SSAInliner::Inline(SSACallStatement* call_site) const
 
 	// 6. replace return statements with write to return var & jump to remainder of block
 	std::vector<SSAReturnStatement *> callee_return_statements;
-	for(auto block : callee->Blocks) {
+	for(auto block : callee->GetBlocks()) {
 		for(auto stmt : block->GetStatements()) {
 			if(SSAReturnStatement *rtn = dynamic_cast<SSAReturnStatement*>(stmt)) {
 				callee_return_statements.push_back(rtn);

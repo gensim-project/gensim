@@ -1,8 +1,8 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 /*
  * genC/Parser.h
  *
  * GenSim
- * Copyright (C) University of Edinburgh.  All Rights Reserved.
  *
  * Harry Wagstaff <hwagstaf@inf.ed.ac.uk>
  * Tom Spink <tspink@inf.ed.ac.uk>
@@ -16,12 +16,14 @@
 #include <queue>
 #include <sstream>
 #include <string>
+#include <memory>
 
 #include <antlr3.h>
 
 #include "genC/ir/IRType.h"
 #include "genC/ir/IRSignature.h"
 #include "genC/ssa/statement/SSAIntrinsicStatement.h"
+#include "genC/ssa/SSATypeManager.h"
 #include "DiagnosticContext.h"
 #include "ir/IRAction.h"
 
@@ -129,18 +131,6 @@ namespace gensim
 			IntrinsicEmitterFn GetIntrinsicEmitter(const std::string& name) const;
 			IRHelperAction *GetHelper(const std::string& name) const;
 
-			inline bool HasStructType(std::string StructName)
-			{
-				return StructTypeTable.find(StructName) != StructTypeTable.end();
-			}
-
-			inline const IRStructType &GetStructType(std::string StructName) const
-			{
-				const IRType &type = StructTypeTable.at(StructName);
-				assert(type.DataType == IRType::Struct && type.BaseType.StructType != NULL);
-				return *type.BaseType.StructType;
-			}
-
 			bool Resolve();
 			void LoadIntrinsics();
 			void LoadExternalFunctions();
@@ -168,6 +158,11 @@ namespace gensim
 				return ConstantTable.at(name);
 			}
 
+			std::shared_ptr<ssa::SSATypeManager> GetTypeManager()
+			{
+				return type_manager_;
+			}
+
 			DiagnosticContext &Diag()
 			{
 				return diag_ctx;
@@ -188,7 +183,7 @@ namespace gensim
 			std::map<std::string, IRExternalAction *> ExternalTable;
 			std::map<std::string, isa::InstructionDescription*> InstructionTable;
 
-			std::map<std::string, IRType> StructTypeTable;
+			std::shared_ptr<ssa::SSATypeManager> type_manager_;
 
 			GenCContext(pANTLR3_BASE_TREE file, std::ostringstream &error_stream, gensim::arch::ArchDescription &arch);
 
@@ -206,7 +201,7 @@ namespace gensim
 			IRStatement *Parse_Statement(pANTLR3_BASE_TREE node, IRScope &containing_scope);
 			IRExpression *Parse_Expression(pANTLR3_BASE_TREE node, IRScope &containing_scope);
 
-			void Build_Inst_Struct();
+			void BuildStructTypes();
 
 			void AddIntrinsic(const std::string& name, const IRType& retty, const IRSignature::param_type_list_t& ptl, IntrinsicEmitterFn emitter, ssa::SSAIntrinsicStatement::IntrinsicType);
 			void AddExternalFunction(const std::string& name, const IRType& retty, const IRSignature::param_type_list_t& ptl);

@@ -1,11 +1,5 @@
-/*
- * genC/ssa/SSAContext.cpp
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "genC/ssa/SSABlock.h"
 #include "genC/ssa/SSABuilder.h"
 #include "genC/ssa/SSAContext.h"
@@ -105,11 +99,11 @@ const SSABlock::BlockList SSABlock::GetPredecessors() const
 	if (Parent == nullptr) return {};
 
 	BlockList predecessors;
-	for (std::list<SSABlock *>::const_iterator ci = Parent->Blocks.begin(); ci != Parent->Blocks.end(); ++ci) {
-		SSABlock::BlockList succs = (*ci)->GetSuccessors();
+	for (auto block : Parent->GetBlocks()) {
+		SSABlock::BlockList succs = block->GetSuccessors();
 		for (auto si = succs.begin(); si != succs.end(); ++si) {
 			if (*si == this) {
-				predecessors.push_back(*ci);
+				predecessors.push_back(block);
 			}
 		}
 	}
@@ -176,12 +170,12 @@ const SSAVariableWriteStatement *SSABlock::GetLastWriteTo(const SSASymbol *symbo
 	return NULL;
 }
 
-SSABlock::SSABlock(SSAContext& context, SSAFormAction &parent) : SSAValue(context, context.GetValueNamespace()), Parent(nullptr), _constness(BLOCK_ALWAYS_CONST), _type(IRTypes::Block)
+SSABlock::SSABlock(SSAContext& context, SSAFormAction &parent) : SSAValue(context, context.GetValueNamespace()), Parent(nullptr), _constness(BLOCK_ALWAYS_CONST), _type(IRTypes::Block), id_up_to_date_(false)
 {
 	parent.AddBlock(this);
 }
 
-SSABlock::SSABlock(SSABuilder &bldr) : SSAValue(bldr.Context, bldr.Context.GetValueNamespace()), _type(IRTypes::Block), Parent(nullptr), _constness(BLOCK_ALWAYS_CONST)
+SSABlock::SSABlock(SSABuilder &bldr) : SSAValue(bldr.Context, bldr.Context.GetValueNamespace()), _type(IRTypes::Block), Parent(nullptr), _constness(BLOCK_ALWAYS_CONST), id_up_to_date_(false)
 {
 	bldr.Target->AddBlock(this);
 }
@@ -197,28 +191,30 @@ std::string SSABlock::GetName() const
 
 	if (Parent == nullptr) return "(detached parent)";
 
-	int Number = 0;
-	// this is a horrible way of getting the block name every time but means we don't have to
-	// manually keep track of block naming/numbering
-	for (std::list<SSABlock *>::const_iterator ci = Parent->Blocks.begin(); ci != Parent->Blocks.end(); ++ci) {
-		if (*ci == this) break;
-		Number++;
-	}
-
-	return "b_" + std::to_string(Number);
+	return "b_" + std::to_string(GetID());
 }
 
 uint32_t SSABlock::GetID() const
 {
 	CheckDisposal();
-	uint32_t id = 0;
-	for (auto block : Parent->Blocks) {
-		if (block == this) break;
-		id++;
+
+	if(!id_up_to_date_) {
+		id_ = 0;
+		for (auto block : Parent->GetBlocks()) {
+			if (block == this) break;
+			id_++;
+		}
+		id_up_to_date_ = true;
 	}
 
-	return id;
+	return id_;
 }
+
+void SSABlock::ClearID()
+{
+	id_up_to_date_ = false;
+}
+
 
 const std::set<SSABlock *> SSABlock::GetAllPredecessors() const
 {
@@ -378,6 +374,12 @@ void SSABlock::ClearFixedness()
 	DynamicIn.clear();
 	DynamicOut.clear();
 	_constness = BLOCK_INVALID;
+
+	for(auto i : Statements) {
+		if(auto j = dynamic_cast<SSAVariableReadStatement*>(i)) {
+			j->Const = true;
+		}
+	}
 }
 
 

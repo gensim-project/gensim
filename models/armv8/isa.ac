@@ -1,0 +1,181 @@
+/*
+ * GenSim AARCH64 Model
+ *
+ * Copyright (C) University of Edinburgh 2016.  All Rights Reserved.
+ *
+ * Tom Spink <tspink@inf.ed.ac.uk>
+ */
+AC_ISA(aarch64)
+{
+	ac_fetchsize 32;
+
+	include("a64.ac");
+	include("a64-simd.ac");
+
+	ac_asm_map regx
+	{
+		"x"[0..30] = [0..30];
+		"xzr" = 31;
+	}
+
+	ac_asm_map regw
+	{
+		"w"[0..30] = [0..30];
+		"wzr" = 31;
+	}
+	
+	ac_asm_map regsx
+	{
+		"x"[0..30] = [0..30];
+		"sp" = 31;
+	}
+
+	ac_asm_map regsw
+	{
+		"w"[0..30] = [0..30];
+		"wsp" = 31;
+	}
+
+	ac_asm_map vreg
+	{
+		"v"[0..31] = [0..31];
+	}
+	
+	ac_asm_map breg
+	{
+		"b"[0..31] = [0..31];
+	}
+
+	ac_asm_map hreg
+	{
+		"h"[0..31] = [0..31];
+	}
+
+	ac_asm_map sreg
+	{
+		"s"[0..31] = [0..31];
+	}
+	
+	ac_asm_map dreg
+	{
+		"d"[0..31] = [0..31];
+	}
+
+	ac_asm_map qreg
+	{
+		"q"[0..31] = [0..31];
+	}
+	
+	ac_asm_map arrg
+	{
+		"8b" = 0;
+		"16b" = 1;
+		"4h" = 2;
+		"8h" = 3;
+		"2s" = 4;
+		"4s" = 5;
+		"2d" = 6;
+	}
+	
+	ac_asm_map cond
+	{
+		"eq" = 0;
+		"ne" = 1;
+		"cs" = 2;
+		"cc" = 3;
+		"mi" = 4;
+		"pl" = 5;
+		"vs" = 6;
+		"vc" = 7;
+		"hi" = 8;
+		"ls" = 9;
+		"ge" = 10;
+		"lt" = 11;
+		"gt" = 12;
+		"le" = 13;
+		"al" = 14;
+		"nv" = 15;
+	}
+	
+	ac_asm_map invcond
+	{
+		"ne" = 0;
+		"eq" = 1;
+		"cc" = 2;
+		"cs" = 3;
+		"pl" = 4;
+		"mi" = 5;
+		"vc" = 6;
+		"vs" = 7;
+		"ls" = 8;
+		"hi" = 9;
+		"lt" = 10;
+		"ge" = 11;
+		"le" = 12;
+		"gt" = 13;
+		"nv" = 14;
+		"al" = 15;
+	}
+	
+	ac_asm_map shifttype
+	{
+		"lsl" = 0;
+		"lsr" = 1;
+		"asr" = 2;
+		"ror" = 3;
+	}
+	
+	ac_asm_map exttype32
+	{
+		"uxtb" = 0;
+		"uxth" = 1;
+		"lsl" = 2;
+		"uxtx" = 3;
+		"sxtb" = 4;
+		"sxth" = 5;
+		"sxtw" = 6;
+		"sxtx" = 7;
+	}
+	
+	ac_asm_map exttype64
+	{
+		"uxtb" = 0;
+		"uxth" = 1;
+		"uxtw" = 2;
+		"lsl" = 3;
+		"sxtb" = 4;
+		"sxth" = 5;
+		"sxtw" = 6;
+		"sxtx" = 7;
+	}
+	
+	ac_asm_map nzcvbits
+	{
+		"" = 0;
+		"v" = 1;
+		"c" = 2;
+		"cv" = 3;
+		"z" = 4;
+		"zv" = 5;
+		"zc" = 6;
+		"zcv" = 7;
+		"n" = 8;
+		"nv" = 9;
+		"nc" = 10;
+		"ncv" = 11;
+		"nz" = 12;
+		"nzv" = 13;
+		"nzc" = 14;
+		"nzcv" = 15;
+	}
+	
+	ac_predicated "no";
+
+	ISA_CTOR(aarch64)
+	{
+		ac_behaviours("behaviours.a64");
+		ac_behaviours("behaviours.simd");
+		ac_execute("execute.a64");
+		ac_execute("execute.simd");
+	};
+};

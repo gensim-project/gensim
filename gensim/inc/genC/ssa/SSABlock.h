@@ -1,11 +1,5 @@
-/*
- * genC/ssa/SSABlock.h
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #pragma once
 
 #include "genC/ssa/SSAValue.h"
@@ -112,8 +106,9 @@ namespace gensim
 				const SSAVariableWriteStatement *GetLastWriteTo(const SSASymbol *symbol) const;
 
 				uint32_t GetID() const;
+				void ClearID();
 
-				std::string GetName() const;
+				std::string GetName() const override;
 
 				/**
 				 * Returns true if all control flow paths to this block are determinable at JIT-time
@@ -167,6 +162,9 @@ namespace gensim
 			private:
 				StatementList Statements;
 				SSAType _type;
+
+				mutable uint32_t id_;
+				mutable bool id_up_to_date_;
 
 				SSABlock() = delete;
 			};

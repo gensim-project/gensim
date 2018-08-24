@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "abi/memory/MemoryModel.h"
 #include "abi/memory/MemoryTranslationModel.h"
 #include "abi/memory/FlipperMemoryModel.h"
@@ -110,7 +112,7 @@ bool FlipperMemoryModel::GetRegionProtection(guest_addr_t addr, RegionFlags& pro
 
 guest_addr_t FlipperMemoryModel::MapAnonymousRegion(guest_size_t size, RegionFlags prot)
 {
-	return -1;
+	return Address(-1);
 }
 
 void FlipperMemoryModel::DumpRegions()

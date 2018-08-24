@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * ElfSystemEmulationModel.h
  *
@@ -41,10 +43,10 @@ namespace archsim
 			bool InstallKernelHelpers();
 			bool PrepareStack();
 
-			uint32_t binary_entrypoint;
-			uint32_t initial_sp;
+			Address binary_entrypoint;
+			Address initial_sp;
 
-			uint32_t heap_base, heap_limit, stack_base, stack_limit;
+			Address heap_base, heap_limit, stack_base, stack_limit;
 		};
 	}
 }

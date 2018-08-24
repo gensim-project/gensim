@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "abi/devices/gfx/VirtualScreen.h"
 
 #include "util/ComponentManager.h"
@@ -28,13 +30,13 @@ bool VirtualScreen::Configure(uint32_t width, uint32_t height, VirtualScreenMode
 	return true;
 }
 
-bool VirtualScreen::SetFramebufferPointer(uint32_t guest_addr)
+bool VirtualScreen::SetFramebufferPointer(Address guest_addr)
 {
 	fb_ptr = guest_addr;
 	return true;
 }
 
-bool VirtualScreen::SetPalettePointer(uint32_t guest_addr)
+bool VirtualScreen::SetPalettePointer(Address guest_addr)
 {
 	p_ptr = guest_addr;
 	return true;
@@ -71,6 +73,19 @@ bool VirtualScreen::SetPaletteEntry(uint32_t index, uint32_t data)
 
 	return true;
 }
+
+size_t VirtualScreen::GetPixelSize() const
+{
+	switch(GetMode()) {
+		case VSM_16bit:
+			return 2;
+		case VSM_RGB:
+			return 3;
+		default:
+			UNIMPLEMENTED;
+	}
+}
+
 
 NullScreen::NullScreen(std::string id, memory::MemoryModel *mem_model, System *) : VirtualScreen(id, mem_model) {}
 NullScreen::~NullScreen() {}

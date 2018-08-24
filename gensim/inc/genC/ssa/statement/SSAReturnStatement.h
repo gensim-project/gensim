@@ -1,11 +1,5 @@
-/*
- * genC/ssa/statement/SSAReturnStatement.h
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #pragma once
 
 #include "genC/ssa/statement/SSAControlFlowStatement.h"
@@ -35,12 +29,12 @@ namespace gensim
 					return false;
 				}
 
-				virtual target_list_t GetTargets()
+				virtual target_list_t GetTargets() override
 				{
 					return {};
 				}
 
-				virtual target_const_list_t GetTargets() const
+				virtual target_const_list_t GetTargets() const override
 				{
 					return {};
 				}

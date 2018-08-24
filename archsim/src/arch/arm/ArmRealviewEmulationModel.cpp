@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * arch/arm/ArmSystemEmulationModel.cpp
  */
@@ -65,7 +67,7 @@ void ArmRealviewEmulationModel::Destroy()
 bool ArmRealviewEmulationModel::InstallBootloader(archsim::abi::loader::BinaryLoader& loader)
 {
 	entry_point = loader.GetEntryPoint();
-	GetMemoryModel().Write(0, (uint8_t *)&bootloader_start, bootloader_size);
+	GetMemoryModel().Write(0_ga, (uint8_t *)&bootloader_start, bootloader_size);
 
 	return true;
 }
@@ -82,7 +84,7 @@ bool ArmRealviewEmulationModel::PrepareCore(archsim::core::thread::ThreadInstanc
 {
 	// invoke reset exception
 	core.GetArch().GetISA("arm").GetBehaviours().GetBehaviour("take_arm_exception").Invoke(&core, {0, 0});
-	
+
 	uint32_t *regs = (uint32_t *)core.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 
 	// r0 = 0
@@ -101,7 +103,7 @@ bool ArmRealviewEmulationModel::PrepareCore(archsim::core::thread::ThreadInstanc
 	}
 
 	// IP = Entry Point
-	regs[12] = entry_point;
+	regs[12] = entry_point.Get();
 
 	return true;
 }
@@ -267,7 +269,7 @@ bool ArmRealviewEmulationModel::InstallPlatformDevices()
 	devices::virtio::VirtIOBlock *vbda = new devices::virtio::VirtIOBlock(*this, *irq_controller->RegisterSource(35), Address(0x10100000), "virtio-block-a", *GetSystem().GetBlockDevice("vda"));
 	if (!HackyMMIORegisterDevice(*vbda)) return false;
 
-	
+
 //	devices::generic::net::TapInterface *tap = new devices::generic::net::TapInterface("tap0");
 //	if(tap->start()) {
 //		devices::virtio::VirtIONet *vnet = new devices::virtio::VirtIONet(*this, *irq_controller->RegisterSource(34), Address(0x10200000), "virtio-net-a", *tap, 0x020000000001ULL);
@@ -275,7 +277,7 @@ bool ArmRealviewEmulationModel::InstallPlatformDevices()
 //	} else {
 //		LC_ERROR(LogArmSystemEmulationModel) << "Could not start tap device";
 //	}
-	 
+
 
 //	WSBlockDevice *wsblock = new WSBlockDevice(*this, archsim::translate::profile::Address(0x10200000), *GetSystem().GetBlockDevice("vda"));
 //	if (!HackyMMIORegisterDevice(*wsblock)) return false;
@@ -355,20 +357,20 @@ void ArmRealviewEmulationModel::HandleSemihostingCall()
 {
 	uint32_t *regs = nullptr; //(uint32_t *)cpu->GetRegisterBankDescriptor("RB").GetBankDataStart();
 	UNIMPLEMENTED;
-	
+
 	uint32_t phys_addr = regs[1];
 	switch(regs[0]) {
 		case 3:
 			uint8_t c;
 			//cpu->translation_provider->Translate(cpu, regs[1], phys_addr, 0);
-			GetMemoryModel().Read8(phys_addr, c);
+			GetMemoryModel().Read8(Address(phys_addr), c);
 			printf("\x1b[31m%c\x1b[0m", c);
 			fflush(stdout);
 			break;
 		case 4:
 			char buffer[256];
 			//cpu->translation_provider->Translate(cpu, regs[1], phys_addr, 0);
-			GetMemoryModel().ReadString(phys_addr, buffer, sizeof(buffer));
+			GetMemoryModel().ReadString(Address(phys_addr), buffer, sizeof(buffer));
 			printf("\x1b[31m%s\x1b[0m", buffer);
 			fflush(stdout);
 			break;
@@ -418,7 +420,7 @@ ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::core::thread
 
 	auto &behaviour = cpu->GetArch().GetISA("arm").GetBehaviours().GetBehaviour("take_arm_exception");
 	behaviour.Invoke(cpu, {category, data});
-	
+
 	return archsim::abi::AbortInstruction;
 }
 
@@ -431,7 +433,7 @@ archsim::abi::ExceptionAction ArmRealviewEmulationModel::HandleMemoryFault(archs
 	}
 }
 
-void ArmRealviewEmulationModel::HandleInterrupt(archsim::core::thread::ThreadInstance *thread, CPUIRQLine *irq) 
+void ArmRealviewEmulationModel::HandleInterrupt(archsim::core::thread::ThreadInstance *thread, CPUIRQLine *irq)
 {
 	auto &behaviour = thread->GetArch().GetISA("arm").GetBehaviours().GetBehaviour("take_interrupt");
 	behaviour.Invoke(thread, {irq->Line()});

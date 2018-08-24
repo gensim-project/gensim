@@ -1,4 +1,6 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #include "libtrace/ArchInterface.h"
+#include <sstream>
 
 using namespace libtrace;
 
@@ -19,11 +21,15 @@ std::string DefaultArchInterface::DisassembleInstruction(const InstructionCodeRe
 
 std::string DefaultArchInterface::GetRegisterSlotName(int idx)
 {
-	return std::to_string(idx);
+	std::stringstream str;
+	str << idx;
+	return str.str();
 }
 std::string DefaultArchInterface::GetRegisterBankName(int idx)
 {
-	return std::to_string(idx);
+	std::stringstream str;
+	str << idx;
+	return str.str();
 }
 
 uint32_t DefaultArchInterface::GetRegisterSlotWidth(int idx)

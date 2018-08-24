@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   ArmRealviewEmulationModel.h
  * Author: harry
@@ -41,7 +43,7 @@ namespace archsim
 				bool PrepareCore(archsim::core::thread::ThreadInstance& core) override;
 
 			private:
-				uint32_t entry_point;
+				Address entry_point;
 
 				bool InstallPeripheralDevices();
 				bool InstallPlatformDevices();

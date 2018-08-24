@@ -1,8 +1,11 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "translate/Translation.h"
 #include "translate/TranslationManager.h"
 #include "translate/profile/Region.h"
 #include "translate/profile/Block.h"
 #include "util/LogContext.h"
+#include "abi/Address.h"
 
 #include <mutex>
 
@@ -11,7 +14,7 @@ UseLogContext(LogLifetime);
 
 using namespace archsim::translate::profile;
 
-Region::Region(TranslationManager& mgr, phys_addr_t phys_base_addr)
+Region::Region(TranslationManager& mgr, Address phys_base_addr)
 	:	mgr(mgr),
 	  phys_base_addr(phys_base_addr),
 	  current_generation(0),
@@ -40,24 +43,24 @@ void Region::dump()
 void Region::dump_dot()
 {
 	std::cerr << "graph {" << std::endl;;
-	
+
 	for(auto i : blocks) {
 		std::cerr << "block_" << std::hex << i.first << ";" << std::endl;
 	}
-	
+
 	for(auto i : blocks) {
 		for(auto j : i.second->GetSuccessors()) {
 			std::cerr << "block_" << std::hex << i.first << " -> block_" << std::hex << j->GetOffset() << ";" << std::endl;
 		}
 	}
-	
+
 	std::cerr << "}" << std::endl;;
 }
 
 
 Block& Region::GetBlock(Address virt_addr, uint8_t isa_mode)
 {
-	addr_t offset = virt_addr.GetPageOffset();
+	Address offset = virt_addr.PageOffset();
 
 	Block *&block = blocks[offset];
 	if (UNLIKELY(!block)) {
@@ -68,9 +71,9 @@ Block& Region::GetBlock(Address virt_addr, uint8_t isa_mode)
 	return *block;
 }
 
-void Region::EraseBlock(virt_addr_t virt_addr)
+void Region::EraseBlock(Address virt_addr)
 {
-	addr_t offset = RegionArch::PageOffsetOf(virt_addr);
+	Address offset = virt_addr.PageOffset();
 	blocks.erase(offset);
 }
 
@@ -84,8 +87,8 @@ void Region::TraceBlock(archsim::core::thread::ThreadInstance *thread, Address v
 	if (status == InTranslation)
 		return;
 
-	virtual_images.insert(virt_addr.GetPageBase());
-	block_interp_count[virt_addr.GetPageOffset()]++;
+	virtual_images.insert(virt_addr.PageBase());
+	block_interp_count[virt_addr.PageOffset()]++;
 	total_interp_count++;
 
 	mgr.TraceBlock(thread, GetBlock(virt_addr, thread->GetModeID()));
@@ -115,9 +118,10 @@ namespace archsim
 		namespace profile
 		{
 
-			std::ostream& operator<< (std::ostream& out, Region& rgn)
+			std::ostream& operator<< (std::ostream& out, const Region& rgn)
 			{
-				out << "[Region " << std::hex << rgn.phys_base_addr << "(" << &rgn << "), generation=" << std::dec << rgn.current_generation << "/" << rgn.max_generation;
+				// todo: fix lookup of Address::operator<<
+				out << "[Region " << std::hex << rgn.phys_base_addr.Get() << "(" << &rgn << "), generation=" << std::dec << rgn.current_generation << "/" << rgn.max_generation;
 
 				if (rgn.invalid_)
 					out << " INVALID";

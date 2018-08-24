@@ -1,9 +1,4 @@
-/*
- * File:   TranslationGenerator.cpp
- * Author: s0803652
- *
- * Created on 07 November 2011, 14:42
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <fstream>
 #include <sstream>

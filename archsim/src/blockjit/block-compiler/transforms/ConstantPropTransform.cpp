@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * ConstantPropTransform.cpp
  *
@@ -7,7 +9,7 @@
 
 #include "blockjit/block-compiler/transforms/Transform.h"
 
-#include "util/wutils/tick-timer.h"
+#include <wutils/tick-timer.h>
 
 #include <vector>
 #include <set>
@@ -55,7 +57,7 @@ bool ConstantPropTransform::Apply(TranslationContext &ctx)
 						constant_operands[insn->operands[1].value].value -= insn->operands[0].value;
 					}
 				}
-			} 
+			}
 		}
 
 		struct insn_descriptor &descr = insn_descriptors[insn->type];

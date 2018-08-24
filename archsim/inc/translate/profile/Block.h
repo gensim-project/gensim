@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   Block.h
  * Author: s0457958
@@ -35,14 +37,14 @@ namespace archsim
 					HasTranslation,
 				};
 
-				Block(Region& parent, addr_t offset, uint8_t isa_mode);
+				Block(Region& parent, Address offset, uint8_t isa_mode);
 
 				inline Region& GetParent() const
 				{
 					return parent;
 				}
 
-				inline addr_t GetOffset() const
+				inline Address GetOffset() const
 				{
 					return offset;
 				}
@@ -87,7 +89,7 @@ namespace archsim
 				std::vector<Block *> successors;
 				Region& parent;
 
-				addr_t offset;
+				Address offset;
 
 				BlockStatus status;
 				uint8_t isa_mode;

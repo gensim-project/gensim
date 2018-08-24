@@ -1,8 +1,5 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 
 /*
  * File:   Module.h
@@ -24,24 +21,28 @@
 namespace gensim
 {
 	class Processor;
-	
-	namespace blockjit {
+
+	namespace blockjit
+	{
 		class BaseBlockJITTranslate;
 	}
 }
 
 namespace archsim
 {
-	namespace core {
-		namespace execution {
+	namespace core
+	{
+		namespace execution
+		{
 			class ExecutionEngine;
 		}
 	}
-	
-	namespace interpret {
+
+	namespace interpret
+	{
 		class Interpreter;
 	}
-	
+
 	namespace module
 	{
 
@@ -70,32 +71,61 @@ namespace archsim
 		};
 
 		template<typename T> struct ModuleEntryTypeForClass {};
-		template<> struct ModuleEntryTypeForClass<abi::devices::Component*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Component; };
-		template<> struct ModuleEntryTypeForClass<abi::devices::MemoryComponent*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Device; };
-		template<> struct ModuleEntryTypeForClass<gensim::Processor*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Processor; };
-		template<> struct ModuleEntryTypeForClass<archsim::core::execution::ExecutionEngine*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ExecutionEngine; };
-		template<> struct ModuleEntryTypeForClass<gensim::blockjit::BaseBlockJITTranslate*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_BlockJITTranslator; };
-		template<> struct ModuleEntryTypeForClass<archsim::ArchDescriptor*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ArchDescriptor; };
-		template<> struct ModuleEntryTypeForClass<archsim::interpret::Interpreter*> { static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Interpreter; };
-		
+		template<> struct ModuleEntryTypeForClass<abi::devices::Component*> {
+			static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Component;
+		};
+		template<> struct ModuleEntryTypeForClass<abi::devices::MemoryComponent*> {
+			static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Device;
+		};
+		template<> struct ModuleEntryTypeForClass<gensim::Processor*> {
+			static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Processor;
+		};
+		template<> struct ModuleEntryTypeForClass<archsim::core::execution::ExecutionEngine*> {
+			static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ExecutionEngine;
+		};
+		template<> struct ModuleEntryTypeForClass<gensim::blockjit::BaseBlockJITTranslate*> {
+			static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_BlockJITTranslator;
+		};
+		template<> struct ModuleEntryTypeForClass<archsim::ArchDescriptor*> {
+			static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ArchDescriptor;
+		};
+		template<> struct ModuleEntryTypeForClass<archsim::interpret::Interpreter*> {
+			static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_Interpreter;
+		};
+
 		template<ModuleEntry::ModuleEntryType> struct FactoryForModuleEntry {};
-		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Component> { using factory_t = std::function<abi::devices::Component*(archsim::abi::EmulationModel&)>; };
-		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Device> { using factory_t = std::function<abi::devices::MemoryComponent*(archsim::abi::EmulationModel& model, archsim::Address base_address)>; };
-		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Processor> { using factory_t = std::function<gensim::Processor*(const std::string &name, int _core_id, archsim::util::PubSubContext* pubsub)>; };
-		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ExecutionEngine> { using factory_t = std::function<archsim::core::execution::ExecutionEngine*()>; };
-		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_BlockJITTranslator> { using factory_t = std::function<gensim::blockjit::BaseBlockJITTranslate*()>; };
-		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ArchDescriptor> { using factory_t = std::function<archsim::ArchDescriptor*()>; };
-		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Interpreter> { using factory_t = std::function<archsim::interpret::Interpreter*()>; };
-		
-		template<typename T> class TypedModuleEntry : public ModuleEntry {
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Component> {
+			using factory_t = std::function<abi::devices::Component*(archsim::abi::EmulationModel&)>;
+		};
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Device> {
+			using factory_t = std::function<abi::devices::MemoryComponent*(archsim::abi::EmulationModel& model, archsim::Address base_address)>;
+		};
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Processor> {
+			using factory_t = std::function<gensim::Processor*(const std::string &name, int _core_id, archsim::util::PubSubContext* pubsub)>;
+		};
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ExecutionEngine> {
+			using factory_t = std::function<archsim::core::execution::ExecutionEngine*()>;
+		};
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_BlockJITTranslator> {
+			using factory_t = std::function<gensim::blockjit::BaseBlockJITTranslate*()>;
+		};
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ArchDescriptor> {
+			using factory_t = std::function<archsim::ArchDescriptor*()>;
+		};
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_Interpreter> {
+			using factory_t = std::function<archsim::interpret::Interpreter*()>;
+		};
+
+		template<typename T> class TypedModuleEntry : public ModuleEntry
+		{
 		public:
 			static constexpr ModuleEntry::ModuleEntryType kEntry = ModuleEntryTypeForClass<T>::entry;
 			using factory_t = typename FactoryForModuleEntry<kEntry>::factory_t;
-			
+
 			TypedModuleEntry(const std::string &name, factory_t factory) : ModuleEntry(name, kEntry), Get(factory) { }
 			const factory_t Get;
 		};
-		
+
 		using ModuleComponentEntry = TypedModuleEntry<abi::devices::Component*>;
 		using ModuleDeviceEntry = TypedModuleEntry<abi::devices::MemoryComponent*>;
 		using ModuleProcessorEntry = TypedModuleEntry<gensim::Processor*>;
@@ -103,7 +133,7 @@ namespace archsim
 		using ModuleBlockJITTranslatorEntry = TypedModuleEntry<gensim::blockjit::BaseBlockJITTranslate*>;
 		using ModuleArchDescriptorEntry = TypedModuleEntry<archsim::ArchDescriptor*>;
 		using ModuleInterpreterEntry = TypedModuleEntry<archsim::interpret::Interpreter*>;
-		
+
 		class ModuleInfo
 		{
 		public:
@@ -117,14 +147,15 @@ namespace archsim
 
 			const ModuleEntry *GetGenericEntry(const std::string &entryname) const;
 
-			template<typename T> const T *GetEntry(const std::string &entryname) const {
+			template<typename T> const T *GetEntry(const std::string &entryname) const
+			{
 				auto generic_entry = GetGenericEntry(entryname);
 				if(generic_entry != nullptr) {
 					if(generic_entry->GetType() == T::kEntry) {
 						return (T*)generic_entry;
 					}
 				}
-				
+
 				return nullptr;
 			}
 

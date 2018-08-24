@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerTypes.h
  *
@@ -33,6 +35,7 @@ LowerType(WriteDevice)
 LowerType(ReadDevice)
 LowerType(ProbeDevice)
 LowerType(Clz)
+LowerType(BSwap)
 LowerType(Bitwise)
 LowerType(Trunc)
 LowerType(Extend)
@@ -42,6 +45,7 @@ LowerType(Shift)
 LowerType(FlushTlb)
 LowerType(FlushTlbEntry)
 LowerType(AdcFlags)
+LowerType(SbcFlags)
 LowerType(ZNFlags)
 LowerType(TakeException)
 LowerType(Verify)
@@ -81,6 +85,7 @@ LowerType(FCtrl_GetFlush)
 
 LowerType(VAddF)
 LowerType(VAddI)
+LowerType(VCmpEQI)
 LowerType(VSubF)
 LowerType(VSubI)
 LowerType(VMulF)

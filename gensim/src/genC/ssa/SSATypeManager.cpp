@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "genC/ssa/SSATypeManager.h"
 
 using namespace gensim::genc::ssa;
@@ -57,10 +59,18 @@ const SSAType& SSATypeManager::GetVoidType()
 
 void SSATypeManager::InsertStructType(const std::string& name, const SSAType& struct_type)
 {
+	if(struct_types_.count(name)) {
+		throw std::logic_error("Type manager already has a struct type called " + name);
+	}
 	struct_types_[name] = struct_type;
 }
 
 const SSAType& SSATypeManager::GetStructType(const std::string& name)
 {
 	return struct_types_.at(name);
+}
+
+bool SSATypeManager::HasStructType(const std::string& name) const
+{
+	return struct_types_.count(name);
 }

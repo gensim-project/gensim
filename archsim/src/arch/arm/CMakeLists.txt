@@ -2,6 +2,7 @@ archsim_add_sources(
 	AngelSyscallHandler.cpp
 	ARMDecodeContext.cpp
 	ArmLinuxUserEmulationModel.cpp
+	ArmDoomLinuxUserEmulationModel.cpp
 	ArmRealviewEmulationModel.cpp
 	ArmVersatileEmulationModel.cpp
 )	

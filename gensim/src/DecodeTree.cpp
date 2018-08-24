@@ -1,9 +1,4 @@
-/*
- * File:   DecodeTree.cpp
- * Author: s0803652
- *
- * Created on 28 September 2011, 14:02
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <assert.h>
 
@@ -127,7 +122,7 @@ namespace gensim
 			// if the duplicate node has no unconstrained transition, we don't need to do any merging
 			if (target.unconstrained_transition) {
 				// if the original node has no unconstrained transition, we can just move the transition over
-				if (other.unconstrained_transition)
+				if (other.unconstrained_transition) {
 					// otherwise we need to do some actual merging
 
 					// if the two unconstrained transitions are the same length, we can directly merge the unconstrained targets
@@ -148,6 +143,7 @@ namespace gensim
 						longest->Break(shortest->length);
 						MergeNodes(*longest->target, *shortest->target);
 					}
+				}
 			} else if (other.unconstrained_transition)
 				target.unconstrained_transition = other.unconstrained_transition;
 		}

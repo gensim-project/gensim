@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * IROperand.h
  *
@@ -36,13 +38,16 @@ namespace captive
 			uint16_t alloc_data : 14;
 			IRAllocationMode alloc_mode : 2;
 			IROperandType type : 4;
-			
+
 			// size in BYTES
-			uint8_t size : 4;
+			uint8_t size;
 
 			IROperand() : value(0), alloc_data(0), alloc_mode(NOT_ALLOCATED), type(NONE), size(0) { }
 
-			IROperand(IROperandType type, uint64_t value, uint8_t size) : value(value), alloc_data(0), alloc_mode(NOT_ALLOCATED), type(type), size(size) { }
+			IROperand(IROperandType type, uint64_t value, uint8_t size) : value(value), alloc_data(0), alloc_mode(NOT_ALLOCATED), type(type), size(size)
+			{
+				assert((size | (size << 1)) == (size * 3));
+			}
 
 			inline bool is_allocated() const
 			{
@@ -97,7 +102,7 @@ namespace captive
 			{
 				return IROperand(CONSTANT, value, size);
 			}
-			
+
 			static IROperand const8(uint8_t value)
 			{
 				return IROperand(CONSTANT, value, 1);
@@ -113,6 +118,10 @@ namespace captive
 			static IROperand const64(uint64_t value)
 			{
 				return IROperand(CONSTANT, value, 8);
+			}
+			static IROperand const128(uint64_t value)
+			{
+				return IROperand(CONSTANT, value, 16);
 			}
 
 			static IROperand const_float(float value)

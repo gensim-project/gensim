@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 /*
  * File:   TraceRecordStream.h
@@ -27,8 +23,8 @@ namespace libtrace
 	class RecordBufferInterface
 	{
 	public:
-		virtual Record Get(size_t i) = 0;
-		virtual size_t Size() = 0;
+		virtual bool Get(size_t i, Record &r) = 0;
+		virtual uint64_t Size() = 0;
 	};
 
 	class RecordStreamOutputInterface

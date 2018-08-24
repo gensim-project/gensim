@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/validation/SSAActionValidationPass.h"
 #include "genC/ssa/validation/SSAStatementValidationPass.h"
@@ -27,7 +23,7 @@ bool SSAValidationManager::Run(SSAFormAction* action, DiagnosticContext &ctx)
 		}
 	}
 
-	for(auto block : action->Blocks) {
+	for(auto block : action->GetBlocks()) {
 		for(auto stmt : block->GetStatements()) {
 			if(!Run(stmt, ctx)) {
 				return false;

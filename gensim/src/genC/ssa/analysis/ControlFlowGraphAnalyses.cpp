@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/analysis/ControlFlowGraphAnalyses.h"
 #include "genC/ssa/SSABlock.h"
@@ -17,7 +13,7 @@ SuccessorAnalysis::SuccessorAnalysis(const SSAFormAction* action)
 
 void SuccessorAnalysis::BuildSuccessors(const SSAFormAction* action)
 {
-	for (const auto& block : action->Blocks) {
+	for (const auto& block : action->GetBlocks()) {
 		successors_[block] = block->GetSuccessors();
 	}
 }
@@ -31,11 +27,11 @@ void PredecessorAnalysis::BuildPredecessors(const SSAFormAction* action)
 {
 	SuccessorAnalysis successors (action);
 
-	for(auto block : action->Blocks) {
+	for(auto block : action->GetBlocks()) {
 		predecessors_[block].resize(0);
 	}
 
-	for(auto block : action->Blocks) {
+	for(auto block : action->GetBlocks()) {
 		for(auto successor : successors.GetSuccessors(block)) {
 			predecessors_[successor].push_back(block);
 		}

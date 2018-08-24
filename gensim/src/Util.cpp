@@ -1,9 +1,4 @@
-/*
- * File:   Util.cpp
- * Author: s0803652
- *
- * Created on 28 September 2011, 17:36
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <string>
 #include <sstream>
@@ -13,6 +8,7 @@
 #include <antlr3.h>
 #include <string.h>
 
+#include "define.h"
 #include "Util.h"
 
 namespace gensim
@@ -85,6 +81,8 @@ namespace gensim
 					case EXPNODE_VAL:
 						str << node_val;
 						break;
+					default:
+						GASSERT(false);
 				}
 				if (subexprcount == 2)  // if we have left and right subexprs
 					str << subexprs[1]->ToString(this_str, fn_process_fn);
@@ -265,7 +263,7 @@ namespace gensim
 			return stream.str();
 		}
 
-		std::string Util::FindReplace(const std::string input, const std::string find, const std::string replace)
+		std::string Util::FindReplace(const std::string &input, const std::string &find, const std::string &replace)
 		{
 			size_t pos;
 			std::string in = std::string(input);
@@ -281,7 +279,7 @@ namespace gensim
 		size_t Util::Match(const std::string str, size_t begin, char inc, char dec)
 		{
 			int level = 0;
-			size_t pos;
+			size_t pos = 0;
 			for (std::string::const_iterator i = str.begin(); i != str.end(); ++i) {
 
 				if (begin > 0) {
@@ -373,6 +371,9 @@ namespace gensim
 							line << ':';
 							lines.push_back(line.str());
 							line.str("");
+							break;
+						} else {
+							line << *i;
 							break;
 						}
 					default:

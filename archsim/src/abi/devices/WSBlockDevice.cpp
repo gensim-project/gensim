@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "abi/devices/WSBlockDevice.h"
 #include "abi/devices/Component.h"
@@ -104,7 +100,7 @@ bool WSBlockDevice::HandleOp(uint32_t op_idx)
 bool WSBlockDevice::HandleRFH()
 {
 	host_addr_t buffer;
-	parent_model.GetMemoryModel().LockRegion(GetBaseAddress().Get()+0x1000, bopcount * bdev.GetBlockSize(), buffer);
+	parent_model.GetMemoryModel().LockRegion(GetBaseAddress()+0x1000, bopcount * bdev.GetBlockSize(), buffer);
 	bdev.ReadBlocks(bindex, bopcount, (uint8_t*)buffer);
 	return true;
 }
@@ -112,7 +108,7 @@ bool WSBlockDevice::HandleRFH()
 bool WSBlockDevice::HandleWTH()
 {
 	host_addr_t buffer;
-	parent_model.GetMemoryModel().LockRegion(GetBaseAddress().Get()+0x1000, bopcount * bdev.GetBlockSize(), buffer);
+	parent_model.GetMemoryModel().LockRegion(GetBaseAddress()+0x1000, bopcount * bdev.GetBlockSize(), buffer);
 	bdev.WriteBlocks(bindex, bopcount, (uint8_t*)buffer);
 	return true;
 }

@@ -1,15 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/* 
- * File:   ArchDescriptorGenerator.h
- * Author: harry
- *
- * Created on 12 April 2018, 09:50
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef ARCHDESCRIPTORGENERATOR_H
 #define ARCHDESCRIPTORGENERATOR_H
@@ -22,21 +11,22 @@ namespace gensim
 	namespace generator
 	{
 
-		class ArchDescriptorGenerator : public GenerationComponent {
+		class ArchDescriptorGenerator : public GenerationComponent
+		{
 		public:
 			ArchDescriptorGenerator(GenerationManager &manager);
-			
+
 			bool Generate() const override;
 			std::string GetFunction() const override;
 			const std::vector<std::string> GetSources() const override;
-			
+
 		private:
 			bool GenerateHeader(util::cppformatstream &str) const;
 			bool GenerateSource(util::cppformatstream &str) const;
-			
+
 			bool GenerateThreadInterface(util::cppformatstream &str) const;
 		};
-		
+
 	}
 }
 

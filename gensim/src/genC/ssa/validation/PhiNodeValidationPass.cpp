@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/analysis/SSADominance.h"
 #include "genC/ssa/validation/SSAActionValidationPass.h"
@@ -68,7 +64,7 @@ private:
 	std::vector<SSAPhiStatement*> GetPhiStatements(const SSAFormAction *action)
 	{
 		std::vector<SSAPhiStatement*> output;
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			for(auto stmt : block->GetStatements()) {
 				if(dynamic_cast<SSAPhiStatement*>(stmt)) {
 					output.push_back((SSAPhiStatement*)stmt);

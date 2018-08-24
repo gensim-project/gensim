@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "translate/TranslationWorkUnit.h"
 #include "translate/profile/Block.h"
 #include "translate/profile/Region.h"
@@ -70,23 +72,23 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	auto phys_device = new archsim::LegacyMemoryInterface(thread->GetEmulationModel().GetMemoryModel());
 	auto phys_interface = new archsim::MemoryInterface(thread->GetArch().GetMemoryInterfaceDescriptor().GetFetchInterface());
 	phys_interface->Connect(*phys_device);
-	
+
 	for (auto block : region.blocks) {
 		auto tbu = twu->AddBlock(*block.second, block.second->IsRootBlock());
 
 		bool end_of_block = false;
-		addr_t offset = tbu->GetOffset();
+		Address offset = tbu->GetOffset();
 		uint32_t insn_count = 0;
 
 		auto decode_ctx = twu->GetThread()->GetEmulationModel().GetNewDecodeContext(*twu->GetThread());
-		
-		while (!end_of_block && offset < profile::RegionArch::PageSize) {
+
+		while (!end_of_block && offset.Get() < profile::RegionArch::PageSize) {
 			gensim::BaseDecode *decode = thread->GetArch().GetISA(block.second->GetISAMode()).GetNewDecode();
-			
+
 			thread->GetArch().GetISA(block.second->GetISAMode()).DecodeInstr(Address(region.GetPhysicalBaseAddress() + offset), phys_interface, *decode);
-			
+
 			if(decode->Instr_Code == (uint16_t)(-1)) {
-				LC_WARNING(LogTranslate) << "Invalid Instruction at " << std::hex << (uint32_t)(region.GetPhysicalBaseAddress() + offset) <<  ", ir=" << decode->ir << ", isa mode=" << (uint32_t)block.second->GetISAMode() << " whilst building " << *twu;
+				LC_WARNING(LogTranslate) << "Invalid Instruction at " << std::hex << (uint32_t)(region.GetPhysicalBaseAddress().Get() + offset.Get()) <<  ", ir=" << decode->ir << ", isa mode=" << (uint32_t)block.second->GetISAMode() << " whilst building " << *twu;
 				delete decode;
 				delete twu;
 				return NULL;
@@ -135,7 +137,7 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	return twu;
 }
 
-TranslationBlockUnit::TranslationBlockUnit(TranslationWorkUnit& twu, addr_t offset, uint8_t isa_mode, bool entry)
+TranslationBlockUnit::TranslationBlockUnit(TranslationWorkUnit& twu, Address offset, uint8_t isa_mode, bool entry)
 	: twu(twu),
 	  offset(offset),
 	  isa_mode(isa_mode),
@@ -151,7 +153,7 @@ TranslationBlockUnit::~TranslationBlockUnit()
 
 }
 
-TranslationInstructionUnit *TranslationBlockUnit::AddInstruction(gensim::BaseDecode* decode, addr_t offset)
+TranslationInstructionUnit *TranslationBlockUnit::AddInstruction(gensim::BaseDecode* decode, Address offset)
 {
 	assert(decode);
 	auto tiu = twu.GetInstructionZone().Construct(decode, offset);
@@ -161,17 +163,18 @@ TranslationInstructionUnit *TranslationBlockUnit::AddInstruction(gensim::BaseDec
 
 void TranslationBlockUnit::GetCtrlFlowInfo(bool &direct_jump, bool &indirect_jump, int32_t &direct_offset, int32_t &fallthrough_offset) const
 {
-	uint32_t direct_target;
+	auto ji_provider = twu.GetThread()->GetArch().GetISA(twu.GetThread()->GetModeID()).GetNewJumpInfo();
+	gensim::JumpInfo info;
+	ji_provider->GetJumpInfo(&GetLastInstruction().GetDecode(), Address(0), info);
+	delete ji_provider;
 
-	auto jumpinfo = twu.GetThread()->GetArch().GetISA(twu.GetThread()->GetModeID()).GetNewJumpInfo();
-	jumpinfo->GetJumpInfo(&GetLastInstruction().GetDecode(), 0, indirect_jump, direct_jump, direct_target);
-	delete jumpinfo;
-
-	direct_offset = (int32_t)direct_target;
-	fallthrough_offset = GetLastInstruction().GetOffset() + GetLastInstruction().GetDecode().Instr_Length;
+	direct_offset = (int64_t)info.JumpTarget.Get();
+	direct_jump = !info.IsIndirect;
+	indirect_jump = info.IsIndirect;
+	fallthrough_offset = GetLastInstruction().GetOffset().Get() + GetLastInstruction().GetDecode().Instr_Length;
 }
 
-TranslationInstructionUnit::TranslationInstructionUnit(gensim::BaseDecode* decode, addr_t offset) : decode(decode), offset(offset)
+TranslationInstructionUnit::TranslationInstructionUnit(gensim::BaseDecode* decode, Address offset) : decode(decode), offset(offset)
 {
 
 }
@@ -186,7 +189,7 @@ namespace archsim
 	namespace translate
 	{
 
-		std::ostream& operator<< (std::ostream& out, TranslationWorkUnit& twu)
+		std::ostream& operator<< (std::ostream& out, const TranslationWorkUnit& twu)
 		{
 			out << "[TWU weight=" << std::dec << twu.weight << ", generation=" << twu.generation << ", " << twu.region << "]";
 			return out;

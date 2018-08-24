@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/SSABlock.h"
 #include "genC/ssa/SSAFormAction.h"
@@ -19,7 +15,7 @@ using namespace gensim::genc::ssa;
 static bool InlineOneCall(SSAFormAction &action)
 {
 	SSAInliner inliner;
-	for(SSABlock *block : action.Blocks) {
+	for(SSABlock *block : action.GetBlocks()) {
 		for(SSAStatement *statement: block->GetStatements()) {
 			SSACallStatement *call = dynamic_cast<SSACallStatement*>(statement);
 

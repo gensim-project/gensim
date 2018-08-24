@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   IRType.h
  * Author: s0803652
@@ -53,7 +55,7 @@ namespace gensim
 
 			static bool ParseType(std::string text, IRType &out);
 			static IRType Ref(const IRType &BaseType);
-			static IRType CreateStruct(const IRStructType &Type);
+			static IRType CreateStruct(const IRStructType * const Type);
 			static const IRType Resolve(BinaryOperator::EBinaryOperator op, const IRType &LHS, const IRType &RHS);
 			static const IRType &GetIntType(uint8_t width);
 
@@ -73,7 +75,7 @@ namespace gensim
 			/**
 			 * Get the size of this type in bytes
 			 */
-			uint32_t Size() const;
+			uint32_t SizeInBytes() const;
 
 			/**
 			 * If this is a vector, return the size of a single element. Otherwise, return the total size.
@@ -160,13 +162,13 @@ namespace gensim
 			}
 
 		private:
-			static IRType _UInt1(), _Int8(), _Int16(), _Int32(), _Int64(), _UInt8(), _UInt16(), _UInt32(), _UInt64(), _Void(), _Float(), _Double(), _LongDouble(), _Block(), _Function();
+			static IRType _UInt1(), _Int8(), _Int16(), _Int32(), _Int64(), _Int128(), _UInt8(), _UInt16(), _UInt32(), _UInt64(), _UInt128(), _Void(), _Float(), _Double(), _LongDouble(), _Block(), _Function();
 		};
 
 		class IRTypes
 		{
 		public:
-			static const IRType UInt1, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64, Void, Float, Double, LongDouble, Block, Function;
+			static const IRType UInt1, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, Void, Float, Double, LongDouble, Block, Function;
 		};
 
 		class IRStructType

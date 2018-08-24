@@ -1,14 +1,5 @@
-//                      Confidential Information
-//           Limited Distribution to Authorized Persons Only
-//         Copyright (C) 2011 The University of Edinburgh
-//                        All Rights Reserved
-//
-// =====================================================================
-//
-//  main -- This is the top-level source file for the command-line
-//          instruction-set simulator
-//
-// =====================================================================
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 
 #include <climits>
 #include <csignal>
@@ -106,7 +97,7 @@ static int run_simple_simulation(archsim::Session& session)
 
 	// Destroy System after simulation to clean up resources
 	simsys->Destroy();
-	
+
 	delete simsys;
 
 	return rc;
@@ -129,9 +120,9 @@ int main(int argc, char *argv[])
 	init_timer.Start();
 
 	archsim::Session session;
-	
+
 	int rc;
-	
+
 	// First thing to do is parse the command-line.  This will print out any problems
 	// with the input, so we can just exit with an error if parsing failed.
 	archsim::util::CommandLineManager command_line;
@@ -142,7 +133,10 @@ int main(int argc, char *argv[])
 
 	// Now, load modules. We still haven't initialised logging, so any messages
 	// will go to the early log.
-	session.GetModuleManager().LoadStandardModuleDirectory();
+	if(!session.GetModuleManager().LoadStandardModuleDirectory()) {
+		rc = 1;
+		goto out;
+	}
 
 
 	// By default, we only show errors;

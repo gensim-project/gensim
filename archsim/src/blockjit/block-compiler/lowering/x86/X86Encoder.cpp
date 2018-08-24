@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "blockjit/block-compiler/lowering/x86/X86Encoder.h"
 
 using namespace captive::arch::jit::lowering::x86;
@@ -6,9 +8,9 @@ namespace captive
 {
 	namespace arch
 	{
-		namespace jit 
+		namespace jit
 		{
-			namespace lowering 
+			namespace lowering
 			{
 				namespace x86
 				{
@@ -76,7 +78,7 @@ namespace captive
 					const X86Register &REG_DI (raw_regs::REG_DI);
 					const X86Register &REG_DIL (raw_regs::REG_DIL);
 
-		#define DEFINE_REGS(x) const X86Register &REG_R##x(raw_regs::REG_R##x), &REG_R##x##D(raw_regs::REG_R##x##D), &REG_R##x##W(raw_regs::REG_R##x##W), &REG_R##x##B(raw_regs::REG_R##x##B)
+#define DEFINE_REGS(x) const X86Register &REG_R##x(raw_regs::REG_R##x), &REG_R##x##D(raw_regs::REG_R##x##D), &REG_R##x##W(raw_regs::REG_R##x##W), &REG_R##x##B(raw_regs::REG_R##x##B)
 
 					DEFINE_REGS(8);
 					DEFINE_REGS(9);
@@ -90,7 +92,7 @@ namespace captive
 					const X86Register &REG_RIZ (raw_regs::REG_RIZ);
 					const X86Register &REG_RIP (raw_regs::REG_RIZ);
 
-		#undef DEFINE_REGS
+#undef DEFINE_REGS
 
 					X86VectorRegister REG_XMM0("xmm0", 16, 0, 0);
 					X86VectorRegister REG_XMM1("xmm1", 16, 1, 0);
@@ -194,6 +196,17 @@ void X86Encoder::lea(const X86Memory& addr, const X86Register& dst)
 {
 	encode_opcode_mod_rm(0x8d, dst, addr);
 }
+
+void X86Encoder::bswap(const X86Register& dst)
+{
+	if(dst.size == 2) {
+		emit8(0x66);
+	}
+	encode_rex_prefix(dst.hireg, 0, 0, dst.size == 8);
+	emit8(0x0f);
+	emit8(0xc8 + dst.raw_index);
+}
+
 
 void X86Encoder::mov(const X86Register& src, const X86Register& dst)
 {
@@ -1107,6 +1120,29 @@ void X86Encoder::adc(const X86Register& src, const X86Register& dst)
 	}
 }
 
+void X86Encoder::sbc(uint32_t src, const X86Register& dst)
+{
+	encode_arithmetic(3, src, dst);
+}
+
+void X86Encoder::sbc(const X86Memory &src, const X86Register &dst)
+{
+	if (dst.size == 1) {
+		encode_opcode_mod_rm(0x1a, dst, src);
+	} else {
+		encode_opcode_mod_rm(0x1b, dst, src);
+	}
+}
+
+void X86Encoder::sbc(const X86Register& src, const X86Register& dst)
+{
+	if(dst.size == 1) {
+		encode_opcode_mod_rm(0x18, src, dst);
+	} else {
+		encode_opcode_mod_rm(0x19, src, dst);
+	}
+}
+
 void X86Encoder::add(const X86Register& src, const X86Register& dst)
 {
 	if (src.size == 1) {
@@ -1526,7 +1562,7 @@ void X86Encoder::setcc(uint8_t v, const X86Memory& dst)
 	if(dst.base.hireg) {
 		emit8(REX_B);
 	}
-	
+
 	emit8(0x0f);
 	emit8(0x90 | (v & 0xf));
 	encode_mod_reg_rm(0, dst);
@@ -1830,7 +1866,7 @@ void X86Encoder::encode_opcode_mod_rm(uint16_t opcode, const X86Register& reg, c
 	if(rm.index.hireg) {
 		rex |= REX_X;
 	}
-	
+
 	// If we are to emit a REX prefix, do that now.
 	if (rex) {
 		emit8(rex);

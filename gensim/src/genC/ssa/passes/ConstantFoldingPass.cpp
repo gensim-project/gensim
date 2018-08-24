@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "define.h"
 #include "genC/ir/IRAction.h"
@@ -69,11 +65,11 @@ SSAConstantStatement *ConstantFoldBinaryOp(SSABinaryArithmeticStatement *binary_
 			break;
 
 		case BinaryOperator::RotateLeft:
-			val = IRConstant::ROL(lhs->Constant, rhs->Constant, binary_stmt->GetType().Size()*8).Int();
+			val = IRConstant::ROL(lhs->Constant, rhs->Constant, binary_stmt->GetType().SizeInBytes()*8).Int();
 			break;
 
 		case BinaryOperator::RotateRight:
-			val = IRConstant::ROR(lhs->Constant, rhs->Constant, binary_stmt->GetType().Size()*8).Int();
+			val = IRConstant::ROR(lhs->Constant, rhs->Constant, binary_stmt->GetType().SizeInBytes()*8).Int();
 			break;
 
 		case BinaryOperator::Bitwise_And:
@@ -189,7 +185,7 @@ public:
 	{
 		bool change_made = false;
 
-		for(auto *block : action.Blocks) {
+		for(auto *block : action.GetBlocks()) {
 
 			std::list<SSABinaryArithmeticStatement *> bin_candidates;
 			std::list<SSACastStatement *> cast_candidates;
@@ -226,7 +222,7 @@ public:
 
 			for (std::list<SSACastStatement *>::iterator i = cast_candidates.begin(); i != cast_candidates.end(); ++i) {
 				SSACastStatement *cast_stmt = *i;
-				if(cast_stmt->GetCastType() != SSACastStatement::Cast_Reinterpret) {
+				if(cast_stmt->GetCastType() != SSACastStatement::Cast_Reinterpret && cast_stmt->GetType().BaseType.PlainOldDataType != gensim::genc::IRPlainOldDataType::INT128) {
 					ConstantFoldCastOp(cast_stmt);
 					change_made = true;
 				}

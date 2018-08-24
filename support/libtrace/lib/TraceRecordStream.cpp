@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "libtrace/TraceRecordStream.h"
 
@@ -23,12 +19,18 @@ RecordBufferStreamAdaptor::~RecordBufferStreamAdaptor()
 
 Record RecordBufferStreamAdaptor::Get()
 {
-	return buffer_->Get(index_++);
+	Record r;
+	bool success = buffer_->Get(index_++, r);
+	assert(success);
+	return r;
 }
 
 Record RecordBufferStreamAdaptor::Peek()
 {
-	return buffer_->Get(index_);
+	Record r;
+	bool success = buffer_->Get(index_, r);
+	assert(success);
+	return r;
 }
 
 void RecordBufferStreamAdaptor::Skip(size_t i)
@@ -42,7 +44,7 @@ bool RecordBufferStreamAdaptor::Good()
 	return index_ < buffer_->Size();
 }
 
-TracePacketStreamAdaptor::TracePacketStreamAdaptor(RecordStreamInputInterface* input_stream) : input_stream_(input_stream), packet_ready_(false), packet_(TraceRecordPacket(TraceRecord(), {}))
+TracePacketStreamAdaptor::TracePacketStreamAdaptor(RecordStreamInputInterface* input_stream) : input_stream_(input_stream), packet_ready_(false), packet_(TraceRecordPacket(TraceRecord()))
 {
 
 }
@@ -88,6 +90,9 @@ bool TracePacketStreamAdaptor::PreparePacket()
 
 	std::vector<DataExtensionRecord> extensions;
 	for(int i = 0; i < packet_head.GetExtensionCount(); ++i) {
+		if(!input_stream_->Good()) {
+			return false;
+		}
 		Record record = input_stream_->Get();
 		DataExtensionRecord trecord = *(DataExtensionRecord*)&record;
 		extensions.push_back(trecord);

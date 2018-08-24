@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/statement/SSAIntrinsicStatement.h"
 #include "genC/ssa/statement/SSAConstantStatement.h"
@@ -51,6 +47,13 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 		case SSAIntrinsic_DoubleSqrt:
 		case SSAIntrinsic_DoubleAbs:
 			return IRTypes::Double;
+
+		case SSAIntrinsic_Adc8WithFlags:
+		case SSAIntrinsic_Sbc8WithFlags:
+			return IRTypes::UInt8;
+		case SSAIntrinsic_Adc16WithFlags:
+		case SSAIntrinsic_Sbc16WithFlags:
+			return IRTypes::UInt16;
 
 		case SSAIntrinsic_Adc:
 		case SSAIntrinsic_Sbc:

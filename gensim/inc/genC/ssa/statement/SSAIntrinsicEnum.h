@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #ifdef __DEFINE_INTRINSIC_ENUM
 
 #define ENUM_ENTRY(e) SSAIntrinsic_##e,

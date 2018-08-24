@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * BlockProfile.cpp
  *
@@ -117,9 +119,9 @@ void BlockProfile::Insert(Address address, const BlockTranslation &txln)
 {
 	// Get the page index of the address
 	LC_DEBUG2(LogBlockProfile) << "Inserting " << std::hex << address.Get() << " into the block profile";
-	
+
 	code_size_ += txln.GetSize();
-	
+
 	getProfile(address).Insert(address, txln);
 }
 

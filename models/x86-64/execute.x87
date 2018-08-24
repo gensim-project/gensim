@@ -1,0 +1,38 @@
+
+execute(fnstcw) 
+{
+	
+}
+
+execute(fld)
+{
+	uint128 value = read_operand(inst.op0);
+	push_stack(value);
+}
+
+execute(fst)
+{
+	uint128 value = read_stack();
+	write_operand(inst.op0, value);
+}
+
+execute(fstp)
+{
+	uint128 value = pop_stack();
+	write_operand(inst.op0, value);
+}
+
+void push_stack(uint128 i)
+{
+	return;
+}
+
+uint128 read_stack()
+{
+	return 0;
+}
+
+uint128 pop_stack()
+{
+	return 0;
+}

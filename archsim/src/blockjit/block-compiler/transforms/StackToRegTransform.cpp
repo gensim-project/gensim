@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "blockjit/block-compiler/transforms/Transform.h"
 
@@ -12,9 +8,9 @@ using namespace captive::arch::jit;
 using namespace captive::shared;
 using namespace captive::arch::jit::transforms;
 
-StackToRegTransform::StackToRegTransform(archsim::util::vbitset used_phys_regs) : used_phys_regs_(used_phys_regs) 
+StackToRegTransform::StackToRegTransform(wutils::vbitset<> used_phys_regs) : used_phys_regs_(used_phys_regs)
 {
-	
+
 }
 
 StackToRegTransform::~StackToRegTransform()
@@ -22,7 +18,7 @@ StackToRegTransform::~StackToRegTransform()
 
 }
 
-archsim::util::vbitset StackToRegTransform::GetUsedPhysRegs() const
+wutils::vbitset<> StackToRegTransform::GetUsedPhysRegs() const
 {
 	return used_phys_regs_;
 }
@@ -30,7 +26,7 @@ archsim::util::vbitset StackToRegTransform::GetUsedPhysRegs() const
 bool StackToRegTransform::Apply(TranslationContext& ctx)
 {
 	std::map<uint32_t, uint32_t> lowered_entries;
-	archsim::util::vbitset avail_phys_regs = used_phys_regs_;
+	wutils::vbitset<> avail_phys_regs = used_phys_regs_;
 	avail_phys_regs.invert();
 
 	for(unsigned int ir_idx = 0; ir_idx < ctx.count(); ++ir_idx) {

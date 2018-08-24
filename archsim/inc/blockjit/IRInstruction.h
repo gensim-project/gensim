@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * IRInstruction.h
  *
@@ -31,9 +33,10 @@ namespace captive
 		extern struct insn_descriptor insn_descriptors[];
 		extern size_t num_descriptors;
 
-		class IRInstruction {
+		class IRInstruction
+		{
 		public:
-			
+
 			enum IRInstructionType : uint8_t {
 				INVALID,
 
@@ -61,7 +64,10 @@ namespace captive
 				SHR,
 				SAR,
 				ROR,
+				ROL,
 				CLZ,
+				POPCNT,
+				BSWAP,
 
 				AND,
 				OR,
@@ -102,6 +108,7 @@ namespace captive
 				FLUSH_DTLB_ENTRY,
 
 				ADC_WITH_FLAGS,
+				SBC_WITH_FLAGS,
 				SET_ZN_FLAGS,
 
 				BARRIER,
@@ -119,6 +126,7 @@ namespace captive
 				FADD,
 				FSUB,
 				FSQRT,
+				FABS,
 
 				FCMP_LT,
 				FCMP_LTE,
@@ -148,20 +156,35 @@ namespace captive
 				VSUBF,
 				VMULI,
 				VMULF,
+				VORI,
+				VANDI,
+				VXORI,
+
+				VCMPEQI,
+				VCMPGTI,
+				VCMPGTEI,
 
 				_END
 			};
-			
+
 			util::FastVector<IROperand, 2> operands;
 			IRBlockId ir_block;
 			IRInstructionType type;
-			
-			const insn_descriptor &descriptor() const { return insn_descriptors[type]; }
-			void make_nop() { ir_block = NOP_BLOCK; type = NOP; operands.clear(); }
-			
+
+			const insn_descriptor &descriptor() const
+			{
+				return insn_descriptors[type];
+			}
+			void make_nop()
+			{
+				ir_block = NOP_BLOCK;
+				type = NOP;
+				operands.clear();
+			}
+
 			template<class... args> IRInstruction(IRInstructionType type, const args&... arg)
 				: type(type), operands{arg...} {}
-			
+
 			uint8_t count_operands() const
 			{
 				return operands.size();
@@ -521,6 +544,13 @@ namespace captive
 				return IRInstruction(VMULI, width, op1, op2, dest);
 			}
 
+			static IRInstruction vcmpeqi(const IROperand &width, const IROperand &op1, const IROperand &op2, const IROperand &dest)
+			{
+				assert(width.is_constant());
+
+				return IRInstruction(VCMPEQI, width, op1, op2, dest);
+			}
+
 			//
 			// Arithmetic Operations
 			//
@@ -864,41 +894,41 @@ namespace captive
 				return IRInstruction(BRANCH, cond, tt, ft);
 			}
 
-			static IRInstruction call(const IROperand &fn)
+			static IRInstruction call(const IROperand &rval, const IROperand &fn)
 			{
 				assert(fn.is_func());
 
-				return IRInstruction(CALL, fn);
+				return IRInstruction(CALL, rval, fn);
 			}
 
-			static IRInstruction call(const IROperand &fn, const IROperand &arg0)
+			static IRInstruction call(const IROperand &rval,const IROperand &fn, const IROperand &arg0)
 			{
 				assert(fn.is_func());
 				assert(arg0.is_constant() || arg0.is_vreg());
 
-				return IRInstruction(CALL, fn, arg0);
+				return IRInstruction(CALL, rval, fn, arg0);
 			}
 
-			static IRInstruction call(const IROperand &fn, const IROperand &arg0, const IROperand &arg1)
+			static IRInstruction call(const IROperand &rval,const IROperand &fn, const IROperand &arg0, const IROperand &arg1)
 			{
 				assert(fn.is_func());
 				assert(arg0.is_constant() || arg0.is_vreg());
 				assert(arg1.is_constant() || arg1.is_vreg());
 
-				return IRInstruction(CALL, fn, arg0, arg1);
+				return IRInstruction(CALL, rval, fn, arg0, arg1);
 			}
 
-			static IRInstruction call(const IROperand &fn, const IROperand &arg0, const IROperand &arg1, const IROperand &arg2)
+			static IRInstruction call(const IROperand &rval,const IROperand &fn, const IROperand &arg0, const IROperand &arg1, const IROperand &arg2)
 			{
 				assert(fn.is_func());
 				assert(arg0.is_constant() || arg0.is_vreg());
 				assert(arg1.is_constant() || arg1.is_vreg());
 				assert(arg2.is_constant() || arg2.is_vreg());
 
-				return IRInstruction(CALL, fn, arg0, arg1, arg2);
+				return IRInstruction(CALL, rval, fn, arg0, arg1, arg2);
 			}
 
-			static IRInstruction call(const IROperand &fn, const IROperand &arg0, const IROperand &arg1, const IROperand &arg2, const IROperand &arg3)
+			static IRInstruction call(const IROperand &rval,const IROperand &fn, const IROperand &arg0, const IROperand &arg1, const IROperand &arg2, const IROperand &arg3)
 			{
 				assert(fn.is_func());
 				assert(arg0.is_constant() || arg0.is_vreg());
@@ -906,10 +936,10 @@ namespace captive
 				assert(arg2.is_constant() || arg2.is_vreg());
 				assert(arg3.is_constant() || arg3.is_vreg());
 
-				return IRInstruction(CALL, fn, arg0, arg1, arg2, arg3);
+				return IRInstruction(CALL, rval, fn, arg0, arg1, arg2, arg3);
 			}
 
-			static IRInstruction call(const IROperand &fn, const IROperand &arg0, const IROperand &arg1, const IROperand &arg2, const IROperand &arg3, const IROperand &arg4)
+			static IRInstruction call(const IROperand &rval,const IROperand &fn, const IROperand &arg0, const IROperand &arg1, const IROperand &arg2, const IROperand &arg3, const IROperand &arg4)
 			{
 				assert(fn.is_func());
 				assert(arg0.is_constant() || arg0.is_vreg());
@@ -918,7 +948,7 @@ namespace captive
 				assert(arg3.is_constant() || arg3.is_vreg());
 				assert(arg4.is_constant() || arg4.is_vreg());
 
-				return IRInstruction(CALL, fn, arg0, arg1, arg2, arg3, arg4);
+				return IRInstruction(CALL, rval, fn, arg0, arg1, arg2, arg3, arg4);
 			}
 		} __packed;
 	}

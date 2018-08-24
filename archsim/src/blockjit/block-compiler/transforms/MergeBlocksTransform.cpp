@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * MergeBlocksTransform.cpp
  *
@@ -7,7 +9,7 @@
 
 #include "blockjit/block-compiler/transforms/Transform.h"
 
-#include "util/wutils/tick-timer.h"
+#include <wutils/tick-timer.h>
 
 #include <vector>
 #include <set>
@@ -56,7 +58,7 @@ bool MergeBlocksTransform::merge_block(TranslationContext &ctx, IRBlockId merge_
 
 bool MergeBlocksTransform::Apply(TranslationContext &ctx)
 {
-	tick_timer timer (0);
+	wutils::tick_timer timer (0);
 	timer.reset();
 	std::vector<IRBlockId> succs (ctx.block_count(), -1);
 	std::vector<int> pred_count (ctx.block_count(), 0);

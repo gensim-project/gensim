@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "abi/devices/arm/special/SimulatorCacheControlCoprocessor.h"
 
 #include "abi/devices/PeripheralManager.h"
@@ -6,8 +8,8 @@
 #include "abi/EmulationModel.h"
 #include "abi/SystemEmulationModel.h"
 
-#include "uarch/uArch.h"
-#include "uarch/cache/CacheGeometry.h"
+//#include "uarch/uArch.h"
+//#include "uarch/cache/CacheGeometry.h"
 #include "abi/memory/system/CacheBasedSystemMemoryModel.h"
 #include "system.h"
 
@@ -71,11 +73,11 @@ bool SimulatorCacheControlCoprocessor::access_cp0(bool is_read, uint32_t& data)
 	} else {
 		switch (rm) {
 			case 0:
-				Manager->cpu.GetEmulationModel().GetuArch().GetCacheGeometry().ResetStatistics();
+//				Manager->cpu.GetEmulationModel().GetuArch().GetCacheGeometry().ResetStatistics();
 				break;
 			case 1:
 				std::cerr << "*************************" << std::endl;
-				Manager->cpu.GetEmulationModel().GetuArch().GetCacheGeometry().PrintStatistics(std::cerr);
+//				Manager->cpu.GetEmulationModel().GetuArch().GetCacheGeometry().PrintStatistics(std::cerr);
 				std::cerr << "*************************" << std::endl;
 				break;
 			case 2: {

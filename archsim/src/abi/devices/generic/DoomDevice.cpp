@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "abi/devices/generic/DoomDevice.h"
 #include "abi/devices/PeripheralManager.h"
 #include "abi/EmulationModel.h"
@@ -67,7 +69,7 @@ bool DoomDevice::access_cp3(bool is_read, uint32_t& data)
 
 		auto &screen = *screenMan.CreateScreenInstance("Display", &Manager->GetEmulationModel()->GetMemoryModel(), &Manager->GetEmulationModel()->GetSystem());
 		screen.SetKeyboard(*this);
-		screen.SetFramebufferPointer(data);
+		screen.SetFramebufferPointer(Address(data));
 		screen.Configure(target_width, target_height, devices::gfx::VSM_RGBA8888);
 		screen.Initialise();
 	}

@@ -1,10 +1,7 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
-/* 
+
+/*
  * File:   ThreadMetrics.h
  * Author: harry
  *
@@ -20,22 +17,27 @@
 
 #include <ostream>
 
-namespace archsim {
-	namespace core {
-		namespace thread {
-			class ThreadMetrics {
+namespace archsim
+{
+	namespace core
+	{
+		namespace thread
+		{
+			class ThreadMetrics
+			{
 			public:
 				archsim::util::Counter64 InstructionCount;
-				
+
 				archsim::util::CounterTimer SelfRuntime;
 				archsim::util::CounterTimer TotalRuntime;
-				
+
 				archsim::util::Histogram PCHistogram;
 				archsim::util::Histogram OpcodeHistogram;
 				archsim::util::Histogram InstructionIRHistogram;
 			};
-			
-			class ThreadMetricPrinter {
+
+			class ThreadMetricPrinter
+			{
 			public:
 				void PrintStats(const ThreadMetrics &metrics, std::ostream &str);
 			};

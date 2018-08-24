@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   VirtIONet.h
  * Author: s0457958
@@ -22,7 +24,8 @@ namespace archsim
 		{
 			namespace virtio
 			{
-				class ConfigBlock {
+				class ConfigBlock
+				{
 				public:
 					uint8_t mac[6];
 					uint16_t status;
@@ -36,7 +39,7 @@ namespace archsim
 					uint16_t csum_start, csum_offset;
 					uint16_t num_buffers;
 				} __attribute__((packed));
-				
+
 				class VirtIONet : public VirtIO
 				{
 				public:
@@ -64,7 +67,7 @@ namespace archsim
 
 					std::mutex _receive_buffer_lock;
 					std::list<VirtIOQueueEvent*> _receive_buffers;
-					
+
 					ConfigBlock config;
 
 				};

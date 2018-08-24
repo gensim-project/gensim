@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   BinaryLoader.h
  * Author: s0457958
@@ -12,13 +14,13 @@
 #include <string>
 #include <elf.h>
 
+#include "abi/Address.h"
+
 namespace archsim
 {
 	namespace abi
 	{
 		class EmulationModel;
-		class UserEmulationModel;
-		class SystemEmulationModel;
 
 		namespace loader
 		{
@@ -31,13 +33,13 @@ namespace archsim
 
 				bool LoadBinary(std::string filename);
 
-				unsigned int GetEntryPoint();
+				Address GetEntryPoint();
 
 			protected:
 				std::string _binary_filename;
 				const char* _binary_data;
 				unsigned int _binary_size;
-				unsigned int _entry_point;
+				Address _entry_point;
 				EmulationModel& _emulation_model;
 
 				virtual bool ProcessBinary(bool load_symbols) = 0;
@@ -49,21 +51,21 @@ namespace archsim
 			class FlatBinaryLoader : public BinaryLoader
 			{
 			public:
-				FlatBinaryLoader(EmulationModel& emulation_model, uint32_t base_addr);
+				FlatBinaryLoader(EmulationModel& emulation_model, Address base_addr);
 				virtual ~FlatBinaryLoader();
 
 			protected:
 				bool ProcessBinary(bool load_symbols);
 
 			private:
-				uint32_t _base_addr;
+				Address _base_addr;
 			};
 
 			class ZImageBinaryLoader : public BinaryLoader
 			{
 			public:
-				ZImageBinaryLoader(EmulationModel& emulation_model, uint32_t base_addr, std::string symbol_map);
-				ZImageBinaryLoader(EmulationModel& emulation_model, uint32_t base_addr);
+				ZImageBinaryLoader(EmulationModel& emulation_model, Address base_addr, std::string symbol_map);
+				ZImageBinaryLoader(EmulationModel& emulation_model, Address base_addr);
 				virtual ~ZImageBinaryLoader();
 
 			protected:
@@ -72,59 +74,92 @@ namespace archsim
 			private:
 				bool LoadSymbolMap(std::string map_file);
 
-				uint32_t _base_addr;
+				Address _base_addr;
 				std::string _symbol_map;
 			};
 
-			class ElfBinaryLoader : public BinaryLoader
+			struct ElfClass32 {
+				const static int ElfClass = ELFCLASS32;
+
+				using ElfHeader = Elf32_Ehdr;
+				using PHeader = Elf32_Phdr;
+				using SHeader = Elf32_Shdr;
+				using Sym = Elf32_Sym;
+			};
+			struct ElfClass64 {
+				const static int ElfClass = ELFCLASS64;
+
+				using ElfHeader = Elf64_Ehdr;
+				using PHeader = Elf64_Phdr;
+				using SHeader = Elf64_Shdr;
+				using Sym = Elf64_Sym;
+			};
+
+			template<typename elfclass> class ElfBinaryLoader : public BinaryLoader
 			{
 			public:
-				ElfBinaryLoader(EmulationModel& emulation_model, bool load_symbols);
-				virtual ~ElfBinaryLoader() = 0;
+				ElfBinaryLoader(EmulationModel& emulation_model, bool load_symbols) : BinaryLoader(emulation_model, load_symbols), _load_bias(0_ga) {}
+				virtual ~ElfBinaryLoader() {};
+
+				Address GetProgramHeaderLocation() const
+				{
+					return _ph_loc;
+				}
+				Address GetProgramHeaderEntrySize() const
+				{
+					return Address(this->_elf_header->e_phentsize);
+				}
+				unsigned int GetProgramHeaderEntryCount() const
+				{
+					return this->_elf_header->e_phnum;
+				}
 
 			protected:
-				unsigned int _load_bias;
-				Elf32_Ehdr *_elf_header;
+				Address _load_bias;
+				Address _ph_loc;
+				typename elfclass::ElfHeader *_elf_header;
 
 				bool ProcessBinary(bool load_symbols);
 				virtual bool PrepareLoad() = 0;
-				virtual bool LoadSegment(Elf32_Phdr *segment) = 0;
+				virtual bool LoadSegment(typename elfclass::PHeader *segment) = 0;
 
 			private:
 				bool LoadSymbols();
-				bool ProcessSymbolTable(Elf32_Shdr *string_table_section, Elf32_Shdr *symbol_table_section);
+				bool ProcessSymbolTable(typename elfclass::SHeader *string_table_section, typename elfclass::SHeader *symbol_table_section);
 			};
+			template class ElfBinaryLoader<ElfClass32>;
+			template class ElfBinaryLoader<ElfClass64>;
 
-			class UserElfBinaryLoader : public ElfBinaryLoader
+			template<typename ElfClass> class UserElfBinaryLoader : public ElfBinaryLoader<ElfClass>
 			{
 			public:
-				UserElfBinaryLoader(UserEmulationModel& emulation_model, bool load_symbols);
-				~UserElfBinaryLoader();
+				UserElfBinaryLoader(EmulationModel& emulation_model, bool load_symbols) : ElfBinaryLoader<ElfClass>(emulation_model, load_symbols) {}
+				~UserElfBinaryLoader() {}
 
-				unsigned int GetInitialProgramBreak();
-
-				unsigned int GetProgramHeaderLocation();
-				unsigned int GetProgramHeaderEntrySize();
-				unsigned int GetProgramHeaderEntryCount();
+				Address GetInitialProgramBreak() const
+				{
+					return _initial_brk;
+				}
 
 			protected:
-				bool PrepareLoad();
-				bool LoadSegment(Elf32_Phdr *segment);
+				bool PrepareLoad() override;
+				bool LoadSegment(typename ElfClass::PHeader *segment) override;
 
 			private:
-				unsigned int _initial_brk;
-				unsigned int _ph_loc;
+				Address _initial_brk;
 			};
+			template class UserElfBinaryLoader<ElfClass32>;
+			template class UserElfBinaryLoader<ElfClass64>;
 
-			class SystemElfBinaryLoader : public ElfBinaryLoader
+			class SystemElfBinaryLoader : public ElfBinaryLoader<ElfClass32>
 			{
 			public:
-				SystemElfBinaryLoader(SystemEmulationModel& emulation_model, bool load_symbols);
-				~SystemElfBinaryLoader();
+				SystemElfBinaryLoader(EmulationModel& emulation_model, bool load_symbols) : ElfBinaryLoader<ElfClass32>(emulation_model, load_symbols) {}
+				~SystemElfBinaryLoader() {}
 
 			protected:
-				bool PrepareLoad();
-				bool LoadSegment(Elf32_Phdr *segment);
+				bool PrepareLoad() override;
+				bool LoadSegment(Elf32_Phdr *segment) override;
 			};
 		}
 	}

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include <genC/ssa/analysis/FeatureUseAnalysis.h>
 #include <genC/ssa/statement/SSAIntrinsicStatement.h>
 #include <genC/ssa/statement/SSAConstantStatement.h>
@@ -10,7 +12,7 @@ const std::set<const ArchFeature *> FeatureUseAnalysis::GetUsedFeatures(const SS
 {
 	std::set<const ArchFeature *> feature_set;
 
-	for (auto block : action->Blocks) {
+	for (auto block : action->GetBlocks()) {
 		for (auto stmt : block->GetStatements()) {
 			if (auto intrinsic = dynamic_cast<SSAIntrinsicStatement *>(stmt)) {
 				if (intrinsic->Type == SSAIntrinsicStatement::SSAIntrinsic_GetFeature || intrinsic->Type == SSAIntrinsicStatement::SSAIntrinsic_SetFeature) {

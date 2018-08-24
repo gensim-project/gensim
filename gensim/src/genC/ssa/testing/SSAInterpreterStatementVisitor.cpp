@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/testing/SSAInterpreterStatementVisitor.h"
 #include "genC/ssa/statement/SSAStatements.h"
@@ -186,7 +182,7 @@ void SSAInterpreterStatementVisitor::VisitBinaryArithmeticStatement(SSABinaryAri
 			break;
 
 		case RotateLeft:
-			switch(stmt.GetType().Size()) {
+			switch(stmt.GetType().SizeInBytes()) {
 				case 4:
 					result = IRConstant::ROL(lhs, rhs, 32);
 					break;
@@ -197,7 +193,7 @@ void SSAInterpreterStatementVisitor::VisitBinaryArithmeticStatement(SSABinaryAri
 					UNIMPLEMENTED;
 			}
 		case RotateRight:
-			switch(stmt.GetType().Size()) {
+			switch(stmt.GetType().SizeInBytes()) {
 				case 4:
 					result = IRConstant::ROR(lhs, rhs, 32);
 					break;
@@ -248,7 +244,7 @@ gensim::genc::IRConstant ReadElement(gensim::genc::ssa::testing::RegisterFileSta
 		double data_d;
 	};
 
-	rfile.Read(offset, type.Size(), (uint8_t*)&data_i);
+	rfile.Read(offset, type.SizeInBytes(), (uint8_t*)&data_i);
 
 	switch(type.BaseType.PlainOldDataType) {
 		case IRPlainOldDataType::FLOAT:
@@ -303,7 +299,7 @@ void SSAInterpreterStatementVisitor::VisitRegisterStatement(SSARegisterStatement
 				IRConstant vector = IRConstant::Vector(value_type.VectorWidth, GetDefault(value_type.GetElementType()));
 				for(unsigned i = 0; i < value_type.VectorWidth; ++i) {
 					vector.VPut(i, ReadElement(_machine_state.RegisterFile(), data_offset, value_type.GetElementType()));
-					data_offset += value_type.Size();
+					data_offset += value_type.SizeInBytes();
 				}
 				_vmstate.SetStatementValue(&stmt, vector);
 			} else {
@@ -533,7 +529,8 @@ void SSAInterpreterStatementVisitor::VisitPhiStatement(SSAPhiStatement& stmt)
 
 void SSAInterpreterStatementVisitor::VisitReadStructMemberStatement(SSAReadStructMemberStatement& stmt)
 {
-	_vmstate.SetStatementValue(&stmt, _machine_state.Instruction().GetField(stmt.MemberName));
+	UNIMPLEMENTED; // TODO: Fix this
+//	_vmstate.SetStatementValue(&stmt, _machine_state.Instruction().GetField(stmt.MemberName));
 	_vmstate.SetResult(Interpret_Normal);
 }
 

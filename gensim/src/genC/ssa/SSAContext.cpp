@@ -1,11 +1,5 @@
-/*
- * genC/ssa/SSAContext.cpp
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "arch/ArchDescription.h"
 #include "genC/ssa/SSAContext.h"
 #include "genC/ssa/SSAFormAction.h"
@@ -27,11 +21,17 @@ using namespace gensim;
 using namespace gensim::genc;
 using namespace gensim::genc::ssa;
 
+SSAContext::SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch) : SSAContext(isa, arch, std::shared_ptr<ssa::SSATypeManager>(new ssa::SSATypeManager()))
+{
+
+}
+
+
 /**
  * Constructs a new SSAContext, and associates it with the given architecture description.
  * @param arch The architecture description to associate the SSA context with.
  */
-SSAContext::SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch) : arch_(arch), isa_(isa), parallel_optimise_(false), test_optimise_(false)
+SSAContext::SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch, std::shared_ptr<SSATypeManager> type_manager) : arch_(arch), isa_(isa), parallel_optimise_(false), test_optimise_(false), type_manager_(type_manager)
 {
 #ifdef MULTITHREAD
 	SetParallelOptimise(true);

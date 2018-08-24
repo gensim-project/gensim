@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   gensim_decode.h
  * Author: s0803652
@@ -59,7 +61,8 @@ namespace gensim
 		BaseDecode()
 			: Instr_Code(0),
 			  Instr_Length(0),
-			  Block_Cond(false)
+			  Block_Cond(false),
+			  refs_(1)
 #ifdef ENABLE_LIMM_OPERATIONS
 			,
 			  LimmPtr(0),
@@ -174,8 +177,22 @@ namespace gensim
 		bool UsesPC;
 		bool IsPredicated;
 #endif
+		void Acquire()
+		{
+			refs_++;
+		}
+		void Release()
+		{
+			ASSERT(refs_ > 0);
+			refs_--;
+			if(refs_ == 0) {
+				delete this;
+			}
+		}
+
 	private:
 		uint32_t _predicate_info;
+		uint32_t refs_;
 #ifdef FLAG_PROPERTIES
 		uint8_t flags;
 #endif

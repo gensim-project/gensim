@@ -6,14 +6,14 @@ pipeline {
     stages {
         stage ('Build Image') {
             steps {
-                sh 'cd scripts/dockerfiles/fedora-27; docker build -t gensim-fedora-27 . '
+                sh 'cd scripts/dockerfiles/archlinux; docker build -t gensim-fedora-27 . '
             }
         }
 
         stage ('Build') {
             steps {
                 sh '''
-                docker run --rm -v `pwd`:/workspace gensim-fedora-27 bash -c "cp -r /workspace ~/gensim-repo; cd ~/gensim-repo; cp ~/gensim-repo/scripts/dockerfiles/fedora-27/archsim-config ~/gensim-repo/archsim/.config; make"
+                cd scripts/dockerfiles && sh test-dockerfile.sh fedora-27/
                 '''
             }
         }

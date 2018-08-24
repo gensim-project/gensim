@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include <cassert>
 
 #include <ctype.h>
@@ -64,7 +66,7 @@ void ConsoleBackedLogTarget::Log(const LogEvent &evt)
 	strftime(time, sizeof(time)-1, "%H:%M:%S", &tm);
 	//fprintf(file, "%s.%06ld (%s:%d) [%s] (%s) %s\n", time, evt.tv.tv_usec, evt.filename, evt.file_line_nr, log_level_text[evt.level], evt.subsystem, evt.message);
 	if(evt.level == LogEvent::LL_ERROR) {
-		fprintf(stderr, "%lu %s.%06ld [%s] (%s) %s\n", pthread_self(), time, evt.tv.tv_usec, log_level_text[evt.level], evt.subsystem.c_str(), evt.message.c_str());
+		fprintf(stdout, "%lu %s.%06ld [%s] (%s) %s\n", pthread_self(), time, evt.tv.tv_usec, log_level_text[evt.level], evt.subsystem.c_str(), evt.message.c_str());
 	} else {
 		fprintf(stdout, "%lu %s.%06ld [%s] (%s) %s\n", pthread_self(), time, evt.tv.tv_usec, log_level_text[evt.level], evt.subsystem.c_str(), evt.message.c_str());
 	}

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "abi/loader/BinaryLoader.h"
 #include "abi/EmulationModel.h"
 #include "util/LogContext.h"
@@ -45,7 +47,7 @@ bool BinaryLoader::LoadBinary(std::string filename)
 	return ProcessBinary(_load_symbols);
 }
 
-unsigned int BinaryLoader::GetEntryPoint()
+archsim::Address BinaryLoader::GetEntryPoint()
 {
 	return _entry_point;
 }

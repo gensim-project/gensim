@@ -1,8 +1,5 @@
-/**
- * generators/Captive/JITv2NodeWalker.cpp
- *
- * Tom Spink <tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "JITv2NodeWalker.h"
 #include "isa/ISADescription.h"
 #include "genC/Enums.h"
@@ -68,6 +65,8 @@ namespace gensim
 						return "emitter.const_u32(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::UInt64) {
 						return "emitter.const_u64(" + node.GetFixedValue() + ")";
+					} else if (node.Statement.GetType() == IRTypes::UInt128) {
+						return "emitter.const_u128(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::Int8) {
 						return "emitter.const_s8(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::Int16) {
@@ -76,6 +75,8 @@ namespace gensim
 						return "emitter.const_s32(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::Int64) {
 						return "emitter.const_s64(" + node.GetFixedValue() + ")";
+					} else if (node.Statement.GetType() == IRTypes::Int128) {
+						return "emitter.const_s128(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::Float) {
 						return "emitter.const_f32(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType() == IRTypes::Double) {
@@ -95,7 +96,7 @@ namespace gensim
 			static std::string operand_for_stmt(const SSAStatement& stmt)
 			{
 				if (stmt.IsFixed()) {
-					switch (stmt.GetType().Size()) {
+					switch (stmt.GetType().SizeInBytes()) {
 						case 1:
 							if (stmt.GetType().Signed) {
 								return "emitter.const_s8(CV_" + stmt.GetName() + ")";
@@ -344,42 +345,40 @@ namespace gensim
 					const SSAConstantStatement &stmt = static_cast<const SSAConstantStatement &> (this->Statement);
 
 					switch (stmt.Constant.Type()) {
-						case IRConstant::Type_Float_Double:
-						{
+						case IRConstant::Type_Float_Double: {
 							double value = stmt.Constant.Dbl();
-							
+
 							output << "double " << stmt.GetName() << ";";
-									
+
 							output << "{";
 							output << "uint64_t __tmp = " << *(uint64_t *)&value << ";";
 							output << stmt.GetName() << " = *(double *)&__tmp;";
-							output << "}";							
-							
+							output << "}";
+
 							break;
 						}
-						
-						case IRConstant::Type_Float_Single:
-						{
+
+						case IRConstant::Type_Float_Single: {
 							float value = stmt.Constant.Flt();
-							
+
 							output << "float " << stmt.GetName() << ";";
-									
+
 							output << "{";
 							output << "uint32_t __tmp = " << *(uint32_t *)&value << ";";
 							output << stmt.GetName() << " = *(float *)&__tmp;";
-							output << "}";							
-							
+							output << "}";
+
 							break;
 						}
-						
+
 						case IRConstant::Type_Integer:
 						case IRConstant::Type_Vector:
 							break;
-						
+
 						default:
 							throw std::logic_error("Unsupported conversion constant type: " + std::to_string(stmt.Constant.Type()));
 					}
-					
+
 					return true;
 				}
 
@@ -389,7 +388,7 @@ namespace gensim
 
 					switch (stmt.Constant.Type()) {
 						case IRConstant::Type_Integer:
-							output << "auto " << Statement.GetName() << " = emitter.const_" << (Statement.GetType().Signed ? "s" : "u") << (Statement.GetType().Size() * 8) << "(" << stmt.Constant.Int() << ");";
+							output << "auto " << Statement.GetName() << " = emitter.const_" << (Statement.GetType().Signed ? "s" : "u") << (Statement.GetType().SizeInBytes() * 8) << "(" << stmt.Constant.Int() << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
@@ -456,9 +455,9 @@ namespace gensim
 							output << "emitter.reinterpret(" << operand_for_node(*expr) << ", " << type_for_statement(Statement) << ");";
 						} else {
 							// TODO: Make sure that the specified cast type matches what the sizes are talking about below
-							if (Statement.GetType().Size() < Statement.Expr()->GetType().Size()) {
+							if (Statement.GetType().SizeInBytes() < Statement.Expr()->GetType().SizeInBytes()) {
 								output << "emitter.truncate(" << operand_for_node(*expr) << ", " << type_for_statement(Statement) << ");";
-							} else if (Statement.GetType().Size() == Statement.Expr()->GetType().Size()) {
+							} else if (Statement.GetType().SizeInBytes() == Statement.Expr()->GetType().SizeInBytes()) {
 								if (Statement.GetType().Signed != Statement.Expr()->GetType().Signed) {
 									// Class a sign-change as a re-interpretation
 									output << "emitter.reinterpret(" << operand_for_node(*expr) << ", " << type_for_statement(Statement) << ");";
@@ -466,7 +465,7 @@ namespace gensim
 									// HMMMMMMM this probably should be a copy
 									output << "(dbt::el::Value *)" << operand_for_node(*expr) << ";";
 								}
-							} else if (Statement.GetType().Size() > Statement.Expr()->GetType().Size()) {
+							} else if (Statement.GetType().SizeInBytes() > Statement.Expr()->GetType().SizeInBytes()) {
 								//Otherwise we need to sign extend
 								if (Statement.GetType().Signed)
 									output << "emitter.sx(" << operand_for_node(*expr) << ", " << type_for_statement(Statement) << ");";
@@ -644,6 +643,9 @@ namespace gensim
 							output << "emitter.call(__captive_set_cpu_mode, " << operand_for_node(*arg0) << ");\n";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_Trap:
+							output << "emitter.raise(emitter.const_u8(0));";
+							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
 							output << "emitter.raise(emitter.const_u8(0));";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
@@ -905,7 +907,7 @@ namespace gensim
 					SSANodeWalker *address = Factory.GetOrCreate(Statement.Addr());
 
 					output << "auto " << Statement.GetName() << " = emitter.load_memory(" << operand_for_node(*address) << ", " << type_for_symbol(*Statement.Target()) << ");";
-					
+
 					output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_stmt(Statement) << ");";
 
 					output << "if (TRACE) {";
@@ -945,7 +947,7 @@ namespace gensim
 					output << "}";
 
 					output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
-					
+
 					return true;
 				}
 			};
@@ -974,7 +976,7 @@ namespace gensim
 						output << "u";
 					}
 
-					switch (Statement.GetType().Size()) {
+					switch (Statement.GetType().SizeInBytes()) {
 						case 1:
 							output << "8";
 							break;
@@ -991,7 +993,7 @@ namespace gensim
 							assert(false);
 					}
 
-					output << "(insn." << Statement.MemberName << ");";
+					output << "(insn" << Statement.FormatMembers() << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 					if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
 						output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
@@ -1005,17 +1007,11 @@ namespace gensim
 					const SSAReadStructMemberStatement &stmt = static_cast<const SSAReadStructMemberStatement &> (this->Statement);
 					std::stringstream str;
 
-					if (stmt.Index != -1)
-						str << "((uint32_t *)(";
-
-					if (stmt.MemberName == "IsPredicated") {
+					if (stmt.MemberNames.at(0) == "IsPredicated") {
 						str << "insn.is_predicated";
 					} else {
-						str << "insn" << "." << stmt.MemberName;
+						str << "insn" << stmt.FormatMembers();
 					}
-
-					if (stmt.Index != -1)
-						str << "))[" << stmt.Index << "]";
 
 					return str.str();
 				}
@@ -1105,7 +1101,7 @@ namespace gensim
 					output << "emitter.trace(dbt::el::TraceEvent::STORE_REGISTER, emitter.const_u32(" << offset << "), " << operand_for_node(*Value) << ", emitter.const_u8(" << register_width << "));";
 					output << "}";
 
-					if (Value->Statement.GetType().Size() > register_width) {
+					if (Value->Statement.GetType().SizeInBytes() > register_width) {
 						output << "{";
 						output << "IRRegId tmp = ctx.alloc_reg(" << slot->GetIRType().GetCaptiveType() << ");";
 						output << "ctx.add_instruction(IRInstruction::trunc(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, " << slot->GetIRType().GetCaptiveType() << ")));";
@@ -1113,7 +1109,7 @@ namespace gensim
 						output << "}";
 
 						output << "emitter.store_register(emitter.const_u32(" << offset << "), emitter.trunc(" << operand_for_node(*Value) << ", emitter.context().types()." << slot->GetIRType().GetUnifiedType() << "()));";
-					} else if (Value->Statement.GetType().Size() < register_width) {
+					} else if (Value->Statement.GetType().SizeInBytes() < register_width) {
 						assert(false);
 					} else {
 						output << "emitter.store_register(emitter.const_u32(" << offset << "), " << operand_for_node(*Value) << ");";
@@ -1390,11 +1386,11 @@ namespace gensim
 
 					if (Statement.Parent->Parent->HasDynamicDominatedReads(&Statement)) {
 						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_node(*expr) << ");";
-								
-								/*emitter.const_"
-						       << (Statement.Target()->GetType().IsFloating() ? "f" : (Statement.Target()->GetType().Signed ? "s" : "u"))
-						       << (uint32_t) (Statement.Target()->GetType().Size() * 8)
-						       << "(CV_" << Statement.Target()->GetName() << "));";*/
+
+						/*emitter.const_"
+						<< (Statement.Target()->GetType().IsFloating() ? "f" : (Statement.Target()->GetType().Signed ? "s" : "u"))
+						<< (uint32_t) (Statement.Target()->GetType().Size() * 8)
+						<< "(CV_" << Statement.Target()->GetName() << "));";*/
 					}
 
 					return true;
@@ -1406,9 +1402,9 @@ namespace gensim
 
 					SSANodeWalker *value_node = Factory.GetOrCreate(Statement.Expr());
 
-					if (Statement.Target()->GetType().Size() > value_node->Statement.GetType().Size()) {
+					if (Statement.Target()->GetType().SizeInBytes() > value_node->Statement.GetType().SizeInBytes()) {
 						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", emitter.zx(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << "));";
-					} else if (Statement.Target()->GetType().Size() < value_node->Statement.GetType().Size()) {
+					} else if (Statement.Target()->GetType().SizeInBytes() < value_node->Statement.GetType().SizeInBytes()) {
 						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", emitter.truncate(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << "));";
 					} else {
 						output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_node(*value_node) << ");";
@@ -1450,13 +1446,13 @@ namespace gensim
 					const SSACallStatement &Statement = static_cast<const SSACallStatement &> (this->Statement);
 
 					//assert(Statement.GetArgs().size() < 4);
-					
+
 					if (Statement.Target()->GetPrototype().GetIRSignature().HasReturnValue()) {
 						output << "auto " << Statement.GetName() << " = ";
 					}
 
 					auto callTargetName = Statement.Target()->GetPrototype().GetIRSignature().GetName();
-					
+
 					output << "emitter.call((void *)&__captive_" << callTargetName;
 
 					for (unsigned argIndex = 0; argIndex < Statement.ArgCount(); argIndex++) {
@@ -1468,7 +1464,7 @@ namespace gensim
 					}
 
 					output << ");\n";
-					
+
 					return true;
 				}
 			};
@@ -1726,13 +1722,13 @@ namespace gensim
 							break;
 
 						case SSAUnaryOperator::OP_NEGATE: {
-							if (stmt.GetType().Size() == 1) {
+							if (stmt.GetType().SizeInBytes() == 1) {
 								output << "auto " << stmt.GetName() << " = emitter.cmp_eq(" << operand_for_node(*Factory.GetOrCreate(stmt.Expr())) << ", emitter.const_u8(0));";
 							} else {
 								output << "dbt::el::Value *" << stmt.GetName() << ";";
 								output << "{";
 								output << "auto tmp = emitter.cmp_eq(" << operand_for_node(*Factory.GetOrCreate(stmt.Expr())) << ", emitter.const_u";
-								output << (uint32_t) (stmt.GetType().Size() * 8) << "(0));";
+								output << (uint32_t) (stmt.GetType().SizeInBytes() * 8) << "(0));";
 								output << stmt.GetName() << " = emitter.zx(tmp, " << type_for_statement(stmt) << ");";
 								output << "}";
 							}

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   SyscallHandler.h
  * Author: s0457958
@@ -18,8 +20,10 @@ namespace gensim
 
 namespace archsim
 {
-	namespace core {
-		namespace thread {
+	namespace core
+	{
+		namespace thread
+		{
 			class ThreadInstance;
 		}
 	}
@@ -31,7 +35,7 @@ namespace archsim
 		namespace user
 		{
 
-			typedef unsigned int (*SYSCALL_FN_GENERIC)(archsim::core::thread::ThreadInstance*, unsigned int...);
+			typedef unsigned long (*SYSCALL_FN_GENERIC)(archsim::core::thread::ThreadInstance*, unsigned long...);
 			typedef std::string arch_descriptor_t;
 
 			class SyscallHandler;
@@ -71,7 +75,7 @@ namespace archsim
 				};
 			};
 
-#define DEFINE_SYSCALL(arch, nr, fn, dbg) archsim::abi::user::SyscallRegistration __syscall_##fn##_##nr(arch, nr, (archsim::abi::user::SYSCALL_FN_GENERIC)fn, dbg)
+#define DEFINE_SYSCALL(arch, nr, fn, dbg) archsim::abi::user::SyscallRegistration __syscall_##arch##_##nr(#arch, nr, (archsim::abi::user::SYSCALL_FN_GENERIC)fn, dbg)
 		}
 	}
 }

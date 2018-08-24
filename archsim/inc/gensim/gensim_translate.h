@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   gensim_translate.h
  * Author: s0803652
@@ -9,6 +11,7 @@
 #define _GENSIM_TRANSLATE_H
 
 #include "../define.h"
+#include "../abi/Address.h"
 #include "gensim_decode.h"
 
 #include <string>
@@ -38,11 +41,20 @@ namespace gensim
 {
 	class Processor;
 
-	class BaseJumpInfo
+	class JumpInfo
 	{
 	public:
-		virtual ~BaseJumpInfo() {}
-		virtual void GetJumpInfo(const gensim::BaseDecode *instr, uint32_t pc, bool &indirect_jump, bool &direct_jump, uint32_t &jump_target) {}
+		bool IsJump;
+		bool IsIndirect;
+		bool IsConditional;
+		archsim::Address JumpTarget;
+	};
+
+	class BaseJumpInfoProvider
+	{
+	public:
+		virtual ~BaseJumpInfoProvider() {}
+		virtual void GetJumpInfo(const gensim::BaseDecode *instr, archsim::Address pc, JumpInfo &info) {}
 	};
 
 	class BaseTranslate

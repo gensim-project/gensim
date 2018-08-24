@@ -1,11 +1,5 @@
-/*
- * genC/ssa/statement/SSAVectorExtractElementStatement.h
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #pragma once
 
 #include "genC/ssa/statement/SSAStatement.h"
@@ -24,7 +18,7 @@ namespace gensim
 
 				virtual void PrettyPrint(std::ostringstream &) const override;
 				virtual std::set<SSASymbol *> GetKilledVariables() override;
-				virtual bool IsFixed() const;
+				virtual bool IsFixed() const override;
 				bool HasSideEffects() const override;
 
 				void Accept(SSAStatementVisitor& visitor) override;

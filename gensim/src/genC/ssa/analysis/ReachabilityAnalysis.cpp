@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/analysis/ReachabilityAnalysis.h"
 #include "genC/ssa/SSABlock.h"
@@ -21,7 +17,7 @@ std::set<SSABlock*> ReachabilityAnalysis::GetReachable(const SSAFormAction& acti
 std::set<SSABlock*> ReachabilityAnalysis::GetReachable(const SSAFormAction& action, const std::set<SSABlock*>& reachability_sources)
 {
 	std::map<SSABlock*, bool> is_block_reachable;
-	for(auto i : action.Blocks) {
+	for(auto i : action.GetBlocks()) {
 		is_block_reachable[i] = reachability_sources.count(i);
 	}
 

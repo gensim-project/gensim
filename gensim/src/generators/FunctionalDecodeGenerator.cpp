@@ -1,9 +1,4 @@
-/*
- * File:   FunctionalDecodeGenerator.cpp
- * Author: s0803652
- *
- * Created on 28 September 2011, 12:15
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "define.h"
 #include "generators/FunctionalDecodeGenerator.h"
@@ -69,6 +64,8 @@ namespace gensim
 			header_str << "class " << GetProperty("class") << " : public gensim::BaseDecode\n{\n";
 
 			header_str << "public:\n";
+
+			header_str << "  using Instruction = " << GetProperty("class") << ";";
 
 			header_str << "//Built in fields\n";
 			// header_str << "\t" << GetProperty("class") << "_Enum\tInstr_Code;\n";
@@ -398,9 +395,9 @@ namespace gensim
 
 			// recursively emit decode statements for the tree
 			source_str << "DecodeInstr(instr, _isa_mode);"
-					   "return 0;";
+			           "return 0;";
 			source_str << "}";
-			
+
 
 			source_str << "void " << GetProperty("class") << "::DecodeInstr(uint32_t instr, uint8_t _isa_mode)\n{\n";
 
@@ -463,8 +460,10 @@ namespace gensim
 		bool FunctionalDecodeGenerator::GenerateDecodeLeaf(const isa::ISADescription &isa, const isa::InstructionDescription &insn, util::cppformatstream &stream) const
 		{
 			// Make sure that all of the inequality decode constraints are satisfied
-			for (const auto &constraint : insn.Decode_Constraints.front()) {
-				if (constraint.Type == isa::InstructionDescription::Constraint_NotEquals) stream << "// should make sure that " << constraint.Field << " != " << constraint.Value << std::endl;
+			if(insn.Decode_Constraints.size()) {
+				for (const auto &constraint : insn.Decode_Constraints.front()) {
+					if (constraint.Type == isa::InstructionDescription::Constraint_NotEquals) stream << "// should make sure that " << constraint.Field << " != " << constraint.Value << std::endl;
+				}
 			}
 
 			// finish decoding the instruction fields
@@ -510,9 +509,10 @@ namespace gensim
 				for (std::map<uint8_t, std::list<DecodeTransition> >::reverse_iterator group = sorted_transitions.rbegin(); group != sorted_transitions.rend(); ++group) {
 					std::list<DecodeTransition> &list = group->second;
 
+					uint32_t bits = Architecture.GetMaxInstructionSize();
 					// figure out which bits of the instruction code we should be looking at
-					uint32_t low_bit = (Architecture.wordsize - tree.start_ptr - group->first);
-					uint32_t high_bit = (Architecture.wordsize - 1 - tree.start_ptr);
+					uint32_t low_bit = (bits - tree.start_ptr - group->first);
+					uint32_t high_bit = (bits - 1 - tree.start_ptr);
 
 					stream << "switch(";
 

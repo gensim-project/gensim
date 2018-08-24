@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * ElfSystemEmulationModel.cpp
  *
@@ -27,10 +29,10 @@ using namespace archsim::abi;
 
 ElfSystemEmulationModel::ElfSystemEmulationModel() : initial_sp(0)
 {
-	heap_base = 0x20000000;
-	heap_limit = 0x30000000;
-	stack_base = 0x50000000;
-	stack_limit = 0x40000000;
+	heap_base = Address(0x20000000);
+	heap_limit = Address(0x30000000);
+	stack_base = Address(0x50000000);
+	stack_limit = Address(0x40000000);
 }
 
 ElfSystemEmulationModel::~ElfSystemEmulationModel()
@@ -45,7 +47,7 @@ bool ElfSystemEmulationModel::Initialise(System &system, archsim::uarch::uArch &
 		return false;
 
 	// Initialise "physical memory".
-	GetMemoryModel().GetMappingManager()->MapRegion(0, 0xffff0000, (archsim::abi::memory::RegionFlags)7, "phys-mem");
+	GetMemoryModel().GetMappingManager()->MapRegion(Address(0), 0xffff0000, (archsim::abi::memory::RegionFlags)7, "phys-mem");
 
 	return true;
 }
@@ -110,13 +112,13 @@ bool ElfSystemEmulationModel::PrepareCore(archsim::core::thread::ThreadInstance 
 
 	// Load r12 with the entry-point to the binary being executed.
 	uint32_t *regs = (uint32_t *)cpu.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
-	regs[12] = binary_entrypoint;
+	regs[12] = binary_entrypoint.Get();
 
 	LC_DEBUG1(LogElfSystemEmulationModel) << "Initial SP: " << std::hex << initial_sp;
 
 	// Load sp with the top of the stack.
 	regs = (uint32_t *)cpu.GetRegisterFileInterface().GetEntry<uint32_t>("RB");
-	regs[13] = initial_sp;
+	regs[13] = initial_sp.Get();
 
 	return true;
 }
@@ -167,7 +169,7 @@ bool ElfSystemEmulationModel::InstallBootloader(std::string filename)
 
 bool ElfSystemEmulationModel::PrepareStack()
 {
-	initial_sp = 0xc0000000 + STACK_SIZE;
+	initial_sp = Address(0xc0000000 + STACK_SIZE);
 
 	return true;
 }
@@ -176,7 +178,7 @@ bool ElfSystemEmulationModel::InstallKernelHelpers()
 {
 	LC_DEBUG1(LogElfSystemEmulationModel) << "Initialising ARM Kernel Helpers";
 
-	memory::guest_addr_t kernel_helper_region = 0xffff0000;
+	memory::guest_addr_t kernel_helper_region = Address(0xffff0000);
 	GetMemoryModel().GetMappingManager()->MapRegion(kernel_helper_region, 0x4000, (memory::RegionFlags)(memory::RegFlagRead), "[eabi]");
 
 	return true;

@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/SSABlock.h"
 #include "genC/ssa/SSAFormAction.h"
@@ -31,8 +27,7 @@ public:
 
 		while (block_changed) {
 			block_changed = false;
-			for (std::list<SSABlock *>::iterator b_i = action.Blocks.begin(); b_i != action.Blocks.end(); ++b_i) {
-				SSABlock *b = *b_i;
+			for (auto b : action.GetBlocks()) {
 				// A block can be merged with its successor if it has one successor, and that block has
 				// only one predecessor. The successor cannot be the entry block (since that has an
 				// additional implicit predecessor) or the block we started with (self loop)

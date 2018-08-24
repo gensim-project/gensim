@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "define.h"
 #include "genC/Intrinsics.h"
 #include "genC/Parser.h"
@@ -103,9 +105,9 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 	if(mem_interface_read == nullptr) {
 		throw std::logic_error("First argument of mem intrinsic must be a constant memory interface ID");
 	}
-	
+
 	auto mem_interface_id = call->GetScope().GetContainingAction().Context.GetConstant(mem_interface_read->Symbol->GetLocalName()).second;
-	
+
 	SSAStatement *addr = call->Args[1]->EmitSSAForm(bldr);
 	if (addr->GetType() != wordtype) {
 		const auto& dn = addr->GetDiag();
@@ -117,7 +119,7 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 	if(interface == nullptr) {
 		throw std::logic_error("could not find an interface with id " + std::to_string(mem_interface_id));
 	}
-	
+
 	if (is_memory_write) {
 		SSAStatement *value = call->Args[2]->EmitSSAForm(bldr);
 		if (value->GetType() != data_type) {
@@ -284,6 +286,9 @@ void GenCContext::LoadIntrinsics()
 	AddIntrinsic("mem_write_32", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRTypes::UInt32)}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 	AddIntrinsic("mem_write_64", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRTypes::UInt64)}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 
+	AddIntrinsic("mem_lock", IRTypes::Void, {IRParam("interface", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemLock);
+	AddIntrinsic("mem_unlock", IRTypes::Void, {IRParam("interface", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemUnlock);
+
 //	AddIntrinsic("mem_read_8_user", IRTypes::Void, {IRParam("addr", wordtype), IRParam("value", IRType::Ref(IRTypes::UInt8))}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 //	AddIntrinsic("mem_read_16_user", IRTypes::Void, {IRParam("addr", wordtype), IRParam("value", IRType::Ref(IRTypes::UInt16))}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 //	AddIntrinsic("mem_read_32_user", IRTypes::Void, {IRParam("addr", wordtype), IRParam("value", IRType::Ref(IRTypes::UInt32))}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
@@ -330,13 +335,18 @@ void GenCContext::LoadIntrinsics()
 
 	// Carry + Flags Optimisation: TODO New GenSim flag-capturing operator stuff
 	AddIntrinsic("__builtin_adc", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Adc);
+	AddIntrinsic("__builtin_adc8_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt8), IRParam("rhs", IRTypes::UInt8), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Adc8WithFlags);
+	AddIntrinsic("__builtin_adc16_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt16), IRParam("rhs", IRTypes::UInt16), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Adc16WithFlags);
 	AddIntrinsic("__builtin_adc_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags);
 	AddIntrinsic("__builtin_sbc", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc);
 	AddIntrinsic("__builtin_sbc_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags);
+	AddIntrinsic("__builtin_sbc8_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt8), IRParam("rhs", IRTypes::UInt8), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc8WithFlags);
+	AddIntrinsic("__builtin_sbc16_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt16), IRParam("rhs", IRTypes::UInt16), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc16WithFlags);
+	AddIntrinsic("__builtin_sbc64_flags", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags);
 	AddIntrinsic("__builtin_adc64", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Adc64);
 	AddIntrinsic("__builtin_adc64_flags", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags);
 	AddIntrinsic("__builtin_sbc64", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc64);
-	AddIntrinsic("__builtin_sbc64_flags", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags);
+
 
 	// Wide multiplication: TODO support 128-bit types
 	AddIntrinsic("__builtin_umull", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_UMULL);

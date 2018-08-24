@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   IREnums.h
  * Author: s0803652
@@ -24,9 +26,10 @@ namespace gensim
 				INT16 = 3,
 				INT32 = 4,
 				INT64 = 5,
-				FLOAT = 6,
-				DOUBLE = 7,
-				LONG_DOUBLE = 8
+				INT128 = 6,
+				FLOAT = 7,
+				DOUBLE = 8,
+				LONG_DOUBLE = 9
 			};
 		}
 

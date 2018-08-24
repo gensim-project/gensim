@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * RegValueReuseTransform.cpp
  *
@@ -7,7 +9,7 @@
 
 #include "blockjit/block-compiler/transforms/Transform.h"
 
-#include "util/wutils/tick-timer.h"
+#include <wutils/tick-timer.h>
 
 #include <vector>
 #include <set>

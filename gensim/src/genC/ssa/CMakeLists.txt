@@ -11,6 +11,7 @@ TARGET_ADD_SOURCES(gensim-lib
 	SSAStatementVisitor.cpp
 	SSASymbol.cpp
 	SSAType.cpp
+	SSATypeFormatter.cpp
 	SSATypeManager.cpp
 	SSAValue.cpp
 	SSAWalkerFactory.cpp

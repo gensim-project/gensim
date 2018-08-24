@@ -1,12 +1,5 @@
-/*
- * genC/ssa/SSATypeManager.h
- *
- * GenSim
- * Copyright (C) University of Edinburgh.  All Rights Reserved.
- *
- * Harry Wagstaff <hwagstaf@inf.ed.ac.uk>
- * Tom Spink <tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #pragma once
 
 #include "SSAType.h"
@@ -32,6 +25,7 @@ namespace gensim
 				const SSAType& GetVectorType(const SSAType& underlying_type, uint8_t width);
 
 				const SSAType &GetStructType(const std::string &name);
+				bool HasStructType(const std::string &name) const;
 				void InsertStructType(const std::string &name, const SSAType &struct_type);
 
 				const SSAType& GetUInt8()

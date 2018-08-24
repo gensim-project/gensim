@@ -1,15 +1,12 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "libtrace/TraceFilter.h"
 #include "libtrace/RecordTypes.h"
 
 using namespace libtrace;
 
-IndexTraceFilter::IndexTraceFilter(TraceSink* next_target) : filtered_sink_(next_target) {
+IndexTraceFilter::IndexTraceFilter(TraceSink* next_target) : filtered_sink_(next_target)
+{
 }
 
 void IndexTraceFilter::SinkPackets(const TraceRecord* start, const TraceRecord* end)
@@ -25,12 +22,12 @@ void IndexTraceFilter::addPacket(const TraceRecord* r)
 		// reserve a slot for the index
 		buffer_.push_back(IndexRecord(0, 0));
 	}
-	
+
 	if(r->GetType() == InstructionHeader) {
 		instructions_since_last_index_++;
 	}
 	buffer_.push_back(*r);
-	
+
 	checkBufferSize();
 }
 
@@ -45,9 +42,10 @@ void IndexTraceFilter::Flush()
 {
 	buffer_[0] = IndexRecord(buffer_.size(), instructions_since_last_index_);
 	instructions_since_last_index_ = 0;
-	
-	filtered_sink_->SinkPackets(buffer_.data(), buffer_.data() + buffer_.size());
+
+	// this is a nightmare, thanks PIN.
+	filtered_sink_->SinkPackets(&buffer_.at(0), &buffer_.at(0) + buffer_.size());
 	filtered_sink_->Flush();
-	
+
 	buffer_.clear();
 }

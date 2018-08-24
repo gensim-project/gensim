@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   TranslationManager.h
  * Author: s0457958
@@ -83,9 +85,9 @@ namespace archsim
 
 			virtual bool TranslateRegion(archsim::core::thread::ThreadInstance *thread, profile::Region& rgn, uint32_t weight);
 
-			inline bool RegionIsDirty(phys_addr_t region_addr)
+			inline bool RegionIsDirty(Address region_addr)
 			{
-				return dirty_code_pages.count(archsim::translate::profile::RegionArch::PageBaseOf(region_addr));
+				return dirty_code_pages.count(region_addr.GetPageBase());
 			}
 
 			/**
@@ -113,15 +115,15 @@ namespace archsim
 			 */
 			void Invalidate();
 
-			void InvalidateRegion(phys_addr_t phys_addr);
+			void InvalidateRegion(Address phys_addr);
 
 			util::Counter64 txln_cache_invalidations;
 			void InvalidateRegionTxlnCache();
-			void InvalidateRegionTxlnCacheEntry(virt_addr_t virt_addr);
+			void InvalidateRegionTxlnCacheEntry(Address virt_addr);
 
-			profile::Region& GetRegion(phys_addr_t phys_addr);
+			profile::Region& GetRegion(Address phys_addr);
 
-			bool TryGetRegion(phys_addr_t phys_addr, profile::Region*& region);
+			bool TryGetRegion(Address phys_addr, profile::Region*& region);
 
 			void TraceBlock(archsim::core::thread::ThreadInstance *thread, profile::Block& block);
 
@@ -136,7 +138,7 @@ namespace archsim
 				return txln_cache->GetPtr();
 			}
 
-			inline void **GetRegionTxlnCacheEntry(virt_addr_t virt_addr)
+			inline void **GetRegionTxlnCacheEntry(Address virt_addr)
 			{
 				if(!txln_cache) return NULL;
 				return txln_cache->GetEntry(virt_addr);

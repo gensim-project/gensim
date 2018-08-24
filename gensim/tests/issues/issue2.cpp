@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #include <gtest/gtest.h>
 
 #include "DiagnosticContext.h"
@@ -59,7 +60,7 @@ helper void testfn()
 		ctx->Optimise();
 
 		// check for empty blocks manually (in case optimisations become non-checking by default))
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			ASSERT_NE(0, block->GetStatements().size());
 		}
 	}

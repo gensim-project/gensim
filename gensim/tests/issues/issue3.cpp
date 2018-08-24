@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #include <gtest/gtest.h>
 
 #include "DiagnosticContext.h"
@@ -36,7 +37,7 @@ helper void testfn()
 
 	// testfn must contain a return
 	bool found_return = false;
-	for(auto block : action->Blocks) {
+	for(auto block : action->GetBlocks()) {
 		for(auto statement : block->GetStatements()) {
 			if(dynamic_cast<SSAReturnStatement*>(statement)) {
 				found_return = true;

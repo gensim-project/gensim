@@ -1,9 +1,4 @@
-/*
- * File:   GenerationManager.cpp
- * Author: s0803652
- *
- * Created on 03 October 2011, 10:28
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,14 +21,14 @@ namespace gensim
 
 		FunctionEntry::FunctionEntry(const std::string prototype, const std::string& body, const std::vector<std::string> &local_headers, const std::vector<std::string> &sys_headers, const std::vector<std::string> &specialisations, bool global) : prototype_(prototype), body_(body), local_headers_(local_headers), system_headers_(sys_headers), specialisations_(specialisations), is_global_(global)
 		{
-			
+
 		}
-		
+
 		size_t FunctionEntry::GetBodySize() const
 		{
 			return body_.size();
 		}
-		
+
 		bool FunctionEntry::IsGlobal() const
 		{
 			return is_global_;
@@ -41,25 +36,25 @@ namespace gensim
 
 		std::string FunctionEntry::Format() const
 		{
-			// We could be smart with figuring out which headers we need to 
+			// We could be smart with figuring out which headers we need to
 			// re-include but for now just blast them all out for every function
 			// and let the preprocessor deal with it
 			std::stringstream str;
-			
-			str << FormatPrototype() << "{" << body_ << "}";
-			
+
+			str << body_;
+
 			// If that was a template, then emit any specialisations that should be instantiated
 			for(auto i : specialisations_) {
 				str << i << ";";
 			}
-			
+
 			return str.str();
 		}
 		std::string FunctionEntry::FormatPrototype() const
 		{
 			return prototype_;
 		}
-		
+
 		std::string FunctionEntry::FormatIncludes() const
 		{
 			std::stringstream str;
@@ -85,7 +80,7 @@ namespace gensim
 
 
 
-		
+
 		std::map<std::string, std::map<std::string, GenerationOption*> > GenerationComponent::Options __attribute__((init_priority(101)));
 		std::map<std::string, std::string> GenerationComponent::Inheritance __attribute__((init_priority(102)));
 
@@ -95,6 +90,7 @@ namespace gensim
 		{
 			for (std::list<GenerationComponentInitializer*>::const_iterator ci = GenerationComponentInitializer::Initializers.begin(); ci != GenerationComponentInitializer::Initializers.end(); ++ci) {
 				if ((*ci)->GetName() == component) {
+					printf("Registering option %s to %s\n", name, component);
 					GenerationComponent::Options[component][name] = new GenerationOption(name, default_value, help_string);
 					return;
 				}
@@ -177,15 +173,15 @@ namespace gensim
 			if (Properties.find(key) != Properties.end()) return Properties.at(key);
 
 			std::string component = name;
-			if (Options[component].find(key) != Options[component].end()) return Options[component][key]->DefaultValue;
+			auto &options = Options[component];
+			if (options.count(key)) return options.at(key)->DefaultValue;
 
 			while (Inheritance.find(component) != Inheritance.end()) {
 				component = Inheritance[component];
 				if (Options[component].find(key) != Options[component].end()) return Options[component][key]->DefaultValue;
 			}
 
-			fprintf(stderr, "Undefined property: %s\n", key.c_str());
-			abort();
+			throw std::logic_error("Undefined Property: " + key);
 		}
 
 		bool GenerationComponent::HasProperty(const std::string key) const
@@ -193,7 +189,10 @@ namespace gensim
 			if (Properties.find(key) != Properties.end()) return true;
 
 			std::string component = name;
-			if (Options[component].find(key) != Options[component].end()) return true;
+			auto &options = Options[component];
+			if (options.count(key)) {
+				return true;
+			}
 
 			while (Inheritance.find(component) != Inheritance.end()) {
 				component = Inheritance[component];

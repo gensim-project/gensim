@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   LinuxSystemEmulationModel.h
  * Author: s0457958
@@ -50,9 +52,9 @@ namespace archsim
 			LinuxEmulationComponent devicetree;
 			LinuxEmulationComponent atags;
 
-			bool InstallDeviceTree(std::string filename, uint32_t addr);
-			bool InstallATAGS(std::string kernel_args, uint32_t addr);
-			bool InstallRootFS(std::string filename, uint32_t addr);
+			bool InstallDeviceTree(std::string filename, Address addr);
+			bool InstallATAGS(std::string kernel_args, Address addr);
+			bool InstallRootFS(std::string filename, Address addr);
 
 
 		};

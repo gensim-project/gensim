@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #include "libtrace/RecordFile.h"
 #include "libtrace/InstructionPrinter.h"
 
@@ -61,14 +62,16 @@ bool GetInstructionHeaderIndex(uint64_t instruction_idx, uint64_t &record_idx)
 		if((current_idx % BOOKMARK_WIDTH) == 0) instruction_header_bookmarks[current_idx] = record_idx;
 		if(open_file->Size() <= record_idx) return false;
 
-		Record r = open_file->Get(record_idx);
+		Record r;
+		open_file->Get(record_idx, r);
+
 		TraceRecord *tr = (TraceRecord*)&r;
 
 		assert(tr->GetType() == InstructionHeader);
 		record_idx++;
 		while(true) {
 			if(open_file->Size() <= record_idx) return false;
-			r = open_file->Get(record_idx);
+			open_file->Get(record_idx, r);
 
 			if(tr->GetType() == InstructionHeader) break;
 			record_idx++;
@@ -113,7 +116,10 @@ void ScanToEnd()
 	while(true) {
 		if(record_idx >= open_file->Size()) break;
 
-		Record r = open_file->Get(record_idx);
+		Record r;
+		bool success = open_file->Get(record_idx, r);
+		assert(success);
+
 		TraceRecord *tr = (TraceRecord*)&r;
 		if(tr->GetType() == InstructionHeader) {
 			if((top_index % BOOKMARK_WIDTH) == 0) instruction_header_bookmarks[top_index] = record_idx;
@@ -255,7 +261,8 @@ bool ExecuteSearch(bool reverse)
 
 	while(true) {
 		if(record_idx >= open_file->Size()) return false;
-		Record r = open_file->Get(record_idx);
+		Record r;
+		bool success = open_file->Get(record_idx, r);
 		TraceRecord *tr = (TraceRecord*)&r;
 
 		if(tr->GetType() ==  InstructionHeader) instruction_match_idx += addend;
