@@ -769,10 +769,11 @@ execute(test) {
 execute(tzcnt) {
 	uint64 op0 = read_operand(inst.op1);
 	
+	uint64 op1_size = operand_get_size(inst.op1);
 	write_register(CF, op0 == 0);
 	
 	uint64 result = 0;
-	while((op0 & 1) == 0) {
+	while((op0 & 1) == 0 && (result < op1_size)) {
 		op0 >>= 1;
 		result += 1;
 	}
@@ -1295,7 +1296,7 @@ helper uint64 read_mem(uint64 addr, uint8 width_bits)
 	return final_data;
 }
 
-helper void write_mem(uint64 addr, uint64 value, uint8 width_bits)
+helper void write_mem(uint64 addr, uint128 value, uint8 width_bits)
 {
 	switch(width_bits)
 	{
@@ -1315,6 +1316,11 @@ helper void write_mem(uint64 addr, uint64 value, uint8 width_bits)
 			mem_write_64(Data, addr, value);
 			break;
 		}
+		case 80: {
+			mem_write_64(Data, addr, value);
+			mem_write_16(Data, addr+8, value >> 64);
+			break;
+		}
 		default: {
 			trap();
 			break;
@@ -1324,7 +1330,7 @@ helper void write_mem(uint64 addr, uint64 value, uint8 width_bits)
 	return;
 }
 
-helper void write_op_mem(struct Memory &mem, uint64 value)
+helper void write_op_mem(struct Memory &mem, uint128 value)
 {
 	uint64 addr = mem_get_addr(mem);
 	write_mem(addr, value, mem.width);
@@ -1376,7 +1382,7 @@ helper void write_op_reg(struct Register &reg, uint64 value)
 	return;
 }
 
-helper void write_operand(struct Operand &op, uint64 value)
+helper void write_operand(struct Operand &op, uint128 value)
 {
 	if(op.is_reg) {
 		write_op_reg(op.reg, value);

@@ -45,6 +45,7 @@ enum X86Opcodes {
 
 	INST_x86_cmp,
 	INST_x86_cmpsd_xmm,
+	INST_x86_cmpss,
 	INST_x86_cmpxchg,
 	INST_x86_cpuid,
 	INST_x86_cqo,
@@ -60,7 +61,10 @@ enum X86Opcodes {
 	INST_x86_div,
 	INST_x86_divsd,
 	INST_x86_divss,
+	INST_x86_fld,
 	INST_x86_fnstcw,
+	INST_x86_fst,
+	INST_x86_fstp,
 	INST_x86_idiv,
 	INST_x86_imul1,
 	INST_x86_imul2,

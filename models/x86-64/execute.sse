@@ -54,6 +54,16 @@ helper uint8 ordered(double d0, double d1)
 	return !unordered(d0, d1);
 }
 
+helper uint8 unordered_f32(float d0, float d1)
+{
+	return __builtin_f32_is_qnan(d0) | __builtin_f32_is_snan(d0) | __builtin_f32_is_qnan(d1) | __builtin_f32_is_snan(d1);
+}
+
+helper uint8 ordered_f32(double d0, double d1) 
+{
+	return !unordered_f32(d0, d1);
+}
+
 execute(cmpsd_xmm) {
 	uint64 op0 = read_operand_sse_scalar(inst.op0);
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
@@ -77,7 +87,31 @@ execute(cmpsd_xmm) {
 	
 	uint64 totalresult = result ? 0xffffffffffffffffUL : 0x0000000000000000UL;
 	write_operand_sse_scalar(inst.op0, totalresult);
+}
+
+execute(cmpss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	uint64 op2 = read_operand(inst.op2);
 	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+	
+	uint8 result = 0;
+	switch(op2) {
+		case 0: { result = dop0 == dop1; break; }
+		case 1: { result = dop0 < dop1; break; }
+		case 2: { result = dop0 <= dop1; break; }
+		case 3: { result = unordered_f32(dop0, dop1); break; }
+		case 4: { result = dop0 != dop1; break; }
+		case 5: { result = dop0 >= dop1; break; }
+		case 6: { result = dop0 > dop1; break; }
+		case 7: { result = ordered_f32(dop0, dop1); break; }
+		default: { trap(); break; }
+	}
+	
+	uint64 totalresult = result ? 0xffffffffUL : 0x00000000UL;
+	write_operand_sse_scalar(inst.op0, totalresult);
 }
 
 helper uint32 double_to_int32(double f) 

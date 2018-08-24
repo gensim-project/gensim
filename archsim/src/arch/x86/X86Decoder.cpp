@@ -380,6 +380,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 
 			MAP(XED_ICLASS_CMP, INST_x86_cmp);
 			MAP(XED_ICLASS_CMPSD_XMM, INST_x86_cmpsd_xmm); // thanks again
+			MAP(XED_ICLASS_CMPSS, INST_x86_cmpss); // thanks again
 			MAP(XED_ICLASS_CMPXCHG, INST_x86_cmpxchg);
 			MAP(XED_ICLASS_CMPXCHG_LOCK, INST_x86_cmpxchg);
 			MAP(XED_ICLASS_CPUID, INST_x86_cpuid);
@@ -398,7 +399,10 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_DIVSD, INST_x86_divsd);
 			MAP(XED_ICLASS_DIVSS, INST_x86_divss);
 //			MAP(XED_ICLASS_EMMS, INST_x86_nop); // TODO
+			MAP(XED_ICLASS_FLD, INST_x86_fld); // TODO
 			MAP(XED_ICLASS_FNSTCW, INST_x86_fnstcw); // TODO
+			MAP(XED_ICLASS_FST, INST_x86_fst); // TODO
+			MAP(XED_ICLASS_FSTP, INST_x86_fstp); // TODO
 //			MAP(XED_ICLASS_FXSAVE, INST_x86_nop); // TODO
 //			MAP(XED_ICLASS_FXRSTOR, INST_x86_nop); // TODO
 			MAP(XED_ICLASS_IDIV, INST_x86_idiv);
@@ -489,6 +493,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_OR, INST_x86_or);
 			MAP(XED_ICLASS_OR_LOCK, INST_x86_or);
 			MAP(XED_ICLASS_ORPD, INST_x86_por); // Is this really the same?
+			MAP(XED_ICLASS_ORPS, INST_x86_por); // Is this really the same?
 			MAP(XED_ICLASS_PACKUSWB, INST_x86_packuswb);
 			MAP(XED_ICLASS_PADDB, INST_x86_paddb);
 			MAP(XED_ICLASS_PADDD, INST_x86_paddd);
