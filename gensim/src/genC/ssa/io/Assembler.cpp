@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/io/Assembler.h"
 #include "genC/ssa/io/AssemblyReader.h"
@@ -55,16 +51,16 @@ static IRConstant parse_constant_value(pANTLR3_BASE_TREE tree)
 
 static SSAType parse_type(SSAContext &ctx, pANTLR3_BASE_TREE tree)
 {
-	GASSERT(tree->getType(tree) == SSAASM_TYPE);
+	GASSERT(tree->getType(tree) == NUMERIC_TYPE || tree->getType(tree) == SSAASM_ID);
 	gensim::genc::IRType out;
 	char *text = (char*)tree->getText(tree)->chars;
 
-	if(strcmp(text, "Instruction") == 0) {
-		return ctx.GetTypeManager().GetStructType(text);
-	}
-
 	if(!gensim::genc::IRType::ParseType(text, out)) {
-		throw std::logic_error("Could not parse type");
+		if(ctx.GetTypeManager().HasStructType(text)) {
+			out = ctx.GetTypeManager().GetStructType(text);
+		} else {
+			throw std::logic_error("Unknown type");
+		}
 	}
 
 	for(unsigned i = 0; i < tree->getChildCount(tree); ++i) {
@@ -139,7 +135,7 @@ SSAExternalAction* ExternalActionAssembler::Assemble(pANTLR3_BASE_TREE tree, SSA
 
 	IRSignature::param_type_list_t params;
 	auto action_params_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 3);
-	for(unsigned i = 0; i < action_params_node->getChildCount(action_params_node); i += 2) {
+	for(unsigned i = 0; i < action_params_node->getChildCount(action_params_node); i += 1) {
 		auto type_node = (pANTLR3_BASE_TREE)action_params_node->getChild(action_params_node,i);
 		std::string name = "p" + std::to_string(i);
 
@@ -574,7 +570,7 @@ SSAStatement *StatementAssembler::parse_mem_read_statement(pANTLR3_BASE_TREE tre
 	IRConstant width = parse_constant_value(width_node);
 	SSAStatement *addr = get_statement(addr_node);
 	SSASymbol *target = get_symbol(target_name_node);
-	
+
 	gensim::arch::MemoryInterfaceDescription *interface = nullptr;
 
 	return &SSAMemoryReadStatement::CreateRead(block, addr, target, width.Int(), false, interface);
@@ -591,9 +587,9 @@ SSAStatement *StatementAssembler::parse_mem_write_statement(pANTLR3_BASE_TREE tr
 	IRConstant width = parse_constant_value(width_node);
 	SSAStatement *addr = get_statement(addr_node);
 	SSAStatement *target = get_statement(value_node);
-	
+
 	gensim::arch::MemoryInterfaceDescription *interface = nullptr;
-	
+
 	return &SSAMemoryWriteStatement::CreateWrite(block, addr, target, width.Int(), interface);
 }
 
@@ -667,7 +663,7 @@ SSAStatement *StatementAssembler::parse_struct_statement(pANTLR3_BASE_TREE tree,
 	GASSERT(struct_symbol->GetType().IsStruct());
 	GASSERT(struct_symbol->GetType().BaseType.StructType->HasMember(member_name));
 
-	return new SSAReadStructMemberStatement(block, get_symbol(struct_var_node), member_name);
+	return new SSAReadStructMemberStatement(block, get_symbol(struct_var_node), {member_name});
 }
 
 SSAStatement *StatementAssembler::parse_switch_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
@@ -843,7 +839,8 @@ SSAStatement* StatementAssembler::Assemble(pANTLR3_BASE_TREE tree, SSABlock *blo
 SSAStatement* StatementAssembler::get_statement(pANTLR3_BASE_TREE stmt_id_node)
 {
 	auto stmt_name = (char*)stmt_id_node->getText(stmt_id_node)->chars;
-	auto stmt = dynamic_cast<SSAStatement*>(ctx_.Get(stmt_name));
+	auto uncast_stmt = ctx_.Get(stmt_name);
+	auto stmt = dynamic_cast<SSAStatement*>(uncast_stmt);
 
 	if(stmt == nullptr) {
 		throw std::invalid_argument("Could not find statement");

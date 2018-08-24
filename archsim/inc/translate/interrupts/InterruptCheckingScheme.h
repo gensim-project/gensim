@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   InterruptCheckingScheme.h
  * Author: s0457958
@@ -9,6 +11,7 @@
 #define	INTERRUPTCHECKINGSCHEME_H
 
 #include "define.h"
+#include "abi/Address.h"
 #include <map>
 
 namespace archsim
@@ -23,25 +26,25 @@ namespace archsim
 			{
 			public:
 				virtual ~InterruptCheckingScheme();
-				virtual bool ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks) = 0;
+				virtual bool ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks) = 0;
 			};
 
 			class NoneInterruptCheckingScheme : public InterruptCheckingScheme
 			{
 			public:
-				bool ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks);
+				bool ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks);
 			};
 
 			class FullInterruptCheckingScheme : public InterruptCheckingScheme
 			{
 			public:
-				bool ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks);
+				bool ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks);
 			};
 
 			class BackwardsBranchCheckingScheme : public InterruptCheckingScheme
 			{
 			public:
-				bool ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks);
+				bool ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks);
 			};
 		}
 	}

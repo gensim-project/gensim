@@ -1,6 +1,6 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
- * Copyright (C) University of Edinburgh 2014
- *
  * translate/SynchronousTranslationManager.cpp
  *
  * Models a translation manager that translates work units synchronously to the execution of the guest program.

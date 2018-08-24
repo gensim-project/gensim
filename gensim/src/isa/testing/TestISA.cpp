@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "define.h"
 #include "isa/testing/TestISA.h"
@@ -26,6 +22,9 @@ ISADescription *gensim::isa::testing::GetTestISA(bool include_instruction)
 	}
 
 	isa->AddFormat(ifd);
+
+	isa->UserStructTypes.push_back(StructDescription("Operand", {{"Foo", "uint8"}}));
+	isa->UserFields.push_back(FieldDescription("operand", "Operand"));
 
 	if(include_instruction) {
 		InstructionDescription *id = new InstructionDescription("test_insn", *isa, ifd);

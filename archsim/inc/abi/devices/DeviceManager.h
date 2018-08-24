@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   DeviceManager.h
  * Author: s0457958
@@ -35,7 +37,7 @@ namespace archsim
 				bool LookupDevice(memory::guest_addr_t device_address, MemoryComponent*& device);
 				bool HasDevice(memory::guest_addr_t device_address)
 				{
-					return device_bitmap.test(archsim::translate::profile::RegionArch::PageIndexOf(device_address));
+					return device_bitmap.test(device_address.GetPageIndex());
 				}
 
 			private:

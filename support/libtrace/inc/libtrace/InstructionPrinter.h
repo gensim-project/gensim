@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #ifndef INSTRUCTIONPRINTER_H
 #define INSTRUCTIONPRINTER_H
 
@@ -19,6 +20,7 @@ namespace libtrace
 		InstructionPrinter();
 
 		std::string operator()(TracePacketStreamInterface *stream);
+		bool TryFormat(TracePacketStreamInterface *stream, std::string &output);
 
 		bool PrintInstruction(std::ostream &str, TracePacketStreamInterface *stream);
 

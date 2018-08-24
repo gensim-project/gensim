@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * MemAllocator.cpp
  *
@@ -6,7 +8,9 @@
  */
 
 #include "util/MemAllocator.h"
+#include <errno.h>
 #include <malloc.h>
+#include <string>
 
 using namespace wulib;
 
@@ -25,11 +29,11 @@ void *StandardMemAllocator::Allocate(size_t size_bytes)
 	auto ptr = malloc(size_bytes);
 	auto bytes = ((size_bytes + 4096) / 4096) * 4096;
 	auto result = mprotect((void*)((intptr_t)(ptr) & ~0xfffULL), bytes, PROT_READ|PROT_WRITE|PROT_EXEC);
-	
+
 	if(result != 0) {
 		throw std::logic_error("Invalid mprotect: " + std::string(strerror(errno)));
 	}
-	
+
 	return ptr;
 }
 
@@ -38,11 +42,11 @@ void *StandardMemAllocator::Reallocate(void *buffer, size_t new_size_bytes)
 	auto ptr = realloc(buffer, new_size_bytes);
 	auto bytes = ((new_size_bytes + 4096) / 4096) * 4096;
 	auto result = mprotect((void*)((intptr_t)(ptr) & ~0xfffULL), bytes, PROT_READ|PROT_WRITE|PROT_EXEC);
-	
+
 	if(result != 0) {
 		throw std::logic_error("Invalid mprotect: " + std::string(strerror(errno)));
 	}
-	
+
 	return ptr;
 }
 

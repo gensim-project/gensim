@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * arch/arm/ArmLinuxUserEmulationModel.cpp
  */
@@ -25,7 +27,7 @@ DeclareChildLogContext(LogEmulationModelRiscVLinux, LogEmulationModelUser, "RISC
 
 RegisterComponent(archsim::abi::EmulationModel, RiscVLinuxUserEmulationModel, "riscv-user", "ARM Linux user emulation model");
 
-RiscVLinuxUserEmulationModel::RiscVLinuxUserEmulationModel() : LinuxUserEmulationModel("risc-v") { }
+RiscVLinuxUserEmulationModel::RiscVLinuxUserEmulationModel() : LinuxUserEmulationModel("risc-v", false, AuxVectorEntries("risc-v", 0, 0)) { }
 
 RiscVLinuxUserEmulationModel::~RiscVLinuxUserEmulationModel() { }
 
@@ -49,14 +51,14 @@ bool RiscVLinuxUserEmulationModel::PrepareBoot(System& system)
 
 	LC_DEBUG1(LogEmulationModelRiscVLinux) << "Initialising RISC-V Kernel Helpers";
 
-	memory::guest_addr_t kernel_helper_region = 0xffff0000;
+	memory::guest_addr_t kernel_helper_region = 0xffff0000_ga;
 	GetMemoryModel().GetMappingManager()->MapRegion(kernel_helper_region, 0x4000, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[eabi]");
 
 	/* random data */
-	GetMemoryModel().Write32(0xffff0000, 0xbabecafe);
-	GetMemoryModel().Write32(0xffff0004, 0xdeadbabe);
-	GetMemoryModel().Write32(0xffff0008, 0xfeedc0de);
-	GetMemoryModel().Write32(0xffff000c, 0xcafedead);
+	GetMemoryModel().Write32(0xffff0000_ga, 0xbabecafe);
+	GetMemoryModel().Write32(0xffff0004_ga, 0xdeadbabe);
+	GetMemoryModel().Write32(0xffff0008_ga, 0xfeedc0de);
+	GetMemoryModel().Write32(0xffff000c_ga, 0xcafedead);
 
 	return true;
 }
@@ -65,8 +67,6 @@ gensim::DecodeContext* RiscVLinuxUserEmulationModel::GetNewDecodeContext(archsim
 {
 	return new arch::riscv::RiscVDecodeContext(cpu.GetArch());
 }
-
-
 
 bool RiscVLinuxUserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, SignalData* data)
 {
@@ -87,9 +87,9 @@ archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(arch
 	if(category == 0) {
 		uint32_t* registers = (uint32_t*)cpu->GetRegisterFile();
 
-		archsim::abi::SyscallRequest request {0, cpu};
+		archsim::abi::SyscallRequest request {0, cpu, 0, 0, 0, 0, 0, 0};
 		request.syscall = registers[17];
-		
+
 		archsim::abi::SyscallResponse response;
 		response.action = ResumeNext;
 
@@ -106,7 +106,7 @@ archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(arch
 			LC_ERROR(LogEmulationModelRiscVLinux) << "Syscall not supported: " << std::hex << "0x" << request.syscall << "(" << std::dec << request.syscall << ")";
 			registers[0] = -1;
 		}
-		
+
 		// xxx arm hax
 		// currently a syscall cannot return an action other than resume, so
 		// we need to exit manually here.

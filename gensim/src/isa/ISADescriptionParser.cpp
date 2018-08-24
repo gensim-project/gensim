@@ -1,9 +1,4 @@
-/*
- * ISADescriptionParser.cpp
- *
- *  Created on: 20 May 2015
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "isa/ISADescriptionParser.h"
 #include "isa/InstructionDescriptionParser.h"
@@ -80,6 +75,28 @@ bool ISADescriptionParser::ParseFile(std::string filename)
 ISADescription *ISADescriptionParser::Get()
 {
 	return isa;
+}
+
+bool ISADescriptionParser::parse_struct(pANTLR3_BASE_TREE node)
+{
+	bool success = true;
+	auto struct_name_node = (pANTLR3_BASE_TREE)node->getChild(node, 0);
+
+	StructDescription sd(std::string((char*)struct_name_node->getText(struct_name_node)->chars));
+
+	for(unsigned i = 1; i < node->getChildCount(node); i += 2) {
+		auto entry_name_node = (pANTLR3_BASE_TREE)node->getChild(node, i+1);
+		auto entry_type_node = (pANTLR3_BASE_TREE)node->getChild(node, i);
+
+		std::string entry_name = std::string((char*)entry_name_node->getText(entry_name_node)->chars);
+		std::string entry_type = std::string((char*)entry_type_node->getText(entry_type_node)->chars);
+
+		sd.AddMember(entry_name, entry_type);
+	}
+
+	isa->UserStructTypes.push_back(sd);
+
+	return success;
 }
 
 
@@ -221,6 +238,16 @@ bool ISADescriptionParser::load_from_node(pANTLR3_BASE_TREE node, std::string fi
 				isa->SetDefaultPredicated(strcmp((const char *)value->getText(value)->chars, "yes") == 0);
 				break;
 			}
+
+			case AC_STRUCT: {
+				success &= parse_struct(child);
+				break;
+			}
+
+			default:
+				diag.Error("Internal error: Unknown node type on line " + std::to_string(child->getLine(child)));
+				success = false;
+				break;
 		}
 	}
 	return success;
@@ -560,6 +587,6 @@ bool ISADescriptionParser::load_behaviours()
 	bool success = true;
 	for (std::vector<std::string>::iterator ci = isa->BehaviourFiles.begin(); ci != isa->BehaviourFiles.end(); ++ci) success &= load_behaviour_file(*ci);
 	for (std::vector<std::string>::iterator ci = isa->DecodeFiles.begin(); ci != isa->DecodeFiles.end(); ++ci) success &= load_behaviour_file(*ci);
-	for (std::vector<std::string>::iterator ci = isa->ExecuteFiles.begin(); ci != isa->ExecuteFiles.end(); ++ci) success &= load_behaviour_file(*ci);
+//	for (std::vector<std::string>::iterator ci = isa->ExecuteFiles.begin(); ci != isa->ExecuteFiles.end(); ++ci) success &= load_behaviour_file(*ci);
 	return success;
 }

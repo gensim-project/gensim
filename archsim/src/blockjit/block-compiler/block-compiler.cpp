@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "blockjit/block-compiler/block-compiler.h"
 #include "blockjit/block-compiler/transforms/Transform.h"
 #include "blockjit/block-compiler/lowering/x86/X86LoweringContext.h"
@@ -14,10 +16,11 @@
 #include <fstream>
 #include <unordered_map>
 
-#include "util/wutils/small-set.h"
-#include "util/wutils/maybe-map.h"
-#include "util/wutils/tick-timer.h"
-#include "util/wutils/dense-set.h"
+#include <wutils/small-set.h>
+#include <wutils/maybe-map.h>
+#include <wutils/tick-timer.h>
+#include <wutils/dense-set.h>
+
 #include "util/SimOptions.h"
 
 #include "util/LogContext.h"
@@ -101,7 +104,7 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 
 	transforms::MergeBlocksTransform mergeblocks;
 	if (!mergeblocks.Apply(ctx)) return false;
-	
+
 	transforms::PeepholeTransform peephole;
 	if (!peephole.Apply(ctx)) return false;
 
@@ -113,45 +116,45 @@ CompileResult BlockCompiler::compile(bool dump_intermediates)
 	transforms::ValueRenumberingTransform vrt;
 	if(!vrt.Apply(ctx)) return false;
 
-		// dump before register allocation
+	// dump before register allocation
 	dump_ir("premovelimination", GetBlockPA(), ctx);
-	
+
 	transforms::MovEliminationTransform mov_elimination;
 	if(!mov_elimination.Apply(ctx)) return false;
-	
+
 	dump_ir("preconstantprop", GetBlockPA(), ctx);
 	transforms::ConstantPropTransform cpt;
 	if (!cpt.Apply(ctx)) return false;
 	dump_ir("postconstantprop", GetBlockPA(), ctx);
-	
+
 	transforms::DeadStoreElimination dse;
 	if(!dse.Apply((ctx))) return false;
-	
+
 	sorter.Apply(ctx);
-	
+
 	// dump before register allocation
 	dump_ir("prealloc", GetBlockPA(), ctx);
-		
+
 	transforms::GlobalRegisterAllocationTransform reg_alloc(BLKJIT_NUM_ALLOCABLE);
 	if(!reg_alloc.Apply(ctx)) return false;
 	dump_ir("postalloc", GetBlockPA(), ctx);
-	
+
 //	transforms::GlobalRegisterReuseTransform reg_reuse(reg_alloc.GetUsedPhysRegs());
 //	if(!reg_alloc.Apply(ctx)) return false;
 //	dump_ir("postgrr", GetBlockPA(), ctx);
-	
+
 	if( !post_allocate_peephole()) return false;
 
 	transforms::PostAllocatePeephole pap;
 	if(!pap.Apply(ctx)) return false;
-	
-	
+
+
 	sorter.Apply(ctx);
 	transforms::Peephole2Transform p2;
 	if(!p2.Apply(ctx)) return false;
 
 	sorter.Apply(ctx);
-	
+
 	// dump before register allocation
 	dump_ir("final", GetBlockPA(), ctx);
 
@@ -230,7 +233,7 @@ static bool is_breaker(IRInstruction *add, IRInstruction *test)
 	// If the instruction under test touches the target of the add, then it is a breaker
 	if(test->type != IRInstruction::READ_MEM) {
 		IROperand *add_target = &add->operands[1];
-		for(int op_idx = 0; op_idx < test->operands.size(); ++op_idx) {
+		for(unsigned int op_idx = 0; op_idx < test->operands.size(); ++op_idx) {
 			if((test->operands[op_idx].alloc_mode == add_target->alloc_mode) && (test->operands[op_idx].alloc_data == add_target->alloc_data)) return true;
 		}
 	}

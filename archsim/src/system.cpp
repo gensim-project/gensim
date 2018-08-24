@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * system.cpp
  */
@@ -51,10 +53,10 @@ System::~System()
 bool System::Initialise()
 {
 	LC_DEBUG1(LogSystem) << "Initialising System";
-	
+
 	if(archsim::options::Trace) {
 		libtrace::TraceSink *sink = nullptr;
-		
+
 		if(archsim::options::TraceMode == "binary") {
 			if(!archsim::options::TraceFile.IsSpecified()) {
 				UNIMPLEMENTED;
@@ -63,13 +65,13 @@ bool System::Initialise()
 			if(f == nullptr) {
 				UNIMPLEMENTED;
 			}
-			
+
 			sink = new libtrace::BinaryFileTraceSink(f);
-			
+
 		} else {
 			UNIMPLEMENTED;
 		}
-		
+
 		GetECM().SetTraceSink(sink);
 	}
 
@@ -110,7 +112,7 @@ void System::Destroy()
 	if(GetECM().GetTraceSink()) {
 		GetECM().GetTraceSink()->Flush();
 	}
-	
+
 	emulation_model->Destroy();
 	delete emulation_model;
 
@@ -132,7 +134,7 @@ void System::PrintStatistics(std::ostream& stream)
 			printer.PrintStats(thread->GetMetrics(), stream);
 		}
 	}
-	
+
 	stream << "Simulation Statistics" << std::endl;
 
 	// Print Emulation Model statistics

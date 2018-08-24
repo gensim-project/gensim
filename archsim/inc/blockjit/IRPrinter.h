@@ -1,10 +1,6 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
-/* 
+/*
  * File:   IRPrinter.h
  * Author: harry
  *
@@ -17,9 +13,12 @@
 #include <sstream>
 #include "blockjit/translation-context.h"
 
-namespace archsim {
-	namespace blockjit {
-		class IRPrinter {
+namespace archsim
+{
+	namespace blockjit
+	{
+		class IRPrinter
+		{
 		public:
 			void DumpIR(std::ostream &str, const captive::arch::jit::TranslationContext &ctx);
 		};

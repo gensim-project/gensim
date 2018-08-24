@@ -1,0 +1,1246 @@
+execute(addsd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	double result = dop0 + dop1;
+	
+	uint64 uresult = bitcast_double_u64(result);
+	
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
+execute(addss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+	
+	float result = dop0 + dop1;
+	
+	uint64 uresult = bitcast_float_u32(result);
+	
+	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+execute(andpd) {
+	uint64[2] op0 = read_xmm_u64(inst.op0);
+	uint64[2] op1 = read_xmm_u64(inst.op1);
+	
+	write_xmm_u64(inst.op0, op0 & op1);
+}
+
+execute(andnpd) {
+	uint64[2] op0 = read_xmm_u64(inst.op0);
+	uint64[2] op1 = read_xmm_u64(inst.op1);
+	
+	write_xmm_u64(inst.op0, (~op0) & op1);
+}
+
+execute(clflush) {	
+	take_exception(1, 1);
+}
+
+helper uint8 unordered(double d0, double d1)
+{
+	return __builtin_f64_is_qnan(d0) | __builtin_f64_is_snan(d0) | __builtin_f64_is_qnan(d1) | __builtin_f64_is_snan(d1);
+}
+
+helper uint8 ordered(double d0, double d1) 
+{
+	return !unordered(d0, d1);
+}
+
+helper uint8 unordered_f32(float d0, float d1)
+{
+	return __builtin_f32_is_qnan(d0) | __builtin_f32_is_snan(d0) | __builtin_f32_is_qnan(d1) | __builtin_f32_is_snan(d1);
+}
+
+helper uint8 ordered_f32(double d0, double d1) 
+{
+	return !unordered_f32(d0, d1);
+}
+
+execute(cmpsd_xmm) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	uint64 op2 = read_operand(inst.op2);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	uint8 result = 0;
+	switch(op2) {
+		case 0: { result = dop0 == dop1; break; }
+		case 1: { result = dop0 < dop1; break; }
+		case 2: { result = dop0 <= dop1; break; }
+		case 3: { result = unordered(dop0, dop1); break; }
+		case 4: { result = dop0 != dop1; break; }
+		case 5: { result = dop0 >= dop1; break; }
+		case 6: { result = dop0 > dop1; break; }
+		case 7: { result = ordered(dop0, dop1); break; }
+		default: { trap(); break; }
+	}
+	
+	uint64 totalresult = result ? 0xffffffffffffffffUL : 0x0000000000000000UL;
+	write_operand_sse_scalar(inst.op0, totalresult);
+}
+
+execute(cmpss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	uint64 op2 = read_operand(inst.op2);
+	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+	
+	uint8 result = 0;
+	switch(op2) {
+		case 0: { result = dop0 == dop1; break; }
+		case 1: { result = dop0 < dop1; break; }
+		case 2: { result = dop0 <= dop1; break; }
+		case 3: { result = unordered_f32(dop0, dop1); break; }
+		case 4: { result = dop0 != dop1; break; }
+		case 5: { result = dop0 >= dop1; break; }
+		case 6: { result = dop0 > dop1; break; }
+		case 7: { result = ordered_f32(dop0, dop1); break; }
+		default: { trap(); break; }
+	}
+	
+	uint64 totalresult = result ? 0xffffffffUL : 0x00000000UL;
+	write_operand_sse_scalar(inst.op0, totalresult);
+}
+
+helper uint32 double_to_int32(double f) 
+{
+	if(__builtin_f64_is_qnan(f) || __builtin_f64_is_snan(f)) {
+		return 0x80000000;
+	}
+
+	if(f > (double)0x7fffffff) {
+		return 0x80000000;
+	} else if(f < -(double)0x7fffffff) {
+		return 0x80000000;
+	}
+	
+	return (uint32)f;
+}
+
+helper uint64 double_to_int64(double f) 
+{
+	if(__builtin_f64_is_qnan(f) || __builtin_f64_is_snan(f)) {
+		return 0x8000000000000000;
+	}
+
+	if(f > (double)0x7fffffffffffffff) {
+		return 0x8000000000000000;
+	} else if(f < -(double)0x7fffffffffffffff) {
+		return 0x8000000000000000;
+	}
+	
+	return (uint64)f;
+}
+
+helper uint64 double_to_int(double f, uint8 op_size)
+{
+	switch(op_size) {
+		case 32: { return double_to_int32(f); }
+		case 64: { return double_to_int64(f); }
+		default: { trap(); break; }
+	}
+	
+	return 0;
+}
+
+execute(cvttsd2si) {
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	double dop1 = bitcast_u64_double(op1);
+	
+	uint64 result = double_to_int(dop1, operand_get_size(inst.op0));
+	
+	write_operand_sse_scalar(inst.op0, result);
+}
+
+helper uint32 float_to_int32(float f) 
+{
+	if(__builtin_f32_is_qnan(f) || __builtin_f32_is_snan(f)) {
+		return 0x80000000;
+	}
+
+	if(f > (float)0x7fffffff) {
+		return 0x80000000;
+	} else if(f < -(float)0x7fffffff) {
+		return 0x80000000;
+	}
+	
+	return (uint32)f;
+}
+
+helper uint64 float_to_int64(float f) 
+{
+	if(__builtin_f32_is_qnan(f) || __builtin_f32_is_snan(f)) {
+		return 0x8000000000000000;
+	}
+
+	if(f > (float)0x7fffffffffffffff) {
+		return 0x8000000000000000;
+	} else if(f < -(float)0x7fffffffffffffff) {
+		return 0x8000000000000000;
+	}
+	
+	return (uint64)f;
+}
+
+helper uint64 float_to_int(float f, uint8 op_size)
+{
+	switch(op_size) {
+		case 32: { return float_to_int32(f); }
+		case 64: { return float_to_int64(f); }
+		default: { trap(); break; }
+	}
+	
+	return 0;
+}
+
+execute(cvttss2si) {
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	float dop1 = bitcast_u32_float(op1);
+	uint64 result;
+	
+	uint8 op_size = operand_get_size(inst.op0);
+	result = float_to_int(dop1, op_size);
+	
+	write_operand_sse_scalar(inst.op0, result);
+}
+
+execute(cvtsd2ss) {
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	double dop1 = bitcast_u64_double(op1);
+	float result = dop1;
+	uint64 uresult = bitcast_float_u32(result);
+	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+execute(cvtsi2ss) {
+	sint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	if(operand_get_size(inst.op1) == 32) {
+		op1 = sign_extend(op1, 32);
+	}
+	
+	float result = op1;
+	uint64 uresult = bitcast_float_u32(result);
+	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+execute(cvtsi2sd) {
+	sint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	if(operand_get_size(inst.op1) == 32) {
+		op1 = sign_extend(op1, 32);
+	}
+	
+	double result = op1;
+	uint64 uresult = bitcast_double_u64(result);
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
+execute(cvtss2sd) {
+	uint32 op1 = read_operand_sse_scalar(inst.op1);
+	float dop1 = bitcast_u32_float(op1);
+	double result = dop1;
+	uint64 uresult = bitcast_double_u64(result);
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
+execute(divsd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	double result = dop0 / dop1;
+	
+	uint64 uresult = bitcast_double_u64(result);
+	
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
+execute(divss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+	
+	float result = dop0 / dop1;
+	
+	uint64 uresult = bitcast_float_u32(result);
+	
+	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+execute(maxss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+	
+	float result = dop0 > dop1 ? dop0 : dop1;
+	
+	uint64 uresult = bitcast_float_u32(result);
+	
+	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+execute(maxsd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	double result = dop0 > dop1 ? dop0 : dop1;
+	
+	uint64 uresult = bitcast_double_u64(result);
+	
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
+execute(minss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+	
+	float result = dop0 < dop1 ? dop0 : dop1;
+	
+	uint64 uresult = bitcast_float_u32(result);
+	
+	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+execute(movd) {
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	write_operand_sse_scalar(inst.op0, op1);
+}
+
+execute(movdqu) {
+	uint64[2] src = read_xmm_u64(inst.op1);
+	write_xmm_u64(inst.op0, src);
+}
+
+execute(movlpd) {
+	uint64[2] src = read_xmm_u64(inst.op0);
+	src[0] = read_operand(inst.op1);
+	write_xmm_u64(inst.op0, src);
+}
+
+execute(movhpd) {
+	uint64[2] src = read_xmm_u64(inst.op0);
+	src[1] = read_operand(inst.op1);
+	write_xmm_u64(inst.op0, src);
+}
+
+execute(movhps) {
+	uint32[4] src = read_xmm_u32(inst.op0);
+	uint64 mm = read_operand(inst.op1);
+	src[2] = mm;
+	src[3] = mm >> 32;
+	write_xmm_u32(inst.op0, src);
+}
+
+execute(movmskpd) {
+	uint64[2] src = read_xmm_u64(inst.op1);
+	uint64 result = 0;
+	
+	result = src[0] >> 63;
+	result |= (src[1] >> 63) << 1;
+	
+	write_operand(inst.op0, result);
+}
+
+execute(movq) {
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	write_operand_sse_scalar(inst.op0, op1);
+}
+
+execute(movss) {
+	uint32 op1 = read_operand_sse_scalar(inst.op1);
+	write_operand_sse_scalar32(inst.op0, op1);
+}
+
+execute(movsd_xmm) {
+	uint64 scalar = read_operand_sse_scalar(inst.op1);
+	
+	// behaviour depends on the variant so we need to be careful here
+	// if we're moving reg to reg, just move bottom quadword
+	if(inst.op0.is_reg) {
+		write_operand_sse_scalar(inst.op0, scalar);
+	} else if(inst.op0.is_mem) {
+		uint64 addr = mem_get_addr(inst.op0.memory);
+		mem_write_64(Data, addr, scalar);
+	}
+}
+
+execute(movups) {
+	uint64[2] src = read_xmm_u64(inst.op1);
+	write_xmm_u64(inst.op0, src);
+}
+
+execute(mulsd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	double result = dop0 * dop1;
+	
+	uint64 uresult = bitcast_double_u64(result);
+	
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
+execute(mulss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+	
+	float result = dop0 * dop1;
+	
+	uint64 uresult = bitcast_float_u32(result);
+	
+	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+uint8 saturate_sw_ub(sint16 s)
+{
+	if(s > 0xff) { return 0xff; }
+	if(s < 0) { return 0; }
+	
+	return s;
+}
+
+execute(packuswb) {
+	uint16[8] op0 = read_xmm_u16(inst.op0);
+	uint16[8] op1 = read_xmm_u16(inst.op1);
+	
+	uint8[16] result = read_xmm_u8(inst.op0);
+	
+	result[0] = saturate_sw_ub(op0[0]);
+	result[1] = saturate_sw_ub(op0[1]);
+	result[2] = saturate_sw_ub(op0[2]);
+	result[3] = saturate_sw_ub(op0[3]);
+	
+	result[4] = saturate_sw_ub(op0[4]);
+	result[5] = saturate_sw_ub(op0[5]);
+	result[6] = saturate_sw_ub(op0[6]);
+	result[7] = saturate_sw_ub(op0[7]);
+	
+	result[8] = saturate_sw_ub(op1[0]);
+	result[9] = saturate_sw_ub(op1[1]);
+	result[10] = saturate_sw_ub(op1[2]);
+	result[11] = saturate_sw_ub(op1[3]);
+
+	result[12] = saturate_sw_ub(op1[4]);
+	result[13] = saturate_sw_ub(op1[5]);
+	result[14] = saturate_sw_ub(op1[6]);
+	result[15] = saturate_sw_ub(op1[7]);
+	
+	write_xmm_u8(inst.op0, result);
+}
+
+execute(paddb) {
+	uint8[16] op0 = read_xmm_u8(inst.op0);
+	uint8[16] op1 = read_xmm_u8(inst.op1);
+	
+	write_xmm_u8(inst.op0, op0 + op1);
+}
+
+execute(paddd) {
+	uint32[4] op0 = read_xmm_u32(inst.op0);
+	uint32[4] op1 = read_xmm_u32(inst.op1);
+	
+	write_xmm_u32(inst.op0, op0 + op1);
+}
+
+execute(pand) {
+	uint128 op0 = read_xmm_u128(inst.op0);
+	uint128 op1 = read_xmm_u128(inst.op1);
+	
+	write_xmm_u128(inst.op0, op0 & op1);
+}
+
+execute(psubb) {
+	uint8[16] op0 = read_xmm_u8(inst.op0);
+	uint8[16] op1 = read_xmm_u8(inst.op1);
+	
+	write_xmm_u8(inst.op0, op0 - op1);
+}
+
+
+execute(paddq) {
+	uint64[2] op0 = read_xmm_u64(inst.op0);
+	uint64[2] op1 = read_xmm_u64(inst.op1);
+	
+	write_xmm_u64(inst.op0, op0 + op1);
+}
+
+execute(pcmpeqb) {
+	// figure out variant
+	if(operand_get_size(inst.op0) == 64) {
+		trap();
+	} else {
+		uint8[16] op0 = read_xmm_u8(inst.op0);
+		uint8[16] op1 = read_xmm_u8(inst.op1);
+		
+		write_xmm_u8(inst.op0, op0 == op1);
+	}
+}
+
+execute(pcmpeqd) {
+	// figure out variant
+	if(operand_get_size(inst.op0) == 64) {
+		trap();
+	} else {
+		uint32[4] op0 = read_xmm_u32(inst.op0);
+		uint32[4] op1 = read_xmm_u32(inst.op1);
+		
+		write_xmm_u32(inst.op0, op0 == op1);
+	}
+}
+
+execute(pcmpgtw) {
+	// figure out variant
+	if(operand_get_size(inst.op0) == 64) {
+		trap();
+	} else {
+		sint16[8] op0 = read_xmm_u16(inst.op0);
+		sint16[8] op1 = read_xmm_u16(inst.op1);
+		
+		write_xmm_u16(inst.op0, op0 > op1);
+	}
+}
+
+execute(pcmpgtb) {
+	// figure out variant
+	if(operand_get_size(inst.op0) == 64) {
+		trap();
+	} else {
+		sint8[16] op0 = read_xmm_u8(inst.op0);
+		sint8[16] op1 = read_xmm_u8(inst.op1);
+		
+		write_xmm_u8(inst.op0, op0 > op1);
+	}
+}
+
+execute(pcmpgtd) {
+	// figure out variant
+	if(operand_get_size(inst.op0) == 64) {
+		trap();
+	} else {
+		sint32[4] op0 = read_xmm_u32(inst.op0);
+		sint32[4] op1 = read_xmm_u32(inst.op1);
+		
+		write_xmm_u32(inst.op0, op0 > op1);
+	}
+}
+
+execute(pminub) {
+	uint8[16] op0 = read_xmm_u8(inst.op0);
+	uint8[16] op1 = read_xmm_u8(inst.op1);
+	
+	uint8[16] dest;
+	for(uint8 i = 0; i < 16; ++i) {
+		dest[i] = op0[i] < op1[i] ? op0[i] : op1[i];
+	}
+	
+	write_xmm_u8(inst.op0, dest);
+}
+
+execute(pmaxub) {
+	uint8[16] op0 = read_xmm_u8(inst.op0);
+	uint8[16] op1 = read_xmm_u8(inst.op1);
+	
+	uint8[16] dest;
+	for(uint8 i = 0; i < 16; ++i) {
+		dest[i] = op0[i] > op1[i] ? op0[i] : op1[i];
+	}
+	
+	write_xmm_u8(inst.op0, dest);
+}
+
+execute(por) {
+	uint64[2] op0 = read_xmm_u64(inst.op0);
+	uint64[2] op1 = read_xmm_u64(inst.op1);
+	
+	write_xmm_u64(inst.op0, op0 | op1);
+}
+
+execute(pmovmskb) {
+	uint8[16] op1 = read_xmm_u8(inst.op1);
+	uint32 output = 0;
+	output |= op1[0] >> 7;
+	output |= (op1[1] >> 7) << 1;
+	output |= (op1[2] >> 7) << 2;
+	output |= (op1[3] >> 7) << 3;
+	output |= (op1[4] >> 7) << 4;
+	output |= (op1[5] >> 7) << 5;
+	output |= (op1[6] >> 7) << 6;
+	output |= (op1[7] >> 7) << 7;
+	output |= (op1[8] >> 7) << 8;
+	output |= (op1[9] >> 7) << 9;
+	output |= (op1[10] >> 7) << 10;
+	output |= (op1[11] >> 7) << 11;
+	output |= (op1[12] >> 7) << 12;
+	output |= (op1[13] >> 7) << 13;
+	output |= (op1[14] >> 7) << 14;
+	output |= (op1[15] >> 7) << 15;
+	
+	write_operand(inst.op0, output);
+}
+
+execute(punpcklbw) {
+	// figure out variant
+	// (32 or 128 bit)
+	if(operand_get_size(inst.op0) == 32) {
+		trap();
+	} else {
+		uint8[16] op0 = read_xmm_u8(inst.op0);
+		uint8[16] op1 = read_xmm_u8(inst.op1);
+		
+		uint8[16] dest;
+		dest[0] = op0[0];
+		dest[1] = op1[0];
+		dest[2] = op0[1];
+		dest[3] = op1[1];
+		dest[4] = op0[2];
+		dest[5] = op1[2];
+		dest[6] = op0[3];
+		dest[7] = op1[3];
+		dest[8] = op0[4];
+		dest[9] = op1[4];
+		dest[10] = op0[5];
+		dest[11] = op1[5];
+		dest[12] = op0[6];
+		dest[13] = op1[6];
+		dest[14] = op0[7];
+		dest[15] = op1[7];
+		
+		write_xmm_u8(inst.op0, dest);
+	}
+}
+
+execute(punpcklwd) {
+	// figure out variant
+	// (32 or 128 bit)
+	if(operand_get_size(inst.op0) == 32) {
+		trap();
+	} else {
+		uint16[8] op0 = read_xmm_u16(inst.op0);
+		uint16[8] op1 = read_xmm_u16(inst.op1);
+		
+		uint16[8] dest;
+		dest[0] = op0[0];
+		dest[1] = op1[0];
+		dest[2] = op0[1];
+		dest[3] = op1[1];
+		dest[4] = op0[2];
+		dest[5] = op1[2];
+		dest[6] = op0[3];
+		dest[7] = op1[3];
+		write_xmm_u16(inst.op0, dest);
+	}
+}
+
+execute(punpckldq) {
+	// figure out variant
+	// (32 or 128 bit)
+	if(operand_get_size(inst.op0) == 32) {
+		trap();
+	} else {
+		uint32[4] op0 = read_xmm_u32(inst.op0);
+		uint32[4] op1 = read_xmm_u32(inst.op1);
+		
+		uint32[4] dest;
+		dest[0] = op0[0];
+		dest[1] = op1[0];
+		dest[2] = op0[1];
+		dest[3] = op1[1];
+		
+		write_xmm_u32(inst.op0, dest);
+	}
+}
+
+execute(punpckhqdq) {
+	if(operand_get_size(inst.op0) == 64) {
+		trap();
+	} else {
+		uint64[2] op0 = read_xmm_u64(inst.op0);
+		uint64[2] op1 = read_xmm_u64(inst.op1);
+		
+		uint64[2] dest;
+		dest[0] = op0[1];
+		dest[1] = op1[1];
+		write_xmm_u64(inst.op0, dest);
+	}
+}
+
+execute(punpckhdq) {
+	if(operand_get_size(inst.op0) == 64) {
+		trap();
+	} else {
+		uint32[4] op0 = read_xmm_u32(inst.op0);
+		uint32[4] op1 = read_xmm_u32(inst.op1);
+		
+		uint32[4] dest;
+		dest[0] = op0[2];
+		dest[1] = op1[2];
+		dest[2] = op0[3];
+		dest[3] = op1[3];
+		
+		write_xmm_u32(inst.op0, dest);
+	}
+}
+
+execute(punpckhwd) {
+	// figure out variant
+	// (32 or 128 bit)
+	if(operand_get_size(inst.op0) == 32) {
+		trap();
+	} else {
+		uint16[8] op0 = read_xmm_u16(inst.op0);
+		uint16[8] op1 = read_xmm_u16(inst.op1);
+		
+		uint16[8] dest;
+		dest[0] = op0[4];
+		dest[1] = op1[4];
+		dest[2] = op0[5];
+		dest[3] = op1[5];
+		dest[4] = op0[6];
+		dest[5] = op1[6];
+		dest[6] = op0[7];
+		dest[7] = op1[7];
+		write_xmm_u16(inst.op0, dest);
+	}
+}
+
+execute(punpcklqdq) {
+	uint64[2] op0 = read_xmm_u64(inst.op0);
+	uint64[2] op1 = read_xmm_u64(inst.op1);
+	
+	op0[1] = op1[0];
+	write_xmm_u64(inst.op0, op0);
+}
+
+execute(pshufd) {
+	// figure out variant
+	if(operand_get_size(inst.op0) == 128) {
+		uint32[4] op1 = read_xmm_u32(inst.op1);
+		uint8 order = read_operand(inst.op2);
+		
+		uint32[4] dest;
+		dest[0] = op1[order & 3];
+		dest[1] = op1[(order >> 2) & 3];
+		dest[2] = op1[(order >> 4) & 3];
+		dest[3] = op1[(order >> 6) & 3];
+		
+		write_xmm_u32(inst.op0, dest);
+		
+	} else {
+		trap();
+	}
+}
+
+execute(pslld) {
+	uint32[4] shift = read_xmm_u32(inst.op1);
+	uint32[4] op = read_xmm_u32(inst.op0);
+	
+	for(uint8 i = 0 ; i < 4; ++i) {
+		if(shift[i] > 31) {
+			op[i] = 0;
+		} else {
+			op[i] = op[i] << shift[i];
+		}
+	}
+	
+	write_xmm_u32(inst.op0, op);
+}
+
+execute(pslldq) {
+	uint64 shift = read_operand(inst.op1);
+	uint128 op = read_xmm_u128(inst.op0);
+	
+	if(shift > 15) {
+		op = 0;
+	} else {
+		op <<= shift * 8;
+	}
+	
+	write_xmm_u128(inst.op0, op);
+}
+
+execute(psrad) {
+	sint32[4] shift = read_xmm_u32(inst.op1);
+	sint32[4] op = read_xmm_u32(inst.op0);
+	
+	for(uint8 i = 0 ; i < 4; ++i) {
+		if(shift[i] > 31) {
+			op[i] = 0;
+		} else {
+			op[i] = op[i] >> shift[i];
+		}
+	}
+	
+	write_xmm_u32(inst.op0, op);
+}
+
+execute(psrlq) {
+	uint64 shift = read_operand(inst.op1);
+	uint64 op = read_operand(inst.op0);
+	
+	if(shift > 15) {
+		op = 0;
+	} else {
+		op >>= shift * 8;
+	}
+	
+	write_operand(inst.op0, op);
+}
+
+execute(psrldq) {
+	uint64 shift = read_operand(inst.op1);
+	uint128 op = read_xmm_u128(inst.op0);
+	
+	if(shift > 15) {
+		op = 0;
+	} else {
+		op >>= shift * 8;
+	}
+	
+	write_xmm_u128(inst.op0, op);
+}
+
+execute(psllq) {
+	uint64[2] shift = read_xmm_u64(inst.op1);
+	uint64[2] op = read_xmm_u64(inst.op0);
+	
+	uint64[2] result;
+	result[0] = shift[0] > 63 ? (uint64)0 : op[0] << shift[0];
+	result[1] = shift[1] > 63 ? (uint64)0 : op[1] << shift[1];
+	
+	write_xmm_u64(inst.op0, result);
+}
+
+execute(pxor) {
+	uint64[2] op0 = read_xmm_u64(inst.op0);
+	uint64[2] op1 = read_xmm_u64(inst.op1);
+	
+	write_xmm_u64(inst.op0, op0 ^ op1);
+}
+
+execute(sqrtsd) {
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	double dop1 = bitcast_u64_double(op1);
+	
+	dop1 = double_sqrt(dop1);
+	
+	uint64 result = bitcast_double_u64(dop1);
+	write_operand_sse_scalar(inst.op0, result);
+}
+
+execute(subsd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	double result = dop0 - dop1;
+	
+	uint64 uresult = bitcast_double_u64(result);
+	
+	write_operand_sse_scalar(inst.op0, uresult);
+}
+
+execute(subss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+	
+	float result = dop0 - dop1;
+	
+	uint64 uresult = bitcast_float_u32(result);
+	
+	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+execute(ucomisd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+
+	if(unordered(dop0, dop1)) {
+		write_zpc(1,1,1);
+	} else if(dop0 > dop1) {
+		write_zpc(0,0,0);
+	} else if(dop0 < dop1) {
+		write_zpc(0,0,1);
+	} else if(dop0 == dop1) {
+		write_zpc(1,0,0);
+	} else {
+		trap();
+	}
+	write_register(OF, 0);
+	write_register(SF, 0);
+	write_register(AF, 0);
+}
+
+execute(ucomiss) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	float dop0 = bitcast_u32_float(op0);
+	float dop1 = bitcast_u32_float(op1);
+
+	if(dop0 > dop1) {
+		write_zpc(0,0,0);
+	} else if(dop0 < dop1) {
+		write_zpc(0,0,1);
+	} else if(dop0 == dop1) {
+		write_zpc(1,0,0);
+	} else {
+		write_zpc(1,1,1);
+	}
+}
+
+execute(unpcklpd) {
+	uint64[2] op0 = read_xmm_u64(inst.op0);
+	uint64[2] op1 = read_xmm_u64(inst.op1);
+	
+	uint64[2] result;
+	result[0] = op0[0];
+	result[1] = op1[0];
+	
+	write_xmm_u64(inst.op0, result);
+}
+
+execute(xorpd) {
+	uint64[2] op0 = read_xmm_u64(inst.op0);
+	uint64[2] op1 = read_xmm_u64(inst.op1);
+	
+	write_xmm_u64(inst.op0, op0 ^ op1);
+}
+
+helper void write_zpc(uint8 z, uint8 p, uint8 c) {
+	write_register(ZF, z);
+	write_register(PF, p);
+	write_register(CF, c);
+	
+	return;
+}
+
+helper uint8[16] read_xmm_u8(struct Operand &op)
+{
+	if(op.is_reg) {
+		return read_register_bank(XMM_U8, op.reg.index);
+	} else if(op.is_mem) {
+		uint8[16] val;
+		uint64 data;
+		
+		uint64 addr = mem_get_addr(op.memory);
+		mem_read_64(Data, addr, data);
+		
+		val[0] = data;
+		val[1] = data >> 8;
+		val[2] = data >> 16;
+		val[3] = data >> 24;
+		val[4] = data >> 32;
+		val[5] = data >> 40;
+		val[6] = data >> 48;
+		val[7] = data >> 56;
+		
+		mem_read_64(Data, addr + 8, data);
+		
+		val[8] =  data;
+		val[9] =  data >> 8;
+		val[10] = data >> 16;
+		val[11] = data >> 24;
+		val[12] = data >> 32;
+		val[13] = data >> 40;
+		val[14] = data >> 48;
+		val[15] = data >> 56;
+		
+		return val;
+	} else {
+		trap();
+	}
+	return 0;
+}
+
+helper void write_xmm_u8(struct Operand &op, uint8[16] value)
+{
+	if(op.is_reg) {
+		write_register_bank(XMM_U8, op.reg.index, value);
+	} else {
+		trap();
+	}
+	return;
+}
+
+helper uint16[8] read_xmm_u16(struct Operand &op)
+{
+	if(op.is_reg) {
+		return read_register_bank(XMM_U16, op.reg.index);
+	} else {
+		trap();
+	}
+	return 0;
+}
+
+helper void write_xmm_u16(struct Operand &op, uint16[8] value)
+{
+	if(op.is_reg) {
+		write_register_bank(XMM_U16, op.reg.index, value);
+	} else {
+		trap();
+	}
+	return;
+}
+
+helper uint32[4] read_xmm_u32(struct Operand &op)
+{
+	if(op.is_reg) {
+		return read_register_bank(XMM_U32, op.reg.index);
+	} else if(op.is_imm) {
+		return op.imm.value;
+	} else if(op.is_mem) {
+		uint64 addr = mem_get_addr(op.memory);
+		uint32 data;
+		uint32[4] output;
+		
+		mem_read_32(Data, addr, data);
+		output[0] = data;
+		mem_read_32(Data, addr+4, data);
+		output[1] = data;
+		mem_read_32(Data, addr+8, data);
+		output[2] = data;
+		mem_read_32(Data, addr+12, data);
+		output[3] = data;
+		
+		return output;
+	} else {
+		trap();
+	}
+	return 0;
+}
+
+helper void write_xmm_u32(struct Operand &op, uint32[4] value)
+{
+	if(op.is_reg) {
+		write_register_bank(XMM_U32, op.reg.index, value);
+	} else {
+		trap();
+	}
+	return;
+}
+
+helper uint64[2] read_xmm_u64(struct Operand &op)
+{
+	if(op.is_reg) {
+		return read_register_bank(XMM_U64, op.reg.index);
+	} else if(op.is_mem) {
+		uint64 data;
+		uint64 addr = mem_get_addr(op.memory);
+		
+		uint64[2] output;
+		mem_read_64(Data, addr, data);
+		output[0] = data;
+		mem_read_64(Data, addr + 8, data);
+		output[1] = data;
+		
+		return output;
+		
+	} else if(op.is_imm) {
+		return op.imm.value;
+	} else {
+		trap();
+	}
+	return 0;
+}
+
+helper void write_xmm_u64(struct Operand &op, uint64[2] value)
+{
+	if(op.is_reg) {
+		write_register_bank(XMM_U64, op.reg.index, value);
+	} else if(op.is_mem) {
+		uint64 addr = mem_get_addr(op.memory);
+		
+		mem_write_64(Data, addr, value[0]);
+		mem_write_64(Data, addr+8, value[1]);
+		
+	} else {
+		trap();
+	}
+	return;
+}
+
+
+helper uint128 read_xmm_u128(struct Operand &op)
+{
+	if(op.is_reg) {
+		return read_register_bank(XMM_U128, op.reg.index);
+	} else if(op.is_mem) {
+		uint128 result = 0;
+		uint64 data;
+		uint64 addr = mem_get_addr(op.memory);
+		
+		mem_read_64(Data, addr, data);
+		result |= data;
+		mem_read_64(Data, addr+8, data);
+		result |= ((uint128)data) << 64;
+		
+		return result;
+	} else {
+		trap(); 
+	}
+	
+	return 0;
+}
+
+helper void write_xmm_u128(struct Operand &op, uint128 value)
+{
+	if(op.is_reg) {
+		write_register_bank(XMM_U128, op.reg.index, value);
+	} else {
+		trap();
+	}
+	
+	return;
+}
+
+helper uint64 read_operand_sse_scalar(struct Operand &op)
+{
+	if(op.is_reg) {
+		if(op.reg.regclass == 0) {
+			return read_op_reg(op.reg);
+		} else {
+			return read_op_reg_sse(op.reg);
+		}
+	} else if(op.is_imm) {
+		return read_op_imm(op.imm);
+	} else if(op.is_relbr) {
+		return read_op_relbr(op.imm);
+	} else if(op.is_mem) {
+		return read_op_mem(op.memory);
+	}
+	trap();
+	
+	return 0;
+}
+
+helper uint64 read_op_reg_sse(struct Register &reg)
+{
+	switch(reg.regclass) {
+		case 1: { //XMM
+			uint64 val = read_register_bank(XMM_U64L, reg.index);
+			return val;
+		}
+		case 2: { // MMX
+			// return entire mmx register
+			return read_register_bank(MMX, reg.index);
+		}
+		default: {
+			trap();
+			break;
+		}
+	}
+	return 0;
+}
+
+helper void write_operand_sse_scalar(struct Operand &op, uint64 value)
+{
+	if(op.is_reg) {
+		if(op.reg.regclass == 0) {
+			write_op_reg(op.reg, value);
+		} else {
+			write_op_reg_sse(op.reg, value);
+		}
+		return;
+	} else if(op.is_mem) {
+		write_op_mem(op.memory, value);
+		return;
+	}
+	trap();
+
+	return;
+}
+
+helper void write_operand_sse_scalar32(struct Operand &op, uint64 value)
+{
+	if(op.is_reg) {
+		if(op.reg.regclass == 0) {
+			write_op_reg(op.reg, value);
+		} else {
+			write_op_reg_sse32(op.reg, value);
+		}
+		return;
+	} else if(op.is_mem) {
+		write_op_mem(op.memory, value);
+		return;
+	}
+	trap();
+
+	return;
+}
+
+helper void write_op_reg_sse(struct Register &reg, uint64 value)
+{
+	switch(reg.regclass) {
+		case 1: { // XMM
+			write_register_bank(XMM_U64L, reg.index, value);
+			return;
+		}
+		case 2: { // MMX
+			write_register_bank(MMX, reg.index, value);
+			return;
+		}
+		default: {
+			trap();
+			break;
+		}
+	}
+	return;
+}
+
+helper void write_op_reg_sse32(struct Register &reg, uint64 value)
+{
+	switch(reg.regclass) {
+		case 1: { // XMM
+			write_register_bank(XMM_U32L, reg.index, value);
+			return;
+		}
+		case 2: { // MMX
+			write_register_bank(MMX, reg.index, value);
+			return;
+		}
+		default: {
+			trap();
+			break;
+		}
+	}
+	return;
+}

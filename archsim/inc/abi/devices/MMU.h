@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * MMU.h
  *
@@ -14,7 +16,7 @@
 
 namespace archsim
 {
-	namespace abi	
+	namespace abi
 	{
 		namespace memory
 		{
@@ -29,6 +31,7 @@ namespace archsim
 
 				AccessInfo() {}
 				AccessInfo(bool K, bool W, bool F, bool SE=0) : Write(W), Kernel(K), Fetch(F), SideEffects(SE) {}
+				friend std::ostream &operator <<(std::ostream &stream, const struct archsim::abi::devices::AccessInfo &info);
 			};
 
 #define MMUACCESSINFO(K, W, F) archsim::abi::devices::AccessInfo(K, W, F)
@@ -40,8 +43,8 @@ namespace archsim
 			public:
 				PageInfo();
 
-				uint32_t phys_addr;
-				uint32_t mask;
+				Address phys_addr;
+				Address::underlying_t mask;
 
 				bool Present:1;
 
@@ -73,15 +76,15 @@ namespace archsim
 
 				virtual ~MMU();
 
-				virtual TranslateResult Translate(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr, uint32_t &phys_addr, const struct AccessInfo info) = 0;
-				virtual TranslateResult TranslateRegion(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr, uint32_t size, uint32_t &phys_addr, const struct AccessInfo info);
+				virtual TranslateResult Translate(archsim::core::thread::ThreadInstance *cpu, Address virt_addr, Address &phys_addr, const struct AccessInfo info) = 0;
+				virtual TranslateResult TranslateRegion(archsim::core::thread::ThreadInstance *cpu, Address virt_addr, uint32_t size, Address &phys_addr, const struct AccessInfo info);
 
-				virtual const PageInfo GetInfo(uint32_t virt_addr) = 0;
+				virtual const PageInfo GetInfo(Address virt_addr) = 0;
 
 				virtual void FlushCaches();
-				virtual void Evict(virt_addr_t virt_addr);
+				virtual void Evict(Address virt_addr);
 
-				uint32_t TranslateUnsafe(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr);
+				Address TranslateUnsafe(archsim::core::thread::ThreadInstance *cpu, Address virt_addr);
 
 				void set_enabled(bool enabled);
 				inline bool is_enabled() const
@@ -108,20 +111,6 @@ namespace archsim
 
 		}
 	}
-}
-
-inline std::ostream &operator <<(std::ostream &stream, const struct archsim::abi::devices::AccessInfo &info)
-{
-	stream << "[";
-	if(info.Fetch) stream << "I";
-	else stream << "D";
-	if(info.Kernel) stream << "K";
-	else stream << "U";
-	if(info.Write) stream << "W";
-	else stream << "R";
-
-	stream << "]";
-	return stream;
 }
 
 #endif /* MMU_H_ */

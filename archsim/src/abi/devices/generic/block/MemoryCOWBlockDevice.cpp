@@ -1,8 +1,5 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 
 #include "abi/devices/generic/block/MemoryCOWBlockDevice.h"
 #include "util/LogContext.h"
@@ -59,7 +56,7 @@ bool MemoryCOWBlockDevice::ReadBlock(uint64_t block_idx, uint8_t* buffer)
 
 bool MemoryCOWBlockDevice::ReadBlocks(uint64_t block_idx, uint32_t count, uint8_t* buffer)
 {
-	for(int i = 0; i < count; ++i) {
+	for(uint32_t i = 0; i < count; ++i) {
 		if(!ReadBlock(block_idx+i, buffer + (GetBlockSize()*i))) return false;
 	}
 	return true;
@@ -67,7 +64,7 @@ bool MemoryCOWBlockDevice::ReadBlocks(uint64_t block_idx, uint32_t count, uint8_
 
 bool MemoryCOWBlockDevice::WriteBlocks(uint64_t block_idx, uint32_t count, const uint8_t* buffer)
 {
-	for(int i = 0; i < count; ++i) {
+	for(uint32_t i = 0; i < count; ++i) {
 		if(!WriteBlock(block_idx+i, buffer + (GetBlockSize()*i))) return false;
 	}
 	return true;

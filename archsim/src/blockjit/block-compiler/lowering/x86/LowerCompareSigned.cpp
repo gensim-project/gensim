@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerCompare.cpp
  *
@@ -28,16 +30,16 @@ bool LowerCompareSigned::Lower(const captive::shared::IRInstruction *&insn)
 	const IROperand *dest = &insn->operands[2];
 
 	// This should be true if the OPERANDS are reversed, not if the CONDITION
-	// should be inverted. 
+	// should be inverted.
 	// This is important since:
 	// LH >= RH
-	// is the same as 
+	// is the same as
 	// RH <= LH
-	
+
 	// and
-	
+
 	// LH > RH
-	// is the same as 
+	// is the same as
 	// RH < LH
 	bool reverse_operands = false;
 
@@ -165,37 +167,43 @@ bool LowerCompareSigned::Lower(const captive::shared::IRInstruction *&insn)
 		}
 	}
 
+	auto dest_reg = dest->is_alloc_reg() ? GetLoweringContext().register_from_operand(dest) : BLKJIT_TEMPS_0(1);
+
 	switch (insn->type) {
 		case IRInstruction::CMPSLT:
 			if (reverse_operands)
-				Encoder().setg(GetLoweringContext().register_from_operand(dest));
+				Encoder().setg(dest_reg);
 			else
-				Encoder().setl(GetLoweringContext().register_from_operand(dest));
+				Encoder().setl(dest_reg);
 			break;
 
 		case IRInstruction::CMPSLTE:
 			if (reverse_operands)
-				Encoder().setge(GetLoweringContext().register_from_operand(dest));
+				Encoder().setge(dest_reg);
 			else
-				Encoder().setle(GetLoweringContext().register_from_operand(dest));
+				Encoder().setle(dest_reg);
 			break;
 
 		case IRInstruction::CMPSGT:
 			if (reverse_operands)
-				Encoder().setl(GetLoweringContext().register_from_operand(dest));
+				Encoder().setl(dest_reg);
 			else
-				Encoder().setg(GetLoweringContext().register_from_operand(dest));
+				Encoder().setg(dest_reg);
 			break;
 
 		case IRInstruction::CMPSGTE:
 			if (reverse_operands)
-				Encoder().setle(GetLoweringContext().register_from_operand(dest));
+				Encoder().setle(dest_reg);
 			else
-				Encoder().setge(GetLoweringContext().register_from_operand(dest));
+				Encoder().setge(dest_reg);
 			break;
 
 		default:
 			assert(false);
+	}
+
+	if(dest->is_alloc_stack()) {
+		Encoder().mov(dest_reg, GetLoweringContext().stack_from_operand(dest));
 	}
 
 	insn++;

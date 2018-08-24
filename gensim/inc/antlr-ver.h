@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #ifndef __ANTLR_VER_H__
 #define __ANTLR_VER_H__
 #include <antlr3config.h>

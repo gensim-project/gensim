@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * TimerManager.h
  *
@@ -12,6 +14,7 @@
 #include "concurrent/Mutex.h"
 #include "concurrent/ConditionVariable.h"
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <list>
@@ -151,7 +154,7 @@ namespace archsim
 				typedef std::list<TimerState*> timer_vector_t;
 				timer_vector_t timers;
 
-				volatile bool terminate;
+				std::atomic<bool> terminate;
 
 			};
 

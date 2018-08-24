@@ -1,9 +1,4 @@
-/*
- * File:   JitGenerator.h
- * Author: spink
- *
- * Created on 27 February 2015, 14:28
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef JITGENERATOR_H
 #define	JITGENERATOR_H
@@ -51,7 +46,7 @@ namespace gensim
 		public:
 			bool GenerateClass(util::cppformatstream &str) const;
 			bool GenerateTranslation(util::cppformatstream &str) const;
-			
+
 			bool GenerateHeader(util::cppformatstream &) const;
 			bool GenerateSource(util::cppformatstream &) const;
 

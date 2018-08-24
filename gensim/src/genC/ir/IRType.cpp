@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <cassert>
 #include <string>
@@ -16,6 +17,26 @@ namespace gensim
 {
 	namespace genc
 	{
+
+		IRType IRType::_UInt128()
+		{
+			IRType g;
+			g.DataType = IRType::PlainOldData;
+			g.BaseType.PlainOldDataType = IRPlainOldDataType::INT128;
+			g.Signed = false;
+			g.Const = false;
+			return g;
+		}
+
+		IRType IRType::_Int128()
+		{
+			IRType g;
+			g.DataType = IRType::PlainOldData;
+			g.BaseType.PlainOldDataType = IRPlainOldDataType::INT128;
+			g.Signed = true;
+			g.Const = false;
+			return g;
+		}
 
 		IRType IRType::_UInt64()
 		{
@@ -165,11 +186,13 @@ namespace gensim
 		const IRType IRTypes::Int16 = IRType::_Int16();
 		const IRType IRTypes::Int32 = IRType::_Int32();
 		const IRType IRTypes::Int64 = IRType::_Int64();
+		const IRType IRTypes::Int128 = IRType::_Int128();
 		const IRType IRTypes::UInt1 = IRType::_UInt1();
 		const IRType IRTypes::UInt8 = IRType::_UInt8();
 		const IRType IRTypes::UInt16 = IRType::_UInt16();
 		const IRType IRTypes::UInt32 = IRType::_UInt32();
 		const IRType IRTypes::UInt64 = IRType::_UInt64();
+		const IRType IRTypes::UInt128 = IRType::_UInt128();
 		const IRType IRTypes::Void = IRType::_Void();
 		const IRType IRTypes::Float = IRType::_Float();
 		const IRType IRTypes::Double = IRType::_Double();
@@ -177,11 +200,11 @@ namespace gensim
 		const IRType IRTypes::Block = IRType::_Block();
 		const IRType IRTypes::Function = IRType::_Function();
 
-		IRType IRType::CreateStruct(const IRStructType &Type)
+		IRType IRType::CreateStruct(const IRStructType* const Type)
 		{
 			IRType g;
 			g.DataType = Struct;
-			g.BaseType.StructType = &Type;
+			g.BaseType.StructType = Type;
 			return g;
 		}
 
@@ -217,6 +240,8 @@ namespace gensim
 					return IRTypes::UInt32;
 				case 64:
 					return IRTypes::UInt64;
+				case 128:
+					return IRTypes::UInt128;
 			}
 			throw std::logic_error("Unsupported integer type");
 		}
@@ -227,7 +252,7 @@ namespace gensim
 			if((from.VectorWidth == 1) && (to.VectorWidth > 1)) {
 				return IRConstant::Vector(to.VectorWidth, value);
 			}
-			
+
 			if((from.VectorWidth != 1) || (to.VectorWidth != 1)) {
 				GASSERT(value.Type() == IRConstant::Type_Vector);
 				GASSERT(from.VectorWidth == to.VectorWidth);
@@ -293,8 +318,12 @@ namespace gensim
 			IRConstant result = value;
 
 			if(from.Signed && to.Signed) {
+				if (from.SizeInBytes() == 16 || to.SizeInBytes() == 16) {
+					throw std::logic_error("Sign extension to/from 128-bit integer not supported");
+				}
+
 				// sign extend from value to 64 bits
-				switch(from.Size()) {
+				switch(from.SizeInBytes()) {
 					case 1:
 						result = IRConstant::Integer((int64_t)(int8_t)value.Int());
 						break;
@@ -312,7 +341,7 @@ namespace gensim
 				}
 			}
 
-			if(to.BaseType.PlainOldDataType == IRPlainOldDataType::INT64) {
+			if(to.BaseType.PlainOldDataType == IRPlainOldDataType::INT64 || to.BaseType.PlainOldDataType == IRPlainOldDataType::INT128) {
 				uint64_t result;
 				switch(value.Type()) {
 					case IRConstant::Type_Integer:
@@ -330,7 +359,7 @@ namespace gensim
 				return IRConstant::Integer(result);
 			}
 
-			uint64_t mask = (1ULL << (to.Size()*8))-1;
+			uint64_t mask = (((uint64_t)1) << (to.SizeInBytes()*8))-1;
 			cast_value = result.Int() & mask;
 
 			return IRConstant::Integer(cast_value);
@@ -358,6 +387,10 @@ namespace gensim
 				type = IRTypes::UInt64;
 			} else if (baseType == "sint64") {
 				type = IRTypes::Int64;
+			} else if (baseType == "uint128") {
+				type = IRTypes::UInt128;
+			} else if (baseType == "sint128") {
+				type = IRTypes::Int128;
 			} else if (baseType == "float") {
 				type = IRTypes::Float;
 			} else if (baseType == "double") {
@@ -411,7 +444,7 @@ namespace gensim
 				}
 			}
 		}
-		uint32_t IRType::Size() const
+		uint32_t IRType::SizeInBytes() const
 		{
 			assert(VectorWidth != 0);
 			return VectorWidth * ElementSize();
@@ -433,6 +466,8 @@ namespace gensim
 						return 4;
 					case IRPlainOldDataType::INT64:
 						return 8;
+					case IRPlainOldDataType::INT128:
+						return 16;
 					case IRPlainOldDataType::FLOAT:
 						return 4;
 					case IRPlainOldDataType::DOUBLE:
@@ -447,7 +482,7 @@ namespace gensim
 				const IRStructType &t = *BaseType.StructType;
 				uint32_t size = 0;
 				for (std::vector<IRStructType::IRStructMember>::const_iterator ci = t.Members.begin(); ci != t.Members.end(); ++ci) {
-					size += ci->Type.Size();
+					size += ci->Type.SizeInBytes();
 				}
 				return size;
 			}
@@ -461,7 +496,7 @@ namespace gensim
 					IRType innertype = *this;
 					innertype.VectorWidth = 1;
 
-					out << "Vector<" << innertype.GetCType() << ", " << (uint32_t)VectorWidth << ">";
+					out << "archsim::Vector<" << innertype.GetCType() << ", " << (uint32_t)VectorWidth << ">";
 					return out.str();
 				}
 
@@ -489,6 +524,9 @@ namespace gensim
 						case IRPlainOldDataType::INT64:
 							out << "int64_t";
 							break;
+						case IRPlainOldDataType::INT128:
+							out << "int128_t";
+							break;
 						case IRPlainOldDataType::FLOAT:
 							out << "float";
 							break;
@@ -503,10 +541,10 @@ namespace gensim
 					}
 				}
 			}
-			// we treat structs as pointers to structs. since we are just doing pointer arithmetic we
-			// don't care what type it actually is, so return a char pointer
-			else
-				return "uint8*";
+
+			else {
+				return "uint8_t*";
+			}
 
 			if (Reference) out << "&";
 			return out.str();
@@ -559,7 +597,7 @@ namespace gensim
 		std::string IRType::GetUnifiedType() const
 		{
 			if (IsStruct()) {
-				return "u64";
+				return this->BaseType.StructType->Name;
 			} else if (VectorWidth == 1) {
 				if (IsFloating()) {
 					if (BaseType.PlainOldDataType == IRPlainOldDataType::FLOAT)
@@ -570,7 +608,7 @@ namespace gensim
 						return "f80";
 				} else {
 					if (Signed) {
-						switch (Size()) {
+						switch (SizeInBytes()) {
 							case 1:
 								return "s8";
 							case 2:
@@ -579,9 +617,11 @@ namespace gensim
 								return "s32";
 							case 8:
 								return "s64";
+							case 16:
+								return "s128";
 						}
 					} else {
-						switch (Size()) {
+						switch (SizeInBytes()) {
 							case 1:
 								return "u8";
 							case 2:
@@ -590,6 +630,8 @@ namespace gensim
 								return "u32";
 							case 8:
 								return "u64";
+							case 16:
+								return "u128";
 						}
 					}
 				}
@@ -614,7 +656,7 @@ namespace gensim
 			assert(DataType == PlainOldData);
 			assert(!IsFloating());
 
-			return 1 << (8*Size()) - 1;
+			return 1 << ((8*SizeInBytes()) - 1);
 		}
 
 		IRType IRType::GetElementType() const
@@ -642,7 +684,7 @@ namespace gensim
 			uint32_t offset = 0;
 			for (std::vector<IRStructMember>::const_iterator ci = Members.begin(); ci != Members.end(); ++ci) {
 				if (ci->Name == member) return offset;
-				offset += ci->Type.Size();
+				offset += ci->Type.SizeInBytes();
 			}
 			assert(false && "Could not find struct member");
 			return 0;

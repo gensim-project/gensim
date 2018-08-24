@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * VirtualScreen.h
  *
@@ -87,7 +89,7 @@ namespace archsim
 					 * be virtual or physical. This may be changeable without resetting the screen,
 					 * depending on the implementation.
 					 */
-					virtual bool SetFramebufferPointer(uint32_t guest_addr);
+					virtual bool SetFramebufferPointer(Address guest_addr);
 
 					/**
 					 * Set the palette pointer to the given guest address. Note that this address is
@@ -96,7 +98,7 @@ namespace archsim
 					 * returns FALSE, otherwise it returns TRUE. This may be changeable without resetting
 					 * the screen, depending on the implementation.
 					 */
-					virtual bool SetPalettePointer(uint32_t guest_addr);
+					virtual bool SetPalettePointer(Address guest_addr);
 
 					virtual bool SetPaletteMode(PaletteMode new_mode);
 					virtual bool SetPaletteEntry(uint32_t entry, uint32_t data);
@@ -118,6 +120,8 @@ namespace archsim
 					{
 						return mode;
 					}
+
+					size_t GetPixelSize() const;
 
 				protected:
 					inline bool SetWidth(uint32_t nwidth)
@@ -148,7 +152,7 @@ namespace archsim
 						initialised = false;
 					}
 
-					uint32_t fb_ptr, p_ptr;
+					Address fb_ptr, p_ptr;
 
 					inline memory::MemoryModel *GetMemory()
 					{

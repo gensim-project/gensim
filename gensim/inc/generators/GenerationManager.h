@@ -1,9 +1,4 @@
-/*
- * File:   GenerationManager.h
- * Author: s0803652
- *
- * Created on 03 October 2011, 10:28
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef _GENERATIONMANAGER_H
 #define _GENERATIONMANAGER_H
@@ -102,47 +97,61 @@ namespace gensim
 			Interpreter,
 			ArchDescriptor
 		};
-		
-		class ModuleEntry {
+
+		class ModuleEntry
+		{
 		public:
 			ModuleEntry(const std::string &entry_name, const std::string &class_name, const std::string &class_header, ModuleEntryType entry_type) : entry_name_(entry_name), class_name_(class_name), class_header_(class_header), entry_type_(entry_type) {}
 
-			const std::string &GetClassHeader() const { return class_header_; }
-			const std::string &GetClassName() const { return class_name_; }
-			const std::string &GetEntryName() const { return entry_name_; }
-			
-			ModuleEntryType GetEntryType() const { return entry_type_; }
-			
+			const std::string &GetClassHeader() const
+			{
+				return class_header_;
+			}
+			const std::string &GetClassName() const
+			{
+				return class_name_;
+			}
+			const std::string &GetEntryName() const
+			{
+				return entry_name_;
+			}
+
+			ModuleEntryType GetEntryType() const
+			{
+				return entry_type_;
+			}
+
 		private:
 			std::string class_header_;
 			std::string class_name_;
 			std::string entry_name_;
 			ModuleEntryType entry_type_;
 		};
-		
-		class FunctionEntry {
+
+		class FunctionEntry
+		{
 		public:
-			FunctionEntry(const std::string prototype, const std::string &body, const std::vector<std::string> &local_headers={}, const std::vector<std::string> &sys_headers={}, const std::vector<std::string> &specialisations={}, bool global=false);
-			
+			FunctionEntry(const std::string prototype, const std::string &body, const std::vector<std::string> &local_headers= {}, const std::vector<std::string> &sys_headers= {}, const std::vector<std::string> &specialisations= {}, bool global=false);
+
 			std::string Format() const;
 			std::string FormatPrototype() const;
 			std::string FormatIncludes() const;
 			size_t GetBodySize() const;
 			bool IsGlobal() const;
-			
+
 			const std::vector<std::string> &GetLocalHeaders() const;
 			const std::vector<std::string> &GetSystemHeaders() const;
-			
+
 		private:
 			std::string prototype_;
 			std::string body_;
 			std::vector<std::string> local_headers_;
 			std::vector<std::string> system_headers_;
 			std::vector<std::string> specialisations_;
-			
+
 			bool is_global_;
 		};
-		
+
 		class GenerationManager
 		{
 		public:
@@ -159,9 +168,18 @@ namespace gensim
 			const GenerationComponent *GetComponentC(const std::string) const;
 			const std::vector<GenerationComponent *> &GetComponents() const;
 			void AddComponent(GenerationComponent &component);
-			
-			void AddModuleEntry(const ModuleEntry &entry) { module_entries_.push_back(entry); }
-			void AddFunctionEntry(const FunctionEntry &entry) { function_entries_.push_back(entry); }
+
+			void AddModuleEntry(const ModuleEntry &entry)
+			{
+				module_entries_.push_back(entry);
+			}
+			void AddFunctionEntry(const FunctionEntry &entry)
+			{
+				if(function_entries_.count(entry.FormatPrototype())) {
+					return;
+				}
+				function_entries_.insert({entry.FormatPrototype(), entry});
+			}
 
 			bool Generate();
 
@@ -182,16 +200,22 @@ namespace gensim
 
 			virtual ~GenerationManager() {};
 
-			const std::vector<ModuleEntry> &GetModuleEntries() const { return module_entries_; }
-			const std::vector<FunctionEntry> &GetFunctionEntries() const { return function_entries_; }
-			
+			const std::vector<ModuleEntry> &GetModuleEntries() const
+			{
+				return module_entries_;
+			}
+			const std::map<std::string, FunctionEntry> &GetFunctionEntries() const
+			{
+				return function_entries_;
+			}
+
 		private:
 			arch::ArchDescription &arch;
 			std::string target;
 
 			std::vector<ModuleEntry> module_entries_;
-			std::vector<FunctionEntry> function_entries_;
-			
+			std::map<std::string, FunctionEntry> function_entries_;
+
 			std::multimap<std::string, GenerationComponent *> Components;
 			mutable bool _components_up_to_date;
 			mutable std::vector<GenerationComponent *> _components;

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * LowerMemoryGeneric.cpp
  *
@@ -61,11 +63,16 @@ bool LowerReadMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 		case 4:
 			Encoder().call((void*)blkRead32, BLKJIT_RETURN(8));
 			break;
+		case 8:
+			Encoder().call((void*)blkRead64, BLKJIT_RETURN(8));
+			break;
+		default:
+			UNEXPECTED;
 	}
 	if(dest->is_alloc_reg()) {
 		Encoder().mov(REGS_RAX(dest->size), GetLoweringContext().register_from_operand(dest, dest->size));
 	}
-	
+
 	GetLoweringContext().emit_restore_reg_state(GetIsStackFixed(), live_regs);
 
 	insn++;
@@ -94,7 +101,7 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 	auto &address_reg = BLKJIT_ARG2(4);
 
 	Encoder().mov(interface->value, BLKJIT_ARG1(4));
-	
+
 	GetLoweringContext().load_state_field("thread_ptr", BLKJIT_ARG0(8));
 	if(offset->is_alloc_reg()) {
 		Encoder().mov(GetLoweringContext().get_allocable_register(offset->alloc_data, 4), address_reg);
@@ -116,10 +123,16 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 	} else if(value->is_alloc_stack()) {
 		// already loaded
 	} else if(value->is_constant()) {
-		if(value->size != 4) {
-			assert(false);
+		switch(value->size) {
+			case 4:
+				Encoder().mov((uint32_t)value->value, BLKJIT_ARG3(4));
+				break;
+			case 8:
+				Encoder().mov((uint64_t)value->value, BLKJIT_ARG3(4));
+				break;
+			default:
+				UNEXPECTED;
 		}
-		Encoder().mov(value->value, BLKJIT_ARG3(4));
 	} else {
 		assert(false);
 	}
@@ -134,7 +147,12 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 		case 4:
 			Encoder().mov((uint64_t)cpuWrite32, BLKJIT_RETURN(8));
 			break;
-	}	
+		case 8:
+			Encoder().mov((uint64_t)cpuWrite64, BLKJIT_RETURN(8));
+			break;
+		default:
+			UNEXPECTED;
+	}
 
 	Encoder().call(BLKJIT_RETURN(8));
 
@@ -147,11 +165,11 @@ bool LowerWriteMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 bool LowerReadUserMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 {
 	UNIMPLEMENTED;
-	
+
 }
 
 bool LowerWriteUserMemGeneric::Lower(const captive::shared::IRInstruction *&insn)
 {
 	UNIMPLEMENTED;
-	
+
 }

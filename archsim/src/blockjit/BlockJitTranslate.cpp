@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * BlockJitTranslate.cpp
  *
@@ -21,7 +23,7 @@
 
 #include "util/LogContext.h"
 #include "abi/devices/MMU.h"
-#include "util/wutils/tick-timer.h"
+#include <wutils/tick-timer.h>
 #include "blockjit/PerfMap.h"
 #include "blockjit/IRPrinter.h"
 
@@ -53,19 +55,19 @@ bool BaseBlockJITTranslate::translate_block(archsim::core::thread::ThreadInstanc
 {
 	// Initialise the translation context
 	_should_be_dumped = false;
-	
+
 	SetDecodeContext(processor->GetEmulationModel().GetNewDecodeContext(*processor));
-	
+
 	TranslationContext ctx;
 	captive::shared::IRBuilder builder;
-	
+
 	builder.SetContext(&ctx);
 	builder.SetBlock(ctx.alloc_block());
-	
+
 	InitialiseFeatures(processor);
 	InitialiseIsaMode(processor);
 
-	tick_timer timer (0, stdout);
+	wutils::tick_timer timer (0, stdout);
 	timer.reset();
 
 	// Build the IR for this block
@@ -195,7 +197,7 @@ void BaseBlockJITTranslate::InvalidateIsaMode()
 }
 
 bool BaseBlockJITTranslate::build_block(archsim::core::thread::ThreadInstance *processor, archsim::Address block_address, captive::shared::IRBuilder &builder)
-{	
+{
 	// initialise some state, and then recursively emit blocks until we come
 	// to a branch that we can't resolve statically
 	if(!_decode)_decode = processor->GetArch().GetISA(processor->GetModeID()).GetNewDecode();
@@ -204,10 +206,10 @@ bool BaseBlockJITTranslate::build_block(archsim::core::thread::ThreadInstance *p
 	return emit_block(processor, block_address, builder, block_heads);
 }
 
-bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstance* cpu, archsim::Address pc, gensim::BaseDecode* insn, captive::shared::IRBuilder& builder)
+bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstance* cpu, archsim::Address pc, gensim::BaseDecode*& insn, captive::shared::IRBuilder& builder)
 {
 	_decode_ctx->Reset(cpu);
-	auto fault = _decode_ctx->DecodeSync(cpu->GetFetchMI(), pc, GetIsaMode(), *insn);
+	auto fault = _decode_ctx->DecodeSync(cpu->GetFetchMI(), pc, GetIsaMode(), insn);
 	_decode_ctx->WriteBackState(cpu);
 	assert(!fault);
 
@@ -216,7 +218,7 @@ bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstan
 		std::cout << "Invalid instruction! PC:" << std::hex << pc.Get() << ": IR:" << std::hex << insn->ir << " ISAMODE:" << (uint32_t)insn->isa_mode << "\n";
 		return false;
 	}
-	
+
 	return emit_instruction_decoded(cpu, pc, insn, builder);
 }
 
@@ -224,7 +226,7 @@ bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstan
 bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::ThreadInstance *processor, Address pc, const gensim::BaseDecode *decode, captive::shared::IRBuilder &builder)
 {
 	LC_DEBUG4(LogBlockJit) << "Translating instruction " << std::hex << pc.Get() << " " << decode->Instr_Code << " " << decode->ir;
-	
+
 	if(archsim::options::Verbose) {
 		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
 	}
@@ -242,27 +244,27 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 	if(archsim::options::ProfileIrFreq) {
 		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionIRHistogram.get_value_ptr_at_index(decode->ir)), IROperand::const64(1));
 	}
-	
+
 	if(processor->GetTraceSource()) {
-		IRRegId pc_reg = builder.alloc_reg(4);
-		builder.ldpc(IROperand::vreg(pc_reg, 4));
-		builder.bitwise_and(IROperand::const32(0xfffff000), IROperand::vreg(pc_reg, 4));
-		builder.bitwise_or(IROperand::const32(pc.GetPageOffset()), IROperand::vreg(pc_reg, 4));
-		builder.call(IROperand::func((void*)cpuTraceInstruction), IROperand::vreg(pc_reg, 4), IROperand::const32(decode->GetIR()), IROperand::const8(decode->isa_mode), IROperand::const8(0));
+		IRRegId pc_reg = builder.alloc_reg(8);
+		builder.ldpc(IROperand::vreg(pc_reg, 8));
+		builder.bitwise_and(IROperand::const64(0xfffffffffffff000), IROperand::vreg(pc_reg, 8));
+		builder.bitwise_or(IROperand::const64(pc.GetPageOffset()), IROperand::vreg(pc_reg, 8));
+		builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceInstruction), IROperand::vreg(pc_reg, 8), IROperand::const32(decode->GetIR()), IROperand::const8(decode->isa_mode), IROperand::const8(0));
 	}
 
 	translate_instruction(decode, builder, processor->GetTraceSource() != nullptr);
-	
+
 	if(decode_txlt_ctx == nullptr) {
 		if(!GetComponentInstance(processor->GetArch().GetName(), decode_txlt_ctx)) {
 			throw std::logic_error("Could not get DTC");
 		}
 	}
-	
+
 	decode_txlt_ctx->Translate(processor, *decode, *_decode_ctx, builder);
 
 	if(processor->GetTraceSource()) {
-		builder.call(IROperand::func((void*)cpuTraceInsnEnd));
+		builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceInsnEnd));
 	}
 
 	return true;
@@ -283,28 +285,24 @@ bool BaseBlockJITTranslate::can_merge_jump(archsim::core::thread::ThreadInstance
 	// can only merge if the isa mode is still valid
 	if(!_isa_mode_valid) return false;
 
-	bool indirect = false, direct = false;
-	uint32_t target;
-	_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target);
+	JumpInfo info;
+	_jumpinfo->GetJumpInfo(decode, pc, info);
 
 	// If this isn't a direct jump, then we can't chain
-	if(!direct) return false;
+	if(info.IsIndirect) return false;
+	if(info.IsConditional) return false;
 
 	// Return true if this jump lands within the same page as it starts
-	if(archsim::Address(target).GetPageIndex() == pc.GetPageIndex()) return true;
+	if(info.JumpTarget.GetPageIndex() == pc.GetPageIndex()) return true;
 	else return false;
 }
 
 archsim::Address BaseBlockJITTranslate::get_jump_target(archsim::core::thread::ThreadInstance *processor, BaseDecode *decode, Address pc)
 {
-	bool indirect = false, direct = false;
-	uint32_t target;
+	JumpInfo info;
+	_jumpinfo->GetJumpInfo(decode, pc, info);
 
-	_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target);
-
-	assert(direct || indirect);
-
-	return Address(target);
+	return Address(info.JumpTarget);
 }
 
 bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *processor, archsim::Address block_address, captive::shared::IRBuilder &builder, std::unordered_set<Address> &block_heads)
@@ -321,7 +319,7 @@ bool BaseBlockJITTranslate::emit_block(archsim::core::thread::ThreadInstance *pr
 
 	if(_supportProfiling) {
 		UNIMPLEMENTED;
-		
+
 //		_txln_mgr->GetRegion(phys_page).TraceBlock(*processor, pc.Get());
 //		auto &rgn = _txln_mgr->GetRegion(phys_page);
 //
@@ -386,33 +384,31 @@ bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *pr
 	// if we are at the end of a block, if chaining is enabled, and if the
 	// context is valid (isa mode and features).)
 	if(decode->GetEndOfBlock() && _supportChaining && _isa_mode_valid && _features_valid) {
-		uint32_t target_pc = 0, fallthrough_pc = 0;
+		Address target_pc = 0_ga, fallthrough_pc = 0_ga;
 
-		bool direct = false, indirect = false;
-
-		// Try to figure out where this branch will end up.
-		_jumpinfo->GetJumpInfo(decode, pc.Get(), indirect, direct, target_pc);
-
-		fallthrough_pc = pc.Get() + decode->Instr_Length;
+		JumpInfo jump_info;
+		// TODO: change target_pc_naked to actually be an Address instead of a uint32
+		_jumpinfo->GetJumpInfo(decode, pc, jump_info);
+		fallthrough_pc = pc + decode->Instr_Length;
 
 		// Can only chain on a direct jump
-		if(direct) {
-			uint32_t target_page = archsim::translate::profile::RegionArch::PageBaseOf(target_pc);
-			uint32_t fallthrough_page = archsim::translate::profile::RegionArch::PageBaseOf(fallthrough_pc);
+		if(!jump_info.IsIndirect) {
+			auto target_page = jump_info.JumpTarget.GetPageBase();
+			auto fallthrough_page = fallthrough_pc.GetPageBase();
 
 			// Can only chain if the target of the jump is on the same page as the rest of the block
 			if(target_page == pc.GetPageBase()) {
 				// If instruction is not predicated, don't use a fallthrough pc
 				// XXX ARM HAX
 				if(!decode->GetIsPredicated()) {
-					fallthrough_pc = 0;
+					fallthrough_pc = 0_ga;
 				}
 
 				//need to translate target and fallthrough PCs
 
 				Address target_ppc(0), fallthrough_ppc(0);
-				if(target_pc) processor->GetFetchMI().PerformTranslation(Address(target_pc), target_ppc, false, true, false);
-				if(fallthrough_pc) processor->GetFetchMI().PerformTranslation(Address(fallthrough_pc), fallthrough_ppc, false, true, false);
+				if(target_pc != Address::NullPtr) processor->GetFetchMI().PerformTranslation(target_pc, target_ppc, false, true, false);
+				if(fallthrough_pc != Address::NullPtr) processor->GetFetchMI().PerformTranslation(fallthrough_pc, fallthrough_ppc, false, true, false);
 
 				archsim::blockjit::BlockTranslation target_fn;
 				archsim::blockjit::BlockTranslation fallthrough_fn;
@@ -436,7 +432,7 @@ bool BaseBlockJITTranslate::emit_chain(archsim::core::thread::ThreadInstance *pr
 				}
 
 				if(fallthrough_fn_ptr != nullptr || target_fn_ptr != nullptr) {
-					builder.dispatch(IROperand::const32(target_pc), IROperand::const32(fallthrough_pc), IROperand::const64((uint64_t)target_fn_ptr), IROperand::const64((uint64_t)fallthrough_fn_ptr));
+					builder.dispatch(IROperand::const32(target_pc.Get()), IROperand::const32(fallthrough_pc.Get()), IROperand::const64((uint64_t)target_fn_ptr), IROperand::const64((uint64_t)fallthrough_fn_ptr));
 					return true;
 				}
 			} else {
@@ -462,19 +458,19 @@ bool BaseBlockJITTranslate::compile_block(archsim::core::thread::ThreadInstance 
 	if(!result.Success) {
 		return false;
 	}
-	
+
 	auto lowering = captive::arch::jit::lowering::NativeLowering(ctx, allocator, cpu->GetArch(), cpu->GetStateBlock().GetDescriptor(), result);
 	fn.SetFn(lowering.Function);
-	
+
 	if(dump) {
 		ctx.trim();
-		
+
 		std::ostringstream ir_filename;
 		ir_filename << "blkjit-" << std::hex << block_address.Get() << ".txt";
 		std::ofstream ir_file (ir_filename.str().c_str());
 		archsim::blockjit::IRPrinter printer;
 		printer.DumpIR(ir_file, ctx);
-		
+
 		std::ostringstream str;
 		str << "blkjit-" << std::hex << block_address.Get() << ".bin";
 		FILE *outfile = fopen(str.str().c_str(), "w");

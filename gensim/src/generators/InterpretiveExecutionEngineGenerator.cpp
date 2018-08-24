@@ -1,9 +1,4 @@
-/*
- * File:   InterpretiveExecutionEngineGenerator.cpp
- * Author: s0803652
- *
- * Created on 14 October 2011, 14:34
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <sstream>
 #include <fstream>
@@ -109,8 +104,8 @@ namespace gensim
 			       "#include <unistd.h>\n"
 			       "#include <stdlib.h>\n"
 			       "#include <setjmp.h>\n"
-			       "#include <string.h>\n" 
-					"#define INTERP\n"
+			       "#include <string.h>\n"
+			       "#define INTERP\n"
 			       "#include <gensim/gensim_processor_api.h>\n"
 			       "#undef INTERP\n"
 			       "#include <gensim/gensim_processor.h>\n"

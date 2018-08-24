@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #include <gtest/gtest.h>
 
 #include "ssa/SSATestFixture.h"
@@ -38,6 +39,7 @@ action void test1 () [ uint8 s ] < b_0 > {
 )||";
 
 auto test_action = CompileAsm(ssaasm);
+ASSERT_NE(nullptr, test_action);
 SSAPassManager manager;
 manager.AddPass(SSAPassDB::Get("O3"));
 manager.AddPass(SSAPassDB::Get("ParameterRename"));

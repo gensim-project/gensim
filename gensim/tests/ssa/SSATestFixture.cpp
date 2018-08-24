@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "SSATestFixture.h"
 
@@ -24,7 +20,7 @@ SSATestFixture::SSATestFixture() : test_arch_(gensim::arch::testing::GetTestArch
 	test_context_ = new SSAContext(*isa, *test_arch_);
 	gensim::genc::InstStructBuilder isb;
 
-	test_context_->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa));
+	test_context_->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa, test_context_->GetTypeManager()));
 }
 
 SSAFormAction* SSATestFixture::CompileAsm(const std::string& src, const std::string &action_name)
@@ -80,7 +76,7 @@ SSAContext* SSATestFixture::CompileAsm(const std::string& src)
 
 bool SSATestFixture::RunPass(SSAFormAction* action, SSAStatementValidationPass* pass)
 {
-	for (auto block : action->Blocks) {
+	for (auto block : action->GetBlocks()) {
 		for (auto stmt : block->GetStatements()) {
 			if (!pass->Run(stmt, Diag())) {
 				return false;

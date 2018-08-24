@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 /*
  * FieldDescription.h
  *
@@ -20,6 +21,9 @@ namespace gensim
 		class FieldDescription
 		{
 		public:
+			FieldDescription() {}
+			FieldDescription(const std::string &name, const std::string &type) : field_name(name), field_type(type) {}
+
 			std::string field_name;
 			std::string field_type;
 		};

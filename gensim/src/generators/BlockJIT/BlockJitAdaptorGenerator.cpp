@@ -1,9 +1,4 @@
-/*
- * BlockJitAdaptorGenerator.cpp
- *
- *  Created on: 24 Aug 2015
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "generators/GenerationManager.h"
 #include "arch/ArchDescription.h"
@@ -24,7 +19,7 @@ namespace gensim
 			}
 			virtual ~BlockJitAdaptorGenerator() {}
 
-			virtual bool GenerateExtraProcessorIncludes(util::cppformatstream &stream) const
+			virtual bool GenerateExtraProcessorIncludes(util::cppformatstream &stream) const override
 			{
 				GenCInterpreterGenerator::GenerateExtraProcessorIncludes(stream);
 				stream << "#include <gensim/gensim_processor_blockjit.h>\n";

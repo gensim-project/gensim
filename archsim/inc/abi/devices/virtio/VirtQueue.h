@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   VirtQueue.h
  * Author: s0457958
@@ -75,13 +77,13 @@ namespace archsim
 
 					}
 
-					inline void DebugAddresses(phys_addr_t guest_addr)
+					inline void DebugAddresses(Address guest_addr)
 					{
 
 						LC_DEBUG1(LogVirtIO) << "Virting base guest(" << std::hex << guest_addr << ");";
 						LC_DEBUG1(LogVirtIO) << "Descriptors: guest(" << std::hex << guest_addr << ");";
-						LC_DEBUG1(LogVirtIO) << "Avail: guest(" << std::hex << guest_addr + (char*)avail - (char*)descriptors << ");";
-						LC_DEBUG1(LogVirtIO) << "Used: guest(" << std::hex << guest_addr + (char*)used - (char*)descriptors << ");";
+						LC_DEBUG1(LogVirtIO) << "Avail: guest(" << std::hex << guest_addr.Get() + (char*)avail - (char*)descriptors << ");";
+						LC_DEBUG1(LogVirtIO) << "Used: guest(" << std::hex << guest_addr.Get() + (char*)used - (char*)descriptors << ");";
 
 					}
 
@@ -96,7 +98,7 @@ namespace archsim
 				public:
 					VirtQueue(uint32_t self_index) : _self_index(self_index), last_avail_idx(0), guest_base_address(0), host_base_address(NULL), size(0), align(0) { }
 
-					inline void SetBaseAddress(phys_addr_t guest_base_address, host_addr_t host_base_address)
+					inline void SetBaseAddress(Address guest_base_address, host_addr_t host_base_address)
 					{
 						assert(size);
 
@@ -107,7 +109,7 @@ namespace archsim
 						ring.DebugAddresses(guest_base_address);
 					}
 
-					inline phys_addr_t GetPhysAddr() const
+					inline Address GetPhysAddr() const
 					{
 						return guest_base_address;
 					}
@@ -163,7 +165,7 @@ namespace archsim
 				private:
 					VirtRing ring;
 
-					phys_addr_t guest_base_address;
+					Address guest_base_address;
 					host_addr_t host_base_address;
 
 					uint32_t align;

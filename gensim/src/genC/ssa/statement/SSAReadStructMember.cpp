@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/statement/SSAReadStructMemberStatement.h"
 #include "genC/ssa/SSAStatementVisitor.h"
@@ -15,8 +11,8 @@
 using namespace gensim::genc::ssa;
 using gensim::genc::IRType;
 
-SSAReadStructMemberStatement::SSAReadStructMemberStatement(SSABlock *parent, SSASymbol *target, std::string member, int32_t idx, SSAStatement *before)
-	: SSAStatement(Class_Unknown, 1, parent, before), MemberName(member), Index(idx)
+SSAReadStructMemberStatement::SSAReadStructMemberStatement(SSABlock *parent, SSASymbol *target, const std::vector<std::string>& member, SSAStatement *before)
+	: SSAStatement(Class_Unknown, 1, parent, before), MemberNames(member)
 {
 	SetTarget(target);
 }
@@ -42,16 +38,20 @@ bool SSAReadStructMemberStatement::Resolve(DiagnosticContext &ctx)
 		return false;
 	}
 
-	bool found_member = false;
+	bool found_member = true;
 	// look for correct member in struct
-	for(auto i : struct_type.BaseType.StructType->Members) {
-		if(i.Name == this->MemberName) {
-			found_member = true;
+	auto curr_type = Target()->GetType();
+	for(auto member : MemberNames) {
+		if(curr_type.IsStruct() && curr_type.BaseType.StructType->HasMember(member)) {
+			curr_type = curr_type.BaseType.StructType->GetMemberType(member);
+		} else {
+			found_member = false;
+			break;
 		}
 	}
 
 	if(!found_member) {
-		ctx.Error("Instruction does not have field " + MemberName, GetDiag());
+		ctx.Error("Struct does not have field", GetDiag());
 		return false;
 	}
 
@@ -67,10 +67,25 @@ bool SSAReadStructMemberStatement::Resolve(DiagnosticContext &ctx)
 //	}
 }
 
-SSAType SSAReadStructMemberStatement::ResolveType(const SSASymbol *target, const std::string& member_name, int index)
+std::string SSAReadStructMemberStatement::FormatMembers() const
+{
+	std::string output;
+	for(auto i : MemberNames) {
+		output += "." + i;
+	}
+	return output;
+}
+
+
+SSAType SSAReadStructMemberStatement::ResolveType(const SSASymbol *target, const std::vector<std::string>& member_name)
 {
 	GASSERT(target->GetType().IsStruct());
-	return target->GetType().BaseType.StructType->GetMemberType(member_name);
+	auto type = target->GetType();
+	for(auto i : member_name) {
+		type = type.BaseType.StructType->GetMemberType(i);
+	}
+
+	return type;
 }
 
 std::set<SSASymbol *> SSAReadStructMemberStatement::GetKilledVariables()

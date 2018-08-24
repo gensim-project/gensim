@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "arch/arm/ARMDecodeContext.h"
 #include "blockjit/IRBuilder.h"
@@ -32,17 +28,18 @@ void ARMDecodeContext::WriteBackState(archsim::core::thread::ThreadInstance* thr
 	*thread->GetRegisterFileInterface().GetEntry<uint8_t>("ITSTATE") = itstate_;
 }
 
-uint32_t ARMDecodeContext::DecodeSync(archsim::MemoryInterface &interface, Address address, uint32_t mode, gensim::BaseDecode& target)
+uint32_t ARMDecodeContext::DecodeSync(archsim::MemoryInterface &interface, Address address, uint32_t mode, gensim::BaseDecode *&target)
 {
 //	auto &cpu = *GetCPU();
-	uint32_t fault = arch_.GetISA(mode).DecodeInstr(address, &interface, target);
+	target = arch_.GetISA(mode).GetNewDecode();
+	uint32_t fault = arch_.GetISA(mode).DecodeInstr(address, &interface, *target);
 //	if(fault) return fault;
 
 	// TODO: have the IR for 16-bit instructions be filled into the lower 16 bits
-	uint32_t ir = target.ir;
-	if(target.Instr_Length == 2) ir >>= 16;
+	uint32_t ir = target->ir;
+	if(target->Instr_Length == 2) ir >>= 16;
 
-	target.ClearIsPredicated();
+	target->ClearIsPredicated();
 
 	if(itstate_) {
 		// Extract the cond and mask fields from ITSTATE
@@ -50,8 +47,8 @@ uint32_t ARMDecodeContext::DecodeSync(archsim::MemoryInterface &interface, Addre
 		uint8_t mask = itstate_ & 0x1f;
 
 		// We need the whole ITSTATE field in case an exception occurs
-		target.SetPredicateInfo(itstate_);
-		target.SetIsPredicated();
+		target->SetPredicateInfo(itstate_);
+		target->SetIsPredicated();
 
 		// Update ITSTATE
 		mask = (mask << 1) & 0x1f;
@@ -64,18 +61,18 @@ uint32_t ARMDecodeContext::DecodeSync(archsim::MemoryInterface &interface, Addre
 		// an instruction abort or interrupt occurs
 		itstate_ = (cond << 5) | mask;
 	} else {
-		target.ClearIsPredicated();
+		target->ClearIsPredicated();
 	}
 
 	// If we're in THUMB mode
 	if(mode) {
-		if((target.Instr_Length == 2) && ((ir & 0xff00) == 0xbf00)) {
+		if((target->Instr_Length == 2) && ((ir & 0xff00) == 0xbf00)) {
 			itstate_ = ir & 0xff;
 		}
 	} else {
 		if((ir & 0xf0000000) < 0xe0000000) {
-			target.SetIsPredicated();
-			target.SetPredicateInfo(ir >> 28);
+			target->SetIsPredicated();
+			target->SetPredicateInfo(ir >> 28);
 		}
 	}
 

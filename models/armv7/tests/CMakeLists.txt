@@ -5,7 +5,7 @@ if(NOT SYSROOT-NOTFOUND)
 
 	add_test(
 		NAME arm-hello-world-test
-		COMMAND archsim -s armv7a -e arm-hello-world -m arm-user -l contiguous --mode interp
+		COMMAND archsim -s armv7a -e arm-hello-world -m arm-user -l contiguous 
 	)
 	add_custom_target(
 		NAME build-arm-hello-world ALL

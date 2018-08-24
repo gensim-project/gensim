@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   SparseMemoryModel.h
  * Author: s0457958
@@ -10,7 +12,10 @@
 
 #include "abi/memory/MemoryModel.h"
 #include "abi/memory/MemoryTranslationModel.h"
+#include "concurrent/LWLock.h"
+#include "util/Cache.h"
 #include <map>
+#include <mutex>
 #include <string>
 
 namespace archsim
@@ -51,19 +56,31 @@ namespace archsim
 				virtual uint32_t Poke(guest_addr_t addr, uint8_t *data, int size) override;
 
 				MemoryTranslationModel& GetTranslationModel();
+				bool SynchroniseVMAProtection(GuestVMA& vma) override;
+
+				bool LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr) override;
+				bool UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr) override;
+				bool LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion& regions) override;
+
 
 			protected:
 				bool AllocateVMA(GuestVMA &vma);
 				bool DeallocateVMA(GuestVMA &vma);
 				bool ResizeVMA(GuestVMA &vma, guest_size_t new_size);
-				bool SynchroniseVMAProtection(GuestVMA &vma);
-
 			private:
-				void SyncPageMap(GuestVMA &vma);
-				void ErasePageMap(GuestVMA &vma);
+				char *GetPage(Address addr);
+				char *GetPageUncached(Address addr);
+
+				archsim::util::Cache<Address::underlying_t, char*> cache_;
+
+				Address prev_page_base_;
+				char *prev_page_data_;
+				std::mutex map_lock_;
+
+				uint64_t pages_remaining_;
 
 				SparseMemoryTranslationModel* translation_model;
-				void **_page_map;
+				std::map<Address, char*> data_;
 			};
 		}
 	}

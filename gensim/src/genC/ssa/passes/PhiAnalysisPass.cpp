@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <typeinfo>
 
@@ -75,6 +71,7 @@ public:
 					if(SSAStatement *stmt = dynamic_cast<SSAStatement*>(use)) {
 						if(stmt->Parent != block) {
 							spans = true;
+							break;
 						}
 					}
 				}
@@ -121,6 +118,49 @@ public:
 		return changed;
 	}
 
+	bool RunNew(SSAFormAction &action) const
+	{
+		std::map<SSABlock*, std::map<SSASymbol*, SSAStatement*>> live_out_values;
+		analysis::SSADominance dominance_calc;
+		auto dominance = dominance_calc.Calculate(&action);
+
+		for(auto block : action.GetBlocks()) {
+			for(auto stmt : block->GetStatements()) {
+				SSAVariableWriteStatement *write = dynamic_cast<SSAVariableWriteStatement*>(stmt);
+				if(write != nullptr) {
+					live_out_values[block][write->Target()] = write;
+				}
+			}
+		}
+
+		std::map<SSASymbol*, std::map<SSABlock*, SSAPhiStatement*>> phi_statements;
+		for(auto symbol : action.Symbols()) {
+			auto &phi_map = phi_statements[symbol];
+			for(auto read : symbol->GetUses()) {
+				auto block = read->Parent;
+				auto &phi_statement = phi_map[read->Parent];
+				if(phi_statement != nullptr) {
+					phi_statement = new SSAPhiStatement(block, symbol->GetType(), block->GetStatements().front());
+					new SSAVariableWriteStatement(block, symbol, phi_statement, block->GetStatements().at(1));
+				}
+
+				for(auto def : symbol->GetDefs()) {
+					if(def->Parent == read->Parent || !dominance.at(read->Parent).count(def->Parent)) {
+						continue;
+					}
+
+					auto write = dynamic_cast<SSAVariableWriteStatement*>(def);
+					if(write) {
+						phi_statement->Add(write->Expr());
+					}
+				}
+
+			}
+		}
+
+		return false;
+	}
+
 	bool Run(SSAFormAction& action) const override
 	{
 		SSAPass *renamer = GetComponent<SSAPass>("ParameterRename");
@@ -142,13 +182,15 @@ public:
 		if(valid_variables.empty()) {
 			return false;
 		} else {
-			// Otherwise, run phi analysis, starting with the entry block
-			std::map<std::pair<SSABlock*, SSASymbol*>, SSAPhiStatement*> phi_statements;
-			std::set<SSABlock*> blocks;
+			return RunNew(action);
 
-			while(RunOnBlock(action.EntryBlock, blocks, {}, phi_statements, valid_variables)) ;
-
-			return false;
+//			// Otherwise, run phi analysis, starting with the entry block
+//			std::map<std::pair<SSABlock*, SSASymbol*>, SSAPhiStatement*> phi_statements;
+//			std::set<SSABlock*> blocks;
+//
+//			while(RunOnBlock(action.EntryBlock, blocks, {}, phi_statements, valid_variables)) ;
+//
+//			return false;
 		}
 	}
 };

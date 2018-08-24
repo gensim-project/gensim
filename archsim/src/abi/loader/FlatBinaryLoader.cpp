@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * FlagBinaryLoader.cpp
  *
@@ -16,7 +18,7 @@ DeclareChildLogContext(LogFlatBinary, LogLoader, "FlatBinary");
 
 using namespace archsim::abi::loader;
 
-FlatBinaryLoader::FlatBinaryLoader(EmulationModel &emulation_model, uint32_t base_addr) : BinaryLoader(emulation_model, false), _base_addr(base_addr) {}
+FlatBinaryLoader::FlatBinaryLoader(EmulationModel &emulation_model, Address base_addr) : BinaryLoader(emulation_model, false), _base_addr(base_addr) {}
 
 FlatBinaryLoader::~FlatBinaryLoader() {}
 

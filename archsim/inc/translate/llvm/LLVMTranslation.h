@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   LLVMTranslation.h
  * Author: s0457958
@@ -33,7 +35,7 @@ namespace archsim
 			{
 			public:
 				using translation_fn = captive::shared::block_txln_fn;
-				
+
 				LLVMTranslation(translation_fn fnp, LLVMMemoryManager *mem_mgr);
 				~LLVMTranslation();
 

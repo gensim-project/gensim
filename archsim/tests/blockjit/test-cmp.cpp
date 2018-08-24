@@ -1,21 +1,25 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 
 #include "ArchSimBlockJITTest.h"
 
 using namespace captive::shared;
 using namespace captive::arch::jit;
 
-class ArchSimBlockJITCmpTest : public ArchSimBlockJITTest {
-public:	
+class ArchSimBlockJITCmpTest : public ArchSimBlockJITTest
+{
+public:
 	template<typename LH, typename RH> using cmp_factory_t = std::function<IRInstruction(LH lh, RH rh, IRRegId output)>;
-	
-	template<typename A, typename B, typename C> void build_cmp_skeleton(cmp_factory_t<IRRegId, IRRegId> cmp_factory, A, B, C) {
+
+	template<typename A, typename B, typename C> void build_cmp_skeleton(cmp_factory_t<IRRegId, IRRegId> cmp_factory, A, B, C)
+	{
 		using namespace captive::shared;
-		
+
 		IRRegId lh = Allocate(A(), 4);
 		IRRegId rh = Allocate(B(), 4);
 		IRRegId output = Allocate(C(), 1);
 		IRRegId zextoutput = AllocateReg(4);
-		
+
 		Builder().ldreg(IROperand::const32(0), IROperand::vreg(lh, 4));
 		Builder().ldreg(IROperand::const32(4), IROperand::vreg(rh, 4));
 
@@ -24,12 +28,13 @@ public:
 		Builder().streg(IROperand::vreg(zextoutput, 4), IROperand::const32(0));
 		Builder().ret();
 	}
-	
-	template<typename LHSValueGen, typename RHSValueGen> void build_and_test(std::function<bool(uint32_t, uint32_t)> result_fn) {
+
+	template<typename LHSValueGen, typename RHSValueGen> void build_and_test(std::function<bool(uint32_t, uint32_t)> result_fn)
+	{
 		transforms::AllocationWriterTransform awt(allocations_);
 		awt.Apply(tc_);
 
-		CompileResult cr (true, stack_frame_, archsim::util::vbitset(8, 0xff));
+		CompileResult cr (true, stack_frame_, wutils::vbitset<>(8, 0xff));
 
 		auto fn = Lower(cr);
 		ASSERT_NE(nullptr, fn);
@@ -49,7 +54,8 @@ public:
 	}
 };
 
-TEST_F(ArchSimBlockJITCmpTest, Cmp_GTE_Constant_R0_R0) {
+TEST_F(ArchSimBlockJITCmpTest, Cmp_GTE_Constant_R0_R0)
+{
 	using namespace captive::shared;
 
 	IRRegId lh = Allocate(RegTag(), 4);
@@ -67,10 +73,10 @@ TEST_F(ArchSimBlockJITCmpTest, Cmp_GTE_Constant_R0_R0) {
 
 	transforms::AllocationWriterTransform awt(allocations_);
 	awt.Apply(tc_);
-	
-	CompileResult cr (true, stack_frame_, archsim::util::vbitset(8, 0xff));
+
+	CompileResult cr (true, stack_frame_, wutils::vbitset<>(8, 0xff));
 	auto fn = Lower(cr);
-	
+
 	ASSERT_NE(nullptr, fn);
 
 	std::vector<uint32_t> values;
@@ -81,7 +87,7 @@ TEST_F(ArchSimBlockJITCmpTest, Cmp_GTE_Constant_R0_R0) {
 	values.push_back(1);
 	values.push_back(0x80000000);
 	values.push_back(0xffffffff);
-	
+
 	std::vector<char> regfile_mock(128, 0);
 	uint32_t *regfile = (uint32_t*)regfile_mock.data();
 	for(auto y : values) {
@@ -93,7 +99,8 @@ TEST_F(ArchSimBlockJITCmpTest, Cmp_GTE_Constant_R0_R0) {
 		ASSERT_EQ(*(uint32_t*)regfile_mock.data(), std::greater_equal<uint32_t>()(0,y)) << "X is 0, Y is " << y;
 	}
 }
-TEST_F(ArchSimBlockJITCmpTest, Cmps_GTE_Constant_R0_R0) {
+TEST_F(ArchSimBlockJITCmpTest, Cmps_GTE_Constant_R0_R0)
+{
 	using namespace captive::shared;
 
 	IRRegId lh = Allocate(RegTag(), 4);
@@ -111,10 +118,10 @@ TEST_F(ArchSimBlockJITCmpTest, Cmps_GTE_Constant_R0_R0) {
 
 	transforms::AllocationWriterTransform awt(allocations_);
 	awt.Apply(tc_);
-	
-	CompileResult cr (true, stack_frame_, archsim::util::vbitset(8, 0xff));
+
+	CompileResult cr (true, stack_frame_, wutils::vbitset<>(8, 0xff));
 	auto fn = Lower(cr);
-	
+
 	ASSERT_NE(nullptr, fn);
 
 	std::vector<int32_t> values;
@@ -125,7 +132,7 @@ TEST_F(ArchSimBlockJITCmpTest, Cmps_GTE_Constant_R0_R0) {
 	values.push_back(1);
 	values.push_back(0x80000000);
 	values.push_back(0xffffffff);
-	
+
 	std::vector<char> regfile_mock(128, 0);
 	uint32_t *regfile = (uint32_t*)regfile_mock.data();
 	for(auto y : values) {
@@ -139,8 +146,14 @@ TEST_F(ArchSimBlockJITCmpTest, Cmps_GTE_Constant_R0_R0) {
 }
 
 template<typename T> IROperand make_operand(T t, uint32_t size);
-template<> inline IROperand make_operand<>(IRRegId t, uint32_t size) { return IROperand::vreg(t, size); }
-template<> inline IROperand make_operand<>(uint64_t t, uint32_t size) { return IROperand::constant(t, size); }
+template<> inline IROperand make_operand<>(IRRegId t, uint32_t size)
+{
+	return IROperand::vreg(t, size);
+}
+template<> inline IROperand make_operand<>(uint64_t t, uint32_t size)
+{
+	return IROperand::constant(t, size);
+}
 
 #define MAKE_TEST(name, a, b, c, instruction, comparator) TEST_F(ArchSimBlockJITCmpTest, name) { \
 	build_cmp_skeleton<a, b, c>([](IRRegId lh, IRRegId rh, IRRegId output){return IRInstruction::instruction(IROperand::vreg(lh, 4), IROperand::vreg(rh, 4), IROperand::vreg(output, 1));}, a(), b(), c()); \

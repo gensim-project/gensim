@@ -25,3 +25,4 @@ archsim_add_sources(
 
 add_subdirectory(fp)
 add_subdirectory(memory)
+add_subdirectory(vector)

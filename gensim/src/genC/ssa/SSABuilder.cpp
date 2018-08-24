@@ -1,11 +1,5 @@
-/*
- * genC/ssa/SSAContext.cpp
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "genC/ssa/SSABuilder.h"
 #include "genC/ssa/statement/SSAStatement.h"
 #include "genC/ssa/statement/SSAJumpStatement.h"
@@ -42,13 +36,13 @@ void SSABuilder::AddInstruction(SSAStatement &insn)
 void SSABuilder::AddBlock(SSABlock &block)
 {
 	assert(block.Parent == Target);
-	Target->Blocks.push_back(&block);
+	Target->AddBlock(&block);
 }
 
 void SSABuilder::AddBlockAndChange(SSABlock &block)
 {
 	assert(block.Parent == Target);
-	Target->Blocks.push_back(&block);
+	Target->AddBlock(&block);
 	curr_block = &block;
 }
 

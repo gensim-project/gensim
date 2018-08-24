@@ -1,9 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/validation/SSAStatementValidationPass.h"
 #include "genC/ssa/statement/SSAStatements.h"
@@ -33,7 +28,7 @@ public:
 			if(arg_type.Reference) {
 				SSASymbol *sym = dynamic_cast<SSASymbol*>(arg);
 				if(sym != nullptr) {
-					Assert(sym->GetType() == SSAType::Ref(arg_type), "Parameter " + std::to_string(i+1) + ": Symbol of incorrect type passed as reference parameter", stmt.GetDiag());
+					Assert(sym->GetType().IsStruct() || (sym->GetType() == SSAType::Ref(arg_type)), "Parameter " + std::to_string(i+1) + ": Symbol of incorrect type passed as reference parameter", stmt.GetDiag());
 				} else {
 					Fail("Parameter " + std::to_string(i+1) + ": Expected a reference", stmt.GetDiag());
 				}

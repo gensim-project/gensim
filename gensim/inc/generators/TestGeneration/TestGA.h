@@ -1,9 +1,4 @@
-/*
- * TestGA.h
- *
- *  Created on: 3 Nov 2013
- *      Author: harry
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #ifndef TESTGA_H_
 #define TESTGA_H_

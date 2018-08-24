@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "generators/GenerationManager.h"
 #include "arch/ArchDescription.h"
@@ -57,9 +53,9 @@ bool JumpInfoGenerator::GenerateSource(util::cppformatstream &stream) const
 	stream << "#include \"jumpinfo.h\"\n";
 	stream << "#include \"decode.h\"\n";
 	stream << "using namespace gensim; using namespace gensim::" << Manager.GetArch().Name << ";";
-	stream << "void JumpInfo::GetJumpInfo(const gensim::BaseDecode *instr, uint32_t pc, bool &indirect_jump, bool &direct_jump, uint32_t &jump_target) {";
+	stream << "void JumpInfoProvider::GetJumpInfo(const gensim::BaseDecode *instr, archsim::Address pc, JumpInfo &info) {";
 
-	stream << "direct_jump = indirect_jump = false;";
+	stream << "info.IsJump = info.IsIndirect = info.IsConditional = false;";
 	stream << "const Decode *inst = static_cast<const Decode*>(instr);";
 
 	stream << "switch(inst->Instr_Code) {";
@@ -70,17 +66,18 @@ bool JumpInfoGenerator::GenerateSource(util::cppformatstream &stream) const
 		for (isa::ISADescription::InstructionDescriptionMap::const_iterator i = isa->Instructions.begin(); i != isa->Instructions.end(); ++i) {
 			if (i->second->VariableJump || i->second->FixedJump || i->second->FixedJumpPred) {
 				stream << "case INST_" << isa->ISAName << "_" << i->first << ":\n";
-				if (i->second->VariableJump) stream << "indirect_jump = true;";
+				stream << "info.IsJump = true;";
+				if (i->second->VariableJump) stream << "info.IsIndirect = true;";
+				if (i->second->FixedJumpPred) stream << "info.IsConditional = true;";
 				if (i->second->FixedJump || i->second->FixedJumpPred) {
 					assert(i->second->FixedJumpField.length() != 0);
-					stream << "direct_jump = true;";
 					// Fixed jump
 					if (i->second->FixedJumpType == 0) {
-						stream << "jump_target = inst->" << i->second->FixedJumpField << ";";
+						stream << "info.JumpTarget = archsim::Address(inst->" << i->second->FixedJumpField << ");";
 					}
 					// Relative jump
 					else {
-						stream << "jump_target = pc + inst->" << i->second->FixedJumpField << " + " << i->second->FixedJumpOffset << ";";
+						stream << "info.JumpTarget = pc + inst->" << i->second->FixedJumpField << " + " << i->second->FixedJumpOffset << ";";
 					}
 				}
 				stream << "break;\n";
@@ -106,8 +103,8 @@ bool JumpInfoGenerator::GenerateHeader(util::cppformatstream &stream) const
 	       "class BaseDecode;\n"
 	       "class Processor;\n "
 	       "namespace " << Manager.GetArch().Name << "{ \n"
-	       "class JumpInfo : public gensim::BaseJumpInfo {"
-	       "public: void GetJumpInfo(const gensim::BaseDecode *instr, uint32_t pc, bool &indirect_jump, bool &direct_jump, uint32_t &jump_target) override;\n"
+	       "class JumpInfoProvider : public gensim::BaseJumpInfoProvider {"
+	       "public: void GetJumpInfo(const gensim::BaseDecode *instr, archsim::Address pc, JumpInfo &info) override;\n"
 	       "};"
 	       "}"
 	       "}";

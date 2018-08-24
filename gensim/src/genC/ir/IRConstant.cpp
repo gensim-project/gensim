@@ -1,13 +1,26 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ir/IRConstant.h"
 #include <functional>
 
 using namespace gensim::genc;
+
+std::string IRConstant::GetValueTypeName(ValueType type)
+{
+	switch(type) {
+		case Type_Float_Double:
+			return "double";
+		case Type_Float_LongDouble:
+			return "long double";
+		case Type_Float_Single:
+			return "float";
+		case Type_Integer:
+			return "uint64_t";
+		default:
+			UNIMPLEMENTED;
+	}
+}
+
 
 IRConstant::IRConstant() : type_(Type_Invalid), integer_(0), vector_(nullptr), struct_(nullptr)
 {

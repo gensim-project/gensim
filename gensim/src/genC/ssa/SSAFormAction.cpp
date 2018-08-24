@@ -1,12 +1,5 @@
-/*
- * genC/ssa/SSAFormAction.cpp
- *
- * GenSim
- * Copyright (C) University of Edinburgh.  All Rights Reserved.
- *
- * Harry Wagstaff <hwagstaf@inf.ed.ac.uk>
- * Tom Spink <tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "genC/ir/IR.h"
 #include "genC/ir/IRAction.h"
 
@@ -70,7 +63,7 @@ SSAFormAction::SSAFormAction(SSAContext& context, const SSAActionPrototype &prot
 SSAFormAction::StatementList SSAFormAction::GetStatements(std::function<bool(SSAStatement*)> fn) const
 {
 	StatementList output;
-	for(auto block : Blocks) {
+	for(auto block : GetBlocks()) {
 		for(auto stmt : block->GetStatements()) {
 			if(fn(stmt)) {
 				output.push_back(stmt);
@@ -83,7 +76,7 @@ SSAFormAction::StatementList SSAFormAction::GetStatements(std::function<bool(SSA
 
 bool SSAFormAction::ContainsBlock(const SSABlock *block) const
 {
-	for (auto i : Blocks) {
+	for (auto i : GetBlocks()) {
 		if (i == block) return true;
 	}
 	return false;
@@ -97,12 +90,18 @@ void SSAFormAction::RemoveBlock(SSABlock* block)
 	if (!ContainsBlock(block)) {
 		throw std::logic_error("Tried to remove a block which wasn't contained");
 	}
-	for (auto i = Blocks.begin(); i != Blocks.end(); ++i) {
+
+	for(auto block : blocks_ ) {
+		block->ClearID();
+	}
+
+	for (auto i = blocks_.begin(); i != blocks_.end(); ++i) {
 		if (*i == block) {
-			Blocks.erase(i);
+			blocks_.erase(i);
 			break;
 		}
 	}
+
 	block->Parent = nullptr;
 	block->RemoveUse(this);
 	RemoveUse(block);
@@ -119,7 +118,7 @@ void SSAFormAction::RemoveSymbol(SSASymbol* symbol)
 	symbol->RemoveUse(this);
 	_symbols.erase(symbol);
 
-	for(auto b : Blocks) {
+	for(auto b : GetBlocks()) {
 		b->ClearFixedness();
 	}
 }
@@ -180,9 +179,10 @@ void SSAFormAction::AddBlock(SSABlock* block)
 		throw std::logic_error("Tried to add a block which already had a parent");
 	}
 
-	Blocks.push_back(block);
+	blocks_.push_back(block);
 	block->Parent = this;
 	block->AddUse(this);
+	block->ClearID();
 	AddUse(block);
 
 }
@@ -196,11 +196,8 @@ void SSAFormAction::LinkAction(const IRAction* action)
 bool SSAFormAction::DoFixednessAnalysis()
 {
 	// loop through all blocks, resetting their fixedness information
-	for (std::list<SSABlock *>::iterator i = Blocks.begin(); i != Blocks.end(); ++i) {
-		SSABlock &block = **i;
-		block.DynamicIn.clear();
-		block.DynamicOut.clear();
-		block._constness = BLOCK_INVALID;
+	for (auto block : GetBlocks()) {
+		block->ClearFixedness();
 	}
 
 	// fprintf(stderr, "Fixedness analysis for %s\n", Action.Name.c_str());
@@ -231,7 +228,7 @@ bool SSAFormAction::DoFixednessAnalysis()
 void SSAFormAction::Unlink()
 {
 	// remove any references to other actions (via calls)
-	for(auto block : Blocks) {
+	for(auto block : GetBlocks()) {
 		for(auto stmt : block->GetStatements()) {
 			if(SSACallStatement *call = dynamic_cast<SSACallStatement*>(stmt)) {
 				call->SetTarget(nullptr);
@@ -244,14 +241,14 @@ void SSAFormAction::Destroy()
 {
 	// unlink control flow
 	EntryBlock = nullptr;
-	for (auto i : Blocks) {
+	for (auto i : GetBlocks()) {
 		for(auto stmt : i->GetStatements()) {
 			stmt->Unlink();
 		}
 	}
 
-	while (!Blocks.empty()) {
-		auto block = Blocks.back();
+	while (!blocks_.empty()) {
+		auto block = blocks_.back();
 		RemoveBlock(block);
 		block->Destroy();
 		delete block;
@@ -282,8 +279,8 @@ bool SSAFormAction::Resolve(DiagnosticContext &ctx)
 	}
 
 	if (success) {
-		for (std::list<SSABlock *>::iterator i = Blocks.begin(); i != Blocks.end(); ++i) {
-			success &= (*i)->Resolve(ctx);
+		for (auto block : GetBlocks()) {
+			success &= block->Resolve(ctx);
 		}
 	}
 
@@ -294,7 +291,7 @@ std::list<SSAVariableReadStatement *> SSAFormAction::GetDominatedReads(const SSA
 {
 
 	const SSABlock *startBlock = stmt->Parent;
-	std::list<SSABlock *>::const_iterator b_i = Blocks.begin();
+	std::list<SSABlock *>::const_iterator b_i = GetBlocks().begin();
 	while (*b_i != startBlock) b_i++;
 
 	std::list<SSAVariableReadStatement *> DominatedReads;

@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * X86LoweringContext.h
  *
@@ -16,8 +18,8 @@
 #include "core/thread/ThreadInstance.h"
 
 #include "util/MemAllocator.h"
-#include "util/wutils/small-set.h"
-#include "util/vbitset.h"
+#include <wutils/small-set.h>
+#include <wutils/vbitset.h>
 
 #include <map>
 #include <vector>
@@ -38,7 +40,7 @@ namespace captive
 					public:
 						typedef X86Encoder encoder_t;
 
-						X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder,  const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd, const archsim::util::vbitset &used_regs);
+						X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder,  const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd, const wutils::vbitset<> &used_regs);
 						virtual ~X86LoweringContext();
 
 						encoder_t &GetEncoder()
@@ -60,7 +62,7 @@ namespace captive
 						{
 							return _stack_fixed;
 						}
-						
+
 						inline void load_state_field(const std::string &entry, const X86Register& reg)
 						{
 							GetEncoder().mov(X86Memory::get(BLKJIT_CPUSTATE_REG,  GetStateBlockDescriptor().GetBlockOffset(entry)), reg);
@@ -70,7 +72,7 @@ namespace captive
 						{
 							GetEncoder().lea(X86Memory::get(BLKJIT_CPUSTATE_REG, GetStateBlockDescriptor().GetBlockOffset(entry)), reg);
 						}
-						
+
 
 						void emit_save_reg_state(int num_operands, stack_map_t&, bool &fixed_stack, uint32_t live_regs = 0xffffffff);
 						void emit_restore_reg_state(bool fixed_stack, uint32_t live_regs = 0xffffffff);
@@ -102,7 +104,7 @@ namespace captive
 							}
 							__builtin_unreachable();
 						}
-						
+
 						inline const X86Register& register_from_operand(const captive::shared::IROperand *oper, int force_width = 0) const
 						{
 							ASSERT(oper->alloc_mode == captive::shared::IROperand::ALLOCATED_REG);
@@ -142,16 +144,16 @@ namespace captive
 							GetEncoder().mov(stack_from_operand(oper), tmp);
 							return tmp;
 						}
-						
-						archsim::util::vbitset used_phys_regs;
-						
+
+						wutils::vbitset<> used_phys_regs;
+
 						// Get a list of registers which should be saved on entry
 						// and restored on exit (i.e. pushed in prologue and
 						// popped in epilogue
 						std::vector<const X86Register*> GetSavedRegisters();
 						void EmitPrologue();
 						void EmitEpilogue();
-						
+
 						bool ABICalleeSave(const X86Register &reg);
 					protected:
 						virtual bool LowerHeader(const TranslationContext &ctx) override;
@@ -161,7 +163,7 @@ namespace captive
 						stack_map_t _stack_map;
 						X86Encoder &_encoder;
 						bool _stack_fixed;
-						
+
 						struct reg_assignment {
 							const x86::X86Register *b1;
 							const x86::X86Register *b2;

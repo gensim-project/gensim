@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/SSABlock.h"
 #include "genC/ssa/passes/SSAPass.h"
@@ -39,7 +40,7 @@ public:
 	bool Run(SSAFormAction& action) const override
 	{
 		bool changed = false;
-		for(auto block : action.Blocks) {
+		for(auto block : action.GetBlocks()) {
 			changed |= TryThreadJump(block->GetControlFlow());
 		}
 		return changed;

@@ -1,3 +1,4 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #include "libtrace/RecordFile.h"
 #include "libtrace/RecordIterator.h"
 
@@ -5,7 +6,9 @@ using namespace libtrace;
 
 TraceRecord RecordIterator::operator*()
 {
-	Record r = buffer_->Get(_idx);
+	Record r;
+	bool success = buffer_->Get(_idx, r);
+	assert(success);
 	auto i = *(TraceRecord*)&r;
 	return i;
 }

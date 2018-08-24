@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "abi/EmulationModel.h"
 #include "abi/devices/IRQController.h"
@@ -31,38 +27,42 @@ void FPState::Apply()
 ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
 {
 	// Need to fill in structures based on arch descriptor info
-	
+
 	// 2. Memory interfaces
 	memory_interfaces_.resize(arch.GetMemoryInterfaceDescriptor().GetInterfaces().size());
 	for(auto &interface_descriptor : arch.GetMemoryInterfaceDescriptor().GetInterfaces()) {
 		memory_interfaces_[interface_descriptor.second.GetID()] = new MemoryInterface(interface_descriptor.second);
 	}
 	fetch_mi_ = memory_interfaces_.at(arch.GetMemoryInterfaceDescriptor().GetFetchInterface().GetID());
-	
+
 	// 3. Features
 	for(auto feature : GetArch().GetFeaturesDescriptor().GetFeatures()) {
 		GetFeatures().AddNamedFeature(feature.GetName(), feature.GetID());
 	}
-	
+
 	// Set default FP state
 	// TODO: this
-	
+
 	metrics_ = new archsim::core::thread::ThreadMetrics();
-	
+
 	// Set up default state block entries
-	
+
 	// Set up thread pointer back to this
 	state_block_.AddBlock("thread_ptr", sizeof(this));
 	state_block_.SetEntry<ThreadInstance*>("thread_ptr", this);
-	
+
 	// Set up ISA Mode ID
 	mode_offset_ = state_block_.AddBlock("ModeID", sizeof(uint32_t));
 	state_block_.SetEntry<uint32_t>("ModeID", 0);
-	
+
 	// Set up Ring ID
 	ring_offset_ = state_block_.AddBlock("RingID", sizeof(uint32_t));
 	state_block_.SetEntry<uint32_t>("RingID", 0);
-	
+
+	// Get a pointer to the PC
+	pc_ptr_ = GetRegisterFileInterface().GetTaggedSlotPointer<void*>("PC");
+	pc_is_64bit_ = GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC").GetEntrySize() == 8;
+
 	message_waiting_ = false;
 	trace_source_ = nullptr;
 }
@@ -74,8 +74,8 @@ void ThreadInstance::ReturnToSafepoint()
 
 void ThreadInstance::SetExecutionRing(uint32_t new_ring)
 {
-	GetStateBlock().SetEntry<uint32_t>("RingID", new_ring); 
-	GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::PrivilegeLevelChange, this); 
+	GetStateBlock().SetEntry<uint32_t>("RingID", new_ring);
+	GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::PrivilegeLevelChange, this);
 }
 
 MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface_name)
@@ -85,7 +85,7 @@ MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface
 			return *i;
 		}
 	}
-	
+
 	throw std::logic_error("No memory interface found with given name " + interface_name);
 }
 MemoryInterface& ThreadInstance::GetMemoryInterface(uint32_t interface_name)
@@ -96,7 +96,7 @@ MemoryInterface& ThreadInstance::GetMemoryInterface(uint32_t interface_name)
 Address RegisterFileInterface::GetTaggedSlot(const std::string &tag) const
 {
 	auto descriptor = descriptor_.GetTaggedEntry(tag);
-	
+
 	switch(descriptor.GetEntrySize()) {
 		case 4:
 			return Address(*(uint32_t*)(GetData() + descriptor.GetOffset()));
@@ -110,7 +110,7 @@ Address RegisterFileInterface::GetTaggedSlot(const std::string &tag) const
 void RegisterFileInterface::SetTaggedSlot(const std::string &tag, Address target)
 {
 	auto descriptor = descriptor_.GetTaggedEntry(tag);
-	
+
 	switch(descriptor.GetEntrySize()) {
 		case 4:
 			*(uint32_t*)(GetData() + descriptor.GetOffset()) = target.Get();
@@ -147,7 +147,7 @@ archsim::abi::devices::IRQLine* ThreadInstance::GetIRQLine(uint32_t irq_no)
 	if(irq_lines_.size() <= irq_no) {
 		irq_lines_.resize(irq_no+1);
 	}
-	
+
 	if(irq_lines_[irq_no] == nullptr) {
 		irq_lines_[irq_no] = new archsim::abi::devices::CPUIRQLine(this);
 		irq_lines_[irq_no]->SetLine(irq_no);
@@ -169,12 +169,14 @@ void ThreadInstance::RescindIRQ()
 archsim::core::execution::ExecutionResult ThreadInstance::HandleMessage()
 {
 	using archsim::core::execution::ExecutionResult;
-	
+
 	auto message = GetNextMessage();
 	switch(message) {
-		case ThreadMessage::Nop: return ExecutionResult::Continue;
-		case ThreadMessage::Halt: return ExecutionResult::Halt;
-		case ThreadMessage::Interrupt: 
+		case ThreadMessage::Nop:
+			return ExecutionResult::Continue;
+		case ThreadMessage::Halt:
+			return ExecutionResult::Halt;
+		case ThreadMessage::Interrupt:
 			HandleIRQ();
 			return ExecutionResult::Exception;
 		default:

@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/validation/SSAActionValidationPass.h"
 #include "genC/ssa/SSAFormAction.h"
@@ -24,7 +20,7 @@ class SingleControlFlowStatementValidationPass : public SSAActionValidationPass
 	{
 		bool success = true;
 
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			bool found = false;
 			for(auto stmt : block->GetStatements()) {
 				if(dynamic_cast<const SSAControlFlowStatement*>(stmt)) {

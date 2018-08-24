@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   CommandLineOptions.h
  * Author: s0457958
@@ -39,6 +41,7 @@ DefineLongFlag(CacheModel, "cache-model");
 
 DefineFlag(ArmOabi, 'b', "oabi");
 
+DefineLongRequiredArgument(uint32_t, StackFaffle, "stack-faffle");
 DefineRequiredArgument(std::string, TargetBinary, 'e', "target");
 DefineLongRequiredArgument(std::string, ZImageSymbolMap, "symbol-map");
 

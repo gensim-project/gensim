@@ -1,11 +1,5 @@
-/*
- * genC/ssa/SSAValue.cpp
- *
- * Copyright (C) University of Edinburgh 2017.  All Rights Reserved.
- *
- * Harry Wagstaff	<hwagstaf@inf.ed.ac.uk>
- * Tom Spink		<tspink@inf.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "genC/ssa/SSAValue.h"
 #include "genC/ssa/metadata/SSAMetadata.h"
 #include "genC/ssa/statement/SSAVariableReadStatement.h"
@@ -27,7 +21,7 @@ SSAValue::SSAValue(SSAContext& context, SSAValueNamespace &ns) : _context(contex
 SSAValue::~SSAValue()
 {
 	if (!IsDisposed()) {
-		assert(false && "Object must be disposed before it is deleted!");
+		GASSERT(false && "Object must be disposed before it is deleted!");
 	}
 
 	for (auto md : _metadata) {
@@ -81,7 +75,7 @@ bool SSAValue::HasDynamicUses() const
 			}
 		}
 	}
-	
+
 	return false;
 }
 

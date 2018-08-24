@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   ISADescription.h
  * Author: s0803652
@@ -32,7 +34,7 @@
 #include "isa/HelperFnDescription.h"
 #include "isa/InstructionDescription.h"
 #include "isa/InstructionFormatDescription.h"
-
+#include "isa/StructDescription.h"
 
 namespace gensim
 {
@@ -103,6 +105,26 @@ namespace gensim
 			std::map<std::string, uint32_t> &Get_Decode_Fields() const;
 			std::map<std::string, std::string> &Get_Disasm_Fields() const;
 			std::map<std::string, std::string> Get_Hidden_Fields();
+
+			std::list<StructDescription> UserStructTypes;
+			bool HasUserStructType(const std::string &name) const
+			{
+				for(auto i : UserStructTypes) {
+					if(i.GetName() == name) {
+						return true;
+					}
+				}
+				return false;
+			}
+			const StructDescription &GetUserStructType(const std::string &name) const
+			{
+				for(auto &i : UserStructTypes) {
+					if(i.GetName() == name) {
+						return i;
+					}
+				}
+				throw std::logic_error("No struct type named " + name);
+			}
 
 			std::list<FieldDescription> UserFields;
 

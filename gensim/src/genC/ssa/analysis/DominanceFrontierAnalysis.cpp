@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ssa/SSABlock.h"
 #include "genC/ssa/SSAFormAction.h"
@@ -41,7 +37,7 @@ DominanceFrontierAnalysis::dominance_frontier_t DominanceFrontierAnalysis::GetDo
 	// just do it super dumb
 	SSAFormAction *action = n->Parent;
 
-	for(auto x : action->Blocks) {
+	for(auto x : action->GetBlocks()) {
 		if(!StrictlyDominates(dominance, n, x) && DominatesAPredecessor(dominance, n, x)) {
 			frontier.insert(x);
 		}

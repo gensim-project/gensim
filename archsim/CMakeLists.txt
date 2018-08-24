@@ -1,6 +1,7 @@
 # Archsim top-level CMAKE file
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
+include(ExternalProject)
 
 # Dependencies
 FIND_PACKAGE(Threads REQUIRED)
@@ -14,7 +15,7 @@ ENDIF()
 
 IF(PkgConfig_FOUND)
 	PKG_CHECK_MODULES(Valgrind valgrind)
-	IF(Valgrind_FOUND)
+	IF(Valgrind_FOUND AND NOT ARCHSIM_DISABLE_VALGRIND)
 		SET(archsim_extra_options ${archsim_extra_options} ${Valgrind_CFLAGS} -DCONFIG_VALGRIND=1)
 		SET(archsim_libs "${archsim_extra_libs};${Valgrind_LIBRARIES}")
 		LINK_DIRECTORIES(${Valgrind_LIBRARY_DIRS})
@@ -40,10 +41,42 @@ TARGET_LINK_LIBRARIES(archsim
 TARGET_LINK_LIBRARIES(archsim-core 
 	trace 
 	gvnc
+	wutils
 
 	${CMAKE_THREAD_LIBS_INIT}
 	${CMAKE_DL_LIBS}
 )
+
+# Need intel XED for the x86 model
+
+# It has its own weird mbuild stuff (lucky us)
+ExternalProject_Add(
+	mbuild
+	
+	GIT_REPOSITORY https://github.com/intelxed/mbuild.git
+	PREFIX intel-xed
+	CONFIGURE_COMMAND true
+	BUILD_COMMAND true
+	INSTALL_COMMAND true
+)
+
+ExternalProject_Add(
+	IntelXED
+	
+	GIT_REPOSITORY https://github.com/intelxed/xed.git
+	PREFIX intel-xed
+	DEPENDS mbuild
+	CONFIGURE_COMMAND true
+	BUILD_COMMAND cd ../IntelXED && ./mfile.py --shared --opt=3 --install-dir ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/ install
+	INSTALL_COMMAND echo "XED ready at ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/"
+)
+
+SET(ARCHSIM_XED_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/ CACHE STRING "XED Kit location")
+ADD_DEPENDENCIES(archsim-core IntelXED)
+
+TARGET_INCLUDE_DIRECTORIES(archsim-core PRIVATE "${ARCHSIM_XED_DIRECTORY}/include")
+TARGET_LINK_LIBRARIES(archsim-core "${ARCHSIM_XED_DIRECTORY}/lib/libxed.so")
+
 
 
 # Add each provided source file along with its source directory

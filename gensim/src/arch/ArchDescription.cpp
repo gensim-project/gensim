@@ -1,9 +1,4 @@
-/*
- * File:   ArchDescription.cpp
- * Author: s0803652
- *
- * Created on 27 September 2011, 12:03
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <string.h>
 
@@ -63,6 +58,17 @@ namespace gensim
 			str << "}" << std::endl;
 
 			return true;
+		}
+
+		uint32_t ArchDescription::GetMaxInstructionSize() const
+		{
+			uint32_t size = 0;
+			for(auto isa : ISAs) {
+				if(isa->GetMaxInstructionLength() > size) {
+					size = isa->GetMaxInstructionLength();
+				}
+			}
+			return size;
 		}
 
 

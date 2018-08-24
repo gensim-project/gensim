@@ -1,8 +1,5 @@
-/**
- * generators/Captive/JITGenerator.cpp
- *
- * Tom Spink <t.spink@sms.ed.ac.uk>
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 #include "generators/GenerationManager.h"
 #include "arch/ArchDescription.h"
 #include "isa/ISADescription.h"
@@ -336,7 +333,7 @@ namespace gensim
 					str << "template<bool TRACE>";
 					str << "dbt::el::Value *" << ClassNameForJIT() << "<TRACE>::generate_predicate_" << isa.ISAName << "_" << fmt.GetName() << "(const " << ClassNameForFormatDecoder(fmt) << "& insn, dbt::el::Emitter& emitter)";
 					str << "{";
-					
+
 					str << "std::queue<dbt::el::Block *> dynamic_block_queue;";
 					str << "dbt::el::Block *__exit_block = emitter.context().create_block();";
 					str << "dbt::el::Value *__result = emitter.alloc_local(emitter.context().types().u8(), true);";
@@ -359,28 +356,28 @@ namespace gensim
 					}
 
 					const SSAFormAction &action = *(SSAFormAction *)isa.GetSSAContext().GetAction(insn.BehaviourName);
-					
+
 					/////////
 #if 0
 					std::list<SSABlock *> work_queue;
 					std::set<SSABlock *> seen;
 					work_queue.push_back(action.EntryBlock);
-					
+
 					fprintf(stderr, "digraph %s {\n", insn.Name.c_str());
 					while (!work_queue.empty()) {
 						SSABlock *current = work_queue.front();
 						work_queue.pop_front();
-						
+
 						if (seen.count(current)) continue;
-						
+
 						seen.insert(current);
-						
+
 						fprintf(stderr, "B_%08x", current->GetID());
 						if (current == action.EntryBlock) {
 							fprintf(stderr, " [color=red]");
 						}
 						fprintf(stderr, ";\n");
-						
+
 						for (auto successor : current->GetSuccessors()) {
 							work_queue.push_back(successor);
 							fprintf(stderr, "B_%08x -> B_%08x;\n", current->GetID(), successor->GetID());
@@ -401,17 +398,17 @@ namespace gensim
 					}
 
 					bool have_dynamic_blocks = false;
-					for (const auto block : action.Blocks) {
+					for (const auto block : action.GetBlocks()) {
 						if (block->IsFixed() != BLOCK_ALWAYS_CONST) {
 							have_dynamic_blocks = true;
 							break;
 						}
 					}
-					
+
 					if (have_dynamic_blocks) {
 						src_stream << "std::queue<dbt::el::Block *> dynamic_block_queue;";
 					}
-					
+
 					src_stream << "dbt::el::Block *__exit_block = emitter.context().create_block();";
 
 					bool generate_predicate_executor = isa.GetDefaultPredicated();
@@ -459,7 +456,7 @@ namespace gensim
 					/*if (generate_predicate_executor) {
 						src_stream << "emitter.set_current_block(__exit_block);";
 					}*/
-					
+
 					src_stream << "if (!insn.end_of_block) {";
 					src_stream << "emitter.inc_pc(emitter.const_u8(" << (insn.Format->GetLength() / 8) << "));";
 					src_stream << "}";
@@ -478,7 +475,7 @@ namespace gensim
 					JITv2NodeWalkerFactory factory(ra);
 
 					bool have_dynamic_blocks = false;
-					for (const auto block : action.Blocks) {
+					for (const auto block : action.GetBlocks()) {
 						if (block->IsFixed() != BLOCK_ALWAYS_CONST) {
 							have_dynamic_blocks = true;
 							src_stream << "auto block_" << block->GetName() << " = emitter.context().create_block();";
@@ -496,14 +493,14 @@ namespace gensim
 
 						src_stream << (is_global ? "true" : "false");
 						src_stream << ");\n";
-						
+
 						/*if (!is_global) {
 							src_stream << "dbt::el::Value *CVR_" << sym->GetName() << " = nullptr;";
 						}*/
 					}
 
 					src_stream << "goto fixed_block_" << action.EntryBlock->GetName() << ";\n";
-					for (const auto block : action.Blocks) {
+					for (const auto block : action.GetBlocks()) {
 						if (block->IsFixed() != BLOCK_ALWAYS_CONST) {
 							src_stream << "// BLOCK " << block->GetName() << " not fully fixed\n";
 							continue;
@@ -552,9 +549,9 @@ namespace gensim
 						           << "dynamic_block_queue.pop();"
 						           << "if (emitted_blocks.count(block_index)) continue;"
 						           << "emitted_blocks.insert(block_index);";
-						
+
 						bool first = true;
-						for (const auto block : action.Blocks) {
+						for (const auto block : action.GetBlocks()) {
 							if (block->IsFixed() == BLOCK_ALWAYS_CONST) continue;
 
 							if (first) {
@@ -562,7 +559,7 @@ namespace gensim
 							} else {
 								src_stream << "else ";
 							}
-							
+
 							src_stream << "if (block_index == block_" << block->GetName() << ") // BLOCK START LINE " << block->GetStartLine() << ", END LINE " << block->GetEndLine() << "\n";
 							src_stream << "{";
 							src_stream << "emitter.set_current_block(block_" << block->GetName() << ");";
@@ -588,7 +585,7 @@ namespace gensim
 						src_stream << "} else {"; // ELSE
 						src_stream << "emitter.jump(__exit_block);\n";
 						src_stream << "}";
-						
+
 						//src_stream << "emitter.set_current_block(__exit_block);";
 					} else {
 						src_stream << "emitter.jump(__exit_block);\n";

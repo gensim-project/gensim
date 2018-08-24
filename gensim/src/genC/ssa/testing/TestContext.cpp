@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "define.h"
 #include "genC/ssa/testing/TestContext.h"
@@ -25,7 +21,7 @@ SSAContext *gensim::genc::ssa::testing::GetTestContext()
 	auto ctx = new SSAContext(*isa, *gensim::arch::testing::GetTestArch());
 	gensim::genc::InstStructBuilder isb;
 
-	ctx->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa));
+	ctx->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa, ctx->GetTypeManager()));
 
 	return ctx;
 }

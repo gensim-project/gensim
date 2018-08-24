@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * File:   LLVMTranslationContext.h
  * Author: s0457958
@@ -103,10 +105,10 @@ namespace archsim
 				void EmitPublishEvent(PubSubType::PubSubType type, std::vector<::llvm::Value*> data);
 
 				void EmitLeaveInstruction(LeaveReasons reason, ::llvm::Value *pc_offset, ::llvm::Value *condition = NULL, ::llvm::BasicBlock *cont_block = NULL, bool invert = false);
-				void EmitLeaveInstruction(LeaveReasons reason, addr_t pc_offset, ::llvm::Value *condition = NULL, ::llvm::BasicBlock *cont_block = NULL, bool invert = false);
+				void EmitLeaveInstruction(LeaveReasons reason, archsim::Address pc_offset, ::llvm::Value *condition = NULL, ::llvm::BasicBlock *cont_block = NULL, bool invert = false);
 				void EmitLeaveInstructionTrace(LeaveReasons reason, ::llvm::Value *pc_offset, ::llvm::Value *condition = NULL, ::llvm::BasicBlock *cont_block = NULL, bool invert = false);
 
-				void EmitTakeException(addr_t pc_offset, ::llvm::Value *arg0, ::llvm::Value *arg1);
+				void EmitTakeException(archsim::Address pc_offset, ::llvm::Value *arg0, ::llvm::Value *arg1);
 				void EmitTakeException(::llvm::Value *pc_offset, ::llvm::Value *arg0, ::llvm::Value *arg1);
 
 				void EmitLeave(LeaveReasons reason, ::llvm::Value *condition = NULL, ::llvm::BasicBlock *cont_block = NULL, bool invert = false);
@@ -278,7 +280,7 @@ namespace archsim
 
 				bool Translate(Translation*& translation, TranslationTimers& timers);
 
-				inline ::llvm::BasicBlock *GetLLVMBlock(virt_addr_t virt_addr)
+				inline ::llvm::BasicBlock *GetLLVMBlock(archsim::Address virt_addr)
 				{
 					return llvm_block_map[virt_addr];
 				}
@@ -314,7 +316,7 @@ namespace archsim
 
 				void DumpFunctionGraph(::llvm::Function *fn, std::string filename);
 
-				std::map<uint32_t, ::llvm::BasicBlock *> llvm_block_map;
+				std::map<archsim::Address, ::llvm::BasicBlock *> llvm_block_map;
 				std::set<TranslationBlockUnit *> indirect_targets;
 
 				void Initialise();
@@ -335,8 +337,8 @@ namespace archsim
 
 			private:
 				bool EmitInterruptCheck();
-				bool EmitDirectJump(virt_addr_t jump_target, virt_addr_t fallthrough_target, bool predicated);
-				bool EmitIndirectJump(virt_addr_t jump_target, virt_addr_t fallthrough_target, bool predicated);
+				bool EmitDirectJump(Address jump_target, Address fallthrough_target, bool predicated);
+				bool EmitIndirectJump(Address jump_target, Address fallthrough_target, bool predicated);
 				bool EmitSpanningControlFlow(TranslationInstructionUnit& last_insn);
 			};
 

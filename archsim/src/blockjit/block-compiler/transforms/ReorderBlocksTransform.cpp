@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * ReorderBlocksTransform.cpp
  *
@@ -7,7 +9,7 @@
 
 #include "blockjit/block-compiler/transforms/Transform.h"
 
-#include "util/wutils/tick-timer.h"
+#include <wutils/tick-timer.h>
 
 #include <vector>
 #include <set>
@@ -24,7 +26,7 @@ ReorderBlocksTransform::~ReorderBlocksTransform()
 
 bool ReorderBlocksTransform::Apply(TranslationContext &ctx)
 {
-	tick_timer timer(0);
+	wutils::tick_timer timer(0);
 	timer.reset();
 
 	std::vector<IRBlockId> reordering (ctx.block_count(), NOP_BLOCK);

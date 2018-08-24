@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /*
  * RegisterFile.h
  *
@@ -251,6 +253,15 @@ namespace gensim
 			}
 
 			RegSlotViewDescriptor &GetSlot(const std::string &id)
+			{
+				for(RegSlotViewDescriptor *i : slot_views) {
+					if(i->GetID() == id) {
+						return *i;
+					}
+				}
+				throw std::logic_error("");
+			}
+			const RegSlotViewDescriptor &GetSlot(const std::string &id) const
 			{
 				for(RegSlotViewDescriptor *i : slot_views) {
 					if(i->GetID() == id) {

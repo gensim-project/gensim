@@ -1,3 +1,5 @@
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+
 /* Pass to propagate values between phi nodes. If a phi node refers to another
  * phi node, replace that reference with references to each member of the other
  * phi node */
@@ -35,7 +37,7 @@ public:
 	bool Run(SSAFormAction& action) const  override
 	{
 		bool changed = false;
-		for(auto block : action.Blocks) {
+		for(auto block : action.GetBlocks()) {
 			for(auto stmt : block->GetStatements()) {
 				if(SSAPhiStatement *phi = dynamic_cast<SSAPhiStatement*>(stmt)) {
 					if(phi->Get().size() == 1 && dynamic_cast<SSAPhiStatement*>(phi->Get().front())) {

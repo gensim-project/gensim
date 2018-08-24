@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ir/IRAction.h"
 #include "genC/ir/IRType.h"
@@ -149,7 +145,7 @@ public:
 	bool Run(SSAFormAction& action) const override
 	{
 		bool change_made = false;
-		for(auto i : action.Blocks) {
+		for(auto i : action.GetBlocks()) {
 			if (
 			    DoLoadElimination(i)
 			    ||
