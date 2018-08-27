@@ -58,7 +58,6 @@ namespace archsim
 			public:
 
 				BlockLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator);
-
 				virtual ~BlockLLVMExecutionEngine()
 				{
 
