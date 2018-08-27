@@ -1,7 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "blockjit/block-compiler/transforms/Transform.h"
-#include "core/execution/BlockLLVMExecutionEngine.h"
+#include "core/execution/BlockToLLVMExecutionEngine.h"
 #include "translate/adapt/BlockJITToLLVM.h"
 #include "core/MemoryInterface.h"
 #include "system.h"
@@ -63,7 +63,7 @@ static llvm::TargetMachine *GetNativeMachine()
 	return machine;
 }
 
-BlockLLVMExecutionEngine::BlockLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) :
+BlockToLLVMExecutionEngine::BlockToLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) :
 	BlockJITExecutionEngine(translator),
 	target_machine_(GetNativeMachine()),
 	memory_manager_(std::make_shared<BlockJITLLVMMemoryManager>(GetMemAllocator())),
@@ -77,7 +77,7 @@ adaptor_(llvm_ctx_)
 
 }
 
-bool BlockLLVMExecutionEngine::buildBlockJITIR(thread::ThreadInstance* thread, archsim::Address block_pc, captive::arch::jit::TranslationContext& ctx, archsim::blockjit::BlockTranslation &txln)
+bool BlockToLLVMExecutionEngine::buildBlockJITIR(thread::ThreadInstance* thread, archsim::Address block_pc, captive::arch::jit::TranslationContext& ctx, archsim::blockjit::BlockTranslation &txln)
 {
 	auto translator = GetTranslator();
 	translator->InitialiseFeatures(thread);
@@ -114,7 +114,7 @@ bool BlockLLVMExecutionEngine::buildBlockJITIR(thread::ThreadInstance* thread, a
 }
 
 
-bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, archsim::Address block_pc, bool support_chaining, bool support_profiling)
+bool BlockToLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, archsim::Address block_pc, bool support_chaining, bool support_profiling)
 {
 	checkCodeSize();
 
@@ -225,16 +225,16 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	return false;
 }
 
-ExecutionEngine *BlockLLVMExecutionEngine::Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix)
+ExecutionEngine *BlockToLLVMExecutionEngine::Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix)
 {
 	std::string blockjit_entry_name = cpu_prefix + "BlockJITTranslator";
 	std::string llvm_entry_name = cpu_prefix + "LLVMTranslator";
 	if(module->HasEntry(blockjit_entry_name)) {
 		auto translator_entry = module->GetEntry<archsim::module::ModuleBlockJITTranslatorEntry>(blockjit_entry_name)->Get();
-		return new BlockLLVMExecutionEngine(translator_entry);
+		return new BlockToLLVMExecutionEngine(translator_entry);
 	} else {
 		return nullptr;
 	}
 }
 
-static archsim::core::execution::ExecutionEngineFactoryRegistration registration("LLVMBlockJIT", 90, archsim::core::execution::BlockLLVMExecutionEngine::Factory);
+static archsim::core::execution::ExecutionEngineFactoryRegistration registration("LLVMBlockJIT", 90, archsim::core::execution::BlockToLLVMExecutionEngine::Factory);
