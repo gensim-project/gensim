@@ -1,6 +1,7 @@
 archsim_add_sources(
 	ExecutionContextManager.cpp
 	ExecutionEngine.cpp
+	BasicJITExecutionEngine.cpp
 	BlockJITExecutionEngine.cpp
 	InterpreterExecutionEngine.cpp
 

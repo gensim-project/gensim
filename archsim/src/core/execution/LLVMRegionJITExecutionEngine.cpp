@@ -69,7 +69,7 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 			}
 
 			region.TraceBlock(thread, virt_pc);
-			auto result = interpreter_->StepBlock(thread);
+			auto result = interpreter_->StepBlock(thread_ctx);
 
 			switch(result) {
 				case ExecutionResult::Continue:
@@ -99,4 +99,4 @@ ExecutionEngine* LLVMRegionJITExecutionEngine::Factory(const archsim::module::Mo
 	return new LLVMRegionJITExecutionEngine(interpreter_entry->Get(), blockjit_entry->Get());
 }
 
-static ExecutionEngineFactoryRegistration registration("LLVMRegionJIT", 1000, LLVMRegionJITExecutionEngine::Factory);
+//static ExecutionEngineFactoryRegistration registration("LLVMRegionJIT", 1000, LLVMRegionJITExecutionEngine::Factory);

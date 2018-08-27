@@ -22,6 +22,8 @@ namespace gensim
 {
 	class Processor;
 
+	class BaseLLVMTranslate;
+
 	namespace blockjit
 	{
 		class BaseBlockJITTranslate;
@@ -57,6 +59,7 @@ namespace archsim
 				ModuleEntry_Processor,
 				ModuleEntry_ExecutionEngine,
 				ModuleEntry_BlockJITTranslator,
+				ModuleEntry_LLVMTranslator,
 				ModuleEntry_ArchDescriptor,
 				ModuleEntry_Interpreter,
 			};
@@ -86,6 +89,9 @@ namespace archsim
 		template<> struct ModuleEntryTypeForClass<gensim::blockjit::BaseBlockJITTranslate*> {
 			static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_BlockJITTranslator;
 		};
+		template<> struct ModuleEntryTypeForClass<gensim::BaseLLVMTranslate*> {
+			static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_LLVMTranslator;
+		};
 		template<> struct ModuleEntryTypeForClass<archsim::ArchDescriptor*> {
 			static const ModuleEntry::ModuleEntryType entry = ModuleEntry::ModuleEntry_ArchDescriptor;
 		};
@@ -109,6 +115,9 @@ namespace archsim
 		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_BlockJITTranslator> {
 			using factory_t = std::function<gensim::blockjit::BaseBlockJITTranslate*()>;
 		};
+		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_LLVMTranslator> {
+			using factory_t = std::function<gensim::BaseLLVMTranslate*()>;
+		};
 		template<> struct FactoryForModuleEntry<ModuleEntry::ModuleEntry_ArchDescriptor> {
 			using factory_t = std::function<archsim::ArchDescriptor*()>;
 		};
@@ -131,6 +140,7 @@ namespace archsim
 		using ModuleProcessorEntry = TypedModuleEntry<gensim::Processor*>;
 		using ModuleExecutionEngineEntry = TypedModuleEntry<archsim::core::execution::ExecutionEngine*>;
 		using ModuleBlockJITTranslatorEntry = TypedModuleEntry<gensim::blockjit::BaseBlockJITTranslate*>;
+		using ModuleLLVMTranslatorEntry = TypedModuleEntry<gensim::BaseLLVMTranslate*>;
 		using ModuleArchDescriptorEntry = TypedModuleEntry<archsim::ArchDescriptor*>;
 		using ModuleInterpreterEntry = TypedModuleEntry<archsim::interpret::Interpreter*>;
 

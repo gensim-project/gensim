@@ -47,8 +47,6 @@ bool BlockJITLLVMMemoryManager::finalizeMemory(std::string* ErrMsg)
 	return true;
 }
 
-
-
 static llvm::TargetMachine *GetNativeMachine()
 {
 	llvm::TargetMachine *machine = nullptr;
@@ -68,7 +66,7 @@ static llvm::TargetMachine *GetNativeMachine()
 BlockLLVMExecutionEngine::BlockLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) :
 	BlockJITExecutionEngine(translator),
 	target_machine_(GetNativeMachine()),
-	memory_manager_(std::make_shared<BlockJITLLVMMemoryManager>(mem_allocator_)),
+	memory_manager_(std::make_shared<BlockJITLLVMMemoryManager>(GetMemAllocator())),
 	linker_([&]()
 {
 	return memory_manager_;
@@ -118,25 +116,20 @@ bool BlockLLVMExecutionEngine::buildBlockJITIR(thread::ThreadInstance* thread, a
 
 bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, archsim::Address block_pc, bool support_chaining, bool support_profiling)
 {
-	// Look up the block in the cache, just in case we already have it translated
-	captive::shared::block_txln_fn fn;
-	if((fn = virt_block_cache_.Lookup(block_pc))) return true;
+	checkCodeSize();
 
-	// we missed in the block cache, so fall back to the physical profile
-	Address physaddr (0);
+	captive::shared::block_txln_fn fn;
+	if(lookupBlock(thread, block_pc, fn)) {
+		return true;
+	}
 
 	// Translate WITH side effects. If a fault occurs, stop translating this block
-	TranslationResult fault = thread->GetFetchMI().PerformTranslation(block_pc, physaddr, false, true, true);
+	Address physaddr (0);
+	archsim::TranslationResult fault = thread->GetFetchMI().PerformTranslation(block_pc, physaddr, false, true, true);
 
 	if(fault != TranslationResult::OK) {
 		thread->TakeMemoryException(thread->GetFetchMI(), block_pc);
 		return false;
-	}
-
-	archsim::blockjit::BlockTranslation txln = phys_block_profile_.Get(physaddr, thread->GetFeatures());
-	if(txln.IsValid(thread->GetFeatures())) {
-		virt_block_cache_.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
-		return true;
 	}
 
 	// we couldn't find the block in the physical profile, so create a new translation
@@ -145,6 +138,7 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	std::unique_ptr<llvm::Module> module (new llvm::Module("mod_"+ std::to_string(block_pc.Get()), llvm_ctx_));
 	module->setDataLayout(target_machine_->createDataLayout());
 
+	blockjit::BlockTranslation txln;
 	captive::arch::jit::TranslationContext txln_ctx;
 	if(!buildBlockJITIR(thread, block_pc, txln_ctx, txln)) {
 		return false;
@@ -218,8 +212,7 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 			txln.Dump("llvm-bin-" + std::to_string(physaddr.Get()));
 		}
 
-		phys_block_profile_.Insert(physaddr, txln);
-		virt_block_cache_.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
+		registerTranslation(physaddr, block_pc, txln);
 
 		return true;
 	} else {
@@ -234,13 +227,14 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 
 ExecutionEngine *BlockLLVMExecutionEngine::Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix)
 {
-	std::string entry_name = cpu_prefix + "BlockJITTranslator";
-	if(!module->HasEntry(entry_name)) {
+	std::string blockjit_entry_name = cpu_prefix + "BlockJITTranslator";
+	std::string llvm_entry_name = cpu_prefix + "LLVMTranslator";
+	if(module->HasEntry(blockjit_entry_name)) {
+		auto translator_entry = module->GetEntry<archsim::module::ModuleBlockJITTranslatorEntry>(blockjit_entry_name)->Get();
+		return new BlockLLVMExecutionEngine(translator_entry);
+	} else {
 		return nullptr;
 	}
-
-	auto translator_entry = module->GetEntry<archsim::module::ModuleBlockJITTranslatorEntry>(entry_name)->Get();
-	return new BlockLLVMExecutionEngine(translator_entry);
 }
 
 static archsim::core::execution::ExecutionEngineFactoryRegistration registration("LLVMBlockJIT", 90, archsim::core::execution::BlockLLVMExecutionEngine::Factory);

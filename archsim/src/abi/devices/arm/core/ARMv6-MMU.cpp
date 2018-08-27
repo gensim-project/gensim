@@ -590,7 +590,7 @@ namespace archsim
 					bool kernel_mode = info.Kernel;
 					bool is_write = info.Write;
 
-					LC_DEBUG1(LogArmMMUAccessv6) << "Translate Section DACR: " << dacr;
+					LC_DEBUG3(LogArmMMUAccessv6) << "Translate Section DACR: " << dacr;
 
 					switch(dacr) {
 						case 2:

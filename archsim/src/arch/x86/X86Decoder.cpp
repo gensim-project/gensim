@@ -649,8 +649,10 @@ bool X86Decoder::DecodeLock(void* inst)
 		case XED_ICLASS_XADD_LOCK:
 		case XED_ICLASS_XCHG:
 			lock = true;
+			break;
 		default:
 			lock = false;
+			break;
 	}
 
 	return true;

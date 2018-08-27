@@ -573,6 +573,9 @@ namespace gensim
 				case IRPlainOldDataType::INT64:
 					llvm_type = "txln_ctx.types.i64";
 					break;
+				case IRPlainOldDataType::INT128:
+					llvm_type = "txln_ctx.types.i128";
+					break;
 				case IRPlainOldDataType::FLOAT:
 					llvm_type = "txln_ctx.types.f32";
 					break;
