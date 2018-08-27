@@ -53,12 +53,12 @@ namespace archsim
 
 			};
 
-			class BlockLLVMExecutionEngine : public BlockJITExecutionEngine
+			class BlockToLLVMExecutionEngine : public BlockJITExecutionEngine
 			{
 			public:
 
-				BlockLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator);
-				virtual ~BlockLLVMExecutionEngine()
+				BlockToLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator);
+				virtual ~BlockToLLVMExecutionEngine()
 				{
 
 				}
