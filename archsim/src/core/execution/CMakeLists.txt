@@ -12,5 +12,6 @@ IF(ARCHSIM_ENABLE_LLVM)
 archsim_add_sources(
 	LLVMRegionJITExecutionEngine.cpp
 	BlockToLLVMExecutionEngine.cpp
+	BlockLLVMExecutionEngine.cpp
 )
 ENDIF()

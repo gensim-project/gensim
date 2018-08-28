@@ -1,19 +1,19 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
-
 /*
  * File:   BlockLLVMExecutionEngine.h
  * Author: harry
  *
- * Created on 11 May 2018, 16:32
+ * Created on 27 August 2018, 14:09
  */
 
 #ifndef BLOCKLLVMEXECUTIONENGINE_H
 #define BLOCKLLVMEXECUTIONENGINE_H
 
-#include "core/execution/ExecutionEngine.h"
-#include "BlockJITExecutionEngine.h"
-#include "translate/adapt/BlockJITToLLVM.h"
+#include "core/execution/BasicJITExecutionEngine.h"
+#include "core/execution/BlockToLLVMExecutionEngine.h"
+#include "module/Module.h"
+
 #include "BlockJITLLVMMemoryManager.h"
 
 #include <llvm/IR/LLVMContext.h>
@@ -32,30 +32,33 @@ namespace archsim
 	{
 		namespace execution
 		{
-
-			class BlockToLLVMExecutionEngine : public BlockJITExecutionEngine
+			class BlockLLVMExecutionEngine : public BasicJITExecutionEngine
 			{
 			public:
 
-				BlockToLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator);
-				virtual ~BlockToLLVMExecutionEngine()
-				{
+				BlockLLVMExecutionEngine(gensim::BaseLLVMTranslate *translator);
 
-				}
+				ExecutionEngineThreadContext* GetNewContext(thread::ThreadInstance* thread) override;
 
 				static ExecutionEngine *Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix);
 
-			private:
+			protected:
 				bool translateBlock(thread::ThreadInstance* thread, archsim::Address block_pc, bool support_chaining, bool support_profiling) override;
-				bool buildBlockJITIR(thread::ThreadInstance *thread, archsim::Address block_pc, captive::arch::jit::TranslationContext &ctx, archsim::blockjit::BlockTranslation &txln);
+
+			private:
+
+				llvm::FunctionType *getFunctionType();
+
+				llvm::Function *translateToFunction(archsim::core::thread::ThreadInstance *thread, Address phys_pc, const std::string fn_name, std::unique_ptr<llvm::Module> &llvm_module);
+
+				gensim::BaseLLVMTranslate *translator_;
 
 				llvm::LLVMContext llvm_ctx_;
-				archsim::translate::adapt::BlockJITToLLVMAdaptor adaptor_;
-
-				std::shared_ptr<BlockJITLLVMMemoryManager> memory_manager_;
+				std::shared_ptr<archsim::core::execution::BlockJITLLVMMemoryManager> memory_manager_;
 				std::unique_ptr<llvm::TargetMachine> target_machine_;
 				llvm::orc::RTDyldObjectLinkingLayer linker_;
 				llvm::orc::IRCompileLayer<decltype(linker_), llvm::orc::SimpleCompiler> compiler_;
+
 			};
 		}
 	}
