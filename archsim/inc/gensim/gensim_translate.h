@@ -19,6 +19,8 @@
 namespace llvm
 {
 	class Value;
+	class Module;
+	class Function;
 }
 
 namespace archsim
@@ -33,6 +35,13 @@ namespace archsim
 		{
 			class LLVMTranslationContext;
 			class LLVMInstructionTranslationContext;
+		}
+	}
+	namespace core
+	{
+		namespace thread
+		{
+			class ThreadInstance;
 		}
 	}
 }
@@ -69,19 +78,16 @@ namespace gensim
 		const gensim::Processor &cpu;
 	};
 
-	class BaseLLVMTranslate : public BaseTranslate
+	class BaseLLVMTranslate
 	{
 	public:
-		BaseLLVMTranslate(const gensim::Processor& cpu, archsim::translate::translate_llvm::LLVMTranslationContext& ctx) : BaseTranslate(cpu), txln_ctx(ctx) { }
+		virtual bool TranslateInstruction(archsim::core::thread::ThreadInstance *thread, gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn, void *irbuilder) = 0;
 
-		virtual uint8_t *GetPrecompBitcode() = 0;
-		virtual uint32_t GetPrecompSize() = 0;
+		bool EmitRegisterRead(void *irbuilder, int size, int offset);
+		bool EmitRegisterWrite(void *irbuilder, int size, int offset, llvm::Value*);
 
-		virtual bool EmitPredicate(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& ctx, ::llvm::Value*& __result, bool trace) = 0;
-		virtual bool TranslateInstruction(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& ctx, ::llvm::Value*& __result, bool trace) = 0;
-
-	protected:
-		archsim::translate::translate_llvm::LLVMTranslationContext& txln_ctx;
+		llvm::Value *EmitMemoryRead(void *irbuilder, int size, llvm::Value *address);
+		void EmitMemoryWrite(void *irbuilder, int size, llvm::Value *address, llvm::Value *value);
 	};
 
 	class BaseIJTranslate : public BaseTranslate

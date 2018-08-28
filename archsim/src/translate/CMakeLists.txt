@@ -17,5 +17,5 @@ IF(ARCHSIM_ENABLE_LLVM)
 		AsynchronousTranslationWorker.cpp
 	)
 
-ADD_SUBDIRECTORY(llvm)
+#ADD_SUBDIRECTORY(llvm)
 ENDIF()

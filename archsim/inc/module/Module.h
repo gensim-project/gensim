@@ -191,6 +191,7 @@ namespace archsim
 #define ARCHSIM_BLOCKJITTRANSLATEFACTORY(x) []() { static_assert(std::is_base_of<gensim::blockjit::BaseBlockJITTranslate,x>::value, "Component must be a Blockjit Translator"); return new x(); }
 #define ARCHSIM_ARCHDESCRIPTORFACTORY(x) []() { static_assert(std::is_base_of<archsim::ArchDescriptor,x>::value, "Component must be a AD"); return new x(); }
 #define ARCHSIM_INTERPRETERFACTORY(x) []() { static_assert(std::is_base_of<archsim::interpret::Interpreter,x>::value, "Component must be an Interpreter"); return new x(); }
+#define ARCHSIM_LLVMTRANSLATORFACTORY(x) []() { static_assert(std::is_base_of<gensim::BaseLLVMTranslate,x>::value, "Component must be an LLVM Translator"); return new x(); }
 
 #endif /* MODULE_H */
 
