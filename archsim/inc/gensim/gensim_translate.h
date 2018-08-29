@@ -31,10 +31,9 @@ namespace archsim
 	}
 	namespace translate
 	{
-		namespace translate_llvm
+		namespace tx_llvm
 		{
 			class LLVMTranslationContext;
-			class LLVMInstructionTranslationContext;
 		}
 	}
 	namespace core
@@ -81,13 +80,17 @@ namespace gensim
 	class BaseLLVMTranslate
 	{
 	public:
-		virtual bool TranslateInstruction(archsim::core::thread::ThreadInstance *thread, gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn, void *irbuilder) = 0;
+		virtual bool TranslateInstruction(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::core::thread::ThreadInstance *thread, gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) = 0;
 
-		bool EmitRegisterRead(void *irbuilder, int size, int offset);
-		bool EmitRegisterWrite(void *irbuilder, int size, int offset, llvm::Value*);
+		llvm::Value *EmitRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, void *irbuilder, int size, int offset);
+		bool EmitRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, void *irbuilder, int size, int offset, llvm::Value*);
 
-		llvm::Value *EmitMemoryRead(void *irbuilder, int size, llvm::Value *address);
-		void EmitMemoryWrite(void *irbuilder, int size, llvm::Value *address, llvm::Value *value);
+		llvm::Value *EmitMemoryRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, void *irbuilder, int size, llvm::Value *address);
+		void EmitMemoryWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, void *irbuilder, int size, llvm::Value *address, llvm::Value *value);
+
+	private:
+		llvm::Value *GetRegisterPtr(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, void *irbuilder, int size, int offset);
+		llvm::Value *GetRegfilePtr(archsim::translate::tx_llvm::LLVMTranslationContext& ctx);
 	};
 
 	class BaseIJTranslate : public BaseTranslate
