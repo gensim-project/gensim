@@ -90,7 +90,6 @@ namespace gensim
 		{
 			for (std::list<GenerationComponentInitializer*>::const_iterator ci = GenerationComponentInitializer::Initializers.begin(); ci != GenerationComponentInitializer::Initializers.end(); ++ci) {
 				if ((*ci)->GetName() == component) {
-					printf("Registering option %s to %s\n", name, component);
 					GenerationComponent::Options[component][name] = new GenerationOption(name, default_value, help_string);
 					return;
 				}

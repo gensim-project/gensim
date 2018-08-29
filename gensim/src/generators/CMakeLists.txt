@@ -11,6 +11,8 @@ TARGET_ADD_SOURCES(gensim-lib
 	ModuleDescriptorGenerator.cpp
 	FunctionGenerator.cpp
 
+	LLVMTranslatorGenerator.cpp
+
 # These are deprecated and should be removed soon
 	InterpretiveExecutionEngineGenerator.cpp
 	ClangLLVMTranslationGenerator.cpp

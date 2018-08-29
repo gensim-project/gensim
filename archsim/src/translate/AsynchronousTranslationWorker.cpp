@@ -153,7 +153,7 @@ void AsynchronousTranslationWorker::stop()
 	// Wait for the thread to terminate.
 	join();
 }
-
+/*
 static llvm::Function *BuildDispatchFunction(llvm::Module *module, const TranslationWorkUnit &unit, const std::map<uint32_t, llvm::Function*> &fns)
 {
 	auto voidTy = llvm::Type::getVoidTy(module->getContext());
@@ -213,7 +213,7 @@ static llvm::Function *BuildDispatchFunction(llvm::Module *module, const Transla
 
 	return fn;
 }
-
+*/
 LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUnit& unit, ::llvm::Module* module, llvm::Function* function)
 {
 
@@ -334,7 +334,8 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 	}
 
 	// build a dispatch function
-	auto dispatch_function_ = BuildDispatchFunction(module, unit, block_map);
+	UNIMPLEMENTED;
+	auto dispatch_function_ = nullptr;//BuildDispatchFunction(module, unit, block_map);
 
 	// optimise
 	opt.Optimise(module, target_machine_->createDataLayout());

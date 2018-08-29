@@ -10,6 +10,7 @@
 #include "gensim/gensim_processor_api.h"
 #include "util/LogContext.h"
 #include "gensim/gensim_translate.h"
+#include "translate/llvm/LLVMTranslationContext.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Instructions.h>
@@ -24,6 +25,7 @@
 #include <llvm/ExecutionEngine/Orc/IRCompileLayer.h>
 #include <llvm/ExecutionEngine/Orc/LambdaResolver.h>
 #include <llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h>
+#include <llvm/Support/raw_os_ostream.h>
 
 using namespace archsim::core::execution;
 
@@ -86,6 +88,13 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 
 	std::string fn_name = "fn_" + std::to_string(block_pc.Get());
 	auto function = translateToFunction(thread, physaddr, fn_name, module);
+
+
+	if(archsim::options::Debug) {
+		std::ofstream str(fn_name + ".ll");
+		llvm::raw_os_ostream llvm_str(str);
+		module->print(llvm_str, nullptr);
+	}
 
 	std::map<std::string, void *> jit_symbols;
 
@@ -173,11 +182,13 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 	auto entry_block = llvm::BasicBlock::Create(llvm_ctx_, "", fn);
 	llvm::IRBuilder<> builder (entry_block);
 
+	archsim::translate::tx_llvm::LLVMTranslationContext ctx(llvm_ctx_, builder, thread);
+
 	while(true) {
 		isa.DecodeInstr(phys_pc, &thread->GetFetchMI(), *decode);
 
 		// translate instruction
-		translator_->TranslateInstruction(thread, decode, phys_pc, fn, (void*)&builder);
+		translator_->TranslateInstruction(ctx, thread, decode, phys_pc, fn);
 
 		// check for block exit
 		gensim::JumpInfo ji;
@@ -188,6 +199,8 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 		}
 		phys_pc += decode->Instr_Length;
 	}
+
+	builder.CreateRet(llvm::ConstantInt::get(ctx.Types.i32, 0));
 
 	delete jumpinfo;
 	delete decode;
@@ -201,20 +214,20 @@ llvm::FunctionType *BlockLLVMExecutionEngine::getFunctionType()
 
 	return llvm::FunctionType::get(llvm::IntegerType::getInt32Ty(llvm_ctx_), {i8ptrty, i8ptrty}, false);
 }
-
-class NullLLVMTranslator : public gensim::BaseLLVMTranslate
-{
-public:
-	virtual ~NullLLVMTranslator()
-	{
-
-	}
-
-	bool TranslateInstruction(archsim::core::thread::ThreadInstance* thread, gensim::BaseDecode* decode, archsim::Address phys_pc, llvm::Function* fn, void* irbuilder) override
-	{
-		UNIMPLEMENTED;
-	}
-};
+//
+//class NullLLVMTranslator : public gensim::BaseLLVMTranslate
+//{
+//public:
+//	virtual ~NullLLVMTranslator()
+//	{
+//
+//	}
+//
+//	bool TranslateInstruction(archsim::core::thread::ThreadInstance* thread, gensim::BaseDecode* decode, archsim::Address phys_pc, llvm::Function* fn, void* irbuilder) override
+//	{
+//		UNIMPLEMENTED;
+//	}
+//};
 
 ExecutionEngine* BlockLLVMExecutionEngine::Factory(const archsim::module::ModuleInfo* module, const std::string& cpu_prefix)
 {

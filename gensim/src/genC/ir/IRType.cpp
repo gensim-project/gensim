@@ -559,28 +559,28 @@ namespace gensim
 					assert(false && "Attempting to lower a void value for some reason");
 					return "???";
 				case IRPlainOldDataType::INT1:
-					llvm_type = "txln_ctx.types.i1";
+					llvm_type = "ctx.Types.i1";
 					break;
 				case IRPlainOldDataType::INT8:
-					llvm_type = "txln_ctx.types.i8";
+					llvm_type = "ctx.Types.i8";
 					break;
 				case IRPlainOldDataType::INT16:
-					llvm_type = "txln_ctx.types.i16";
+					llvm_type = "ctx.Types.i16";
 					break;
 				case IRPlainOldDataType::INT32:
-					llvm_type = "txln_ctx.types.i32";
+					llvm_type = "ctx.Types.i32";
 					break;
 				case IRPlainOldDataType::INT64:
-					llvm_type = "txln_ctx.types.i64";
+					llvm_type = "ctx.Types.i64";
 					break;
 				case IRPlainOldDataType::INT128:
-					llvm_type = "txln_ctx.types.i128";
+					llvm_type = "ctx.Types.i128";
 					break;
 				case IRPlainOldDataType::FLOAT:
-					llvm_type = "txln_ctx.types.f32";
+					llvm_type = "ctx.Types.f32";
 					break;
 				case IRPlainOldDataType::DOUBLE:
-					llvm_type = "txln_ctx.types.f64";
+					llvm_type = "ctx.Types.f64";
 					break;
 				default:
 					assert(false && "Unrecognized type");
