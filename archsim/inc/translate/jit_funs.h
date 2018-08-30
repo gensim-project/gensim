@@ -43,7 +43,7 @@ extern "C" {
 
 	void sysVerify(gensim::Processor *cpu);
 
-	uint32_t cpuTakeException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data);
+	uint32_t cpuTakeException(archsim::core::thread::ThreadInstance *cpu, uint64_t category, uint64_t data);
 
 	void cpuPushInterruptState(gensim::Processor *cpu, uint32_t state);
 
@@ -83,7 +83,7 @@ extern "C" {
 
 	void cpuTraceString(gensim::Processor *cpu, const char* str, uint32_t do_emit);
 
-	void cpuTraceInstruction(archsim::core::thread::ThreadInstance *cpu, uint32_t pc, uint32_t ir, uint8_t isa_mode, uint8_t irq_mode, uint8_t exec);
+	void cpuTraceInstruction(archsim::core::thread::ThreadInstance *cpu, uint64_t pc, uint32_t ir, uint8_t isa_mode, uint8_t irq_mode, uint8_t exec);
 
 	void cpuTraceInsnEnd(archsim::core::thread::ThreadInstance *cpu);
 

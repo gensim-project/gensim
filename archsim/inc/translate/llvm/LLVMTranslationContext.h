@@ -41,11 +41,24 @@ namespace archsim
 					llvm::Function *jit_trap;
 					llvm::Function *double_sqrt;
 					llvm::Function *float_sqrt;
-					llvm::Function *genc_adc_flags;
 
 					llvm::Function *ctpop_i32;
 
 					llvm::Function *blkRead8, *blkRead16, *blkRead32, *blkRead64;
+					llvm::Function *cpuWrite8, *cpuWrite16, *cpuWrite32, *cpuWrite64;
+
+					llvm::Function *cpuTraceInstruction;
+
+					llvm::Function *cpuTraceMemRead8, *cpuTraceMemRead16, *cpuTraceMemRead32, *cpuTraceMemRead64;
+					llvm::Function *cpuTraceMemWrite8, *cpuTraceMemWrite16, *cpuTraceMemWrite32, *cpuTraceMemWrite64;
+
+					llvm::Function *cpuTraceBankedRegisterWrite, *cpuTraceRegisterWrite;
+
+					llvm::Function *cpuTraceInsnEnd;
+
+
+					llvm::Function *TakeException;
+
 				} Functions;
 
 				struct {
@@ -54,14 +67,19 @@ namespace archsim
 
 				} Values;
 
-				llvm::Value *GetThreadPtr(llvm::IRBuilder<> &builder);
+				llvm::Value *GetThreadPtr();
 				llvm::LLVMContext &LLVMCtx;
 
 				llvm::Value *AllocateRegister(int width_in_bytes);
 				void FreeRegister(int width_in_bytes, llvm::Value *v);
 
-				llvm::IRBuilder<> Builder;
+				llvm::IRBuilder<> &Builder;
 				llvm::Module *Module;
+
+				const archsim::ArchDescriptor &GetArch()
+				{
+					return thread_->GetArch();
+				}
 			private:
 				archsim::core::thread::ThreadInstance *thread_;
 

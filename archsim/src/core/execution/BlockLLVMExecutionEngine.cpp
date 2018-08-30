@@ -41,7 +41,7 @@ static llvm::TargetMachine *GetNativeMachine()
 		llvm::InitializeNativeTargetAsmParser();
 		machine = llvm::EngineBuilder().selectTarget();
 		machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
-		machine->setFastISel(false);
+		machine->setFastISel(true);
 		machine->setO0WantsFastISel(false);
 	}
 	return machine;
@@ -113,10 +113,26 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	jit_symbols["blkRead16"] = (void*)blkRead16;
 	jit_symbols["blkRead32"] = (void*)blkRead32;
 	jit_symbols["blkRead64"] = (void*)blkRead64;
-	jit_symbols["blkWrite8"] = (void*)cpuWrite8;
-	jit_symbols["blkWrite16"] = (void*)cpuWrite16;
-	jit_symbols["blkWrite32"] = (void*)cpuWrite32;
-	jit_symbols["blkWrite64"] = (void*)cpuWrite64;
+	jit_symbols["cpuWrite8"] = (void*)cpuWrite8;
+	jit_symbols["cpuWrite16"] = (void*)cpuWrite16;
+	jit_symbols["cpuWrite32"] = (void*)cpuWrite32;
+	jit_symbols["cpuWrite64"] = (void*)cpuWrite64;
+
+	jit_symbols["cpuTraceOnlyMemWrite8"] = (void*)cpuTraceOnlyMemWrite8;
+	jit_symbols["cpuTraceOnlyMemWrite16"] = (void*)cpuTraceOnlyMemWrite16;
+	jit_symbols["cpuTraceOnlyMemWrite32"] = (void*)cpuTraceOnlyMemWrite32;
+	jit_symbols["cpuTraceOnlyMemWrite64"] = (void*)cpuTraceOnlyMemWrite64;
+
+	jit_symbols["cpuTraceOnlyMemRead8"] = (void*)cpuTraceOnlyMemRead8;
+	jit_symbols["cpuTraceOnlyMemRead16"] = (void*)cpuTraceOnlyMemRead16;
+	jit_symbols["cpuTraceOnlyMemRead32"] = (void*)cpuTraceOnlyMemRead32;
+	jit_symbols["cpuTraceOnlyMemRead64"] = (void*)cpuTraceOnlyMemRead64;
+
+	jit_symbols["cpuTraceRegBankWrite"] = (void*)cpuTraceRegBankWrite;
+	jit_symbols["cpuTraceRegWrite"] = (void*)cpuTraceRegWrite;
+
+	jit_symbols["cpuTraceInstruction"] = (void*)cpuTraceInstruction;
+	jit_symbols["cpuTraceInsnEnd"] = (void*)cpuTraceInsnEnd;
 
 	auto resolver = llvm::orc::createLambdaResolver(
 	[&](const std::string &name) {
@@ -187,8 +203,16 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 	while(true) {
 		isa.DecodeInstr(phys_pc, &thread->GetFetchMI(), *decode);
 
+		if(archsim::options::Trace) {
+			builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()), llvm::ConstantInt::get(ctx.Types.i32, decode->ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
+		}
+
 		// translate instruction
 		translator_->TranslateInstruction(ctx, thread, decode, phys_pc, fn);
+
+		if(archsim::options::Trace) {
+			builder.CreateCall(ctx.Functions.cpuTraceInsnEnd, {ctx.GetThreadPtr()});
+		}
 
 		// check for block exit
 		gensim::JumpInfo ji;
