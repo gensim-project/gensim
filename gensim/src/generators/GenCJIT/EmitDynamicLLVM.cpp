@@ -58,8 +58,8 @@ namespace gensim
 
 			void CreateBlock(const SSABlock &block, util::cppformatstream &output)
 			{
-				output << "UNIMPLEMENTED;";
-//				output << "QueueDynamicBlock(ctx.block.region, dynamic_blocks, dynamic_block_queue, __block_" << block.GetName() << ");";
+//				output << "UNIMPLEMENTED;";
+				output << "QueueDynamicBlock(ctx, dynamic_blocks, dynamic_block_queue, __block_" << block.GetName() << ");";
 			}
 
 			void JumpOrInlineBlock(SSAWalkerFactory &factory, const SSABlock &Target, util::cppformatstream &output, std::string end_label, bool fully_fixed, bool dynamic)
@@ -420,6 +420,7 @@ namespace gensim
 						// !x
 						case OP_NEGATE:
 							output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateICmpEQ(" << Factory.GetOrCreate(Statement.Expr())->GetDynamicValue() << ", llvm::ConstantInt::get(" << Statement.Expr()->GetType().GetLLVMType() << ", 0, true));";
+							output << Statement.GetName() << " = __irBuilder.CreateZExt(" << Statement.GetName() << ", ctx.Types.i8);";
 							break;
 						default:
 							assert(false);
@@ -629,7 +630,7 @@ namespace gensim
 					output << "{";
 
 					output << "llvm::Value *ptr = llvm_registers[__idx_" << stmt->Target()->GetName() << "];";
-					output << Statement.GetName() << " = __irBuilder.CreateCall4(ctx.Functions.dev_read_device, ctx.GetThreadPtr(__irBuilder), " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", ptr, \"dev_read_result\");";
+					output << Statement.GetName() << " = __irBuilder.CreateCall4(ctx.Functions.dev_read_device, ctx.GetThreadPtr(), " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", ptr, \"dev_read_result\");";
 					output << "}";
 
 					return true;
@@ -659,7 +660,7 @@ namespace gensim
 					switch (Statement.Type) {
 						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc: {
 							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
-							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
+							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = " << GetLLVMValue(IRTypes::UInt64, "phys_pc") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
 							break;
 						}
 						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
@@ -697,7 +698,14 @@ namespace gensim
 					switch (Statement.Type) {
 						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc: {
 							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
-							output << "llvm::Value *" << Statement.GetName() << " = EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
+							output << "llvm::Value *" << Statement.GetName() << " = " << GetLLVMValue(IRTypes::UInt64, "phys_pc.Get()") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
+							break;
+						}
+						case SSAIntrinsicStatement::SSAIntrinsic_WritePc: {
+							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
+
+							output << "EmitRegisterWrite(ctx, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ", " << arg0->GetDynamicValue() << ");";
+
 							break;
 						}
 						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
@@ -734,39 +742,39 @@ namespace gensim
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
 							assert(arg0 && arg1);
-							output << "UNIMPLEMENTED;";
+							output << "EmitTakeException(ctx, " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ");";
 //							output << "ctx.block.region.EmitTakeException(ctx.tiu.GetOffset(), " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ");";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
 							assert(arg0);
-							output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall2(ctx.Functions.dev_probe_device, ctx.GetThreadPtr(__irBuilder), " << arg0->GetDynamicValue() << ", \"dev_probe_result\");";
+							output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall2(ctx.Functions.dev_probe_device, ctx.GetThreadPtr(), " << arg0->GetDynamicValue() << ", \"dev_probe_result\");";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
 							assert(arg0 && arg1 && arg2);
 							output << "llvm::Value *" << Statement.GetName();
-							output << " = __irBuilder.CreateCall4(ctx.Functions.dev_write_device, ctx.GetThreadPtr(__irBuilder), ";
+							output << " = __irBuilder.CreateCall4(ctx.Functions.dev_write_device, ctx.GetThreadPtr(), ";
 							output << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << ", \"dev_write_result\");";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
-							output << "__irBuilder.CreateCall2(ctx.Functions.cpu_push_interrupt, ctx.GetThreadPtr(__irBuilder), " << GetLLVMValue(IRTypes::UInt32, "0") << ");";
+							output << "__irBuilder.CreateCall2(ctx.Functions.cpu_push_interrupt, ctx.GetThreadPtr(), " << GetLLVMValue(IRTypes::UInt32, "0") << ");";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
-							output << "__irBuilder.CreateCall(ctx.Functions.cpu_pop_interrupt, ctx.GetThreadPtr(__irBuilder));";
+							output << "__irBuilder.CreateCall(ctx.Functions.cpu_pop_interrupt, ctx.GetThreadPtr());";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_Trap:
 							output << "__irBuilder.CreateCall(ctx.Functions.jit_trap);";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
-							output << "__irBuilder.CreateCall(ctx.Functions.cpu_pend_irq, ctx.GetThreadPtr(__irBuilder));";
+							output << "__irBuilder.CreateCall(ctx.Functions.cpu_pend_irq, ctx.GetThreadPtr());";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
-							output << "__irBuilder.CreateCall(ctx.Functions.cpu_halt, ctx.GetThreadPtr(__irBuilder));";
+							output << "__irBuilder.CreateCall(ctx.Functions.cpu_halt, ctx.GetThreadPtr());";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
-							output << "__irBuilder.CreateCall(ctx.Functions.cpu_enter_kernel, ctx.GetThreadPtr(__irBuilder));";
+							output << "__irBuilder.CreateCall(ctx.Functions.cpu_enter_kernel, ctx.GetThreadPtr());";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
-							output << "__irBuilder.CreateCall(ctx.Functions.cpu_enter_user, ctx.GetThreadPtr(__irBuilder));";
+							output << "__irBuilder.CreateCall(ctx.Functions.cpu_enter_user, ctx.GetThreadPtr());";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatIsQnan:
@@ -837,31 +845,6 @@ namespace gensim
 							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.float_abs, " << arg0->GetDynamicValue() << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags: {
-							auto V = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("V");
-							auto C = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("C");
-							auto Z = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("Z");
-							auto N = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("N");
-							output << "{";
-							output << "llvm::Value *res = __irBuilder.CreateCall(ctx.Functions.genc_adc_flags, {" << arg0->GetDynamicValue() << "," << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << "});";
-							output << "llvm::Value *c = __irBuilder.CreateLShr(res, 8);"
-							       "c = __irBuilder.CreateAnd(c, 1);";
-							output << "llvm::Value *v = res;"
-							       "v = __irBuilder.CreateAnd(v, 1);";
-							output << "llvm::Value *z = __irBuilder.CreateLShr(res, 14);"
-							       "z = __irBuilder.CreateAnd(z, 1);";
-							output << "llvm::Value *n = __irBuilder.CreateLShr(res, 15);"
-							       "n = __irBuilder.CreateAnd(n, 1);";
-
-							output << "UNIMPLEMENTED;";
-//							output << "EmitRegisterWrite(ctx, " << (uint32_t)C->GetIndex() << ", __irBuilder.CreateIntCast(c, " << C->GetIRType().GetLLVMType() << ", false) );";
-//							output << "EmitRegisterWrite(ctx, " << (uint32_t)V->GetIndex() << ", __irBuilder.CreateIntCast(v, " << V->GetIRType().GetLLVMType() << ", false) );";
-//							output << "EmitRegisterWrite(ctx, " << (uint32_t)Z->GetIndex() << ", __irBuilder.CreateIntCast(z, " << Z->GetIRType().GetLLVMType() << ", false) );";
-//							output << "EmitRegisterWrite(ctx, " << (uint32_t)N->GetIndex() << ", __irBuilder.CreateIntCast(n, " << N->GetIRType().GetLLVMType() << ", false) );";
-							output << "}";
-							break;
-						}
-
 						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32: {
 							auto Z = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("Z");
 							auto N = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("N");
@@ -876,6 +859,55 @@ namespace gensim
 							break;
 						}
 
+
+						case SSAIntrinsicStatement::SSAIntrinsic_Adc8WithFlags:
+						case SSAIntrinsicStatement::SSAIntrinsic_Adc16WithFlags:
+						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
+						case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
+							output << "EmitAdcWithFlags(ctx, ";
+							switch(Statement.Type) {
+								case SSAIntrinsicStatement::SSAIntrinsic_Adc8WithFlags:
+									output << "8";
+									break;
+								case SSAIntrinsicStatement::SSAIntrinsic_Adc16WithFlags:
+									output << "16";
+									break;
+								case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
+									output << "32";
+									break;
+								case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
+									output << "64";
+									break;
+								default:
+									UNEXPECTED;
+							}
+							output << ", " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << ");";
+							break;
+
+						case SSAIntrinsicStatement::SSAIntrinsic_Sbc8WithFlags:
+						case SSAIntrinsicStatement::SSAIntrinsic_Sbc16WithFlags:
+						case SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags:
+						case SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags:
+							output << "EmitSbcWithFlags(ctx, ";
+							switch(Statement.Type) {
+								case SSAIntrinsicStatement::SSAIntrinsic_Sbc8WithFlags:
+									output << "8";
+									break;
+								case SSAIntrinsicStatement::SSAIntrinsic_Sbc16WithFlags:
+									output << "16";
+									break;
+								case SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags:
+									output << "32";
+									break;
+								case SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags:
+									output << "64";
+									break;
+								default:
+									UNEXPECTED;
+							}
+							output << ", " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << ");";
+							break;
+
 						case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
 						case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
@@ -883,19 +915,8 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_MemLock:
 						case SSAIntrinsicStatement::SSAIntrinsic_MemUnlock:
 
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc8WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc16WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc8WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc16WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags:
-
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
-
-						case SSAIntrinsicStatement::SSAIntrinsic_WritePc:
-
 
 							output << "llvm::Value *" << Statement.GetName() << " = nullptr; assert(false);";
 							break;
@@ -1021,7 +1042,7 @@ namespace gensim
 					const SSANodeWalker *AddrExpr = Factory.GetOrCreate(Statement.Addr());
 					output << "llvm::Value *" << Statement.GetName() << " = nullptr;";
 					output << "{";
-					output << "llvm::Value *data = EmitMemoryRead(ctx, (void*)&__irBuilder, " << (uint32_t)Statement.Width << ", " << AddrExpr->GetDynamicValue() << ");";
+					output << "llvm::Value *data = EmitMemoryRead(ctx, " << Statement.GetInterface()->GetID() << ", " << (uint32_t)Statement.Width << ", " << AddrExpr->GetDynamicValue() << ");";
 					output << "__irBuilder.CreateStore(data, llvm_registers[__idx_" << Statement.Target()->GetName() << "]);";
 					output << "}";
 
@@ -1049,7 +1070,7 @@ namespace gensim
 
 					output << "llvm::Value *" << Statement.GetName() << " = NULL;";
 
-					output << "EmitMemoryWrite(ctx, (void*)&__irBuilder, " << (uint32_t)Statement.Width << ", " << AddrExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
+					output << "EmitMemoryWrite(ctx, " << Statement.GetInterface()->GetID() << ", " << (uint32_t)Statement.Width << ", " << AddrExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
 
 					return true;
 				}
@@ -1145,29 +1166,9 @@ namespace gensim
 
 				bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
-					const SSARegisterStatement &Statement = static_cast<const SSARegisterStatement &>(this->Statement);
+					return EmitDynamicCode(output, end_label, fully_fixed);
 
-					const auto &Arch = Statement.Parent->Parent->GetAction()->Context.Arch;
-
-					SSANodeWalker *ValueExpr = nullptr;
-					if (Statement.Value()) ValueExpr = Factory.GetOrCreate(Statement.Value());
-
-					SSANodeWalker *RegnumExpr = nullptr;
-					if (Statement.RegNum()) RegnumExpr = Factory.GetOrCreate(Statement.RegNum());
-
-					assert(!Statement.IsRead);
-
-					int offset = 0;
-
-					IRType value_type;
-					if(Statement.IsBanked) {
-						value_type = Arch.GetRegFile().GetBankByIdx(Statement.Bank).GetRegisterIRType();
-					} else {
-						value_type = Arch.GetRegFile().GetSlotByIdx(Statement.Bank).GetIRType();
-					}
-					output << "EmitRegisterWrite(ctx, (void*)&__irBuilder, " << value_type.SizeInBytes() << ", " << offset << ", " << ValueExpr->GetDynamicValue() << ");";
-
-					return true;
+//					return true;
 				}
 
 				bool EmitDynamicCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
@@ -1189,13 +1190,18 @@ namespace gensim
 							auto descriptor = Arch.GetRegFile().GetBankByIdx(Statement.Bank);
 							value_type = descriptor.GetRegisterIRType();
 							offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetElementStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
+
+							output << "EmitTraceBankedRegisterWrite(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
+
 						} else {
 							auto descriptor = Arch.GetRegFile().GetSlotByIdx(Statement.Bank);
 							value_type = descriptor.GetIRType();
 							offset = std::to_string(descriptor.GetRegFileOffset());
+
+							output << "EmitTraceRegisterWrite(ctx, " << (uint32_t)Statement.Bank << ", " << ValueExpr->GetDynamicValue() << ");";
 						}
 
-						output << "EmitRegisterWrite(ctx, (void*)&__irBuilder, " << value_type.SizeInBytes() << ", " << offset << ", " << ValueExpr->GetDynamicValue() << ");";
+						output << "EmitRegisterWrite(ctx, " << value_type.SizeInBytes() << ", " << offset << ", " << ValueExpr->GetDynamicValue() << ");";
 
 					} else {
 						int size = Statement.GetType().SizeInBytes();
@@ -1214,7 +1220,7 @@ namespace gensim
 							offset = std::to_string(descriptor.GetRegFileOffset());
 						}
 
-						output << "llvm::Value *" << Statement.GetName() << " = EmitRegisterRead(ctx, (void*)&__irBuilder, " << size << ", " << offset << ");";
+						output << "llvm::Value *" << Statement.GetName() << " = EmitRegisterRead(ctx, " << size << ", " << offset << ");";
 					}
 
 					return true;
@@ -1438,7 +1444,7 @@ namespace gensim
 					if(Statement.HasValue()) return_type = Statement.GetType().GetLLVMType();
 
 					//Build a parameter type list to get the correct function type
-					output << "llvm::Type *params[] { ctx.GetThreadPtr(__irBuilder)->getType() ";
+					output << "llvm::Type *params[] { ctx.GetThreadPtr()->getType() ";
 					for(auto param : Statement.Target()->GetPrototype().GetIRSignature().GetParams()) {
 						assert(!param.GetType().Reference && "Cannot make function calls with references yet!");
 						output << ", " << param.GetType().GetLLVMType();
@@ -1451,7 +1457,7 @@ namespace gensim
 					output << "llvm::Value *llvm_fn_ptr = module->getOrInsertFunction(\"txln_shunt_" << Statement.Target()->GetPrototype().GetIRSignature().GetName() << "\", callee_type);";
 
 					//build the args list
-					output << "llvm::Value *args[] { ctx.GetThreadPtr(__irBuilder) ";
+					output << "llvm::Value *args[] { ctx.GetThreadPtr() ";
 					for(unsigned i = 0; i < Statement.ArgCount(); ++i) {
 						auto param = Statement.Arg(i);
 						output << ", " << Factory.GetOrCreate(dynamic_cast<const SSAStatement*>(param))->GetDynamicValue();

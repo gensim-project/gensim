@@ -15,12 +15,15 @@
 #include "gensim_decode.h"
 
 #include <string>
+#include <map>
+#include <list>
 
 namespace llvm
 {
 	class Value;
 	class Module;
 	class Function;
+	class BasicBlock;
 }
 
 namespace archsim
@@ -82,21 +85,33 @@ namespace gensim
 	public:
 		virtual bool TranslateInstruction(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::core::thread::ThreadInstance *thread, gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) = 0;
 
-		llvm::Value *EmitRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, void *irbuilder, int size, int offset);
-		bool EmitRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, void *irbuilder, int size, int offset, llvm::Value*);
+		llvm::Value *EmitRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset);
+		bool EmitRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset, llvm::Value*);
 
-		llvm::Value *EmitMemoryRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, void *irbuilder, int size, llvm::Value *address);
-		void EmitMemoryWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, void *irbuilder, int size, llvm::Value *address, llvm::Value *value);
+		void EmitTraceRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *value);
+		void EmitTraceBankedRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *regnum, llvm::Value *value);
+
+		llvm::Value *EmitMemoryRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value *address);
+		void EmitMemoryWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value *address, llvm::Value *value);
+
+		void EmitTakeException(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, llvm::Value *category, llvm::Value *data);
+
+		void EmitAdcWithFlags(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value *lhs, llvm::Value *rhs, llvm::Value *carry);
+		void EmitSbcWithFlags(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value *lhs, llvm::Value *rhs, llvm::Value *carry);
+
+	protected:
+		void QueueDynamicBlock(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, std::map<uint16_t, llvm::BasicBlock*> &dynamic_blocks, std::list<uint16_t> &dynamic_block_queue, uint16_t queued_block);
 
 	private:
-		llvm::Value *GetRegisterPtr(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, void *irbuilder, int size, int offset);
+		llvm::Value *GetRegisterPtr(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset);
 		llvm::Value *GetRegfilePtr(archsim::translate::tx_llvm::LLVMTranslationContext& ctx);
+		llvm::Value *GetThreadPtr(archsim::translate::tx_llvm::LLVMTranslationContext& ctx);
 	};
 
 	class BaseIJTranslate : public BaseTranslate
 	{
 	public:
-		BaseIJTranslate(const gensim::Processor& cpu) : BaseTranslate(cpu) { }
+		BaseIJTranslate(const gensim::Processor& cpu);
 
 		virtual bool TranslateInstruction(archsim::ij::IJTranslationContext& ctx, const gensim::BaseDecode& insn, uint32_t offset, bool trace) = 0;
 	};

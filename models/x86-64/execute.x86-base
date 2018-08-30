@@ -315,6 +315,7 @@ execute(inc) {
 
 execute(jcond) {
 	uint8 cond = check_condition(inst.condition);
+
 	if(cond) {
 		// not equal
 		write_pc(read_operand(inst.op0));

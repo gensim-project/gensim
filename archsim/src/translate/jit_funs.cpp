@@ -172,7 +172,7 @@ extern "C" {
 		pubsub->Publish(PubSubType::BlockExecute, &data);
 	}
 
-	uint32_t cpuTakeException(archsim::core::thread::ThreadInstance *thread, uint32_t category, uint32_t data)
+	uint32_t cpuTakeException(archsim::core::thread::ThreadInstance *thread, uint64_t category, uint64_t data)
 	{
 		LC_DEBUG2(LogJitFuns) << "CPU Take Exception";
 		auto result = thread->TakeException(category, data);
@@ -400,7 +400,7 @@ extern "C" {
 		assert(false && "string tracing not currently supported");
 	}
 
-	void cpuTraceInstruction(archsim::core::thread::ThreadInstance *cpu, uint32_t pc, uint32_t ir, uint8_t isa_mode, uint8_t irq_mode, uint8_t exec)
+	void cpuTraceInstruction(archsim::core::thread::ThreadInstance *cpu, uint64_t pc, uint32_t ir, uint8_t isa_mode, uint8_t irq_mode, uint8_t exec)
 	{
 		cpu->GetTraceSource()->Trace_Insn(pc, ir, 1, isa_mode, irq_mode, exec);
 	}
