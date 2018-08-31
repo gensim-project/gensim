@@ -53,6 +53,7 @@ namespace archsim
 					llvm::Function *cpuTraceMemWrite8, *cpuTraceMemWrite16, *cpuTraceMemWrite32, *cpuTraceMemWrite64;
 
 					llvm::Function *cpuTraceBankedRegisterWrite, *cpuTraceRegisterWrite;
+					llvm::Function *cpuTraceBankedRegisterRead, *cpuTraceRegisterRead;
 
 					llvm::Function *cpuTraceInsnEnd;
 
