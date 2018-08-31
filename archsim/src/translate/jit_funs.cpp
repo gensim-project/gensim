@@ -303,9 +303,9 @@ extern "C" {
 		}
 		return 0;
 	}
-	uint32_t cpuWrite64(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint32_t data)
+	uint32_t cpuWrite64(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint64_t data)
 	{
-		LC_DEBUG2(LogJitFuns) << "cpuWrite64 " << interface_id << " " << archsim::Address(address) << " " << (uint32_t)data;
+		LC_DEBUG2(LogJitFuns) << "cpuWrite64 " << interface_id << " " << archsim::Address(address) << " " << (uint64_t)data;
 		auto &interface = cpu->GetMemoryInterface(interface_id);
 		auto rval = interface.Write64(archsim::Address(address), data);
 		if(rval != archsim::MemoryResult::OK) {
@@ -412,9 +412,9 @@ extern "C" {
 
 	void cpuTraceRegWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t reg, uint64_t value)
 	{
-//		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
+		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
 		// TODO: unify reg descriptor IDs in gensim and archsim
-		switch(4) {
+		switch(8) {
 			case 1:
 			case 2:
 			case 4:
@@ -431,9 +431,9 @@ extern "C" {
 
 	void cpuTraceRegRead(archsim::core::thread::ThreadInstance *cpu, uint8_t reg, uint64_t value)
 	{
-		//		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
+		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
 		// TODO: unify reg descriptor IDs in gensim and archsim
-		switch(4) {
+		switch(8) {
 			case 1:
 			case 2:
 			case 4:
@@ -449,9 +449,9 @@ extern "C" {
 
 	void cpuTraceRegBankWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint64_t value)
 	{
-		//		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
-		// TODO: unify reg descriptor IDs in gensim and archsim
-		switch(4) {
+		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
+//		 TODO: unify reg descriptor IDs in gensim and archsim
+		switch(8) {
 			case 1:
 			case 2:
 			case 4:
@@ -461,15 +461,16 @@ extern "C" {
 				cpu->GetTraceSource()->Trace_Bank_Reg_Write(true, bank, reg, (uint64_t)value);
 				break;
 			default:
-				assert(false);
+				cpu->GetTraceSource()->Trace_Bank_Reg_Write(true, bank, reg, (char*)&value, descriptor.GetEntrySize());
+				break;
 		}
 	}
 
 	void cpuTraceRegBankRead(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint64_t value)
 	{
-		//		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
+		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
 		// TODO: unify reg descriptor IDs in gensim and archsim
-		switch(4) {
+		switch(8) {
 			case 1:
 			case 2:
 			case 4:
@@ -479,7 +480,8 @@ extern "C" {
 				cpu->GetTraceSource()->Trace_Bank_Reg_Read(true, bank, reg, (uint64_t)value);
 				break;
 			default:
-				assert(false);
+				cpu->GetTraceSource()->Trace_Bank_Reg_Read(true, bank, reg, (char*)&value, descriptor.GetEntrySize());
+				break;
 		}
 	}
 

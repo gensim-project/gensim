@@ -75,7 +75,7 @@ extern "C" {
 	uint32_t cpuWrite8(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint8_t data);
 	uint32_t cpuWrite16(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint16_t data);
 	uint32_t cpuWrite32(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint32_t data);
-	uint32_t cpuWrite64(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint32_t data);
+	uint32_t cpuWrite64(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint64_t data);
 
 	void cpuEnterKernelMode(gensim::Processor *cpu);
 	void cpuEnterUserMode(gensim::Processor *cpu);

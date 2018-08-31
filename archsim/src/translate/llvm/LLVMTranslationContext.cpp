@@ -60,11 +60,9 @@ llvm::Value* LLVMTranslationContext::GetThreadPtr()
 	return Builder.CreateLoad(Builder.CreatePointerCast(ptr, Types.i8Ptr->getPointerTo(0)));
 }
 
-llvm::Value* LLVMTranslationContext::AllocateRegister(int width)
+llvm::Value* LLVMTranslationContext::AllocateRegister(llvm::Type *type)
 {
-	if(free_registers_[width].empty()) {
-		auto type = llvm::IntegerType::getIntNTy(LLVMCtx, width*8);
-
+	if(free_registers_[type].empty()) {
 		auto &block = Builder.GetInsertBlock()->getParent()->getEntryBlock();
 
 		if(block.empty()) {
@@ -73,13 +71,13 @@ llvm::Value* LLVMTranslationContext::AllocateRegister(int width)
 			return new llvm::AllocaInst(type, 0, nullptr, "", &*block.begin());
 		}
 	} else {
-		auto reg = free_registers_[width].back();
-		free_registers_[width].pop_back();
+		auto reg = free_registers_[type].back();
+		free_registers_[type].pop_back();
 		return reg;
 	}
 }
 
 void LLVMTranslationContext::FreeRegister(int width, llvm::Value* v)
 {
-	free_registers_[width].push_back(v);
+//	free_registers_[width].push_back(v);
 }
