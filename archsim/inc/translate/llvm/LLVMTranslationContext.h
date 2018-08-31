@@ -70,7 +70,7 @@ namespace archsim
 				llvm::Value *GetThreadPtr();
 				llvm::LLVMContext &LLVMCtx;
 
-				llvm::Value *AllocateRegister(int width_in_bytes);
+				llvm::Value *AllocateRegister(llvm::Type *type);
 				void FreeRegister(int width_in_bytes, llvm::Value *v);
 
 				llvm::IRBuilder<> &Builder;
@@ -83,7 +83,7 @@ namespace archsim
 			private:
 				archsim::core::thread::ThreadInstance *thread_;
 
-				std::unordered_map<int, std::list<llvm::Value*>> free_registers_;
+				std::unordered_map<llvm::Type *, std::list<llvm::Value*>> free_registers_;
 			};
 		}
 	}

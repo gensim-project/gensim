@@ -220,17 +220,28 @@ execute(div) {
 	do_div(width, divisor);
 }
 
-helper void do_div(uint8 width, uint64 divisor) noinline
+helper void do_div(uint8 width, uint64 divisor) 
 {
 	// calculate dividend
 	uint128 dividend = get_cd_pair(width*2);
+	uint128 quotient = 0;
+	uint128 remainder = 0;
+	
+	switch(width)
+	{
+		case 8: { quotient = (uint8)dividend / (uint8)divisor; remainder = (uint8)dividend % (uint8)divisor; break; }
+		case 16: { quotient = (uint16)dividend / (uint16)divisor; remainder = (uint16)dividend % (uint16)divisor; break; }
+		case 32: { quotient = (uint32)dividend / (uint32)divisor; remainder = (uint32)dividend % (uint32)divisor; break; }
+		case 64: { quotient = (uint64)dividend / (uint64)divisor; remainder = (uint64)dividend % (uint64)divisor; break; }
+		default: { quotient = dividend / divisor; remainder = dividend % divisor; break; }
+	}
 	
 	if(width == 8) {
-		write_register(AL, dividend / divisor);
-		write_register(AH, dividend % divisor);
+		write_register(AL, quotient);
+		write_register(AH, remainder);
 	} else {
-		write_reg(0, width, dividend / divisor);
-		write_reg(2, width, dividend % divisor);
+		write_reg(0, width, quotient);
+		write_reg(2, width, remainder);
 	}
 	return;
 }
@@ -241,7 +252,7 @@ execute(idiv) {
 	do_idiv(width, divisor);
 }
 
-helper void do_idiv(uint8 width, sint64 divisor) noinline
+helper void do_idiv(uint8 width, sint64 divisor)
 {
 	// calculate dividend
 	sint128 dividend = sign_extend128(get_cd_pair(width*2), width*2);

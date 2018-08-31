@@ -150,7 +150,10 @@ namespace gensim
 			cstream << "llvm_registers.resize(" << i << ", NULL);";
 
 			for(auto sym : action.Symbols()) {
-				cstream << "llvm_registers[__idx_" << sym->GetName() << "] = ctx.AllocateRegister(" << sym->GetType().SizeInBytes() << ");";
+				if(sym->GetType().IsStruct()) {
+					continue;
+				}
+				cstream << "llvm_registers[__idx_" << sym->GetName() << "] = ctx.AllocateRegister(" << sym->GetType().GetLLVMType() << ");";
 			}
 
 			// loop through each block and if it is fixed or sometimes fixed, emit code for it

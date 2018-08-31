@@ -14,9 +14,10 @@ llvm::Value *BaseLLVMTranslate::EmitRegisterRead(archsim::translate::tx_llvm::LL
 	return value;
 }
 
-bool BaseLLVMTranslate::EmitRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size, int offset, llvm::Value *value)
+bool BaseLLVMTranslate::EmitRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset, llvm::Value *value)
 {
-	llvm::Value *ptr = GetRegisterPtr(ctx, size, offset);
+	llvm::Value *ptr = GetRegisterPtr(ctx, size_in_bytes, offset);
+	value = ctx.Builder.CreateBitCast(value, llvm::IntegerType::getIntNTy(ctx.LLVMCtx, size_in_bytes*8));
 	ctx.Builder.CreateStore(value, ptr);
 	return true;
 }

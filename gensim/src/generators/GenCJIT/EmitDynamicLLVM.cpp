@@ -1191,7 +1191,9 @@ namespace gensim
 							value_type = descriptor.GetRegisterIRType();
 							offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetElementStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
 
-							output << "EmitTraceBankedRegisterWrite(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
+							if(descriptor.GetElementCount() == 1) {
+								output << "EmitTraceBankedRegisterWrite(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
+							}
 
 						} else {
 							auto descriptor = Arch.GetRegFile().GetSlotByIdx(Statement.Bank);
@@ -1355,11 +1357,23 @@ namespace gensim
 				{
 					const SSAVariableReadStatement &Statement = static_cast<const SSAVariableReadStatement &>(this->Statement);
 
-					// If this is a vector, we need to build the LLVM vector which represents it
 					if(Statement.GetType().VectorWidth > 1) {
-						// start with an undef vector of the correct type
-						// TODO: implement this
-						return "(assert(false), nullptr)";
+						if(Statement.IsFixed()) {
+							// we need to build the LLVM vector which represents it
+							std::string str;
+
+							// start with 'undef' value of correct type
+							str = Statement.GetType().GetLLVMType();
+							str = "llvm::UndefValue::get(" + str + ")";
+
+							// successively insert elements into vector
+							for(int i = 0; i < Statement.GetType().VectorWidth; ++i) {
+								str = "ctx.Builder.CreateInsertElement(" + str + ", llvm::ConstantInt::get(" + Statement.GetType().GetElementType().GetLLVMType() + ", 0), (uint64_t)" + std::to_string(i) + ")";
+							}
+							return str;
+						} else {
+							return Statement.GetName();
+						}
 
 					} else {
 						if (Statement.IsFixed()) return GetLLVMValue(Statement.Target()->GetType(), "CV_" + Statement.Target()->GetName());
