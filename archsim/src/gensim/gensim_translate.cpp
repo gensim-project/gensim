@@ -212,3 +212,17 @@ void BaseLLVMTranslate::EmitTraceRegisterWrite(archsim::translate::tx_llvm::LLVM
 		ctx.Builder.CreateCall(ctx.Functions.cpuTraceRegisterWrite, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i32, id), ctx.Builder.CreateZExtOrTrunc(value, ctx.Types.i64)});
 	}
 }
+
+void BaseLLVMTranslate::EmitTraceBankedRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, llvm::Value* value)
+{
+	if(archsim::options::Trace) {
+		ctx.Builder.CreateCall(ctx.Functions.cpuTraceBankedRegisterRead, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i32, id), ctx.Builder.CreateZExtOrTrunc(regnum, ctx.Types.i32), ctx.Builder.CreateZExtOrTrunc(value, ctx.Types.i64)});
+	}
+}
+
+void BaseLLVMTranslate::EmitTraceRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* value)
+{
+	if(archsim::options::Trace) {
+		ctx.Builder.CreateCall(ctx.Functions.cpuTraceRegisterRead, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i32, id), ctx.Builder.CreateZExtOrTrunc(value, ctx.Types.i64)});
+	}
+}

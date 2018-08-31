@@ -1223,6 +1223,12 @@ namespace gensim
 						}
 
 						output << "llvm::Value *" << Statement.GetName() << " = EmitRegisterRead(ctx, " << size << ", " << offset << ");";
+
+						if(Statement.IsBanked) {
+							output << "EmitTraceBankedRegisterRead(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << Statement.GetName() << ");";
+						} else {
+							output << "EmitTraceRegisterRead(ctx, " << (uint32_t)Statement.Bank << ", " << Statement.GetName() << ");";
+						}
 					}
 
 					return true;

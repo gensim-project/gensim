@@ -130,6 +130,8 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 
 	jit_symbols["cpuTraceRegBankWrite"] = (void*)cpuTraceRegBankWrite;
 	jit_symbols["cpuTraceRegWrite"] = (void*)cpuTraceRegWrite;
+	jit_symbols["cpuTraceRegBankRead"] = (void*)cpuTraceRegBankRead;
+	jit_symbols["cpuTraceRegRead"] = (void*)cpuTraceRegRead;
 
 	jit_symbols["cpuTraceInstruction"] = (void*)cpuTraceInstruction;
 	jit_symbols["cpuTraceInsnEnd"] = (void*)cpuTraceInsnEnd;
