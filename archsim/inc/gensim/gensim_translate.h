@@ -13,6 +13,7 @@
 #include "../define.h"
 #include "../abi/Address.h"
 #include "gensim_decode.h"
+#include "gensim_processor_api.h"
 
 #include <string>
 #include <map>
@@ -89,9 +90,9 @@ namespace gensim
 		bool EmitRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset, llvm::Value*);
 
 		void EmitTraceRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *value);
-		void EmitTraceBankedRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *regnum, llvm::Value *value);
+		void EmitTraceBankedRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *regnum, int size, llvm::Value *value_ptr);
 		void EmitTraceRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *value);
-		void EmitTraceBankedRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *regnum, llvm::Value *value);
+		void EmitTraceBankedRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *regnum, int size, llvm::Value *value_ptr);
 
 		llvm::Value *EmitMemoryRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value *address);
 		void EmitMemoryWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value *address, llvm::Value *value);

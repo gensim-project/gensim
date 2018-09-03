@@ -22,6 +22,8 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::IRB
 
 	Functions.ctpop_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ctpop, Types.i32);
 
+	Functions.jit_trap =  (llvm::Function*)Module->getOrInsertFunction("cpuTrap", Types.vtype, Types.i8Ptr);
+
 	Functions.blkRead8 =  (llvm::Function*)Module->getOrInsertFunction("blkRead8", Types.i8, Types.i8Ptr, Types.i64, Types.i32);
 	Functions.blkRead16 = (llvm::Function*)Module->getOrInsertFunction("blkRead16", Types.i16, Types.i8Ptr, Types.i64, Types.i32);
 	Functions.blkRead32 = (llvm::Function*)Module->getOrInsertFunction("blkRead32", Types.i32, Types.i8Ptr, Types.i64, Types.i32);
@@ -42,9 +44,9 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::IRB
 	Functions.cpuTraceMemRead32 = (llvm::Function*)Module->getOrInsertFunction("cpuTraceOnlyMemRead32", Types.vtype, Types.i8Ptr, Types.i64, Types.i32);
 	Functions.cpuTraceMemRead64 = (llvm::Function*)Module->getOrInsertFunction("cpuTraceOnlyMemRead64", Types.vtype, Types.i8Ptr, Types.i64, Types.i64);
 
-	Functions.cpuTraceBankedRegisterWrite = (llvm::Function*)Module->getOrInsertFunction("cpuTraceRegBankWrite", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i64);
+	Functions.cpuTraceBankedRegisterWrite = (llvm::Function*)Module->getOrInsertFunction("cpuTraceRegBankWrite", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i32, Types.i8Ptr);
 	Functions.cpuTraceRegisterWrite = (llvm::Function*)Module->getOrInsertFunction("cpuTraceRegWrite", Types.vtype, Types.i8Ptr, Types.i32, Types.i64);
-	Functions.cpuTraceBankedRegisterRead = (llvm::Function*)Module->getOrInsertFunction("cpuTraceRegBankRead", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i64);
+	Functions.cpuTraceBankedRegisterRead = (llvm::Function*)Module->getOrInsertFunction("cpuTraceRegBankRead", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i32, Types.i8Ptr);
 	Functions.cpuTraceRegisterRead = (llvm::Function*)Module->getOrInsertFunction("cpuTraceRegRead", Types.vtype, Types.i8Ptr, Types.i32, Types.i64);
 
 	Functions.TakeException = (llvm::Function*)Module->getOrInsertFunction("cpuTakeException", Types.vtype, Types.i8Ptr, Types.i32, Types.i32);

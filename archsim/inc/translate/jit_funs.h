@@ -55,6 +55,7 @@ extern "C" {
 	void cpuPendInterrupt(archsim::core::thread::ThreadInstance *cpu);
 
 	uint32_t cpuTranslate(gensim::Processor *cpu, uint32_t virt_addr, uint32_t *phys_addr);
+	void cpuTrap(archsim::core::thread::ThreadInstance *cpu);
 
 	void blkProfile(gensim::Processor *cpu, void *region, uint32_t address);
 
@@ -91,10 +92,10 @@ extern "C" {
 
 	void cpuTraceRegRead(archsim::core::thread::ThreadInstance *cpu, uint8_t reg, uint64_t value);
 
-	void cpuTraceRegBankWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint64_t value);
+	void cpuTraceRegBankWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint8_t *value_ptr);
 	void cpuTraceRegBank0Write(archsim::core::thread::ThreadInstance *cpu, uint32_t reg, uint64_t value);
 
-	void cpuTraceRegBankRead(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint64_t value);
+	void cpuTraceRegBankRead(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint8_t *value_ptr);
 	void cpuTraceRegBank0Read(archsim::core::thread::ThreadInstance *cpu, uint32_t reg, uint64_t value);
 
 	char cpuTraceMemRead8(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint32_t* value);

@@ -126,18 +126,23 @@ void BaseLLVMTranslate::EmitAdcWithFlags(archsim::translate::tx_llvm::LLVMTransl
 	result = ctx.Builder.CreateAdd(lhs, result);
 
 	// calculate flags
-	llvm::Value *Z = ctx.Builder.CreateICmpEQ(result, llvm::ConstantInt::get(itype, 0));
+	llvm::Value *Z = ctx.Builder.CreateICmpEQ(ctx.Builder.CreateTrunc(result, base_itype), llvm::ConstantInt::get(base_itype, 0));
 	Z = ctx.Builder.CreateZExt(Z, ctx.Types.i8);
 
 	llvm::Value *N = ctx.Builder.CreateICmpSLT(result, llvm::ConstantInt::get(itype, 0));
 	N = ctx.Builder.CreateZExt(Z, ctx.Types.i8);
 
-	// todo: C
 	llvm::Value *C = ctx.Builder.CreateICmpUGT(result, llvm::ConstantInt::get(itype, -1ull));
 	C = ctx.Builder.CreateZExt(C, ctx.Types.i8);
 
-	// todo: V
-	llvm::Value *V = ctx.Builder.CreateICmpEQ(result, llvm::ConstantInt::get(itype, 0));
+	llvm::Value *lhs_sign = ctx.Builder.CreateAnd(lhs, 1 << (bits-1));
+	llvm::Value *rhs_sign = ctx.Builder.CreateAnd(rhs, 1 << (bits-1));
+	llvm::Value *result_sign = ctx.Builder.CreateAnd(result, 1 << (bits-1));
+
+	llvm::Value *V_lhs = ctx.Builder.CreateICmpEQ(lhs_sign, rhs_sign);
+	llvm::Value *V_rhs = ctx.Builder.CreateICmpNE(result_sign, rhs_sign);
+
+	llvm::Value *V = ctx.Builder.CreateAnd(V_lhs, V_rhs);
 	V = ctx.Builder.CreateZExt(V, ctx.Types.i8);
 
 	auto C_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C");
@@ -153,7 +158,8 @@ void BaseLLVMTranslate::EmitAdcWithFlags(archsim::translate::tx_llvm::LLVMTransl
 
 void BaseLLVMTranslate::EmitSbcWithFlags(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value* lhs, llvm::Value* rhs, llvm::Value* carry)
 {
-	llvm::IntegerType *itype = llvm::IntegerType::getIntNTy(ctx.LLVMCtx, bits);
+	llvm::IntegerType *base_itype = llvm::IntegerType::getIntNTy(ctx.LLVMCtx, bits);
+	llvm::IntegerType *itype = llvm::IntegerType::getIntNTy(ctx.LLVMCtx, bits*2);
 
 	// cast each value to correct bitwidth
 	lhs = ctx.Builder.CreateZExtOrTrunc(lhs, itype);
@@ -171,13 +177,19 @@ void BaseLLVMTranslate::EmitSbcWithFlags(archsim::translate::tx_llvm::LLVMTransl
 	llvm::Value *N = ctx.Builder.CreateICmpSLT(result, llvm::ConstantInt::get(itype, 0));
 	N = ctx.Builder.CreateZExt(Z, ctx.Types.i8);
 
-	// todo: C
-	llvm::Value *C = ctx.Builder.CreateICmpEQ(result, llvm::ConstantInt::get(itype, 0));
+	llvm::Value *C = ctx.Builder.CreateICmpUGT(result, ctx.Builder.CreateZExt(llvm::ConstantInt::get(base_itype, -1ull), itype));
 	C = ctx.Builder.CreateZExt(C, ctx.Types.i8);
 
-	// todo: V
-	llvm::Value *V = ctx.Builder.CreateICmpEQ(result, llvm::ConstantInt::get(itype, 0));
+	llvm::Value *lhs_sign = ctx.Builder.CreateAnd(lhs, 1 << (bits-1));
+	llvm::Value *rhs_sign = ctx.Builder.CreateAnd(rhs, 1 << (bits-1));
+	llvm::Value *result_sign = ctx.Builder.CreateAnd(result, 1 << (bits-1));
+
+	llvm::Value *V_lhs = ctx.Builder.CreateICmpEQ(lhs_sign, rhs_sign);
+	llvm::Value *V_rhs = ctx.Builder.CreateICmpNE(result_sign, rhs_sign);
+
+	llvm::Value *V = ctx.Builder.CreateICmpEQ(V_lhs, V_rhs);
 	V = ctx.Builder.CreateZExt(V, ctx.Types.i8);
+
 
 	auto C_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C");
 	auto V_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V");
@@ -199,10 +211,10 @@ void BaseLLVMTranslate::QueueDynamicBlock(archsim::translate::tx_llvm::LLVMTrans
 	dynamic_block_queue.push_back(queued_block);
 }
 
-void BaseLLVMTranslate::EmitTraceBankedRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, llvm::Value* value)
+void BaseLLVMTranslate::EmitTraceBankedRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, int size, llvm::Value* value_ptr)
 {
 	if(archsim::options::Trace) {
-		ctx.Builder.CreateCall(ctx.Functions.cpuTraceBankedRegisterWrite, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i32, id), ctx.Builder.CreateZExtOrTrunc(regnum, ctx.Types.i32), ctx.Builder.CreateZExtOrTrunc(value, ctx.Types.i64)});
+		ctx.Builder.CreateCall(ctx.Functions.cpuTraceBankedRegisterWrite, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i32, id), ctx.Builder.CreateZExtOrTrunc(regnum, ctx.Types.i32), llvm::ConstantInt::get(ctx.Types.i32, size), value_ptr});
 	}
 }
 
@@ -213,10 +225,10 @@ void BaseLLVMTranslate::EmitTraceRegisterWrite(archsim::translate::tx_llvm::LLVM
 	}
 }
 
-void BaseLLVMTranslate::EmitTraceBankedRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, llvm::Value* value)
+void BaseLLVMTranslate::EmitTraceBankedRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, int size, llvm::Value* value_ptr)
 {
 	if(archsim::options::Trace) {
-		ctx.Builder.CreateCall(ctx.Functions.cpuTraceBankedRegisterRead, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i32, id), ctx.Builder.CreateZExtOrTrunc(regnum, ctx.Types.i32), ctx.Builder.CreateZExtOrTrunc(value, ctx.Types.i64)});
+		ctx.Builder.CreateCall(ctx.Functions.cpuTraceBankedRegisterRead, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i32, id), ctx.Builder.CreateZExtOrTrunc(regnum, ctx.Types.i32), llvm::ConstantInt::get(ctx.Types.i32, size), value_ptr});
 	}
 }
 
