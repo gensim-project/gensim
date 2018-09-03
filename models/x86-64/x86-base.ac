@@ -189,30 +189,46 @@ AC_ISA(x86)
 		
 		rep_movsb.set_decoder();
 		rep_movsb.set_behaviour(rep_movsb);
+		rep_movsb.set_end_of_block();
+		rep_movsb.set_variable_jump();
 		
 		rdtsc.set_decoder();
 		rdtsc.set_behaviour(rdtsc);
 		
 		repe_cmpsb.set_decoder();
 		repe_cmpsb.set_behaviour(repe_cmpsb);
+		repe_cmpsb.set_end_of_block();
+		repe_cmpsb.set_variable_jump();
 		
 		rep_movsd.set_decoder();
 		rep_movsd.set_behaviour(rep_movsd);
+		rep_movsd.set_end_of_block();
+		rep_movsd.set_variable_jump();
 		
 		rep_movsq.set_decoder();
 		rep_movsq.set_behaviour(rep_movsq);
+		rep_movsq.set_end_of_block();
+		rep_movsq.set_variable_jump();
 		
 		rep_stosb.set_decoder();
 		rep_stosb.set_behaviour(rep_stosb);
+		rep_stosb.set_end_of_block();
+		rep_stosb.set_variable_jump();
 		
 		rep_stosd.set_decoder();
 		rep_stosd.set_behaviour(rep_stosd);
+		rep_stosd.set_end_of_block();
+		rep_stosd.set_variable_jump();
 		
 		rep_stosq.set_decoder();
 		rep_stosq.set_behaviour(rep_stosq);
+		rep_stosq.set_end_of_block();
+		rep_stosq.set_variable_jump();
 		
 		repne_scasb.set_decoder();
 		repne_scasb.set_behaviour(repne_scasb);
+		repne_scasb.set_end_of_block();
+		repne_scasb.set_variable_jump();
 		
 		ret.set_decoder();
 		ret.set_behaviour(ret);

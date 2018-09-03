@@ -218,6 +218,11 @@ extern "C" {
 //		return ((archsim::abi::devices::MMU *)cpu->peripherals.GetDeviceByName("mmu"))->Translate(cpu, virt_addr, *phys_addr, MMUACCESSINFO(cpu->in_kernel_mode(), 0, 0));
 	}
 
+	void cpuTrap(archsim::core::thread::ThreadInstance *thread)
+	{
+		throw std::logic_error("Trap.");
+	}
+
 	uint32_t cpuRead8(gensim::Processor *cpu, uint64_t address, uint8_t& data)
 	{
 		UNIMPLEMENTED;
@@ -447,42 +452,16 @@ extern "C" {
 		}
 	}
 
-	void cpuTraceRegBankWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint64_t value)
+	void cpuTraceRegBankWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint8_t *value_ptr)
 	{
 		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
-//		 TODO: unify reg descriptor IDs in gensim and archsim
-		switch(8) {
-			case 1:
-			case 2:
-			case 4:
-				cpu->GetTraceSource()->Trace_Bank_Reg_Write(true, bank, reg, (uint32_t)value);
-				break;
-			case 8:
-				cpu->GetTraceSource()->Trace_Bank_Reg_Write(true, bank, reg, (uint64_t)value);
-				break;
-			default:
-				cpu->GetTraceSource()->Trace_Bank_Reg_Write(true, bank, reg, (char*)&value, descriptor.GetEntrySize());
-				break;
-		}
+		cpu->GetTraceSource()->Trace_Bank_Reg_Write(true, bank, reg, (char*)value_ptr, size);
 	}
 
-	void cpuTraceRegBankRead(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint64_t value)
+	void cpuTraceRegBankRead(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint8_t *value_ptr)
 	{
 		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
-		// TODO: unify reg descriptor IDs in gensim and archsim
-		switch(8) {
-			case 1:
-			case 2:
-			case 4:
-				cpu->GetTraceSource()->Trace_Bank_Reg_Read(true, bank, reg, (uint32_t)value);
-				break;
-			case 8:
-				cpu->GetTraceSource()->Trace_Bank_Reg_Read(true, bank, reg, (uint64_t)value);
-				break;
-			default:
-				cpu->GetTraceSource()->Trace_Bank_Reg_Read(true, bank, reg, (char*)&value, descriptor.GetEntrySize());
-				break;
-		}
+		cpu->GetTraceSource()->Trace_Bank_Reg_Read(true, bank, reg, (char*)value_ptr, size);
 	}
 
 	void cpuTraceOnlyMemRead8(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint32_t value)

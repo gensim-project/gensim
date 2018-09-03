@@ -11,11 +11,14 @@
 #include "util/LogContext.h"
 #include "gensim/gensim_translate.h"
 #include "translate/llvm/LLVMTranslationContext.h"
+#include "translate/llvm/LLVMOptimiser.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/IR/PassManager.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/JITSymbol.h>
@@ -66,6 +69,15 @@ ExecutionEngineThreadContext* BlockLLVMExecutionEngine::GetNewContext(thread::Th
 	return new ExecutionEngineThreadContext(this, thread);
 }
 
+static unsigned __int128 uremi128(unsigned __int128 a, unsigned __int128 b)
+{
+	return a % b;
+}
+static unsigned __int128 udivi128(unsigned __int128 a, unsigned __int128 b)
+{
+	return a / b;
+}
+
 bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, archsim::Address block_pc, bool support_chaining, bool support_profiling)
 {
 	checkCodeSize();
@@ -89,15 +101,24 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	std::string fn_name = "fn_" + std::to_string(block_pc.Get());
 	auto function = translateToFunction(thread, physaddr, fn_name, module);
 
-
 	if(archsim::options::Debug) {
 		std::ofstream str(fn_name + ".ll");
 		llvm::raw_os_ostream llvm_str(str);
 		module->print(llvm_str, nullptr);
+
+		llvm::legacy::FunctionPassManager fpm(module.get());
+		fpm.add(llvm::createVerifierPass(true));
+		fpm.doInitialization();
+		fpm.run(*function);
+
 	}
+
+	archsim::translate::translate_llvm::LLVMOptimiser opt;
+	opt.Optimise(module.get(), GetNativeMachine()->createDataLayout());
 
 	std::map<std::string, void *> jit_symbols;
 
+	jit_symbols["cpuTrap"] = (void*)cpuTrap;
 	jit_symbols["cpuTakeException"] = (void*)cpuTakeException;
 	jit_symbols["cpuReadDevice"] = (void*)devReadDevice;
 	jit_symbols["cpuWriteDevice"] = (void*)devWriteDevice;
@@ -135,6 +156,9 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 
 	jit_symbols["cpuTraceInstruction"] = (void*)cpuTraceInstruction;
 	jit_symbols["cpuTraceInsnEnd"] = (void*)cpuTraceInsnEnd;
+
+	jit_symbols["__umodti3"] = (void*)uremi128;
+	jit_symbols["__udivti3"] = (void*)udivi128;
 
 	auto resolver = llvm::orc::createLambdaResolver(
 	[&](const std::string &name) {

@@ -29,7 +29,17 @@ namespace gensim
 				std::ostringstream constant_str;
 
 				if(type.VectorWidth > 1) {
-					constant_str << "nullptr";
+					// 'val' refers to an archsim vector
+					constant_str << "llvm::ConstantDataVector::get(ctx.LLVMCtx, std::vector< " << type.GetElementType().GetCType() << ">({";
+
+					for(int i = 0; i < type.VectorWidth; ++i) {
+						if(i) {
+							constant_str << ", ";
+						}
+						constant_str << val << ".ExtractElement(" << i << ")";
+					}
+
+					constant_str << "}))";
 				} else {
 					switch (type.BaseType.PlainOldDataType) {
 						case IRPlainOldDataType::INT1:
@@ -54,6 +64,44 @@ namespace gensim
 				}
 
 				return constant_str.str();
+			}
+
+			std::string GetConstantBits(const IRConstant &constant)
+			{
+				GASSERT(constant.Type() != IRConstant::Type_Vector);
+
+				switch(constant.Type()) {
+					case IRConstant::Type_Integer:
+						return std::to_string(constant.Int()) + "ULL";
+					case IRConstant::Type_Float_Single:
+						return "bitcast_u32_float(" + std::to_string(constant.FltBits()) + "ULL)";
+					case IRConstant::Type_Float_Double:
+						return "bitcast_u64_double(" + std::to_string(constant.DblBits()) + "ULL)";
+					default:
+						UNIMPLEMENTED;
+				}
+			}
+
+			std::string GetLLVMValue(const IRType &type, const IRConstant &constant)
+			{
+				if(type.VectorWidth > 1) {
+					std::stringstream str;
+					str << "llvm::ConstantDataVector::get(ctx.LLVMCtx, {";
+					for(int i = 0; i < constant.VSize(); ++i) {
+						if(i > 0) {
+							str << ", ";
+						}
+						str << GetConstantBits(constant.VGet(i));
+					}
+					str << "})";
+					return str.str();
+				} else {
+					if(type.IsFloating()) {
+						return "llvm::ConstantFP::get(" + type.GetLLVMType() + ", " + GetConstantBits(constant) + ")";
+					} else {
+						return "llvm::ConstantInt::get(" + type.GetLLVMType() + ", " + GetConstantBits(constant) + ")";
+					}
+				}
 			}
 
 			void CreateBlock(const SSABlock &block, util::cppformatstream &output)
@@ -360,7 +408,13 @@ namespace gensim
 						}
 
 						uncast << "(" << LHSNode.GetDynamicValue() << "," << RHSNode.GetDynamicValue() << ")";
-						output << "llvm::Value * " << Statement.GetName() << " = __irBuilder.CreateIntCast(" << uncast.str() << ", ctx.Types.i8, false);";
+
+						// if we had a vector, then we need to 'sign extend' the result. otherwise, zero extend
+						std::string signeD = Statement.GetType().VectorWidth > 1 ? "true" : "false";
+
+						output << "llvm::Value * " << Statement.GetName() << " = __irBuilder.CreateIntCast(" << uncast.str() << ", " << Statement.GetType().GetLLVMType() << ", " << signeD << ");";
+
+
 					}
 
 					if(INSTRUMENT_FLOATS && Statement.GetType().IsFloating() && Statement.GetType().VectorWidth == 1)
@@ -564,20 +618,7 @@ namespace gensim
 				std::string GetDynamicValue() const
 				{
 					const SSAConstantStatement &Statement = static_cast<const SSAConstantStatement &>(this->Statement);
-					if(Statement.GetType().IsFloating()) {
-						auto constant = Statement.Constant;
-						std::stringstream s;
-						if(constant.Type() == IRConstant::Type_Float_Single) {
-							s << constant.Flt();
-						} else if(constant.Type() == IRConstant::Type_Float_Double) {
-							s << constant.Dbl();
-						}
-						return GetLLVMValue(Statement.GetType(), s.str());
-					}
-
-					std::stringstream s;
-					s << Statement.Constant.Int() << "ULL";
-					return GetLLVMValue(Statement.GetType(), s.str());
+					return GetLLVMValue(Statement.GetType(), Statement.Constant);
 				}
 
 				std::string GetFixedValue() const
@@ -762,7 +803,7 @@ namespace gensim
 							output << "__irBuilder.CreateCall(ctx.Functions.cpu_pop_interrupt, ctx.GetThreadPtr());";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_Trap:
-							output << "__irBuilder.CreateCall(ctx.Functions.jit_trap);";
+							output << "__irBuilder.CreateCall(ctx.Functions.jit_trap, {ctx.GetThreadPtr()});";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpu_pend_irq, ctx.GetThreadPtr());";
@@ -912,14 +953,19 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
 						case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
-						case SSAIntrinsicStatement::SSAIntrinsic_MemLock:
-						case SSAIntrinsicStatement::SSAIntrinsic_MemUnlock:
 
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
 
 							output << "llvm::Value *" << Statement.GetName() << " = nullptr; assert(false);";
 							break;
+
+
+						case SSAIntrinsicStatement::SSAIntrinsic_MemLock:
+						case SSAIntrinsicStatement::SSAIntrinsic_MemUnlock:
+							// TODO: just do nothing for now
+							break;
+
 						default:
 							assert(false && "Unimplemented intrinsic");
 							break;
@@ -1189,11 +1235,13 @@ namespace gensim
 						if(Statement.IsBanked) {
 							auto descriptor = Arch.GetRegFile().GetBankByIdx(Statement.Bank);
 							value_type = descriptor.GetRegisterIRType();
-							offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetElementStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
+							offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetRegisterStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
 
-							if(descriptor.GetElementCount() == 1) {
-								output << "EmitTraceBankedRegisterWrite(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << ValueExpr->GetDynamicValue() << ");";
-							}
+							output << "if(archsim::options::Trace) {";
+							output << "llvm::Value *data_ptr = ctx.AllocateRegister(" << ValueExpr->GetDynamicValue() << "->getType());";
+							output << "ctx.Builder.CreateStore(" << ValueExpr->GetDynamicValue() << ", data_ptr);";
+							output << "EmitTraceBankedRegisterWrite(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", ctx.Builder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
+							output << "}";
 
 						} else {
 							auto descriptor = Arch.GetRegFile().GetSlotByIdx(Statement.Bank);
@@ -1209,10 +1257,11 @@ namespace gensim
 						int size = Statement.GetType().SizeInBytes();
 						std::string offset;
 
+						auto &value_type = Statement.GetType();
 						if(Statement.IsBanked) {
 							if(Statement.RegNum()->IsFixed()) {
 								auto &descriptor = Arch.GetRegFile().GetBankByIdx(Statement.Bank);
-								offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetElementStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
+								offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetRegisterStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
 							} else {
 								output << "UNIMPLEMENTED;";
 								offset = "0";
@@ -1225,10 +1274,17 @@ namespace gensim
 						output << "llvm::Value *" << Statement.GetName() << " = EmitRegisterRead(ctx, " << size << ", " << offset << ");";
 
 						if(Statement.IsBanked) {
-							output << "EmitTraceBankedRegisterRead(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << Statement.GetName() << ");";
+							output << "if(archsim::options::Trace) {";
+							output << "llvm::Value *data_ptr = ctx.AllocateRegister(" << Statement.GetName() << "->getType());";
+							output << "ctx.Builder.CreateStore(" << Statement.GetName() << ", data_ptr);";
+							output << "EmitTraceBankedRegisterRead(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", ctx.Builder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
+							output << "}";
+
 						} else {
 							output << "EmitTraceRegisterRead(ctx, " << (uint32_t)Statement.Bank << ", " << Statement.GetName() << ");";
 						}
+
+						output << Statement.GetName() << " = ctx.Builder.CreateBitCast(" << Statement.GetName() << ", " << Statement.GetType().GetLLVMType() << ");";
 					}
 
 					return true;
@@ -1266,7 +1322,7 @@ namespace gensim
 						output << "if(" << Cond->GetFixedValue() << ") " << Statement.GetName() << " = " << True->GetDynamicValue() << ";";
 						output << "else " << Statement.GetName() << " = " << False->GetDynamicValue() << ";";
 					} else {
-						output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateSelect(__irBuilder.CreateIntCast(" << Cond->GetDynamicValue() << ", ctx.Types.i1, false), " << True->GetDynamicValue() << ", " << False->GetDynamicValue() << ");";
+						output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateSelect(__irBuilder.CreateICmpNE(" << Cond->GetDynamicValue() << ", llvm::ConstantInt::get(" << Statement.Cond()->GetType().GetLLVMType() << ", 0)), " << True->GetDynamicValue() << ", " << False->GetDynamicValue() << ");";
 					}
 
 					return true;
@@ -1325,7 +1381,7 @@ namespace gensim
 						CreateBlock(*b, output);
 						std::stringstream constantStream;
 						constantStream << c->Constant.Int();
-						output << "sw->addCase((llvm::ConstantInt*)" << GetLLVMValue(c->GetType(), constantStream.str()) << ", dynamic_blocks[__block_" << b->GetName() << "]);";
+						output << "sw->addCase((llvm::ConstantInt*)" << GetLLVMValue(Statement.Expr()->GetType(), constantStream.str()) << ", dynamic_blocks[__block_" << b->GetName() << "]);";
 					}
 					output << "}";
 					output << "goto " << end_label << ";\n";
