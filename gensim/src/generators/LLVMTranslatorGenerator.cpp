@@ -104,6 +104,7 @@ namespace gensim
 				DynamicTranslationGenerator dtg (Manager);
 				dtg.EmitDynamicEmitter(str, header, *(gensim::genc::ssa::SSAFormAction*)ssa_action, "lol");
 
+				str << " return true;";
 				str << 	"}";
 
 				std::vector<std::string> headers = {"llvm_translate.h"};

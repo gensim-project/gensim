@@ -128,7 +128,7 @@ namespace archsim
 				return getChunk(address)[(address.GetPageOffset() >> kInstructionAlignment) % kBlocksPerChunk];
 			}
 
-			static const size_t kInstructionAlignment = 1;
+			static const size_t kInstructionAlignment = 0;
 			static const uint32_t kInstructionSize = 1 << kInstructionAlignment;
 
 			bool IsDirty() const

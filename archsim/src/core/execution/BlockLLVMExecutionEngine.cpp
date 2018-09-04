@@ -228,12 +228,15 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 	auto entry_block = llvm::BasicBlock::Create(llvm_ctx_, "", fn);
 	llvm::IRBuilder<> builder (entry_block);
 
+	auto pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
+
 	archsim::translate::tx_llvm::LLVMTranslationContext ctx(llvm_ctx_, builder, thread);
 
 	while(true) {
 		auto result = isa.DecodeInstr(phys_pc, &thread->GetFetchMI(), *decode);
 		if(result) {
 			// failed to decode instruction
+			LC_ERROR(LogBlockJitCpu) << "Failed to decode instruction at pc " << phys_pc;
 			return nullptr;
 		}
 
@@ -241,8 +244,19 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 			builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()), llvm::ConstantInt::get(ctx.Types.i32, decode->ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
 		}
 
+		gensim::JumpInfo ji;
+		jumpinfo->GetJumpInfo(decode, phys_pc, ji);
+
+		// if we're about to execute a jump, update the PC first
+		if(ji.IsJump) {
+			// todo: fix this for 32 bit & full system
+			translator_->EmitRegisterWrite(ctx, pc_desc.GetEntrySize(), pc_desc.GetOffset(), llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()));
+		}
+
 		// translate instruction
+
 		if(!translator_->TranslateInstruction(ctx, thread, decode, phys_pc, fn)) {
+			LC_ERROR(LogBlockJitCpu) << "Failed to translate instruction at pc " << phys_pc;
 			return nullptr;
 		}
 
@@ -251,9 +265,6 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 		}
 
 		// check for block exit
-		gensim::JumpInfo ji;
-		jumpinfo->GetJumpInfo(decode, phys_pc, ji);
-
 		if(ji.IsJump) {
 			break;
 		}

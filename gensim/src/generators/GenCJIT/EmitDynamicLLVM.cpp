@@ -701,7 +701,7 @@ namespace gensim
 					switch (Statement.Type) {
 						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc: {
 							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
-							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = " << GetLLVMValue(IRTypes::UInt64, "phys_pc") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
+							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = " << GetLLVMValue(IRTypes::UInt64, "phys_pc.Get()") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
 							break;
 						}
 						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
@@ -955,9 +955,10 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
 
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
+							output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.bswap_i32, " << arg0->GetDynamicValue() << ");";
+							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
-
-							output << "llvm::Value *" << Statement.GetName() << " = nullptr; assert(false);";
+							output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.bswap_i64, " << arg0->GetDynamicValue() << ");";
 							break;
 
 

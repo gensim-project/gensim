@@ -43,6 +43,8 @@ namespace archsim
 					llvm::Function *float_sqrt;
 
 					llvm::Function *ctpop_i32;
+					llvm::Function *bswap_i32;
+					llvm::Function *bswap_i64;
 
 					llvm::Function *blkRead8, *blkRead16, *blkRead32, *blkRead64;
 					llvm::Function *cpuWrite8, *cpuWrite16, *cpuWrite32, *cpuWrite64;
