@@ -15,12 +15,14 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::IRB
 	Types.i64 = llvm::IntegerType::getInt64Ty(ctx);
 	Types.i128 = llvm::IntegerType::getInt128Ty(ctx);
 
-	Types.f32 = nullptr;
-	Types.f64 = nullptr;
+	Types.f32 = llvm::Type::getFloatTy(ctx);
+	Types.f64 = llvm::Type::getDoubleTy(ctx);
 
 	Module = builder.GetInsertBlock()->getParent()->getParent();
 
 	Functions.ctpop_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ctpop, Types.i32);
+	Functions.bswap_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::bswap, Types.i32);
+	Functions.bswap_i64 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::bswap, Types.i64);
 
 	Functions.jit_trap =  (llvm::Function*)Module->getOrInsertFunction("cpuTrap", Types.vtype, Types.i8Ptr);
 
