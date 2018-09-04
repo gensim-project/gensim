@@ -101,6 +101,10 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	std::string fn_name = "fn_" + std::to_string(block_pc.Get());
 	auto function = translateToFunction(thread, physaddr, fn_name, module);
 
+	if(function == nullptr) {
+		return false;
+	}
+
 	if(archsim::options::Debug) {
 		std::ofstream str(fn_name + ".ll");
 		llvm::raw_os_ostream llvm_str(str);
@@ -227,14 +231,20 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 	archsim::translate::tx_llvm::LLVMTranslationContext ctx(llvm_ctx_, builder, thread);
 
 	while(true) {
-		isa.DecodeInstr(phys_pc, &thread->GetFetchMI(), *decode);
+		auto result = isa.DecodeInstr(phys_pc, &thread->GetFetchMI(), *decode);
+		if(result) {
+			// failed to decode instruction
+			return nullptr;
+		}
 
 		if(archsim::options::Trace) {
 			builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()), llvm::ConstantInt::get(ctx.Types.i32, decode->ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
 		}
 
 		// translate instruction
-		translator_->TranslateInstruction(ctx, thread, decode, phys_pc, fn);
+		if(!translator_->TranslateInstruction(ctx, thread, decode, phys_pc, fn)) {
+			return nullptr;
+		}
 
 		if(archsim::options::Trace) {
 			builder.CreateCall(ctx.Functions.cpuTraceInsnEnd, {ctx.GetThreadPtr()});

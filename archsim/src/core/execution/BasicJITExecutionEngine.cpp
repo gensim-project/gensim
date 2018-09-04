@@ -126,7 +126,10 @@ template<typename PC_t> ExecutionResult BasicJITExecutionEngine::ExecuteLoop(Exe
 
 			ExecuteInnerLoop(ctx, pc_ptr);
 		} else {
-			translateBlock(thread, Address(*pc_ptr), false, false);
+			if(!translateBlock(thread, Address(*pc_ptr), false, false)) {
+				// failed to decode a block: abort
+				return ExecutionResult::Abort;
+			}
 		}
 
 		if(thread->GetTraceSource() != nullptr && thread->GetTraceSource()->IsPacketOpen()) {
