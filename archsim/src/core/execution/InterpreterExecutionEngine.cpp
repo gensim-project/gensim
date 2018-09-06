@@ -31,6 +31,7 @@ InterpreterExecutionEngine::InterpreterExecutionEngine(archsim::interpret::Inter
 
 ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext* thread_ctx)
 {
+	InterpreterExecutionEngineThreadContext *ieetc = (InterpreterExecutionEngineThreadContext*)thread_ctx;
 	auto thread = thread_ctx->GetThread();
 
 	CreateThreadExecutionSafepoint(thread);
@@ -50,7 +51,7 @@ ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext
 			}
 		}
 
-		auto result = interpreter_->StepBlock(thread_ctx);
+		auto result = interpreter_->StepBlock(ieetc);
 		switch(result) {
 			case ExecutionResult::Continue:
 			case ExecutionResult::Exception:

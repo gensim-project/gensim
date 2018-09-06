@@ -24,7 +24,7 @@ namespace archsim
 			class BasicJITExecutionEngine : public ExecutionEngine
 			{
 			public:
-				BasicJITExecutionEngine();
+				BasicJITExecutionEngine(uint64_t max_code_size_);
 
 				ExecutionResult Execute(ExecutionEngineThreadContext* thread) override;
 
@@ -56,6 +56,8 @@ namespace archsim
 				archsim::blockjit::BlockProfile phys_block_profile_;
 				archsim::blockjit::BlockCache virt_block_cache_;
 				wulib::SimpleZoneMemAllocator mem_allocator_;
+
+				uint64_t max_code_size_;
 
 				bool flush_txlns_;
 				bool flush_all_txlns_;

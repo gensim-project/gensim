@@ -17,6 +17,7 @@
 #include "translate/TranslationManager.h"
 #include "blockjit/BlockJitTranslate.h"
 #include "util/PagePool.h"
+#include "gensim/gensim_translate.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
@@ -44,7 +45,7 @@ namespace archsim
 		{
 			friend class AsynchronousTranslationManager;
 		public:
-			AsynchronousTranslationWorker(AsynchronousTranslationManager& mgr, uint8_t id, gensim::blockjit::BaseBlockJITTranslate *translate);
+			AsynchronousTranslationWorker(AsynchronousTranslationManager& mgr, uint8_t id, gensim::BaseLLVMTranslate *translate);
 
 			void run();
 			void stop();
@@ -57,7 +58,7 @@ namespace archsim
 			util::Counter64 txlns;
 			util::Counter64 blocks;
 
-			gensim::blockjit::BaseBlockJITTranslate *translate_;
+			gensim::BaseLLVMTranslate *translate_;
 
 			std::shared_ptr<llvm::RTDyldMemoryManager> memory_manager_;
 			std::unique_ptr<llvm::TargetMachine> target_machine_;

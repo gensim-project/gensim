@@ -92,7 +92,8 @@ execute(cmpsd_xmm) {
 execute(cmpss) {
 	uint64 op0 = read_operand_sse_scalar(inst.op0);
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
-	uint64 op2 = read_operand(inst.op2);
+	if(!inst.op2.is_imm) { trap(); }
+	uint64 op2 = inst.op2.imm.value;
 	
 	float dop0 = bitcast_u32_float(op0);
 	float dop1 = bitcast_u32_float(op1);
@@ -111,7 +112,7 @@ execute(cmpss) {
 	}
 	
 	uint64 totalresult = result ? 0xffffffffUL : 0x00000000UL;
-	write_operand_sse_scalar(inst.op0, totalresult);
+	write_operand_sse_scalar32(inst.op0, totalresult);
 }
 
 helper uint32 double_to_int32(double f) 
@@ -925,6 +926,9 @@ execute(ucomiss) {
 	} else {
 		write_zpc(1,1,1);
 	}
+	write_register(OF, 0);
+	write_register(SF, 0);
+	write_register(AF, 0);
 }
 
 execute(unpcklpd) {

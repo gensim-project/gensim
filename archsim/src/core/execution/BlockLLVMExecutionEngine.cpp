@@ -51,6 +51,7 @@ static llvm::TargetMachine *GetNativeMachine()
 }
 
 BlockLLVMExecutionEngine::BlockLLVMExecutionEngine(gensim::BaseLLVMTranslate *translator) :
+	BasicJITExecutionEngine(0),
 	target_machine_(GetNativeMachine()),
 	memory_manager_(std::make_shared<BlockJITLLVMMemoryManager>(GetMemAllocator())),
 	linker_([&]()
@@ -76,6 +77,31 @@ static unsigned __int128 uremi128(unsigned __int128 a, unsigned __int128 b)
 static unsigned __int128 udivi128(unsigned __int128 a, unsigned __int128 b)
 {
 	return a / b;
+}
+static __int128 remi128(__int128 a, __int128 b)
+{
+	return a % b;
+}
+static __int128 divi128(__int128 a, __int128 b)
+{
+	return a / b;
+}
+
+static bool shunt_builtin_f32_is_snan(archsim::core::thread::ThreadInstance* thread, float f)
+{
+	return thread->fn___builtin_f32_is_snan(f);
+}
+static bool shunt_builtin_f32_is_qnan(archsim::core::thread::ThreadInstance* thread, float f)
+{
+	return thread->fn___builtin_f32_is_qnan(f);
+}
+static bool shunt_builtin_f64_is_snan(archsim::core::thread::ThreadInstance* thread, double f)
+{
+	return thread->fn___builtin_f64_is_snan(f);
+}
+static bool shunt_builtin_f64_is_qnan(archsim::core::thread::ThreadInstance* thread, double f)
+{
+	return thread->fn___builtin_f64_is_qnan(f);
 }
 
 bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, archsim::Address block_pc, bool support_chaining, bool support_profiling)
@@ -163,6 +189,14 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 
 	jit_symbols["__umodti3"] = (void*)uremi128;
 	jit_symbols["__udivti3"] = (void*)udivi128;
+	jit_symbols["__modti3"] = (void*)remi128;
+	jit_symbols["__divti3"] = (void*)divi128;
+
+	// todo: change these to actual bitcode
+	jit_symbols["txln_shunt___builtin_f32_is_snan"] = (void*)shunt_builtin_f32_is_snan;
+	jit_symbols["txln_shunt___builtin_f32_is_qnan"] = (void*)shunt_builtin_f32_is_qnan;
+	jit_symbols["txln_shunt___builtin_f64_is_snan"] = (void*)shunt_builtin_f64_is_snan;
+	jit_symbols["txln_shunt___builtin_f64_is_qnan"] = (void*)shunt_builtin_f64_is_qnan;
 
 	auto resolver = llvm::orc::createLambdaResolver(
 	[&](const std::string &name) {

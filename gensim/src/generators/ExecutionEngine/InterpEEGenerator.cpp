@@ -43,7 +43,7 @@ bool InterpEEGenerator::GenerateHeader(util::cppformatstream &str) const
 
 	    "class Interpreter : public archsim::interpret::Interpreter {"
 	    "public:"
-	    "   virtual archsim::core::execution::ExecutionResult StepBlock(archsim::core::execution::ExecutionEngineThreadContext *thread);"
+	    "   virtual archsim::core::execution::ExecutionResult StepBlock(archsim::core::execution::InterpreterExecutionEngineThreadContext *thread);"
 	    "	using decode_t = gensim::" << Manager.GetArch().Name << "::Decode;"
 	    "private:"
 	    "	gensim::DecodeContext *decode_context_;"
@@ -82,7 +82,7 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const
 
 	GenerateDecodeInstruction(str);
 
-	str << "archsim::core::execution::ExecutionResult Interpreter::StepBlock(archsim::core::execution::ExecutionEngineThreadContext *thread_ctx) { ";
+	str << "archsim::core::execution::ExecutionResult Interpreter::StepBlock(archsim::core::execution::InterpreterExecutionEngineThreadContext *thread_ctx) { ";
 	str << "auto thread = thread_ctx->GetThread();";
 	GenerateBlockExecutor(str);
 	str << "}";

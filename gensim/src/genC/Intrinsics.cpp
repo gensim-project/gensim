@@ -201,14 +201,34 @@ static ssa::SSAStatement *BitcastIntrinsicEmitter(const IRIntrinsicAction *intri
 	SSACastStatement::CastType type;
 	SSACastStatement::CastOption option = SSACastStatement::Option_None;
 
+	SSAStatement *arg = call->Args[0]->EmitSSAForm(bldr);
+
 	if (call->TargetName == "bitcast_u32_float") {
 		from = IRTypes::UInt32;
 		to = IRTypes::Float;
 		type = SSACastStatement::Cast_Reinterpret;
+
+		if(arg->GetType().IsFloating()) {
+			UNIMPLEMENTED;
+		}
+		if(arg->GetType().SizeInBytes() < 4) {
+			arg = new SSACastStatement(&bldr.GetBlock(), IRTypes::UInt32, arg, SSACastStatement::Cast_ZeroExtend);
+		} else if(arg->GetType().SizeInBytes() > 4) {
+			arg = new SSACastStatement(&bldr.GetBlock(), IRTypes::UInt32, arg, SSACastStatement::Cast_Truncate);
+		}
+
 	} else if (call->TargetName == "bitcast_u64_double") {
 		from = IRTypes::UInt64;
 		to = IRTypes::Double;
 		type = SSACastStatement::Cast_Reinterpret;
+
+		if(arg->GetType().IsFloating()) {
+			UNIMPLEMENTED;
+		}
+		if(arg->GetType().SizeInBytes() < 8) {
+			arg = new SSACastStatement(&bldr.GetBlock(), IRTypes::UInt64, arg, SSACastStatement::Cast_ZeroExtend);
+		}
+
 	} else if (call->TargetName == "bitcast_float_u32") {
 		from = IRTypes::Float;
 		to = IRTypes::UInt32;
@@ -236,7 +256,6 @@ static ssa::SSAStatement *BitcastIntrinsicEmitter(const IRIntrinsicAction *intri
 		throw std::logic_error("Unsupported intrinsic bitcast '" + call->TargetName + "'");
 	}
 
-	SSAStatement *arg = call->Args[0]->EmitSSAForm(bldr);
 	auto stmt = new SSACastStatement(&bldr.GetBlock(), to, arg, type);
 	stmt->SetOption(option);
 	stmt->SetDiag(call->Diag());

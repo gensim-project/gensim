@@ -12,6 +12,7 @@
 
 #include "translate/TranslationManager.h"
 #include "blockjit/BlockJitTranslate.h"
+#include "gensim/gensim_translate.h"
 
 #include <condition_variable>
 #include <list>
@@ -49,7 +50,7 @@ namespace archsim
 			AsynchronousTranslationManager(util::PubSubContext *psctx);
 			~AsynchronousTranslationManager();
 
-			bool Initialise(gensim::blockjit::BaseBlockJITTranslate *translate);
+			bool Initialise(gensim::BaseLLVMTranslate *translate);
 			void Destroy() override;
 
 			void UpdateThreshold() override;

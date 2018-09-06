@@ -79,7 +79,7 @@ static void InvalidateCallback(PubSubType::PubSubType type, void *ctx, const voi
 	}
 }
 
-TranslationManager::TranslationManager(util::PubSubContext &psCtx) : _needs_leave(false), ics(NULL), curr_hotspot_threshold(archsim::options::JitHotspotThreshold), subscriber(psCtx), engine(NULL), manager(NULL)
+TranslationManager::TranslationManager(util::PubSubContext &psCtx) : _needs_leave(false), ics(NULL), curr_hotspot_threshold(archsim::options::JitHotspotThreshold), subscriber(psCtx), manager(NULL)
 {
 	if (!archsim::options::JitDisableBranchOpt) {
 		// Allocate storage for the region translation cache.
@@ -102,9 +102,6 @@ TranslationManager::~TranslationManager()
 
 	delete ics;
 
-	engine->Destroy();
-	delete engine;
-
 	if (txln_cache) {
 		// Release the region translation cache memory.
 		delete txln_cache;
@@ -120,22 +117,9 @@ bool TranslationManager::TranslateRegion(archsim::core::thread::ThreadInstance* 
 
 bool TranslationManager::Initialise()
 {
-	// Attempt to acquire the translation engine
-	if (!GetComponentInstance(archsim::options::JitEngine, engine)) {
-		LC_ERROR(LogTranslate) << "Unable to create translation engine '" << archsim::options::JitEngine.GetValue() << "'";
-		return false;
-	}
-
-	if (!engine->Initialise()) {
-		LC_ERROR(LogTranslate) << "Unable to initialise translation engine '" << archsim::options::JitEngine.GetValue() << "'";
-		return false;
-	}
 
 	// Attempt to acquire the interrupt checking scheme.
 	if (!GetComponentInstance(archsim::options::JitInterruptScheme, ics)) {
-		engine->Destroy();
-		delete engine;
-
 		LC_ERROR(LogTranslate) << "Unknown interrupt checking scheme ''";
 		return false;
 	}
