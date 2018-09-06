@@ -14,6 +14,7 @@
 
 #include "translate/Translation.h"
 #include "translate/jit_funs.h"
+#include "translate/llvm/LLVMMemoryManager.h"
 
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/IR/LLVMContext.h>
@@ -40,7 +41,7 @@ static llvm::TargetMachine *GetNativeMachine()
 		llvm::InitializeNativeTargetAsmPrinter();
 		llvm::InitializeNativeTargetAsmParser();
 		machine = llvm::EngineBuilder().selectTarget();
-		machine->setOptLevel(llvm::CodeGenOpt::Default);
+		machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
 		machine->setFastISel(false);
 	}
 
@@ -56,7 +57,7 @@ AsynchronousTranslationWorker::AsynchronousTranslationWorker(AsynchronousTransla
 	optimiser(NULL),
 	translate_(translate),
 	target_machine_(GetNativeMachine()),
-	memory_manager_(new llvm::SectionMemoryManager()),
+	memory_manager_(new archsim::translate::translate_llvm::LLVMMemoryManager(code_pool, code_pool)),
 	linker_([&]()
 {
 	return memory_manager_;
@@ -279,15 +280,21 @@ LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUni
 		return nullptr;
 	}
 
+
 	LLVMTranslation *txln = new LLVMTranslation((LLVMTranslation::translation_fn)address.get(), nullptr);
 	for(auto i : unit.GetBlocks()) {
 		txln->AddContainedBlock(i.first);
 	}
 
+	if(archsim::options::Debug) {
+		std::ofstream str("code_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()));
+		str.write((char*)address.get(), memory_manager_->getAllocatedCodeSize((void*)address.get()));
+	}
+
 	return txln;
 }
 
-void BuildDispatchBlock(gensim::BaseLLVMTranslate *txlt, TranslationWorkUnit &unit, llvm::Function *function, std::map<archsim::Address, llvm::BasicBlock*> &blocks, llvm::BasicBlock *exit_block)
+llvm::BasicBlock *BuildDispatchBlock(gensim::BaseLLVMTranslate *txlt, TranslationWorkUnit &unit, llvm::Function *function, std::map<archsim::Address, llvm::BasicBlock*> &blocks, llvm::BasicBlock *exit_block)
 {
 	auto *entry_block = &function->getEntryBlock();
 	for(auto b : unit.GetBlocks()) {
@@ -295,16 +302,21 @@ void BuildDispatchBlock(gensim::BaseLLVMTranslate *txlt, TranslationWorkUnit &un
 		blocks[b.first] = block_block;
 	}
 
-	llvm::IRBuilder<> builder(entry_block);
-	tx_llvm::LLVMTranslationContext ctx(function->getContext(), builder, unit.GetThread());
+	llvm::BasicBlock *dispatch_block = llvm::BasicBlock::Create(function->getContext(), "dispatch", function);
+	llvm::BranchInst::Create(dispatch_block, entry_block);
+
+	llvm::IRBuilder<> builder(dispatch_block);
+	tx_llvm::LLVMTranslationContext ctx(function->getContext(), function->getParent(), unit.GetThread());
+	ctx.SetBuilder(builder);
 
 	auto pc = txlt->EmitRegisterRead(ctx, 8, 128);
-	pc = builder.CreateAnd(pc, 0xfff);
 
 	auto switch_inst = builder.CreateSwitch(pc, exit_block, blocks.size());
 	for(auto block : blocks) {
-		switch_inst->addCase(llvm::ConstantInt::get(llvm::Type::getInt64Ty(function->getContext()), block.first.GetPageOffset()), block.second);
+		switch_inst->addCase(llvm::ConstantInt::get(llvm::Type::getInt64Ty(function->getContext()), unit.GetRegion().GetPhysicalBaseAddress().Get() + block.first.GetPageOffset()), block.second);
 	}
+
+	return dispatch_block;
 }
 
 /**
@@ -350,21 +362,23 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 
 	auto ji = unit.GetThread()->GetArch().GetISA(0).GetNewJumpInfo();
 
-	BuildDispatchBlock(translate, unit, fn, block_map, exit_block);
+	llvm::BasicBlock *dispatch_block = BuildDispatchBlock(translate, unit, fn, block_map, exit_block);
+	tx_llvm::LLVMTranslationContext ctx(module->getContext(), module, unit.GetThread());
 
 	for(auto block : unit.GetBlocks()) {
 		llvm::BasicBlock *startblock = block_map.at(block.first);
 		llvm::IRBuilder<> builder(startblock);
-		tx_llvm::LLVMTranslationContext ctx(module->getContext(), builder, unit.GetThread());
+		ctx.SetBuilder(builder);
+
 
 		for(auto insn : block.second->GetInstructions()) {
 			auto insn_pc = unit.GetRegion().GetPhysicalBaseAddress() + insn->GetOffset();
 			if(archsim::options::Trace) {
 				builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i64, insn_pc.Get()), llvm::ConstantInt::get(ctx.Types.i32, insn->GetDecode().ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
-
 			}
 
 			translate->TranslateInstruction(ctx, unit.GetThread(), &insn->GetDecode(), Address(unit.GetRegion().GetPhysicalBaseAddress() + insn->GetOffset()), fn);
+			ctx.ResetRegisters();
 
 			gensim::JumpInfo jumpinfo;
 			ji->GetJumpInfo(&insn->GetDecode(), Address(0), jumpinfo);
@@ -377,7 +391,7 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 			}
 		}
 
-		builder.CreateBr(exit_block);
+		builder.CreateBr(dispatch_block);
 	}
 
 	llvm::ReturnInst::Create(llvm_ctx, nullptr, exit_block);

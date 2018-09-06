@@ -264,7 +264,7 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 
 	auto pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
 
-	archsim::translate::tx_llvm::LLVMTranslationContext ctx(llvm_ctx_, builder, thread);
+	archsim::translate::tx_llvm::LLVMTranslationContext ctx(llvm_ctx_, llvm_module.get(), thread);
 
 	while(true) {
 		auto result = isa.DecodeInstr(phys_pc, &thread->GetFetchMI(), *decode);

@@ -4,8 +4,11 @@
 
 using namespace archsim::translate::tx_llvm;
 
-LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::IRBuilder<> &builder, archsim::core::thread::ThreadInstance *thread) : LLVMCtx(ctx), thread_(thread), Builder(builder)
+LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Module *module, archsim::core::thread::ThreadInstance *thread) : LLVMCtx(ctx), thread_(thread), Module(module)
 {
+	Values.reg_file_ptr = nullptr;
+	Values.state_block_ptr = nullptr;
+
 	Types.vtype  = llvm::Type::getVoidTy(ctx);
 	Types.i1  = llvm::IntegerType::getInt1Ty(ctx);
 	Types.i8  = llvm::IntegerType::getInt8Ty(ctx);
@@ -17,8 +20,6 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::IRB
 
 	Types.f32 = llvm::Type::getFloatTy(ctx);
 	Types.f64 = llvm::Type::getDoubleTy(ctx);
-
-	Module = builder.GetInsertBlock()->getParent()->getParent();
 
 	Functions.ctpop_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ctpop, Types.i32);
 	Functions.bswap_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::bswap, Types.i32);
@@ -56,34 +57,84 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::IRB
 	Functions.cpuTraceInstruction = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInstruction", Types.vtype, Types.i8Ptr, Types.i64, Types.i32, Types.i32, Types.i32, Types.i32);
 	Functions.cpuTraceInsnEnd = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInsnEnd", Types.vtype, Types.i8Ptr);
 
-	Values.reg_file_ptr =    builder.GetInsertBlock()->getParent()->arg_begin();
-	Values.state_block_ptr = builder.GetInsertBlock()->getParent()->arg_begin() + 1;
 }
 
 llvm::Value* LLVMTranslationContext::GetThreadPtr()
 {
 	auto ptr = Values.state_block_ptr;
-	return Builder.CreateLoad(Builder.CreatePointerCast(ptr, Types.i8Ptr->getPointerTo(0)));
+	return GetBuilder().CreateLoad(GetBuilder().CreatePointerCast(ptr, Types.i8Ptr->getPointerTo(0)));
+}
+
+llvm::Value* LLVMTranslationContext::GetRegStatePtr()
+{
+	return Values.reg_file_ptr;
 }
 
 llvm::Value* LLVMTranslationContext::AllocateRegister(llvm::Type *type)
 {
 	if(free_registers_[type].empty()) {
-		auto &block = Builder.GetInsertBlock()->getParent()->getEntryBlock();
+		auto &block = GetBuilder().GetInsertBlock()->getParent()->getEntryBlock();
+
+		llvm::Value *new_reg = nullptr;
 
 		if(block.empty()) {
-			return new llvm::AllocaInst(type, 0, nullptr, "", &block);
+			new_reg = new llvm::AllocaInst(type, 0, nullptr, "", &block);
 		} else {
-			return new llvm::AllocaInst(type, 0, nullptr, "", &*block.begin());
+			new_reg = new llvm::AllocaInst(type, 0, nullptr, "", &*block.begin());
 		}
+
+		allocated_registers_[type].push_back(new_reg);
+		return new_reg;
 	} else {
 		auto reg = free_registers_[type].back();
 		free_registers_[type].pop_back();
+
+		allocated_registers_[type].push_back(reg);
+
 		return reg;
 	}
 }
 
-void LLVMTranslationContext::FreeRegister(int width, llvm::Value* v)
+void LLVMTranslationContext::FreeRegister(llvm::Type *t, llvm::Value* v)
 {
-//	free_registers_[width].push_back(v);
+	UNIMPLEMENTED;
+//	free_registers_[t].push_back(v);
+}
+
+void LLVMTranslationContext::ResetRegisters()
+{
+	for(auto &i : allocated_registers_) {
+		for(auto &j : i.second) {
+			free_registers_[i.first].push_back(j);
+		}
+	}
+	allocated_registers_.clear();
+}
+
+void LLVMTranslationContext::SetBuilder(llvm::IRBuilder<>& builder)
+{
+	builder_ = &builder;
+
+	Module = GetBuilder().GetInsertBlock()->getParent()->getParent();
+	Values.reg_file_ptr =    GetBuilder().GetInsertBlock()->getParent()->arg_begin();
+	Values.state_block_ptr = GetBuilder().GetInsertBlock()->getParent()->arg_begin() + 1;
+}
+
+llvm::Value* LLVMTranslationContext::GetRegPtr(int offset, llvm::Type* type)
+{
+	if(guest_reg_ptrs_.count({offset, type}) == 0) {
+
+		// insert pointer calculation into header block
+		// ptrtoint
+		auto &insert_point = GetBuilder().GetInsertBlock()->getParent()->getEntryBlock().front();
+
+		llvm::IRBuilder<> sub_builder(&insert_point);
+		llvm::Value *ptr = sub_builder.CreatePtrToInt(GetRegStatePtr(), Types.i64);
+		ptr = sub_builder.CreateAdd(ptr, llvm::ConstantInt::get(Types.i64, offset));
+		ptr = sub_builder.CreateIntToPtr(ptr, type->getPointerTo(0));
+
+		guest_reg_ptrs_[ {offset, type}] = ptr;
+	}
+
+	return guest_reg_ptrs_.at({offset, type});
 }

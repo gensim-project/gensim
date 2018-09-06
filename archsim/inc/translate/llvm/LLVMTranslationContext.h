@@ -28,7 +28,7 @@ namespace archsim
 			class LLVMTranslationContext
 			{
 			public:
-				LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::IRBuilder<> &builder, archsim::core::thread::ThreadInstance *thread);
+				LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Module *module, archsim::core::thread::ThreadInstance *thread);
 
 				struct {
 					llvm::Type *vtype;
@@ -71,22 +71,37 @@ namespace archsim
 				} Values;
 
 				llvm::Value *GetThreadPtr();
+				llvm::Value *GetRegStatePtr();
 				llvm::LLVMContext &LLVMCtx;
 
 				llvm::Value *AllocateRegister(llvm::Type *type);
-				void FreeRegister(int width_in_bytes, llvm::Value *v);
+				void FreeRegister(llvm::Type *t, llvm::Value *v);
+				void ResetRegisters();
 
-				llvm::IRBuilder<> &Builder;
 				llvm::Module *Module;
+
+				llvm::IRBuilder<> &GetBuilder()
+				{
+					ASSERT(builder_ != nullptr);
+					return *builder_;
+				}
+				void SetBuilder(llvm::IRBuilder<> &builder);
 
 				const archsim::ArchDescriptor &GetArch()
 				{
 					return thread_->GetArch();
 				}
+
+				llvm::Value *GetRegPtr(int offset, llvm::Type *type);
+
 			private:
 				archsim::core::thread::ThreadInstance *thread_;
+				llvm::IRBuilder<> *builder_;
 
 				std::unordered_map<llvm::Type *, std::list<llvm::Value*>> free_registers_;
+				std::unordered_map<llvm::Type *, std::list<llvm::Value*>> allocated_registers_;
+
+				std::map<std::pair<uint32_t, llvm::Type*>, llvm::Value*> guest_reg_ptrs_;
 			};
 		}
 	}

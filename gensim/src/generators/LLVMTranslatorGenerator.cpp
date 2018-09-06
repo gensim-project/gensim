@@ -93,7 +93,7 @@ namespace gensim
 
 				str << "::llvm::Module *module = fn->getParent();";
 				str << "::llvm::LLVMContext &llvm_ctx = module->getContext();";
-				str << "::llvm::IRBuilder<> &__irBuilder = ctx.Builder;";
+				str << "::llvm::IRBuilder<> &__irBuilder = ctx.GetBuilder();";
 				str << "::llvm::Value *__result = nullptr;";
 				str << "bool __trace = false;";
 				str << "std::vector<::llvm::Value*> llvm_registers;";
