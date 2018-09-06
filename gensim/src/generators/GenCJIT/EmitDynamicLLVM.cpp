@@ -86,14 +86,14 @@ namespace gensim
 			{
 				if(type.VectorWidth > 1) {
 					std::stringstream str;
-					str << "llvm::ConstantDataVector::get(ctx.LLVMCtx, {";
+					str << "llvm::ConstantDataVector::get(ctx.LLVMCtx, std::vector< " << type.GetElementType().GetCType() << ">({";
 					for(int i = 0; i < constant.VSize(); ++i) {
 						if(i > 0) {
 							str << ", ";
 						}
 						str << GetConstantBits(constant.VGet(i));
 					}
-					str << "})";
+					str << "}))";
 					return str.str();
 				} else {
 					if(type.IsFloating()) {
@@ -242,12 +242,12 @@ namespace gensim
 						case BinaryOperator::Bitwise_XOR:
 						case BinaryOperator::ShiftLeft:
 						case BinaryOperator::ShiftRight:
-							if(Statement.LHS()->IsFixed()) {
-								output << "if(" << LHSNode.GetFixedValue() << " == 0) " << Statement.GetName() << " = " << RHSNode.GetDynamicValue() << "; else ";
-							}
-							if(Statement.RHS()->IsFixed()) {
-								output << "if(" << RHSNode.GetFixedValue() << " == 0) " << Statement.GetName() << " = " << LHSNode.GetDynamicValue() << "; else ";
-							}
+//							if(Statement.LHS()->IsFixed()) {
+//								output << "if(" << LHSNode.GetFixedValue() << " == 0) " << Statement.GetName() << " = " << RHSNode.GetDynamicValue() << "; else ";
+//							}
+//							if(Statement.RHS()->IsFixed()) {
+//								output << "if(" << RHSNode.GetFixedValue() << " == 0) " << Statement.GetName() << " = " << LHSNode.GetDynamicValue() << "; else ";
+//							}
 							break;
 						default:
 							break;
@@ -1287,8 +1287,8 @@ namespace gensim
 
 							output << "if(archsim::options::Trace) {";
 							output << "llvm::Value *data_ptr = ctx.AllocateRegister(" << ValueExpr->GetDynamicValue() << "->getType());";
-							output << "ctx.Builder.CreateStore(" << ValueExpr->GetDynamicValue() << ", data_ptr);";
-							output << "EmitTraceBankedRegisterWrite(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", ctx.Builder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
+							output << "__irBuilder.CreateStore(" << ValueExpr->GetDynamicValue() << ", data_ptr);";
+							output << "EmitTraceBankedRegisterWrite(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", __irBuilder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
 							output << "}";
 
 						} else {
@@ -1324,15 +1324,15 @@ namespace gensim
 						if(Statement.IsBanked) {
 							output << "if(archsim::options::Trace) {";
 							output << "llvm::Value *data_ptr = ctx.AllocateRegister(" << Statement.GetName() << "->getType());";
-							output << "ctx.Builder.CreateStore(" << Statement.GetName() << ", data_ptr);";
-							output << "EmitTraceBankedRegisterRead(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", ctx.Builder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
+							output << "__irBuilder.CreateStore(" << Statement.GetName() << ", data_ptr);";
+							output << "EmitTraceBankedRegisterRead(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", __irBuilder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
 							output << "}";
 
 						} else {
 							output << "EmitTraceRegisterRead(ctx, " << (uint32_t)Statement.Bank << ", " << Statement.GetName() << ");";
 						}
 
-						output << Statement.GetName() << " = ctx.Builder.CreateBitCast(" << Statement.GetName() << ", " << Statement.GetType().GetLLVMType() << ");";
+						output << Statement.GetName() << " = __irBuilder.CreateBitCast(" << Statement.GetName() << ", " << Statement.GetType().GetLLVMType() << ");";
 					}
 
 					return true;
@@ -1478,7 +1478,7 @@ namespace gensim
 
 							// successively insert elements into vector
 							for(int i = 0; i < Statement.GetType().VectorWidth; ++i) {
-								str = "ctx.Builder.CreateInsertElement(" + str + ", llvm::ConstantInt::get(" + Statement.GetType().GetElementType().GetLLVMType() + ", 0), (uint64_t)" + std::to_string(i) + ")";
+								str = "__irBuilder.CreateInsertElement(" + str + ", llvm::ConstantInt::get(" + Statement.GetType().GetElementType().GetLLVMType() + ", 0), (uint64_t)" + std::to_string(i) + ")";
 							}
 							return str;
 						} else {

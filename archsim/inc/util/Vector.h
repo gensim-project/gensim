@@ -201,8 +201,21 @@ OPERATE(/)
 OPERATE(&)
 OPERATE(|)
 OPERATE(^)
-OPERATE(<<)
-OPERATE(>>)
 
 #undef OPERATE
+
+template <typename ElementT, typename ElementT2, unsigned Width> archsim::Vector<ElementT, Width> operator >>(const archsim::Vector<ElementT, Width> &v1, const archsim::Vector<ElementT2, Width> &v2)
+{
+	archsim::Vector<ElementT, Width> result;
+	for(unsigned i = 0; i < Width; ++i) result[i] = v1[i] >> v2[i];
+	return result;
+}
+
+template <typename ElementT, typename ElementT2, unsigned Width> archsim::Vector<ElementT, Width> operator <<(const archsim::Vector<ElementT, Width> &v1, const archsim::Vector<ElementT2, Width> &v2)
+{
+	archsim::Vector<ElementT, Width> result;
+	for(unsigned i = 0; i < Width; ++i) result[i] = v1[i] << v2[i];
+	return result;
+}
+
 #endif /* INC_UTIL_VECTOR_H_ */
