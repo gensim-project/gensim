@@ -16,7 +16,7 @@ using namespace archsim::core::execution;
 using namespace archsim::core::thread;
 
 
-BlockJITExecutionEngine::BlockJITExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) : translator_(translator)
+BlockJITExecutionEngine::BlockJITExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) : BasicJITExecutionEngine(64*1024*1024), translator_(translator)
 {
 
 }

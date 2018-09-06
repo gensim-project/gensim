@@ -16,6 +16,7 @@
 #include "translate/AsynchronousTranslationManager.h"
 #include "translate/profile/RegionProfile.h"
 #include "module/Module.h"
+#include "gensim/gensim_translate.h"
 
 namespace archsim
 {
@@ -23,7 +24,7 @@ namespace archsim
 	{
 		namespace execution
 		{
-			class LLVMRegionJITExecutionEngineContext : public ExecutionEngineThreadContext
+			class LLVMRegionJITExecutionEngineContext : public InterpreterExecutionEngineThreadContext
 			{
 			public:
 				LLVMRegionJITExecutionEngineContext(archsim::core::execution::ExecutionEngine *engine, archsim::core::thread::ThreadInstance *thread);
@@ -36,7 +37,7 @@ namespace archsim
 			public:
 				friend class LLVMRegionJITExecutionEngineContext;
 
-				LLVMRegionJITExecutionEngine(interpret::Interpreter *interp, gensim::blockjit::BaseBlockJITTranslate *translate);
+				LLVMRegionJITExecutionEngine(interpret::Interpreter *interp, gensim::BaseLLVMTranslate *translate);
 				~LLVMRegionJITExecutionEngine();
 
 				ExecutionResult Execute(ExecutionEngineThreadContext* thread) override;
@@ -49,7 +50,7 @@ namespace archsim
 
 			private:
 				interpret::Interpreter *interpreter_;
-				gensim::blockjit::BaseBlockJITTranslate *translator_;
+				gensim::BaseLLVMTranslate *translator_;
 			};
 		}
 	}

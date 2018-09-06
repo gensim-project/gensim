@@ -41,14 +41,14 @@ namespace gensim
 				str << "class LLVMTranslate" << Manager.GetArch().Name << " : public gensim::BaseLLVMTranslate {";
 				str << "public:";
 				str << "virtual ~LLVMTranslate" << Manager.GetArch().Name << "();";
-				str << "virtual bool TranslateInstruction(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) override;";
+				str << "virtual bool TranslateInstruction(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) override;";
 
 				str << "private:";
 				for(auto i : Manager.GetArch().ISAs) {
-					str << "bool Translate_" << i->ISAName << "(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn);";
+					str << "bool Translate_" << i->ISAName << "(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn);";
 
 					for(auto insn : i->Instructions) {
-						str << "bool Translate_" << i->ISAName << "_" << insn.second->Name << "(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn);";
+						str << "bool Translate_" << i->ISAName << "_" << insn.second->Name << "(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn);";
 					}
 				}
 
@@ -61,7 +61,7 @@ namespace gensim
 
 			bool GenerateDispatch() const
 			{
-				std::string prototype = "bool LLVMTranslate" + Manager.GetArch().Name + "::TranslateInstruction(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn)";
+				std::string prototype = "bool LLVMTranslate" + Manager.GetArch().Name + "::TranslateInstruction(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn)";
 
 				util::cppformatstream str;
 				str << prototype;
@@ -87,7 +87,7 @@ namespace gensim
 
 			bool GenerateTranslatorFor(gensim::isa::InstructionDescription &insn) const
 			{
-				std::string prototype = "bool LLVMTranslate" + Manager.GetArch().Name + "::Translate_" + insn.ISA.ISAName + "_" + insn.Name + "(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn)";
+				std::string prototype = "bool LLVMTranslate" + Manager.GetArch().Name + "::Translate_" + insn.ISA.ISAName + "_" + insn.Name + "(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn)";
 				util::cppformatstream str, header;
 				str << prototype << "{";
 
@@ -99,7 +99,7 @@ namespace gensim
 				str << "std::vector<::llvm::Value*> llvm_registers;";
 
 				auto ssa_action = (gensim::genc::ssa::SSAFormAction*)insn.ISA.GetSSAContext().GetAction(insn.BehaviourName);
-				str << "auto &" << ssa_action->ParamSymbols.at(0)->GetName() << " = *(gensim::" << Manager.GetArch().Name << "::Decode *)decode;";
+				str << "auto &" << ssa_action->ParamSymbols.at(0)->GetName() << " = *(const gensim::" << Manager.GetArch().Name << "::Decode *)decode;";
 
 				DynamicTranslationGenerator dtg (Manager);
 				dtg.EmitDynamicEmitter(str, header, *(gensim::genc::ssa::SSAFormAction*)ssa_action, "lol");
@@ -116,7 +116,7 @@ namespace gensim
 
 			bool GenerateTranslatorFor(gensim::isa::ISADescription &isa) const
 			{
-				std::string prototype = "bool LLVMTranslate" + Manager.GetArch().Name + "::Translate_" + isa.ISAName + "(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn)";
+				std::string prototype = "bool LLVMTranslate" + Manager.GetArch().Name + "::Translate_" + isa.ISAName + "(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn)";
 
 				util::cppformatstream str;
 				str << prototype;

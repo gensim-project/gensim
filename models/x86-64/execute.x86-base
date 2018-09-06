@@ -229,11 +229,12 @@ helper void do_div(uint8 width, uint64 divisor)
 	
 	switch(width)
 	{
-		case 8: { quotient = (uint8)dividend / (uint8)divisor; remainder = (uint8)dividend % (uint8)divisor; break; }
-		case 16: { quotient = (uint16)dividend / (uint16)divisor; remainder = (uint16)dividend % (uint16)divisor; break; }
-		case 32: { quotient = (uint32)dividend / (uint32)divisor; remainder = (uint32)dividend % (uint32)divisor; break; }
-		case 64: { quotient = (uint64)dividend / (uint64)divisor; remainder = (uint64)dividend % (uint64)divisor; break; }
-		default: { quotient = dividend / divisor; remainder = dividend % divisor; break; }
+		//case 8: { quotient = (uint8)dividend / (uint8)divisor; remainder = (uint8)dividend % (uint8)divisor; break; }
+		case 8: { quotient = (uint16)dividend / (uint16)divisor; remainder = (uint16)dividend % (uint16)divisor; break; }
+		case 16: { quotient = (uint32)dividend / (uint32)divisor; remainder = (uint32)dividend % (uint32)divisor; break; }
+		case 32: { quotient = (uint64)dividend / (uint64)divisor; remainder = (uint64)dividend % (uint64)divisor; break; }
+		case 64: { quotient = dividend / divisor; remainder = dividend % divisor; break; }
+		default: { trap(); break; }
 	}
 	
 	if(width == 8) {
@@ -300,18 +301,18 @@ execute(imul2) {
 }
 
 execute(imul3) {
-	uint8 op1_size = operand_get_size(inst.op1);
+	uint8 op0_size = operand_get_size(inst.op0);
 
-	sint128 op1 = read_operand(inst.op1);
-	sint128 op2 = read_operand(inst.op2);
+	sint128 op1 = sign_extend(read_operand(inst.op1), op0_size);
+	sint128 op2 = sign_extend(read_operand(inst.op2), op0_size);
 	
 	sint128 tmpxp = op1 * op2;
-	sint128 dest = zero_extend(tmpxp, op1_size);
+	sint128 dest = zero_extend(tmpxp, op0_size);
 	
-	uint8 truncation = sign_extend(dest, op1_size) != tmpxp;
+	uint8 truncation = sign_extend(dest, op0_size) != tmpxp;
 	write_register(CF, truncation);
 	write_register(OF, truncation);
-	
+		
 	write_operand(inst.op0, dest);
 }
 

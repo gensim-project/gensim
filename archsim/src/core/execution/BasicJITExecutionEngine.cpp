@@ -5,6 +5,8 @@
 #include "core/MemoryInterface.h"
 #include "util/LogContext.h"
 
+#include <chrono>
+
 using namespace archsim::core::execution;
 
 DeclareLogContext(LogBasicJIT, "BasicJIT");
@@ -39,7 +41,7 @@ void flush_txlns_callback(PubSubType::PubSubType type, void *context, const void
 	}
 }
 
-BasicJITExecutionEngine::BasicJITExecutionEngine() : phys_block_profile_(mem_allocator_), subscribed_(false), flush_txlns_(0), flush_all_txlns_(0)
+BasicJITExecutionEngine::BasicJITExecutionEngine(uint64_t max_code_size) : phys_block_profile_(mem_allocator_), subscribed_(false), flush_txlns_(0), flush_all_txlns_(0), max_code_size_(max_code_size)
 {
 
 }
@@ -88,7 +90,10 @@ void BasicJITExecutionEngine::checkFlushTxlns()
 
 void BasicJITExecutionEngine::checkCodeSize()
 {
-	if(phys_block_profile_.GetTotalCodeSize() > 1024 * 1024 * 64) {
+	if(max_code_size_ == 0) {
+		return;
+	}
+	if(phys_block_profile_.GetTotalCodeSize() > max_code_size_) {
 		phys_block_profile_.Invalidate();
 		virt_block_cache_.Invalidate();
 	}
@@ -126,10 +131,18 @@ template<typename PC_t> ExecutionResult BasicJITExecutionEngine::ExecuteLoop(Exe
 
 			ExecuteInnerLoop(ctx, pc_ptr);
 		} else {
+			auto pre_time = std::chrono::high_resolution_clock::now();
+
 			if(!translateBlock(thread, Address(*pc_ptr), false, false)) {
 				// failed to decode a block: abort
 				return ExecutionResult::Abort;
 			}
+
+			auto post_time = std::chrono::high_resolution_clock::now();
+
+			auto duration = post_time - pre_time;
+
+//			std::cout << "Compiled block " << Address(*pc_ptr) << ": " << std::chrono::duration_cast<std::chrono::nanoseconds>(post_time-pre_time).count() << "ns" << std::endl;
 		}
 
 		if(thread->GetTraceSource() != nullptr && thread->GetTraceSource()->IsPacketOpen()) {
@@ -218,13 +231,16 @@ bool BasicJITExecutionEngine::lookupBlock(thread::ThreadInstance* thread, Addres
 	}
 
 	archsim::blockjit::BlockTranslation txln = phys_block_profile_.Get(physaddr, thread->GetFeatures());
+
+	LC_DEBUG2(LogBasicJIT) << " - Found translation (" << (void*)txln.GetFn() << "), checking features:";
+
 	if(txln.IsValid(thread->GetFeatures())) {
-		LC_DEBUG2(LogBasicJIT) << " - Found valid translation";
+		LC_DEBUG2(LogBasicJIT) << " - Features valid";
 		virt_block_cache_.Insert(addr, txln.GetFn(), txln.GetFeatures());
 		txln_fn = txln.GetFn();
 		return true;
 	} else {
-		LC_DEBUG2(LogBasicJIT) << " - No valid translation";
+		LC_DEBUG2(LogBasicJIT) << " - Features invalid";
 		return false;
 	}
 }

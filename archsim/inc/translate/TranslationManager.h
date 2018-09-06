@@ -74,6 +74,7 @@ namespace archsim
 		class TranslationEngine;
 		class TranslationWorkUnit;
 		class Translation;
+
 		class TranslationManager
 		{
 		public:
@@ -190,7 +191,6 @@ namespace archsim
 			bool RegisterTranslation(profile::Region& unit, Translation& txln);
 
 		protected:
-			TranslationEngine *engine;
 			interrupts::InterruptCheckingScheme *ics;
 
 			uint32_t curr_hotspot_threshold;

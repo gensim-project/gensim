@@ -287,10 +287,19 @@ namespace gensim
 								output << "llvm::Instruction::Mul";
 								break;
 							case BinaryOperator::Divide:
-								output << "llvm::Instruction::UDiv";
+								if(Statement.LHS()->GetType().Signed) {
+									output << "llvm::Instruction::SDiv";
+								} else {
+									output << "llvm::Instruction::UDiv";
+								}
 								break;
 							case BinaryOperator::Modulo:
-								output << "llvm::Instruction::URem";
+								if(Statement.LHS()->GetType().Signed) {
+									output << "llvm::Instruction::SRem";
+								} else {
+									output << "llvm::Instruction::URem";
+								}
+								break;
 								break;
 							case BinaryOperator::ShiftLeft:
 								output << "llvm::Instruction::Shl";
@@ -410,9 +419,9 @@ namespace gensim
 						uncast << "(" << LHSNode.GetDynamicValue() << "," << RHSNode.GetDynamicValue() << ")";
 
 						// if we had a vector, then we need to 'sign extend' the result. otherwise, zero extend
-						std::string signeD = Statement.GetType().VectorWidth > 1 ? "true" : "false";
+						std::string is_signed = Statement.GetType().VectorWidth > 1 ? "true" : "false";
 
-						output << "llvm::Value * " << Statement.GetName() << " = __irBuilder.CreateIntCast(" << uncast.str() << ", " << Statement.GetType().GetLLVMType() << ", " << signeD << ");";
+						output << "llvm::Value * " << Statement.GetName() << " = __irBuilder.CreateIntCast(" << uncast.str() << ", " << Statement.GetType().GetLLVMType() << ", " << is_signed << ");";
 
 
 					}
@@ -445,6 +454,9 @@ namespace gensim
 							using namespace gensim::genc::SSAUnaryOperator;
 						case OP_NEGATIVE:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = -" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ";";
+							break;
+						case OP_NEGATE:
+							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = !" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ";";
 							break;
 						default:
 							assert(false);
@@ -540,6 +552,9 @@ namespace gensim
 					// figure out what kind of cast we should do
 					switch (Statement.GetCastType()) {
 						case SSACastStatement::Cast_Reinterpret:
+							if(Statement.Expr()->GetType().SizeInBytes() != Statement.GetType().SizeInBytes()) {
+								UNIMPLEMENTED;
+							}
 							output << "llvm::Instruction::BitCast";
 							break;
 						case SSACastStatement::Cast_SignExtend: {
@@ -576,14 +591,46 @@ namespace gensim
 							break;
 						}
 						case SSACastStatement::Cast_Convert: {
-							output << "llvm::Instruction::BitCast";
+							auto fromtype = Statement.Expr()->GetType();
+							auto totype = Statement.GetType();
+
+							if(fromtype.IsFloating() && totype.IsFloating()) {
+								// fp extend or trunc
+								if(fromtype.SizeInBytes() > totype.IsFloating()) {
+									// fp trunc
+									output << "llvm::Instruction::FPTrunc";
+								} else {
+									output << "llvm::Instruction::FPExtend";
+								}
+
+							} else if(fromtype.IsFloating() && !totype.IsFloating()) {
+								// fp to int
+								if(totype.Signed) {
+									output << "llvm::Instruction::FPToSI";
+								} else {
+									output << "llvm::Instruction::FPToUI";
+								}
+							} else if(!fromtype.IsFloating() && totype.IsFloating()) {
+								// int to fp
+								if(totype.Signed) {
+									output << "llvm::Instruction::SIToFP";
+								} else {
+									output << "llvm::Instruction::UIToFP";
+								}
+							} else {
+								// int to int?
+								UNIMPLEMENTED;
+							}
+
 							break;
 						}
 						default:
 							assert(false && "Unrecognized cast type");
 					}
 
-					output << ", " << Factory.GetOrCreate(Statement.Expr())->GetDynamicValue() << ", " << Statement.GetType().GetLLVMType() << ");";
+					std::string input = Factory.GetOrCreate(Statement.Expr())->GetDynamicValue();
+
+					output << ", " << input << ", " << Statement.GetType().GetLLVMType() << ");";
 					return true;
 				}
 
@@ -1491,25 +1538,6 @@ namespace gensim
 				{
 					const SSACallStatement &Statement = static_cast<const SSACallStatement&>(this->Statement);
 
-#if 0
-				case SSAIntrinsicStatement::SSAIntrinsic_Flush:
-					output << "__irBuilder.CreateCall(txln_ctx.jit_functions.tm_flush, ctx.block.region.values.cpu_ctx_val);";
-					break;
-				case SSAIntrinsicStatement::SSAIntrinsic_FlushITlb:
-					output << "__irBuilder.CreateCall(txln_ctx.jit_functions.tm_flush_itlb, ctx.block.region.values.cpu_ctx_val);";
-					break;
-				case SSAIntrinsicStatement::SSAIntrinsic_FlushDTlb:
-					output << "__irBuilder.CreateCall(txln_ctx.jit_functions.tm_flush_dtlb, ctx.block.region.values.cpu_ctx_val);";
-					break;
-				case SSAIntrinsicStatement::SSAIntrinsic_FlushITlbEntry:
-					assert(arg0);
-					output << "__irBuilder.CreateCall2(txln_ctx.jit_functions.tm_flush_itlb_entry, ctx.block.region.values.cpu_ctx_val, " << arg0->GetDynamicValue() << ");";
-					break;
-				case SSAIntrinsicStatement::SSAIntrinsic_FlushDTlbEntry:
-					assert(arg0);
-					output << "__irBuilder.CreateCall2(txln_ctx.jit_functions.tm_flush_dtlb_entry, ctx.block.region.values.cpu_ctx_val, " << arg0->GetDynamicValue() << ");";
-					break;
-#endif
 
 					if(Statement.HasValue()) output << "::llvm::Value *" << Statement.GetName() << ";";
 					output << "{";

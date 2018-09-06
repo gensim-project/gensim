@@ -7,17 +7,20 @@
 #include "translate/Translation.h"
 
 using namespace archsim::core::execution;
+DeclareLogContext(LogRegionJIT, "LLVMRegionJIT");
 
-LLVMRegionJITExecutionEngineContext::LLVMRegionJITExecutionEngineContext(archsim::core::execution::ExecutionEngine* engine, archsim::core::thread::ThreadInstance* thread) : ExecutionEngineThreadContext(engine, thread), TxlnMgr(&thread->GetEmulationModel().GetSystem().GetPubSub())
+LLVMRegionJITExecutionEngineContext::LLVMRegionJITExecutionEngineContext(archsim::core::execution::ExecutionEngine* engine, archsim::core::thread::ThreadInstance* thread) : InterpreterExecutionEngineThreadContext(engine, thread), TxlnMgr(&thread->GetEmulationModel().GetSystem().GetPubSub())
 {
 	LLVMRegionJITExecutionEngine *e = (LLVMRegionJITExecutionEngine*)engine;
 
 	TxlnMgr.SetManager(thread->GetEmulationModel().GetSystem().GetCodeRegions());
-	TxlnMgr.Initialise(e->translator_);
+	if(!TxlnMgr.Initialise(e->translator_)) {
+		throw std::logic_error("");
+	}
 }
 
 
-LLVMRegionJITExecutionEngine::LLVMRegionJITExecutionEngine(interpret::Interpreter* interp, gensim::blockjit::BaseBlockJITTranslate* translate) : interpreter_(interp), translator_(translate)
+LLVMRegionJITExecutionEngine::LLVMRegionJITExecutionEngine(interpret::Interpreter* interp, gensim::BaseLLVMTranslate* translate) : interpreter_(interp), translator_(translate)
 {
 
 }
@@ -61,15 +64,21 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 			auto txln = thread->GetFetchMI().PerformTranslation(virt_pc, phys_pc, false, true, false);
 			auto &region = ctx->TxlnMgr.GetRegion(phys_pc);
 
+			LC_DEBUG3(LogRegionJIT) << "Looking for region " << region.GetPhysicalBaseAddress();
+
 			if(region.HasTranslations()) {
+				LC_DEBUG3(LogRegionJIT) << "Region " << region.GetPhysicalBaseAddress() << " has translations";
 				if(region.txln != nullptr && region.txln->ContainsBlock(virt_pc.PageOffset())) {
+					LC_DEBUG3(LogRegionJIT) << "Translation found for current block";
 					region.txln->Execute(thread);
 					continue;
+				} else {
+					LC_DEBUG3(LogRegionJIT) << "Translation NOT found for current block";
 				}
 			}
 
 			region.TraceBlock(thread, virt_pc);
-			auto result = interpreter_->StepBlock(thread_ctx);
+			auto result = interpreter_->StepBlock(ctx);
 
 			switch(result) {
 				case ExecutionResult::Continue:
@@ -90,7 +99,7 @@ ExecutionEngine* LLVMRegionJITExecutionEngine::Factory(const archsim::module::Mo
 {
 	// need an interpreter and a blockjit translator
 	auto interpreter_entry = module->GetEntry<module::ModuleInterpreterEntry>("Interpreter");
-	auto blockjit_entry = module->GetEntry<module::ModuleBlockJITTranslatorEntry>("BlockJITTranslator");
+	auto blockjit_entry = module->GetEntry<module::ModuleLLVMTranslatorEntry>("LLVMTranslator");
 
 	if(interpreter_entry == nullptr || blockjit_entry == nullptr) {
 		return nullptr;
@@ -99,4 +108,4 @@ ExecutionEngine* LLVMRegionJITExecutionEngine::Factory(const archsim::module::Mo
 	return new LLVMRegionJITExecutionEngine(interpreter_entry->Get(), blockjit_entry->Get());
 }
 
-//static ExecutionEngineFactoryRegistration registration("LLVMRegionJIT", 1000, LLVMRegionJITExecutionEngine::Factory);
+static ExecutionEngineFactoryRegistration registration("LLVMRegionJIT", 1000, LLVMRegionJITExecutionEngine::Factory);
