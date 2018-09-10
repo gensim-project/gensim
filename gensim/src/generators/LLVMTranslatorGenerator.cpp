@@ -96,7 +96,6 @@ namespace gensim
 				str << "::llvm::IRBuilder<> &__irBuilder = ctx.GetBuilder();";
 				str << "::llvm::Value *__result = nullptr;";
 				str << "bool __trace = false;";
-				str << "std::vector<::llvm::Value*> llvm_registers;";
 
 				auto ssa_action = (gensim::genc::ssa::SSAFormAction*)insn.ISA.GetSSAContext().GetAction(insn.BehaviourName);
 				str << "auto &" << ssa_action->ParamSymbols.at(0)->GetName() << " = *(const gensim::" << Manager.GetArch().Name << "::Decode *)decode;";

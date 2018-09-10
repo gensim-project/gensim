@@ -80,7 +80,7 @@ llvm::Value* LLVMTranslationContext::GetStateBlockPointer(const std::string& ent
 	return ptr;
 }
 
-llvm::Value* LLVMTranslationContext::AllocateRegister(llvm::Type *type)
+llvm::Value* LLVMTranslationContext::AllocateRegister(llvm::Type *type, int name)
 {
 	if(free_registers_[type].empty()) {
 		auto &block = GetBuilder().GetInsertBlock()->getParent()->getEntryBlock();
@@ -94,18 +94,21 @@ llvm::Value* LLVMTranslationContext::AllocateRegister(llvm::Type *type)
 		}
 
 		allocated_registers_[type].push_back(new_reg);
+		live_register_pointers_[name] = new_reg;
+
 		return new_reg;
 	} else {
 		auto reg = free_registers_[type].back();
 		free_registers_[type].pop_back();
 
 		allocated_registers_[type].push_back(reg);
+		live_register_pointers_[name] = reg;
 
 		return reg;
 	}
 }
 
-void LLVMTranslationContext::FreeRegister(llvm::Type *t, llvm::Value* v)
+void LLVMTranslationContext::FreeRegister(llvm::Type *t, llvm::Value* v, int name)
 {
 	UNIMPLEMENTED;
 //	free_registers_[t].push_back(v);
@@ -119,6 +122,8 @@ void LLVMTranslationContext::ResetRegisters()
 		}
 	}
 	allocated_registers_.clear();
+	live_register_pointers_.clear();
+	live_register_values_.clear();
 }
 
 void LLVMTranslationContext::SetBuilder(llvm::IRBuilder<>& builder)
@@ -147,4 +152,36 @@ llvm::Value* LLVMTranslationContext::GetRegPtr(int offset, llvm::Type* type)
 	}
 
 	return guest_reg_ptrs_.at({offset, type});
+}
+
+llvm::Value* LLVMTranslationContext::LoadRegister(int name)
+{
+	if(!live_register_values_.count(name)) {
+		live_register_values_[name] = GetBuilder().CreateLoad(live_register_pointers_.at(name));
+	}
+	return live_register_values_.at(name);
+}
+
+void LLVMTranslationContext::StoreRegister(int name, llvm::Value* value)
+{
+	live_register_values_[name] = value;
+}
+
+void LLVMTranslationContext::SetBlock(llvm::BasicBlock* block)
+{
+//	ResetLiveRegisters();
+	GetBuilder().SetInsertPoint(block);
+}
+
+void LLVMTranslationContext::ResetLiveRegisters()
+{
+	// insert just before the block terminators
+	if(GetBuilder().GetInsertBlock()->size()) {
+		GetBuilder().SetInsertPoint(&GetBuilder().GetInsertBlock()->back());
+	}
+
+	for(auto live_reg : live_register_values_) {
+		GetBuilder().CreateStore(live_reg.second, live_register_pointers_.at(live_reg.first));
+	}
+	live_register_values_.clear();
 }

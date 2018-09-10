@@ -115,7 +115,9 @@ namespace gensim
 				// if the target is never_const, we need to put it on the dynamic block queue list and emit an llvm branch
 				if (Target.IsFixed() != BLOCK_ALWAYS_CONST) {
 					CreateBlock(Target, output);
+
 					output << "__irBuilder.CreateBr(dynamic_blocks[__block_" << Target.GetName() << "]);";
+					output << "ctx.ResetLiveRegisters();";
 					output << "goto " << end_label << ";";
 					return;
 				}
@@ -717,6 +719,7 @@ namespace gensim
 					output << "llvm::Value *" << Statement.GetName() << " = 0;";
 					output << "{";
 
+					output << "UNIMPLEMENTED;";
 					output << "llvm::Value *ptr = llvm_registers[__idx_" << stmt->Target()->GetName() << "];";
 					output << Statement.GetName() << " = __irBuilder.CreateCall4(ctx.Functions.dev_read_device, ctx.GetThreadPtr(), " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", ptr, \"dev_read_result\");";
 					output << "}";
@@ -1088,6 +1091,7 @@ namespace gensim
 					CreateBlock(*Statement.TrueTarget(), output);
 					CreateBlock(*Statement.FalseTarget(), output);
 					output << "__irBuilder.CreateCondBr(bitcast_expr, dynamic_blocks[__block_" << Statement.TrueTarget()->GetName() << "], dynamic_blocks[__block_" << Statement.FalseTarget()->GetName() << "]);";
+					output << "ctx.ResetLiveRegisters();";
 					output << "goto " << end_label << ";";
 					output << "}";
 
@@ -1118,7 +1122,9 @@ namespace gensim
 					const SSAJumpStatement &Statement = static_cast<const SSAJumpStatement &>(this->Statement);
 
 					CreateBlock(*Statement.Target(), output);
+
 					output << "__irBuilder.CreateBr(dynamic_blocks[__block_" << Statement.Target()->GetName() << "]);";
+					output << "ctx.ResetLiveRegisters();";
 					return true;
 				}
 			};
@@ -1137,7 +1143,7 @@ namespace gensim
 					output << "llvm::Value *" << Statement.GetName() << " = nullptr;";
 					output << "{";
 					output << "llvm::Value *data = EmitMemoryRead(ctx, " << Statement.GetInterface()->GetID() << ", " << (uint32_t)Statement.Width << ", " << AddrExpr->GetDynamicValue() << ");";
-					output << "__irBuilder.CreateStore(data, llvm_registers[__idx_" << Statement.Target()->GetName() << "]);";
+					output << "ctx.StoreRegister(__idx_" << Statement.Target()->GetName() << ", data);";
 					output << "}";
 
 					return true;
@@ -1286,9 +1292,9 @@ namespace gensim
 							offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetRegisterStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
 
 							output << "if(archsim::options::Trace) {";
-							output << "llvm::Value *data_ptr = ctx.AllocateRegister(" << ValueExpr->GetDynamicValue() << "->getType());";
-							output << "__irBuilder.CreateStore(" << ValueExpr->GetDynamicValue() << ", data_ptr);";
-							output << "EmitTraceBankedRegisterWrite(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", __irBuilder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
+//							output << "llvm::Value *data_ptr = ctx.AllocateRegister(" << ValueExpr->GetDynamicValue() << "->getType());";
+//							output << "__irBuilder.CreateStore(" << ValueExpr->GetDynamicValue() << ", data_ptr);";
+//							output << "EmitTraceBankedRegisterWrite(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", __irBuilder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
 							output << "}";
 
 						} else {
@@ -1323,9 +1329,9 @@ namespace gensim
 
 						if(Statement.IsBanked) {
 							output << "if(archsim::options::Trace) {";
-							output << "llvm::Value *data_ptr = ctx.AllocateRegister(" << Statement.GetName() << "->getType());";
-							output << "__irBuilder.CreateStore(" << Statement.GetName() << ", data_ptr);";
-							output << "EmitTraceBankedRegisterRead(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", __irBuilder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
+//							output << "llvm::Value *data_ptr = ctx.AllocateRegister(" << Statement.GetName() << "->getType());";
+//							output << "__irBuilder.CreateStore(" << Statement.GetName() << ", data_ptr);";
+//							output << "EmitTraceBankedRegisterRead(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", __irBuilder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
 							output << "}";
 
 						} else {
@@ -1432,6 +1438,7 @@ namespace gensim
 						output << "sw->addCase((llvm::ConstantInt*)" << GetLLVMValue(Statement.Expr()->GetType(), constantStream.str()) << ", dynamic_blocks[__block_" << b->GetName() << "]);";
 					}
 					output << "}";
+					output << "ctx.ResetLiveRegisters();";
 					output << "goto " << end_label << ";\n";
 
 					return true;
@@ -1453,7 +1460,7 @@ namespace gensim
 				{
 					const SSAVariableReadStatement &Statement = static_cast<const SSAVariableReadStatement &>(this->Statement);
 
-					output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateLoad(llvm_registers[__idx_" << Statement.Target()->GetName() << "]);";
+					output << "llvm::Value *" << Statement.GetName() << " = ctx.LoadRegister(__idx_" << Statement.Target()->GetName() << ");";
 					return true;
 				}
 
@@ -1506,7 +1513,7 @@ namespace gensim
 
 					// If we should lower this statement
 					if (Statement.Parent->Parent->HasDynamicDominatedReads(&Statement)) {
-						output << "__irBuilder.CreateStore(" << GetLLVMValue(Statement.Target()->GetType(), "CV_" + Statement.Target()->GetName()) << ", llvm_registers[__idx_" << Statement.Target()->GetName() << "]);";
+						output << "ctx.StoreRegister(__idx_" << Statement.Target()->GetName() << ", " << GetLLVMValue(Statement.Target()->GetType(), "CV_" + Statement.Target()->GetName()) << ");";
 					}
 
 					return true;
@@ -1516,7 +1523,7 @@ namespace gensim
 				{
 					const SSAVariableWriteStatement &Statement = static_cast<const SSAVariableWriteStatement &>(this->Statement);
 					SSANodeWalker *expr = Factory.GetOrCreate(Statement.Expr());
-					output << "__irBuilder.CreateStore((llvm::Value*)" << expr->GetDynamicValue() << ", llvm_registers[__idx_" << Statement.Target()->GetName() << "]);";
+					output << "ctx.StoreRegister(__idx_" << Statement.Target()->GetName() << ", " << expr->GetDynamicValue() << ");";
 
 					return true;
 				}
