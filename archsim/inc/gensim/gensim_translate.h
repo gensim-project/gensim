@@ -14,6 +14,7 @@
 #include "../abi/Address.h"
 #include "gensim_decode.h"
 #include "gensim_processor_api.h"
+#include "util/Counter.h"
 
 #include <string>
 #include <map>
@@ -102,6 +103,7 @@ namespace gensim
 		void EmitAdcWithFlags(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value *lhs, llvm::Value *rhs, llvm::Value *carry);
 		void EmitSbcWithFlags(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value *lhs, llvm::Value *rhs, llvm::Value *carry);
 
+		void EmitIncrementCounter(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::util::Counter64 &counter, uint32_t value=1);
 	protected:
 		void QueueDynamicBlock(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, std::map<uint16_t, llvm::BasicBlock*> &dynamic_blocks, std::list<uint16_t> &dynamic_block_queue, uint16_t queued_block);
 

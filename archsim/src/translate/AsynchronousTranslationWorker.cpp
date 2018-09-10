@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <set>
 
 UseLogContext(LogTranslate);
 UseLogContext(LogWorkQueue);
@@ -42,7 +43,7 @@ static llvm::TargetMachine *GetNativeMachine()
 		llvm::InitializeNativeTargetAsmParser();
 		machine = llvm::EngineBuilder().selectTarget();
 		machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
-		machine->setFastISel(false);
+		machine->setFastISel(true);
 	}
 
 	lock.unlock();
@@ -296,10 +297,12 @@ LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUni
 
 llvm::BasicBlock *BuildDispatchBlock(gensim::BaseLLVMTranslate *txlt, TranslationWorkUnit &unit, llvm::Function *function, std::map<archsim::Address, llvm::BasicBlock*> &blocks, llvm::BasicBlock *exit_block)
 {
+	std::set<archsim::Address> entry_blocks;
 	auto *entry_block = &function->getEntryBlock();
 	for(auto b : unit.GetBlocks()) {
 		auto block_block = llvm::BasicBlock::Create(function->getContext(), "", function);
 		blocks[b.first] = block_block;
+		entry_blocks.insert(b.first);
 	}
 
 	llvm::BasicBlock *dispatch_block = llvm::BasicBlock::Create(function->getContext(), "dispatch", function);
@@ -313,7 +316,9 @@ llvm::BasicBlock *BuildDispatchBlock(gensim::BaseLLVMTranslate *txlt, Translatio
 
 	auto switch_inst = builder.CreateSwitch(pc, exit_block, blocks.size());
 	for(auto block : blocks) {
-		switch_inst->addCase(llvm::ConstantInt::get(llvm::Type::getInt64Ty(function->getContext()), unit.GetRegion().GetPhysicalBaseAddress().Get() + block.first.GetPageOffset()), block.second);
+		if(entry_blocks.count(block.first)) {
+			switch_inst->addCase(llvm::ConstantInt::get(llvm::Type::getInt64Ty(function->getContext()), unit.GetRegion().GetPhysicalBaseAddress().Get() + block.first.GetPageOffset()), block.second);
+		}
 	}
 
 	return dispatch_block;
@@ -370,6 +375,11 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 		llvm::IRBuilder<> builder(startblock);
 		ctx.SetBuilder(builder);
 
+		if(archsim::options::Verbose) {
+			// increment instruction counter
+			translate->EmitIncrementCounter(ctx, unit.GetThread()->GetMetrics().InstructionCount, block.second->GetInstructions().size());
+			translate->EmitIncrementCounter(ctx, unit.GetThread()->GetMetrics().JITInstructionCount, block.second->GetInstructions().size());
+		}
 
 		for(auto insn : block.second->GetInstructions()) {
 			auto insn_pc = unit.GetRegion().GetPhysicalBaseAddress() + insn->GetOffset();
@@ -391,7 +401,15 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 			}
 		}
 
-		builder.CreateBr(dispatch_block);
+		auto pc_val = translate_->EmitRegisterRead(ctx, 8, 128);
+		llvm::SwitchInst *out_switch = builder.CreateSwitch(pc_val, dispatch_block);
+		for(auto &succ : block.second->GetSuccessors()) {
+			auto succ_addr = (unit.GetRegion().GetPhysicalBaseAddress() + succ->GetOffset());
+
+			if(block_map.count(succ->GetOffset())) {
+				out_switch->addCase(llvm::ConstantInt::get(ctx.Types.i64, succ_addr.Get()), block_map.at(succ->GetOffset()));
+			}
+		}
 	}
 
 	llvm::ReturnInst::Create(llvm_ctx, nullptr, exit_block);

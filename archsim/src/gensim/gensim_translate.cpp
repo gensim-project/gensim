@@ -22,8 +22,56 @@ bool BaseLLVMTranslate::EmitRegisterWrite(archsim::translate::tx_llvm::LLVMTrans
 	return true;
 }
 
+#define FAST_READS
+#define FAST_WRITES
+
 llvm::Value* BaseLLVMTranslate::EmitMemoryRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value* address)
 {
+#ifdef FAST_READS
+	llvm::Value *cache_ptr = ctx.GetBuilder().CreatePtrToInt(ctx.GetStateBlockPointer("memory_cache_" + std::to_string(interface)), ctx.Types.i64);
+	llvm::Value *page_index = ctx.GetBuilder().CreateLShr(address, 12);
+
+	if(archsim::options::Verbose) {
+		EmitIncrementCounter(ctx, ctx.GetThread()->GetMetrics().Reads);
+	}
+
+	// TODO: get rid of these magic numbers (number of entries in cache, and cache entry size)
+	llvm::Value *cache_entry = ctx.GetBuilder().CreateURem(page_index, llvm::ConstantInt::get(ctx.Types.i64, 1024));
+	cache_entry = ctx.GetBuilder().CreateMul(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 16));
+	cache_entry = ctx.GetBuilder().CreateAdd(cache_ptr, cache_entry);
+
+	llvm::Value *tag = ctx.GetBuilder().CreateIntToPtr(cache_entry, ctx.Types.i64Ptr);
+	tag = ctx.GetBuilder().CreateLoad(tag);
+
+	// does tag match? make sure end of memory access falls on correct page
+	llvm::Value *offset_page_base = ctx.GetBuilder().CreateAdd(address, llvm::ConstantInt::get(ctx.Types.i64, size_in_bytes-1));
+	offset_page_base = ctx.GetBuilder().CreateAnd(offset_page_base, ~archsim::Address::PageMask);
+
+	llvm::Value *tag_match = ctx.GetBuilder().CreateICmpEQ(tag, offset_page_base);
+	llvm::BasicBlock *match_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
+	llvm::BasicBlock *nomatch_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
+	llvm::BasicBlock *continue_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
+	ctx.GetBuilder().CreateCondBr(tag_match, match_block, nomatch_block);
+
+	ctx.GetBuilder().SetInsertPoint(match_block);
+
+	llvm::Value *page_offset = ctx.GetBuilder().CreateAnd(address, archsim::Address::PageMask);
+	llvm::Value *ptr = ctx.GetBuilder().CreateAdd(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 8));
+	ptr = ctx.GetBuilder().CreateIntToPtr(ptr, ctx.Types.i64Ptr);
+	ptr = ctx.GetBuilder().CreateLoad(ptr);
+	ptr = ctx.GetBuilder().CreateAdd(ptr, page_offset);
+	ptr = ctx.GetBuilder().CreateIntToPtr(ptr, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8));
+	llvm::Value *match_value = ctx.GetBuilder().CreateLoad(ptr);
+
+	if(archsim::options::Verbose) {
+		EmitIncrementCounter(ctx, ctx.GetThread()->GetMetrics().ReadHits);
+	}
+
+	ctx.GetBuilder().CreateBr(continue_block);
+
+	ctx.GetBuilder().SetInsertPoint(nomatch_block);
+
+#endif
 	llvm::Function *fn_ptr = nullptr;
 	llvm::Function *trace_fn_ptr = nullptr;
 	switch(size_in_bytes) {
@@ -47,7 +95,19 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(archsim::translate::tx_llvm::LLVM
 			UNIMPLEMENTED;
 	}
 
-	auto value = ctx.GetBuilder().CreateCall(fn_ptr, {ctx.Values.state_block_ptr, address, llvm::ConstantInt::get(ctx.Types.i32, interface)});
+
+	llvm::Value *nomatch_value = ctx.GetBuilder().CreateCall(fn_ptr, {ctx.Values.state_block_ptr, address, llvm::ConstantInt::get(ctx.Types.i32, interface)});
+
+#ifdef FAST_READS
+	ctx.GetBuilder().CreateBr(continue_block);
+
+	ctx.GetBuilder().SetInsertPoint(continue_block);
+	auto value = ctx.GetBuilder().CreatePHI(llvm::IntegerType::getIntNTy(ctx.LLVMCtx, size_in_bytes*8), 2);
+	value->addIncoming(match_value, match_block);
+	value->addIncoming(nomatch_value, nomatch_block);
+#else
+	auto value = nomatch_value;
+#endif
 
 	if(archsim::options::Trace) {
 		ctx.GetBuilder().CreateCall(trace_fn_ptr, {ctx.GetThreadPtr(), address, value});
@@ -58,6 +118,52 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(archsim::translate::tx_llvm::LLVM
 
 void BaseLLVMTranslate::EmitMemoryWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value* address, llvm::Value* value)
 {
+#ifdef FAST_WRITES
+	llvm::Value *cache_ptr = ctx.GetBuilder().CreatePtrToInt(ctx.GetStateBlockPointer("memory_cache_" + std::to_string(interface)), ctx.Types.i64);
+	llvm::Value *page_index = ctx.GetBuilder().CreateLShr(address, 12);
+
+	if(archsim::options::Verbose) {
+		EmitIncrementCounter(ctx, ctx.GetThread()->GetMetrics().Writes);
+	}
+
+	// TODO: get rid of these magic numbers (number of entries in cache, and cache entry size)
+	llvm::Value *cache_entry = ctx.GetBuilder().CreateURem(page_index, llvm::ConstantInt::get(ctx.Types.i64, 1024));
+	cache_entry = ctx.GetBuilder().CreateMul(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 16));
+	cache_entry = ctx.GetBuilder().CreateAdd(cache_ptr, cache_entry);
+
+	llvm::Value *tag = ctx.GetBuilder().CreateIntToPtr(cache_entry, ctx.Types.i64Ptr);
+	tag = ctx.GetBuilder().CreateLoad(tag);
+
+	// does tag match?
+	llvm::Value *offset_page_base = ctx.GetBuilder().CreateAdd(address, llvm::ConstantInt::get(ctx.Types.i64, size_in_bytes-1));
+	offset_page_base = ctx.GetBuilder().CreateAnd(offset_page_base, ~archsim::Address::PageMask);
+
+	llvm::Value *tag_match = ctx.GetBuilder().CreateICmpEQ(tag, offset_page_base);
+	llvm::BasicBlock *match_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
+	llvm::BasicBlock *nomatch_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
+	llvm::BasicBlock *continue_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
+	ctx.GetBuilder().CreateCondBr(tag_match, match_block, nomatch_block);
+
+	ctx.GetBuilder().SetInsertPoint(match_block);
+
+	llvm::Value *page_offset = ctx.GetBuilder().CreateAnd(address, archsim::Address::PageMask);
+	llvm::Value *ptr = ctx.GetBuilder().CreateAdd(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 8));
+	ptr = ctx.GetBuilder().CreateIntToPtr(ptr, ctx.Types.i64Ptr);
+	ptr = ctx.GetBuilder().CreateLoad(ptr);
+	ptr = ctx.GetBuilder().CreateAdd(ptr, page_offset);
+	ptr = ctx.GetBuilder().CreateIntToPtr(ptr, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8));
+	ctx.GetBuilder().CreateStore(value, ptr);
+
+	if(archsim::options::Verbose) {
+		EmitIncrementCounter(ctx, ctx.GetThread()->GetMetrics().WriteHits);
+	}
+
+	ctx.GetBuilder().CreateBr(continue_block);
+
+
+	ctx.GetBuilder().SetInsertPoint(nomatch_block);
+#endif
+
 	llvm::Function *fn_ptr = nullptr;
 	llvm::Function *trace_fn_ptr = nullptr;
 	switch(size_in_bytes) {
@@ -81,10 +187,17 @@ void BaseLLVMTranslate::EmitMemoryWrite(archsim::translate::tx_llvm::LLVMTransla
 			UNIMPLEMENTED;
 	}
 
+	ctx.GetBuilder().CreateCall(fn_ptr, {GetThreadPtr(ctx), llvm::ConstantInt::get(ctx.Types.i32, interface), address, value});
+
+#ifdef FAST_WRITES
+	ctx.GetBuilder().CreateBr(continue_block);
+
+	ctx.GetBuilder().SetInsertPoint(continue_block);
+#endif
+
 	if(archsim::options::Trace) {
 		ctx.GetBuilder().CreateCall(trace_fn_ptr, {ctx.GetThreadPtr(), address, value});
 	}
-	ctx.GetBuilder().CreateCall(fn_ptr, {GetThreadPtr(ctx), llvm::ConstantInt::get(ctx.Types.i32, interface), address, value});
 }
 
 void BaseLLVMTranslate::EmitTakeException(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, llvm::Value* category, llvm::Value* data)
@@ -248,4 +361,13 @@ void BaseLLVMTranslate::EmitTraceRegisterRead(archsim::translate::tx_llvm::LLVMT
 	if(archsim::options::Trace) {
 		ctx.GetBuilder().CreateCall(ctx.Functions.cpuTraceRegisterRead, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i32, id), ctx.GetBuilder().CreateZExtOrTrunc(value, ctx.Types.i64)});
 	}
+}
+
+void BaseLLVMTranslate::EmitIncrementCounter(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::util::Counter64& counter, uint32_t value)
+{
+	llvm::Value *ptr = llvm::ConstantInt::get(ctx.Types.i64, (uint64_t)counter.get_ptr());
+	ptr = ctx.GetBuilder().CreateIntToPtr(ptr, ctx.Types.i64Ptr);
+	llvm::Value *val = ctx.GetBuilder().CreateLoad(ptr);
+	val = ctx.GetBuilder().CreateAdd(val, llvm::ConstantInt::get(ctx.Types.i64, value));
+	ctx.GetBuilder().CreateStore(val, ptr);
 }
