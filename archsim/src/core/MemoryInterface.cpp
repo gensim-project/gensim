@@ -2,8 +2,11 @@
 
 #include "core/MemoryInterface.h"
 #include "core/thread/ThreadInstance.h"
+#include "util/LogContext.h"
 
 using namespace archsim;
+
+DeclareLogContext(LogCacheMemory, "CachedMemory");
 
 MemoryDevice::~MemoryDevice() {}
 
@@ -175,4 +178,138 @@ MemoryResult LegacyFetchMemoryInterface::Write32(Address address, uint32_t data)
 MemoryResult LegacyFetchMemoryInterface::Write64(Address address, uint64_t data)
 {
 	UNIMPLEMENTED;
+}
+
+CachedLegacyMemoryInterface::CachedLegacyMemoryInterface(int index, archsim::abi::memory::MemoryModel& mem_model, archsim::core::thread::ThreadInstance* thread) : mem_model_(mem_model), thread_(thread)
+{
+	cache_offset_ = thread->GetStateBlock().AddBlock("memory_cache_" + std::to_string(index), sizeof (struct Cache));
+	Invalidate();
+}
+
+void CachedLegacyMemoryInterface::Invalidate()
+{
+	for(auto &i : GetCache()->cache) {
+		i.tag = Address(1);
+		i.data = nullptr;
+	}
+}
+
+CachedLegacyMemoryInterface::Cache* CachedLegacyMemoryInterface::GetCache()
+{
+	return (Cache*)(((char*)thread_->GetStateBlock().GetData()) + cache_offset_);
+}
+
+
+void CachedLegacyMemoryInterface::LoadEntryFor(struct CacheEntry *entry, Address addr)
+{
+	void *ptr;
+
+	bool success = mem_model_.LockRegion(addr.PageBase(), Address::PageSize, ptr);
+	if(!success) {
+		throw std::logic_error("Memory error.");
+	}
+
+	entry->data = ptr;
+	entry->tag = addr.PageBase();
+}
+
+void* CachedLegacyMemoryInterface::GetPtr(Address addr)
+{
+	struct Cache *cache = GetCache();
+
+	// get cache index
+	uint32_t index = addr.GetPageIndex() % Cache::kCacheSize;
+
+	auto &entry = cache->cache[index];
+	if(entry.tag != addr.PageBase()) {
+//		LC_DEBUG1(LogCacheMemory) << "Cache miss: loading for " << addr;
+		LoadEntryFor(&entry, addr);
+	}
+
+	auto ptr = (void*)(((char*)entry.data) + addr.GetPageOffset());
+
+//	LC_DEBUG1(LogCacheMemory) << "Got " << (void*)ptr << " for " << addr;
+	return ptr;
+}
+
+MemoryResult CachedLegacyMemoryInterface::Read8(Address address, uint8_t& data)
+{
+	data = *(uint8_t*)GetPtr(address);
+	return MemoryResult::OK;
+}
+
+MemoryResult CachedLegacyMemoryInterface::Read16(Address address, uint16_t& data)
+{
+	if(address.GetPageIndex() != (address + 1).GetPageIndex()) {
+		return Read(address, (char*)&data, 2);
+	}
+	data = *(uint16_t*)GetPtr(address);
+	return MemoryResult::OK;
+}
+
+MemoryResult CachedLegacyMemoryInterface::Read32(Address address, uint32_t& data)
+{
+	if(address.GetPageIndex() != (address + 3).GetPageIndex()) {
+		return Read(address, (char*)&data, 4);
+	}
+	data = *(uint32_t*)GetPtr(address);
+	return MemoryResult::OK;
+}
+
+MemoryResult CachedLegacyMemoryInterface::Read64(Address address, uint64_t& data)
+{
+	if(address.GetPageIndex() != (address + 7).GetPageIndex()) {
+		return Read(address, (char*)&data, 8);
+	}
+	data = *(uint64_t*)GetPtr(address);
+	return MemoryResult::OK;
+}
+
+MemoryResult CachedLegacyMemoryInterface::Write8(Address address, uint8_t data)
+{
+	*(uint8_t*)GetPtr(address) = data;
+	return MemoryResult::OK;
+}
+
+MemoryResult CachedLegacyMemoryInterface::Write16(Address address, uint16_t data)
+{
+	if(address.GetPageIndex() != (address + 1).GetPageIndex()) {
+		return Write(address, (char*)&data, 2);
+	}
+	*(uint16_t*)GetPtr(address) = data;
+	return MemoryResult::OK;
+}
+
+MemoryResult CachedLegacyMemoryInterface::Write32(Address address, uint32_t data)
+{
+	if(address.GetPageIndex() != (address + 3).GetPageIndex()) {
+		return Write(address, (char*)&data, 4);
+	}
+	*(uint32_t*)GetPtr(address) = data;
+	return MemoryResult::OK;
+}
+
+MemoryResult CachedLegacyMemoryInterface::Write64(Address address, uint64_t data)
+{
+	if(address.GetPageIndex() != (address + 7).GetPageIndex()) {
+		return Write(address, (char*)&data, 8);
+	}
+	*(uint64_t*)GetPtr(address) = data;
+	return MemoryResult::OK;
+}
+
+MemoryResult CachedLegacyMemoryInterface::Read(Address addr, char* data, size_t len)
+{
+	for(int i = 0; i < len; ++i) {
+		Read8(addr + i, *(uint8_t*)(data + i));
+	}
+	return MemoryResult::OK;
+}
+
+MemoryResult CachedLegacyMemoryInterface::Write(Address addr, const char* data, size_t len)
+{
+	for(int i = 0; i < len; ++i) {
+		Write8(addr + i, *(uint8_t*)(data + i));
+	}
+	return MemoryResult::OK;
 }

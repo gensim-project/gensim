@@ -34,7 +34,7 @@ namespace archsim
 					llvm::Type *vtype;
 					llvm::IntegerType *i1, *i8, *i16, *i32, *i64, *i128;
 					llvm::Type *f32, *f64;
-					llvm::Type *i8Ptr;
+					llvm::Type *i8Ptr, *i64Ptr;
 				} Types;
 
 				struct {
@@ -70,8 +70,13 @@ namespace archsim
 
 				} Values;
 
+				archsim::core::thread::ThreadInstance *GetThread()
+				{
+					return thread_;
+				}
 				llvm::Value *GetThreadPtr();
 				llvm::Value *GetRegStatePtr();
+				llvm::Value *GetStateBlockPointer(const std::string &entry);
 				llvm::LLVMContext &LLVMCtx;
 
 				llvm::Value *AllocateRegister(llvm::Type *type);

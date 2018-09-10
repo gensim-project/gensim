@@ -70,9 +70,11 @@ archsim::core::thread::ThreadInstance* UserEmulationModel::CreateThread(archsim:
 	auto arch = archentry->Get();
 
 	auto thread = new archsim::core::thread::ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
+	int idx = 0;
 	for(auto i : thread->GetMemoryInterfaces()) {
-		i->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
+		i->Connect(*new archsim::CachedLegacyMemoryInterface(idx, GetMemoryModel(), thread));
 		i->ConnectTranslationProvider(*new archsim::IdentityTranslationProvider());
+		idx++;
 	}
 
 	if(cloned_thread) {

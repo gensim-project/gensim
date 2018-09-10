@@ -56,7 +56,12 @@ namespace archsim
 
 				inline void AddSuccessor(Block& successor)
 				{
-					for(auto block : successors) if(block == &successor) return;
+					for(auto block : successors) {
+						if(block == &successor) {
+							return;
+						}
+					}
+
 					successors.push_back(&successor);
 				}
 

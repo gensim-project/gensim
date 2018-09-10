@@ -40,6 +40,8 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 	LLVMRegionJITExecutionEngineContext *ctx = (LLVMRegionJITExecutionEngineContext*)thread_ctx;
 	auto thread = thread_ctx->GetThread();
 
+	thread->GetMetrics().SelfRuntime.Start();
+
 	CreateThreadExecutionSafepoint(thread);
 	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) {
 		thread->GetTraceSource()->Trace_End_Insn();
@@ -55,6 +57,7 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 					case ExecutionResult::Exception:
 						break;
 					default:
+						thread->GetMetrics().SelfRuntime.Stop();
 						return result;
 				}
 			}
@@ -85,6 +88,7 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 				case ExecutionResult::Exception:
 					break;
 				default:
+					thread->GetMetrics().SelfRuntime.Stop();
 					return result;
 			}
 		}
@@ -92,6 +96,7 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 		ctx->TxlnMgr.RegisterCompletedTranslations();
 
 	}
+	thread->GetMetrics().SelfRuntime.Stop();
 	return ExecutionResult::Halt;
 }
 

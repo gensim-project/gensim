@@ -16,6 +16,7 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Mod
 	Types.i16 = llvm::IntegerType::getInt16Ty(ctx);
 	Types.i32 = llvm::IntegerType::getInt32Ty(ctx);
 	Types.i64 = llvm::IntegerType::getInt64Ty(ctx);
+	Types.i64Ptr = llvm::IntegerType::getInt64PtrTy(ctx);
 	Types.i128 = llvm::IntegerType::getInt128Ty(ctx);
 
 	Types.f32 = llvm::Type::getFloatTy(ctx);
@@ -68,6 +69,15 @@ llvm::Value* LLVMTranslationContext::GetThreadPtr()
 llvm::Value* LLVMTranslationContext::GetRegStatePtr()
 {
 	return Values.reg_file_ptr;
+}
+
+llvm::Value* LLVMTranslationContext::GetStateBlockPointer(const std::string& entry)
+{
+	auto ptr = Values.state_block_ptr;
+	ptr = GetBuilder().CreatePtrToInt(ptr, Types.i64);
+	ptr = GetBuilder().CreateAdd(ptr, llvm::ConstantInt::get(Types.i64, thread_->GetStateBlock().GetBlockOffset(entry)));
+	ptr = GetBuilder().CreateIntToPtr(ptr, Types.i8Ptr);
+	return ptr;
 }
 
 llvm::Value* LLVMTranslationContext::AllocateRegister(llvm::Type *type)

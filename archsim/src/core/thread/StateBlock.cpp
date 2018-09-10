@@ -12,6 +12,9 @@ StateBlockDescriptor::StateBlockDescriptor() : total_size_(0)
 
 uint32_t StateBlockDescriptor::AddBlock(const std::string& name, size_t size_in_bytes)
 {
+	if(block_offsets_.count(name)) {
+		throw std::logic_error("Duplicate state block entry name!");
+	}
 	block_offsets_[name] = total_size_;
 	total_size_ += size_in_bytes;
 	return total_size_;
