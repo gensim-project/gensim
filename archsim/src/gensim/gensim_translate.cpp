@@ -51,7 +51,9 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(archsim::translate::tx_llvm::LLVM
 	llvm::BasicBlock *match_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
 	llvm::BasicBlock *nomatch_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
 	llvm::BasicBlock *continue_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
-	ctx.GetBuilder().CreateCondBr(tag_match, match_block, nomatch_block);
+	auto br = ctx.GetBuilder().CreateCondBr(tag_match, match_block, nomatch_block);
+	auto mdnode = llvm::MDNode::get(ctx.LLVMCtx, {llvm::MDString::get(ctx.LLVMCtx, "branch_weights"), llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, 95)), llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, 5))});
+	br->setMetadata(llvm::LLVMContext::MD_prof, mdnode);
 
 	ctx.GetBuilder().SetInsertPoint(match_block);
 
@@ -68,7 +70,6 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(archsim::translate::tx_llvm::LLVM
 	}
 
 	ctx.GetBuilder().CreateBr(continue_block);
-
 	ctx.GetBuilder().SetInsertPoint(nomatch_block);
 
 #endif
@@ -142,7 +143,9 @@ void BaseLLVMTranslate::EmitMemoryWrite(archsim::translate::tx_llvm::LLVMTransla
 	llvm::BasicBlock *match_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
 	llvm::BasicBlock *nomatch_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
 	llvm::BasicBlock *continue_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", ctx.GetBuilder().GetInsertBlock()->getParent());
-	ctx.GetBuilder().CreateCondBr(tag_match, match_block, nomatch_block);
+	auto br = ctx.GetBuilder().CreateCondBr(tag_match, match_block, nomatch_block);
+	auto mdnode = llvm::MDNode::get(ctx.LLVMCtx, {llvm::MDString::get(ctx.LLVMCtx, "branch_weights"), llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, 95)), llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, 5))});
+	br->setMetadata(llvm::LLVMContext::MD_prof, mdnode);
 
 	ctx.GetBuilder().SetInsertPoint(match_block);
 

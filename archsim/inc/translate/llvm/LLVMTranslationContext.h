@@ -79,8 +79,12 @@ namespace archsim
 				llvm::Value *GetStateBlockPointer(const std::string &entry);
 				llvm::LLVMContext &LLVMCtx;
 
-				llvm::Value *AllocateRegister(llvm::Type *type);
-				void FreeRegister(llvm::Type *t, llvm::Value *v);
+				llvm::Value *AllocateRegister(llvm::Type *type, int name);
+				void FreeRegister(llvm::Type *t, llvm::Value *v, int name);
+
+				llvm::Value *LoadRegister(int name);
+				void StoreRegister(int name, llvm::Value *value);
+
 				void ResetRegisters();
 
 				llvm::Module *Module;
@@ -99,12 +103,18 @@ namespace archsim
 
 				llvm::Value *GetRegPtr(int offset, llvm::Type *type);
 
+				void SetBlock(llvm::BasicBlock *block);
+				void ResetLiveRegisters();
 			private:
+
+
 				archsim::core::thread::ThreadInstance *thread_;
 				llvm::IRBuilder<> *builder_;
 
 				std::unordered_map<llvm::Type *, std::list<llvm::Value*>> free_registers_;
 				std::unordered_map<llvm::Type *, std::list<llvm::Value*>> allocated_registers_;
+				std::unordered_map<int, llvm::Value*> live_register_values_;
+				std::unordered_map<int, llvm::Value*> live_register_pointers_;
 
 				std::map<std::pair<uint32_t, llvm::Type*>, llvm::Value*> guest_reg_ptrs_;
 			};

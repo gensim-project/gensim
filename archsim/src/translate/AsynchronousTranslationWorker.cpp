@@ -192,7 +192,6 @@ static bool shunt_builtin_f64_is_qnan(archsim::core::thread::ThreadInstance* thr
 }
 LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUnit& unit, ::llvm::Module* module, llvm::Function* function)
 {
-
 	std::map<std::string, void *> jit_symbols;
 
 	jit_symbols["cpuTrap"] = (void*)cpuTrap;
@@ -300,7 +299,7 @@ llvm::BasicBlock *BuildDispatchBlock(gensim::BaseLLVMTranslate *txlt, Translatio
 	std::set<archsim::Address> entry_blocks;
 	auto *entry_block = &function->getEntryBlock();
 	for(auto b : unit.GetBlocks()) {
-		auto block_block = llvm::BasicBlock::Create(function->getContext(), "", function);
+		auto block_block = llvm::BasicBlock::Create(function->getContext(), "block_" + std::to_string(b.first.Get()), function);
 		blocks[b.first] = block_block;
 		entry_blocks.insert(b.first);
 	}
@@ -355,8 +354,8 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 	auto i8ptrty = llvm::Type::getInt8PtrTy(llvm_ctx);
 	llvm::FunctionType *fn_type = llvm::FunctionType::get(llvm::Type::getVoidTy(llvm_ctx), {i8ptrty, i8ptrty}, false);
 	llvm::Function *fn = (llvm::Function*)module->getOrInsertFunction("fn", fn_type);
-	auto entry_block = llvm::BasicBlock::Create(llvm_ctx, "", fn);
-	auto exit_block = llvm::BasicBlock::Create(llvm_ctx, "", fn);
+	auto entry_block = llvm::BasicBlock::Create(llvm_ctx, "entry_block", fn);
+	auto exit_block = llvm::BasicBlock::Create(llvm_ctx, "exit_block", fn);
 
 	gensim::BaseLLVMTranslate *translate = translate_;
 //	translate->InitialiseFeatures(unit.GetThread());
@@ -374,6 +373,7 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 		llvm::BasicBlock *startblock = block_map.at(block.first);
 		llvm::IRBuilder<> builder(startblock);
 		ctx.SetBuilder(builder);
+		ctx.SetBlock(startblock);
 
 		if(archsim::options::Verbose) {
 			// increment instruction counter

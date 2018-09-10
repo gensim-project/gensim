@@ -146,14 +146,11 @@ namespace gensim
 				cstream << sym->GetType().GetCType() << " CV_" << sym->GetName() << ";";
 			}
 
-			cstream << "llvm_registers.resize(0, NULL);";
-			cstream << "llvm_registers.resize(" << i << ", NULL);";
-
 			for(auto sym : action.Symbols()) {
 				if(sym->GetType().IsStruct()) {
 					continue;
 				}
-				cstream << "llvm_registers[__idx_" << sym->GetName() << "] = ctx.AllocateRegister(" << sym->GetType().GetLLVMType() << ");";
+				cstream << "ctx.AllocateRegister(" << sym->GetType().GetLLVMType() << ", __idx_" << sym->GetName() << ");";
 			}
 
 			// loop through each block and if it is fixed or sometimes fixed, emit code for it
@@ -190,7 +187,7 @@ namespace gensim
 					cstream << ""
 					        "case __block_" << block->GetName() << ": // BLOCK START LINE " << block->GetStartLine() << ", END LINE " << block->GetEndLine() << "\n"
 					        "{"
-					        "   __irBuilder.SetInsertPoint(dynamic_blocks[__block_" << block->GetName() << "]);";
+					        "	ctx.SetBlock(dynamic_blocks[__block_" << block->GetName() << "]);";
 
 					DynamicTranslationNodeWalkerFactory factory;
 
