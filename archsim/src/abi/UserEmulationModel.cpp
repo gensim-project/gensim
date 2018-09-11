@@ -244,18 +244,15 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	_initial_stack_pointer = sp;
 
 #define WRITE_STACK(value) do { if(Is64BitBinary()) {GetMemoryModel().Write64(sp, value); sp += 8;} else { GetMemoryModel().Write32(sp, value); sp += 4;} } while(0)
-//	printf("ARGC at %p\n", sp.Get());
 	WRITE_STACK(argc);
 	for(auto i : argv_ptrs) {
 		WRITE_STACK(i.Get());
 	}
 	WRITE_STACK(0);
-//	printf("ENVPs at %p\n", sp.Get());
 	for(auto i : envp_ptrs) {
 		WRITE_STACK(i.Get());
 	}
 	WRITE_STACK(0);
-	printf("AUXVs at %p\n", sp.Get());
 	for(auto i : auxv_entries) {
 		WRITE_STACK(i.first);
 		WRITE_STACK(i.second);
