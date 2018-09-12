@@ -283,7 +283,9 @@ LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUni
 
 	LLVMTranslation *txln = new LLVMTranslation((LLVMTranslation::translation_fn)address.get(), nullptr);
 	for(auto i : unit.GetBlocks()) {
-		txln->AddContainedBlock(i.first);
+		if(i.second->IsEntryBlock()) {
+			txln->AddContainedBlock(i.first);
+		}
 	}
 
 	if(archsim::options::Debug) {
@@ -301,7 +303,10 @@ llvm::BasicBlock *BuildDispatchBlock(gensim::BaseLLVMTranslate *txlt, Translatio
 	for(auto b : unit.GetBlocks()) {
 		auto block_block = llvm::BasicBlock::Create(function->getContext(), "block_" + std::to_string(b.first.Get()), function);
 		blocks[b.first] = block_block;
-		entry_blocks.insert(b.first);
+
+		if(b.second->IsEntryBlock()) {
+			entry_blocks.insert(b.first);
+		}
 	}
 
 	llvm::BasicBlock *dispatch_block = llvm::BasicBlock::Create(function->getContext(), "dispatch", function);
@@ -348,8 +353,6 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 	// Create a new llvm module to contain the translation
 	llvm::Module *module = new llvm::Module("region_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()), llvm_ctx);
 	module->setDataLayout(GetNativeMachine()->createDataLayout());
-
-
 
 	auto i8ptrty = llvm::Type::getInt8PtrTy(llvm_ctx);
 	llvm::FunctionType *fn_type = llvm::FunctionType::get(llvm::Type::getVoidTy(llvm_ctx), {i8ptrty, i8ptrty}, false);

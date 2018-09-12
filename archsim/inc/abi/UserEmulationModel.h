@@ -62,8 +62,6 @@ namespace archsim
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
 			void Destroy() override;
 
-			gensim::Processor* GetCore(int id);
-
 			archsim::core::thread::ThreadInstance *GetMainThread();
 
 			void ResetCores();

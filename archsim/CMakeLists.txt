@@ -29,6 +29,9 @@ ADD_EXECUTABLE(archsim src/main.cpp)
 
 standard_flags(archsim)
 standard_flags(archsim-core)
+TARGET_COMPILE_OPTIONS(archsim PRIVATE -shared -pie -Wl,-z,now)
+
+
 
 TARGET_COMPILE_OPTIONS(archsim-core PRIVATE ${archsim_extra_options} -fomit-frame-pointer)
 
@@ -36,6 +39,7 @@ SET_PROPERTY(GLOBAL PROPERTY ARCHSIM_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/inc")
 
 TARGET_LINK_LIBRARIES(archsim
 	archsim-core
+	 -Wl,-z,now
 )
 
 TARGET_LINK_LIBRARIES(archsim-core 

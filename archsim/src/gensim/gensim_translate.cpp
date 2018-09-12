@@ -2,6 +2,7 @@
 
 #include "gensim/gensim_translate.h"
 #include "translate/llvm/LLVMTranslationContext.h"
+#include "translate/llvm/LLVMAliasAnalysis.h"
 
 #include <llvm/IR/Constants.h>
 
@@ -22,11 +23,41 @@ bool BaseLLVMTranslate::EmitRegisterWrite(archsim::translate::tx_llvm::LLVMTrans
 	return true;
 }
 
-#define FAST_READS
-#define FAST_WRITES
+//#define FAST_READS
+#define FASTER_READS
+#define FASTER_WRITES
+//#define FAST_WRITES
 
 llvm::Value* BaseLLVMTranslate::EmitMemoryRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value* address)
 {
+#ifdef FASTER_READS
+	llvm::Value *mem_offset = llvm::ConstantInt::get(ctx.Types.i64, 0x80000000);
+	address = ctx.GetBuilder().CreateAdd(address, mem_offset);
+	llvm::IntToPtrInst *ptr = (llvm::IntToPtrInst *)ctx.GetBuilder().CreateCast(llvm::Instruction::IntToPtr, address, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8, 0));
+	if(ptr->getValueID() == llvm::Instruction::InstructionVal + llvm::Instruction::IntToPtr) {
+		((llvm::IntToPtrInst*)ptr)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_MEM_ACCESS)) }));
+	}
+	auto value = ctx.GetBuilder().CreateLoad(ptr);
+
+	llvm::Function *trace_fn_ptr = nullptr;
+	switch(size_in_bytes) {
+		case 1:
+			trace_fn_ptr = ctx.Functions.cpuTraceMemRead8;
+			break;
+		case 2:
+			trace_fn_ptr = ctx.Functions.cpuTraceMemRead16;
+			break;
+		case 4:
+			trace_fn_ptr = ctx.Functions.cpuTraceMemRead32;
+			break;
+		case 8:
+			trace_fn_ptr = ctx.Functions.cpuTraceMemRead64;
+			break;
+		default:
+			UNIMPLEMENTED;
+	}
+#else
+
 #ifdef FAST_READS
 	llvm::Value *cache_ptr = ctx.GetBuilder().CreatePtrToInt(ctx.GetStateBlockPointer("memory_cache_" + std::to_string(interface)), ctx.Types.i64);
 	llvm::Value *page_index = ctx.GetBuilder().CreateLShr(address, 12);
@@ -109,7 +140,7 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(archsim::translate::tx_llvm::LLVM
 #else
 	auto value = nomatch_value;
 #endif
-
+#endif
 	if(archsim::options::Trace) {
 		ctx.GetBuilder().CreateCall(trace_fn_ptr, {ctx.GetThreadPtr(), address, value});
 	}
@@ -119,6 +150,34 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(archsim::translate::tx_llvm::LLVM
 
 void BaseLLVMTranslate::EmitMemoryWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value* address, llvm::Value* value)
 {
+#ifdef FASTER_READS
+	llvm::Value *mem_offset = llvm::ConstantInt::get(ctx.Types.i64, 0x80000000);
+	address = ctx.GetBuilder().CreateAdd(address, mem_offset);
+	llvm::Value *ptr = ctx.GetBuilder().CreateCast(llvm::Instruction::IntToPtr, address, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8, 0));
+	if(ptr->getValueID() == llvm::Instruction::InstructionVal + llvm::Instruction::IntToPtr) {
+		((llvm::IntToPtrInst*)ptr)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_MEM_ACCESS)) }));
+	}
+
+	ctx.GetBuilder().CreateStore(value, ptr);
+
+	llvm::Function *trace_fn_ptr = nullptr;
+	switch(size_in_bytes) {
+		case 1:
+			trace_fn_ptr = ctx.Functions.cpuTraceMemWrite8;
+			break;
+		case 2:
+			trace_fn_ptr = ctx.Functions.cpuTraceMemWrite16;
+			break;
+		case 4:
+			trace_fn_ptr = ctx.Functions.cpuTraceMemWrite32;
+			break;
+		case 8:
+			trace_fn_ptr = ctx.Functions.cpuTraceMemWrite64;
+			break;
+		default:
+			UNIMPLEMENTED;
+	}
+#else
 #ifdef FAST_WRITES
 	llvm::Value *cache_ptr = ctx.GetBuilder().CreatePtrToInt(ctx.GetStateBlockPointer("memory_cache_" + std::to_string(interface)), ctx.Types.i64);
 	llvm::Value *page_index = ctx.GetBuilder().CreateLShr(address, 12);
@@ -197,7 +256,7 @@ void BaseLLVMTranslate::EmitMemoryWrite(archsim::translate::tx_llvm::LLVMTransla
 
 	ctx.GetBuilder().SetInsertPoint(continue_block);
 #endif
-
+#endif
 	if(archsim::options::Trace) {
 		ctx.GetBuilder().CreateCall(trace_fn_ptr, {ctx.GetThreadPtr(), address, value});
 	}
@@ -229,6 +288,10 @@ llvm::Value* BaseLLVMTranslate::GetThreadPtr(archsim::translate::tx_llvm::LLVMTr
 
 void BaseLLVMTranslate::EmitAdcWithFlags(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value* lhs, llvm::Value* rhs, llvm::Value* carry)
 {
+	// TODO: this leads to not very efficient code. It would be better to
+	// figure out a better way of handling this, possibly by modifying LLVM
+	// (new intrinsic or custom lowering)
+
 	llvm::IntegerType *base_itype = llvm::IntegerType::getIntNTy(ctx.LLVMCtx, bits);
 	llvm::IntegerType *itype = llvm::IntegerType::getIntNTy(ctx.LLVMCtx, bits*2);
 
@@ -280,6 +343,10 @@ void BaseLLVMTranslate::EmitAdcWithFlags(archsim::translate::tx_llvm::LLVMTransl
 
 void BaseLLVMTranslate::EmitSbcWithFlags(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value* lhs, llvm::Value* rhs, llvm::Value* carry)
 {
+	// TODO: this leads to not very efficient code. It would be better to
+	// figure out a better way of handling this, possibly by modifying LLVM
+	// (new intrinsic or custom lowering)
+
 	llvm::IntegerType *base_itype = llvm::IntegerType::getIntNTy(ctx.LLVMCtx, bits);
 	llvm::IntegerType *itype = llvm::IntegerType::getIntNTy(ctx.LLVMCtx, bits*2);
 

@@ -27,21 +27,59 @@ namespace archsim
 		namespace translate_llvm
 		{
 
-			class ArchSimAA : public llvm::AliasAnalysis, llvm::FunctionPass
+			class ArchSimAA : public llvm::AAResultBase<ArchSimAA>
 			{
 				static char ID;
 			public:
 
 				ArchSimAA();
 
-				bool runOnFunction(llvm::Function &F) override;
 
 
-				void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
+//				void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
 				virtual llvm::AliasResult alias(const llvm::MemoryLocation &L1, const llvm::MemoryLocation &L2);
 
 			private:
 				llvm::AliasResult do_alias(const llvm::MemoryLocation &L1, const llvm::MemoryLocation &L2);
+			};
+
+
+			class RecoverAAInfoPass : public llvm::FunctionPass
+			{
+			public:
+				static char ID;
+
+				RecoverAAInfoPass();
+				bool runOnFunction(llvm::Function &F) override;
+			};
+
+			class ArchsimAAWrapper : public llvm::FunctionPass
+			{
+			public:
+				static char ID;
+				ArchsimAAWrapper();
+
+				bool runOnFunction(llvm::Function &F) override
+				{
+					auto &TLIWP = getAnalysis<llvm::TargetLibraryInfoWrapperPass>();
+					aa_.reset(new ArchSimAA());
+				}
+				void getAnalysisUsage(llvm::AnalysisUsage &AU) const override
+				{
+					AU.setPreservesAll();
+					AU.addRequired<llvm::TargetLibraryInfoWrapperPass>();
+				}
+
+				ArchSimAA &getResult()
+				{
+					return *aa_;
+				}
+				const ArchSimAA &getResult() const
+				{
+					return *aa_;
+				}
+			private:
+				std::unique_ptr<ArchSimAA> aa_;
 			};
 
 			class LLVMOptimiser
@@ -58,6 +96,7 @@ namespace archsim
 				bool AddPass(::llvm::Pass*);
 
 				::llvm::legacy::PassManager pm;
+				ArchSimAA *my_aa_;
 				bool isInitialised;
 			};
 		}

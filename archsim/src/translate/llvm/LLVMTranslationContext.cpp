@@ -1,6 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "translate/llvm/LLVMTranslationContext.h"
+#include "translate/llvm/LLVMAliasAnalysis.h"
 
 using namespace archsim::translate::tx_llvm;
 
@@ -144,9 +145,17 @@ llvm::Value* LLVMTranslationContext::GetRegPtr(int offset, llvm::Type* type)
 		auto &insert_point = GetBuilder().GetInsertBlock()->getParent()->getEntryBlock().front();
 
 		llvm::IRBuilder<> sub_builder(&insert_point);
-		llvm::Value *ptr = sub_builder.CreatePtrToInt(GetRegStatePtr(), Types.i64);
+		llvm::Value *ptr = (llvm::Instruction*)sub_builder.CreatePtrToInt(GetRegStatePtr(), Types.i64);
 		ptr = sub_builder.CreateAdd(ptr, llvm::ConstantInt::get(Types.i64, offset));
 		ptr = sub_builder.CreateIntToPtr(ptr, type->getPointerTo(0));
+
+		((llvm::Instruction*)ptr)->setMetadata("aaai", llvm::MDNode::get(LLVMCtx, {
+			llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(Types.i32, archsim::translate::translate_llvm::TAG_REG_ACCESS)),
+			llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(Types.i32, offset)),
+			llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(Types.i32, offset + type->getScalarSizeInBits()/8)),
+			llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(Types.i32, type->getScalarSizeInBits()/8))
+		}
+		                                                                ));
 
 		guest_reg_ptrs_[ {offset, type}] = ptr;
 	}
