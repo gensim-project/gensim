@@ -438,6 +438,9 @@ namespace archsim
 
 				virtual uint32_t PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct abi::devices::AccessInfo &info) override;
 
+				bool MapRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot, std::string name) override;
+				guest_addr_t MapAnonymousRegion(guest_size_t size, RegionFlags prot) override;
+
 				MemoryTranslationModel &GetTranslationModel() override;
 				host_addr_t mem_base;
 

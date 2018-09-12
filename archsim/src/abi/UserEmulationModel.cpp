@@ -109,11 +109,6 @@ void UserEmulationModel::Destroy()
 //	UNIMPLEMENTED;
 }
 
-gensim::Processor *UserEmulationModel::GetCore(int id)
-{
-	UNIMPLEMENTED;
-}
-
 archsim::core::thread::ThreadInstance* UserEmulationModel::GetMainThread()
 {
 	return threads_.at(0);
@@ -144,20 +139,22 @@ bool UserEmulationModel::InitialiseProgramArguments()
 
 bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location, uint32_t elf_phnum, uint32_t elf_phentsize)
 {
-
-	if(Is64BitBinary()) {
-		_initial_stack_pointer = Address(0x800000000000);
-	} else {
-		_initial_stack_pointer = Address(0xc0000000);
-	}
 	_stack_size = archsim::options::GuestStackSize;
+	_initial_stack_pointer = GetMemoryModel().GetMappingManager()->MapAnonymousRegion(_stack_size, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite)) + _stack_size;
 
-	if(_stack_size & ((1 << 12)-1)) {
-		LC_ERROR(LogEmulationModelUser) << "[USER-EMULATION] Guest stack size must be a multiple of host page size";
-		return false;
-	}
-
-	GetMemoryModel().GetMappingManager()->MapRegion(_initial_stack_pointer - _stack_size, _stack_size, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[stack]");
+//	if(Is64BitBinary()) {
+//		_initial_stack_pointer = Address(0x800000000000);
+//	} else {
+//		_initial_stack_pointer = Address(0xc0000000);
+//	}
+//
+//
+//	if(_stack_size & ((1 << 12)-1)) {
+//		LC_ERROR(LogEmulationModelUser) << "[USER-EMULATION] Guest stack size must be a multiple of host page size";
+//		return false;
+//	}
+//
+//	GetMemoryModel().GetMappingManager()->MapRegion(_initial_stack_pointer - _stack_size, _stack_size, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[stack]");
 
 	std::vector<Address> envp_ptrs (global_envc);
 	std::vector<Address> argv_ptrs (global_argc + 1);

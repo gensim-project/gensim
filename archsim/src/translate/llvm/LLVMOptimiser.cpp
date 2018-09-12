@@ -44,7 +44,6 @@ DeclareChildLogContext(LogAliasAnalysis, LogTranslate, "AliasAnalysis");
 
 using namespace archsim::translate::translate_llvm;
 
-#if 0
 
 static bool IsInstr(const ::llvm::Value *v)
 {
@@ -78,8 +77,31 @@ static bool IsConstVal(const ::llvm::MDOperand &v)
 
 char ArchSimAA::ID = 0;
 
-static llvm::RegisterPass<ArchsimAAPass> P("archsim-aa", "ArcSim-specific Alias Analysis", false, true);
-static llvm::RegisterAnalysisGroup<llvm::AAResultsWrapperPass> G(P);
+//static llvm::RegisterPass<ArchsimAAWrapper> P("archsim-aa", "ArcSim-specific Alias Analysis", false, true);
+//static llvm::RegisterAnalysisGroup<llvm::AAResultsWrapperPass> G(P);
+
+
+//using namespace llvm;
+//INITIALIZE_PASS_BEGIN(ArchsimAAWrapper, "archsim-aa",
+//                      "ArchSim-specific AA", false, true)
+//INITIALIZE_PASS_DEPENDENCY(TargetLibraryInfoWrapperPass)
+//INITIALIZE_PASS_END(ArchsimAAWrapper, "archsim-aa",
+//                    "ArchSim-specific AA", false, true)
+
+void initializeArchsimAAOnce(llvm::PassRegistry &Registry)
+{
+	llvm::initializeTargetLibraryInfoWrapperPassPass(Registry);
+	llvm::PassInfo *PI = new llvm::PassInfo("Archsim AA", "archsim-aa",&ArchsimAAWrapper::ID, llvm::PassInfo::NormalCtor_t(llvm::callDefaultCtor<ArchsimAAWrapper>), false, true);
+	Registry.registerPass(*PI, true);
+}
+
+llvm::once_flag initializeArchsimAAOnceFlag;
+
+void initializeArchsimAA(llvm::PassRegistry &Registry)
+{
+	llvm::call_once(initializeArchsimAAOnceFlag, initializeArchsimAAOnce, std::ref(Registry));
+}
+
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -114,8 +136,8 @@ llvm::AliasResult ArchSimAA::alias(const llvm::MemoryLocation &L1, const llvm::M
 		}
 
 		fprintf(stderr, "\n");
-		v1->dump();
-		v2->dump();
+//		v1->dump();
+//		v2->dump();
 	}
 
 	return rc;
@@ -277,8 +299,6 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 			return llvm::NoAlias;
 		}
 
-		// TODO: Think about this one some more.
-		//return MayAlias;
 	} else if (IsConstExpr(v1) && IsConstExpr(v2)) {
 		const llvm::ConstantExpr *c1 = (const llvm::ConstantExpr *)v1;
 		const llvm::ConstantExpr *c2 = (const llvm::ConstantExpr *)v2;
@@ -297,30 +317,22 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 			return llvm::MayAlias; // TODO: We might be able to be cleverer here.
 	}
 
-	return llvm::AAResultBase<ArchSimAA>::alias(L1, L2);
+	return llvm::MayAlias; // TODO: We might be able to be cleverer here.
 }
 
-char ArchsimAA::ID = 0;
 
-ArchSimAA::ArchSimAA() : FunctionPass(ID)
+ArchSimAA::ArchSimAA() : llvm::AAResultBase<ArchSimAA>()
 {
 }
 
 
-void ArchsimAA::getAnalysisUsage(llvm::AnalysisUsage& AU) const
-{
-	AU.setPreservesAll();
-}
-
-bool ArchsimAA::runOnFunction(llvm::Function& F)
-{
-	return false;
-}
-
-#endif
+//void ArchSimAA::getAnalysisUsage(llvm::AnalysisUsage& AU) const
+//{
+//	AU.setPreservesAll();
+//}
 
 
-LLVMOptimiser::LLVMOptimiser() : isInitialised(false)
+LLVMOptimiser::LLVMOptimiser() : isInitialised(false), my_aa_(nullptr)
 {
 
 }
@@ -332,7 +344,7 @@ LLVMOptimiser::~LLVMOptimiser()
 bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 {
 	isInitialised = true;
-//	pm.add(::llvm::createTypeBasedAAWrapperPass());
+	pm.add(::llvm::createBasicAAWrapperPass());
 //	//AddPass(new ::llvm::DataLayout(*datalayout));
 //
 //	if (archsim::options::JitOptLevel.GetValue() == 0)
@@ -510,14 +522,28 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 	return true;
 }
 
+//void archsim_aa_wrapper(llvm::Pass &pass, llvm::Function &function, llvm::AAResults &results)
+//{
+//	results.addAAResult(*new ArchSimAA(pass.getAnalysis<llvm::TargetLibraryInfoWrapperPass>().getTLI()));
+//}
+
 bool LLVMOptimiser::AddPass(::llvm::Pass *pass)
 {
-	if (!archsim::options::JitDisableAA) {
-//		pm.add(createArcSimAliasAnalysisPass());
-	}
-	pm.add(::llvm::createBasicAAWrapperPass());
 	pm.add(pass);
 
+	if (!archsim::options::JitDisableAA) {
+//		pm.add(new ArchsimAAWrapper());
+		if(my_aa_ == nullptr) {
+			my_aa_ = new ArchSimAA();
+		}
+		pm.add(new RecoverAAInfoPass());
+		pm.add(llvm::createExternalAAWrapperPass([&](llvm::Pass &pass, llvm::Function &function, llvm::AAResults &results) {
+			results.addAAResult(*my_aa_);
+		}));
+	}
+//	pm.add(::llvm::createBasicAAWrapperPass());
+
+//	llvm::createBasicAAWrapperPass();
 	return true;
 }
 
@@ -530,4 +556,72 @@ bool LLVMOptimiser::Optimise(::llvm::Module* module, const ::llvm::DataLayout &d
 	pm.run(*module);
 
 	return true;
+}
+
+ArchsimAAWrapper::ArchsimAAWrapper() : FunctionPass(ID)
+{
+	initializeArchsimAA(*llvm::PassRegistry::getPassRegistry());
+}
+char ArchsimAAWrapper::ID = 0;
+char RecoverAAInfoPass::ID = 0;
+
+RecoverAAInfoPass::RecoverAAInfoPass() : llvm::FunctionPass(ID)
+{
+
+}
+
+bool RecoverAAInfoPass::runOnFunction(llvm::Function& F)
+{
+	// only bother with entry block
+	auto &block = F.getEntryBlock();
+
+	auto reg_file_ptr = &*F.arg_begin();
+
+	for(auto &insn : block) {
+		if(llvm::isa<llvm::IntToPtrInst>(insn)) {
+			llvm::IntToPtrInst *inst = (llvm::IntToPtrInst*)&insn;
+			if(inst->getMetadata("aaai") != nullptr) {
+				// already has metadata, don't care about this one
+				continue;
+			}
+
+			auto op0 = inst->getOperand(0);
+
+			// we care if it's an add of reg file ptr plus a constant
+			if(op0->getValueID() != (llvm::Instruction::InstructionVal + llvm::Instruction::Add)) {
+				continue;
+			}
+			auto add_inst = (llvm::Instruction*)op0;
+			auto add_op0 = add_inst->getOperand(0);
+			auto add_op1 = add_inst->getOperand(1);
+
+			// add op0 should be a ptrtoint
+			if(add_op0->getValueID() != (llvm::Instruction::InstructionVal + llvm::Instruction::PtrToInt)) {
+				continue;
+			}
+
+			auto ptrtoint = (llvm::PtrToIntInst*)add_inst->getOperand(0);
+			auto ptrtoint_op = ptrtoint->getOperand(0);
+
+			if(ptrtoint_op == reg_file_ptr) {
+				if(add_op1->getValueID() == llvm::Constant::ConstantIntVal) {
+					auto addend = ((llvm::ConstantInt*)add_op1)->getValue().getZExtValue();
+					auto size = inst->getType()->getPointerElementType()->getScalarSizeInBits() / 8;
+
+					inst->setMetadata("aaai", llvm::MDNode::get(F.getContext(), {
+						llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(F.getContext()), (int)TAG_REG_ACCESS)),
+						llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(F.getContext()), (int)addend)),
+						llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(F.getContext()), (int)addend + size)),
+						llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(F.getContext()), (int)size))
+					}));
+				} else {
+					inst->setMetadata("aaai", llvm::MDNode::get(F.getContext(), {
+						llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(F.getContext()), (int)TAG_REG_ACCESS))
+					}));
+				}
+			}
+		}
+	}
+
+	return false;
 }

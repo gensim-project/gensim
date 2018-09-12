@@ -473,8 +473,10 @@ guest_addr_t RegionBasedMemoryModel::MapAnonymousRegion(guest_size_t size, Regio
 	// Attempt to map it.
 	if (MapRegion(addr, size, prot, ""))
 		return addr;
-	else
+	else {
+		LC_ERROR(LogMemoryModel) << "Failed to map anonymous region!";
 		return Address(-1);
+	}
 }
 
 bool RegionBasedMemoryModel::RemapRegion(guest_addr_t addr, guest_size_t size)
