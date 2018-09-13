@@ -17,5 +17,8 @@ void ThreadMetricPrinter::PrintStats(const ThreadMetrics& metrics, std::ostream 
 	str << "Write hits: " << metrics.WriteHits.get_value() << std::endl;
 
 	str << "Self Runtime: " << metrics.SelfRuntime.GetElapsedS() << " seconds" << std::endl;
+	str << "JIT Runtime: " << metrics.JITTime.GetElapsedS() << " seconds" << std::endl;
 	str << "Execution Rate: " << (metrics.InstructionCount.get_value() / 1000000.0) / metrics.SelfRuntime.GetElapsedS() << " MIPS" << std::endl;
+
+	str << "JIT Rate: " << (metrics.JITInstructionCount.get_value() / 1000000.0) / metrics.JITTime.GetElapsedS() << " MIPS" << std::endl;
 }

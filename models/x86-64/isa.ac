@@ -53,6 +53,7 @@ AC_ISA(x86)
 	ac_field<Operand> op2;
 	ac_field<uint8> condition;
 	ac_field<uint8> lock;
+	ac_field<uint8> is_predicated;
 	
 	ISA_CTOR(x86)
 	{

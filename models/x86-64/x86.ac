@@ -45,12 +45,12 @@ AC_ARCH(x86)
 	// Flags
 	ac_regspace(16) {
 		slot CF (uint8, 1, 0) C;
-		slot PF (uint8, 1, 1);
-		slot AF (uint8, 1, 2);
-		slot ZF (uint8, 1, 3) Z;
-		slot SF (uint8, 1, 4) N;
+		slot OF (uint8, 1, 1) V;
+		slot ZF (uint8, 1, 2) Z;
+		slot SF (uint8, 1, 3) N;
+		slot PF (uint8, 1, 4);
 		slot DF (uint8, 1, 5);
-		slot OF (uint8, 1, 6) V;
+		slot AF (uint8, 1, 6);
 	}
 	
 	ac_regspace(16384) {

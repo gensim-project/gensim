@@ -603,6 +603,8 @@ bool X86Decoder::DecodeFlow(void* inst_)
 	auto category = xed_decoded_inst_get_category(inst);
 	auto iclass = xed_decoded_inst_get_iclass(inst);
 	ClearEndOfBlock();
+	ClearIsPredicated();
+	is_predicated = 0;
 
 	if(iclass >= XED_ICLASS_REPE_CMPSB && iclass <= XED_ICLASS_REP_STOSW) {
 		SetEndOfBlock();
@@ -617,6 +619,12 @@ bool X86Decoder::DecodeFlow(void* inst_)
 			break;
 		default:
 			break;
+	}
+
+	if(category == XED_CATEGORY_COND_BR) {
+		is_predicated = 1;
+		SetIsPredicated();
+		condition = GetCondition(iclass);
 	}
 
 	return true;
@@ -657,7 +665,6 @@ bool X86Decoder::DecodeLock(void* inst)
 
 	return true;
 }
-
 
 int X86Decoder::DecodeInstr(Address addr, int mode, MemoryInterface& interface)
 {

@@ -42,7 +42,7 @@ static llvm::TargetMachine *GetNativeMachine()
 		llvm::InitializeNativeTargetAsmPrinter();
 		llvm::InitializeNativeTargetAsmParser();
 		machine = llvm::EngineBuilder().selectTarget();
-		machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
+		machine->setOptLevel(llvm::CodeGenOpt::Default);
 		machine->setFastISel(true);
 	}
 
@@ -296,21 +296,74 @@ LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUni
 	return txln;
 }
 
-llvm::BasicBlock *BuildDispatchBlock(gensim::BaseLLVMTranslate *txlt, TranslationWorkUnit &unit, llvm::Function *function, std::map<archsim::Address, llvm::BasicBlock*> &blocks, llvm::BasicBlock *exit_block)
+void BuildJumpTable(gensim::BaseLLVMTranslate *txlt, TranslationWorkUnit &unit, llvm::Function *function, std::map<archsim::Address, llvm::BasicBlock*> &blocks, llvm::BasicBlock *dispatch_block, llvm::BasicBlock *exit_block)
+{
+	llvm::IRBuilder<> builder(dispatch_block);
+	tx_llvm::LLVMTranslationContext ctx(function->getContext(), function->getParent(), unit.GetThread());
+	ctx.SetBuilder(builder);
+
+	auto arraytype = llvm::ArrayType::get(ctx.Types.i8Ptr, 4096);
+	std::map<archsim::Address, llvm::BlockAddress*> ptrs;
+
+	std::set<llvm::BasicBlock*> entry_blocks;
+	for(auto b : unit.GetBlocks()) {
+		if(b.second->IsEntryBlock()) {
+			entry_blocks.insert(blocks.at(b.first));
+			auto block_address = llvm::BlockAddress::get(function, blocks.at(b.first));
+			ptrs[b.first.PageOffset()] = block_address;
+		}
+	}
+
+	auto exit_block_ptr = llvm::BlockAddress::get(function, exit_block);
+
+	std::vector<llvm::Constant *> constants;
+	for(archsim::Address a = archsim::Address(0); a < archsim::Address(0x1000); a += 1) {
+		if(ptrs.count(a.PageOffset())) {
+			constants.push_back(ptrs.at(a));
+		} else {
+			constants.push_back(exit_block_ptr);
+		}
+	}
+
+	llvm::ConstantArray *block_jump_table = (llvm::ConstantArray*)llvm::ConstantArray::get(arraytype, constants);
+
+	llvm::Constant *constant = function->getParent()->getOrInsertGlobal("jump_table", arraytype);
+	llvm::GlobalVariable *gv = function->getParent()->getGlobalVariable("jump_table");
+	gv->setConstant(true);
+	gv->setInitializer(block_jump_table);
+
+	auto pc = txlt->EmitRegisterRead(ctx, 8, 128);
+
+	// need to make sure we're still on the right page
+	auto pc_check_less = ctx.GetBuilder().CreateICmpULT(pc, llvm::ConstantInt::get(ctx.Types.i64, unit.GetRegion().GetPhysicalBaseAddress().Get()));
+	auto pc_check_greater = ctx.GetBuilder().CreateICmpUGT(pc, llvm::ConstantInt::get(ctx.Types.i64, unit.GetRegion().GetPhysicalBaseAddress().Get() + 4096));
+	auto pc_check = ctx.GetBuilder().CreateOr(pc_check_less, pc_check_greater);
+
+	llvm::BasicBlock *on_page_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "jump_table_block", function);
+	ctx.GetBuilder().CreateCondBr(pc_check, exit_block, on_page_block);
+
+	ctx.SetBlock(on_page_block);
+
+	auto pc_offset = builder.CreateAnd(pc, archsim::Address::PageMask);
+	auto target = ctx.GetBuilder().CreateGEP(gv, {llvm::ConstantInt::get(ctx.Types.i64, 0), pc_offset});
+	target = ctx.GetBuilder().CreateLoad(target);
+	auto indirectbr = ctx.GetBuilder().CreateIndirectBr(target);
+
+	for(auto i : entry_blocks) {
+		// todo: entry blocks only
+		indirectbr->addDestination(i);
+	}
+	indirectbr->addDestination(exit_block);
+}
+
+void BuildSwitchStatement(gensim::BaseLLVMTranslate *txlt, TranslationWorkUnit &unit, llvm::Function *function, std::map<archsim::Address, llvm::BasicBlock*> &blocks, llvm::BasicBlock *dispatch_block, llvm::BasicBlock *exit_block)
 {
 	std::set<archsim::Address> entry_blocks;
-	auto *entry_block = &function->getEntryBlock();
 	for(auto b : unit.GetBlocks()) {
-		auto block_block = llvm::BasicBlock::Create(function->getContext(), "block_" + std::to_string(b.first.Get()), function);
-		blocks[b.first] = block_block;
-
 		if(b.second->IsEntryBlock()) {
 			entry_blocks.insert(b.first);
 		}
 	}
-
-	llvm::BasicBlock *dispatch_block = llvm::BasicBlock::Create(function->getContext(), "dispatch", function);
-	llvm::BranchInst::Create(dispatch_block, entry_block);
 
 	llvm::IRBuilder<> builder(dispatch_block);
 	tx_llvm::LLVMTranslationContext ctx(function->getContext(), function->getParent(), unit.GetThread());
@@ -324,8 +377,156 @@ llvm::BasicBlock *BuildDispatchBlock(gensim::BaseLLVMTranslate *txlt, Translatio
 			switch_inst->addCase(llvm::ConstantInt::get(llvm::Type::getInt64Ty(function->getContext()), unit.GetRegion().GetPhysicalBaseAddress().Get() + block.first.GetPageOffset()), block.second);
 		}
 	}
+}
+
+llvm::BasicBlock *BuildDispatchBlock(gensim::BaseLLVMTranslate *txlt, TranslationWorkUnit &unit, llvm::Function *function, std::map<archsim::Address, llvm::BasicBlock*> &blocks, llvm::BasicBlock *exit_block)
+{
+	auto *entry_block = &function->getEntryBlock();
+	for(auto b : unit.GetBlocks()) {
+		auto block_block = llvm::BasicBlock::Create(function->getContext(), "block_" + std::to_string(b.first.Get()), function);
+		blocks[b.first] = block_block;
+	}
+
+	llvm::BasicBlock *dispatch_block = llvm::BasicBlock::Create(function->getContext(), "dispatch", function);
+	llvm::BranchInst::Create(dispatch_block, entry_block);
+
+	BuildJumpTable(txlt, unit, function, blocks, dispatch_block, exit_block);
 
 	return dispatch_block;
+}
+
+void EmitControlFlow_FallOffPage(tx_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, std::map<archsim::Address, llvm::BasicBlock*> &block_map, llvm::BasicBlock *dispatch_block)
+{
+	ctx.GetBuilder().CreateRetVoid();
+}
+
+void EmitControlFlow_DirectNonPred(tx_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, std::map<archsim::Address, llvm::BasicBlock*> &block_map, llvm::BasicBlock *dispatch_block, gensim::JumpInfo &ji)
+{
+	llvm::BasicBlock *taken_block = dispatch_block;
+
+	if(ji.JumpTarget >= unit.GetRegion().GetPhysicalBaseAddress() && ji.JumpTarget < unit.GetRegion().GetPhysicalBaseAddress() + 4096) {
+		// jump target is on page
+		if(block_map.count(ji.JumpTarget.PageOffset())) {
+			taken_block = block_map.at(ji.JumpTarget.PageOffset());
+		}
+	}
+
+	ctx.GetBuilder().CreateBr(taken_block);
+}
+
+void EmitControlFlow_DirectPred(tx_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, std::map<archsim::Address, llvm::BasicBlock*> &block_map, llvm::BasicBlock *dispatch_block, gensim::JumpInfo &ji)
+{
+	llvm::BasicBlock *taken_block = dispatch_block;
+	llvm::BasicBlock *nontaken_block = dispatch_block;
+
+	if(ji.JumpTarget >= unit.GetRegion().GetPhysicalBaseAddress() && ji.JumpTarget < unit.GetRegion().GetPhysicalBaseAddress() + 4096) {
+		// jump target is on page
+		archsim::Address offset = ji.JumpTarget.PageOffset();
+		if(block_map.count(offset)) {
+			taken_block = block_map.at(offset);
+		}
+	}
+
+	auto fallthrough_addr = unit.GetRegion().GetPhysicalBaseAddress() + ctrlflow->GetOffset() + ctrlflow->GetDecode().Instr_Length;
+	if(fallthrough_addr >= unit.GetRegion().GetPhysicalBaseAddress() && fallthrough_addr < unit.GetRegion().GetPhysicalBaseAddress() + 4096) {
+		if(block_map.count(fallthrough_addr.PageOffset())) {
+			nontaken_block = block_map.at(fallthrough_addr.PageOffset());
+		}
+	}
+
+	llvm::Value *pc = translate->EmitRegisterRead(ctx, 8, 128);
+	auto branch_was_taken = ctx.GetBuilder().CreateICmpEQ(pc, llvm::ConstantInt::get(ctx.Types.i64, ji.JumpTarget.Get()));
+	ctx.GetBuilder().CreateCondBr(branch_was_taken, taken_block, nontaken_block);
+}
+
+void EmitControlFlow_Indirect(tx_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, std::map<archsim::Address, llvm::BasicBlock*> &block_map, llvm::BasicBlock *dispatch_block)
+{
+	auto pc_val = translate->EmitRegisterRead(ctx, 8, 128);
+	llvm::SwitchInst *out_switch = ctx.GetBuilder().CreateSwitch(pc_val, dispatch_block);
+	for(auto &succ : block.GetSuccessors()) {
+		auto succ_addr = (unit.GetRegion().GetPhysicalBaseAddress() + succ->GetOffset());
+
+		if(block_map.count(succ->GetOffset())) {
+			out_switch->addCase(llvm::ConstantInt::get(ctx.Types.i64, succ_addr.Get()), block_map.at(succ->GetOffset()));
+		}
+	}
+}
+
+
+void EmitControlFlow(tx_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, std::map<archsim::Address, llvm::BasicBlock*> &block_map, llvm::BasicBlock *dispatch_block)
+{
+	// several options here:
+	// 1. an instruction which isn't a jump but happens to be at the end of a block (due to being at the end of the page): return since we can't do anything
+	// 2. a direct non predicated jump: br directly to target block if it is on this page and has been translated
+	// 3. a direct predicated jump: check the PC and either branch to the target block (if it's on this page and has been translated) or to the fallthrough block (if on this page and translated)
+	// 4. an indirect jump: create a switch statement for profiled branch targets, and add the dispatch block to it.
+
+	auto decode = &ctrlflow->GetDecode();
+	auto insn_pc = unit.GetRegion().GetPhysicalBaseAddress() + ctrlflow->GetOffset();
+
+	gensim::JumpInfo ji;
+	auto jip = unit.GetThread()->GetArch().GetISA(decode->isa_mode).GetNewJumpInfo();
+	jip->GetJumpInfo(decode, insn_pc, ji);
+
+	if(!ji.IsJump) {
+		// situation 1
+		EmitControlFlow_FallOffPage(ctx, translate, unit, block, ctrlflow, block_map, dispatch_block);
+	} else {
+		if(!ji.IsIndirect) {
+			if(!ji.IsConditional) {
+				// situation 2
+				EmitControlFlow_DirectNonPred(ctx, translate, unit, block, ctrlflow, block_map, dispatch_block, ji);
+			} else {
+				// situation 3
+				EmitControlFlow_DirectPred(ctx, translate, unit, block, ctrlflow, block_map, dispatch_block, ji);
+			}
+		} else {
+			// situation 4
+			EmitControlFlow_Indirect(ctx, translate, unit, block, ctrlflow, block_map, dispatch_block);
+		}
+	}
+
+	delete jip;
+}
+
+void TranslateInstructionPredicated(tx_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address insn_pc, llvm::Function *fn)
+{
+	gensim::JumpInfo ji;
+	auto jip = thread->GetArch().GetISA(decode->isa_mode).GetNewJumpInfo();
+	jip->GetJumpInfo(decode, insn_pc, ji);
+
+	llvm::Value *predicate_passed = translate->EmitPredicateCheck(ctx, thread, decode, insn_pc, fn);
+	predicate_passed = ctx.GetBuilder().CreateICmpNE(predicate_passed, llvm::ConstantInt::get(predicate_passed->getType(), 0));
+
+	llvm::BasicBlock *passed_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", fn);
+	llvm::BasicBlock *continue_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", fn);
+	llvm::BasicBlock *failed_block = continue_block;
+
+	if(ji.IsJump) {
+		auto prev_block = ctx.GetBuilder().GetInsertBlock();
+
+		// if we're translating a predicated jump, we need to increment the PC only if the predicate fails
+		failed_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", fn);
+
+		ctx.SetBlock(failed_block);
+		translate->EmitRegisterWrite(ctx, 8, 128, llvm::ConstantInt::get(ctx.Types.i64, insn_pc.Get() + decode->Instr_Length));
+		ctx.GetBuilder().CreateBr(continue_block);
+		ctx.SetBlock(prev_block);
+	}
+
+	ctx.GetBuilder().CreateCondBr(predicate_passed, passed_block, failed_block);
+	ctx.SetBlock(passed_block);
+	translate->TranslateInstruction(ctx, thread, decode, insn_pc, fn);
+	ctx.GetBuilder().CreateBr(continue_block);
+
+	ctx.SetBlock(continue_block);
+	// update PC
+
+	if(!ji.IsJump) {
+		translate->EmitRegisterWrite(ctx, 8, 128, llvm::ConstantInt::get(ctx.Types.i64, insn_pc.Get() + decode->Instr_Length));
+	}
+
+	delete jip;
 }
 
 /**
@@ -352,7 +553,7 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 
 	// Create a new llvm module to contain the translation
 	llvm::Module *module = new llvm::Module("region_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()), llvm_ctx);
-	module->setDataLayout(GetNativeMachine()->createDataLayout());
+	module->setDataLayout(target_machine_->createDataLayout());
 
 	auto i8ptrty = llvm::Type::getInt8PtrTy(llvm_ctx);
 	llvm::FunctionType *fn_type = llvm::FunctionType::get(llvm::Type::getVoidTy(llvm_ctx), {i8ptrty, i8ptrty}, false);
@@ -390,29 +591,30 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 				builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i64, insn_pc.Get()), llvm::ConstantInt::get(ctx.Types.i32, insn->GetDecode().ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
 			}
 
-			translate->TranslateInstruction(ctx, unit.GetThread(), &insn->GetDecode(), Address(unit.GetRegion().GetPhysicalBaseAddress() + insn->GetOffset()), fn);
+
+			if(insn->GetDecode().GetIsPredicated()) {
+				TranslateInstructionPredicated(ctx, translate, unit.GetThread(), &insn->GetDecode(), Address(unit.GetRegion().GetPhysicalBaseAddress() + insn->GetOffset()), fn);
+			} else {
+				translate->TranslateInstruction(ctx, unit.GetThread(), &insn->GetDecode(), Address(unit.GetRegion().GetPhysicalBaseAddress() + insn->GetOffset()), fn);
+
+				gensim::JumpInfo jumpinfo;
+				ji->GetJumpInfo(&insn->GetDecode(), Address(0), jumpinfo);
+				if(!jumpinfo.IsJump) {
+					translate_->EmitRegisterWrite(ctx, 8, 128, llvm::ConstantInt::get(ctx.Types.i64, (insn->GetOffset() + unit.GetRegion().GetPhysicalBaseAddress() + insn->GetDecode().Instr_Length).Get()));
+				}
+
+			}
 			ctx.ResetRegisters();
 
-			gensim::JumpInfo jumpinfo;
-			ji->GetJumpInfo(&insn->GetDecode(), Address(0), jumpinfo);
-			if(!jumpinfo.IsJump) {
-				translate_->EmitRegisterWrite(ctx, 8, 128, llvm::ConstantInt::get(ctx.Types.i64, (insn->GetOffset() + unit.GetRegion().GetPhysicalBaseAddress() + insn->GetDecode().Instr_Length).Get()));
-			}
 
 			if(archsim::options::Trace) {
 				builder.CreateCall(ctx.Functions.cpuTraceInsnEnd, {ctx.GetThreadPtr()});
 			}
 		}
 
-		auto pc_val = translate_->EmitRegisterRead(ctx, 8, 128);
-		llvm::SwitchInst *out_switch = builder.CreateSwitch(pc_val, dispatch_block);
-		for(auto &succ : block.second->GetSuccessors()) {
-			auto succ_addr = (unit.GetRegion().GetPhysicalBaseAddress() + succ->GetOffset());
+		// did we have a direct or indirect jump? if direct, then assume the jump is conditional
+		EmitControlFlow(ctx, translate_, unit, *block.second, block.second->GetInstructions().back(), block_map, dispatch_block);
 
-			if(block_map.count(succ->GetOffset())) {
-				out_switch->addCase(llvm::ConstantInt::get(ctx.Types.i64, succ_addr.Get()), block_map.at(succ->GetOffset()));
-			}
-		}
 	}
 
 	llvm::ReturnInst::Create(llvm_ctx, nullptr, exit_block);
@@ -425,6 +627,13 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 
 	// optimise
 	opt.Optimise(module, target_machine_->createDataLayout());
+
+
+	if(archsim::options::Debug) {
+		std::ofstream str("fn_opt_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()));
+		llvm::raw_os_ostream llvm_str (str);
+		module->print(llvm_str, nullptr);
+	}
 
 	// compile
 	auto txln = CompileModule(unit, module, fn);

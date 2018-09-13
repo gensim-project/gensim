@@ -156,10 +156,11 @@ execute(cld) {
 }
 
 execute(cmov) {
-	uint8 condition = check_condition(inst.condition);
-	if(condition) {
+	if(check_condition(inst.condition)) {
 		uint64 value = read_operand(inst.op1);
 		write_operand(inst.op0, value);
+	} else {
+		write_operand(inst.op0, read_operand(inst.op0));
 	}
 }
 
@@ -326,14 +327,8 @@ execute(inc) {
 }
 
 execute(jcond) {
-	uint8 cond = check_condition(inst.condition);
-
-	if(cond) {
-		// not equal
-		write_pc(read_operand(inst.op0));
-	} else {
-		write_pc(read_pc() + inst.Instr_Length);
-	}
+	// instruction predicate handled elsewhere
+	write_pc(read_operand(inst.op0));
 }
 
 execute(jmp) {
@@ -1513,7 +1508,7 @@ helper void update_zs_flags(uint64 value, uint8 width)
 
 helper void update_parity(uint8 value)
 {
-	write_register(PF, (__builtin_popcount(value) & 1) == 0);
+	write_register(PF, (__builtin_popcount((uint32)value) & 1) == 0);
 	return;
 }
 
@@ -1556,4 +1551,16 @@ helper uint8 check_condition(uint8 condition)
 		default: { trap(); }
 	}
 	return 0;
+}
+
+
+internal helper uint8 instruction_is_predicated(struct Instruction &inst)
+{
+// real is_predicated is figured out in x86decoder
+	return inst.is_predicated;
+}
+
+internal helper uint8 instruction_predicate(struct Instruction &inst)
+{
+	return check_condition(inst.condition);
 }

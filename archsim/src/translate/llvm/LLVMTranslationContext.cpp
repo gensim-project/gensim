@@ -138,6 +138,8 @@ void LLVMTranslationContext::SetBuilder(llvm::IRBuilder<>& builder)
 
 llvm::Value* LLVMTranslationContext::GetRegPtr(int offset, llvm::Type* type)
 {
+#define INTERN_REG_PTRS
+#ifdef INTERN_REG_PTRS
 	if(guest_reg_ptrs_.count({offset, type}) == 0) {
 
 		// insert pointer calculation into header block
@@ -161,6 +163,20 @@ llvm::Value* LLVMTranslationContext::GetRegPtr(int offset, llvm::Type* type)
 	}
 
 	return guest_reg_ptrs_.at({offset, type});
+#else
+	llvm::Value *ptr = (llvm::Instruction*)GetBuilder().CreatePtrToInt(GetRegStatePtr(), Types.i64);
+	ptr = GetBuilder().CreateAdd(ptr, llvm::ConstantInt::get(Types.i64, offset));
+	ptr = GetBuilder().CreateIntToPtr(ptr, type->getPointerTo(0));
+	((llvm::Instruction*)ptr)->setMetadata("aaai", llvm::MDNode::get(LLVMCtx, {
+		llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(Types.i32, archsim::translate::translate_llvm::TAG_REG_ACCESS)),
+		llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(Types.i32, offset)),
+		llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(Types.i32, offset + type->getScalarSizeInBits()/8)),
+		llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(Types.i32, type->getScalarSizeInBits()/8))
+	}
+	                                                                ));
+
+	return ptr;
+#endif
 }
 
 llvm::Value* LLVMTranslationContext::LoadRegister(int name)

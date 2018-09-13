@@ -102,6 +102,160 @@ void initializeArchsimAA(llvm::PassRegistry &Registry)
 	llvm::call_once(initializeArchsimAAOnceFlag, initializeArchsimAAOnce, std::ref(Registry));
 }
 
+bool TryRecover_RegAccess(const llvm::Value *v, std::vector<int> &aaai)
+{
+	if(const llvm::BitCastInst *bc = llvm::dyn_cast<const llvm::BitCastInst>(v)) {
+		const llvm::Value *reg_file_ptr = &*bc->getParent()->getParent()->arg_begin();
+		if(bc->getOperand(0) == reg_file_ptr) {
+			int addend = 0;
+			int size = bc->getType()->getPointerElementType()->getScalarSizeInBits()/8;
+			aaai = {TAG_REG_ACCESS, addend, addend + size, size};
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	if(const llvm::IntToPtrInst *inst = llvm::dyn_cast<const llvm::IntToPtrInst>(v)) {
+		const llvm::Value *reg_file_ptr = &*inst->getParent()->getParent()->arg_begin();
+
+		auto op0 = inst->getOperand(0);
+
+		// either we have an add of a ptr to int and a constant, or we have a ptrtoint (with an addend of 0)
+		int addend = 0;
+		bool is_constant = true;
+		llvm::Instruction *ptrtoint = nullptr;
+
+		const llvm::BinaryOperator *add_inst = llvm::dyn_cast<const llvm::BinaryOperator>(op0);
+		if(add_inst != nullptr && add_inst->getOpcode() == llvm::BinaryOperator::Add) {
+			auto add_op0 = add_inst->getOperand(0);
+			auto add_op1 = add_inst->getOperand(1);
+
+			// add op0 should be a ptrtoint
+			if(!llvm::isa<llvm::PtrToIntInst>(add_op0)) {
+				return false;
+			}
+
+			ptrtoint = (llvm::PtrToIntInst*)add_op0;
+
+			if(const llvm::ConstantInt *constant_val = llvm::dyn_cast<const llvm::ConstantInt>(add_op1)) {
+				addend = constant_val->getValue().getZExtValue();
+			} else {
+				is_constant = false;
+			}
+		} else {
+			ptrtoint = (llvm::Instruction*)op0;
+		}
+		auto ptrtoint_op = ptrtoint->getOperand(0);
+
+		if(ptrtoint_op == reg_file_ptr) {
+			int size = inst->getType()->getPointerElementType()->getScalarSizeInBits() / 8;
+
+			if(is_constant) {
+				aaai = {(int)TAG_REG_ACCESS, addend, addend + size, size};
+				return true;
+			} else {
+				aaai = {(int)TAG_REG_ACCESS};
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool TryRecover_MemAccess(const llvm::Value *v, std::vector<int>& aaai)
+{
+	// mem access is an inttoptr (add (something), (0x80000000))
+	const llvm::IntToPtrInst *i2p = llvm::dyn_cast<const llvm::IntToPtrInst>(v);
+	if(i2p != nullptr) {
+		const llvm::BinaryOperator *add_inst = llvm::dyn_cast<const llvm::BinaryOperator>(i2p->getOperand(0));
+		if(add_inst != nullptr && add_inst->getOpcode() == llvm::BinaryOperator::Add) {
+			const llvm::ConstantInt *op0 = llvm::dyn_cast<const llvm::ConstantInt>(add_inst->getOperand(0));
+			const llvm::ConstantInt *op1 = llvm::dyn_cast<const llvm::ConstantInt>(add_inst->getOperand(1));
+
+			if(op0 != nullptr) {
+				// look for the contiguous memory base, minus some amount to account for constant folding in llvm
+				if(op0->getZExtValue() >= 0x80000000 - 4096) { // this is super unsafe: is there some way we can do better?
+					aaai = {TAG_MEM_ACCESS};
+					return true;
+				}
+			}
+			if(op1 != nullptr) {
+				// look for the contiguous memory base, minus some amount to account for constant folding in llvm
+				if(op1->getZExtValue() >= 0x80000000 - 4096) { // this is super unsafe: is there some way we can do better?
+					aaai = {TAG_MEM_ACCESS};
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+bool TryRecover_StateBlock(const llvm::Value *v, std::vector<int> &aaai)
+{
+	// state block access is anything indexed off of arg 1 (%1)
+
+	// try thread ptr
+	const llvm::BitCastInst *bitcast = llvm::dyn_cast<const llvm::BitCastInst>(v);
+	if(bitcast != nullptr) {
+		auto state_block_ptr = &*(bitcast->getParent()->getParent()->arg_begin() + 1);
+
+		if(bitcast->getOperand(0) == state_block_ptr) {
+			aaai = {TAG_CPU_STATE};
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// attempt to figure out what v actually is
+bool RecoverAAAI(const llvm::Value *v, std::vector<int> &output_aaai)
+{
+//	fprintf(stderr, "Trying to recover aaai for %p\n", v);
+	if(TryRecover_RegAccess(v, output_aaai)) {
+//		fprintf(stderr, "Successfully recovered register access for %p\n", v);
+		return true;
+	}
+	if(TryRecover_MemAccess(v, output_aaai)) {
+		return true;
+	}
+	if(TryRecover_StateBlock(v, output_aaai)) {
+		return true;
+	}
+
+//	fprintf(stderr, "Couldn't recover anything for %p!\n", v);
+	return false;
+}
+
+bool GetArchsimAliasAnalysisInfo(const llvm::Value *v, std::vector<int>& out)
+{
+	out.clear();
+	if(const llvm::Instruction *inst = llvm::dyn_cast<const llvm::Instruction>(v)) {
+		auto mdnode = inst->getMetadata("aaai");
+		if(mdnode) {
+			for(int i = 0; i < mdnode->getNumOperands(); ++i) {
+				auto &op = mdnode->getOperand(i);
+
+				llvm::ConstantAsMetadata *constant = llvm::dyn_cast<llvm::ConstantAsMetadata>(op);
+				if(!constant) {
+					throw std::logic_error("unexpected metadata node");
+				}
+
+				llvm::ConstantInt *ci = llvm::dyn_cast<llvm::ConstantInt>(constant->getValue());
+				if(!ci) {
+					throw std::logic_error("unexpected metadata constant");
+				}
+
+				out.push_back(ci->getZExtValue());
+			}
+			return true;
+		}
+	}
+
+	return RecoverAAAI(v, out);
+}
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -147,6 +301,8 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 {
 	const llvm::Value *v1 = L1.Ptr, *v2 = L2.Ptr;
 
+	std::vector<int> metadata_1, metadata_2;
+
 	if (IsInstr(v1) && IsInstr(v2)) {
 		// Allocas do not alias with anytihng.
 		if (IsAlloca(v1) || IsAlloca(v2)) {
@@ -158,14 +314,14 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 		const llvm::Instruction *i2 = (const llvm::Instruction *)v2;
 
 		// Retrieve the ArcSim Alias-Analysis Information metadata node.
-		const llvm::MDNode *md1 = i1->getMetadata("aaai");
-		const llvm::MDNode *md2 = i2->getMetadata("aaai");
+		GetArchsimAliasAnalysisInfo(i1, metadata_1);
+		GetArchsimAliasAnalysisInfo(i2, metadata_2);
 
 		// We must have AAAI for BOTH instructions to proceed.
-		if (md1 != NULL && md2 != NULL && md1->getNumOperands() >= 1 && md2->getNumOperands() >= 1) {
+		if (metadata_1.size() && metadata_2.size()) {
 
-			uint64_t tag_1 = CONSTVAL(md1->getOperand(0).get());
-			uint64_t tag_2 = CONSTVAL(md2->getOperand(0).get());
+			uint64_t tag_1 = metadata_1.at(0);
+			uint64_t tag_2 = metadata_2.at(0);
 
 			// Actually I break the below guarantee by saying that an SMM_PAGE could alias with MEM
 			if(tag_1 == TAG_SMM_PAGE && tag_2 == TAG_MEM_ACCESS) return llvm::MayAlias;
@@ -175,7 +331,7 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 				// Tagged memory operations that have different types cannot alias.  I guarantee it.
 				return llvm::NoAlias;
 			} else {
-				AliasAnalysisTag tag = (AliasAnalysisTag)CONSTVAL(md1->getOperand(0));
+				AliasAnalysisTag tag = (AliasAnalysisTag)metadata_1.at(0);
 				switch (tag) {
 					case TAG_REG_ACCESS: {
 						// The new register model produces alias information specifying the
@@ -185,50 +341,44 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 						// If the number of operands is low, this indicates an automatically
 						// generated register access which we should treat as MayAlias in all
 						// cases.
-						if(md1->getNumOperands() == 1 || md2->getNumOperands() == 1) return llvm::MayAlias;
+						if(metadata_1.size() == 1 || metadata_2.size() == 1) return llvm::MayAlias;
 
-						auto &min1_val = md1->getOperand(1);
-						auto &max1_val = md1->getOperand(2);
+						auto &min1_val = metadata_1.at(1);
+						auto &max1_val = metadata_1.at(2);
 
-						auto &size1_val = md1->getOperand(3);
+						auto &size1_val = metadata_1.at(3);
 
-						auto &min2_val = md2->getOperand(1);
-						auto &max2_val = md2->getOperand(2);
+						auto &min2_val = metadata_2.at(1);
+						auto &max2_val = metadata_2.at(2);
 
-						auto &size2_val = md2->getOperand(3);
+						auto &size2_val = metadata_2.at(3);
 
-						assert(IsConstVal(size1_val) && IsConstVal(size2_val));
-						uint32_t size1 = CONSTVAL(size1_val);
-						uint32_t size2 = CONSTVAL(size2_val);
+						uint32_t size1 = (size1_val);
+						uint32_t size2 = (size2_val);
 
 						assert(size1 && size2);
 
-						if(IsConstVal(min1_val) && IsConstVal(max1_val) && IsConstVal(min2_val) && IsConstVal(max2_val)) {
-							uint32_t min1 = CONSTVAL(min1_val);
-							uint32_t max1 = CONSTVAL(max1_val);
-							uint32_t min2 = CONSTVAL(min2_val);
-							uint32_t max2 = CONSTVAL(max2_val);
+						uint32_t min1 = (min1_val);
+						uint32_t max1 = (max1_val);
+						uint32_t min2 = (min2_val);
+						uint32_t max2 = (max2_val);
 
-							assert(min1 != max1);
-							assert(min2 != max2);
+						assert(min1 != max1);
+						assert(min2 != max2);
 
-							// If the extents are identical (and the sizes are the same), the pointers MUST alias
-							if((min1 == min2) && (max1 == max2) && (size1 == size2)) {
-								return llvm::MustAlias;
-							}
+						// If the extents are identical (and the sizes are the same), the pointers MUST alias
+						if((min1 == min2) && (max1 == max2) && (size1 == size2)) {
+							return llvm::MustAlias;
+						}
 
-							// If the extents overlap, the pointers MAY alias
-							if((min1 < max2) && (max1 > min2)) {
+						// If the extents overlap, the pointers MAY alias
+						if((min1 < max2) && (max1 > min2)) {
 //							printf("MAY alias: %u->%u (%u) vs %u->%u (%u)\n", min1, max1, size1, min2, max2, size2);
-								return llvm::MayAlias;
-							}
-							// If there is no overlap, the pointers DO NOT alias
-							else {
-								return llvm::NoAlias;
-							}
-						} else {
-							// If we can't evaluate one of the extents, then we don't know if the pointers alias or not
 							return llvm::MayAlias;
+						}
+						// If there is no overlap, the pointers DO NOT alias
+						else {
+							return llvm::NoAlias;
 						}
 
 						break;
@@ -290,14 +440,16 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 		// Allocas don't alias with anything.
 		return llvm::NoAlias;
 	} else if ((IsInstr(v1) || IsInstr(v2)) && (IsConstExpr(v1) || IsConstExpr(v2))) {
-		const llvm::Instruction *insn = IsInstr(v1) ? (const llvm::Instruction *)v1 : (const llvm::Instruction *)v2;
-		const llvm::MDNode *insn_md = insn->getMetadata("aaai");
+		// I don't understand what's happening here
 
-		if (insn_md != NULL && CONSTVAL(insn_md->getOperand(0)) == TAG_MEM_ACCESS) {
-			return llvm::MayAlias;
-		} else {
-			return llvm::NoAlias;
-		}
+//		const llvm::Instruction *insn = IsInstr(v1) ? (const llvm::Instruction *)v1 : (const llvm::Instruction *)v2;
+//		const llvm::MDNode *insn_md = insn->getMetadata("aaai");
+//
+//		if (insn_md != NULL && CONSTVAL(insn_md->getOperand(0)) == TAG_MEM_ACCESS) {
+//			return llvm::MayAlias;
+//		} else {
+//			return llvm::NoAlias;
+//		}
 
 	} else if (IsConstExpr(v1) && IsConstExpr(v2)) {
 		const llvm::ConstantExpr *c1 = (const llvm::ConstantExpr *)v1;
@@ -313,8 +465,9 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 				return llvm::MustAlias;
 			else
 				return llvm::NoAlias;
-		} else
+		} else {
 			return llvm::MayAlias; // TODO: We might be able to be cleverer here.
+		}
 	}
 
 	return llvm::MayAlias; // TODO: We might be able to be cleverer here.
@@ -536,7 +689,6 @@ bool LLVMOptimiser::AddPass(::llvm::Pass *pass)
 		if(my_aa_ == nullptr) {
 			my_aa_ = new ArchSimAA();
 		}
-		pm.add(new RecoverAAInfoPass());
 		pm.add(llvm::createExternalAAWrapperPass([&](llvm::Pass &pass, llvm::Function &function, llvm::AAResults &results) {
 			results.addAAResult(*my_aa_);
 		}));
@@ -578,49 +730,7 @@ bool RecoverAAInfoPass::runOnFunction(llvm::Function& F)
 	auto reg_file_ptr = &*F.arg_begin();
 
 	for(auto &insn : block) {
-		if(llvm::isa<llvm::IntToPtrInst>(insn)) {
-			llvm::IntToPtrInst *inst = (llvm::IntToPtrInst*)&insn;
-			if(inst->getMetadata("aaai") != nullptr) {
-				// already has metadata, don't care about this one
-				continue;
-			}
 
-			auto op0 = inst->getOperand(0);
-
-			// we care if it's an add of reg file ptr plus a constant
-			if(op0->getValueID() != (llvm::Instruction::InstructionVal + llvm::Instruction::Add)) {
-				continue;
-			}
-			auto add_inst = (llvm::Instruction*)op0;
-			auto add_op0 = add_inst->getOperand(0);
-			auto add_op1 = add_inst->getOperand(1);
-
-			// add op0 should be a ptrtoint
-			if(add_op0->getValueID() != (llvm::Instruction::InstructionVal + llvm::Instruction::PtrToInt)) {
-				continue;
-			}
-
-			auto ptrtoint = (llvm::PtrToIntInst*)add_inst->getOperand(0);
-			auto ptrtoint_op = ptrtoint->getOperand(0);
-
-			if(ptrtoint_op == reg_file_ptr) {
-				if(add_op1->getValueID() == llvm::Constant::ConstantIntVal) {
-					auto addend = ((llvm::ConstantInt*)add_op1)->getValue().getZExtValue();
-					auto size = inst->getType()->getPointerElementType()->getScalarSizeInBits() / 8;
-
-					inst->setMetadata("aaai", llvm::MDNode::get(F.getContext(), {
-						llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(F.getContext()), (int)TAG_REG_ACCESS)),
-						llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(F.getContext()), (int)addend)),
-						llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(F.getContext()), (int)addend + size)),
-						llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(F.getContext()), (int)size))
-					}));
-				} else {
-					inst->setMetadata("aaai", llvm::MDNode::get(F.getContext(), {
-						llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(F.getContext()), (int)TAG_REG_ACCESS))
-					}));
-				}
-			}
-		}
 	}
 
 	return false;

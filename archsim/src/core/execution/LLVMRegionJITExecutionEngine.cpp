@@ -73,7 +73,9 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 				LC_DEBUG3(LogRegionJIT) << "Region " << region.GetPhysicalBaseAddress() << " has translations";
 				if(region.txln != nullptr && region.txln->ContainsBlock(virt_pc.PageOffset())) {
 					LC_DEBUG3(LogRegionJIT) << "Translation found for current block";
+					thread->GetMetrics().JITTime.Start();
 					region.txln->Execute(thread);
+					thread->GetMetrics().JITTime.Stop();
 					continue;
 				} else {
 					LC_DEBUG3(LogRegionJIT) << "Translation NOT found for current block";
