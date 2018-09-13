@@ -29,9 +29,6 @@ ADD_EXECUTABLE(archsim src/main.cpp)
 
 standard_flags(archsim)
 standard_flags(archsim-core)
-TARGET_COMPILE_OPTIONS(archsim PRIVATE -shared -pie -Wl,-z,now)
-
-
 
 TARGET_COMPILE_OPTIONS(archsim-core PRIVATE ${archsim_extra_options} -fomit-frame-pointer)
 

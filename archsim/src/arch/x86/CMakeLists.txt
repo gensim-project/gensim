@@ -1,6 +1,7 @@
 archsim_add_sources(
 	X86DecodeContext.cpp
 	X86Decoder.cpp
+	X86JumpInfo.cpp
 	X86LinuxUserEmulationModel.cpp
 	X86DoomLinuxUserEmulationModel.cpp
 )

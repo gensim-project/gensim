@@ -42,6 +42,7 @@ namespace gensim
 				str << "public:";
 				str << "virtual ~LLVMTranslate" << Manager.GetArch().Name << "();";
 				str << "virtual bool TranslateInstruction(archsim::translate::tx_llvm::LLVMTranslationContext &ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) override;";
+				str << "virtual llvm::Value *EmitPredicateCheck(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) override;";
 
 				str << "private:";
 				for(auto i : Manager.GetArch().ISAs) {
@@ -81,6 +82,32 @@ namespace gensim
 				std::vector<std::string> headers = {"llvm_translate.h"};
 
 				Manager.AddFunctionEntry(FunctionEntry(prototype, str.str(), headers));
+
+				return true;
+			}
+
+			bool GeneratePredicateChecker(gensim::isa::ISADescription &isa) const
+			{
+				std::string prototype = "llvm::Value *LLVMTranslate" + Manager.GetArch().Name + "::EmitPredicateCheck(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn)";
+				util::cppformatstream str, header;
+				str << prototype << " { ";
+
+				str << "::llvm::Module *module = fn->getParent();";
+				str << "::llvm::LLVMContext &llvm_ctx = module->getContext();";
+				str << "::llvm::IRBuilder<> &__irBuilder = ctx.GetBuilder();";
+				str << "::llvm::Value *__result = nullptr;";
+				str << "bool __trace = false;";
+
+				DynamicTranslationGenerator dtg (Manager);
+				auto ssa_action = (gensim::genc::ssa::SSAFormAction*)isa.GetSSAContext().GetAction("instruction_predicate");
+
+				str << "auto &" << ssa_action->ParamSymbols.at(0)->GetName() << " = *(const gensim::" << Manager.GetArch().Name << "::Decode *)decode;";
+				dtg.EmitDynamicEmitter(str, header, *(gensim::genc::ssa::SSAFormAction*)ssa_action, "lol");
+
+				str << "return __result;";
+				str << " }";
+
+				Manager.AddFunctionEntry(FunctionEntry(prototype, str.str(), {"llvm_translate.h"}));
 
 				return true;
 			}
@@ -147,6 +174,7 @@ namespace gensim
 				// generate isa dispatch functions
 				for(auto isa : Manager.GetArch().ISAs) {
 					GenerateTranslatorFor(*isa);
+					GeneratePredicateChecker(*isa);
 				}
 
 				return true;

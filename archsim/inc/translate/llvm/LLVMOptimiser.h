@@ -63,6 +63,7 @@ namespace archsim
 				{
 					auto &TLIWP = getAnalysis<llvm::TargetLibraryInfoWrapperPass>();
 					aa_.reset(new ArchSimAA());
+					return false;
 				}
 				void getAnalysisUsage(llvm::AnalysisUsage &AU) const override
 				{

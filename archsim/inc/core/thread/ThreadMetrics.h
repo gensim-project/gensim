@@ -41,6 +41,7 @@ namespace archsim
 				archsim::util::Counter64 Writes;
 
 				archsim::util::Counter64 JITInstructionCount;
+				archsim::util::CounterTimer JITTime;
 			};
 
 			class ThreadMetricPrinter
