@@ -107,6 +107,20 @@ bool ContiguousMemoryModel::LockRegion(guest_addr_t guest_addr, guest_size_t gue
 	return true;
 }
 
+bool ContiguousMemoryModel::LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion& regions)
+{
+	ASSERT(guest_addr.GetPageOffset() == 0);
+
+	std::vector<void *> page_ptrs;
+	for(Address a = guest_addr; a < guest_addr + guest_size; a += 4096) {
+		page_ptrs.push_back(GuestToHost(a));
+	}
+
+	regions = LockedMemoryRegion(guest_addr, page_ptrs);
+	return true;
+}
+
+
 bool ContiguousMemoryModel::UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr)
 {
 	return true;

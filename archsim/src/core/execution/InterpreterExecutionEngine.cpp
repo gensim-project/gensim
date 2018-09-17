@@ -31,6 +31,8 @@ InterpreterExecutionEngine::InterpreterExecutionEngine(archsim::interpret::Inter
 
 ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext* thread_ctx)
 {
+	archsim::util::CounterTimerContext self_timer(thread_ctx->GetThread()->GetMetrics().SelfRuntime);
+
 	InterpreterExecutionEngineThreadContext *ieetc = (InterpreterExecutionEngineThreadContext*)thread_ctx;
 	auto thread = thread_ctx->GetThread();
 

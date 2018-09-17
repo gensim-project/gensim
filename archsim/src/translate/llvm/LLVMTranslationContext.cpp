@@ -1,14 +1,184 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
+#include "translate/profile/Region.h"
+#include "translate/TranslationWorkUnit.h"
 #include "translate/llvm/LLVMTranslationContext.h"
 #include "translate/llvm/LLVMAliasAnalysis.h"
 
 using namespace archsim::translate::tx_llvm;
 
-LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Module *module, archsim::core::thread::ThreadInstance *thread) : LLVMCtx(ctx), thread_(thread), Module(module)
+
+LLVMRegionTranslationContext::LLVMRegionTranslationContext(LLVMTranslationContext &ctx, llvm::Function *fn, translate::TranslationWorkUnit &work_unit, llvm::BasicBlock *entry_block, gensim::BaseLLVMTranslate *txlt) : ctx_(ctx), function_(fn), entry_block_(entry_block), txlt_(txlt), region_chain_block_(nullptr)
 {
-	Values.reg_file_ptr = nullptr;
-	Values.state_block_ptr = nullptr;
+	BuildDispatchBlock(work_unit);
+}
+
+void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit)
+{
+	tx_llvm::LLVMTranslationContext ctx(GetFunction()->getContext(), GetFunction(), work_unit.GetThread());
+	llvm::IRBuilder<> builder(GetDispatchBlock());
+//	ctx.SetBuilder(builder);
+
+	auto arraytype = llvm::ArrayType::get(ctx.Types.i8Ptr, 4096);
+	std::map<archsim::Address, llvm::BlockAddress*> ptrs;
+
+	std::set<llvm::BasicBlock*> entry_blocks;
+	for(auto b : work_unit.GetBlocks()) {
+		if(b.second->IsEntryBlock()) {
+			entry_blocks.insert(GetBlockMap().at(b.first));
+			auto block_address = llvm::BlockAddress::get(GetFunction(), GetBlockMap().at(b.first));
+			ptrs[b.first.PageOffset()] = block_address;
+		}
+	}
+
+	auto exit_block = GetExitBlock(EXIT_REASON_NOBLOCK);
+	auto exit_block_ptr = llvm::BlockAddress::get(GetFunction(), exit_block);
+
+	std::vector<llvm::Constant *> constants;
+	for(archsim::Address a = archsim::Address(0); a < archsim::Address(0x1000); a += 1) {
+		if(ptrs.count(a.PageOffset())) {
+			constants.push_back(ptrs.at(a));
+		} else {
+			constants.push_back(exit_block_ptr);
+		}
+	}
+
+	llvm::ConstantArray *block_jump_table = (llvm::ConstantArray*)llvm::ConstantArray::get(arraytype, constants);
+
+	llvm::Constant *constant = GetFunction()->getParent()->getOrInsertGlobal("jump_table", arraytype);
+	llvm::GlobalVariable *gv = GetFunction()->getParent()->getGlobalVariable("jump_table");
+	gv->setConstant(true);
+	gv->setInitializer(block_jump_table);
+
+	auto pc = GetTxlt()->EmitRegisterRead(builder, ctx, 8, 128);
+
+	// need to make sure we're still on the right page
+	auto pc_check_less = builder.CreateICmpULT(pc, llvm::ConstantInt::get(ctx.Types.i64, work_unit.GetRegion().GetPhysicalBaseAddress().Get()));
+	auto pc_check_greater = builder.CreateICmpUGE(pc, llvm::ConstantInt::get(ctx.Types.i64, work_unit.GetRegion().GetPhysicalBaseAddress().Get() + 4096));
+	auto pc_check = builder.CreateOr(pc_check_less, pc_check_greater);
+
+	llvm::BasicBlock *on_page_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "jump_table_block", GetFunction());
+	builder.CreateCondBr(pc_check, exit_block, on_page_block);
+
+	builder.SetInsertPoint(on_page_block);
+
+	auto pc_offset = builder.CreateAnd(pc, archsim::Address::PageMask);
+	auto target = builder.CreateGEP(gv, {llvm::ConstantInt::get(ctx.Types.i64, 0), pc_offset});
+	target = builder.CreateLoad(target);
+	auto indirectbr = builder.CreateIndirectBr(target);
+
+	for(auto i : entry_blocks) {
+		indirectbr->addDestination(i);
+	}
+	indirectbr->addDestination(exit_block);
+}
+
+void LLVMRegionTranslationContext::BuildSwitchStatement(TranslationWorkUnit& work_unit)
+{
+	std::set<archsim::Address> entry_blocks;
+	for(auto b : work_unit.GetBlocks()) {
+		if(b.second->IsEntryBlock()) {
+			entry_blocks.insert(b.first);
+		}
+	}
+
+	llvm::IRBuilder<> builder(GetDispatchBlock());
+	tx_llvm::LLVMTranslationContext ctx(GetFunction()->getContext(), GetFunction(), work_unit.GetThread());
+//	ctx.SetBuilder(builder);
+
+	auto pc = GetTxlt()->EmitRegisterRead(builder, ctx, 8, 128);
+
+	auto switch_inst = builder.CreateSwitch(pc, GetExitBlock(EXIT_REASON_NOBLOCK), GetBlockMap().size());
+	for(auto block : GetBlockMap()) {
+		if(entry_blocks.count(block.first)) {
+			switch_inst->addCase(llvm::ConstantInt::get(llvm::Type::getInt64Ty(GetFunction()->getContext()), work_unit.GetRegion().GetPhysicalBaseAddress().Get() + block.first.GetPageOffset()), block.second);
+		}
+	}
+}
+
+llvm::BasicBlock *LLVMRegionTranslationContext::GetRegionChainBlock()
+{
+	if(region_chain_block_ == nullptr) {
+
+		region_chain_block_ = llvm::BasicBlock::Create(GetContext().LLVMCtx, "chain_block", GetFunction());
+		llvm::IRBuilder<> builder (region_chain_block_);
+		auto pc = GetTxlt()->EmitRegisterRead(builder, GetContext(), 8, 128);
+
+		auto page_index = builder.CreateLShr(pc, 12);
+		auto page_base = builder.CreateAnd(pc, ~archsim::Address::PageMask);
+		auto cache_base = GetContext().GetStateBlockPointer(builder, "page_cache");
+		cache_base = builder.CreateBitCast(cache_base, GetContext().Types.i64Ptr);
+		cache_base = builder.CreateLoad(cache_base);
+//		cache_base = builder.CreatePtrToInt(cache_base, GetContext().Types.i64);
+
+		auto cache_index = builder.CreateURem(page_index, llvm::ConstantInt::get(GetContext().Types.i64, 1024));
+		auto cache_offset = builder.CreateMul(cache_index, llvm::ConstantInt::get(GetContext().Types.i64, 16));
+
+		auto cache_entry_ptr = builder.CreateAdd(cache_offset, cache_base);
+		auto cache_tag = builder.CreateIntToPtr(cache_entry_ptr, GetContext().Types.i64Ptr);
+		cache_tag = builder.CreateLoad(cache_tag);
+
+		auto tag_matches = builder.CreateICmpEQ(page_base, cache_tag);
+
+		llvm::BasicBlock *match_block = llvm::BasicBlock::Create(GetContext().LLVMCtx, "chain_success", GetFunction());
+		llvm::BasicBlock *nomatch_block = llvm::BasicBlock::Create(GetContext().LLVMCtx, "chain_fail", GetFunction());
+
+		builder.CreateCondBr(tag_matches, match_block, nomatch_block);
+
+		builder.SetInsertPoint(match_block);
+
+		GetTxlt()->EmitIncrementCounter(builder, GetContext(), GetContext().GetThread()->GetMetrics().JITSuccessfulChains, 1);
+
+		auto fn_ptr = builder.CreateAdd(cache_entry_ptr, llvm::ConstantInt::get(GetContext().Types.i64, 8));
+		fn_ptr = builder.CreateIntToPtr(fn_ptr, GetFunction()->getType()->getPointerTo(0));
+		fn_ptr = builder.CreateLoad(fn_ptr);
+
+		auto result = builder.CreateCall(fn_ptr, {GetContext().GetRegStatePtr(), GetContext().GetStateBlockPointer()});
+		builder.CreateRet(result);
+
+		builder.SetInsertPoint(nomatch_block);
+		GetTxlt()->EmitIncrementCounter(builder, GetContext(), GetContext().GetThread()->GetMetrics().JITFailedChains, 1);
+		builder.CreateRet(llvm::ConstantInt::get(GetContext().Types.i32, 1));
+
+	}
+
+	return region_chain_block_;
+}
+
+void LLVMRegionTranslationContext::BuildDispatchBlock(TranslationWorkUnit& work_unit)
+{
+	auto *entry_block = &GetFunction()->getEntryBlock();
+	for(auto b : work_unit.GetBlocks()) {
+		auto block_block = llvm::BasicBlock::Create(GetFunction()->getContext(), "block_" + std::to_string(b.first.Get()), GetFunction());
+		GetBlockMap()[b.first] = block_block;
+	}
+
+	dispatch_block_ = llvm::BasicBlock::Create(GetFunction()->getContext(), "dispatch", GetFunction());
+	llvm::BranchInst::Create(dispatch_block_, entry_block);
+
+	BuildJumpTable(work_unit);
+}
+
+llvm::BasicBlock* LLVMRegionTranslationContext::GetExitBlock(int exit_reason)
+{
+	if(exit_reason == EXIT_REASON_NEXTPAGE) {
+		return GetRegionChainBlock();
+	}
+
+	if(!exit_blocks_.count(exit_reason)) {
+		auto block = llvm::BasicBlock::Create(GetContext().LLVMCtx,"exit_block_" + std::to_string(exit_reason), GetFunction());
+		exit_blocks_[exit_reason] = block;
+		llvm::ReturnInst::Create(GetContext().LLVMCtx, llvm::ConstantInt::get(GetContext().Types.i32, exit_reason), block);
+	}
+
+	return exit_blocks_.at(exit_reason);
+}
+
+
+LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Function *fn, archsim::core::thread::ThreadInstance *thread) : LLVMCtx(ctx), thread_(thread), Module(fn->getParent()), function_(fn)
+{
+	Values.reg_file_ptr = fn->arg_begin();
+	Values.state_block_ptr = fn->arg_begin()+1;
 
 	Types.vtype  = llvm::Type::getVoidTy(ctx);
 	Types.i1  = llvm::IntegerType::getInt1Ty(ctx);
@@ -61,10 +231,10 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Mod
 
 }
 
-llvm::Value* LLVMTranslationContext::GetThreadPtr()
+llvm::Value* LLVMTranslationContext::GetThreadPtr(llvm::IRBuilder<> &builder)
 {
 	auto ptr = Values.state_block_ptr;
-	return GetBuilder().CreateLoad(GetBuilder().CreatePointerCast(ptr, Types.i8Ptr->getPointerTo(0)));
+	return builder.CreateLoad(builder.CreatePointerCast(ptr, Types.i8Ptr->getPointerTo(0)));
 }
 
 llvm::Value* LLVMTranslationContext::GetRegStatePtr()
@@ -72,19 +242,31 @@ llvm::Value* LLVMTranslationContext::GetRegStatePtr()
 	return Values.reg_file_ptr;
 }
 
-llvm::Value* LLVMTranslationContext::GetStateBlockPointer(const std::string& entry)
+llvm::Function* LLVMTranslationContext::GetFunction()
+{
+	return function_;
+}
+
+
+llvm::Value* LLVMTranslationContext::GetStateBlockPointer(llvm::IRBuilder<> &builder, const std::string& entry)
 {
 	auto ptr = Values.state_block_ptr;
-	ptr = GetBuilder().CreatePtrToInt(ptr, Types.i64);
-	ptr = GetBuilder().CreateAdd(ptr, llvm::ConstantInt::get(Types.i64, thread_->GetStateBlock().GetBlockOffset(entry)));
-	ptr = GetBuilder().CreateIntToPtr(ptr, Types.i8Ptr);
+	ptr = builder.CreatePtrToInt(ptr, Types.i64);
+	ptr = builder.CreateAdd(ptr, llvm::ConstantInt::get(Types.i64, thread_->GetStateBlock().GetBlockOffset(entry)));
+	ptr = builder.CreateIntToPtr(ptr, Types.i8Ptr);
 	return ptr;
 }
+
+llvm::Value* LLVMTranslationContext::GetStateBlockPointer()
+{
+	return Values.state_block_ptr;
+}
+
 
 llvm::Value* LLVMTranslationContext::AllocateRegister(llvm::Type *type, int name)
 {
 	if(free_registers_[type].empty()) {
-		auto &block = GetBuilder().GetInsertBlock()->getParent()->getEntryBlock();
+		auto &block = GetFunction()->getEntryBlock();
 
 		llvm::Value *new_reg = nullptr;
 
@@ -127,15 +309,6 @@ void LLVMTranslationContext::ResetRegisters()
 	live_register_values_.clear();
 }
 
-void LLVMTranslationContext::SetBuilder(llvm::IRBuilder<>& builder)
-{
-	builder_ = &builder;
-
-	Module = GetBuilder().GetInsertBlock()->getParent()->getParent();
-	Values.reg_file_ptr =    GetBuilder().GetInsertBlock()->getParent()->arg_begin();
-	Values.state_block_ptr = GetBuilder().GetInsertBlock()->getParent()->arg_begin() + 1;
-}
-
 llvm::Value* LLVMTranslationContext::GetRegPtr(int offset, llvm::Type* type)
 {
 #define INTERN_REG_PTRS
@@ -144,9 +317,9 @@ llvm::Value* LLVMTranslationContext::GetRegPtr(int offset, llvm::Type* type)
 
 		// insert pointer calculation into header block
 		// ptrtoint
-		auto &insert_point = GetBuilder().GetInsertBlock()->getParent()->getEntryBlock().front();
+		auto insert_point = &*GetFunction()->getEntryBlock().begin();
 
-		llvm::IRBuilder<> sub_builder(&insert_point);
+		llvm::IRBuilder<> sub_builder(insert_point);
 		llvm::Value *ptr = (llvm::Instruction*)sub_builder.CreatePtrToInt(GetRegStatePtr(), Types.i64);
 		ptr = sub_builder.CreateAdd(ptr, llvm::ConstantInt::get(Types.i64, offset));
 		ptr = sub_builder.CreateIntToPtr(ptr, type->getPointerTo(0));
@@ -179,34 +352,30 @@ llvm::Value* LLVMTranslationContext::GetRegPtr(int offset, llvm::Type* type)
 #endif
 }
 
-llvm::Value* LLVMTranslationContext::LoadRegister(int name)
+llvm::Value* LLVMTranslationContext::LoadRegister(llvm::IRBuilder<> &builder, int name)
 {
-	if(!live_register_values_.count(name)) {
-		live_register_values_[name] = GetBuilder().CreateLoad(live_register_pointers_.at(name));
-	}
-	return live_register_values_.at(name);
+	return builder.CreateLoad(live_register_pointers_.at(name));
+
+//	if(!live_register_values_.count(name)) {
+//		live_register_values_[name] = builder.CreateLoad(live_register_pointers_.at(name));
+//	}
+//	return live_register_values_.at(name);
 }
 
-void LLVMTranslationContext::StoreRegister(int name, llvm::Value* value)
+void LLVMTranslationContext::StoreRegister(llvm::IRBuilder<> &builder, int name, llvm::Value* value)
 {
-	live_register_values_[name] = value;
+	builder.CreateStore(value, live_register_pointers_.at(name));
+//	live_register_values_[name] = value;
 }
 
-void LLVMTranslationContext::SetBlock(llvm::BasicBlock* block)
+void LLVMTranslationContext::ResetLiveRegisters(llvm::IRBuilder<> &builder)
 {
-//	ResetLiveRegisters();
-	GetBuilder().SetInsertPoint(block);
-}
-
-void LLVMTranslationContext::ResetLiveRegisters()
-{
-	// insert just before the block terminators
-	if(GetBuilder().GetInsertBlock()->size()) {
-		GetBuilder().SetInsertPoint(&GetBuilder().GetInsertBlock()->back());
+	if(builder.GetInsertBlock()->size()) {
+		builder.SetInsertPoint(&builder.GetInsertBlock()->back());
 	}
 
 	for(auto live_reg : live_register_values_) {
-		GetBuilder().CreateStore(live_reg.second, live_register_pointers_.at(live_reg.first));
+		builder.CreateStore(live_reg.second, live_register_pointers_.at(live_reg.first));
 	}
 	live_register_values_.clear();
 }

@@ -20,12 +20,19 @@
 #include <map>
 #include <list>
 
+#ifdef ARCHSIM_ENABLE_LLVM
+#include <llvm/IR/IRBuilder.h>
+#endif
 namespace llvm
 {
 	class Value;
 	class Module;
 	class Function;
 	class BasicBlock;
+
+	class ConstantFolder;
+	class IRBuilderDefaultInserter;
+	template<typename T, typename Inserter> class IRBuilder;
 }
 
 namespace archsim
@@ -85,33 +92,35 @@ namespace gensim
 	class BaseLLVMTranslate
 	{
 	public:
-		virtual bool TranslateInstruction(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) = 0;
-		virtual llvm::Value *EmitPredicateCheck(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) = 0;
+		using Builder = llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>;
 
-		llvm::Value *EmitRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset);
-		bool EmitRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset, llvm::Value*);
+		virtual bool TranslateInstruction(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) = 0;
+		virtual llvm::Value *EmitPredicateCheck(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) = 0;
 
-		void EmitTraceRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *value);
-		void EmitTraceBankedRegisterWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *regnum, int size, llvm::Value *value_ptr);
-		void EmitTraceRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *value);
-		void EmitTraceBankedRegisterRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *regnum, int size, llvm::Value *value_ptr);
+		llvm::Value *EmitRegisterRead(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset);
+		bool EmitRegisterWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset, llvm::Value*);
 
-		llvm::Value *EmitMemoryRead(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value *address);
-		void EmitMemoryWrite(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value *address, llvm::Value *value);
+		void EmitTraceRegisterWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *value);
+		void EmitTraceBankedRegisterWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *regnum, int size, llvm::Value *value_ptr);
+		void EmitTraceRegisterRead(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *value);
+		void EmitTraceBankedRegisterRead(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *regnum, int size, llvm::Value *value_ptr);
 
-		void EmitTakeException(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, llvm::Value *category, llvm::Value *data);
+		llvm::Value *EmitMemoryRead(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value *address);
+		void EmitMemoryWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value *address, llvm::Value *value);
 
-		void EmitAdcWithFlags(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value *lhs, llvm::Value *rhs, llvm::Value *carry);
-		void EmitSbcWithFlags(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value *lhs, llvm::Value *rhs, llvm::Value *carry);
+		void EmitTakeException(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, llvm::Value *category, llvm::Value *data);
 
-		void EmitIncrementCounter(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::util::Counter64 &counter, uint32_t value=1);
+		void EmitAdcWithFlags(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value *lhs, llvm::Value *rhs, llvm::Value *carry);
+		void EmitSbcWithFlags(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value *lhs, llvm::Value *rhs, llvm::Value *carry);
+
+		void EmitIncrementCounter(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::util::Counter64 &counter, uint32_t value=1);
 	protected:
-		void QueueDynamicBlock(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, std::map<uint16_t, llvm::BasicBlock*> &dynamic_blocks, std::list<uint16_t> &dynamic_block_queue, uint16_t queued_block);
+		void QueueDynamicBlock(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, std::map<uint16_t, llvm::BasicBlock*> &dynamic_blocks, std::list<uint16_t> &dynamic_block_queue, uint16_t queued_block);
 
 	private:
-		llvm::Value *GetRegisterPtr(archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset);
+		llvm::Value *GetRegisterPtr(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset);
 		llvm::Value *GetRegfilePtr(archsim::translate::tx_llvm::LLVMTranslationContext& ctx);
-		llvm::Value *GetThreadPtr(archsim::translate::tx_llvm::LLVMTranslationContext& ctx);
+		llvm::Value *GetThreadPtr(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx);
 	};
 
 	class BaseIJTranslate : public BaseTranslate

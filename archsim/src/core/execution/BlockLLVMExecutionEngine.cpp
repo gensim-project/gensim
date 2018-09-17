@@ -264,7 +264,7 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 
 	auto pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
 
-	archsim::translate::tx_llvm::LLVMTranslationContext ctx(llvm_ctx_, llvm_module.get(), thread);
+	archsim::translate::tx_llvm::LLVMTranslationContext ctx(llvm_ctx_, fn, thread);
 
 	while(true) {
 		auto result = isa.DecodeInstr(phys_pc, &thread->GetFetchMI(), *decode);
@@ -275,7 +275,7 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 		}
 
 		if(archsim::options::Trace) {
-			builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(), llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()), llvm::ConstantInt::get(ctx.Types.i32, decode->ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
+			builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(builder), llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()), llvm::ConstantInt::get(ctx.Types.i32, decode->ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
 		}
 
 		gensim::JumpInfo ji;
@@ -284,18 +284,18 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 		// if we're about to execute a jump, update the PC first
 		if(ji.IsJump) {
 			// todo: fix this for 32 bit & full system
-			translator_->EmitRegisterWrite(ctx, pc_desc.GetEntrySize(), pc_desc.GetOffset(), llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()));
+			translator_->EmitRegisterWrite(builder, ctx, pc_desc.GetEntrySize(), pc_desc.GetOffset(), llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()));
 		}
 
 		// translate instruction
 
-		if(!translator_->TranslateInstruction(ctx, thread, decode, phys_pc, fn)) {
+		if(!translator_->TranslateInstruction(builder, ctx, thread, decode, phys_pc, fn)) {
 			LC_ERROR(LogBlockJitCpu) << "Failed to translate instruction at pc " << phys_pc;
 			return nullptr;
 		}
 
 		if(archsim::options::Trace) {
-			builder.CreateCall(ctx.Functions.cpuTraceInsnEnd, {ctx.GetThreadPtr()});
+			builder.CreateCall(ctx.Functions.cpuTraceInsnEnd, {ctx.GetThreadPtr(builder)});
 		}
 
 		// check for block exit

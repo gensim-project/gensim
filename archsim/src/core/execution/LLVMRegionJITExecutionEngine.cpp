@@ -17,6 +17,9 @@ LLVMRegionJITExecutionEngineContext::LLVMRegionJITExecutionEngineContext(archsim
 	if(!TxlnMgr.Initialise(e->translator_)) {
 		throw std::logic_error("");
 	}
+
+	thread->GetStateBlock().AddBlock("page_cache", 8);
+	thread->GetStateBlock().SetEntry("page_cache", &PageCache.Cache[0]);
 }
 
 
@@ -40,7 +43,7 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 	LLVMRegionJITExecutionEngineContext *ctx = (LLVMRegionJITExecutionEngineContext*)thread_ctx;
 	auto thread = thread_ctx->GetThread();
 
-	thread->GetMetrics().SelfRuntime.Start();
+	archsim::util::CounterTimerContext self_timer(thread->GetMetrics().SelfRuntime);
 
 	CreateThreadExecutionSafepoint(thread);
 	if(thread->GetTraceSource() && thread->GetTraceSource()->IsPacketOpen()) {
@@ -48,8 +51,8 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 	}
 
 	while(thread_ctx->GetState() == ExecutionState::Running) {
-		int iterations = 10000;
-		while(iterations--) {
+		ctx->Iterations = 10000;
+		while(ctx->Iterations-- > 0) {
 			if(thread->HasMessage()) {
 				auto result = thread->HandleMessage();
 				switch(result) {
@@ -57,15 +60,16 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 					case ExecutionResult::Exception:
 						break;
 					default:
-						thread->GetMetrics().SelfRuntime.Stop();
 						return result;
 				}
 			}
 
 			Address virt_pc = thread->GetPC();
 			Address phys_pc(0);
+
 			auto txln = thread->GetFetchMI().PerformTranslation(virt_pc, phys_pc, false, true, false);
 			auto &region = ctx->TxlnMgr.GetRegion(phys_pc);
+			ctx->CurrentRegion = &region;
 
 			LC_DEBUG3(LogRegionJIT) << "Looking for region " << region.GetPhysicalBaseAddress();
 
@@ -73,6 +77,10 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 				LC_DEBUG3(LogRegionJIT) << "Region " << region.GetPhysicalBaseAddress() << " has translations";
 				if(region.txln != nullptr && region.txln->ContainsBlock(virt_pc.PageOffset())) {
 					LC_DEBUG3(LogRegionJIT) << "Translation found for current block";
+					captive::shared::block_txln_fn fn;
+					region.txln->Install(&fn);
+					ctx->PageCache.InsertEntry(phys_pc.PageBase(), fn);
+
 					thread->GetMetrics().JITTime.Start();
 					region.txln->Execute(thread);
 					thread->GetMetrics().JITTime.Stop();
@@ -82,25 +90,51 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 				}
 			}
 
-			region.TraceBlock(thread, virt_pc);
-			auto result = interpreter_->StepBlock(ctx);
-
-			switch(result) {
+			auto interpret_result = EpochInterpret(ctx, region);
+			switch(interpret_result) {
 				case ExecutionResult::Continue:
 				case ExecutionResult::Exception:
 					break;
 				default:
-					thread->GetMetrics().SelfRuntime.Stop();
-					return result;
+					return interpret_result;
 			}
+
 		}
 		ctx->TxlnMgr.Profile(thread);
 		ctx->TxlnMgr.RegisterCompletedTranslations();
 
 	}
-	thread->GetMetrics().SelfRuntime.Stop();
 	return ExecutionResult::Halt;
 }
+
+ExecutionResult LLVMRegionJITExecutionEngine::EpochInterpret(LLVMRegionJITExecutionEngineContext *ctx, archsim::translate::profile::Region& region)
+{
+	auto thread = ctx->GetThread();
+	auto epoch_region_virt_base = thread->GetPC().PageBase();
+
+	while(ctx->Iterations-- > 0 && !thread->HasMessage()) {
+		auto virt_pc = thread->GetPC();
+		if(virt_pc.PageBase() != epoch_region_virt_base) {
+			return ExecutionResult::Continue;
+		}
+		if(region.txln != nullptr && region.txln->ContainsBlock(virt_pc.PageOffset())) {
+			return ExecutionResult::Continue;
+		}
+
+		region.TraceBlock(thread, virt_pc);
+		auto result = interpreter_->StepBlock(ctx);
+
+		switch(result) {
+			case ExecutionResult::Continue:
+			case ExecutionResult::Exception:
+				break;
+			default:
+				return result;
+		}
+	}
+	return ExecutionResult::Continue;
+}
+
 
 ExecutionEngine* LLVMRegionJITExecutionEngine::Factory(const archsim::module::ModuleInfo* module, const std::string& cpu_prefix)
 {

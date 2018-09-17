@@ -79,12 +79,12 @@ void Region::EraseBlock(Address virt_addr)
 
 bool Region::HasTranslations() const
 {
-	return (GetStatus() == InTranslation) || txln;
+	return (GetStatus() != NotInTranslation) || txln;
 }
 
 void Region::TraceBlock(archsim::core::thread::ThreadInstance *thread, Address virt_addr)
 {
-	if (status == InTranslation)
+	if (GetStatus() == InTranslation)
 		return;
 
 	virtual_images.insert(virt_addr.PageBase());
