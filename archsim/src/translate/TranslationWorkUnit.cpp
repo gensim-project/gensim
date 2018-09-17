@@ -30,6 +30,12 @@ TranslationWorkUnit::~TranslationWorkUnit()
 	region.Release();
 }
 
+uint32_t TranslationWorkUnit::GetWeight() const
+{
+	return region.total_interp_count;
+}
+
+
 void TranslationWorkUnit::DumpGraph()
 {
 	std::stringstream s;

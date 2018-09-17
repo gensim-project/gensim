@@ -174,10 +174,7 @@ namespace archsim
 				return emit_trace_calls;
 			}
 
-			inline uint32_t GetWeight() const
-			{
-				return weight;
-			}
+			uint32_t GetWeight() const;
 
 			inline uint32_t GetGeneration() const
 			{

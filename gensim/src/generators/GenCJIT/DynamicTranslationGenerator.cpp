@@ -187,7 +187,7 @@ namespace gensim
 					cstream << ""
 					        "case __block_" << block->GetName() << ": // BLOCK START LINE " << block->GetStartLine() << ", END LINE " << block->GetEndLine() << "\n"
 					        "{"
-					        "	ctx.SetBlock(dynamic_blocks[__block_" << block->GetName() << "]);";
+					        "	__irBuilder.SetInsertPoint(dynamic_blocks[__block_" << block->GetName() << "]);";
 
 					DynamicTranslationNodeWalkerFactory factory;
 

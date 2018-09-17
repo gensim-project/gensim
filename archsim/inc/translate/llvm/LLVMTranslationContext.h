@@ -11,6 +11,8 @@
 #define LLVMTRANSLATIONCONTEXT_H
 
 #include "core/thread/ThreadInstance.h"
+#include "gensim/gensim_translate.h"
+#include "translate/TranslationWorkUnit.h"
 
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
@@ -25,10 +27,11 @@ namespace archsim
 	{
 		namespace tx_llvm
 		{
+
 			class LLVMTranslationContext
 			{
 			public:
-				LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Module *module, archsim::core::thread::ThreadInstance *thread);
+				LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Function *fn, archsim::core::thread::ThreadInstance *thread);
 
 				struct {
 					llvm::Type *vtype;
@@ -74,27 +77,22 @@ namespace archsim
 				{
 					return thread_;
 				}
-				llvm::Value *GetThreadPtr();
+				llvm::Value *GetThreadPtr(llvm::IRBuilder<> &builder);
 				llvm::Value *GetRegStatePtr();
-				llvm::Value *GetStateBlockPointer(const std::string &entry);
+				llvm::Function *GetFunction();
+				llvm::Value *GetStateBlockPointer(llvm::IRBuilder<> &builder, const std::string &entry);
+				llvm::Value *GetStateBlockPointer();
 				llvm::LLVMContext &LLVMCtx;
 
 				llvm::Value *AllocateRegister(llvm::Type *type, int name);
 				void FreeRegister(llvm::Type *t, llvm::Value *v, int name);
 
-				llvm::Value *LoadRegister(int name);
-				void StoreRegister(int name, llvm::Value *value);
+				llvm::Value *LoadRegister(llvm::IRBuilder<> &builder, int name);
+				void StoreRegister(llvm::IRBuilder<> &builder, int name, llvm::Value *value);
 
 				void ResetRegisters();
 
 				llvm::Module *Module;
-
-				llvm::IRBuilder<> &GetBuilder()
-				{
-					ASSERT(builder_ != nullptr);
-					return *builder_;
-				}
-				void SetBuilder(llvm::IRBuilder<> &builder);
 
 				const archsim::ArchDescriptor &GetArch()
 				{
@@ -103,13 +101,11 @@ namespace archsim
 
 				llvm::Value *GetRegPtr(int offset, llvm::Type *type);
 
-				void SetBlock(llvm::BasicBlock *block);
-				void ResetLiveRegisters();
+				void ResetLiveRegisters(llvm::IRBuilder<> &builder);
 			private:
-
-
 				archsim::core::thread::ThreadInstance *thread_;
-				llvm::IRBuilder<> *builder_;
+
+				llvm::Function *function_;
 
 				std::unordered_map<llvm::Type *, std::list<llvm::Value*>> free_registers_;
 				std::unordered_map<llvm::Type *, std::list<llvm::Value*>> allocated_registers_;
@@ -117,6 +113,64 @@ namespace archsim
 				std::unordered_map<int, llvm::Value*> live_register_pointers_;
 
 				std::map<std::pair<uint32_t, llvm::Type*>, llvm::Value*> guest_reg_ptrs_;
+			};
+
+			class LLVMRegionTranslationContext
+			{
+			public:
+
+				enum ExitReasons {
+					EXIT_REASON_NEXTPAGE,
+					EXIT_REASON_NOBLOCK
+				};
+
+				using BlockMap = std::map<archsim::Address, llvm::BasicBlock*>;
+
+				LLVMRegionTranslationContext(LLVMTranslationContext &ctx, llvm::Function *fn, translate::TranslationWorkUnit &work_unit, llvm::BasicBlock *entry_block, gensim::BaseLLVMTranslate *txlt);
+
+				BlockMap &GetBlockMap()
+				{
+					return block_map_;
+				}
+				llvm::BasicBlock *GetExitBlock(int exit_reason);
+
+				llvm::BasicBlock *GetEntryBlock()
+				{
+					return entry_block_;
+				}
+				llvm::BasicBlock *GetDispatchBlock()
+				{
+					return dispatch_block_;
+				}
+				llvm::Function *GetFunction()
+				{
+					return function_;
+				}
+				LLVMTranslationContext &GetContext()
+				{
+					return ctx_;
+				}
+				gensim::BaseLLVMTranslate *GetTxlt()
+				{
+					return txlt_;
+				}
+
+			private:
+				LLVMTranslationContext &ctx_;
+
+				llvm::BasicBlock *entry_block_, *dispatch_block_, *region_chain_block_;
+				llvm::Function *function_;
+
+				std::map<int, llvm::BasicBlock*> exit_blocks_;
+				BlockMap block_map_;
+
+				gensim::BaseLLVMTranslate *txlt_;
+
+				void BuildDispatchBlock(TranslationWorkUnit &work_unit);
+				void BuildSwitchStatement(TranslationWorkUnit &work_unit);
+				void BuildJumpTable(TranslationWorkUnit &work_unit);
+
+				llvm::BasicBlock *GetRegionChainBlock();
 			};
 		}
 	}

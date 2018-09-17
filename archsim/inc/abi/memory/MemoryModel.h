@@ -419,6 +419,8 @@ namespace archsim
 				bool ResolveGuestAddress(host_const_addr_t host_addr, guest_addr_t &guest_addr) override;
 
 				bool LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr) override;
+				bool LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion& regions) override;
+
 				bool UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr) override;
 
 				uint32_t Read(guest_addr_t addr, uint8_t *data, int size) override;

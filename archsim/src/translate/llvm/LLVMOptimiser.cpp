@@ -500,8 +500,8 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 	pm.add(::llvm::createBasicAAWrapperPass());
 //	//AddPass(new ::llvm::DataLayout(*datalayout));
 //
-//	if (archsim::options::JitOptLevel.GetValue() == 0)
-//		return true;
+	if (archsim::options::JitOptLevel.GetValue() == 0)
+		return true;
 //
 //	//-constmerge -simplifycfg -lowerswitch  -globalopt -scalarrepl -deadargelim -functionattrs -constprop  -simplifycfg -argpromotion -inline -mem2reg -deadargelim
 	AddPass(::llvm::createPromoteMemoryToRegisterPass());
@@ -557,6 +557,7 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 
 	if (archsim::options::JitOptLevel.GetValue() == 1)
 		return true;
+
 
 	AddPass(::llvm::createPruneEHPass());
 	AddPass(::llvm::createFunctionInliningPass());

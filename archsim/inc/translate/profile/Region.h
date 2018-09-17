@@ -55,6 +55,7 @@ namespace archsim
 
 				enum RegionStatus {
 					NotInTranslation,
+					QueuedForTranslation,
 					InTranslation,
 				};
 

@@ -13,6 +13,24 @@ X86JumpInfoProvider::~X86JumpInfoProvider()
 void X86JumpInfoProvider::GetJumpInfo(const gensim::BaseDecode* instr, archsim::Address pc, gensim::JumpInfo& info)
 {
 	X86Decoder *d = (X86Decoder*)instr;
+	info.IsJump = false;
+	info.IsIndirect = false;
+	info.IsConditional = false;
+
+	// handle rep instructions ('indirect' jump for now)
+	switch(d->Instr_Code) {
+		case INST_x86_rep_movsb:
+		case INST_x86_rep_movsd:
+		case INST_x86_rep_movsq:
+		case INST_x86_rep_stosb:
+		case INST_x86_rep_stosd:
+		case INST_x86_rep_stosq:
+			info.IsJump = true;
+			info.IsIndirect = false;
+			info.IsConditional = true;
+			info.JumpTarget = pc;
+			break;
+	}
 
 	switch(d->Instr_Code) {
 		case INST_x86_jmp:
@@ -20,9 +38,6 @@ void X86JumpInfoProvider::GetJumpInfo(const gensim::BaseDecode* instr, archsim::
 		case INST_x86_call:
 		case INST_x86_ret:
 			info.IsJump = true;
-			break;
-		default:
-			info.IsJump = false;
 			break;
 	}
 
