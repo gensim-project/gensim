@@ -87,6 +87,9 @@ namespace archsim
 				llvm::Value *AllocateRegister(llvm::Type *type, int name);
 				void FreeRegister(llvm::Type *t, llvm::Value *v, int name);
 
+				llvm::Value *LoadGuestRegister(llvm::IRBuilder<> &builder, int offset, int size);
+				void StoreGuestRegister(llvm::IRBuilder<> &builder, int offset, int size, llvm::Value *value);
+
 				llvm::Value *LoadRegister(llvm::IRBuilder<> &builder, int name);
 				void StoreRegister(llvm::IRBuilder<> &builder, int name, llvm::Value *value);
 
@@ -99,7 +102,7 @@ namespace archsim
 					return thread_->GetArch();
 				}
 
-				llvm::Value *GetRegPtr(int offset, llvm::Type *type);
+				llvm::Value *GetRegPtr(llvm::IRBuilder<> &builder, int offset, llvm::Type *type);
 
 				void ResetLiveRegisters(llvm::IRBuilder<> &builder);
 			private:
@@ -113,6 +116,10 @@ namespace archsim
 				std::unordered_map<int, llvm::Value*> live_register_pointers_;
 
 				std::map<std::pair<uint32_t, llvm::Type*>, llvm::Value*> guest_reg_ptrs_;
+
+				llvm::BasicBlock *prev_reg_block_;
+				std::map<std::pair<uint32_t, llvm::Type*>, llvm::Value*> guest_reg_values_;
+				std::map<std::pair<uint32_t, llvm::Type*>, llvm::StoreInst*> guest_reg_stores_;
 			};
 
 			class LLVMRegionTranslationContext

@@ -10,17 +10,20 @@ using namespace gensim;
 
 llvm::Value *BaseLLVMTranslate::EmitRegisterRead(llvm::IRBuilder<> &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset)
 {
-	llvm::Value *ptr = ctx.GetRegPtr(offset, llvm::IntegerType::getIntNTy(ctx.LLVMCtx, size_in_bytes*8));
-	auto value = builder.CreateLoad(ptr);
-	return value;
+	return ctx.LoadGuestRegister(builder, offset, size_in_bytes);
+//	llvm::Value *ptr = ctx.GetRegPtr(offset, llvm::IntegerType::getIntNTy(ctx.LLVMCtx, size_in_bytes*8));
+//	auto value = builder.CreateLoad(ptr);
+//	return value;
 }
 
 bool BaseLLVMTranslate::EmitRegisterWrite(llvm::IRBuilder<> &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset, llvm::Value *value)
 {
-	llvm::Value *ptr = ctx.GetRegPtr(offset, llvm::IntegerType::getIntNTy(ctx.LLVMCtx, size_in_bytes*8));
-	value = builder.CreateBitCast(value, llvm::IntegerType::getIntNTy(ctx.LLVMCtx, size_in_bytes*8));
-	builder.CreateStore(value, ptr);
-	return true;
+	ctx.StoreGuestRegister(builder, offset, size_in_bytes, value);
+
+//	llvm::Value *ptr = ctx.GetRegPtr(offset, llvm::IntegerType::getIntNTy(ctx.LLVMCtx, size_in_bytes*8));
+//	value = builder.CreateBitCast(value, llvm::IntegerType::getIntNTy(ctx.LLVMCtx, size_in_bytes*8));
+//	builder.CreateStore(value, ptr);
+//	return true;
 }
 
 //#define FAST_READS

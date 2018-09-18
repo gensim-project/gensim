@@ -50,6 +50,7 @@ void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit
 	gv->setConstant(true);
 	gv->setInitializer(block_jump_table);
 
+	// TODO: figure out from architecture
 	auto pc = GetTxlt()->EmitRegisterRead(builder, ctx, 8, 128);
 
 	// need to make sure we're still on the right page
@@ -86,6 +87,7 @@ void LLVMRegionTranslationContext::BuildSwitchStatement(TranslationWorkUnit& wor
 	tx_llvm::LLVMTranslationContext ctx(GetFunction()->getContext(), GetFunction(), work_unit.GetThread());
 //	ctx.SetBuilder(builder);
 
+	// TODO: figure out from architecture
 	auto pc = GetTxlt()->EmitRegisterRead(builder, ctx, 8, 128);
 
 	auto switch_inst = builder.CreateSwitch(pc, GetExitBlock(EXIT_REASON_NOBLOCK), GetBlockMap().size());
@@ -102,6 +104,7 @@ llvm::BasicBlock *LLVMRegionTranslationContext::GetRegionChainBlock()
 
 		region_chain_block_ = llvm::BasicBlock::Create(GetContext().LLVMCtx, "chain_block", GetFunction());
 		llvm::IRBuilder<> builder (region_chain_block_);
+		// TODO: figure out from architecture
 		auto pc = GetTxlt()->EmitRegisterRead(builder, GetContext(), 8, 128);
 
 		auto page_index = builder.CreateLShr(pc, 12);
@@ -175,7 +178,7 @@ llvm::BasicBlock* LLVMRegionTranslationContext::GetExitBlock(int exit_reason)
 }
 
 
-LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Function *fn, archsim::core::thread::ThreadInstance *thread) : LLVMCtx(ctx), thread_(thread), Module(fn->getParent()), function_(fn)
+LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Function *fn, archsim::core::thread::ThreadInstance *thread) : LLVMCtx(ctx), thread_(thread), Module(fn->getParent()), function_(fn), prev_reg_block_(nullptr)
 {
 	Values.reg_file_ptr = fn->arg_begin();
 	Values.state_block_ptr = fn->arg_begin()+1;
@@ -309,7 +312,7 @@ void LLVMTranslationContext::ResetRegisters()
 	live_register_values_.clear();
 }
 
-llvm::Value* LLVMTranslationContext::GetRegPtr(int offset, llvm::Type* type)
+llvm::Value* LLVMTranslationContext::GetRegPtr(llvm::IRBuilder<> &builder, int offset, llvm::Type* type)
 {
 #define INTERN_REG_PTRS
 #ifdef INTERN_REG_PTRS
@@ -337,9 +340,9 @@ llvm::Value* LLVMTranslationContext::GetRegPtr(int offset, llvm::Type* type)
 
 	return guest_reg_ptrs_.at({offset, type});
 #else
-	llvm::Value *ptr = (llvm::Instruction*)GetBuilder().CreatePtrToInt(GetRegStatePtr(), Types.i64);
-	ptr = GetBuilder().CreateAdd(ptr, llvm::ConstantInt::get(Types.i64, offset));
-	ptr = GetBuilder().CreateIntToPtr(ptr, type->getPointerTo(0));
+	llvm::Value *ptr = (llvm::Instruction*)builder.CreatePtrToInt(GetRegStatePtr(), Types.i64);
+	ptr = builder.CreateAdd(ptr, llvm::ConstantInt::get(Types.i64, offset));
+	ptr = builder.CreateIntToPtr(ptr, type->getPointerTo(0));
 	((llvm::Instruction*)ptr)->setMetadata("aaai", llvm::MDNode::get(LLVMCtx, {
 		llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(Types.i32, archsim::translate::translate_llvm::TAG_REG_ACCESS)),
 		llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(Types.i32, offset)),
@@ -352,20 +355,81 @@ llvm::Value* LLVMTranslationContext::GetRegPtr(int offset, llvm::Type* type)
 #endif
 }
 
+llvm::Value* LLVMTranslationContext::LoadGuestRegister(llvm::IRBuilder<>& builder, int offset, int size)
+{
+	if(builder.GetInsertBlock() != prev_reg_block_) {
+		guest_reg_values_.clear();
+		prev_reg_block_ = builder.GetInsertBlock();
+	}
+
+	auto desc_pair = std::make_pair(offset, llvm::IntegerType::get(LLVMCtx, size*8));
+
+	if(!guest_reg_values_.count(desc_pair)) {
+		auto load = builder.CreateLoad(GetRegPtr(builder, desc_pair.first, desc_pair.second));
+		guest_reg_values_[desc_pair] = load;
+	}
+	return guest_reg_values_.at(desc_pair);
+}
+
+void LLVMTranslationContext::StoreGuestRegister(llvm::IRBuilder<>& builder, int offset, int size, llvm::Value* value)
+{
+	if(builder.GetInsertBlock() != prev_reg_block_) {
+		guest_reg_values_.clear();
+		prev_reg_block_ = builder.GetInsertBlock();
+	}
+
+	std::pair<uint32_t, llvm::Type*> desc_pair = std::make_pair(offset, llvm::IntegerType::get(LLVMCtx, size*8));
+
+	// if a store aliases a cached value, then erase it
+	std::vector<decltype(desc_pair)> aliasing_entries;
+	for(auto i : guest_reg_values_) {
+		int i_start = i.first.first;
+		int i_end = i.first.first + (i.first.second->getIntegerBitWidth()/8);
+
+		// we alias it exactly so we're fine
+		if(offset == i_start && offset + size == i_end) {
+			// delete previous store?
+			continue;
+		}
+
+		// is this reg fully before i?
+		if(offset + size <= i_start) {
+			continue;
+		}
+		// is this reg fully after i?
+		if(i_end <= offset) {
+			continue;
+		}
+
+		aliasing_entries.push_back(i.first);
+	}
+
+	for(auto i : aliasing_entries) {
+		guest_reg_values_.erase(i);
+		guest_reg_stores_.erase(i);
+	}
+
+	guest_reg_values_[desc_pair] = value;
+	value = builder.CreateBitCast(value, desc_pair.second);
+	auto store = builder.CreateStore(value, GetRegPtr(builder, offset, desc_pair.second));
+	guest_reg_stores_[desc_pair] = store;
+}
+
+
 llvm::Value* LLVMTranslationContext::LoadRegister(llvm::IRBuilder<> &builder, int name)
 {
-	return builder.CreateLoad(live_register_pointers_.at(name));
+//	return builder.CreateLoad(live_register_pointers_.at(name));
 
-//	if(!live_register_values_.count(name)) {
-//		live_register_values_[name] = builder.CreateLoad(live_register_pointers_.at(name));
-//	}
-//	return live_register_values_.at(name);
+	if(!live_register_values_.count(name)) {
+		live_register_values_[name] = builder.CreateLoad(live_register_pointers_.at(name));
+	}
+	return live_register_values_.at(name);
 }
 
 void LLVMTranslationContext::StoreRegister(llvm::IRBuilder<> &builder, int name, llvm::Value* value)
 {
-	builder.CreateStore(value, live_register_pointers_.at(name));
-//	live_register_values_[name] = value;
+//	builder.CreateStore(value, live_register_pointers_.at(name));
+	live_register_values_[name] = value;
 }
 
 void LLVMTranslationContext::ResetLiveRegisters(llvm::IRBuilder<> &builder)
