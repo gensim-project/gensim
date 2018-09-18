@@ -18,6 +18,7 @@ Region::Region(TranslationManager& mgr, Address phys_base_addr)
 	:	mgr(mgr),
 	  phys_base_addr(phys_base_addr),
 	  current_generation(0),
+	  total_interp_count(0),
 	  max_generation(0),
 	  status(NotInTranslation),
 	  invalid_(false),

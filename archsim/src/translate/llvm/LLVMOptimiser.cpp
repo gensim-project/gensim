@@ -77,31 +77,6 @@ static bool IsConstVal(const ::llvm::MDOperand &v)
 
 char ArchSimAA::ID = 0;
 
-//static llvm::RegisterPass<ArchsimAAWrapper> P("archsim-aa", "ArcSim-specific Alias Analysis", false, true);
-//static llvm::RegisterAnalysisGroup<llvm::AAResultsWrapperPass> G(P);
-
-
-//using namespace llvm;
-//INITIALIZE_PASS_BEGIN(ArchsimAAWrapper, "archsim-aa",
-//                      "ArchSim-specific AA", false, true)
-//INITIALIZE_PASS_DEPENDENCY(TargetLibraryInfoWrapperPass)
-//INITIALIZE_PASS_END(ArchsimAAWrapper, "archsim-aa",
-//                    "ArchSim-specific AA", false, true)
-
-void initializeArchsimAAOnce(llvm::PassRegistry &Registry)
-{
-	llvm::initializeTargetLibraryInfoWrapperPassPass(Registry);
-	llvm::PassInfo *PI = new llvm::PassInfo("Archsim AA", "archsim-aa",&ArchsimAAWrapper::ID, llvm::PassInfo::NormalCtor_t(llvm::callDefaultCtor<ArchsimAAWrapper>), false, true);
-	Registry.registerPass(*PI, true);
-}
-
-llvm::once_flag initializeArchsimAAOnceFlag;
-
-void initializeArchsimAA(llvm::PassRegistry &Registry)
-{
-	llvm::call_once(initializeArchsimAAOnceFlag, initializeArchsimAAOnce, std::ref(Registry));
-}
-
 bool TryRecover_RegAccess(const llvm::Value *v, std::vector<int> &aaai)
 {
 	if(const llvm::BitCastInst *bc = llvm::dyn_cast<const llvm::BitCastInst>(v)) {
@@ -213,9 +188,7 @@ bool TryRecover_StateBlock(const llvm::Value *v, std::vector<int> &aaai)
 // attempt to figure out what v actually is
 bool RecoverAAAI(const llvm::Value *v, std::vector<int> &output_aaai)
 {
-//	fprintf(stderr, "Trying to recover aaai for %p\n", v);
 	if(TryRecover_RegAccess(v, output_aaai)) {
-//		fprintf(stderr, "Successfully recovered register access for %p\n", v);
 		return true;
 	}
 	if(TryRecover_MemAccess(v, output_aaai)) {
@@ -225,7 +198,6 @@ bool RecoverAAAI(const llvm::Value *v, std::vector<int> &output_aaai)
 		return true;
 	}
 
-//	fprintf(stderr, "Couldn't recover anything for %p!\n", v);
 	return false;
 }
 
@@ -373,8 +345,12 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 
 						// If the extents overlap, the pointers MAY alias
 						if((min1 < max2) && (max1 > min2)) {
-//							printf("MAY alias: %u->%u (%u) vs %u->%u (%u)\n", min1, max1, size1, min2, max2, size2);
-							return llvm::MayAlias;
+//							printf("PARTIAL alias: %u->%u (%u) vs %u->%u (%u)\n", min1, max1, size1, min2, max2, size2);
+							if(min1 == min2) {
+								return llvm::MustAlias;
+							} else {
+								return llvm::PartialAlias;
+							}
 						}
 						// If there is no overlap, the pointers DO NOT alias
 						else {
@@ -676,17 +652,11 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 	return true;
 }
 
-//void archsim_aa_wrapper(llvm::Pass &pass, llvm::Function &function, llvm::AAResults &results)
-//{
-//	results.addAAResult(*new ArchSimAA(pass.getAnalysis<llvm::TargetLibraryInfoWrapperPass>().getTLI()));
-//}
-
 bool LLVMOptimiser::AddPass(::llvm::Pass *pass)
 {
 	pm.add(pass);
 
 	if (!archsim::options::JitDisableAA) {
-//		pm.add(new ArchsimAAWrapper());
 		if(my_aa_ == nullptr) {
 			my_aa_ = new ArchSimAA();
 		}
@@ -694,45 +664,15 @@ bool LLVMOptimiser::AddPass(::llvm::Pass *pass)
 			results.addAAResult(*my_aa_);
 		}));
 	}
-//	pm.add(::llvm::createBasicAAWrapperPass());
-
-//	llvm::createBasicAAWrapperPass();
 	return true;
 }
 
 bool LLVMOptimiser::Optimise(::llvm::Module* module, const ::llvm::DataLayout &data_layout)
 {
-	//std::ostringstream str;
 	if(archsim::options::Debug && ::llvm::verifyModule(*module, &::llvm::outs())) assert(false);
 
 	if(!isInitialised)Initialise(data_layout);
 	pm.run(*module);
 
 	return true;
-}
-
-ArchsimAAWrapper::ArchsimAAWrapper() : FunctionPass(ID)
-{
-	initializeArchsimAA(*llvm::PassRegistry::getPassRegistry());
-}
-char ArchsimAAWrapper::ID = 0;
-char RecoverAAInfoPass::ID = 0;
-
-RecoverAAInfoPass::RecoverAAInfoPass() : llvm::FunctionPass(ID)
-{
-
-}
-
-bool RecoverAAInfoPass::runOnFunction(llvm::Function& F)
-{
-	// only bother with entry block
-	auto &block = F.getEntryBlock();
-
-	auto reg_file_ptr = &*F.arg_begin();
-
-	for(auto &insn : block) {
-
-	}
-
-	return false;
 }
