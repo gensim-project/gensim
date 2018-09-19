@@ -72,12 +72,12 @@ ExecutionEngine *archsim::core::execution::BlockJITExecutionEngine::Factory(cons
 {
 	std::string entry_name = cpu_prefix + "BlockJITTranslator";
 	if(!module->HasEntry(entry_name)) {
-		LC_ERROR(LogBlockJitCpu) << "Could not find BlockJITTranslator in target module";
+		LC_WARNING(LogBlockJitCpu) << "While trying to create BlockJITExecutionEngine: Could not find BlockJITTranslator in target module";
 		return nullptr;
 	}
 
 	if(!captive::arch::jit::lowering::HasNativeLowering()) {
-		LC_ERROR(LogBlockJitCpu) << "No native lowering found";
+		LC_WARNING(LogBlockJitCpu) << "While trying to create BlockJITExecutionEngine: No native lowering found";
 		return nullptr;
 	}
 
