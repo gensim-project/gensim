@@ -200,6 +200,9 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 	Functions.bswap_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::bswap, Types.i32);
 	Functions.bswap_i64 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::bswap, Types.i64);
 
+	Functions.float_sqrt = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::sqrt, Types.f32);
+	Functions.double_sqrt = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::sqrt, Types.f64);
+
 	Functions.jit_trap =  (llvm::Function*)Module->getOrInsertFunction("cpuTrap", Types.vtype, Types.i8Ptr);
 
 	Functions.blkRead8 =  (llvm::Function*)Module->getOrInsertFunction("blkRead8", Types.i8, Types.i8Ptr, Types.i64, Types.i32);

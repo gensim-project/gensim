@@ -2,13 +2,16 @@ AC_ISA(x86)
 {
 	ac_format FORMAT_DUMMY_X87 = "%dummy:32";
 	
-	ac_instr<FORMAT_DUMMY_X87> fnstcw, fld, fst, fstp;
+	ac_instr<FORMAT_DUMMY_X87> fild, fnstcw, fld, fst, fstp;
 	
-	ac_behaviour fnstcw, fld, fst, fstp;
+	ac_behaviour fild, fnstcw, fld, fst, fstp;
 	
 	ISA_CTOR(x86) {
 		fld.set_decoder();
 		fld.set_behaviour(fld);
+	
+		fild.set_decoder();
+		fild.set_behaviour(fild);
 	
 		fnstcw.set_decoder();
 		fnstcw.set_behaviour(fnstcw);

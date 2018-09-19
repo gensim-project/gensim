@@ -614,7 +614,7 @@ namespace gensim
 								}
 							} else if(!fromtype.IsFloating() && totype.IsFloating()) {
 								// int to fp
-								if(totype.Signed) {
+								if(fromtype.Signed) {
 									output << "llvm::Instruction::SIToFP";
 								} else {
 									output << "llvm::Instruction::UIToFP";
@@ -1289,12 +1289,15 @@ namespace gensim
 						if(Statement.IsBanked) {
 							auto descriptor = Arch.GetRegFile().GetBankByIdx(Statement.Bank);
 							value_type = descriptor.GetRegisterIRType();
-							offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetRegisterStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
+							if(RegnumExpr->Statement.IsFixed()) {
+								offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetRegisterStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
+							} else {
+								offset = "__irBuilder.CreateMul(" + RegnumExpr->GetDynamicValue() + ", " + GetLLVMValue(RegnumExpr->Statement.GetType(), IRConstant::Integer(descriptor.GetRegisterStride())) + ")";
+								offset = "__irBuilder.CreateAdd(" + offset + ", " + GetLLVMValue(RegnumExpr->Statement.GetType(), IRConstant::Integer(descriptor.GetRegFileOffset())) + ")";
+							}
 
 							output << "if(archsim::options::Trace) {";
-//							output << "llvm::Value *data_ptr = ctx.AllocateRegister(" << ValueExpr->GetDynamicValue() << "->getType());";
-//							output << "__irBuilder.CreateStore(" << ValueExpr->GetDynamicValue() << ", data_ptr);";
-//							output << "EmitTraceBankedRegisterWrite(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", __irBuilder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
+							output << "EmitTraceBankedRegisterWrite(__irBuilder, ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", " << ValueExpr->GetDynamicValue() << ");";
 							output << "}";
 
 						} else {
@@ -1313,12 +1316,12 @@ namespace gensim
 
 						auto &value_type = Statement.GetType();
 						if(Statement.IsBanked) {
+							auto &descriptor = Arch.GetRegFile().GetBankByIdx(Statement.Bank);
 							if(Statement.RegNum()->IsFixed()) {
-								auto &descriptor = Arch.GetRegFile().GetBankByIdx(Statement.Bank);
 								offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetRegisterStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
 							} else {
-								output << "UNIMPLEMENTED;";
-								offset = "0";
+								offset = "__irBuilder.CreateMul(" + RegnumExpr->GetDynamicValue() + ", " + GetLLVMValue(RegnumExpr->Statement.GetType(), IRConstant::Integer(descriptor.GetRegisterStride())) + ")";
+								offset = "__irBuilder.CreateAdd(" + offset + ", " + GetLLVMValue(RegnumExpr->Statement.GetType(), IRConstant::Integer(descriptor.GetRegFileOffset())) + ")";
 							}
 						} else {
 							auto &descriptor = Arch.GetRegFile().GetSlotByIdx(Statement.Bank);
@@ -1329,9 +1332,7 @@ namespace gensim
 
 						if(Statement.IsBanked) {
 							output << "if(archsim::options::Trace) {";
-//							output << "llvm::Value *data_ptr = ctx.AllocateRegister(" << Statement.GetName() << "->getType());";
-//							output << "__irBuilder.CreateStore(" << Statement.GetName() << ", data_ptr);";
-//							output << "EmitTraceBankedRegisterRead(ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", __irBuilder.CreateBitCast(data_ptr, ctx.Types.i8Ptr));";
+							output << "EmitTraceBankedRegisterRead(__irBuilder, ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", " << Statement.GetName() << ");";
 							output << "}";
 
 						} else {

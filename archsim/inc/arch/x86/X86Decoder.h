@@ -61,6 +61,7 @@ enum X86Opcodes {
 	INST_x86_div,
 	INST_x86_divsd,
 	INST_x86_divss,
+	INST_x86_fild,
 	INST_x86_fld,
 	INST_x86_fnstcw,
 	INST_x86_fst,
