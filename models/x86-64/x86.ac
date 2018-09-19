@@ -67,6 +67,15 @@ AC_ARCH(x86)
 		bank MMX     (uint64, 0, 8, 8, 1, 8, 8);
 	}
 	
+	ac_regspace(256) {
+		bank FPSTACK (uint128, 0, 16, 16, 1, 16, 16);
+	}
+	
+	ac_regspace(8) {
+		slot STACKTOP (uint64, 8, 0);
+	}
+	
+	
 	// segment base registers
 	ac_regspace(48) {
 		bank SEGMENT(uint64, 0, 6, 8, 1, 8, 8);

@@ -8,6 +8,15 @@
 
 using namespace gensim;
 
+llvm::Value* BaseLLVMTranslate::EmitRegisterRead(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, llvm::Value *offset)
+{
+	UNIMPLEMENTED;
+}
+bool BaseLLVMTranslate::EmitRegisterWrite(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, llvm::Value *offset, llvm::Value *value)
+{
+	UNIMPLEMENTED;
+}
+
 llvm::Value *BaseLLVMTranslate::EmitRegisterRead(llvm::IRBuilder<> &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset)
 {
 	return ctx.LoadGuestRegister(builder, offset, size_in_bytes);
@@ -35,8 +44,8 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archs
 {
 #ifdef FASTER_READS
 	llvm::Value *mem_offset = llvm::ConstantInt::get(ctx.Types.i64, 0x80000000);
-	address = builder.CreateAdd(address, mem_offset);
-	llvm::IntToPtrInst *ptr = (llvm::IntToPtrInst *)builder.CreateCast(llvm::Instruction::IntToPtr, address, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8, 0));
+	llvm::Value *final_address = builder.CreateAdd(address, mem_offset);
+	llvm::IntToPtrInst *ptr = (llvm::IntToPtrInst *)builder.CreateCast(llvm::Instruction::IntToPtr, final_address, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8, 0));
 	if(ptr->getValueID() == llvm::Instruction::InstructionVal + llvm::Instruction::IntToPtr) {
 		((llvm::IntToPtrInst*)ptr)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_MEM_ACCESS)) }));
 	}
@@ -155,8 +164,8 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 {
 #ifdef FASTER_READS
 	llvm::Value *mem_offset = llvm::ConstantInt::get(ctx.Types.i64, 0x80000000);
-	address = builder.CreateAdd(address, mem_offset);
-	llvm::Value *ptr = builder.CreateCast(llvm::Instruction::IntToPtr, address, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8, 0));
+	llvm::Value *final_address = builder.CreateAdd(address, mem_offset);
+	llvm::Value *ptr = builder.CreateCast(llvm::Instruction::IntToPtr, final_address, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8, 0));
 	if(ptr->getValueID() == llvm::Instruction::InstructionVal + llvm::Instruction::IntToPtr) {
 		((llvm::IntToPtrInst*)ptr)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_MEM_ACCESS)) }));
 	}
@@ -408,9 +417,12 @@ void BaseLLVMTranslate::QueueDynamicBlock(Builder &builder, archsim::translate::
 	dynamic_block_queue.push_back(queued_block);
 }
 
-void BaseLLVMTranslate::EmitTraceBankedRegisterWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, int size, llvm::Value* value_ptr)
+void BaseLLVMTranslate::EmitTraceBankedRegisterWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, int size, llvm::Value* value)
 {
 	if(archsim::options::Trace) {
+		auto value_ptr = new llvm::AllocaInst(value->getType(), 0, "", &*ctx.GetFunction()->getEntryBlock().begin());
+		builder.CreateStore(value, value_ptr);
+
 		builder.CreateCall(ctx.Functions.cpuTraceBankedRegisterWrite, {ctx.GetThreadPtr(builder), llvm::ConstantInt::get(ctx.Types.i32, id), builder.CreateZExtOrTrunc(regnum, ctx.Types.i32), llvm::ConstantInt::get(ctx.Types.i32, size), value_ptr});
 	}
 }
@@ -422,9 +434,12 @@ void BaseLLVMTranslate::EmitTraceRegisterWrite(Builder &builder, archsim::transl
 	}
 }
 
-void BaseLLVMTranslate::EmitTraceBankedRegisterRead(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, int size, llvm::Value* value_ptr)
+void BaseLLVMTranslate::EmitTraceBankedRegisterRead(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, int size, llvm::Value* value)
 {
 	if(archsim::options::Trace) {
+		auto value_ptr = new llvm::AllocaInst(value->getType(), 0, "", &*ctx.GetFunction()->getEntryBlock().begin());
+		builder.CreateStore(value, value_ptr);
+
 		builder.CreateCall(ctx.Functions.cpuTraceBankedRegisterRead, {ctx.GetThreadPtr(builder), llvm::ConstantInt::get(ctx.Types.i32, id), builder.CreateZExtOrTrunc(regnum, ctx.Types.i32), llvm::ConstantInt::get(ctx.Types.i32, size), value_ptr});
 	}
 }

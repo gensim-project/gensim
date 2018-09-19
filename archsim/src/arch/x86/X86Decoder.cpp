@@ -399,6 +399,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_DIVSD, INST_x86_divsd);
 			MAP(XED_ICLASS_DIVSS, INST_x86_divss);
 //			MAP(XED_ICLASS_EMMS, INST_x86_nop); // TODO
+			MAP(XED_ICLASS_FILD, INST_x86_fild); // TODO
 			MAP(XED_ICLASS_FLD, INST_x86_fld); // TODO
 			MAP(XED_ICLASS_FNSTCW, INST_x86_fnstcw); // TODO
 			MAP(XED_ICLASS_FST, INST_x86_fst); // TODO
