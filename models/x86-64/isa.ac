@@ -16,12 +16,14 @@ AC_ISA(x86)
 		uint8 is_reg;
 		uint8 is_imm;
 		uint8 is_mem;
+		uint8 is_fp;
 		
 		uint8 is_relbr;
 		
 		Register reg;
 		Memory memory;
 		Immediate imm;
+		FP fp;
 	};
 	
 	struct Register {
@@ -42,6 +44,12 @@ AC_ISA(x86)
 		uint8 width;
 		uint8 scale;
 		uint64 displacement;
+	};
+	
+	struct FP {
+		uint8 stackpush;
+		uint8 stackpop;
+		uint8 stackentry;
 	};
 	
 	struct Immediate {

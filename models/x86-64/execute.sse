@@ -285,6 +285,10 @@ execute(divss) {
 	write_operand_sse_scalar32(inst.op0, uresult);
 }
 
+execute(ldmxcsr) {
+	write_mxcsr(read_operand(inst.op0));
+}
+
 execute(maxss) {
 	uint64 op0 = read_operand_sse_scalar(inst.op0);
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
@@ -325,6 +329,20 @@ execute(minss) {
 	uint64 uresult = bitcast_float_u32(result);
 	
 	write_operand_sse_scalar32(inst.op0, uresult);
+}
+
+execute(minsd) {
+	uint64 op0 = read_operand_sse_scalar(inst.op0);
+	uint64 op1 = read_operand_sse_scalar(inst.op1);
+	
+	double dop0 = bitcast_u64_double(op0);
+	double dop1 = bitcast_u64_double(op1);
+	
+	double result = dop0 < dop1 ? dop0 : dop1;
+	
+	uint64 uresult = bitcast_double_u64(result);
+	
+	write_operand_sse_scalar(inst.op0, uresult);
 }
 
 execute(movd) {
@@ -860,6 +878,10 @@ execute(sqrtsd) {
 	write_operand_sse_scalar(inst.op0, result);
 }
 
+execute(stmxcsr) {
+	write_operand(inst.op0, read_mxcsr());
+}
+
 execute(subsd) {
 	uint64 op0 = read_operand_sse_scalar(inst.op0);
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
@@ -948,6 +970,13 @@ execute(xorpd) {
 	uint64[2] op1 = read_xmm_u64(inst.op1);
 	
 	write_xmm_u64(inst.op0, op0 ^ op1);
+}
+
+execute(xorps) {
+	uint32[4] op0 = read_xmm_u32(inst.op0);
+	uint32[4] op1 = read_xmm_u32(inst.op1);
+	
+	write_xmm_u32(inst.op0, op0 ^ op1);
 }
 
 helper void write_zpc(uint8 z, uint8 p, uint8 c) {
@@ -1248,4 +1277,16 @@ helper void write_op_reg_sse32(struct Register &reg, uint64 value)
 		}
 	}
 	return;
+}
+
+
+helper void write_mxcsr(uint32 mxcsr)
+{
+	trap();
+}
+
+helper uint32 read_mxcsr()
+{
+	trap();
+	return 0;
 }

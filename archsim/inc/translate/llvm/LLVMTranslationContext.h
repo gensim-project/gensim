@@ -89,6 +89,8 @@ namespace archsim
 
 				llvm::Value *LoadGuestRegister(llvm::IRBuilder<> &builder, int offset, int size);
 				void StoreGuestRegister(llvm::IRBuilder<> &builder, int offset, int size, llvm::Value *value);
+				llvm::Value *LoadGuestRegister(llvm::IRBuilder<> &builder, llvm::Value *offset, int size);
+				void StoreGuestRegister(llvm::IRBuilder<> &builder, llvm::Value *offset, int size, llvm::Value *value);
 
 				llvm::Value *LoadRegister(llvm::IRBuilder<> &builder, int name);
 				void StoreRegister(llvm::IRBuilder<> &builder, int name, llvm::Value *value);
@@ -103,6 +105,7 @@ namespace archsim
 				}
 
 				llvm::Value *GetRegPtr(llvm::IRBuilder<> &builder, int offset, llvm::Type *type);
+				llvm::Value *GetRegPtr(llvm::IRBuilder<> &builder, llvm::Value *offset, llvm::Type *type);
 
 				void ResetLiveRegisters(llvm::IRBuilder<> &builder);
 			private:
