@@ -10,11 +10,11 @@ using namespace gensim;
 
 llvm::Value* BaseLLVMTranslate::EmitRegisterRead(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, llvm::Value *offset)
 {
-	UNIMPLEMENTED;
+	return ctx.LoadGuestRegister(builder, offset, size_in_bytes);
 }
 bool BaseLLVMTranslate::EmitRegisterWrite(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, llvm::Value *offset, llvm::Value *value)
 {
-	UNIMPLEMENTED;
+	ctx.StoreGuestRegister(builder, offset, size_in_bytes, value);
 }
 
 llvm::Value *BaseLLVMTranslate::EmitRegisterRead(llvm::IRBuilder<> &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset)

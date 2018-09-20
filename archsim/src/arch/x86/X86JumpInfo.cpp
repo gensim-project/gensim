@@ -25,6 +25,8 @@ void X86JumpInfoProvider::GetJumpInfo(const gensim::BaseDecode* instr, archsim::
 		case INST_x86_rep_stosb:
 		case INST_x86_rep_stosd:
 		case INST_x86_rep_stosq:
+		case INST_x86_repe_cmpsb:
+		case INST_x86_repne_scasb:
 			info.IsJump = true;
 			info.IsIndirect = false;
 			info.IsConditional = true;

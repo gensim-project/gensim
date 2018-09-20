@@ -1015,12 +1015,16 @@ static unsigned long sys_readlink(archsim::core::thread::ThreadInstance *cpu, un
 static unsigned long sys_x86_arch_prctl(archsim::core::thread::ThreadInstance *thread, uint32_t code, uint64_t addr)
 {
 	switch(code) {
-		case ARCH_SET_FS:
-			*thread->GetRegisterFileInterface().GetEntry<uint64_t>("FS") = addr;
+		case ARCH_SET_FS: {
+			auto fsptr = thread->GetRegisterFileInterface().GetEntry<uint64_t>("FS");
+			*fsptr = addr;
 			break;
-		case ARCH_SET_GS:
-			*thread->GetRegisterFileInterface().GetEntry<uint64_t>("GS") = addr;
+		}
+		case ARCH_SET_GS: {
+			auto gsptr = thread->GetRegisterFileInterface().GetEntry<uint64_t>("GS");
+			*gsptr = addr;
 			break;
+		}
 
 		case ARCH_GET_FS:
 			thread->GetMemoryInterface(0).Write64(Address(addr), *thread->GetRegisterFileInterface().GetEntry<uint64_t>("FS"));

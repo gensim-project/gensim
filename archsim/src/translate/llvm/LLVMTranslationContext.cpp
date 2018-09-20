@@ -315,6 +315,18 @@ void LLVMTranslationContext::ResetRegisters()
 	live_register_values_.clear();
 }
 
+llvm::Value *LLVMTranslationContext::GetRegPtr(llvm::IRBuilder<> &builder, llvm::Value *offset, llvm::Type *type)
+{
+	llvm::Value *ptr = (llvm::Instruction*)builder.CreatePtrToInt(GetRegStatePtr(), Types.i64);
+	ptr = builder.CreateAdd(ptr, offset);
+	ptr = builder.CreateIntToPtr(ptr, type->getPointerTo(0));
+	((llvm::Instruction*)ptr)->setMetadata("aaai", llvm::MDNode::get(LLVMCtx, {
+		llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(Types.i32, archsim::translate::translate_llvm::TAG_REG_ACCESS))
+	}
+	                                                                ));
+	return ptr;
+}
+
 llvm::Value* LLVMTranslationContext::GetRegPtr(llvm::IRBuilder<> &builder, int offset, llvm::Type* type)
 {
 #define INTERN_REG_PTRS
@@ -356,6 +368,20 @@ llvm::Value* LLVMTranslationContext::GetRegPtr(llvm::IRBuilder<> &builder, int o
 
 	return ptr;
 #endif
+}
+
+llvm::Value* LLVMTranslationContext::LoadGuestRegister(llvm::IRBuilder<>& builder, llvm::Value *offset, int size)
+{
+	guest_reg_values_.clear();
+	auto reg_type = llvm::IntegerType::get(LLVMCtx, size*8);
+	return builder.CreateLoad(GetRegPtr(builder, offset, reg_type));
+}
+void LLVMTranslationContext::StoreGuestRegister(llvm::IRBuilder<>& builder, llvm::Value *offset, int size, llvm::Value *value)
+{
+	guest_reg_values_.clear();
+	auto reg_type = llvm::IntegerType::get(LLVMCtx, size*8);
+	value = builder.CreateBitCast(value, reg_type);
+	auto store = builder.CreateStore(value, GetRegPtr(builder, offset, reg_type));
 }
 
 llvm::Value* LLVMTranslationContext::LoadGuestRegister(llvm::IRBuilder<>& builder, int offset, int size)

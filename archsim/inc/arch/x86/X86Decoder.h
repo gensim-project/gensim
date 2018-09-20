@@ -66,6 +66,7 @@ enum X86Opcodes {
 	INST_x86_fnstcw,
 	INST_x86_fst,
 	INST_x86_fstp,
+	INST_x86_fsubp,
 	INST_x86_idiv,
 	INST_x86_imul1,
 	INST_x86_imul2,
@@ -76,10 +77,12 @@ enum X86Opcodes {
 
 	INST_x86_jmp,
 	INST_x86_lea,
+	INST_x86_ldmxcsr,
 	INST_x86_leave,
 	INST_x86_maxsd,
 	INST_x86_maxss,
 	INST_x86_minss,
+	INST_x86_minsd,
 	INST_x86_mov,
 	INST_x86_movd,
 	INST_x86_movdqu,
@@ -159,6 +162,7 @@ enum X86Opcodes {
 	INST_x86_shr,
 	INST_x86_shrd,
 	INST_x86_sqrtsd,
+	INST_x86_stmxcsr,
 	INST_x86_sub,
 	INST_x86_subsd,
 	INST_x86_subss,
@@ -172,7 +176,8 @@ enum X86Opcodes {
 	INST_x86_xchg,
 	INST_x86_xgetbv,
 	INST_x86_xor,
-	INST_x86_xorpd
+	INST_x86_xorpd,
+	INST_x86_xorps
 };
 
 namespace archsim
@@ -212,6 +217,12 @@ namespace archsim
 					uint64_t displacement;
 				};
 
+				struct FP {
+					uint8 stackpush;
+					uint8 stackpop;
+					uint8 stackentry;
+				};
+
 				struct Immediate {
 					uint64_t value;
 				};
@@ -221,11 +232,13 @@ namespace archsim
 					uint8_t is_imm;
 					uint8_t is_mem;
 					uint8_t is_relbr;
+					uint8_t is_fp;
 
 					union {
 						Register reg;
 						Memory memory;
 						Immediate imm;
+						FP fp;
 					};
 				};
 
