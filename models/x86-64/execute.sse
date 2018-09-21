@@ -1279,15 +1279,32 @@ helper void write_op_reg_sse32(struct Register &reg, uint64 value)
 	return;
 }
 
+helper void x86_set_rounding(uint8 rounding_mode)
+{
+	// 00 = round to nearest
+	// 01 = round to negative
+	// 10 = round to positive
+	// 11 = round to zero
+
+	__builtin_set_fp_rounding(rounding_mode);
+	return;
+}
 
 helper void write_mxcsr(uint32 mxcsr)
 {
-	trap();
+	write_register(MXCSR, mxcsr);
+	
+	// figure out rounding most
+	uint32 rounding_bits = (mxcsr >> 13) & 3;
+	x86_set_rounding(rounding_bits);
+	
+	uint32 flush_bits = (mxcsr >> 6) & 1;
+	__builtin_set_fp_flush(flush_bits);
+	
 	return;
 }
 
 helper uint32 read_mxcsr()
 {
-	trap();
-	return 0;
+	return read_register(MXCSR);
 }

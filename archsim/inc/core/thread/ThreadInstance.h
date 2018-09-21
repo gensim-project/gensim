@@ -61,7 +61,10 @@ namespace archsim
 				FlushToZero
 			};
 			enum class RoundingMode {
-				RoundTowardZero
+				RoundDownward,
+				RoundToNearest,
+				RoundTowardZero,
+				RoundUpward
 			};
 
 			class FPState
@@ -70,6 +73,7 @@ namespace archsim
 				void SetFlushMode(FlushMode newMode)
 				{
 					flush_mode_ = newMode;
+					Apply();
 				}
 				FlushMode GetFlushMode() const
 				{
@@ -79,6 +83,7 @@ namespace archsim
 				void SetRoundingMode(RoundingMode newMode)
 				{
 					rounding_mode_ = newMode;
+					Apply();
 				}
 				RoundingMode GetRoundingMode() const
 				{
