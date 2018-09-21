@@ -1003,6 +1003,8 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
 						case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
+							output << "UNIMPLEMENTED;";
+							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
 							output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.bswap_i32, " << arg0->GetDynamicValue() << ");";

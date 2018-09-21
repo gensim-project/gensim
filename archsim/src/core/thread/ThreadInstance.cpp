@@ -8,6 +8,7 @@
 #include "system.h"
 
 #include <setjmp.h>
+#include <fenv.h>
 
 // These are deprecated and should be removed soon
 DeclareLogContext(LogCPU, "CPU");
@@ -19,8 +20,26 @@ using namespace archsim::core::thread;
 
 void FPState::Apply()
 {
-	// TODO: properly apply the floating point state represented by this FPState object.
-	UNIMPLEMENTED;
+	int target_rounding_mode = 0;
+	switch(rounding_mode_) {
+		case RoundingMode::RoundDownward:
+			target_rounding_mode = FE_DOWNWARD;
+			break;
+		case RoundingMode::RoundToNearest:
+			target_rounding_mode = FE_TONEAREST;
+			break;
+		case RoundingMode::RoundTowardZero:
+			target_rounding_mode = FE_TOWARDZERO;
+			break;
+		case RoundingMode::RoundUpward:
+			target_rounding_mode = FE_UPWARD;
+			break;
+		default:
+			UNIMPLEMENTED;
+	}
+
+	printf("Rounding mode set to %u\n", target_rounding_mode);
+	fesetround(target_rounding_mode);
 }
 
 

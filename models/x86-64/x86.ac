@@ -75,6 +75,9 @@ AC_ARCH(x86)
 		slot STACKTOP (uint64, 8, 0);
 	}
 	
+	ac_regspace(4) {
+		slot MXCSR (uint32, 4, 0);
+	}
 	
 	// segment base registers
 	ac_regspace(48) {
