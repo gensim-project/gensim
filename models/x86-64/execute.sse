@@ -1283,6 +1283,7 @@ helper void write_op_reg_sse32(struct Register &reg, uint64 value)
 helper void write_mxcsr(uint32 mxcsr)
 {
 	trap();
+	return;
 }
 
 helper uint32 read_mxcsr()
