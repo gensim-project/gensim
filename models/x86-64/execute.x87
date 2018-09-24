@@ -1,6 +1,7 @@
 
 execute(fnstcw) 
 {
+	// TODO 
 	write_operand(inst.op0, 0);
 }
 

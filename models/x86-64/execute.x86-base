@@ -335,6 +335,17 @@ execute(jmp) {
 	write_pc(read_operand(inst.op0));
 }
 
+execute(jrcxz) {
+	uint64 target_pc = 0;
+	if(read_operand(inst.op1) == 0) {
+		target_pc = read_operand(inst.op0);
+	} else {
+		target_pc = read_pc() + inst.Instr_Length;
+	}
+	
+	write_pc(target_pc);
+}
+
 execute(lea) {
 	uint64 value = mem_get_addr(inst.op1.memory);
 	

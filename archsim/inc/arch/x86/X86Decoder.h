@@ -76,6 +76,7 @@ enum X86Opcodes {
 	INST_x86_jcond,
 
 	INST_x86_jmp,
+	INST_x86_jrcxz,
 	INST_x86_lea,
 	INST_x86_ldmxcsr,
 	INST_x86_leave,

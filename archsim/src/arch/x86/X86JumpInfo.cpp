@@ -37,6 +37,7 @@ void X86JumpInfoProvider::GetJumpInfo(const gensim::BaseDecode* instr, archsim::
 	switch(d->Instr_Code) {
 		case INST_x86_jmp:
 		case INST_x86_jcond:
+		case INST_x86_jrcxz:
 		case INST_x86_call:
 		case INST_x86_ret:
 			info.IsJump = true;
@@ -53,7 +54,7 @@ void X86JumpInfoProvider::GetJumpInfo(const gensim::BaseDecode* instr, archsim::
 		}
 
 		// only jcond is conditional
-		if(d->Instr_Code == INST_x86_jcond) {
+		if(d->Instr_Code == INST_x86_jcond || d->Instr_Code == INST_x86_jrcxz) {
 			info.IsConditional = true;
 		}
 	}
