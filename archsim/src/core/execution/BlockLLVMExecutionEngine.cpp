@@ -283,8 +283,7 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 
 		// if we're about to execute a jump, update the PC first
 		if(ji.IsJump) {
-			// todo: fix this for 32 bit & full system
-			translator_->EmitRegisterWrite(builder, ctx, pc_desc.GetEntrySize(), pc_desc.GetOffset(), llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()));
+			translator_->EmitRegisterWrite(builder, ctx, thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr, llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()));
 		}
 
 		// translate instruction

@@ -821,7 +821,7 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_WritePc: {
 							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
 
-							output << "EmitRegisterWrite(__irBuilder, ctx, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ", " << arg0->GetDynamicValue() << ");";
+							output << "EmitRegisterWrite(__irBuilder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry(\"PC\"), nullptr, " << arg0->GetDynamicValue() << ");";
 
 							break;
 						}
@@ -1310,53 +1310,37 @@ namespace gensim
 					SSANodeWalker *RegnumExpr = NULL;
 					if (Statement.RegNum()) RegnumExpr = Factory.GetOrCreate(Statement.RegNum());
 
+					std::string reg_name, index;
+					if(Statement.IsBanked) {
+						auto &descriptor = Arch.GetRegFile().GetBankByIdx(Statement.Bank);
+
+						reg_name = "\"" + descriptor.ID + "\"";
+						index = RegnumExpr->GetDynamicValue();
+
+					} else {
+						auto &descriptor = Arch.GetRegFile().GetSlotByIdx(Statement.Bank);
+
+						reg_name = "\"" + descriptor.GetID() + "\"";
+						index = "nullptr";
+					}
+
 					if (!Statement.IsRead) {
-						std::string offset;
-
 						IRType value_type;
-						if(Statement.IsBanked) {
-							auto descriptor = Arch.GetRegFile().GetBankByIdx(Statement.Bank);
-							value_type = descriptor.GetRegisterIRType();
-							if(RegnumExpr->Statement.IsFixed()) {
-								offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetRegisterStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
-							} else {
-								offset = "__irBuilder.CreateMul(" + RegnumExpr->GetDynamicValue() + ", " + GetLLVMValue(RegnumExpr->Statement.GetType(), IRConstant::Integer(descriptor.GetRegisterStride())) + ")";
-								offset = "__irBuilder.CreateAdd(" + offset + ", " + GetLLVMValue(RegnumExpr->Statement.GetType(), IRConstant::Integer(descriptor.GetRegFileOffset())) + ")";
-							}
 
+						if(Statement.IsBanked) {
 							output << "if(archsim::options::Trace) {";
 							output << "EmitTraceBankedRegisterWrite(__irBuilder, ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", " << ValueExpr->GetDynamicValue() << ");";
 							output << "}";
-
 						} else {
-							auto descriptor = Arch.GetRegFile().GetSlotByIdx(Statement.Bank);
-							value_type = descriptor.GetIRType();
-							offset = std::to_string(descriptor.GetRegFileOffset());
-
 							output << "EmitTraceRegisterWrite(__irBuilder, ctx, " << (uint32_t)Statement.Bank << ", " << ValueExpr->GetDynamicValue() << ");";
 						}
 
-						output << "EmitRegisterWrite(__irBuilder, ctx, " << value_type.SizeInBytes() << ", " << offset << ", " << ValueExpr->GetDynamicValue() << ");";
+						output << "EmitRegisterWrite(__irBuilder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetEntry(" << reg_name << "), " << index << ", " << ValueExpr->GetDynamicValue() << ");";
 
 					} else {
-						int size = Statement.GetType().SizeInBytes();
-						std::string offset;
-
 						auto &value_type = Statement.GetType();
-						if(Statement.IsBanked) {
-							auto &descriptor = Arch.GetRegFile().GetBankByIdx(Statement.Bank);
-							if(Statement.RegNum()->IsFixed()) {
-								offset = std::to_string(descriptor.GetRegFileOffset()) + " + (" + std::to_string(descriptor.GetRegisterStride()) + " * " + RegnumExpr->GetFixedValue() + ")";
-							} else {
-								offset = "__irBuilder.CreateMul(" + RegnumExpr->GetDynamicValue() + ", " + GetLLVMValue(RegnumExpr->Statement.GetType(), IRConstant::Integer(descriptor.GetRegisterStride())) + ")";
-								offset = "__irBuilder.CreateAdd(" + offset + ", " + GetLLVMValue(RegnumExpr->Statement.GetType(), IRConstant::Integer(descriptor.GetRegFileOffset())) + ")";
-							}
-						} else {
-							auto &descriptor = Arch.GetRegFile().GetSlotByIdx(Statement.Bank);
-							offset = std::to_string(descriptor.GetRegFileOffset());
-						}
 
-						output << "llvm::Value *" << Statement.GetName() << " = EmitRegisterRead(__irBuilder, ctx, " << size << ", " << offset << ");";
+						output << "llvm::Value *" << Statement.GetName() << " = EmitRegisterRead(__irBuilder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetEntry(" << reg_name << "), " << index << ");";
 
 						if(Statement.IsBanked) {
 							output << "if(archsim::options::Trace) {";

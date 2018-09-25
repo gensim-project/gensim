@@ -5,7 +5,16 @@
 
 using namespace archsim;
 
-RegisterFileEntryDescriptor::RegisterFileEntryDescriptor(const std::string& name, uint32_t id, uint32_t offset, uint32_t entry_count, uint32_t entry_size, uint32_t entry_stride, const std::string tag) : name_(name), id_(id), offset_(offset), entry_count_(entry_count), entry_size_(entry_size), entry_stride_(entry_stride), tag_(tag)
+RegisterFileEntryDescriptor::RegisterFileEntryDescriptor(const std::string& name, uint32_t id, uint32_t offset, uint64_t register_count, uint64_t register_stride, uint32_t entry_count, uint32_t entry_size, uint32_t entry_stride, const std::string tag)
+	: name_(name),
+	  id_(id),
+	  offset_(offset),
+	  register_count_(register_count),
+	  register_stride_(register_stride),
+	  entry_count_(entry_count),
+	  entry_size_(entry_size),
+	  entry_stride_(entry_stride),
+	  tag_(tag)
 {
 
 }

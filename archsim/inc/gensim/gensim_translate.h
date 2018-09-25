@@ -15,6 +15,7 @@
 #include "gensim_decode.h"
 #include "gensim_processor_api.h"
 #include "util/Counter.h"
+#include "core/arch/RegisterFileDescriptor.h"
 
 #include <string>
 #include <map>
@@ -97,10 +98,8 @@ namespace gensim
 		virtual bool TranslateInstruction(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) = 0;
 		virtual llvm::Value *EmitPredicateCheck(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_pc, llvm::Function *fn) = 0;
 
-		llvm::Value *EmitRegisterRead(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset);
-		bool EmitRegisterWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset, llvm::Value*);
-		llvm::Value *EmitRegisterRead(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, llvm::Value *offset);
-		bool EmitRegisterWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, llvm::Value *offset, llvm::Value*);
+		llvm::Value *EmitRegisterRead(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, const archsim::RegisterFileEntryDescriptor &entry, llvm::Value *index);
+		bool EmitRegisterWrite(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, const archsim::RegisterFileEntryDescriptor &entry, llvm::Value *index, llvm::Value *value);
 
 		void EmitTraceRegisterWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *value);
 		void EmitTraceBankedRegisterWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value *regnum, int size, llvm::Value *value_ptr);

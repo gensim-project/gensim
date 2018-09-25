@@ -76,7 +76,7 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 	auto rfile = Manager.GetArch().GetRegFile();
 	std::string entry_list;
 	for(auto i : rfile.GetBanks()) {
-		str << "static archsim::RegisterFileEntryDescriptor rfd_entry_" << i->ID << "(\"" << i->ID <<"\", " << i->GetIndex() << ", " << i->GetRegFileOffset() << ", " << i->GetRegisterCount() << ", " << i->GetRegisterWidth() << ", " << i->GetRegisterStride() << ");";
+		str << "static archsim::RegisterFileEntryDescriptor rfd_entry_" << i->ID << "(\"" << i->ID <<"\", " << i->GetIndex() << ", " << i->GetRegFileOffset() << ", " << i->GetRegisterCount() << ", " << i->GetRegisterStride() << ", " << i->GetElementCount() << ", " << i->GetElementSize() << ", " << i->GetElementStride() << ");";
 		if(entry_list.size()) {
 			entry_list += ", ";
 		}
@@ -88,7 +88,7 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 		if(i->HasTag()) {
 			tag = i->GetTag();
 		}
-		str << "static archsim::RegisterFileEntryDescriptor rfd_entry_" << i->GetID() << "(\"" << i->GetID() <<"\", " << i->GetIndex() << ", " << i->GetRegFileOffset() << ", " << 1 << ", " << i->GetWidth() << ", " << i->GetWidth() << ", \"" << tag << "\");";
+		str << "static archsim::RegisterFileEntryDescriptor rfd_entry_" << i->GetID() << "(\"" << i->GetID() <<"\", " << i->GetIndex() << ", " << i->GetRegFileOffset() << ", " << 1 << ", 1, 1, " << i->GetWidth() << ", " << i->GetWidth() << ", \"" << tag << "\");";
 		if(entry_list.size()) {
 			entry_list += ", ";
 		}

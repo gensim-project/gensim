@@ -13,6 +13,7 @@
 #include "core/thread/ThreadInstance.h"
 #include "gensim/gensim_translate.h"
 #include "translate/TranslationWorkUnit.h"
+#include "translate/llvm/LLVMGuestRegisterAccessEmitter.h"
 
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
@@ -89,10 +90,8 @@ namespace archsim
 				llvm::Value *AllocateRegister(llvm::Type *type, int name);
 				void FreeRegister(llvm::Type *t, llvm::Value *v, int name);
 
-				llvm::Value *LoadGuestRegister(llvm::IRBuilder<> &builder, int offset, int size);
-				void StoreGuestRegister(llvm::IRBuilder<> &builder, int offset, int size, llvm::Value *value);
-				llvm::Value *LoadGuestRegister(llvm::IRBuilder<> &builder, llvm::Value *offset, int size);
-				void StoreGuestRegister(llvm::IRBuilder<> &builder, llvm::Value *offset, int size, llvm::Value *value);
+				llvm::Value *LoadGuestRegister(llvm::IRBuilder<> &builder, const archsim::RegisterFileEntryDescriptor &reg, llvm::Value *index);
+				void StoreGuestRegister(llvm::IRBuilder<> &builder, const archsim::RegisterFileEntryDescriptor &reg, llvm::Value *index, llvm::Value *value);
 
 				llvm::Value *LoadRegister(llvm::IRBuilder<> &builder, int name);
 				void StoreRegister(llvm::IRBuilder<> &builder, int name, llvm::Value *value);
@@ -112,6 +111,8 @@ namespace archsim
 				void ResetLiveRegisters(llvm::IRBuilder<> &builder);
 			private:
 				archsim::core::thread::ThreadInstance *thread_;
+
+				LLVMGuestRegisterAccessEmitter *guest_reg_emitter_;
 
 				llvm::Function *function_;
 

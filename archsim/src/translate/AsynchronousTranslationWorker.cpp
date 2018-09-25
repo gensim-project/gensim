@@ -335,14 +335,14 @@ void EmitControlFlow_DirectPred(llvm::IRBuilder<> &builder, tx_llvm::LLVMTransla
 		}
 	}
 
-	llvm::Value *pc = translate->EmitRegisterRead(builder, ctx, 8, 128);
+	llvm::Value *pc = translate->EmitRegisterRead(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
 	auto branch_was_taken = builder.CreateICmpEQ(pc, llvm::ConstantInt::get(ctx.Types.i64, ji.JumpTarget.Get()));
 	builder.CreateCondBr(branch_was_taken, taken_block, nontaken_block);
 }
 
 void EmitControlFlow_Indirect(llvm::IRBuilder<> &builder, tx_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, tx_llvm::LLVMRegionTranslationContext &region, gensim::JumpInfo &ji)
 {
-	auto pc_val = translate->EmitRegisterRead(builder, ctx, 8, 128);
+	llvm::Value *pc_val = translate->EmitRegisterRead(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
 	llvm::SwitchInst *out_switch = builder.CreateSwitch(pc_val, region.GetDispatchBlock());
 	for(auto &succ : block.GetSuccessors()) {
 		auto succ_addr = (unit.GetRegion().GetPhysicalBaseAddress() + succ->GetOffset());
@@ -412,7 +412,7 @@ void TranslateInstructionPredicated(llvm::IRBuilder<> &builder, tx_llvm::LLVMTra
 		failed_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", fn);
 		llvm::IRBuilder<> failed_builder(failed_block);
 
-		translate->EmitRegisterWrite(failed_builder, ctx, 8, 128, llvm::ConstantInt::get(ctx.Types.i64, insn_pc.Get() + decode->Instr_Length));
+		ctx.StoreGuestRegister(failed_builder, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr, llvm::ConstantInt::get(ctx.Types.i64, insn_pc.Get() + decode->Instr_Length));
 		failed_builder.CreateBr(continue_block);
 
 	}
@@ -432,7 +432,7 @@ void TranslateInstructionPredicated(llvm::IRBuilder<> &builder, tx_llvm::LLVMTra
 	}
 
 	if(!ji.IsJump) {
-		translate->EmitRegisterWrite(builder, ctx, 8, 128, llvm::ConstantInt::get(ctx.Types.i64, insn_pc.Get() + decode->Instr_Length));
+		ctx.StoreGuestRegister(builder, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr, llvm::ConstantInt::get(ctx.Types.i64, insn_pc.Get() + decode->Instr_Length));
 	}
 
 	delete jip;
@@ -516,7 +516,7 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 				gensim::JumpInfo jumpinfo;
 				ji->GetJumpInfo(&insn->GetDecode(), Address(0), jumpinfo);
 				if(!jumpinfo.IsJump) {
-					translate_->EmitRegisterWrite(builder, ctx, 8, 128, llvm::ConstantInt::get(ctx.Types.i64, (insn->GetOffset() + unit.GetRegion().GetPhysicalBaseAddress() + insn->GetDecode().Instr_Length).Get()));
+					ctx.StoreGuestRegister(builder, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr, llvm::ConstantInt::get(ctx.Types.i64, (insn->GetOffset() + unit.GetRegion().GetPhysicalBaseAddress() + insn->GetDecode().Instr_Length).Get()));
 				}
 
 			}
