@@ -15,10 +15,10 @@ AC_ARCH(x86)
 		// bank NAME (TYPE, OFFSET, COUNT, REG-STRIDE, # ELEMS, ELEM-SIZE, ELEM-STRIDE)
 		
 		bank RQ (uint64, 0, 16, 8, 1, 8, 8);
-		bank RD (uint32, 0, 16, 8, 1, 4, 8);
-		bank RW (uint16, 0, 16, 8, 1, 2, 8);
-		bank RB (uint8 , 0, 16, 8, 1, 1, 8);
-		bank RBH(uint8 , 1, 4, 8, 1, 1, 8);
+		bank RD (uint32, 0, 16, 8, 1, 4, 4);
+		bank RW (uint16, 0, 16, 8, 1, 2, 2);
+		bank RB (uint8 , 0, 16, 8, 1, 1, 1);
+		bank RBH(uint8 , 1, 4, 8, 1, 1, 1);
 		
 		slot RAX(uint64, 8, 0);
 		slot EAX(uint32, 4, 0);

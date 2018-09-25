@@ -8,31 +8,13 @@
 
 using namespace gensim;
 
-llvm::Value* BaseLLVMTranslate::EmitRegisterRead(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, llvm::Value *offset)
+llvm::Value* BaseLLVMTranslate::EmitRegisterRead(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, const archsim::RegisterFileEntryDescriptor &entry, llvm::Value *index)
 {
-	return ctx.LoadGuestRegister(builder, offset, size_in_bytes);
+	return ctx.LoadGuestRegister(builder, entry, index);
 }
-bool BaseLLVMTranslate::EmitRegisterWrite(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, llvm::Value *offset, llvm::Value *value)
+bool BaseLLVMTranslate::EmitRegisterWrite(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, const archsim::RegisterFileEntryDescriptor &entry, llvm::Value *index, llvm::Value *value)
 {
-	ctx.StoreGuestRegister(builder, offset, size_in_bytes, value);
-}
-
-llvm::Value *BaseLLVMTranslate::EmitRegisterRead(llvm::IRBuilder<> &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset)
-{
-	return ctx.LoadGuestRegister(builder, offset, size_in_bytes);
-//	llvm::Value *ptr = ctx.GetRegPtr(offset, llvm::IntegerType::getIntNTy(ctx.LLVMCtx, size_in_bytes*8));
-//	auto value = builder.CreateLoad(ptr);
-//	return value;
-}
-
-bool BaseLLVMTranslate::EmitRegisterWrite(llvm::IRBuilder<> &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset, llvm::Value *value)
-{
-	ctx.StoreGuestRegister(builder, offset, size_in_bytes, value);
-
-//	llvm::Value *ptr = ctx.GetRegPtr(offset, llvm::IntegerType::getIntNTy(ctx.LLVMCtx, size_in_bytes*8));
-//	value = builder.CreateBitCast(value, llvm::IntegerType::getIntNTy(ctx.LLVMCtx, size_in_bytes*8));
-//	builder.CreateStore(value, ptr);
-//	return true;
+	ctx.StoreGuestRegister(builder, entry, index, value);
 }
 
 //#define FAST_READS
@@ -342,15 +324,10 @@ void BaseLLVMTranslate::EmitAdcWithFlags(Builder &builder, archsim::translate::t
 	llvm::Value *V = builder.CreateAnd(V_lhs, V_rhs);
 	V = builder.CreateZExt(V, ctx.Types.i8);
 
-	auto C_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C");
-	auto V_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V");
-	auto N_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N");
-	auto Z_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z");
-
-	EmitRegisterWrite(builder, ctx, 1, C_desc.GetOffset(), C);
-	EmitRegisterWrite(builder, ctx, 1, V_desc.GetOffset(), V);
-	EmitRegisterWrite(builder, ctx, 1, N_desc.GetOffset(), N);
-	EmitRegisterWrite(builder, ctx, 1, Z_desc.GetOffset(), Z);
+	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C"), nullptr, C);
+	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V"), nullptr, V);
+	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N"), nullptr, N);
+	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z"), nullptr, Z);
 }
 
 void BaseLLVMTranslate::EmitSbcWithFlags(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value* lhs, llvm::Value* rhs, llvm::Value* carry)
@@ -397,15 +374,10 @@ void BaseLLVMTranslate::EmitSbcWithFlags(Builder &builder, archsim::translate::t
 	llvm::Value *V = builder.CreateAnd(V_lhs, V_rhs);
 	V = builder.CreateZExt(V, ctx.Types.i8);
 
-	auto C_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C");
-	auto V_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V");
-	auto N_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N");
-	auto Z_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z");
-
-	EmitRegisterWrite(builder, ctx, 1, C_desc.GetOffset(), C);
-	EmitRegisterWrite(builder, ctx, 1, V_desc.GetOffset(), V);
-	EmitRegisterWrite(builder, ctx, 1, N_desc.GetOffset(), N);
-	EmitRegisterWrite(builder, ctx, 1, Z_desc.GetOffset(), Z);
+	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C"), nullptr, C);
+	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V"), nullptr, V);
+	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N"), nullptr, N);
+	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z"), nullptr, Z);
 }
 
 void BaseLLVMTranslate::QueueDynamicBlock(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, std::map<uint16_t, llvm::BasicBlock*>& dynamic_blocks, std::list<uint16_t>& dynamic_block_queue, uint16_t queued_block)

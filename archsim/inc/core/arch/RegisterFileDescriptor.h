@@ -23,16 +23,18 @@
 namespace archsim
 {
 
+	// Descriptor for a register file entry. Entries are essentially described in two levels, where a register file entry can contain a number of registers, each of which can contain a number of entries
+	//
 	class RegisterFileEntryDescriptor
 	{
 	public:
-		RegisterFileEntryDescriptor(const std::string &name, uint32_t id, uint32_t offset, uint32_t entry_count, uint32_t entry_size, uint32_t entry_stride, const std::string tag = "");
+		RegisterFileEntryDescriptor(const std::string &name, uint32_t id, uint32_t offset, uint64_t register_count, uint64_t register_stride, uint32_t entry_count, uint32_t entry_size, uint32_t entry_stride, const std::string tag = "");
 
 		uint64_t GetOffset() const
 		{
 			return offset_;
 		}
-		uint64_t GetEntryCount() const
+		uint64_t GetEntryCountPerRegister() const
 		{
 			return entry_count_;
 		}
@@ -43,6 +45,20 @@ namespace archsim
 		uint64_t GetEntryStride() const
 		{
 			return entry_stride_;
+		}
+
+		uint64_t GetRegisterCount() const
+		{
+			return register_count_;
+		}
+
+		uint64_t GetRegisterStride() const
+		{
+			return register_stride_;
+		}
+		uint64_t GetRegisterSize() const
+		{
+			return GetEntryStride() * GetEntryCountPerRegister();
 		}
 
 		const std::string &GetTag() const
@@ -63,6 +79,10 @@ namespace archsim
 		std::string tag_;
 		uint32_t id_;
 		uint64_t offset_;
+
+		uint64_t register_count_;
+		uint64_t register_stride_;
+
 		uint64_t entry_count_;
 		uint64_t entry_size_;
 		uint64_t entry_stride_;
@@ -83,6 +103,11 @@ namespace archsim
 		const register_file_entry_collection_t &GetEntries() const
 		{
 			return entries_;
+		}
+
+		const RegisterFileEntryDescriptor &GetEntry(const std::string &name) const
+		{
+			return entries_.at(name);
 		}
 
 		const RegisterFileEntryDescriptor &GetTaggedEntry(const std::string &tag) const
