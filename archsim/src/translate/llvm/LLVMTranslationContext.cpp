@@ -49,6 +49,7 @@ void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit
 	llvm::GlobalVariable *gv = GetFunction()->getParent()->getGlobalVariable("jump_table");
 	gv->setConstant(true);
 	gv->setInitializer(block_jump_table);
+	gv->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_JT_ELEMENT)) }));
 
 	// TODO: figure out from architecture
 	auto pc = GetTxlt()->EmitRegisterRead(builder, ctx, 8, 128);
@@ -65,6 +66,9 @@ void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit
 
 	auto pc_offset = builder.CreateAnd(pc, archsim::Address::PageMask);
 	auto target = builder.CreateGEP(gv, {llvm::ConstantInt::get(ctx.Types.i64, 0), pc_offset});
+	if(llvm::isa<llvm::GetElementPtrInst>(target)) {
+		((llvm::GetElementPtrInst*)target)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_JT_ELEMENT)) }));
+	}
 	target = builder.CreateLoad(target);
 	auto indirectbr = builder.CreateIndirectBr(target);
 
@@ -195,6 +199,12 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 
 	Types.f32 = llvm::Type::getFloatTy(ctx);
 	Types.f64 = llvm::Type::getDoubleTy(ctx);
+
+	if(fn->getEntryBlock().size()) {
+		Values.contiguous_mem_base = new llvm::IntToPtrInst(llvm::ConstantInt::get(Types.i64, 0x80000000), Types.i8Ptr, "contiguous_mem_base", &*(fn->getEntryBlock().begin()));
+	} else {
+		Values.contiguous_mem_base = new llvm::IntToPtrInst(llvm::ConstantInt::get(Types.i64, 0x80000000), Types.i8Ptr, "contiguous_mem_base", &(fn->getEntryBlock()));
+	}
 
 	Functions.ctpop_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ctpop, Types.i32);
 	Functions.bswap_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::bswap, Types.i32);

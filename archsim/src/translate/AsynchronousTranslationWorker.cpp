@@ -464,6 +464,7 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 	// Create a new llvm module to contain the translation
 	llvm::Module *module = new llvm::Module("region_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()), llvm_ctx);
 	module->setDataLayout(target_machine_->createDataLayout());
+	module->setTargetTriple(target_machine_->getTargetTriple().normalize());
 
 	auto i8ptrty = llvm::Type::getInt8PtrTy(llvm_ctx);
 
@@ -507,7 +508,6 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 				}
 
 				translate->TranslateInstruction(builder, ctx, unit.GetThread(), &insn->GetDecode(), Address(unit.GetRegion().GetPhysicalBaseAddress() + insn->GetOffset()), fn);
-
 
 				if(archsim::options::Trace) {
 					builder.CreateCall(ctx.Functions.cpuTraceInsnEnd, {ctx.GetThreadPtr(builder)});

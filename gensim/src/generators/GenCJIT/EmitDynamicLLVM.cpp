@@ -255,6 +255,32 @@ namespace gensim
 							break;
 					}
 
+					output << Statement.GetName() << " = ";
+
+					// if doing rotates, need to emit funnel shift intrinsic
+					if(Statement.Type == BinaryOperator::RotateLeft || Statement.Type == BinaryOperator::RotateRight) {
+						std::string function;
+						if(Statement.Type == BinaryOperator::RotateLeft) {
+							std::string lhs = "__irBuilder.CreateShl(" + LHSNode.GetDynamicValue() + ", " + RHSNode.GetDynamicValue() + ")";
+							std::string mask = GetLLVMValue(LHSNode.Statement.GetType(), IRConstant::Integer((8 * LHSNode.Statement.GetType().SizeInBytes()) - 1));
+							std::string masked_count = "__irBuilder.CreateAnd(" + RHSNode.GetDynamicValue() + ", " + mask + ")";
+							std::string rhs_shift = "__irBuilder.CreateAnd(__irBuilder.CreateSub(llvm::ConstantInt::get(" + LHSNode.Statement.GetType().GetLLVMType() + ", 0), " + masked_count + "), " + mask + ")";
+							std::string rhs = "__irBuilder.CreateLShr(" + LHSNode.GetDynamicValue() + ", " + rhs_shift + ")";
+
+							output << "__irBuilder.CreateOr(" << lhs << ", " << rhs << ");";
+						} else {
+							std::string lhs = "__irBuilder.CreateLShr(" + LHSNode.GetDynamicValue() + ", " + RHSNode.GetDynamicValue() + ")";
+							std::string mask = GetLLVMValue(LHSNode.Statement.GetType(), IRConstant::Integer((8 * LHSNode.Statement.GetType().SizeInBytes()) - 1));
+							std::string masked_count = "__irBuilder.CreateAnd(" + RHSNode.GetDynamicValue() + ", " + mask + ")";
+							std::string rhs_shift = "__irBuilder.CreateAnd(__irBuilder.CreateSub(llvm::ConstantInt::get(" + LHSNode.Statement.GetType().GetLLVMType() + ", 0), " + masked_count + "), " + mask + ")";
+							std::string rhs = "__irBuilder.CreateShl(" + LHSNode.GetDynamicValue() + ", " + rhs_shift + ")";
+
+							output << "__irBuilder.CreateOr(" << lhs << ", " << rhs << ");";
+						}
+
+						return true;
+					}
+
 					output << Statement.GetName() << " = __irBuilder.CreateBinOp(";
 					if (LHSNode.Statement.GetType().IsFloating() || RHSNode.Statement.GetType().IsFloating()) {
 						switch (Statement.Type) {
