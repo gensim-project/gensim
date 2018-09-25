@@ -579,12 +579,26 @@ execute(rol) {
 	uint64 op1 = (read_operand(inst.op1) & mask) % op0_size;
 	uint64 count = (op1 & mask) % op0_size;
 	
-	uint64 result = op0;
-	for(uint8 i = 0; i < count; ++i) {
-		uint64 temp = result >> (op0_size - 1);
-		result = (result << 1) | (temp);
+	uint64 result = 0;
+	switch(op0_size) {
+		case 8: {
+			result = (uint8)op0 <<< (uint8)count;
+			break;
+		}
+		case 16: {
+			result = (uint16)op0 <<< (uint16)count;
+			break;
+		}
+		case 32: {
+			result = (uint32)op0 <<< (uint32)count;
+			break;
+		}
+		case 64: {
+			result = (uint64)op0 <<< (uint64)count;
+			break;
+		}
 	}
-	
+
 	// TODO: Flags
 	if(op1 & mask) {
 		write_register(CF, result & 1);
@@ -604,10 +618,24 @@ execute(ror) {
 	uint64 op1 = read_operand(inst.op1);
 	uint64 count = (op1 & mask) % op0_size;
 	
-	uint64 result = op0;
-	for(uint8 i = 0; i < count; ++i) {
-		uint64 temp = result & 1;
-		result = (result >> 1) | (temp << (op0_size - 1));
+	uint64 result = 0;
+	switch(op0_size) {
+		case 8: {
+			result = (uint8)op0 >>> (uint8)count;
+			break;
+		}
+		case 16: {
+			result = (uint16)op0 >>> (uint16)count;
+			break;
+		}
+		case 32: {
+			result = (uint32)op0 >>> (uint32)count;
+			break;
+		}
+		case 64: {
+			result = (uint64)op0 >>> (uint64)count;
+			break;
+		}
 	}
 	
 	// TODO: Flags
@@ -669,12 +697,13 @@ execute(shl) {
 	sint64 op1 = read_operand(inst.op1) & mask;
 	
 	if(op1) {
-		sint64 result = op0;
-		uint8 C = 0;
+		sint64 result = op0 << op1;
+		uint8 C = (op0 << (op1 - 1)) >> (operand0_size - 1);
+		/*
 		for(uint8 i = 0; i < op1; ++i) {
 			C = result >> (operand0_size - 1);
 			result <<= 1;
-		}
+		}*/
 	
 		write_register(CF, C & 1);
 		

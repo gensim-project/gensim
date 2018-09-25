@@ -71,6 +71,8 @@ namespace archsim
 					llvm::Value *state_block_ptr;
 					llvm::Value *reg_file_ptr;
 
+					llvm::Value *contiguous_mem_base;
+
 				} Values;
 
 				archsim::core::thread::ThreadInstance *GetThread()
