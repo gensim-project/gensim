@@ -335,17 +335,6 @@ execute(jmp) {
 	write_pc(read_operand(inst.op0));
 }
 
-execute(jrcxz) {
-	uint64 target_pc = 0;
-	if(read_operand(inst.op1) == 0) {
-		target_pc = read_operand(inst.op0);
-	} else {
-		target_pc = read_pc() + inst.Instr_Length;
-	}
-	
-	write_pc(target_pc);
-}
-
 execute(lea) {
 	uint64 value = mem_get_addr(inst.op1.memory);
 	
@@ -1587,6 +1576,9 @@ helper uint8 check_condition(uint8 condition)
 		case 14: { return read_register(SF); }
 		// Z
 		case 15: { return read_register(ZF); }
+	
+		// RCX
+		case 16: { return read_register(RCX) != 0; }
 	
 		default: { trap(); }
 	}
