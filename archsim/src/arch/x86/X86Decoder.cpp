@@ -124,6 +124,9 @@ uint8_t GetCondition(xed_iclass_enum_t iclass)
 		case XED_ICLASS_SETZ:
 			return 15;
 
+		case XED_ICLASS_JRCXZ:
+			return 16;
+
 		// Unconditional
 		default:
 			return -1;
@@ -480,7 +483,7 @@ bool X86Decoder::DecodeClass(void* inst_)
 			MAP(XED_ICLASS_JNP, INST_x86_jcond);
 
 			MAP(XED_ICLASS_JMP, INST_x86_jmp);
-			MAP(XED_ICLASS_JRCXZ, INST_x86_jrcxz);
+			MAP(XED_ICLASS_JRCXZ, INST_x86_jcond);
 			MAP(XED_ICLASS_LEA, INST_x86_lea);
 			MAP(XED_ICLASS_LDMXCSR, INST_x86_ldmxcsr);
 			MAP(XED_ICLASS_LEAVE, INST_x86_leave);

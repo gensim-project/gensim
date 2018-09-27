@@ -9,7 +9,7 @@ AC_ISA(x86)
 	ac_instr<FORMAT_DUMMY> call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde;
 	ac_instr<FORMAT_DUMMY> dec, div;
 	ac_instr<FORMAT_DUMMY> idiv, imul1, imul2, imul3, inc;
-	ac_instr<FORMAT_DUMMY> jcond, jmp, jrcxz;
+	ac_instr<FORMAT_DUMMY> jcond, jmp;
 	ac_instr<FORMAT_DUMMY> lea, leave;
 	ac_instr<FORMAT_DUMMY> mov, movsb, movsd, movsq, movsx, movzx, movsxd, mul;
 	ac_instr<FORMAT_DUMMY> neg, nop, not;
@@ -25,7 +25,7 @@ AC_ISA(x86)
 	ac_behaviour call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde;
 	ac_behaviour dec, div;
 	ac_behaviour idiv, imul1, imul2, imul3, inc;
-	ac_behaviour jcond, jmp, jrcxz;
+	ac_behaviour jcond, jmp;
 	ac_behaviour lea, leave;
 	ac_behaviour mov, movsb, movsd, movsq, movsx, movzx, movsxd, mul;
 	ac_behaviour neg, nop, not;
@@ -132,11 +132,6 @@ AC_ISA(x86)
 		jmp.set_behaviour(jmp);
 		jmp.set_end_of_block();
 		jmp.set_variable_jump();
-	
-		jrcxz.set_decoder();
-		jrcxz.set_behaviour(jrcxz);
-		jrcxz.set_end_of_block();
-		jrcxz.set_variable_jump();
 	
 		lea.set_decoder();
 		lea.set_behaviour(lea);
