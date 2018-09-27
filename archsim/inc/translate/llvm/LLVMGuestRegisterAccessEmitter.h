@@ -50,8 +50,21 @@ namespace archsim
 				llvm::Value* EmitRegisterRead(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index) override;
 				void EmitRegisterWrite(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index, llvm::Value* value) override;
 
+			protected:
+				virtual llvm::Value *GetRegisterPointer(llvm::IRBuilder<> &builder, const archsim::RegisterFileEntryDescriptor &reg, llvm::Value *index = nullptr);
+			};
+
+			class CachingBasicLLVMGuestRegisterAccessEmitter : public BasicLLVMGuestRegisterAccessEmitter
+			{
+			public:
+				CachingBasicLLVMGuestRegisterAccessEmitter(LLVMTranslationContext &ctx);
+				~CachingBasicLLVMGuestRegisterAccessEmitter();
+
+			protected:
+				llvm::Value* GetRegisterPointer(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index) override;
+
 			private:
-				llvm::Value *GetRegisterPointer(llvm::IRBuilder<> &builder, const archsim::RegisterFileEntryDescriptor &reg, llvm::Value *index = nullptr);
+				std::map<std::pair<std::string, int>, llvm::Value*> register_pointer_cache_;
 			};
 
 			class GEPLLVMGuestRegisterAccessEmitter : public LLVMGuestRegisterAccessEmitter
