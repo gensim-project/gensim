@@ -30,7 +30,7 @@ BasicLLVMGuestRegisterAccessEmitter::~BasicLLVMGuestRegisterAccessEmitter()
 llvm::Value* BasicLLVMGuestRegisterAccessEmitter::EmitRegisterRead(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index)
 {
 	auto ptr = GetRegisterPointer(builder, reg, index);
-	return builder.CreateLoad(ptr);
+	return builder.CreateLoad(ptr, "register_entry_from_" + reg.GetName());
 }
 
 void BasicLLVMGuestRegisterAccessEmitter::EmitRegisterWrite(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index, llvm::Value* value)
@@ -44,7 +44,9 @@ llvm::Value* BasicLLVMGuestRegisterAccessEmitter::GetRegisterPointer(llvm::IRBui
 {
 	auto ptr = GetCtx().Values.reg_file_ptr;
 	ptr = builder.CreatePtrToInt(ptr, GetCtx().Types.i64);
-	ptr = builder.CreateAdd(ptr, llvm::ConstantInt::get(GetCtx().Types.i64, reg.GetOffset()), "ptr_to_" + reg.GetName());
+	if(reg.GetOffset() != 0) {
+		ptr = builder.CreateAdd(ptr, llvm::ConstantInt::get(GetCtx().Types.i64, reg.GetOffset()), "ptr_to_" + reg.GetName());
+	}
 	if(index != nullptr) {
 		index = builder.CreateZExt(index, GetCtx().Types.i64);
 		ptr = builder.CreateAdd(ptr, builder.CreateMul(index, llvm::ConstantInt::get(GetCtx().Types.i64, reg.GetRegisterStride())), "ptr_to_" + reg.GetName() + "_entry");
@@ -52,6 +54,43 @@ llvm::Value* BasicLLVMGuestRegisterAccessEmitter::GetRegisterPointer(llvm::IRBui
 	ptr = builder.CreateIntToPtr(ptr, llvm::IntegerType::getIntNPtrTy(GetCtx().LLVMCtx, reg.GetRegisterSize()*8));
 	return ptr;
 }
+
+CachingBasicLLVMGuestRegisterAccessEmitter::CachingBasicLLVMGuestRegisterAccessEmitter(LLVMTranslationContext& ctx) : BasicLLVMGuestRegisterAccessEmitter(ctx)
+{
+
+}
+
+CachingBasicLLVMGuestRegisterAccessEmitter::~CachingBasicLLVMGuestRegisterAccessEmitter()
+{
+
+}
+
+llvm::Value* CachingBasicLLVMGuestRegisterAccessEmitter::GetRegisterPointer(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index)
+{
+	bool index_is_constant = false;
+	uint64_t constant_index = 0;
+	if(index == nullptr) {
+		index_is_constant = true;
+	} else if(llvm::isa<llvm::ConstantInt>(index)) {
+		constant_index = llvm::dyn_cast<llvm::ConstantInt>(index)->getZExtValue();
+		index_is_constant = true;
+	}
+
+	if(index_is_constant) {
+		if(!register_pointer_cache_.count({reg.GetName(), constant_index})) {
+			llvm::IRBuilder<> entry_builder (GetCtx().LLVMCtx);
+			entry_builder.SetInsertPoint(&builder.GetInsertBlock()->getParent()->getEntryBlock(), builder.GetInsertBlock()->getParent()->getEntryBlock().begin());
+
+			register_pointer_cache_[ {reg.GetName(), constant_index}] = BasicLLVMGuestRegisterAccessEmitter::GetRegisterPointer(entry_builder, reg, index);
+		}
+
+		return register_pointer_cache_.at({reg.GetName(), constant_index});
+	} else {
+		register_pointer_cache_.clear();
+		return BasicLLVMGuestRegisterAccessEmitter::GetRegisterPointer(builder, reg, index);
+	}
+}
+
 
 GEPLLVMGuestRegisterAccessEmitter::GEPLLVMGuestRegisterAccessEmitter(LLVMTranslationContext& ctx) : LLVMGuestRegisterAccessEmitter(ctx)
 {
