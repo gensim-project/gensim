@@ -194,6 +194,7 @@ LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUni
 {
 	std::map<std::string, void *> jit_symbols;
 
+	jit_symbols["memset"] = (void*)memset;
 	jit_symbols["cpuTrap"] = (void*)cpuTrap;
 	jit_symbols["cpuTakeException"] = (void*)cpuTakeException;
 	jit_symbols["cpuReadDevice"] = (void*)devReadDevice;

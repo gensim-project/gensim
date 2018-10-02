@@ -30,7 +30,9 @@ namespace gensim
 
 				if(type.VectorWidth > 1) {
 					// 'val' refers to an archsim vector
-					constant_str << "llvm::ConstantDataVector::get(ctx.LLVMCtx, std::vector< " << type.GetElementType().GetCType() << ">({";
+					IRType vtype = type.GetElementType();
+					vtype.Signed = false;
+					constant_str << "llvm::ConstantDataVector::get(ctx.LLVMCtx, std::vector< " << vtype.GetCType() << ">({";
 
 					for(int i = 0; i < type.VectorWidth; ++i) {
 						if(i) {
@@ -86,7 +88,9 @@ namespace gensim
 			{
 				if(type.VectorWidth > 1) {
 					std::stringstream str;
-					str << "llvm::ConstantDataVector::get(ctx.LLVMCtx, std::vector< " << type.GetElementType().GetCType() << ">({";
+					IRType vtype = type.GetElementType();
+					vtype.Signed = false;
+					str << "llvm::ConstantDataVector::get(ctx.LLVMCtx, std::vector< " << vtype.GetCType() << ">({";
 					for(int i = 0; i < constant.VSize(); ++i) {
 						if(i > 0) {
 							str << ", ";

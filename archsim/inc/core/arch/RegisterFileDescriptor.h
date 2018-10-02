@@ -23,7 +23,14 @@
 namespace archsim
 {
 
-	// Descriptor for a register file entry. Entries are essentially described in two levels, where a register file entry can contain a number of registers, each of which can contain a number of entries
+	// Descriptor for a register file entry. Entries are essentially described
+	// in two levels, where a register file entry can contain a number of
+	// registers, each of which can contain a number of entries
+	//
+	// Register 'slot' entries contain only one register
+	// Scalar registers contain only a single entry
+	// A vector register bank would have multiple registers, and multiple
+	// entries per register
 	//
 	class RegisterFileEntryDescriptor
 	{

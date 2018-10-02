@@ -37,6 +37,10 @@ namespace archsim
 					return ctx_;
 				}
 
+			protected:
+				void AddAAAIMetadata(llvm::Value *target, const archsim::RegisterFileEntryDescriptor &reg, llvm::Value *index);
+				llvm::MDNode *GetMetadataFor(const archsim::RegisterFileEntryDescriptor &reg, llvm::Value *index);
+
 			private:
 				LLVMTranslationContext &ctx_;
 			};
@@ -77,6 +81,9 @@ namespace archsim
 				void EmitRegisterWrite(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index, llvm::Value* value) override;
 
 			private:
+				llvm::Value *GetPointerToReg(llvm::IRBuilder<> &builder, const archsim::RegisterFileEntryDescriptor &reg_view, llvm::Value *index);
+				llvm::Value *GetPointerToRegBank(llvm::IRBuilder<> &builder, const archsim::RegisterFileEntryDescriptor &reg_view);
+
 				llvm::Type *GetTypeForRegViewEntry(const archsim::RegisterFileEntryDescriptor& reg_view);
 				llvm::Type *GetTypeForRegView(const archsim::RegisterFileEntryDescriptor& reg_view);
 			};

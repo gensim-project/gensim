@@ -69,8 +69,10 @@ void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit
 	if(llvm::isa<llvm::GetElementPtrInst>(target)) {
 		((llvm::GetElementPtrInst*)target)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_JT_ELEMENT)) }));
 	}
-	target = builder.CreateLoad(target);
-	auto indirectbr = builder.CreateIndirectBr(target);
+	llvm::LoadInst *linst = builder.CreateLoad(target);
+	// give target aaai metadata as though it was a jump table entry - it's certainly not going to alias with anything else.
+	linst->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_JT_ELEMENT)) }));
+	auto indirectbr = builder.CreateIndirectBr(linst);
 
 	for(auto i : entry_blocks) {
 		indirectbr->addDestination(i);
@@ -106,6 +108,8 @@ llvm::BasicBlock *LLVMRegionTranslationContext::GetRegionChainBlock()
 {
 	if(region_chain_block_ == nullptr) {
 
+		llvm::Type *chain_entry_type = llvm::StructType::get(GetContext().LLVMCtx, {GetContext().Types.i64, GetFunction()->getType()});
+
 		region_chain_block_ = llvm::BasicBlock::Create(GetContext().LLVMCtx, "chain_block", GetFunction());
 		llvm::IRBuilder<> builder (region_chain_block_);
 		// TODO: figure out from architecture
@@ -113,16 +117,16 @@ llvm::BasicBlock *LLVMRegionTranslationContext::GetRegionChainBlock()
 
 		auto page_index = builder.CreateLShr(pc, 12);
 		auto page_base = builder.CreateAnd(pc, ~archsim::Address::PageMask);
-		auto cache_base = GetContext().GetStateBlockPointer(builder, "page_cache");
-		cache_base = builder.CreateBitCast(cache_base, GetContext().Types.i64Ptr);
-		cache_base = builder.CreateLoad(cache_base);
-//		cache_base = builder.CreatePtrToInt(cache_base, GetContext().Types.i64);
+		auto cache_base_ptr = GetContext().GetStateBlockPointer(builder, "page_cache");
+
+		cache_base_ptr = builder.CreateBitCast(cache_base_ptr, chain_entry_type->getPointerTo()->getPointerTo());
+		llvm::LoadInst *cache_base = builder.CreateLoad(cache_base_ptr);
+		cache_base->setMetadata("aaai", llvm::MDNode::get(GetContext().LLVMCtx, {llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(GetContext().Types.i64, archsim::translate::translate_llvm::TAG_REGION_CHAIN_TABLE))}));
 
 		auto cache_index = builder.CreateURem(page_index, llvm::ConstantInt::get(GetContext().Types.i64, 1024));
-		auto cache_offset = builder.CreateMul(cache_index, llvm::ConstantInt::get(GetContext().Types.i64, 16));
 
-		auto cache_entry_ptr = builder.CreateAdd(cache_offset, cache_base);
-		auto cache_tag = builder.CreateIntToPtr(cache_entry_ptr, GetContext().Types.i64Ptr);
+		auto cache_tag = builder.CreateGEP(cache_base, {cache_index, llvm::ConstantInt::get(GetContext().Types.i32, 0)});
+		//cache_tag->setMetadata("aaai", llvm::MDNode::get(GetContext().LLVMCtx, {llvm::ConstantAsMetadata(llvm::ConstantInt::get(GetContext().Types.i64, TAG_REGION_CHAIN_TABLE))}));
 		cache_tag = builder.CreateLoad(cache_tag);
 
 		auto tag_matches = builder.CreateICmpEQ(page_base, cache_tag);
@@ -134,17 +138,22 @@ llvm::BasicBlock *LLVMRegionTranslationContext::GetRegionChainBlock()
 
 		builder.SetInsertPoint(match_block);
 
-		GetTxlt()->EmitIncrementCounter(builder, GetContext(), GetContext().GetThread()->GetMetrics().JITSuccessfulChains, 1);
+		if(archsim::options::Verbose) {
+			GetTxlt()->EmitIncrementCounter(builder, GetContext(), GetContext().GetThread()->GetMetrics().JITSuccessfulChains, 1);
+		}
 
-		auto fn_ptr = builder.CreateAdd(cache_entry_ptr, llvm::ConstantInt::get(GetContext().Types.i64, 8));
-		fn_ptr = builder.CreateIntToPtr(fn_ptr, GetFunction()->getType()->getPointerTo(0));
+		auto fn_ptr = builder.CreateGEP(cache_base, {cache_index, llvm::ConstantInt::get(GetContext().Types.i32, 1)});
+		//fn_ptr->setMetadata("aaai", llvm::MDNode::get(GetContext().LLVMCtx, {llvm::ConstantAsMetadata(llvm::ConstantInt::get(GetContext().Types.i64, TAG_REGION_CHAIN_TABLE))}));
 		fn_ptr = builder.CreateLoad(fn_ptr);
 
 		auto result = builder.CreateCall(fn_ptr, {GetContext().GetRegStatePtr(), GetContext().GetStateBlockPointer()});
 		builder.CreateRet(result);
 
 		builder.SetInsertPoint(nomatch_block);
-		GetTxlt()->EmitIncrementCounter(builder, GetContext(), GetContext().GetThread()->GetMetrics().JITFailedChains, 1);
+
+		if(archsim::options::Verbose) {
+			GetTxlt()->EmitIncrementCounter(builder, GetContext(), GetContext().GetThread()->GetMetrics().JITFailedChains, 1);
+		}
 		builder.CreateRet(llvm::ConstantInt::get(GetContext().Types.i32, 1));
 
 	}
@@ -163,6 +172,7 @@ void LLVMRegionTranslationContext::BuildDispatchBlock(TranslationWorkUnit& work_
 	dispatch_block_ = llvm::BasicBlock::Create(GetFunction()->getContext(), "dispatch", GetFunction());
 	llvm::BranchInst::Create(dispatch_block_, entry_block);
 
+// 	BuildSwitchStatement(work_unit);
 	BuildJumpTable(work_unit);
 }
 
@@ -225,10 +235,18 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 	Types.f32 = llvm::Type::getFloatTy(ctx);
 	Types.f64 = llvm::Type::getDoubleTy(ctx);
 
+	auto memory_type = llvm::ArrayType::get(Types.i8, ~(0ULL))->getPointerTo();
+	fn->getParent()->getOrInsertGlobal("contiguous_mem_base", memory_type);
+	auto mem_base_global = fn->getParent()->getGlobalVariable("contiguous_mem_base");
+	mem_base_global->setConstant(true);
+	mem_base_global->setInitializer(llvm::ConstantExpr::getIntToPtr(llvm::ConstantInt::get(Types.i64, 0x80000000), memory_type));
+
 	if(fn->getEntryBlock().size()) {
-		Values.contiguous_mem_base = new llvm::IntToPtrInst(llvm::ConstantInt::get(Types.i64, 0x80000000), Types.i8Ptr, "contiguous_mem_base", &*(fn->getEntryBlock().begin()));
+		Values.contiguous_mem_base = new llvm::LoadInst(mem_base_global, "", &*(fn->getEntryBlock().begin()));
+// 		Values.contiguous_mem_base = new llvm::IntToPtrInst(llvm::ConstantInt::get(Types.i64, 0x80000000), Types.i8Ptr, "contiguous_mem_base", &*(fn->getEntryBlock().begin()));
 	} else {
-		Values.contiguous_mem_base = new llvm::IntToPtrInst(llvm::ConstantInt::get(Types.i64, 0x80000000), Types.i8Ptr, "contiguous_mem_base", &(fn->getEntryBlock()));
+		Values.contiguous_mem_base = new llvm::LoadInst(mem_base_global, "", &(fn->getEntryBlock()));
+// 		Values.contiguous_mem_base = new llvm::IntToPtrInst(llvm::ConstantInt::get(Types.i64, 0x80000000), Types.i8Ptr, "contiguous_mem_base", &(fn->getEntryBlock()));
 	}
 
 	Functions.ctpop_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ctpop, Types.i32);
@@ -239,6 +257,28 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 	Functions.double_sqrt = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::sqrt, Types.f64);
 
 	Functions.jit_trap =  (llvm::Function*)Module->getOrInsertFunction("cpuTrap", Types.vtype, Types.i8Ptr);
+
+	Functions.assume = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::assume);
+
+	Functions.uadd_with_overflow_8 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::uadd_with_overflow, Types.i8);
+	Functions.uadd_with_overflow_16 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::uadd_with_overflow, Types.i16);
+	Functions.uadd_with_overflow_32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::uadd_with_overflow, Types.i32);
+	Functions.uadd_with_overflow_64 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::uadd_with_overflow, Types.i64);
+
+	Functions.usub_with_overflow_8 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::usub_with_overflow, Types.i8);
+	Functions.usub_with_overflow_16 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::usub_with_overflow, Types.i16);
+	Functions.usub_with_overflow_32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::usub_with_overflow, Types.i32);
+	Functions.usub_with_overflow_64 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::usub_with_overflow, Types.i64);
+
+	Functions.sadd_with_overflow_8 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::sadd_with_overflow, Types.i8);
+	Functions.sadd_with_overflow_16 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::sadd_with_overflow, Types.i16);
+	Functions.sadd_with_overflow_32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::sadd_with_overflow, Types.i32);
+	Functions.sadd_with_overflow_64 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::sadd_with_overflow, Types.i64);
+
+	Functions.ssub_with_overflow_8 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ssub_with_overflow, Types.i8);
+	Functions.ssub_with_overflow_16 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ssub_with_overflow, Types.i16);
+	Functions.ssub_with_overflow_32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ssub_with_overflow, Types.i32);
+	Functions.ssub_with_overflow_64 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ssub_with_overflow, Types.i64);
 
 	Functions.blkRead8 =  (llvm::Function*)Module->getOrInsertFunction("blkRead8", Types.i8, Types.i8Ptr, Types.i64, Types.i32);
 	Functions.blkRead16 = (llvm::Function*)Module->getOrInsertFunction("blkRead16", Types.i16, Types.i8Ptr, Types.i64, Types.i32);
@@ -270,7 +310,7 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 	Functions.cpuTraceInstruction = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInstruction", Types.vtype, Types.i8Ptr, Types.i64, Types.i32, Types.i32, Types.i32, Types.i32);
 	Functions.cpuTraceInsnEnd = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInsnEnd", Types.vtype, Types.i8Ptr);
 
-	guest_reg_emitter_ = new CachingBasicLLVMGuestRegisterAccessEmitter(*this);
+	guest_reg_emitter_ = new GEPLLVMGuestRegisterAccessEmitter(*this);
 }
 
 llvm::Value* LLVMTranslationContext::GetThreadPtr(llvm::IRBuilder<> &builder)
@@ -293,9 +333,7 @@ llvm::Function* LLVMTranslationContext::GetFunction()
 llvm::Value* LLVMTranslationContext::GetStateBlockPointer(llvm::IRBuilder<> &builder, const std::string& entry)
 {
 	auto ptr = Values.state_block_ptr;
-	ptr = builder.CreatePtrToInt(ptr, Types.i64);
-	ptr = builder.CreateAdd(ptr, llvm::ConstantInt::get(Types.i64, thread_->GetStateBlock().GetBlockOffset(entry)));
-	ptr = builder.CreateIntToPtr(ptr, Types.i8Ptr);
+	ptr = builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(Types.i64, thread_->GetStateBlock().GetBlockOffset(entry))});
 	return ptr;
 }
 

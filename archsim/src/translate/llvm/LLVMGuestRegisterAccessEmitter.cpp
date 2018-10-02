@@ -2,6 +2,7 @@
 
 #include "translate/llvm/LLVMGuestRegisterAccessEmitter.h"
 #include "translate/llvm/LLVMTranslationContext.h"
+#include "translate/llvm/LLVMAliasAnalysis.h"
 
 #include <llvm/IR/DerivedTypes.h>
 
@@ -15,6 +16,31 @@ LLVMGuestRegisterAccessEmitter::LLVMGuestRegisterAccessEmitter(LLVMTranslationCo
 LLVMGuestRegisterAccessEmitter::~LLVMGuestRegisterAccessEmitter()
 {
 
+}
+
+void LLVMGuestRegisterAccessEmitter::AddAAAIMetadata(llvm::Value* target, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index)
+{
+	if(llvm::isa<llvm::Instruction>(target)) {
+		llvm::Instruction *insn = llvm::dyn_cast<llvm::Instruction>(target);
+
+		insn->setMetadata("aaai", GetMetadataFor(reg, index));
+	} else if(llvm::isa<llvm::ConstantExpr>(target)) {
+//		llvm::ConstantExpr *insn = llvm::dyn_cast<llvm::ConstantExpr>(target);
+//		insn->setMetadata("aaai", GetMetadataFor(reg, index));
+	} else {
+		// coukldn't figure out what AAAI to add
+	}
+}
+
+llvm::MDNode *LLVMGuestRegisterAccessEmitter::GetMetadataFor(const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index)
+{
+	std::vector<int> output {archsim::translate::translate_llvm::TAG_REG_ACCESS};
+
+	std::vector<llvm::Metadata*> mddata;
+	for(auto i : output) {
+		mddata.push_back(llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(GetCtx().Types.i64, i)));
+	}
+	return llvm::MDNode::get(GetCtx().LLVMCtx, mddata);
 }
 
 BasicLLVMGuestRegisterAccessEmitter::BasicLLVMGuestRegisterAccessEmitter(LLVMTranslationContext& ctx) : LLVMGuestRegisterAccessEmitter(ctx)
@@ -104,24 +130,57 @@ GEPLLVMGuestRegisterAccessEmitter::~GEPLLVMGuestRegisterAccessEmitter()
 
 llvm::Value* GEPLLVMGuestRegisterAccessEmitter::EmitRegisterRead(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index)
 {
-	UNIMPLEMENTED;
-	return nullptr;
+	return builder.CreateLoad(GetPointerToReg(builder, reg, index));
 }
 
 void GEPLLVMGuestRegisterAccessEmitter::EmitRegisterWrite(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index, llvm::Value* value)
 {
-	UNIMPLEMENTED;
+	builder.CreateStore(value, GetPointerToReg(builder, reg, index));
+}
+
+llvm::Value* GEPLLVMGuestRegisterAccessEmitter::GetPointerToReg(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg_view, llvm::Value* index)
+{
+	if(index == nullptr) {
+		index = llvm::ConstantInt::get(GetCtx().Types.i64, 0);
+	}
+
+	llvm::IRBuilder<> entry_builder (GetCtx().LLVMCtx);
+	entry_builder.SetInsertPoint(&builder.GetInsertBlock()->getParent()->getEntryBlock(), builder.GetInsertBlock()->getParent()->getEntryBlock().begin());
+
+	llvm::Value *ptr = GetPointerToRegBank(entry_builder, reg_view);
+	ptr = entry_builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(GetCtx().Types.i64, 0), index, llvm::ConstantInt::get(GetCtx().Types.i32, 0)});
+	AddAAAIMetadata(ptr, reg_view, index);
+	return ptr;
+}
+
+llvm::Value* GEPLLVMGuestRegisterAccessEmitter::GetPointerToRegBank(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg_view)
+{
+	llvm::Value *ptr = GetCtx().Values.reg_file_ptr;
+	ptr = builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(GetCtx().Types.i64, reg_view.GetOffset())});
+	ptr = builder.CreatePointerCast(ptr, GetTypeForRegView(reg_view)->getPointerTo(0));
+	AddAAAIMetadata(ptr, reg_view, nullptr);
+	return ptr;
 }
 
 llvm::Type* GEPLLVMGuestRegisterAccessEmitter::GetTypeForRegView(const archsim::RegisterFileEntryDescriptor& reg_view)
 {
-	return llvm::ArrayType::get(GetTypeForRegViewEntry(reg_view), reg_view.GetEntryCountPerRegister());
+	return llvm::ArrayType::get(GetTypeForRegViewEntry(reg_view), reg_view.GetRegisterCount());
 }
 
 llvm::Type* GEPLLVMGuestRegisterAccessEmitter::GetTypeForRegViewEntry(const archsim::RegisterFileEntryDescriptor& reg_view)
 {
-	llvm::IntegerType *base_type = llvm::IntegerType::get(GetCtx().LLVMCtx, reg_view.GetEntrySize()*8);
-	int padding_bytes = reg_view.GetEntryStride() - reg_view.GetEntrySize();
+	llvm::Type *base_type = nullptr;
+	if(reg_view.GetEntryCountPerRegister() > 1) {
+		// vector register
+		base_type = llvm::IntegerType::get(GetCtx().LLVMCtx, reg_view.GetEntrySize()*8);
+		base_type = llvm::VectorType::get(base_type, reg_view.GetEntryCountPerRegister());
+	} else {
+		// scalar register
+		base_type = llvm::IntegerType::get(GetCtx().LLVMCtx, reg_view.GetEntrySize()*8);
+	}
+
+	assert(reg_view.GetRegisterStride() >= reg_view.GetRegisterSize());
+	int padding_bytes = reg_view.GetRegisterStride() - reg_view.GetRegisterSize();
 
 	std::vector<llvm::Type*> entries;
 	entries.push_back(base_type);

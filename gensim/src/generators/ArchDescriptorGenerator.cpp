@@ -88,7 +88,17 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 		if(i->HasTag()) {
 			tag = i->GetTag();
 		}
-		str << "static archsim::RegisterFileEntryDescriptor rfd_entry_" << i->GetID() << "(\"" << i->GetID() <<"\", " << i->GetIndex() << ", " << i->GetRegFileOffset() << ", " << 1 << ", 1, 1, " << i->GetWidth() << ", " << i->GetWidth() << ", \"" << tag << "\");";
+		str << "static archsim::RegisterFileEntryDescriptor rfd_entry_" << i->GetID() << "(\"" <<
+		    i->GetID() 	<<"\", " <<
+		    i->GetIndex() << ", " <<
+		    i->GetRegFileOffset() << ", " <<
+		    1 << ", " << // Register Count
+		    i->GetWidth() << ", " << // Register stride
+		    "1 " << ", " << // Entry count
+		    i->GetWidth() << ", " <<
+		    i->GetWidth() << ", " <<
+		    "\"" << tag << "\"" <<
+		    ");";
 		if(entry_list.size()) {
 			entry_list += ", ";
 		}

@@ -19,6 +19,7 @@
 #include <llvm/Analysis/ScalarEvolution.h>
 #include <llvm/Analysis/TypeBasedAliasAnalysis.h>
 #include <llvm/Analysis/BasicAliasAnalysis.h>
+#include <llvm/Analysis/AliasAnalysisEvaluator.h>
 
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/MDBuilder.h>
@@ -33,6 +34,8 @@
 #include <llvm/Transforms/Vectorize.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Utils/PromoteMemToReg.h>
+
+#include "translate/llvm/LLVMRegisterOptimisationPass.h"
 
 UseLogContext(LogTranslate);
 DeclareChildLogContext(LogAliasAnalysis, LogTranslate, "AliasAnalysis");
@@ -77,8 +80,40 @@ static bool IsConstVal(const ::llvm::MDOperand &v)
 
 char ArchSimAA::ID = 0;
 
-bool TryRecover_RegAccess(const llvm::Value *v, std::vector<int> &aaai)
+bool TryRecover_RegAccess(const llvm::Value *v, int size, std::vector<int> &aaai)
 {
+	const llvm::Instruction *insn = llvm::dyn_cast<const llvm::Instruction>(v);
+
+	bool is_reg_access = false;
+	uint64_t offset = 0;
+
+	const llvm::Argument *arg = llvm::dyn_cast<const llvm::Argument>(v);
+	if(arg != nullptr) {
+		const llvm::Value *reg_file_ptr = &*arg->getParent()->arg_begin();
+		if(arg == reg_file_ptr) {
+			is_reg_access = true;
+			offset = 0;
+		}
+	}
+
+	if(insn != nullptr) {
+		const llvm::Value *reg_file_ptr = &*insn->getParent()->getParent()->arg_begin();
+		llvm::DataLayout dl = insn->getParent()->getParent()->getParent()->getDataLayout();
+		llvm::APInt accumulated_offset(64, 0, false);
+		if(v->stripAndAccumulateInBoundsConstantOffsets(dl, accumulated_offset) == reg_file_ptr) {
+			// definitely a register access. Now try and figure out offsets + size
+
+			is_reg_access = true;
+			offset = accumulated_offset.getZExtValue();
+		}
+	}
+
+	if(is_reg_access) {
+		aaai = {TAG_REG_ACCESS, offset, size};
+		return true;
+	}
+	return false;
+
 	if(const llvm::BitCastInst *bc = llvm::dyn_cast<const llvm::BitCastInst>(v)) {
 		const llvm::Value *reg_file_ptr = &*bc->getParent()->getParent()->arg_begin();
 		if(bc->getOperand(0) == reg_file_ptr) {
@@ -140,38 +175,48 @@ bool TryRecover_RegAccess(const llvm::Value *v, std::vector<int> &aaai)
 
 bool TryRecover_MemAccess(const llvm::Value *v, std::vector<int>& aaai)
 {
-	const llvm::IntToPtrInst *i2pinst = llvm::dyn_cast<const llvm::IntToPtrInst>(v);
-	if(i2pinst != nullptr) {
-		const auto *i2pop = i2pinst->getOperand(0);
-		const llvm::BinaryOperator *add_inst = llvm::dyn_cast<const llvm::BinaryOperator>(i2pop);
-		if(add_inst != nullptr && add_inst->getOpcode() == llvm::BinaryOperator::Add) {
-			const llvm::ConstantInt *op0 = llvm::dyn_cast<const llvm::ConstantInt>(add_inst->getOperand(0));
-			const llvm::ConstantInt *op1 = llvm::dyn_cast<const llvm::ConstantInt>(add_inst->getOperand(1));
-
-			if(op0 != nullptr) {
-				// look for the contiguous memory base, minus some amount to account for constant folding in llvm
-				if(op0->getZExtValue() >= 0x80000000 - 4096) { // this is super unsafe: is there some way we can do better?
-					aaai = {TAG_MEM_ACCESS};
-					return true;
-				}
-			}
-			if(op1 != nullptr) {
-				// look for the contiguous memory base, minus some amount to account for constant folding in llvm
-				if(op1->getZExtValue() >= 0x80000000 - 4096) { // this is super unsafe: is there some way we can do better?
-					aaai = {TAG_MEM_ACCESS};
-					return true;
-				}
-			}
-		}
-	}
-
-	const llvm::ConstantExpr *i2pcexpr = llvm::dyn_cast<const llvm::ConstantExpr>(v);
-	if(i2pcexpr != nullptr && i2pcexpr->getOpcode() == llvm::Instruction::IntToPtr) {
-		auto *i2p_base = i2pcexpr->getOperand(0);
-		if(llvm::isa<llvm::ConstantInt>(i2p_base) && ((llvm::ConstantInt*)i2p_base)->getZExtValue() >= 0x80000000) {
+	if(llvm::isa<llvm::Instruction>(v)) {
+		auto mem_base = ((llvm::Instruction*)v)->getParent()->getParent()->getParent()->getGlobalVariable("contiguous_mem_base");
+		if(v->stripInBoundsOffsets() == mem_base) {
 			aaai = {TAG_MEM_ACCESS};
 			return true;
 		}
+	}
+
+	// a memory access is either:
+	// 1. an instruction inttoptr of a value >= 0x80000000
+	// 1b. a constantexpr inttoptr of a value >= 0x80000000
+	// 2. a gep with a base of >= 0x80000000
+	// 3. a pointercast of (2)
+
+	if(llvm::isa<llvm::IntToPtrInst>(v)) {
+		llvm::IntToPtrInst *inst = (llvm::IntToPtrInst*)v;
+		llvm::ConstantInt *value = llvm::dyn_cast<llvm::ConstantInt>(inst->getOperand(0));
+		if(value != nullptr && value->getZExtValue() >= 0x80000000) {
+			aaai = {TAG_MEM_ACCESS};
+			return true;
+		}
+	} else if(llvm::isa<llvm::ConstantExpr>(v)) {
+		// possibly 1a
+		llvm::ConstantExpr *expr = (llvm::ConstantExpr*)v;
+
+		if(expr->getOpcode() == llvm::Instruction::IntToPtr) {
+			auto op0 = expr->getOperand(0);
+			auto const_op0 = llvm::dyn_cast<llvm::ConstantInt>(op0);
+			if(const_op0 != nullptr && const_op0->getZExtValue() >= 0x80000000) {
+				aaai = {TAG_MEM_ACCESS};
+				return true;
+			}
+		}
+
+	} else if(llvm::isa<llvm::GetElementPtrInst>(v)) {
+		// return recovered data from base of gep
+		llvm::GetElementPtrInst *gepinst = (llvm::GetElementPtrInst*)v;
+		return TryRecover_MemAccess(gepinst->getOperand(0), aaai);
+	} else if(llvm::isa<llvm::CastInst>(v)) {
+		// return recovered data from base of bitcast
+		llvm::CastInst *inst = (llvm::CastInst*)v;
+		return TryRecover_MemAccess(inst->getOperand(0), aaai);
 	}
 
 	return false;
@@ -180,6 +225,15 @@ bool TryRecover_MemAccess(const llvm::Value *v, std::vector<int>& aaai)
 bool TryRecover_StateBlock(const llvm::Value *v, std::vector<int> &aaai)
 {
 	// state block access is anything indexed off of arg 1 (%1)
+	if(llvm::isa<llvm::Argument>(v)) {
+		auto arg = (llvm::Argument*)v;
+		auto state_block_ptr = &*(arg->getParent()->arg_begin() + 1);
+
+		if(arg == state_block_ptr) {
+			aaai = {TAG_CPU_STATE};
+			return true;
+		}
+	}
 
 	// try thread ptr
 	const llvm::BitCastInst *bitcast = llvm::dyn_cast<const llvm::BitCastInst>(v);
@@ -195,10 +249,63 @@ bool TryRecover_StateBlock(const llvm::Value *v, std::vector<int> &aaai)
 	return false;
 }
 
-// attempt to figure out what v actually is
-bool RecoverAAAI(const llvm::Value *v, std::vector<int> &output_aaai)
+bool RecoverAAAI(const llvm::Value *v, int size, std::vector<int> &aaai);
+
+bool TryRecover_FromPhi(const llvm::Value *v, int size, std::vector<int> &aaai)
 {
-	if(TryRecover_RegAccess(v, output_aaai)) {
+	if(llvm::isa<llvm::PHINode>(v)) {
+		std::vector<int> initial_aaai;
+		llvm::PHINode *phi = (llvm::PHINode*)v;
+
+		// For now, all entries in phi node must give idential aaai info.
+		// In theory we could merge info but we don't need to be too
+		// clever just now
+		if(RecoverAAAI(phi->getIncomingValue(0), size, initial_aaai)) {
+			for(int i = 0; i < phi->getNumIncomingValues(); ++i) {
+				std::vector<int> this_aaai;
+				if(!RecoverAAAI(phi->getIncomingValue(i), size, this_aaai) || this_aaai != initial_aaai) {
+					return false;
+				}
+			}
+			aaai = initial_aaai;
+			return true;
+		}
+	}
+	return false;
+}
+
+
+bool TryRecover_FromSelect(const llvm::Value *v, int size, std::vector<int> &aaai)
+{
+	if(llvm::isa<llvm::SelectInst>(v)) {
+		llvm::SelectInst *inst = (llvm::SelectInst*)v;
+		std::vector<int> true_aaai, false_aaai;
+
+		if(RecoverAAAI(inst->getTrueValue(), size, true_aaai) && RecoverAAAI(inst->getFalseValue(), size, false_aaai) && true_aaai == false_aaai) {
+			aaai = true_aaai;
+			return true;
+		}
+
+	}
+	return false;
+}
+
+bool TryRecover_Chain(const llvm::Value *v, int size, std::vector<int> &output_aaai)
+{
+	return false;
+}
+
+// attempt to figure out what v actually is
+bool RecoverAAAI(const llvm::Value *v, int size, std::vector<int> &output_aaai)
+{
+	if(TryRecover_FromPhi(v, size, output_aaai)) {
+		return true;
+	}
+	if(TryRecover_FromSelect(v, size, output_aaai)) {
+		return true;
+	}
+
+	if(TryRecover_RegAccess(v, size, output_aaai)) {
 		return true;
 	}
 	if(TryRecover_MemAccess(v, output_aaai)) {
@@ -207,11 +314,14 @@ bool RecoverAAAI(const llvm::Value *v, std::vector<int> &output_aaai)
 	if(TryRecover_StateBlock(v, output_aaai)) {
 		return true;
 	}
+	if(TryRecover_Chain(v, size, output_aaai)) {
+		return true;
+	}
 
 	return false;
 }
 
-bool GetArchsimAliasAnalysisInfo(const llvm::Value *v, std::vector<int>& out)
+bool GetArchsimAliasAnalysisInfo(const llvm::Value *v, int size, std::vector<int>& out)
 {
 	out.clear();
 	llvm::MDNode *mdnode = nullptr;
@@ -241,7 +351,7 @@ bool GetArchsimAliasAnalysisInfo(const llvm::Value *v, std::vector<int>& out)
 		return true;
 	}
 
-	return RecoverAAAI(v, out);
+	return RecoverAAAI(v, size, out);
 }
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -283,14 +393,31 @@ llvm::AliasResult ArchSimAA::alias(const llvm::MemoryLocation &L1, const llvm::M
 //		fprintf(stderr, "\n");
 
 		if(print) {
-			fprintf(stderr, "ALIAS PROBLEM:\n");
 
 			std::vector<int> v1aa, v2aa;
-			auto v1hasaa = GetArchsimAliasAnalysisInfo(v1, v1aa);
-			auto v2hasaa = GetArchsimAliasAnalysisInfo(v2, v2aa);
+			auto v1hasaa = GetArchsimAliasAnalysisInfo(v1, L1.Size, v1aa);
+			auto v2hasaa = GetArchsimAliasAnalysisInfo(v2, L2.Size, v2aa);
 
-//			v1->dump();
-//			v2->dump();
+			// it's OK if two memory pointers might alias.
+//             if(v1hasaa && v2hasaa && v1aa[0] == TAG_MEM_ACCESS && v2aa[0] == TAG_MEM_ACCESS) {
+//                 return rc;
+//             }
+
+			fprintf(stderr, "ALIAS PROBLEM:\n");
+
+			fprintf(stderr, "%u, %u\n", L1.Size, L2.Size);
+
+			if(v1hasaa && v1aa[0] == TAG_JT_ELEMENT) {
+				fprintf(stderr, "(JT)\n");
+			} else {
+// 				v1->dump();
+			}
+
+			if(v2hasaa && v2aa[0] == TAG_JT_ELEMENT) {
+				fprintf(stderr, "(JT)\n");
+			} else {
+// 				v2->dump();
+			}
 
 			if(v1hasaa) {
 				fprintf(stderr, "V1AA: ");
@@ -306,6 +433,8 @@ llvm::AliasResult ArchSimAA::alias(const llvm::MemoryLocation &L1, const llvm::M
 				}
 				fprintf(stderr, "\n");
 			}
+
+			fprintf(stderr, "\n");
 		}
 
 	}
@@ -320,8 +449,8 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 	std::vector<int> metadata_1, metadata_2;
 
 	// Retrieve the ArcSim Alias-Analysis Information metadata node.
-	GetArchsimAliasAnalysisInfo(v1, metadata_1);
-	GetArchsimAliasAnalysisInfo(v2, metadata_2);
+	GetArchsimAliasAnalysisInfo(v1, L1.Size, metadata_1);
+	GetArchsimAliasAnalysisInfo(v2, L2.Size, metadata_2);
 
 	// We must have AAAI for BOTH instructions to proceed.
 	if (metadata_1.size() && metadata_2.size()) {
@@ -336,14 +465,13 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 			AliasAnalysisTag tag = (AliasAnalysisTag)metadata_1.at(0);
 			switch (tag) {
 				case TAG_REG_ACCESS: {
-					// The new register model produces alias information specifying the
-					// minimum start and maximum end offsets of the access into the register
-					// file, as well as the size of the access such that (addr + size < max)
+					// The new register model produces alias information specifying pairs of
+					// extents which are accessed.
 
 					// If the number of operands is low, this indicates an automatically
 					// generated register access which we should treat as MayAlias in all
 					// cases.
-					if(metadata_1.size() == 1 || metadata_2.size() == 1) return llvm::MayAlias;
+					if(metadata_1.size() != 4 || metadata_2.size() != 4) return llvm::MayAlias;
 
 					auto &min1_val = metadata_1.at(1);
 					auto &max1_val = metadata_1.at(2);
@@ -452,182 +580,25 @@ LLVMOptimiser::~LLVMOptimiser()
 
 bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 {
-	isInitialised = true;
-	pm.add(::llvm::createBasicAAWrapperPass());
-//	//AddPass(new ::llvm::DataLayout(*datalayout));
-//
-	if (archsim::options::JitOptLevel.GetValue() == 0)
+	if(isInitialised) {
 		return true;
-//
-//	//-constmerge -simplifycfg -lowerswitch  -globalopt -scalarrepl -deadargelim -functionattrs -constprop  -simplifycfg -argpromotion -inline -mem2reg -deadargelim
-	AddPass(::llvm::createPromoteMemoryToRegisterPass());
-	AddPass(::llvm::createConstantMergePass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createLowerSwitchPass());
-	AddPass(::llvm::createGlobalOptimizerPass());
-	AddPass(::llvm::createSROAPass());
-	AddPass(::llvm::createDeadArgEliminationPass());
-//	AddPass(::llvm::createFunctionAttrsPass());
-	AddPass(::llvm::createConstantPropagationPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createArgumentPromotionPass());
-	AddPass(::llvm::createFunctionInliningPass());
-	AddPass(::llvm::createPromoteMemoryToRegisterPass());
-	AddPass(::llvm::createDeadArgEliminationPass());
-//
-//	//-argpromotion -loop-deletion -adce -loop-deletion -dse -break-crit-edges -ipsccp -break-crit-edges -deadargelim -simplifycfg -gvn -prune-eh -die -constmerge
-	AddPass(::llvm::createArgumentPromotionPass());
-	AddPass(::llvm::createLoopDeletionPass());
-	AddPass(::llvm::createAggressiveDCEPass());
-	AddPass(::llvm::createLoopDeletionPass());
-	AddPass(::llvm::createDeadStoreEliminationPass());
-	AddPass(::llvm::createBreakCriticalEdgesPass());
-	AddPass(::llvm::createIPSCCPPass());
-	AddPass(::llvm::createBreakCriticalEdgesPass());
-	AddPass(::llvm::createDeadArgEliminationPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createGVNPass(false));
-	AddPass(::llvm::createPruneEHPass());
-	AddPass(::llvm::createDeadInstEliminationPass());
-	AddPass(::llvm::createConstantMergePass());
-//
-//	//-tailcallelim -simplifycfg -dse -globalopt  -loop-unswitch -memcpyopt -loop-unswitch -ipconstprop -deadargelim -jump-threading
-	AddPass(::llvm::createTailCallEliminationPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createDeadStoreEliminationPass());
-	AddPass(::llvm::createGlobalOptimizerPass());
-	AddPass(::llvm::createLoopUnswitchPass());
-	AddPass(::llvm::createMemCpyOptPass());
-	AddPass(::llvm::createLoopUnswitchPass());
-	AddPass(::llvm::createIPConstantPropagationPass());
-	AddPass(::llvm::createDeadArgEliminationPass());
-	AddPass(::llvm::createJumpThreadingPass());
-
-	AddPass(::llvm::createGlobalOptimizerPass());
-	AddPass(::llvm::createIPSCCPPass());
-	AddPass(::llvm::createDeadArgEliminationPass());
-
-	AddPass(::llvm::createInstructionCombiningPass());
-	AddPass(::llvm::createDeadInstEliminationPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-
-	if (archsim::options::JitOptLevel.GetValue() == 1)
-		return true;
-
-
-	AddPass(::llvm::createPruneEHPass());
-	AddPass(::llvm::createFunctionInliningPass());
-
-//	AddPass(::llvm::createFunctionAttrsPass());
-	AddPass(::llvm::createAggressiveDCEPass());
-
-	AddPass(::llvm::createArgumentPromotionPass());
-
-	AddPass(::llvm::createPromoteMemoryToRegisterPass());
-	//	AddPass(::llvm::createSROAPass(false));
-
-	AddPass(::llvm::createEarlyCSEPass());
-	AddPass(::llvm::createJumpThreadingPass());
-	AddPass(::llvm::createCorrelatedValuePropagationPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createInstructionCombiningPass());
-
-	AddPass(::llvm::createTailCallEliminationPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-
-	AddPass(::llvm::createReassociatePass());
-	//AddPass(::llvm::createLoopRotatePass());
-
-	AddPass(::llvm::createInstructionCombiningPass());
-	AddPass(::llvm::createIndVarSimplifyPass());
-	//AddPass(::llvm::createLoopIdiomPass());
-	//AddPass(::llvm::createLoopDeletionPass());
-
-	//AddPass(::llvm::createLoopUnrollPass());
-
-	AddPass(::llvm::createGVNPass(false));
-	AddPass(::llvm::createMemCpyOptPass());
-	AddPass(::llvm::createSCCPPass());
-
-	AddPass(::llvm::createInstructionCombiningPass());
-	AddPass(::llvm::createJumpThreadingPass());
-	AddPass(::llvm::createCorrelatedValuePropagationPass());
-
-	if (archsim::options::JitOptLevel.GetValue() == 2)
-		return true;
-
-	AddPass(::llvm::createDeadStoreEliminationPass());
-	//AddPass(::llvm::createSLPVectorizerPass());
-	AddPass(::llvm::createAggressiveDCEPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createInstructionCombiningPass());
-	AddPass(::llvm::createBarrierNoopPass());
-	//AddPass(::llvm::createLoopVectorizePass(false));
-	AddPass(::llvm::createInstructionCombiningPass());
-	AddPass(::llvm::createCFGSimplificationPass());
-	AddPass(::llvm::createDeadStoreEliminationPass());
-	AddPass(::llvm::createStripDeadPrototypesPass());
-	AddPass(::llvm::createGlobalDCEPass());
-	AddPass(::llvm::createConstantMergePass());
-
-	if(archsim::options::JitOptLevel.GetValue() == 4) {
-		AddPass(::llvm::createFunctionInliningPass(1000));
-
-		AddPass(::llvm::createGlobalOptimizerPass());
-		AddPass(::llvm::createIPSCCPPass());
-		AddPass(::llvm::createDeadArgEliminationPass());
-
-		AddPass(::llvm::createInstructionCombiningPass());
-		AddPass(::llvm::createCFGSimplificationPass());
-
-		AddPass(::llvm::createPruneEHPass());
-
-
-//		AddPass(::llvm::createFunctionAttrsPass());
-		AddPass(::llvm::createAggressiveDCEPass());
-
-		AddPass(::llvm::createArgumentPromotionPass());
-
-		AddPass(::llvm::createPromoteMemoryToRegisterPass());
-		//		AddPass(::llvm::createSROAPass(false));
-
-		AddPass(::llvm::createEarlyCSEPass());
-		AddPass(::llvm::createJumpThreadingPass());
-		AddPass(::llvm::createCorrelatedValuePropagationPass());
-		AddPass(::llvm::createCFGSimplificationPass());
-		AddPass(::llvm::createInstructionCombiningPass());
-
-		AddPass(::llvm::createTailCallEliminationPass());
-		AddPass(::llvm::createCFGSimplificationPass());
-
-		AddPass(::llvm::createReassociatePass());
-
-		AddPass(::llvm::createInstructionCombiningPass());
-		AddPass(::llvm::createIndVarSimplifyPass());
-
-		AddPass(::llvm::createGVNPass(false));
-		AddPass(::llvm::createMemCpyOptPass());
-		AddPass(::llvm::createSCCPPass());
-
-		AddPass(::llvm::createInstructionCombiningPass());
-		AddPass(::llvm::createJumpThreadingPass());
-		AddPass(::llvm::createCorrelatedValuePropagationPass());
-
-		AddPass(::llvm::createDeadStoreEliminationPass());
-		//AddPass(::llvm::createSLPVectorizerPass());
-		AddPass(::llvm::createAggressiveDCEPass());
-		AddPass(::llvm::createCFGSimplificationPass());
-		AddPass(::llvm::createInstructionCombiningPass());
-		AddPass(::llvm::createBarrierNoopPass());
-		//AddPass(::llvm::createLoopVectorizePass(false));
-		AddPass(::llvm::createInstructionCombiningPass());
-		AddPass(::llvm::createCFGSimplificationPass());
-		AddPass(::llvm::createDeadStoreEliminationPass());
-		AddPass(::llvm::createStripDeadPrototypesPass());
-		AddPass(::llvm::createGlobalDCEPass());
-		AddPass(::llvm::createConstantMergePass());
-
 	}
+	llvm::PassManagerBuilder pmp;
+	pmp.OptLevel = archsim::options::JitOptLevel.GetValue();
+
+	if(my_aa_ == nullptr) {
+		my_aa_ = new ArchSimAA();
+	}
+	pm.add(llvm::createExternalAAWrapperPass([&](llvm::Pass &pass, llvm::Function &function, llvm::AAResults &results) {
+		results.addAAResult(*my_aa_);
+	}));
+// 	pm.add(new archsim::translate::translate_llvm::LLVMRegisterOptimisationPass());
+// 	pm.add(llvm::createRegionInfoPass());
+// 	pm.add(llvm::createAAEvalPass());
+
+	pmp.populateModulePassManager(pm);
+
+	isInitialised = true;
 
 	return true;
 }
