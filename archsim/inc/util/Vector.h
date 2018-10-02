@@ -163,7 +163,7 @@ template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector
 {
 	archsim::Vector<ElementT1, Width> output;
 	for(unsigned int i = 0; i < Width; ++i) {
-		output.InsertElement(i, v1.ExtractElement(i) >= v2.ExtractElement(i) ? ~(uint64_t)0 : 0);
+		output.InsertElement(i, v1.ExtractElement(i) >= v2.ExtractElement(i) ? ~(uint64_t)0ULL : 0);
 	}
 	return output;
 }
@@ -172,7 +172,16 @@ template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector
 {
 	archsim::Vector<ElementT1, Width> output;
 	for(unsigned int i = 0; i < Width; ++i) {
-		output.InsertElement(i, v1.ExtractElement(i) > v2.ExtractElement(i) ? ~(uint64_t)0 : 0);
+		output.InsertElement(i, v1.ExtractElement(i) > v2.ExtractElement(i) ? ~(uint64_t)0ULL : 0);
+	}
+	return output;
+}
+
+template<typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector<ElementT1, Width> operator<(const archsim::Vector<ElementT1, Width> &v1, const archsim::Vector<ElementT2, Width> &v2)
+{
+	archsim::Vector<ElementT1, Width> output;
+	for(unsigned int i = 0; i < Width; ++i) {
+		output.InsertElement(i, v1.ExtractElement(i) < v2.ExtractElement(i) ? ~(uint64_t)0ULL : 0);
 	}
 	return output;
 }
@@ -207,14 +216,18 @@ OPERATE(^)
 template <typename ElementT, typename ElementT2, unsigned Width> archsim::Vector<ElementT, Width> operator >>(const archsim::Vector<ElementT, Width> &v1, const archsim::Vector<ElementT2, Width> &v2)
 {
 	archsim::Vector<ElementT, Width> result;
-	for(unsigned i = 0; i < Width; ++i) result[i] = v1[i] >> v2[i];
+	for(unsigned i = 0; i < Width; ++i) {
+		result.InsertElement(i, (ElementT)v1.ExtractElement(i) >> (ElementT)v2.ExtractElement(i));
+	}
 	return result;
 }
 
 template <typename ElementT, typename ElementT2, unsigned Width> archsim::Vector<ElementT, Width> operator <<(const archsim::Vector<ElementT, Width> &v1, const archsim::Vector<ElementT2, Width> &v2)
 {
 	archsim::Vector<ElementT, Width> result;
-	for(unsigned i = 0; i < Width; ++i) result[i] = v1[i] << v2[i];
+	for(unsigned i = 0; i < Width; ++i) {
+		result.InsertElement(i, (ElementT)v1.ExtractElement(i) << (ElementT)v2.ExtractElement(i));
+	}
 	return result;
 }
 

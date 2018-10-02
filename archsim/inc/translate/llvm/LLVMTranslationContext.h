@@ -50,6 +50,14 @@ namespace archsim
 					llvm::Function *bswap_i32;
 					llvm::Function *bswap_i64;
 
+					llvm::Function *uadd_with_overflow_8, *uadd_with_overflow_16, *uadd_with_overflow_32, *uadd_with_overflow_64;
+					llvm::Function *usub_with_overflow_8, *usub_with_overflow_16, *usub_with_overflow_32, *usub_with_overflow_64;
+
+					llvm::Function *sadd_with_overflow_8, *sadd_with_overflow_16, *sadd_with_overflow_32, *sadd_with_overflow_64;
+					llvm::Function *ssub_with_overflow_8, *ssub_with_overflow_16, *ssub_with_overflow_32, *ssub_with_overflow_64;
+
+					llvm::Function *assume;
+
 					llvm::Function *blkRead8, *blkRead16, *blkRead32, *blkRead64;
 					llvm::Function *cpuWrite8, *cpuWrite16, *cpuWrite32, *cpuWrite64;
 

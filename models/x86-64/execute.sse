@@ -825,16 +825,14 @@ execute(psrad) {
 }
 
 execute(psrlq) {
-	uint64 shift = read_operand(inst.op1);
-	uint64 op = read_operand(inst.op0);
+	uint64[2] shift = read_xmm_u64(inst.op1);
+	uint64[2] op = read_xmm_u64(inst.op0);
 	
-	if(shift > 15) {
-		op = 0;
-	} else {
-		op >>= shift * 8;
-	}
+	uint64[2] result;
+	result[0] = shift[0] > 63 ? (uint64)0 : op[0] >> shift[0];
+	result[1] = shift[1] > 63 ? (uint64)0 : op[1] >> shift[1];
 	
-	write_operand(inst.op0, op);
+	write_xmm_u64(inst.op0, result);
 }
 
 execute(psrldq) {

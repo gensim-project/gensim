@@ -26,7 +26,7 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archs
 {
 #ifdef FASTER_READS
 	llvm::Value *mem_base = ctx.Values.contiguous_mem_base;
-	llvm::Value *final_address = builder.CreateGEP(mem_base, {address});
+	llvm::Value *final_address = builder.CreateInBoundsGEP(mem_base, {llvm::ConstantInt::get(ctx.Types.i64, 0),  address});
 	llvm::Value *ptr = builder.CreatePointerCast(final_address, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8, 0));
 	if(llvm::isa<llvm::Instruction>(ptr)) {
 		((llvm::Instruction*)ptr)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_MEM_ACCESS)) }));
@@ -146,7 +146,7 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 {
 #ifdef FASTER_READS
 	llvm::Value *mem_base = ctx.Values.contiguous_mem_base;
-	llvm::Value *final_address = builder.CreateGEP(mem_base, {address});
+	llvm::Value *final_address = builder.CreateInBoundsGEP(mem_base, {llvm::ConstantInt::get(ctx.Types.i64, 0),  address});
 	llvm::Value *ptr = builder.CreatePointerCast(final_address, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8, 0));
 	if(llvm::isa<llvm::Instruction>(ptr)) {
 		((llvm::IntToPtrInst*)ptr)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_MEM_ACCESS)) }));
@@ -286,6 +286,10 @@ void BaseLLVMTranslate::EmitAdcWithFlags(Builder &builder, archsim::translate::t
 	// figure out a better way of handling this, possibly by modifying LLVM
 	// (new intrinsic or custom lowering)
 
+	// carry must be 0 or 1
+	llvm::Value *carry_expr = builder.CreateOr(builder.CreateICmpEQ(carry, llvm::ConstantInt::get(carry->getType(), 0)), builder.CreateICmpEQ(carry, llvm::ConstantInt::get(carry->getType(), 1)));
+	builder.CreateCall(ctx.Functions.assume, { carry_expr });
+
 	llvm::IntegerType *base_itype = llvm::IntegerType::getIntNTy(ctx.LLVMCtx, bits);
 	llvm::IntegerType *itype = llvm::IntegerType::getIntNTy(ctx.LLVMCtx, bits*2);
 
@@ -300,9 +304,28 @@ void BaseLLVMTranslate::EmitAdcWithFlags(Builder &builder, archsim::translate::t
 
 	// produce result
 	llvm::Value *extended_result = builder.CreateAdd(extended_rhs, extended_carry);
-	extended_result = builder.CreateAdd(extended_lhs, extended_result);
 
-	llvm::Value *base_result = builder.CreateTrunc(extended_result, base_itype);
+	llvm::Value *callee;
+	switch(bits) {
+		case 8:
+			callee = ctx.Functions.uadd_with_overflow_8;
+			break;
+		case 16:
+			callee = ctx.Functions.uadd_with_overflow_16;
+			break;
+		case 32:
+			callee = ctx.Functions.uadd_with_overflow_32;
+			break;
+		case 64:
+			callee = ctx.Functions.uadd_with_overflow_64;
+			break;
+		default:
+			UNIMPLEMENTED;
+	}
+	llvm::Value *partial_result = builder.CreateCall(callee, {lhs, rhs});
+	llvm::Value *full_result = builder.CreateCall(callee, {builder.CreateExtractValue(partial_result, {0}), carry});
+
+	llvm::Value *base_result = builder.CreateExtractValue(full_result, {0});
 
 	// calculate flags
 	llvm::Value *Z = builder.CreateICmpEQ(base_result, llvm::ConstantInt::get(base_itype, 0));
@@ -311,17 +334,30 @@ void BaseLLVMTranslate::EmitAdcWithFlags(Builder &builder, archsim::translate::t
 	llvm::Value *N = builder.CreateICmpSLT(base_result, llvm::ConstantInt::get(base_itype, 0));
 	N = builder.CreateZExt(N, ctx.Types.i8);
 
-	llvm::Value *C = builder.CreateICmpUGT(extended_result, builder.CreateZExt(llvm::ConstantInt::get(base_itype, -1ull), itype));
+	llvm::Value *C = builder.CreateOr(builder.CreateExtractValue(partial_result, {1}), builder.CreateExtractValue(full_result, {1}));
 	C = builder.CreateZExt(C, ctx.Types.i8);
 
-	llvm::Value *lhs_sign = builder.CreateICmpSLT(lhs, llvm::ConstantInt::get(base_itype, 0));
-	llvm::Value *rhs_sign = builder.CreateICmpSLT(rhs, llvm::ConstantInt::get(base_itype, 0));
-	llvm::Value *result_sign = builder.CreateICmpSLT(base_result, llvm::ConstantInt::get(base_itype, 0));
+	switch(bits) {
+		case 8:
+			callee = ctx.Functions.sadd_with_overflow_8;
+			break;
+		case 16:
+			callee = ctx.Functions.sadd_with_overflow_16;
+			break;
+		case 32:
+			callee = ctx.Functions.sadd_with_overflow_32;
+			break;
+		case 64:
+			callee = ctx.Functions.sadd_with_overflow_64;
+			break;
+		default:
+			UNIMPLEMENTED;
+	}
 
-	llvm::Value *V_lhs = builder.CreateICmpEQ(lhs_sign, rhs_sign);
-	llvm::Value *V_rhs = builder.CreateICmpNE(lhs_sign, result_sign);
-
-	llvm::Value *V = builder.CreateAnd(V_lhs, V_rhs);
+	partial_result = builder.CreateCall(callee, {lhs, rhs});
+	full_result = builder.CreateCall(callee, {builder.CreateExtractValue(partial_result, {0}), carry});
+	llvm::Value *V = builder.CreateOr(builder.CreateExtractValue(partial_result, {1}), builder.CreateExtractValue(full_result, {1}));
+	V = builder.CreateZExt(V, ctx.Types.i8);
 	V = builder.CreateZExt(V, ctx.Types.i8);
 
 	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C"), nullptr, C);
@@ -336,6 +372,10 @@ void BaseLLVMTranslate::EmitSbcWithFlags(Builder &builder, archsim::translate::t
 	// figure out a better way of handling this, possibly by modifying LLVM
 	// (new intrinsic or custom lowering)
 
+	// carry must be 0 or 1
+	llvm::Value *carry_expr = builder.CreateOr(builder.CreateICmpEQ(carry, llvm::ConstantInt::get(carry->getType(), 0)), builder.CreateICmpEQ(carry, llvm::ConstantInt::get(carry->getType(), 1)));
+	builder.CreateCall(ctx.Functions.assume, { carry_expr });
+
 	llvm::IntegerType *base_itype = llvm::IntegerType::getIntNTy(ctx.LLVMCtx, bits);
 	llvm::IntegerType *itype = llvm::IntegerType::getIntNTy(ctx.LLVMCtx, bits*2);
 
@@ -348,30 +388,60 @@ void BaseLLVMTranslate::EmitSbcWithFlags(Builder &builder, archsim::translate::t
 	llvm::Value *extended_rhs = builder.CreateZExtOrTrunc(rhs, itype);
 	llvm::Value *extended_carry = builder.CreateZExtOrTrunc(carry, itype);
 
-	// produce result
-	llvm::Value *result = builder.CreateAdd(extended_rhs, extended_carry);
-	result = builder.CreateSub(extended_lhs, result);
+	llvm::Value *callee;
+	switch(bits) {
+		case 8:
+			callee = ctx.Functions.usub_with_overflow_8;
+			break;
+		case 16:
+			callee = ctx.Functions.usub_with_overflow_16;
+			break;
+		case 32:
+			callee = ctx.Functions.usub_with_overflow_32;
+			break;
+		case 64:
+			callee = ctx.Functions.usub_with_overflow_64;
+			break;
+		default:
+			UNIMPLEMENTED;
+	}
 
-	llvm::Value *base_result = builder.CreateTrunc(result, base_itype);
+	// produce result for carry
+	llvm::Value *partial_result = builder.CreateCall(callee, {lhs, rhs});
+	llvm::Value *full_result = builder.CreateCall(callee, {builder.CreateExtractValue(partial_result, {0}), carry});
+	llvm::Value *result = builder.CreateExtractValue(full_result, {0});
+
 
 	// calculate flags
-	llvm::Value *Z = builder.CreateICmpEQ(base_result, llvm::ConstantInt::get(base_itype, 0));
+	llvm::Value *Z = builder.CreateICmpEQ(result, llvm::ConstantInt::get(base_itype, 0));
 	Z = builder.CreateZExt(Z, ctx.Types.i8);
 
-	llvm::Value *N = builder.CreateICmpSLT(base_result, llvm::ConstantInt::get(base_itype, 0));
+	llvm::Value *N = builder.CreateICmpSLT(result, llvm::ConstantInt::get(base_itype, 0));
 	N = builder.CreateZExt(N, ctx.Types.i8);
 
-	llvm::Value *C = builder.CreateICmpUGT(result, builder.CreateZExt(llvm::ConstantInt::get(base_itype, -1ull), itype));
+	llvm::Value *C = builder.CreateOr(builder.CreateExtractValue(partial_result, {1}), builder.CreateExtractValue(full_result, {1}));
 	C = builder.CreateZExt(C, ctx.Types.i8);
 
-	llvm::Value *lhs_sign = builder.CreateICmpSLT(lhs, llvm::ConstantInt::get(base_itype, 0));
-	llvm::Value *rhs_sign = builder.CreateICmpSLT(rhs, llvm::ConstantInt::get(base_itype, 0));
-	llvm::Value *result_sign = builder.CreateICmpSLT(base_result, llvm::ConstantInt::get(base_itype, 0));
+	switch(bits) {
+		case 8:
+			callee = ctx.Functions.ssub_with_overflow_8;
+			break;
+		case 16:
+			callee = ctx.Functions.ssub_with_overflow_16;
+			break;
+		case 32:
+			callee = ctx.Functions.ssub_with_overflow_32;
+			break;
+		case 64:
+			callee = ctx.Functions.ssub_with_overflow_64;
+			break;
+		default:
+			UNIMPLEMENTED;
+	}
 
-	llvm::Value *V_lhs = builder.CreateICmpNE(lhs_sign, rhs_sign);
-	llvm::Value *V_rhs = builder.CreateICmpEQ(rhs_sign, result_sign);
-
-	llvm::Value *V = builder.CreateAnd(V_lhs, V_rhs);
+	partial_result = builder.CreateCall(callee, {lhs, rhs});
+	full_result = builder.CreateCall(callee, {builder.CreateExtractValue(partial_result, {0}), carry});
+	llvm::Value *V = builder.CreateOr(builder.CreateExtractValue(partial_result, {1}), builder.CreateExtractValue(full_result, {1}));
 	V = builder.CreateZExt(V, ctx.Types.i8);
 
 	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C"), nullptr, C);
