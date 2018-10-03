@@ -144,12 +144,17 @@ llvm::Value* GEPLLVMGuestRegisterAccessEmitter::GetPointerToReg(llvm::IRBuilder<
 		index = llvm::ConstantInt::get(GetCtx().Types.i64, 0);
 	}
 
-	llvm::IRBuilder<> entry_builder (GetCtx().LLVMCtx);
-	entry_builder.SetInsertPoint(&builder.GetInsertBlock()->getParent()->getEntryBlock(), builder.GetInsertBlock()->getParent()->getEntryBlock().begin());
+	llvm::Value *ptr = nullptr;
+	llvm::IRBuilder<> ptr_builder = builder;
 
-	llvm::Value *ptr = GetPointerToRegBank(entry_builder, reg_view);
-	ptr = entry_builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(GetCtx().Types.i64, 0), index, llvm::ConstantInt::get(GetCtx().Types.i32, 0)});
+	if(llvm::isa<llvm::Constant>(index)) {
+		ptr_builder.SetInsertPoint(&builder.GetInsertBlock()->getParent()->getEntryBlock(), builder.GetInsertBlock()->getParent()->getEntryBlock().begin());
+	}
+
+	ptr = GetPointerToRegBank(ptr_builder, reg_view);
+	ptr = ptr_builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(GetCtx().Types.i64, 0), index, llvm::ConstantInt::get(GetCtx().Types.i32, 0)});
 	AddAAAIMetadata(ptr, reg_view, index);
+
 	return ptr;
 }
 
