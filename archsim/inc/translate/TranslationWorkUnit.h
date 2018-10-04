@@ -68,7 +68,7 @@ namespace archsim
 		{
 		public:
 			TranslationBlockUnit(const TranslationBlockUnit&) = delete;
-			TranslationBlockUnit(TranslationWorkUnit& twu, Address offset, uint8_t isa_mode, bool entry_block);
+			TranslationBlockUnit(Address offset, uint8_t isa_mode, bool entry_block);
 			~TranslationBlockUnit();
 
 			TranslationInstructionUnit *AddInstruction(gensim::BaseDecode* decode, Address offset);
@@ -143,10 +143,7 @@ namespace archsim
 				return spanning;
 			}
 
-			void GetCtrlFlowInfo(bool &direct_jump, bool &indirect_jump, int32_t &direct_offset, int32_t &fallthrough_offset) const;
-
 		private:
-			TranslationWorkUnit& twu;
 
 			Address offset;
 			uint8_t isa_mode;

@@ -160,6 +160,7 @@ namespace archsim
 			{
 				this->manager = &manager;
 			}
+
 		private:
 			bool _needs_leave;
 			profile::RegionTable regions;

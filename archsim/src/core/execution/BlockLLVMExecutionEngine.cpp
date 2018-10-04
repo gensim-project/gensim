@@ -11,6 +11,7 @@
 #include "util/LogContext.h"
 #include "gensim/gensim_translate.h"
 #include "translate/llvm/LLVMTranslationContext.h"
+#include "translate/llvm/LLVMBlockTranslator.h"
 #include "translate/llvm/LLVMOptimiser.h"
 
 #include <llvm/IR/LLVMContext.h>
@@ -264,50 +265,37 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 
 	auto pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
 
-	archsim::translate::tx_llvm::LLVMTranslationContext ctx(llvm_ctx_, fn, thread);
+	// construct a translationblockunit
+	archsim::translate::TranslationBlockUnit tbu (thread->GetPC(), 0, 1);
 
+	Address insn_pc = thread->GetPC();
+	Address block_start = insn_pc;
 	while(true) {
-		auto result = isa.DecodeInstr(phys_pc, &thread->GetFetchMI(), *decode);
+		auto decode = isa.GetNewDecode();
+		uint32_t result = isa.DecodeInstr(insn_pc, &thread->GetFetchMI(), *decode);
+
 		if(result) {
-			// failed to decode instruction
-			LC_ERROR(LogBlockJitCpu) << "Failed to decode instruction at pc " << phys_pc;
-			return nullptr;
+			throw std::logic_error("Decode error");
 		}
 
-		if(archsim::options::Trace) {
-			builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(builder), llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()), llvm::ConstantInt::get(ctx.Types.i32, decode->ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
-		}
+		tbu.AddInstruction(decode, insn_pc - tbu.GetOffset());
 
 		gensim::JumpInfo ji;
-		jumpinfo->GetJumpInfo(decode, phys_pc, ji);
+		jumpinfo->GetJumpInfo(decode, insn_pc, ji);
 
-		// if we're about to execute a jump, update the PC first
-		if(ji.IsJump) {
-			translator_->EmitRegisterWrite(builder, ctx, thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr, llvm::ConstantInt::get(ctx.Types.i64, phys_pc.Get()));
-		}
-
-		// translate instruction
-
-		if(!translator_->TranslateInstruction(builder, ctx, thread, decode, phys_pc, fn)) {
-			LC_ERROR(LogBlockJitCpu) << "Failed to translate instruction at pc " << phys_pc;
-			return nullptr;
-		}
-
-		if(archsim::options::Trace) {
-			builder.CreateCall(ctx.Functions.cpuTraceInsnEnd, {ctx.GetThreadPtr(builder)});
-		}
-
-		// check for block exit
 		if(ji.IsJump) {
 			break;
 		}
-		phys_pc += decode->Instr_Length;
+
+		insn_pc += decode->Instr_Length;
 	}
 
-	builder.CreateRet(llvm::ConstantInt::get(ctx.Types.i32, 0));
+	// translate translationblockunit to llvm bitcode
+	archsim::translate::translate_llvm::LLVMTranslationContext ctx (module->getContext(), fn, thread);
+	archsim::translate::translate_llvm::LLVMBlockTranslator txltr(ctx, translator_, fn);
 
-	delete jumpinfo;
-	delete decode;
+	auto end_block = txltr.TranslateBlock(block_start, tbu, entry_block);
+	llvm::ReturnInst::Create(module->getContext(), llvm::ConstantInt::get(ctx.Types.i32, 0), end_block);
 
 	return fn;
 }

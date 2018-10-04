@@ -19,7 +19,6 @@
 #include "util/PagePool.h"
 #include "gensim/gensim_translate.h"
 
-#include <llvm/IR/LLVMContext.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/JITSymbol.h>
 #include <llvm/ExecutionEngine/RTDyldMemoryManager.h>

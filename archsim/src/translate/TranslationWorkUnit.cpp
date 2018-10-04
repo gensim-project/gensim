@@ -61,7 +61,7 @@ void TranslationWorkUnit::DumpGraph()
 
 TranslationBlockUnit *TranslationWorkUnit::AddBlock(profile::Block& block, bool entry)
 {
-	auto tbu = new TranslationBlockUnit(*this, block.GetOffset(), block.GetISAMode(), entry);
+	auto tbu = new TranslationBlockUnit(block.GetOffset(), block.GetISAMode(), entry);
 	blocks[block.GetOffset()] = tbu;
 	return tbu;
 }
@@ -100,7 +100,7 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 				return NULL;
 			}
 
-			tbu->AddInstruction(decode, offset);
+			tbu->AddInstruction(decode, offset - tbu->GetOffset());
 
 			offset += decode->Instr_Length;
 			end_of_block = decode->GetEndOfBlock();
@@ -143,41 +143,30 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	return twu;
 }
 
-TranslationBlockUnit::TranslationBlockUnit(TranslationWorkUnit& twu, Address offset, uint8_t isa_mode, bool entry)
-	: twu(twu),
-	  offset(offset),
-	  isa_mode(isa_mode),
-	  entry(entry),
-	  interrupt_check(false),
-	  spanning(false)
+TranslationBlockUnit::TranslationBlockUnit(Address offset, uint8_t isa_mode, bool entry)
+	:
+	offset(offset),
+	isa_mode(isa_mode),
+	entry(entry),
+	interrupt_check(false),
+	spanning(false)
 {
 
 }
 
 TranslationBlockUnit::~TranslationBlockUnit()
 {
-
+	for(auto i : instructions) {
+		delete i;
+	}
 }
 
 TranslationInstructionUnit *TranslationBlockUnit::AddInstruction(gensim::BaseDecode* decode, Address offset)
 {
 	assert(decode);
-	auto tiu = twu.GetInstructionZone().Construct(decode, offset);
+	auto tiu = new TranslationInstructionUnit(decode, offset);
 	instructions.push_back(tiu);
 	return tiu;
-}
-
-void TranslationBlockUnit::GetCtrlFlowInfo(bool &direct_jump, bool &indirect_jump, int32_t &direct_offset, int32_t &fallthrough_offset) const
-{
-	auto ji_provider = twu.GetThread()->GetArch().GetISA(twu.GetThread()->GetModeID()).GetNewJumpInfo();
-	gensim::JumpInfo info;
-	ji_provider->GetJumpInfo(&GetLastInstruction().GetDecode(), Address(0), info);
-	delete ji_provider;
-
-	direct_offset = (int64_t)info.JumpTarget.Get();
-	direct_jump = !info.IsIndirect;
-	indirect_jump = info.IsIndirect;
-	fallthrough_offset = GetLastInstruction().GetOffset().Get() + GetLastInstruction().GetDecode().Instr_Length;
 }
 
 TranslationInstructionUnit::TranslationInstructionUnit(gensim::BaseDecode* decode, Address offset) : decode(decode), offset(offset)

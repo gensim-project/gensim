@@ -8,11 +8,11 @@
 
 using namespace gensim;
 
-llvm::Value* BaseLLVMTranslate::EmitRegisterRead(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, const archsim::RegisterFileEntryDescriptor &entry, llvm::Value *index)
+llvm::Value* BaseLLVMTranslate::EmitRegisterRead(Builder& builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, const archsim::RegisterFileEntryDescriptor &entry, llvm::Value *index)
 {
 	return ctx.LoadGuestRegister(builder, entry, index);
 }
-bool BaseLLVMTranslate::EmitRegisterWrite(Builder& builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, const archsim::RegisterFileEntryDescriptor &entry, llvm::Value *index, llvm::Value *value)
+bool BaseLLVMTranslate::EmitRegisterWrite(Builder& builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, const archsim::RegisterFileEntryDescriptor &entry, llvm::Value *index, llvm::Value *value)
 {
 	ctx.StoreGuestRegister(builder, entry, index, value);
 }
@@ -22,7 +22,7 @@ bool BaseLLVMTranslate::EmitRegisterWrite(Builder& builder, archsim::translate::
 #define FASTER_WRITES
 //#define FAST_WRITES
 
-llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value* address)
+llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value* address)
 {
 #ifdef FASTER_READS
 	llvm::Value *mem_base = ctx.Values.contiguous_mem_base;
@@ -142,7 +142,7 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archs
 	return value;
 }
 
-void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value* address, llvm::Value* value)
+void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value* address, llvm::Value* value)
 {
 #ifdef FASTER_READS
 	llvm::Value *mem_base = ctx.Values.contiguous_mem_base;
@@ -256,12 +256,12 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 	}
 }
 
-void BaseLLVMTranslate::EmitTakeException(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, llvm::Value* category, llvm::Value* data)
+void BaseLLVMTranslate::EmitTakeException(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, llvm::Value* category, llvm::Value* data)
 {
 	builder.CreateCall(ctx.Functions.TakeException, {ctx.GetThreadPtr(builder), category, data});
 }
 
-llvm::Value* BaseLLVMTranslate::GetRegisterPtr(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset)
+llvm::Value* BaseLLVMTranslate::GetRegisterPtr(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int size_in_bytes, int offset)
 {
 	llvm::Value *ptr = GetRegfilePtr(ctx);
 	ptr = builder.CreatePtrToInt(ptr, ctx.Types.i64);
@@ -270,17 +270,17 @@ llvm::Value* BaseLLVMTranslate::GetRegisterPtr(Builder &builder, archsim::transl
 	return ptr;
 }
 
-llvm::Value* BaseLLVMTranslate::GetRegfilePtr(archsim::translate::tx_llvm::LLVMTranslationContext& ctx)
+llvm::Value* BaseLLVMTranslate::GetRegfilePtr(archsim::translate::translate_llvm::LLVMTranslationContext& ctx)
 {
 	return ctx.Values.reg_file_ptr;
 }
 
-llvm::Value* BaseLLVMTranslate::GetThreadPtr(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx)
+llvm::Value* BaseLLVMTranslate::GetThreadPtr(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx)
 {
 	return ctx.GetThreadPtr(builder);
 }
 
-void BaseLLVMTranslate::EmitAdcWithFlags(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value* lhs, llvm::Value* rhs, llvm::Value* carry)
+void BaseLLVMTranslate::EmitAdcWithFlags(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value* lhs, llvm::Value* rhs, llvm::Value* carry)
 {
 	// TODO: this leads to not very efficient code. It would be better to
 	// figure out a better way of handling this, possibly by modifying LLVM
@@ -366,7 +366,7 @@ void BaseLLVMTranslate::EmitAdcWithFlags(Builder &builder, archsim::translate::t
 	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z"), nullptr, Z);
 }
 
-void BaseLLVMTranslate::EmitSbcWithFlags(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value* lhs, llvm::Value* rhs, llvm::Value* carry)
+void BaseLLVMTranslate::EmitSbcWithFlags(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value* lhs, llvm::Value* rhs, llvm::Value* carry)
 {
 	// TODO: this leads to not very efficient code. It would be better to
 	// figure out a better way of handling this, possibly by modifying LLVM
@@ -444,13 +444,23 @@ void BaseLLVMTranslate::EmitSbcWithFlags(Builder &builder, archsim::translate::t
 	llvm::Value *V = builder.CreateOr(builder.CreateExtractValue(partial_result, {1}), builder.CreateExtractValue(full_result, {1}));
 	V = builder.CreateZExt(V, ctx.Types.i8);
 
-	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C"), nullptr, C);
-	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V"), nullptr, V);
-	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N"), nullptr, N);
-	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z"), nullptr, Z);
+	auto &C_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C");
+	auto &V_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V");
+	auto &N_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N");
+	auto &Z_desc = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z");
+
+	EmitRegisterWrite(builder, ctx, C_desc, nullptr, C);
+	EmitRegisterWrite(builder, ctx, V_desc, nullptr, V);
+	EmitRegisterWrite(builder, ctx, N_desc, nullptr, N);
+	EmitRegisterWrite(builder, ctx, Z_desc, nullptr, Z);
+
+	EmitTraceRegisterWrite(builder, ctx, C_desc.GetID(), C);
+	EmitTraceRegisterWrite(builder, ctx, V_desc.GetID(), V);
+	EmitTraceRegisterWrite(builder, ctx, N_desc.GetID(), N);
+	EmitTraceRegisterWrite(builder, ctx, Z_desc.GetID(), Z);
 }
 
-void BaseLLVMTranslate::QueueDynamicBlock(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, std::map<uint16_t, llvm::BasicBlock*>& dynamic_blocks, std::list<uint16_t>& dynamic_block_queue, uint16_t queued_block)
+void BaseLLVMTranslate::QueueDynamicBlock(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, std::map<uint16_t, llvm::BasicBlock*>& dynamic_blocks, std::list<uint16_t>& dynamic_block_queue, uint16_t queued_block)
 {
 	if(dynamic_blocks.count(queued_block)) {
 		return;
@@ -459,41 +469,43 @@ void BaseLLVMTranslate::QueueDynamicBlock(Builder &builder, archsim::translate::
 	dynamic_block_queue.push_back(queued_block);
 }
 
-void BaseLLVMTranslate::EmitTraceBankedRegisterWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, int size, llvm::Value* value)
+void BaseLLVMTranslate::EmitTraceBankedRegisterWrite(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, int size, llvm::Value* value)
 {
 	if(archsim::options::Trace) {
-		auto value_ptr = new llvm::AllocaInst(value->getType(), 0, "", &*ctx.GetFunction()->getEntryBlock().begin());
+		llvm::Value *value_ptr = ctx.GetTraceStackSlot(value->getType());
 		builder.CreateStore(value, value_ptr);
 
+		value_ptr = builder.CreatePointerCast(value_ptr, ctx.Types.i8Ptr);
 		builder.CreateCall(ctx.Functions.cpuTraceBankedRegisterWrite, {ctx.GetThreadPtr(builder), llvm::ConstantInt::get(ctx.Types.i32, id), builder.CreateZExtOrTrunc(regnum, ctx.Types.i32), llvm::ConstantInt::get(ctx.Types.i32, size), value_ptr});
 	}
 }
 
-void BaseLLVMTranslate::EmitTraceRegisterWrite(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* value)
+void BaseLLVMTranslate::EmitTraceRegisterWrite(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* value)
 {
 	if(archsim::options::Trace) {
 		builder.CreateCall(ctx.Functions.cpuTraceRegisterWrite, {ctx.GetThreadPtr(builder), llvm::ConstantInt::get(ctx.Types.i32, id), builder.CreateZExtOrTrunc(value, ctx.Types.i64)});
 	}
 }
 
-void BaseLLVMTranslate::EmitTraceBankedRegisterRead(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, int size, llvm::Value* value)
+void BaseLLVMTranslate::EmitTraceBankedRegisterRead(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* regnum, int size, llvm::Value* value)
 {
 	if(archsim::options::Trace) {
-		auto value_ptr = new llvm::AllocaInst(value->getType(), 0, "", &*ctx.GetFunction()->getEntryBlock().begin());
+		llvm::Value *value_ptr = ctx.GetTraceStackSlot(value->getType());
 		builder.CreateStore(value, value_ptr);
 
+		value_ptr = builder.CreatePointerCast(value_ptr, ctx.Types.i8Ptr);
 		builder.CreateCall(ctx.Functions.cpuTraceBankedRegisterRead, {ctx.GetThreadPtr(builder), llvm::ConstantInt::get(ctx.Types.i32, id), builder.CreateZExtOrTrunc(regnum, ctx.Types.i32), llvm::ConstantInt::get(ctx.Types.i32, size), value_ptr});
 	}
 }
 
-void BaseLLVMTranslate::EmitTraceRegisterRead(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* value)
+void BaseLLVMTranslate::EmitTraceRegisterRead(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int id, llvm::Value* value)
 {
 	if(archsim::options::Trace) {
 		builder.CreateCall(ctx.Functions.cpuTraceRegisterRead, {ctx.GetThreadPtr(builder), llvm::ConstantInt::get(ctx.Types.i32, id), builder.CreateZExtOrTrunc(value, ctx.Types.i64)});
 	}
 }
 
-void BaseLLVMTranslate::EmitIncrementCounter(Builder &builder, archsim::translate::tx_llvm::LLVMTranslationContext& ctx, archsim::util::Counter64& counter, uint32_t value)
+void BaseLLVMTranslate::EmitIncrementCounter(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, archsim::util::Counter64& counter, uint32_t value)
 {
 	llvm::Value *ptr = llvm::ConstantInt::get(ctx.Types.i64, (uint64_t)counter.get_ptr());
 	ptr = builder.CreateIntToPtr(ptr, ctx.Types.i64Ptr);
