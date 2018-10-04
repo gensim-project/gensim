@@ -253,27 +253,9 @@ bool RecoverAAAI(const llvm::Value *v, int size, std::vector<int> &aaai);
 
 bool TryRecover_FromPhi(const llvm::Value *v, int size, std::vector<int> &aaai)
 {
-	if(llvm::isa<llvm::PHINode>(v)) {
-		std::vector<int> initial_aaai;
-		llvm::PHINode *phi = (llvm::PHINode*)v;
-
-		// For now, all entries in phi node must give idential aaai info.
-		// In theory we could merge info but we don't need to be too
-		// clever just now
-		if(RecoverAAAI(phi->getIncomingValue(0), size, initial_aaai)) {
-			for(int i = 0; i < phi->getNumIncomingValues(); ++i) {
-				std::vector<int> this_aaai;
-				if(!RecoverAAAI(phi->getIncomingValue(i), size, this_aaai) || this_aaai != initial_aaai) {
-					return false;
-				}
-			}
-			aaai = initial_aaai;
-			return true;
-		}
-	}
+	// Don't try to recover alias information from a phi node just now. Lots to consider e.g. loops, merging information, etc.
 	return false;
 }
-
 
 bool TryRecover_FromSelect(const llvm::Value *v, int size, std::vector<int> &aaai)
 {

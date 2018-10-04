@@ -47,6 +47,8 @@ bool FullInterruptCheckingScheme::ApplyInterruptChecks(std::map<Address, Transla
 
 bool BackwardsBranchCheckingScheme::ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks)
 {
+	UNIMPLEMENTED;
+	/*
 	for (auto block : blocks) {
 		if (block.second->HasSuccessors()) {
 			for (auto succ : block.second->GetSuccessors()) {
@@ -65,6 +67,7 @@ bool BackwardsBranchCheckingScheme::ApplyInterruptChecks(std::map<Address, Trans
 	}
 
 	return true;
+	*/
 }
 
 class TarjanInterruptScheme : public InterruptCheckingScheme

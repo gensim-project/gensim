@@ -6,7 +6,7 @@
 
 #include <llvm/IR/DerivedTypes.h>
 
-using namespace archsim::translate::tx_llvm;
+using namespace archsim::translate::translate_llvm;
 
 LLVMGuestRegisterAccessEmitter::LLVMGuestRegisterAccessEmitter(LLVMTranslationContext& ctx) : ctx_(ctx)
 {
@@ -147,8 +147,13 @@ llvm::Value* GEPLLVMGuestRegisterAccessEmitter::GetPointerToReg(llvm::IRBuilder<
 	llvm::Value *ptr = nullptr;
 	llvm::IRBuilder<> ptr_builder = builder;
 
-	if(llvm::isa<llvm::Constant>(index)) {
+	if(llvm::isa<llvm::ConstantInt>(index)) {
 		ptr_builder.SetInsertPoint(&builder.GetInsertBlock()->getParent()->getEntryBlock(), builder.GetInsertBlock()->getParent()->getEntryBlock().begin());
+
+		llvm::ConstantInt *c = (llvm::ConstantInt*)index;
+		if(c->getZExtValue() >= reg_view.GetRegisterCount()) {
+			throw std::logic_error("Register access out of bounds!");
+		}
 	}
 
 	ptr = GetPointerToRegBank(ptr_builder, reg_view);
@@ -186,6 +191,8 @@ llvm::Type* GEPLLVMGuestRegisterAccessEmitter::GetTypeForRegViewEntry(const arch
 
 	assert(reg_view.GetRegisterStride() >= reg_view.GetRegisterSize());
 	int padding_bytes = reg_view.GetRegisterStride() - reg_view.GetRegisterSize();
+
+	assert(padding_bytes >= 0);
 
 	std::vector<llvm::Type*> entries;
 	entries.push_back(base_type);

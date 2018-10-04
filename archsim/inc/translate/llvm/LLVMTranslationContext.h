@@ -26,7 +26,7 @@ namespace archsim
 {
 	namespace translate
 	{
-		namespace tx_llvm
+		namespace translate_llvm
 		{
 
 			class LLVMTranslationContext
@@ -95,6 +95,8 @@ namespace archsim
 				llvm::Value *GetStateBlockPointer();
 				llvm::LLVMContext &LLVMCtx;
 
+				llvm::Value *GetTraceStackSlot(llvm::Type *type);
+
 				llvm::Value *AllocateRegister(llvm::Type *type, int name);
 				void FreeRegister(llvm::Type *t, llvm::Value *v, int name);
 
@@ -118,6 +120,8 @@ namespace archsim
 
 				void ResetLiveRegisters(llvm::IRBuilder<> &builder);
 			private:
+				std::map<llvm::Type*, llvm::Value *> trace_slots_;
+
 				archsim::core::thread::ThreadInstance *thread_;
 
 				LLVMGuestRegisterAccessEmitter *guest_reg_emitter_;

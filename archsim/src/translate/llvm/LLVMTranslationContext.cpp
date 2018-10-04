@@ -6,7 +6,7 @@
 #include "translate/llvm/LLVMAliasAnalysis.h"
 #include "wutils/vbitset.h"
 
-using namespace archsim::translate::tx_llvm;
+using namespace archsim::translate::translate_llvm;
 
 
 LLVMRegionTranslationContext::LLVMRegionTranslationContext(LLVMTranslationContext &ctx, llvm::Function *fn, translate::TranslationWorkUnit &work_unit, llvm::BasicBlock *entry_block, gensim::BaseLLVMTranslate *txlt) : ctx_(ctx), function_(fn), entry_block_(entry_block), txlt_(txlt), region_chain_block_(nullptr)
@@ -16,7 +16,7 @@ LLVMRegionTranslationContext::LLVMRegionTranslationContext(LLVMTranslationContex
 
 void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit)
 {
-	tx_llvm::LLVMTranslationContext ctx(GetFunction()->getContext(), GetFunction(), work_unit.GetThread());
+	translate_llvm::LLVMTranslationContext ctx(GetFunction()->getContext(), GetFunction(), work_unit.GetThread());
 	llvm::IRBuilder<> builder(GetDispatchBlock());
 //	ctx.SetBuilder(builder);
 
@@ -90,7 +90,7 @@ void LLVMRegionTranslationContext::BuildSwitchStatement(TranslationWorkUnit& wor
 	}
 
 	llvm::IRBuilder<> builder(GetDispatchBlock());
-	tx_llvm::LLVMTranslationContext ctx(GetFunction()->getContext(), GetFunction(), work_unit.GetThread());
+	translate_llvm::LLVMTranslationContext ctx(GetFunction()->getContext(), GetFunction(), work_unit.GetThread());
 //	ctx.SetBuilder(builder);
 
 	// TODO: figure out from architecture
@@ -342,6 +342,15 @@ llvm::Value* LLVMTranslationContext::GetStateBlockPointer()
 	return Values.state_block_ptr;
 }
 
+
+llvm::Value * archsim::translate::translate_llvm::LLVMTranslationContext::GetTraceStackSlot(llvm::Type* type)
+{
+	if(!trace_slots_.count(type)) {
+		trace_slots_[type] = new llvm::AllocaInst(type, 0, "", &*GetFunction()->getEntryBlock().begin());
+	}
+
+	return trace_slots_.at(type);
+}
 
 llvm::Value* LLVMTranslationContext::AllocateRegister(llvm::Type *type, int name)
 {
