@@ -47,6 +47,7 @@ DefineFlag(Profiling, ProfilePcFreq, "Enables PC frequency profiling", false);
 DefineFlag(Profiling, ProfileIrFreq, "Enables IR frequency profiling", false);
 
 DefineFlag(Tracing, Trace, "Enables tracing output", false);
+DefineInt64Setting(Tracing, TraceSkip, "Skip instruction count", 0);
 DefineFlag(Tracing, SimpleTrace, "Simplified tracing", false);
 DefineFlag(Tracing, TraceSymbols, "Enables symbol resolution in tracing output", false);
 DefineFlag(Tracing, SuppressTracing, "Suppress tracing output at system startup", false);

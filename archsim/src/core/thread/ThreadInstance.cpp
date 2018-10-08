@@ -38,7 +38,6 @@ void FPState::Apply()
 			UNIMPLEMENTED;
 	}
 
-	printf("Rounding mode set to %u\n", target_rounding_mode);
 	fesetround(target_rounding_mode);
 }
 

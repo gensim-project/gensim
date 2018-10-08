@@ -57,6 +57,7 @@ namespace archsim
 					llvm::Function *ssub_with_overflow_8, *ssub_with_overflow_16, *ssub_with_overflow_32, *ssub_with_overflow_64;
 
 					llvm::Function *assume;
+					llvm::Function *debug_trap;
 
 					llvm::Function *blkRead8, *blkRead16, *blkRead32, *blkRead64;
 					llvm::Function *cpuWrite8, *cpuWrite16, *cpuWrite32, *cpuWrite64;

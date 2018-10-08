@@ -34,7 +34,8 @@ TraceSource::TraceSource(uint32_t BufferSize)
 	is_terminated_(false),
 	sink_(nullptr),
 	aggressive_flushing_(true),
-	packet_open_(false)
+	packet_open_(false),
+	skip_(0)
 {
 	packet_buffer_ = (TraceRecord*)malloc(PacketBufferSize * sizeof(TraceRecord));
 	packet_buffer_end_ = packet_buffer_+PacketBufferSize;

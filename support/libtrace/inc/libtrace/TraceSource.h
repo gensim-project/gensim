@@ -28,10 +28,17 @@ namespace libtrace
 		virtual void Terminate();
 		void EmitPackets();
 
+		void SetInstructionSkip(uint64_t skip)
+		{
+			skip_ = skip;
+		}
+
 	private:
 		template <typename PCT> void TraceInstructionHeader(PCT pc, uint8_t isa_mode);
 		template <typename CodeT> void TraceInstructionCode(CodeT pc, uint8_t irq_mode);
 		template <typename PCT> void TraceBundleHeader(PCT pc);
+
+		uint64_t skip_;
 
 	public:
 		template<typename PCT> void Trace_StartBundle(PCT PC)
@@ -42,6 +49,11 @@ namespace libtrace
 
 		template<typename PCT, typename CodeT> void Trace_Insn(PCT PC, CodeT IR, bool JIT, uint8_t isa_mode, uint8_t irq_mode, uint8_t exec)
 		{
+			if(skip_ > 0) {
+				skip_--;
+				return;
+			}
+
 			assert(!IsTerminated() && !IsPacketOpen());
 
 			TraceInstructionHeader(PC, isa_mode);

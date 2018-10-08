@@ -154,6 +154,21 @@ llvm::Value* GEPLLVMGuestRegisterAccessEmitter::GetPointerToReg(llvm::IRBuilder<
 		if(c->getZExtValue() >= reg_view.GetRegisterCount()) {
 			throw std::logic_error("Register access out of bounds!");
 		}
+	} else {
+		// Emit range check if debug is enabled
+		if(archsim::options::Debug) {
+			llvm::BasicBlock *range_ok = llvm::BasicBlock::Create(builder.getContext(), "", builder.GetInsertBlock()->getParent());
+			llvm::BasicBlock *range_bad = llvm::BasicBlock::Create(builder.getContext(), "", builder.GetInsertBlock()->getParent());
+
+			auto in_range = ptr_builder.CreateICmpULT(index, llvm::ConstantInt::get(index->getType(), reg_view.GetRegisterCount()));
+			ptr_builder.CreateCondBr(in_range, range_ok, range_bad);
+
+			ptr_builder.SetInsertPoint(range_bad);
+			ptr_builder.CreateCall(GetCtx().Functions.debug_trap);
+			ptr_builder.CreateRet(llvm::ConstantInt::get(GetCtx().Types.i32, 1));
+
+			ptr_builder.SetInsertPoint(range_ok);
+		}
 	}
 
 	ptr = GetPointerToRegBank(ptr_builder, reg_view);

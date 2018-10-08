@@ -259,6 +259,7 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 	Functions.jit_trap =  (llvm::Function*)Module->getOrInsertFunction("cpuTrap", Types.vtype, Types.i8Ptr);
 
 	Functions.assume = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::assume);
+	Functions.debug_trap = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::debugtrap);
 
 	Functions.uadd_with_overflow_8 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::uadd_with_overflow, Types.i8);
 	Functions.uadd_with_overflow_16 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::uadd_with_overflow, Types.i16);
