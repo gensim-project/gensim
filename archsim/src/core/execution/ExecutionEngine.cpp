@@ -84,6 +84,7 @@ void ExecutionEngine::AttachThread(thread::ThreadInstance* thread)
 	if(GetTraceSink()) {
 		auto source = new libtrace::TraceSource(1024);
 		source->SetSink(GetTraceSink());
+		source->SetInstructionSkip(archsim::options::TraceSkip);
 		thread->SetTraceSource(source);
 	}
 

@@ -13,8 +13,9 @@
 #include "libtrace/TraceRecordPacket.h"
 #include "libtrace/RecordTypes.h"
 
+#include <cstring>
 #include <deque>
-#include <string.h>
+#include <fstream>
 
 namespace libtrace
 {
@@ -41,6 +42,27 @@ namespace libtrace
 		virtual Record Peek() = 0;
 		virtual bool Good() = 0;
 		virtual void Skip(size_t i) = 0;
+	};
+
+	class RecordFileInputStream : public RecordStreamInputInterface
+	{
+	public:
+		RecordFileInputStream(std::ifstream& str);
+
+		libtrace::Record Get() override;
+		bool Good() override;
+		libtrace::Record Peek() override;
+		void Skip(size_t i) override;
+
+	private:
+		void makeReadyRecord();
+
+		bool is_ready_record_;
+		libtrace::Record ready_record_;
+		std::ifstream &stream_;
+
+		std::vector<Record> record_buffer_;
+		uint32_t record_buffer_pointer_;
 	};
 
 	class PacketStreamInterface
@@ -74,8 +96,8 @@ namespace libtrace
 	class TracePacketStreamInterface
 	{
 	public:
-		virtual TraceRecordPacket Get() = 0;
-		virtual TraceRecordPacket Peek() = 0;
+		virtual const TraceRecordPacket &Get() = 0;
+		virtual const TraceRecordPacket &Peek() = 0;
 
 		virtual bool Good() = 0;
 	};
@@ -86,9 +108,9 @@ namespace libtrace
 		TracePacketStreamAdaptor(RecordStreamInputInterface *input_stream);
 		virtual ~TracePacketStreamAdaptor();
 
-		TraceRecordPacket Get() override;
+		const TraceRecordPacket &Get() override;
 		bool Good() override;
-		TraceRecordPacket Peek() override;
+		const TraceRecordPacket &Peek() override;
 
 	private:
 		bool packet_ready_;
@@ -97,6 +119,8 @@ namespace libtrace
 		bool PreparePacket();
 
 		RecordStreamInputInterface *input_stream_;
+
+		std::vector<DataExtensionRecord> extensions_;
 	};
 }
 

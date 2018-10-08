@@ -160,8 +160,6 @@ std::pair<llvm::Module *, llvm::Function *> LLVMWorkUnitTranslator::TranslateWor
 	llvm::FunctionType *fn_type = llvm::FunctionType::get(llvm::Type::getInt32Ty(llvm_ctx_), {i8ptrty, i8ptrty}, false);
 
 	llvm::Function *fn = (llvm::Function*)module->getOrInsertFunction("fn", fn_type);
-	fn->addParamAttr(0, llvm::Attribute::NoCapture);
-	fn->addParamAttr(0, llvm::Attribute::NoAlias);
 
 	auto entry_block = llvm::BasicBlock::Create(llvm_ctx_, "entry_block", fn);
 
