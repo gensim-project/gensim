@@ -154,6 +154,14 @@ llvm::Value* GEPLLVMGuestRegisterAccessEmitter::GetPointerToReg(llvm::IRBuilder<
 		if(c->getZExtValue() >= reg_view.GetRegisterCount()) {
 			throw std::logic_error("Register access out of bounds!");
 		}
+
+		if(!register_pointer_cache_.count({reg_view.GetName(), c->getZExtValue()})) {
+			ptr = GetPointerToRegBank(ptr_builder, reg_view);
+			ptr = ptr_builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(GetCtx().Types.i64, 0), index, llvm::ConstantInt::get(GetCtx().Types.i32, 0)});
+			register_pointer_cache_[ {reg_view.GetName(), c->getZExtValue()}] = ptr;
+		} else {
+			ptr = register_pointer_cache_[ {reg_view.GetName(), c->getZExtValue()}];
+		}
 	} else {
 		// Emit range check if debug is enabled
 		if(archsim::options::Debug) {
@@ -169,10 +177,11 @@ llvm::Value* GEPLLVMGuestRegisterAccessEmitter::GetPointerToReg(llvm::IRBuilder<
 
 			ptr_builder.SetInsertPoint(range_ok);
 		}
+
+		ptr = GetPointerToRegBank(ptr_builder, reg_view);
+		ptr = ptr_builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(GetCtx().Types.i64, 0), index, llvm::ConstantInt::get(GetCtx().Types.i32, 0)});
 	}
 
-	ptr = GetPointerToRegBank(ptr_builder, reg_view);
-	ptr = ptr_builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(GetCtx().Types.i64, 0), index, llvm::ConstantInt::get(GetCtx().Types.i32, 0)});
 	AddAAAIMetadata(ptr, reg_view, index);
 
 	return ptr;

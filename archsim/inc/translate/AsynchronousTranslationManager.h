@@ -71,15 +71,7 @@ namespace archsim
 			std::mutex work_unit_queue_lock;
 			std::condition_variable work_unit_queue_cond;
 
-			//typedef std::priority_queue<TranslationWorkUnit *, std::vector<TranslationWorkUnit *>, WorkUnitQueueComparator> work_unit_queue_t;
-			typedef std::priority_queue<TranslationWorkUnit *, std::vector<TranslationWorkUnit*>, WorkUnitQueueComparator> work_unit_queue_t;
-
-			/**
-			 * Queue of translation work units awaiting translation.
-			 * Manager pushes to BACK of queue
-			 * Workers pop from FRONT of queue
-			 */
-			work_unit_queue_t work_unit_queue;
+			std::vector<TranslationWorkUnit *> work_unit_queue_;
 		};
 	}
 }
