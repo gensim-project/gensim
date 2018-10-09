@@ -33,6 +33,7 @@ namespace libtrace
 		TraceRecordPacket &operator=(const TraceRecordPacket &other)
 		{
 			Assign(other.record_, other.GetExtensions());
+			return *this;
 		}
 
 		void Assign(const TraceRecord &record)
