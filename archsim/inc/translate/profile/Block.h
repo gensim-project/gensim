@@ -90,11 +90,22 @@ namespace archsim
 					root = true;
 				}
 
+				void IncrementInterpCount()
+				{
+					interp_count_++;
+				}
+
+				uint64_t GetInterpCount() const
+				{
+					return interp_count_;
+				}
+
 			private:
 				std::vector<Block *> successors;
 				Region& parent;
 
 				Address offset;
+				uint64_t interp_count_;
 
 				BlockStatus status;
 				uint8_t isa_mode;

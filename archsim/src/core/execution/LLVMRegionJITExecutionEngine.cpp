@@ -81,9 +81,13 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 					region.txln->Install(&fn);
 					ctx->PageCache.InsertEntry(phys_pc.PageBase(), fn);
 
-					thread->GetMetrics().JITTime.Start();
+					if(archsim::options::Verbose) {
+						thread->GetMetrics().JITTime.Start();
+					}
 					region.txln->Execute(thread);
-					thread->GetMetrics().JITTime.Stop();
+					if(archsim::options::Verbose) {
+						thread->GetMetrics().JITTime.Stop();
+					}
 					continue;
 				} else {
 					LC_DEBUG3(LogRegionJIT) << "Translation NOT found for current block";

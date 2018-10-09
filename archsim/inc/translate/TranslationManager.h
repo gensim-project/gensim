@@ -165,7 +165,7 @@ namespace archsim
 		private:
 			bool _needs_leave;
 			profile::RegionTable regions;
-			std::set<profile::Region*> touched_regions_;
+			std::unordered_set<profile::Region*> touched_regions_;
 
 			// ProfileManager keeps track of which pages are code and notifies when pages are invalidated
 			profile::CodeRegionTracker *manager;
