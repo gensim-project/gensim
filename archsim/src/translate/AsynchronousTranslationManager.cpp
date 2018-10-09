@@ -71,8 +71,10 @@ void AsynchronousTranslationManager::Destroy()
 	TranslationManager::Destroy();
 }
 
-void AsynchronousTranslationManager::UpdateThreshold()
+bool AsynchronousTranslationManager::UpdateThreshold()
 {
+	auto initial_threshold = curr_hotspot_threshold;
+
 	if (work_unit_queue.size() > workers.size() * 2) {
 		curr_hotspot_threshold *= 10;
 
@@ -91,6 +93,8 @@ void AsynchronousTranslationManager::UpdateThreshold()
 
 	// Since the threshold modifications are multiplicative, if the threshold becomes 0 we will be stuck
 	assert(curr_hotspot_threshold > 0);
+
+	return initial_threshold != curr_hotspot_threshold;
 }
 
 bool AsynchronousTranslationManager::TranslateRegion(archsim::core::thread::ThreadInstance *cpu, profile::Region& region, uint32_t weight)
@@ -110,7 +114,7 @@ bool AsynchronousTranslationManager::TranslateRegion(archsim::core::thread::Thre
 	work_unit_queue_lock.lock();
 
 	work_unit_queue.push(twu);
-	LC_DEBUG1(LogWorkQueue) << "[ENQUEUE] Enqueueing " << *twu << ", queue length " << work_unit_queue.size();
+	LC_DEBUG1(LogWorkQueue) << "[ENQUEUE] Enqueueing " << *twu << ", queue length " << work_unit_queue.size() << " threshold " << curr_hotspot_threshold;
 
 	work_unit_queue_cond.notify_one();
 	work_unit_queue_lock.unlock();

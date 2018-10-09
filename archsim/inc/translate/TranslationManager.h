@@ -96,6 +96,7 @@ namespace archsim
 			 * Returns true if regions were dispatched for translation
 			 */
 			bool Profile(archsim::core::thread::ThreadInstance *thread);
+			bool ProfileRegion(archsim::core::thread::ThreadInstance *thread, profile::Region *region);
 
 			void RegisterTranslationForGC(Translation& txln);
 			void RunGC();
@@ -109,7 +110,7 @@ namespace archsim
 				_needs_leave = 0;
 			}
 
-			virtual void UpdateThreshold();
+			virtual bool UpdateThreshold();
 
 			/**
 			 * Completely reset the translation manager
@@ -164,6 +165,7 @@ namespace archsim
 		private:
 			bool _needs_leave;
 			profile::RegionTable regions;
+			std::set<profile::Region*> touched_regions_;
 
 			// ProfileManager keeps track of which pages are code and notifies when pages are invalidated
 			profile::CodeRegionTracker *manager;

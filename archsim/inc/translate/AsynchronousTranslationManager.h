@@ -53,7 +53,7 @@ namespace archsim
 			bool Initialise(gensim::BaseLLVMTranslate *translate);
 			void Destroy() override;
 
-			void UpdateThreshold() override;
+			bool UpdateThreshold() override;
 
 			bool TranslateRegion(archsim::core::thread::ThreadInstance *cpu, profile::Region& rgn, uint32_t weight) override;
 
