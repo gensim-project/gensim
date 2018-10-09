@@ -95,12 +95,7 @@ namespace archsim
 
 				void EraseBlock(Address virt_addr);
 
-				inline void InvalidateHeat()
-				{
-					for(auto &heat : block_interp_count) heat.second = 0;
-					total_interp_count = 0;
-					max_block_interp_count_ = 0;
-				}
+				void InvalidateHeat();
 
 				inline void IncrementGeneration()
 				{
@@ -155,7 +150,6 @@ namespace archsim
 				/*
 				 * Map of page offsets to block interpretation counts
 				 */
-				std::map<Address, uint32_t> block_interp_count;
 				uint64_t max_block_interp_count_;
 				uint64_t total_interp_count;
 

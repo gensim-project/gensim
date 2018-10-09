@@ -100,6 +100,11 @@ namespace archsim
 					return interp_count_;
 				}
 
+				void ClearInterpCount()
+				{
+					interp_count_ = 0;
+				}
+
 			private:
 				std::vector<Block *> successors;
 				Region& parent;
