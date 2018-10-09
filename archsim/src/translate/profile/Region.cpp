@@ -79,6 +79,15 @@ void Region::EraseBlock(Address virt_addr)
 	blocks.erase(offset);
 }
 
+void Region::InvalidateHeat()
+{
+	for(auto block : blocks) {
+		block.second->ClearInterpCount();
+	}
+	total_interp_count = 0;
+	max_block_interp_count_ = 0;
+}
+
 bool Region::HasTranslations() const
 {
 	return (GetStatus() != NotInTranslation) || txln;
@@ -112,7 +121,6 @@ size_t Region::GetApproximateMemoryUsage() const
 	size_t size = sizeof(*this);
 
 	for(auto i : virtual_images) size += sizeof(i);
-	for(auto i : block_interp_count) size += sizeof(i);
 	for(auto i : blocks) size += sizeof(i);
 	size += block_zone.GetAllocatedSize();
 
