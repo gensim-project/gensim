@@ -86,6 +86,8 @@ namespace archsim
 
 				llvm::Type *GetTypeForRegViewEntry(const archsim::RegisterFileEntryDescriptor& reg_view);
 				llvm::Type *GetTypeForRegView(const archsim::RegisterFileEntryDescriptor& reg_view);
+
+				std::map<std::pair<std::string, int>, llvm::Value*> register_pointer_cache_;
 			};
 		}
 	}

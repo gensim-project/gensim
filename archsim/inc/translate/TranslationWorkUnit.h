@@ -216,6 +216,7 @@ namespace archsim
 			std::set<Address> potential_virtual_bases;
 
 		private:
+			uint64_t dispatch_heat_;
 			archsim::core::thread::ThreadInstance *thread;
 			profile::Region& region;
 			uint32_t generation;

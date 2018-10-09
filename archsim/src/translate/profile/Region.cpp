@@ -95,6 +95,8 @@ bool Region::HasTranslations() const
 
 void Region::TraceBlock(archsim::core::thread::ThreadInstance *thread, Address virt_addr)
 {
+	total_interp_count++;
+
 	if (GetStatus() == InTranslation)
 		return;
 
@@ -105,8 +107,6 @@ void Region::TraceBlock(archsim::core::thread::ThreadInstance *thread, Address v
 	if(block.GetInterpCount() > max_block_interp_count_) {
 		max_block_interp_count_ = block.GetInterpCount();
 	}
-
-	total_interp_count++;
 
 	mgr.TraceBlock(thread, block);
 }

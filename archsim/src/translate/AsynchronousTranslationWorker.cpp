@@ -102,7 +102,7 @@ void AsynchronousTranslationWorker::run()
 		queue_lock.lock();
 
 		// Loop until work becomes available, or we're asked to terminate.
-		while (mgr.work_unit_queue.empty() && !terminate) {
+		while (mgr.work_unit_queue_.empty() && !terminate) {
 			// first do a bit of busy work
 			code_pool.GC();
 
@@ -123,13 +123,25 @@ void AsynchronousTranslationWorker::run()
 		// Skip over work units that are invalid.
 		do {
 			// Detect the case when we've cleared the work unit queue of valid translations.
-			if (mgr.work_unit_queue.empty()) {
+			if (mgr.work_unit_queue_.empty()) {
 				unit = NULL;
 				break;
 			}
 
-			unit = mgr.work_unit_queue.top();
-			mgr.work_unit_queue.pop();
+
+			auto best_it = mgr.work_unit_queue_.begin();
+			uint64_t max_heat = (*best_it)->GetWeight();
+			auto it = mgr.work_unit_queue_.begin();
+			while(it != mgr.work_unit_queue_.end()) {
+				auto this_heat = (*it)->GetWeight();
+				if(this_heat > max_heat) {
+					max_heat = this_heat;
+					best_it = it;
+				}
+				it++;
+			}
+			unit = *best_it;
+			mgr.work_unit_queue_.erase(best_it);
 
 			if (!unit->GetRegion().IsValid()) {
 				LC_DEBUG1(LogWorkQueue) << "[DEQUEUE] Skipping " << *unit;
@@ -149,7 +161,7 @@ void AsynchronousTranslationWorker::run()
 		if (terminate || !unit)
 			continue;
 
-		LC_DEBUG1(LogWorkQueue) << "[DEQUEUE] Dequeueing " << *unit << ", queue length " << mgr.work_unit_queue.size() << ", @ " << (uint32_t)id;
+		LC_DEBUG1(LogWorkQueue) << "[DEQUEUE] Dequeueing " << *unit << ", queue length " << mgr.work_unit_queue_.size() << ", @ " << (uint32_t)id;
 
 		// Perform the translation, and destroy the translation work unit.
 		::llvm::LLVMContext llvm_ctx;
