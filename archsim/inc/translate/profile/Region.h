@@ -99,6 +99,7 @@ namespace archsim
 				{
 					for(auto &heat : block_interp_count) heat.second = 0;
 					total_interp_count = 0;
+					max_block_interp_count_ = 0;
 				}
 
 				inline void IncrementGeneration()
@@ -135,13 +136,7 @@ namespace archsim
 
 				inline bool IsHot(uint32_t hotspot_threshold) const
 				{
-					for (auto bi : block_interp_count) {
-						if (bi.second > hotspot_threshold) {
-							return true;
-						}
-					}
-
-					return false;
+					return max_block_interp_count_ >= hotspot_threshold;
 				}
 
 				inline bool IsValid() const
@@ -161,6 +156,7 @@ namespace archsim
 				 * Map of page offsets to block interpretation counts
 				 */
 				std::map<Address, uint32_t> block_interp_count;
+				uint64_t max_block_interp_count_;
 				uint64_t total_interp_count;
 
 				typedef std::unordered_map<Address, Block*> block_map_t;

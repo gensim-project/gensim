@@ -13,6 +13,7 @@
 #include "core/thread/ThreadInstance.h"
 #include "util/Lifetime.h"
 #include "blockjit/ir.h"
+#include "wutils/dense-set.h"
 
 #include <unordered_set>
 
@@ -45,21 +46,16 @@ namespace archsim
 
 			inline void AddContainedBlock(Address addr)
 			{
-				contained_blocks.insert(addr);
+				contained_blocks.insert(addr.GetPageOffset());
 			}
 
 			inline bool ContainsBlock(Address addr) const
 			{
-				return contained_blocks.count(addr) > 0;
-			}
-
-			inline const std::unordered_set<Address>& GetBlocks() const
-			{
-				return contained_blocks;
+				return contained_blocks.count(addr.GetPageOffset()) > 0;
 			}
 
 		private:
-			std::unordered_set<Address> contained_blocks;
+			wutils::dense_set<uint32_t> contained_blocks;
 			bool is_registered;
 		};
 	}

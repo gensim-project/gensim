@@ -151,14 +151,15 @@ void TranslationManager::TraceBlock(archsim::core::thread::ThreadInstance *threa
 	uint32_t mode = (uint32_t)thread->GetExecutionRing();
 
 	LC_DEBUG4(LogProfile) << "Tracing block " << std::hex << block.GetOffset() << ", isa = " << (uint32_t)thread->GetModeID() << ", mode = " << mode;
+	auto &prev_block = this->prev_block[mode];
 
-	if (prev_block[mode] && prev_block[mode]->GetParent().GetPhysicalBaseAddress() == block.GetParent().GetPhysicalBaseAddress()) {
-		prev_block[mode]->AddSuccessor(block);
+	if (prev_block && prev_block->GetParent().GetPhysicalBaseAddress() == block.GetParent().GetPhysicalBaseAddress()) {
+		prev_block->AddSuccessor(block);
 	} else if (!block.IsRootBlock()) {
 		block.SetRoot();
 	}
 
-	prev_block[mode] = &block;
+	prev_block = &block;
 }
 
 bool archsim::translate::TranslationManager::ProfileRegion(archsim::core::thread::ThreadInstance* thread, profile::Region* region)
@@ -386,7 +387,7 @@ size_t TranslationManager::ApproximateRegionMemoryUsage() const
 	return total;
 }
 
-Translation::Translation() : is_registered(false)
+Translation::Translation() : is_registered(false), contained_blocks(4096)
 {
 
 }

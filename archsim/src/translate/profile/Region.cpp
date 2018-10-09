@@ -22,7 +22,8 @@ Region::Region(TranslationManager& mgr, Address phys_base_addr)
 	  max_generation(0),
 	  status(NotInTranslation),
 	  invalid_(false),
-	  txln(NULL)
+	  txln(NULL),
+	  max_block_interp_count_(0)
 {
 
 }
@@ -89,10 +90,16 @@ void Region::TraceBlock(archsim::core::thread::ThreadInstance *thread, Address v
 		return;
 
 	virtual_images.insert(virt_addr.PageBase());
-	block_interp_count[virt_addr.PageOffset()]++;
+
+	auto &block = GetBlock(virt_addr, thread->GetModeID());
+	block.IncrementInterpCount();
+	if(block.GetInterpCount() > max_block_interp_count_) {
+		max_block_interp_count_ = block.GetInterpCount();
+	}
+
 	total_interp_count++;
 
-	mgr.TraceBlock(thread, GetBlock(virt_addr, thread->GetModeID()));
+	mgr.TraceBlock(thread, block);
 }
 
 void Region::Invalidate()
