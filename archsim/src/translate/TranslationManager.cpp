@@ -135,7 +135,9 @@ void TranslationManager::Destroy()
 Region& TranslationManager::GetRegion(Address phys_addr)
 {
 	GetCodeRegions().MarkRegionAsCode(PhysicalAddress(phys_addr.GetPageBase()));
-	return regions.Get(*this, phys_addr.PageBase());
+	auto &region = regions.Get(*this, phys_addr.PageBase());
+	touched_regions_.insert(&region);
+	return region;
 }
 
 bool TranslationManager::TryGetRegion(Address phys_addr, profile::Region*& region)
@@ -159,44 +161,60 @@ void TranslationManager::TraceBlock(archsim::core::thread::ThreadInstance *threa
 	prev_block[mode] = &block;
 }
 
+bool archsim::translate::TranslationManager::ProfileRegion(archsim::core::thread::ThreadInstance* thread, profile::Region* region)
+{
+	if(dirty_code_pages.count(region->GetPhysicalBaseAddress().Get())) {
+		return false;
+	}
+
+	if (region->IsHot(curr_hotspot_threshold)) {
+		region_txln_count[region->GetPhysicalBaseAddress().Get()]++;
+
+		uint32_t weight = (region->TotalBlockHeat()) / region_txln_count[region->GetPhysicalBaseAddress().Get()];
+
+		region->SetStatus(Region::InTranslation);
+
+		thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationPhysical, (void*)(uint64_t)region->GetPhysicalBaseAddress().Get());
+		for(auto virt_base : region->virtual_images) {
+			thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationVirtual, (void*)virt_base.Get());
+		}
+
+#ifdef PROTECT_CODE_REGIONS
+		host_addr_t addr;
+		bool b = cpu.GetEmulationModel().GetMemoryModel().LockRegion(region->GetPhysicalBaseAddress(), 4096, addr);
+		mprotect(addr, 4096, PROT_READ);
+#endif
+
+		assert(region->IsValid());
+
+		if (!TranslateRegion(thread, *region, weight)) {
+			region->SetStatus(Region::NotInTranslation);
+			LC_WARNING(LogTranslate) << "Region translation failed for region " << *region;
+		}
+
+		region->InvalidateHeat();
+
+		return true;
+	}
+
+	return false;
+}
+
 bool TranslationManager::Profile(archsim::core::thread::ThreadInstance *thread)
 {
 	LC_DEBUG3(LogProfile) << "Performing profile";
 	bool txltd_regions = false;
 
-	for (auto region : regions) {
-		if(dirty_code_pages.count(region->GetPhysicalBaseAddress().Get())) continue;
-
-		if (region->IsHot(curr_hotspot_threshold)) {
-			region_txln_count[region->GetPhysicalBaseAddress().Get()]++;
-
-			uint32_t weight = (region->TotalBlockHeat()) / region_txln_count[region->GetPhysicalBaseAddress().Get()];
-
-			region->SetStatus(Region::InTranslation);
-			txltd_regions = true;
-
-			thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationPhysical, (void*)(uint64_t)region->GetPhysicalBaseAddress().Get());
-			for(auto virt_base : region->virtual_images) {
-				thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationVirtual, (void*)virt_base.Get());
-			}
-
-#ifdef PROTECT_CODE_REGIONS
-			host_addr_t addr;
-			bool b = cpu.GetEmulationModel().GetMemoryModel().LockRegion(region->GetPhysicalBaseAddress(), 4096, addr);
-			mprotect(addr, 4096, PROT_READ);
-#endif
-
-			assert(region->IsValid());
-
-			if (!TranslateRegion(thread, *region, weight)) {
-				region->SetStatus(Region::NotInTranslation);
-				LC_WARNING(LogTranslate) << "Region translation failed for region " << *region;
-			}
-
-			region->InvalidateHeat();
+	if(UpdateThreshold()) {
+		for(auto region : regions) {
+			txltd_regions |= ProfileRegion(thread, region);
+		}
+	} else {
+		for(auto region : touched_regions_) {
+			txltd_regions |= ProfileRegion(thread, region);
 		}
 	}
-
+	touched_regions_.clear();
 	dirty_code_pages.clear();
 
 	UpdateThreshold();
@@ -335,9 +353,9 @@ void TranslationManager::RunGC()
 	stale_txlns.clear();
 }
 
-void TranslationManager::UpdateThreshold()
+bool TranslationManager::UpdateThreshold()
 {
-
+	return false;
 }
 
 void TranslationManager::PrintStatistics(std::ostream& stream)

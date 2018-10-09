@@ -30,6 +30,24 @@ UseLogContext(LogWorkQueue);
 using namespace archsim::translate;
 using namespace archsim::translate::translate_llvm;
 
+static std::mutex perf_mutex_;
+static FILE *perf_map_file_;
+
+static void WritePerfMap(archsim::Address phys_addr, void *ptr, size_t size)
+{
+	perf_mutex_.lock();
+
+	if(perf_map_file_ == nullptr) {
+		std::string filename = "/tmp/perf-" + std::to_string(getpid()) + ".map";
+
+		perf_map_file_ = fopen(filename.c_str(), "w");
+	}
+
+
+	fprintf(perf_map_file_, "%lx %x JIT-%x\n", ptr, size, phys_addr.Get());
+
+	perf_mutex_.unlock();
+}
 
 static llvm::TargetMachine *GetNativeMachine()
 {
@@ -293,6 +311,10 @@ LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUni
 	if(archsim::options::Debug) {
 		std::ofstream str("code_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()));
 		str.write((char*)address.get(), memory_manager_->getAllocatedCodeSize((void*)address.get()));
+	}
+
+	if(archsim::options::EnablePerfMap) {
+		WritePerfMap(unit.GetRegion().GetPhysicalBaseAddress(), (void*)address.get(),  memory_manager_->getAllocatedCodeSize((void*)address.get()));
 	}
 
 	return txln;
