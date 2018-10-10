@@ -86,7 +86,7 @@ namespace archsim
 			memcpy(GetEntryPointer<T>(entryname), &t, sizeof(t));
 		}
 
-	private:
+
 		template<typename T> T* GetEntryPointer(const std::string &entryname)
 		{
 			return (T*)(((char*)GetData()) + descriptor_.GetBlockOffset(entryname));
@@ -96,6 +96,7 @@ namespace archsim
 			return (T*)(((char*)GetData()) + descriptor_.GetBlockOffset(entryname));
 		}
 
+	private:
 		StateBlockDescriptor descriptor_;
 		std::vector<unsigned char> data_;
 	};

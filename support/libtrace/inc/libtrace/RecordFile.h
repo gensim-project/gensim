@@ -22,17 +22,20 @@ namespace libtrace
 			uint64_t size = ftell(f);
 			_count = size / sizeof(Record);
 		}
+		virtual ~RecordFile() {}
 
 		RecordIterator begin();
 		RecordIterator end();
 
-		Record Get(size_t i)
+		bool Get(size_t i, Record &r) override
 		{
-			if(i >= _count) assert(false);
+			if(i >= _count) return false;
+
 			if(!_buffer || _buffer_page != BufferPage(i)) loadBuffer(i);
-			return _buffer[BufferOffset(i)];
+			r = _buffer[BufferOffset(i)];
+			return true;
 		}
-		uint64_t Size()
+		uint64_t Size() override
 		{
 			return _count;
 		}

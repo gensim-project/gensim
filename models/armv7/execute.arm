@@ -1882,9 +1882,9 @@ execute(mcr)
 	uint32 val = read_register_bank(RB, inst.rd);
 	if(inst.cp_num == 0xf) {
 		if(mcr_write_special(inst.crn, inst.crm, inst.funcc2, inst.funcc3, val)) {}
-		else write_coproc_reg(inst.cp_num, inst.funcc2, inst.funcc3, inst.crn, inst.crm, val);
+		else write_coproc_reg_inst(inst.cp_num, inst, val);
 	} else {
-		write_coproc_reg(inst.cp_num, inst.funcc2, inst.funcc3, inst.crn, inst.crm, val);
+		write_coproc_reg_inst(inst.cp_num, inst, val);
 	}
 }
 
@@ -3674,12 +3674,12 @@ internal helper void return_from_exception() noinline
 	return;
 }
 
-internal helper uint8 instruction_is_predicated(Instruction inst)
+internal helper uint8 instruction_is_predicated(struct Instruction &inst)
 {
 	return (inst.ir & 0xf0000000) < 0xe0000000;
 }
 
-internal helper uint8 instruction_predicate(Instruction inst)
+internal helper uint8 instruction_predicate(struct Instruction &inst)
 {
 	uint8 cond = inst.cond >> 1;
 	uint8 invert = inst.cond & 1;
@@ -3728,6 +3728,12 @@ internal helper uint8 instruction_predicate(Instruction inst)
 	return result;
 }
 
+
+helper void write_coproc_reg_inst(uint32 cp_num, struct Instruction &inst, uint32 data)
+{
+	write_coproc_reg(cp_num, inst.funcc2, inst.funcc3, inst.crn, inst.crm, data);
+	return;
+}
 
 helper void write_coproc_reg(uint32 cp_num, uint32 op1, uint32 op2, uint32 crn, uint32 crm, uint32 data)
 {	

@@ -21,7 +21,7 @@ SSAValue::SSAValue(SSAContext& context, SSAValueNamespace &ns) : _context(contex
 SSAValue::~SSAValue()
 {
 	if (!IsDisposed()) {
-		assert(false && "Object must be disposed before it is deleted!");
+		GASSERT(false && "Object must be disposed before it is deleted!");
 	}
 
 	for (auto md : _metadata) {

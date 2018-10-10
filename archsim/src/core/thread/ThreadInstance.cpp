@@ -8,6 +8,7 @@
 #include "system.h"
 
 #include <setjmp.h>
+#include <fenv.h>
 
 // These are deprecated and should be removed soon
 DeclareLogContext(LogCPU, "CPU");
@@ -19,8 +20,25 @@ using namespace archsim::core::thread;
 
 void FPState::Apply()
 {
-	// TODO: properly apply the floating point state represented by this FPState object.
-	UNIMPLEMENTED;
+	int target_rounding_mode = 0;
+	switch(rounding_mode_) {
+		case RoundingMode::RoundDownward:
+			target_rounding_mode = FE_DOWNWARD;
+			break;
+		case RoundingMode::RoundToNearest:
+			target_rounding_mode = FE_TONEAREST;
+			break;
+		case RoundingMode::RoundTowardZero:
+			target_rounding_mode = FE_TOWARDZERO;
+			break;
+		case RoundingMode::RoundUpward:
+			target_rounding_mode = FE_UPWARD;
+			break;
+		default:
+			UNIMPLEMENTED;
+	}
+
+	fesetround(target_rounding_mode);
 }
 
 
@@ -58,6 +76,10 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 	// Set up Ring ID
 	ring_offset_ = state_block_.AddBlock("RingID", sizeof(uint32_t));
 	state_block_.SetEntry<uint32_t>("RingID", 0);
+
+	// Get a pointer to the PC
+	pc_ptr_ = GetRegisterFileInterface().GetTaggedSlotPointer<void*>("PC");
+	pc_is_64bit_ = GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC").GetEntrySize() == 8;
 
 	message_waiting_ = false;
 	trace_source_ = nullptr;

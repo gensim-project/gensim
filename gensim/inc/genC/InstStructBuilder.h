@@ -11,6 +11,8 @@
 #define INSTSTRUCTBUILDER_H
 
 #include "ir/IRType.h"
+#include "isa/StructDescription.h"
+#include "genC/ssa/SSATypeManager.h"
 
 namespace gensim
 {
@@ -20,10 +22,19 @@ namespace gensim
 	}
 	namespace genc
 	{
+		class StructBuilder
+		{
+		public:
+			IRType BuildStruct(const gensim::isa::ISADescription *isa, const gensim::isa::StructDescription *struct_desc, ssa::SSATypeManager &ctx) const;
+
+		private:
+			IRType GetGenCType(const gensim::isa::ISADescription *isa, const std::string &tname, ssa::SSATypeManager &ctx) const;
+		};
+
 		class InstStructBuilder
 		{
 		public:
-			IRType BuildType(const gensim::isa::ISADescription *isa) const;
+			IRType BuildType(const gensim::isa::ISADescription *isa, ssa::SSATypeManager &ctx) const;
 		};
 	}
 }

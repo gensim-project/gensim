@@ -50,7 +50,7 @@ class UnreachableBlockEliminationPass : public SSAPass
 		// Mark blocks which have statements which are operands of phi nodes as
 		// reachability sources. This stops us from deleting blocks which have
 		// indirect references in the form of phi nodes.
-		for(auto block : action.Blocks) {
+		for(auto block : action.GetBlocks()) {
 			for(auto stmt : block->GetStatements()) {
 				if(SSAPhiStatement *phi = dynamic_cast<SSAPhiStatement*>(stmt)) {
 					for(auto op : phi->Get()) {
@@ -67,7 +67,7 @@ class UnreachableBlockEliminationPass : public SSAPass
 		// invert reachability set
 		std::set<SSABlock *> all_blocks;
 		std::set<SSABlock *> unreachable_blocks;
-		all_blocks.insert(action.Blocks.begin(), action.Blocks.end());
+		all_blocks.insert(action.GetBlocks().begin(), action.GetBlocks().end());
 		std::set_difference(all_blocks.begin(), all_blocks.end(), reachable_blocks.begin(), reachable_blocks.end(), std::inserter(unreachable_blocks, unreachable_blocks.begin()));
 		return unreachable_blocks;
 	}
