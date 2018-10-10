@@ -12,9 +12,11 @@ bool BlockJITINCPCLowering::Lower(const captive::shared::IRInstruction*& insn)
 
 	auto &PC = GetContext().GetArchDescriptor().GetRegisterFileDescriptor().GetTaggedEntry("PC");
 
+	auto inc_amount = GetBuilder().CreateZExtOrTrunc(GetValueFor(amount), GetContext().GetLLVMType(PC.GetEntrySize()));
+
 	auto pc_ptr = GetContext().GetRegisterPointer(PC, 0);
 	llvm::Value* pc_value = GetBuilder().CreateLoad(pc_ptr);
-	pc_value = GetBuilder().CreateAdd(pc_value, GetValueFor(amount));
+	pc_value = GetBuilder().CreateAdd(pc_value, inc_amount);
 	GetBuilder().CreateStore(pc_value, pc_ptr);
 
 	insn++;

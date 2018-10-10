@@ -172,15 +172,15 @@ namespace gensim
 			if (Properties.find(key) != Properties.end()) return Properties.at(key);
 
 			std::string component = name;
-			if (Options[component].find(key) != Options[component].end()) return Options[component][key]->DefaultValue;
+			auto &options = Options[component];
+			if (options.count(key)) return options.at(key)->DefaultValue;
 
 			while (Inheritance.find(component) != Inheritance.end()) {
 				component = Inheritance[component];
 				if (Options[component].find(key) != Options[component].end()) return Options[component][key]->DefaultValue;
 			}
 
-			fprintf(stderr, "Undefined property: %s\n", key.c_str());
-			abort();
+			throw std::logic_error("Undefined Property: " + key);
 		}
 
 		bool GenerationComponent::HasProperty(const std::string key) const
@@ -188,7 +188,10 @@ namespace gensim
 			if (Properties.find(key) != Properties.end()) return true;
 
 			std::string component = name;
-			if (Options[component].find(key) != Options[component].end()) return true;
+			auto &options = Options[component];
+			if (options.count(key)) {
+				return true;
+			}
 
 			while (Inheritance.find(component) != Inheritance.end()) {
 				component = Inheritance[component];

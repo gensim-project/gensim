@@ -29,6 +29,7 @@ namespace gensim
 				Type_Struct,
 				Type_Vector
 			};
+			static std::string GetValueTypeName(ValueType type);
 
 			IRConstant();
 
@@ -108,10 +109,20 @@ namespace gensim
 				GASSERT(Type() == Type_Float_Double);
 				return double_;
 			}
+			uint64_t DblBits() const
+			{
+				GASSERT(Type() == Type_Float_Double);
+				return *(uint64_t*)&double_;
+			}
 			float Flt() const
 			{
 				GASSERT(Type() == Type_Float_Single);
 				return float_;
+			}
+			uint32_t FltBits() const
+			{
+				GASSERT(Type() == Type_Float_Single);
+				return *(uint32_t*)&float_;
 			}
 			uint64_t POD() const
 			{

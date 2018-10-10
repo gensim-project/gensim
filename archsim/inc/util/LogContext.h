@@ -235,9 +235,9 @@ namespace archsim
 #define LC_DEBUG4(ContextID)	LC_LOG(ContextID, archsim::util::LogEvent::LL_DEBUG4)
 #else
 #define LC_DEBUG1(ContextID)	if (1); else LC_LOG(ContextID, archsim::util::LogEvent::LL_DEBUG1)
-#define LC_DEBUG2(ContextID)	if (1); else LC_LOG(ContextID, archsim::util::LogEvent::LL_DEBUG1)
-#define LC_DEBUG3(ContextID)	if (1); else LC_LOG(ContextID, archsim::util::LogEvent::LL_DEBUG1)
-#define LC_DEBUG4(ContextID)	if (1); else LC_LOG(ContextID, archsim::util::LogEvent::LL_DEBUG1)
+#define LC_DEBUG2(ContextID)	if (1); else LC_LOG(ContextID, archsim::util::LogEvent::LL_DEBUG2)
+#define LC_DEBUG3(ContextID)	if (1); else LC_LOG(ContextID, archsim::util::LogEvent::LL_DEBUG3)
+#define LC_DEBUG4(ContextID)	if (1); else LC_LOG(ContextID, archsim::util::LogEvent::LL_DEBUG4)
 #endif
 
 #endif /* LOGCONTEXT_H_ */

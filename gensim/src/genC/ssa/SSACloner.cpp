@@ -142,7 +142,7 @@ public:
 	}
 	void VisitReadStructMemberStatement(SSAReadStructMemberStatement& stmt) override
 	{
-		auto newstmt = new SSAReadStructMemberStatement(_block, _clone_context.get(stmt.Target()), stmt.MemberName, stmt.Index);
+		auto newstmt = new SSAReadStructMemberStatement(_block, _clone_context.get(stmt.Target()), stmt.MemberNames);
 		_clone_context.add(&stmt, newstmt);
 	}
 
@@ -310,12 +310,12 @@ SSAFormAction* SSACloner::Clone(const SSAFormAction* source)
 	SSACloneContext ctx (new_action);
 	SSAStatementCloner cloner (new_action, ctx);
 
-	for(auto i : source->Blocks) {
+	for(auto i : source->GetBlocks()) {
 		cloner.MapBlock(i);
 	}
 	new_action->EntryBlock = cloner.MapBlock(source->EntryBlock);
 
-	for(auto i : source->Blocks) {
+	for(auto i : source->GetBlocks()) {
 		cloner.SetBlock(cloner.MapBlock(i));
 		for(auto j : i->GetStatements()) {
 			j->Accept(cloner);

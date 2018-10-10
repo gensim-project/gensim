@@ -145,7 +145,7 @@ public:
 	bool Run(SSAFormAction& action) const override
 	{
 		bool change_made = false;
-		for(auto i : action.Blocks) {
+		for(auto i : action.GetBlocks()) {
 			if (
 			    DoLoadElimination(i)
 			    ||

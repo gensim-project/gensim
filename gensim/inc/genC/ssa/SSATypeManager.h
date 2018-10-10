@@ -25,6 +25,7 @@ namespace gensim
 				const SSAType& GetVectorType(const SSAType& underlying_type, uint8_t width);
 
 				const SSAType &GetStructType(const std::string &name);
+				bool HasStructType(const std::string &name) const;
 				void InsertStructType(const std::string &name, const SSAType &struct_type);
 
 				const SSAType& GetUInt8()
