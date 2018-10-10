@@ -187,7 +187,9 @@ std::pair<llvm::Module *, llvm::Function *> LLVMWorkUnitTranslator::TranslateWor
 	}
 
 	if(archsim::options::Debug) {
-		std::ofstream str("fn_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()));
+		std::stringstream filename_str;
+		filename_str << "fn_" << std::hex << unit.GetRegion().GetPhysicalBaseAddress();
+		std::ofstream str(filename_str.str().c_str());
 		llvm::raw_os_ostream llvm_str (str);
 		module->print(llvm_str, nullptr);
 	}
@@ -196,7 +198,9 @@ std::pair<llvm::Module *, llvm::Function *> LLVMWorkUnitTranslator::TranslateWor
 	opt.Optimise(module, target_machine_->createDataLayout());
 
 	if(archsim::options::Debug) {
-		std::ofstream str("fn_opt_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()));
+		std::stringstream filename_str;
+		filename_str << "fn_opt_" << std::hex << unit.GetRegion().GetPhysicalBaseAddress();
+		std::ofstream str(filename_str.str().c_str());
 		llvm::raw_os_ostream llvm_str (str);
 		module->print(llvm_str, nullptr);
 	}

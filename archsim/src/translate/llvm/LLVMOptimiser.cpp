@@ -574,9 +574,6 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 	pm.add(llvm::createExternalAAWrapperPass([&](llvm::Pass &pass, llvm::Function &function, llvm::AAResults &results) {
 		results.addAAResult(*my_aa_);
 	}));
-// 	pm.add(new archsim::translate::translate_llvm::LLVMRegisterOptimisationPass());
-// 	pm.add(llvm::createRegionInfoPass());
-// 	pm.add(llvm::createAAEvalPass());
 
 	pmp.populateModulePassManager(pm);
 

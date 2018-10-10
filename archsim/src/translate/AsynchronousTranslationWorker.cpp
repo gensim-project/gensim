@@ -321,7 +321,9 @@ LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUni
 	}
 
 	if(archsim::options::Debug) {
-		std::ofstream str("code_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()));
+		std::stringstream filename_str;
+		filename_str << "code_" << std::hex << unit.GetRegion().GetPhysicalBaseAddress();
+		std::ofstream str(filename_str.str().c_str());
 		str.write((char*)address.get(), memory_manager_->getAllocatedCodeSize((void*)address.get()));
 	}
 
