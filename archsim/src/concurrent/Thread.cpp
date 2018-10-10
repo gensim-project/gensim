@@ -104,11 +104,13 @@ static void* thread_entry_point(void* arg)
 	// Retrieve pointer to Thread instance
 	//
 	Thread* thread = reinterpret_cast<Thread*> (arg);
-	std::lock_guard<std::mutex> l(thread->get_thread_handle_data()->thread_mutex_);
-	thread->get_thread_handle_data()->thread_ = pthread_self();
-	thread->get_thread_handle_data()->is_valid_ = true;
+    {
+        std::lock_guard<std::mutex> l(thread->get_thread_handle_data()->thread_mutex_);
+	    thread->get_thread_handle_data()->thread_ = pthread_self();
+	    thread->get_thread_handle_data()->is_valid_ = true;
 
-	assert(thread->is_valid() && "Thread is invalid!");
+	    assert(thread->is_valid() && "Thread is invalid!");
+    }
 
 	// Execute run method on Thread instance
 	//
