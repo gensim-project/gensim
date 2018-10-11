@@ -30,6 +30,16 @@
 
 #include "termios.h"
 
+template<typename tcflag_type> struct ac_kernel_termios {
+	tcflag_type c_iflag;
+	tcflag_type c_oflag;
+	tcflag_type c_cflag;
+	tcflag_type c_lflag;
+
+	cc_t c_line;
+	cc_t c_cc[19]; // why 19?
+};
+
 UseLogContext(LogSyscalls);
 
 using archsim::Address;
@@ -429,14 +439,23 @@ static unsigned int sys_ioctl(archsim::core::thread::ThreadInstance* cpu, unsign
 
 	switch (request) {
 		case 0x5401: {
-			struct termios host;
-			unsigned int rc = ioctl(fd, request, &host);
+			struct ac_kernel_termios<unsigned int> host_termios;
+
+			unsigned int rc = ioctl(fd, request, &host_termios);
+
+			struct ac_kernel_termios<unsigned int> guest_termios;
+			memcpy(guest_termios.c_cc, host_termios.c_cc, sizeof(guest_termios.c_cc));
+			guest_termios.c_line = host_termios.c_line;
+			guest_termios.c_cflag = host_termios.c_cflag;
+			guest_termios.c_iflag = host_termios.c_iflag;
+			guest_termios.c_lflag = host_termios.c_lflag;
+			guest_termios.c_oflag = host_termios.c_oflag;
 
 			if (rc) {
 				return -errno;
 			}
 
-			interface.Write(Address(a0), (uint8_t *)&host, sizeof(host));
+			interface.Write(Address(a0), (uint8_t *)&guest_termios, sizeof(guest_termios));
 			return 0;
 		}
 
