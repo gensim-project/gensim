@@ -23,7 +23,7 @@ namespace archsim
 				static char ID;
 
 			private:
-				bool runOnRegion(const llvm::Region *region);
+				bool runOnRegion(llvm::Function &f, const llvm::Region *region);
 			};
 
 
