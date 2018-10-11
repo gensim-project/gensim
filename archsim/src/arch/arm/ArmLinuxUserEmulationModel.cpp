@@ -210,7 +210,7 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsi
 	} else if (category == 11) {
 		LC_ERROR(LogEmulationModelArmLinux) << "Undefined Instruction Exception @ " << std::hex << thread->GetPC();
 		GetSystem().exit_code = 1;
-		exit(1);
+		thread->SendMessage(archsim::core::thread::ThreadMessage::Halt);
 		return AbortSimulation;
 	} else {
 		LC_ERROR(LogEmulationModelArmLinux) << "Unsupported Exception " << category << ":" << data;
