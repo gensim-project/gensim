@@ -577,6 +577,8 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 
 	pmp.populateModulePassManager(pm);
 
+	pm.add(new LLVMRegisterOptimisationPass());
+
 	isInitialised = true;
 
 	return true;
