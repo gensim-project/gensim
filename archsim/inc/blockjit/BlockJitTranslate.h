@@ -46,7 +46,7 @@ namespace gensim
 {
 	class BaseDecode;
 	class BlockJitProcessor;
-	class BaseJumpInfo;
+	class BaseJumpInfoProvider;
 
 	namespace blockjit
 	{
@@ -77,7 +77,7 @@ namespace gensim
 			bool build_block(archsim::core::thread::ThreadInstance *cpu, archsim::Address block_address, captive::shared::IRBuilder &builder);
 			virtual bool translate_instruction(const BaseDecode* decode_obj, captive::shared::IRBuilder& builder, bool trace) = 0;
 
-			bool emit_instruction(archsim::core::thread::ThreadInstance *cpu, archsim::Address pc, gensim::BaseDecode *insn, captive::shared::IRBuilder &builder);
+			bool emit_instruction(archsim::core::thread::ThreadInstance *cpu, archsim::Address pc, gensim::BaseDecode *&insn, captive::shared::IRBuilder &builder);
 			bool emit_instruction_decoded(archsim::core::thread::ThreadInstance *cpu, archsim::Address pc, const gensim::BaseDecode *insn, captive::shared::IRBuilder &builder);
 
 			void SetDecodeContext(gensim::DecodeContext *dec)
@@ -101,7 +101,7 @@ namespace gensim
 
 			bool _supportChaining;
 			gensim::BaseDecode *_decode;
-			gensim::BaseJumpInfo *_jumpinfo;
+			gensim::BaseJumpInfoProvider *_jumpinfo;
 
 			archsim::translate::TranslationManager *_txln_mgr;
 			bool _supportProfiling;

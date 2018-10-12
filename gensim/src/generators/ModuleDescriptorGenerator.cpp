@@ -41,6 +41,9 @@ bool ModuleDescriptorGenerator::Generate() const
 			case ModuleEntryType::Interpreter:
 				stream << "archsim::module::ModuleInterpreterEntry(\"" << entry.GetEntryName() << "\", ARCHSIM_INTERPRETERFACTORY(" << entry.GetClassName() << "));";
 				break;
+			case ModuleEntryType::LLVMTranslator:
+				stream << "archsim::module::ModuleLLVMTranslatorEntry(\"" << entry.GetEntryName() << "\", ARCHSIM_LLVMTRANSLATORFACTORY(" << entry.GetClassName() << "));";
+				break;
 			default:
 				UNIMPLEMENTED;
 		}

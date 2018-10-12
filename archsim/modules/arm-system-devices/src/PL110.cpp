@@ -156,7 +156,7 @@ bool PL110::Write(uint32_t offset, uint8_t size, uint32_t data)
 			break;
 		case 0x010: //LCDUPBASE
 			upper_fbbase = data;
-			if(GetScreen()) GetScreen()->SetFramebufferPointer(upper_fbbase);
+			if(GetScreen()) GetScreen()->SetFramebufferPointer(Address(upper_fbbase));
 			break;
 		case 0x014: //LCDLPBASE
 			lower_fbbase = data;
@@ -203,7 +203,7 @@ void PL110::update_irq()
 void PL110::update_control()
 {
 	if((control & 0x1) && (control & (1 << 11))) enable_screen();
-	GetScreen()->SetFramebufferPointer(upper_fbbase);
+	GetScreen()->SetFramebufferPointer(Address(upper_fbbase));
 }
 
 void PL110::update_palette()

@@ -1,52 +1,39 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
-#include "blockjit/block-compiler/transforms/Transform.h"
 #include "core/execution/BlockLLVMExecutionEngine.h"
-#include "translate/adapt/BlockJITToLLVM.h"
+#include "core/execution/BlockToLLVMExecutionEngine.h"
+#include "core/execution/ExecutionEngineFactory.h"
+#include "core/thread/ThreadInstance.h"
 #include "core/MemoryInterface.h"
 #include "system.h"
 #include "translate/jit_funs.h"
-#include "core/execution/ExecutionEngineFactory.h"
+#include "gensim/gensim_processor_api.h"
+#include "util/LogContext.h"
+#include "gensim/gensim_translate.h"
+#include "translate/llvm/LLVMTranslationContext.h"
+#include "translate/llvm/LLVMBlockTranslator.h"
+#include "translate/llvm/LLVMOptimiser.h"
 
-#include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/IR/PassManager.h>
 #include <llvm/Support/TargetSelect.h>
-#include <llvm/ExecutionEngine/SectionMemoryManager.h>
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/JITSymbol.h>
+#include <llvm/ExecutionEngine/RTDyldMemoryManager.h>
+#include <llvm/ExecutionEngine/SectionMemoryManager.h>
+#include <llvm/ExecutionEngine/Orc/CompileUtils.h>
+#include <llvm/ExecutionEngine/Orc/IRCompileLayer.h>
+#include <llvm/ExecutionEngine/Orc/LambdaResolver.h>
+#include <llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h>
+#include <llvm/Support/raw_os_ostream.h>
 
-using namespace archsim;
 using namespace archsim::core::execution;
 
-BlockJITLLVMMemoryManager::BlockJITLLVMMemoryManager(wulib::MemAllocator& allocator) : allocator_(allocator)
-{
-
-}
-
-uint8_t* BlockJITLLVMMemoryManager::allocateCodeSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, llvm::StringRef SectionName)
-{
-	auto section = (uint8_t*)allocator_.Allocate(Size);
-
-	outstanding_code_sections_.push_back({section, Size});
-	section_sizes_[section] = Size;
-
-	return section;
-}
-
-uint8_t* BlockJITLLVMMemoryManager::allocateDataSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, llvm::StringRef SectionName, bool IsReadOnly)
-{
-	return (uint8_t*)allocator_.Allocate(Size);
-}
-
-bool BlockJITLLVMMemoryManager::finalizeMemory(std::string* ErrMsg)
-{
-	for(auto i : outstanding_code_sections_) {
-		__builtin___clear_cache(i.first, i.first + i.second);
-	}
-	outstanding_code_sections_.clear();
-
-	return true;
-}
-
-
+UseLogContext(LogBlockJitCpu);
 
 static llvm::TargetMachine *GetNativeMachine()
 {
@@ -58,105 +45,111 @@ static llvm::TargetMachine *GetNativeMachine()
 		llvm::InitializeNativeTargetAsmParser();
 		machine = llvm::EngineBuilder().selectTarget();
 		machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
-		machine->setFastISel(false);
+		machine->setFastISel(true);
 		machine->setO0WantsFastISel(false);
 	}
 	return machine;
 }
 
-BlockLLVMExecutionEngine::BlockLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) :
-	BlockJITExecutionEngine(translator),
+BlockLLVMExecutionEngine::BlockLLVMExecutionEngine(gensim::BaseLLVMTranslate *translator) :
+	BasicJITExecutionEngine(0),
 	target_machine_(GetNativeMachine()),
-	memory_manager_(std::make_shared<BlockJITLLVMMemoryManager>(mem_allocator_)),
+	memory_manager_(std::make_shared<BlockJITLLVMMemoryManager>(GetMemAllocator())),
 	linker_([&]()
 {
 	return memory_manager_;
 }),
 compiler_(linker_, llvm::orc::SimpleCompiler(*target_machine_)),
-adaptor_(llvm_ctx_)
+translator_(translator)
 {
 
 }
 
-bool BlockLLVMExecutionEngine::buildBlockJITIR(thread::ThreadInstance* thread, archsim::Address block_pc, captive::arch::jit::TranslationContext& ctx, archsim::blockjit::BlockTranslation &txln)
+
+ExecutionEngineThreadContext* BlockLLVMExecutionEngine::GetNewContext(thread::ThreadInstance* thread)
 {
-	auto translator = GetTranslator();
-	translator->InitialiseFeatures(thread);
-	translator->InitialiseIsaMode(thread);
-	auto decode_ctx = thread->GetEmulationModel().GetNewDecodeContext(*thread);
-	translator->SetDecodeContext(decode_ctx);
-
-	captive::shared::IRBuilder builder;
-	builder.SetContext(&ctx);
-	builder.SetBlock(ctx.alloc_block());
-
-	if(!translator->build_block(thread, block_pc, builder)) {
-		delete decode_ctx;
-		return false;
-	}
-
-	translator->AttachFeaturesTo(txln);
-
-	// optimise ir
-	captive::arch::jit::transforms::SortIRTransform().Apply(ctx);
-	captive::arch::jit::transforms::ReorderBlocksTransform().Apply(ctx);
-	captive::arch::jit::transforms::ThreadJumpsTransform().Apply(ctx);
-	captive::arch::jit::transforms::DeadBlockEliminationTransform().Apply(ctx);
-	captive::arch::jit::transforms::MergeBlocksTransform().Apply(ctx);
-	captive::arch::jit::transforms::ConstantPropTransform().Apply(ctx);
-	captive::arch::jit::transforms::SortIRTransform().Apply(ctx);
-	captive::arch::jit::transforms::RegValueReuseTransform().Apply(ctx);
-	captive::arch::jit::transforms::RegStoreEliminationTransform().Apply(ctx);
-	captive::arch::jit::transforms::SortIRTransform().Apply(ctx);
-
-	delete decode_ctx;
-
-	return true;
+	return new ExecutionEngineThreadContext(this, thread);
 }
 
+static unsigned __int128 uremi128(unsigned __int128 a, unsigned __int128 b)
+{
+	return a % b;
+}
+static unsigned __int128 udivi128(unsigned __int128 a, unsigned __int128 b)
+{
+	return a / b;
+}
+static __int128 remi128(__int128 a, __int128 b)
+{
+	return a % b;
+}
+static __int128 divi128(__int128 a, __int128 b)
+{
+	return a / b;
+}
+
+static bool shunt_builtin_f32_is_snan(archsim::core::thread::ThreadInstance* thread, float f)
+{
+	return thread->fn___builtin_f32_is_snan(f);
+}
+static bool shunt_builtin_f32_is_qnan(archsim::core::thread::ThreadInstance* thread, float f)
+{
+	return thread->fn___builtin_f32_is_qnan(f);
+}
+static bool shunt_builtin_f64_is_snan(archsim::core::thread::ThreadInstance* thread, double f)
+{
+	return thread->fn___builtin_f64_is_snan(f);
+}
+static bool shunt_builtin_f64_is_qnan(archsim::core::thread::ThreadInstance* thread, double f)
+{
+	return thread->fn___builtin_f64_is_qnan(f);
+}
 
 bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, archsim::Address block_pc, bool support_chaining, bool support_profiling)
 {
-	// Look up the block in the cache, just in case we already have it translated
+	checkCodeSize();
+
 	captive::shared::block_txln_fn fn;
-	if((fn = virt_block_cache_.Lookup(block_pc))) return true;
-
-	// we missed in the block cache, so fall back to the physical profile
-	Address physaddr (0);
-
-	// Translate WITH side effects. If a fault occurs, stop translating this block
-	TranslationResult fault = thread->GetFetchMI().PerformTranslation(block_pc, physaddr, false, true, true);
-
-	if(fault != TranslationResult::OK) {
-		thread->TakeMemoryException(thread->GetFetchMI(), block_pc);
-		return false;
-	}
-
-	archsim::blockjit::BlockTranslation txln = phys_block_profile_.Get(physaddr, thread->GetFeatures());
-	if(txln.IsValid(thread->GetFeatures())) {
-		virt_block_cache_.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
+	if(lookupBlock(thread, block_pc, fn)) {
 		return true;
 	}
 
+	// Translate WITH side effects. If a fault occurs, stop translating this block
+	Address physaddr (0);
+	archsim::TranslationResult fault = thread->GetFetchMI().PerformTranslation(block_pc, physaddr, false, true, true);
+
+	archsim::blockjit::BlockTranslation txln;
 	// we couldn't find the block in the physical profile, so create a new translation
 	thread->GetEmulationModel().GetSystem().GetCodeRegions().MarkRegionAsCode(PhysicalAddress(physaddr.PageBase().Get()));
 
 	std::unique_ptr<llvm::Module> module (new llvm::Module("mod_"+ std::to_string(block_pc.Get()), llvm_ctx_));
 	module->setDataLayout(target_machine_->createDataLayout());
 
-	captive::arch::jit::TranslationContext txln_ctx;
-	if(!buildBlockJITIR(thread, block_pc, txln_ctx, txln)) {
-		return false;
-	}
-
 	std::string fn_name = "fn_" + std::to_string(block_pc.Get());
-	auto function = adaptor_.AdaptIR(thread, module.get(), fn_name, txln_ctx);
+	auto function = translateToFunction(thread, physaddr, fn_name, module);
+
 	if(function == nullptr) {
 		return false;
 	}
 
+	if(archsim::options::Debug) {
+		std::ofstream str(fn_name + ".ll");
+		llvm::raw_os_ostream llvm_str(str);
+		module->print(llvm_str, nullptr);
+
+		llvm::legacy::FunctionPassManager fpm(module.get());
+		fpm.add(llvm::createVerifierPass(true));
+		fpm.doInitialization();
+		fpm.run(*function);
+
+	}
+
+	archsim::translate::translate_llvm::LLVMOptimiser opt;
+	opt.Optimise(module.get(), GetNativeMachine()->createDataLayout());
+
 	std::map<std::string, void *> jit_symbols;
 
+	jit_symbols["cpuTrap"] = (void*)cpuTrap;
 	jit_symbols["cpuTakeException"] = (void*)cpuTakeException;
 	jit_symbols["cpuReadDevice"] = (void*)devReadDevice;
 	jit_symbols["cpuWriteDevice"] = (void*)devWriteDevice;
@@ -171,9 +164,40 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	jit_symbols["blkRead8"] = (void*)blkRead8;
 	jit_symbols["blkRead16"] = (void*)blkRead16;
 	jit_symbols["blkRead32"] = (void*)blkRead32;
-	jit_symbols["blkWrite8"] = (void*)cpuWrite8;
-	jit_symbols["blkWrite16"] = (void*)cpuWrite16;
-	jit_symbols["blkWrite32"] = (void*)cpuWrite32;
+	jit_symbols["blkRead64"] = (void*)blkRead64;
+	jit_symbols["cpuWrite8"] = (void*)cpuWrite8;
+	jit_symbols["cpuWrite16"] = (void*)cpuWrite16;
+	jit_symbols["cpuWrite32"] = (void*)cpuWrite32;
+	jit_symbols["cpuWrite64"] = (void*)cpuWrite64;
+
+	jit_symbols["cpuTraceOnlyMemWrite8"] = (void*)cpuTraceOnlyMemWrite8;
+	jit_symbols["cpuTraceOnlyMemWrite16"] = (void*)cpuTraceOnlyMemWrite16;
+	jit_symbols["cpuTraceOnlyMemWrite32"] = (void*)cpuTraceOnlyMemWrite32;
+	jit_symbols["cpuTraceOnlyMemWrite64"] = (void*)cpuTraceOnlyMemWrite64;
+
+	jit_symbols["cpuTraceOnlyMemRead8"] = (void*)cpuTraceOnlyMemRead8;
+	jit_symbols["cpuTraceOnlyMemRead16"] = (void*)cpuTraceOnlyMemRead16;
+	jit_symbols["cpuTraceOnlyMemRead32"] = (void*)cpuTraceOnlyMemRead32;
+	jit_symbols["cpuTraceOnlyMemRead64"] = (void*)cpuTraceOnlyMemRead64;
+
+	jit_symbols["cpuTraceRegBankWrite"] = (void*)cpuTraceRegBankWrite;
+	jit_symbols["cpuTraceRegWrite"] = (void*)cpuTraceRegWrite;
+	jit_symbols["cpuTraceRegBankRead"] = (void*)cpuTraceRegBankRead;
+	jit_symbols["cpuTraceRegRead"] = (void*)cpuTraceRegRead;
+
+	jit_symbols["cpuTraceInstruction"] = (void*)cpuTraceInstruction;
+	jit_symbols["cpuTraceInsnEnd"] = (void*)cpuTraceInsnEnd;
+
+	jit_symbols["__umodti3"] = (void*)uremi128;
+	jit_symbols["__udivti3"] = (void*)udivi128;
+	jit_symbols["__modti3"] = (void*)remi128;
+	jit_symbols["__divti3"] = (void*)divi128;
+
+	// todo: change these to actual bitcode
+	jit_symbols["txln_shunt___builtin_f32_is_snan"] = (void*)shunt_builtin_f32_is_snan;
+	jit_symbols["txln_shunt___builtin_f32_is_qnan"] = (void*)shunt_builtin_f32_is_qnan;
+	jit_symbols["txln_shunt___builtin_f64_is_snan"] = (void*)shunt_builtin_f64_is_snan;
+	jit_symbols["txln_shunt___builtin_f64_is_qnan"] = (void*)shunt_builtin_f64_is_qnan;
 
 	auto resolver = llvm::orc::createLambdaResolver(
 	[&](const std::string &name) {
@@ -215,8 +239,7 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 			txln.Dump("llvm-bin-" + std::to_string(physaddr.Get()));
 		}
 
-		phys_block_profile_.Insert(physaddr, txln);
-		virt_block_cache_.Insert(block_pc, txln.GetFn(), txln.GetFeatures());
+		registerTranslation(physaddr, block_pc, txln);
 
 		return true;
 	} else {
@@ -226,18 +249,88 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 		return false;
 	}
 
-	return false;
 }
 
-ExecutionEngine *BlockLLVMExecutionEngine::Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix)
+llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thread::ThreadInstance* thread, Address phys_pc, const std::string fn_name, std::unique_ptr<llvm::Module>& llvm_module)
 {
-	std::string entry_name = cpu_prefix + "BlockJITTranslator";
+	llvm::Module *module = llvm_module.get();
+	llvm::Function *fn = (llvm::Function*)module->getOrInsertFunction(fn_name, getFunctionType());
+
+	auto &isa = thread->GetArch().GetISA(thread->GetModeID());
+	auto jumpinfo = isa.GetNewJumpInfo();
+	auto decode = isa.GetNewDecode();
+
+	auto entry_block = llvm::BasicBlock::Create(llvm_ctx_, "", fn);
+	llvm::IRBuilder<> builder (entry_block);
+
+	auto pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
+
+	// construct a translationblockunit
+	archsim::translate::TranslationBlockUnit tbu (thread->GetPC(), 0, 1);
+
+	Address insn_pc = thread->GetPC();
+	Address block_start = insn_pc;
+	while(true) {
+		auto decode = isa.GetNewDecode();
+		uint32_t result = isa.DecodeInstr(insn_pc, &thread->GetFetchMI(), *decode);
+
+		if(result) {
+			throw std::logic_error("Decode error");
+		}
+
+		tbu.AddInstruction(decode, insn_pc - tbu.GetOffset());
+
+		gensim::JumpInfo ji;
+		jumpinfo->GetJumpInfo(decode, insn_pc, ji);
+
+		if(ji.IsJump) {
+			break;
+		}
+
+		insn_pc += decode->Instr_Length;
+	}
+
+	// translate translationblockunit to llvm bitcode
+	archsim::translate::translate_llvm::LLVMTranslationContext ctx (module->getContext(), fn, thread);
+	archsim::translate::translate_llvm::LLVMBlockTranslator txltr(ctx, translator_, fn);
+
+	auto end_block = txltr.TranslateBlock(block_start, tbu, entry_block);
+	llvm::ReturnInst::Create(module->getContext(), llvm::ConstantInt::get(ctx.Types.i32, 0), end_block);
+
+	return fn;
+}
+
+llvm::FunctionType *BlockLLVMExecutionEngine::getFunctionType()
+{
+	auto i8ptrty = llvm::IntegerType::getInt8PtrTy(llvm_ctx_);
+
+	return llvm::FunctionType::get(llvm::IntegerType::getInt32Ty(llvm_ctx_), {i8ptrty, i8ptrty}, false);
+}
+//
+//class NullLLVMTranslator : public gensim::BaseLLVMTranslate
+//{
+//public:
+//	virtual ~NullLLVMTranslator()
+//	{
+//
+//	}
+//
+//	bool TranslateInstruction(archsim::core::thread::ThreadInstance* thread, gensim::BaseDecode* decode, archsim::Address phys_pc, llvm::Function* fn, void* irbuilder) override
+//	{
+//		UNIMPLEMENTED;
+//	}
+//};
+
+ExecutionEngine* BlockLLVMExecutionEngine::Factory(const archsim::module::ModuleInfo* module, const std::string& cpu_prefix)
+{
+	std::string entry_name = cpu_prefix + "LLVMTranslator";
 	if(!module->HasEntry(entry_name)) {
+		LC_ERROR(LogBlockJitCpu) << "Could not find LLVMTranslator in target module";
 		return nullptr;
 	}
 
-	auto translator_entry = module->GetEntry<archsim::module::ModuleBlockJITTranslatorEntry>(entry_name)->Get();
+	auto translator_entry = module->GetEntry<archsim::module::ModuleLLVMTranslatorEntry>(entry_name)->Get();
 	return new BlockLLVMExecutionEngine(translator_entry);
 }
 
-static archsim::core::execution::ExecutionEngineFactoryRegistration registration("LLVMBlockJIT", 90, archsim::core::execution::BlockLLVMExecutionEngine::Factory);
+static archsim::core::execution::ExecutionEngineFactoryRegistration registration("LLVMBlockJIT", 80, archsim::core::execution::BlockLLVMExecutionEngine::Factory);

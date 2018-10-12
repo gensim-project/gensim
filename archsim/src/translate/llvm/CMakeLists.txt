@@ -1,7 +1,10 @@
 archsim_add_sources(
+	LLVMGuestRegisterAccessEmitter.cpp
 	LLVMMemoryManager.cpp
 	LLVMOptimiser.cpp
 	LLVMTranslation.cpp
 	LLVMTranslationContext.cpp
-	LLVMTranslationEngine.cpp
+	LLVMRegisterOptimisationPass.cpp
+	LLVMWorkUnitTranslator.cpp
+	LLVMBlockTranslator.cpp
 )

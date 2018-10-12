@@ -33,7 +33,7 @@ namespace archsim
 					void SetKeyboard(generic::Keyboard& kbd) override;
 					void SetMouse(generic::Mouse& mouse) override;
 					bool Configure(uint32_t width, uint32_t height, VirtualScreenMode mode) override;
-					bool SetFramebufferPointer(uint32_t guest_addr) override;
+					bool SetFramebufferPointer(Address guest_addr) override;
 
 				private:
 					void *fb_ptr_;

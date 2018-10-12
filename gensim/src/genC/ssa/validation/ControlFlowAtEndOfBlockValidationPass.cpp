@@ -26,7 +26,7 @@ class ControlFlowAtEndOfBlockValidationPass : public SSAActionValidationPass
 		ReachabilityAnalysis ra;
 		auto reachable = ra.GetReachable(*action);
 
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			if(!reachable.count(block)) {
 				continue;
 			}

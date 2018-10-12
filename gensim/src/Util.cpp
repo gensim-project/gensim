@@ -8,6 +8,7 @@
 #include <antlr3.h>
 #include <string.h>
 
+#include "define.h"
 #include "Util.h"
 
 namespace gensim
@@ -80,6 +81,8 @@ namespace gensim
 					case EXPNODE_VAL:
 						str << node_val;
 						break;
+					default:
+						GASSERT(false);
 				}
 				if (subexprcount == 2)  // if we have left and right subexprs
 					str << subexprs[1]->ToString(this_str, fn_process_fn);
@@ -260,7 +263,7 @@ namespace gensim
 			return stream.str();
 		}
 
-		std::string Util::FindReplace(const std::string input, const std::string find, const std::string replace)
+		std::string Util::FindReplace(const std::string &input, const std::string &find, const std::string &replace)
 		{
 			size_t pos;
 			std::string in = std::string(input);
@@ -319,6 +322,7 @@ namespace gensim
 
 			bool in_string = false;
 			int in_parenths = false;
+			bool in_line_comment = false;
 			for (std::string::iterator i = str.begin(); i != str.end(); ++i) {
 				switch (*i) {
 					case '(':
@@ -332,6 +336,7 @@ namespace gensim
 					case '\n':
 						lines.push_back(line.str());
 						line.str("");
+						in_line_comment = false;
 						break;
 					case ';':
 						if (in_string || in_parenths)
@@ -344,7 +349,7 @@ namespace gensim
 						break;
 					case '{':
 					case '}':
-						if (in_string)
+						if (in_string || in_line_comment)
 							line << *i;
 						else {
 							lines.push_back(line.str());
@@ -369,7 +374,19 @@ namespace gensim
 							lines.push_back(line.str());
 							line.str("");
 							break;
+						} else {
+							line << *i;
+							break;
 						}
+					case '/':
+						if(*(i+1) == '/') {
+							line << "//";
+							i++;
+							in_line_comment = true;
+						} else {
+							line << *i;
+						}
+						break;
 					default:
 						line << *i;
 						break;

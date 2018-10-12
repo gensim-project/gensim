@@ -23,7 +23,7 @@ void SSAActionPrinter::Print(std::ostringstream& output_stream) const
 
 	output_stream << ") {" << std::endl;
 
-	for (const auto& block : ssa_form_action.Blocks) {
+	for (const auto& block : ssa_form_action.GetBlocks()) {
 		SSABlockPrinter block_printer(*block);
 		block_printer.Print(output_stream);
 	}
