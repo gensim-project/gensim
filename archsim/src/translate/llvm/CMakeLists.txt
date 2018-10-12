@@ -7,4 +7,5 @@ archsim_add_sources(
 	LLVMRegisterOptimisationPass.cpp
 	LLVMWorkUnitTranslator.cpp
 	LLVMBlockTranslator.cpp
+	LLVMCompiler.cpp
 )
