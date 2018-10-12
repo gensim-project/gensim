@@ -12,6 +12,7 @@
 
 #include "concurrent/Thread.h"
 #include "util/Counter.h"
+#include "translate/llvm/LLVMCompiler.h"
 #include "translate/llvm/LLVMOptimiser.h"
 #include "translate/llvm/LLVMTranslation.h"
 #include "translate/TranslationManager.h"
@@ -19,14 +20,6 @@
 #include "util/PagePool.h"
 #include "gensim/gensim_translate.h"
 
-#include <llvm/ExecutionEngine/ExecutionEngine.h>
-#include <llvm/ExecutionEngine/JITSymbol.h>
-#include <llvm/ExecutionEngine/RTDyldMemoryManager.h>
-#include <llvm/ExecutionEngine/SectionMemoryManager.h>
-#include <llvm/ExecutionEngine/Orc/CompileUtils.h>
-#include <llvm/ExecutionEngine/Orc/IRCompileLayer.h>
-#include <llvm/ExecutionEngine/Orc/LambdaResolver.h>
-#include <llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h>
 
 namespace llvm
 {
@@ -59,18 +52,10 @@ namespace archsim
 
 			gensim::BaseLLVMTranslate *translate_;
 
-			std::shared_ptr<archsim::translate::translate_llvm::LLVMMemoryManager> memory_manager_;
-			std::unique_ptr<llvm::TargetMachine> target_machine_;
-			llvm::orc::RTDyldObjectLinkingLayer linker_;
-			llvm::orc::IRCompileLayer<decltype(linker_), llvm::orc::SimpleCompiler> compiler_;
-
 			uint8_t id;
+			translate_llvm::LLVMCompiler compiler_;
 			AsynchronousTranslationManager& mgr;
 			volatile bool terminate;
-
-			translate_llvm::LLVMOptimiser *optimiser;
-
-			util::PagePool code_pool;
 
 			void Translate(::llvm::LLVMContext& llvm_ctx, TranslationWorkUnit& unit);
 			translate_llvm::LLVMTranslation *CompileModule(TranslationWorkUnit& unit, ::llvm::Module *module, llvm::Function *function);
