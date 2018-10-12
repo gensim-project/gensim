@@ -7,25 +7,47 @@
 #include "translate/llvm/LLVMTranslation.h"
 #include "translate/adapt/BlockJITToLLVM.h"
 #include "blockjit/BlockJitTranslate.h"
-
+#include "gensim/gensim_processor_api.h"
 
 #include "util/LogContext.h"
 #include "translate/profile/Block.h"
 
 #include "translate/Translation.h"
 #include "translate/jit_funs.h"
+#include "translate/llvm/LLVMMemoryManager.h"
+#include "translate/llvm/LLVMWorkUnitTranslator.h"
+
 
 #include <llvm/Support/TargetSelect.h>
-#include <llvm/IR/LLVMContext.h>
 
 #include <iostream>
 #include <iomanip>
+#include <set>
 
 UseLogContext(LogTranslate);
 UseLogContext(LogWorkQueue);
 
 using namespace archsim::translate;
 using namespace archsim::translate::translate_llvm;
+
+static std::mutex perf_mutex_;
+static FILE *perf_map_file_;
+
+static void WritePerfMap(archsim::Address phys_addr, void *ptr, size_t size)
+{
+	perf_mutex_.lock();
+
+	if(perf_map_file_ == nullptr) {
+		std::string filename = "/tmp/perf-" + std::to_string(getpid()) + ".map";
+
+		perf_map_file_ = fopen(filename.c_str(), "w");
+	}
+
+
+	fprintf(perf_map_file_, "%lx %x JIT-%x\n", ptr, size, phys_addr.Get());
+
+	perf_mutex_.unlock();
+}
 
 static llvm::TargetMachine *GetNativeMachine()
 {
@@ -39,7 +61,7 @@ static llvm::TargetMachine *GetNativeMachine()
 		llvm::InitializeNativeTargetAsmPrinter();
 		llvm::InitializeNativeTargetAsmParser();
 		machine = llvm::EngineBuilder().selectTarget();
-		machine->setOptLevel(llvm::CodeGenOpt::Default);
+		machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
 		machine->setFastISel(false);
 	}
 
@@ -47,15 +69,15 @@ static llvm::TargetMachine *GetNativeMachine()
 	return machine;
 }
 
-AsynchronousTranslationWorker::AsynchronousTranslationWorker(AsynchronousTranslationManager& mgr, uint8_t id, gensim::blockjit::BaseBlockJITTranslate *translate) :
+
+AsynchronousTranslationWorker::AsynchronousTranslationWorker(AsynchronousTranslationManager& mgr, uint8_t id, gensim::BaseLLVMTranslate *translate) :
 	Thread("Txln Worker"),
 	mgr(mgr),
 	terminate(false),
-	id(id),
-	optimiser(NULL),
-	translate_(translate),
 	target_machine_(GetNativeMachine()),
-	memory_manager_(new llvm::SectionMemoryManager()),
+	id(id),
+	translate_(translate),
+	memory_manager_(new archsim::translate::translate_llvm::LLVMMemoryManager(code_pool, code_pool)),
 	linker_([&]()
 {
 	return memory_manager_;
@@ -80,7 +102,7 @@ void AsynchronousTranslationWorker::run()
 		queue_lock.lock();
 
 		// Loop until work becomes available, or we're asked to terminate.
-		while (mgr.work_unit_queue.empty() && !terminate) {
+		while (mgr.work_unit_queue_.empty() && !terminate) {
 			// first do a bit of busy work
 			code_pool.GC();
 
@@ -101,13 +123,25 @@ void AsynchronousTranslationWorker::run()
 		// Skip over work units that are invalid.
 		do {
 			// Detect the case when we've cleared the work unit queue of valid translations.
-			if (mgr.work_unit_queue.empty()) {
+			if (mgr.work_unit_queue_.empty()) {
 				unit = NULL;
 				break;
 			}
 
-			unit = mgr.work_unit_queue.top();
-			mgr.work_unit_queue.pop();
+
+			auto best_it = mgr.work_unit_queue_.begin();
+			uint64_t max_heat = (*best_it)->GetWeight();
+			auto it = mgr.work_unit_queue_.begin();
+			while(it != mgr.work_unit_queue_.end()) {
+				auto this_heat = (*it)->GetWeight();
+				if(this_heat > max_heat) {
+					max_heat = this_heat;
+					best_it = it;
+				}
+				it++;
+			}
+			unit = *best_it;
+			mgr.work_unit_queue_.erase(best_it);
 
 			if (!unit->GetRegion().IsValid()) {
 				LC_DEBUG1(LogWorkQueue) << "[DEQUEUE] Skipping " << *unit;
@@ -127,7 +161,7 @@ void AsynchronousTranslationWorker::run()
 		if (terminate || !unit)
 			continue;
 
-		LC_DEBUG1(LogWorkQueue) << "[DEQUEUE] Dequeueing " << *unit << ", queue length " << mgr.work_unit_queue.size() << ", @ " << (uint32_t)id;
+		LC_DEBUG1(LogWorkQueue) << "[DEQUEUE] Dequeueing " << *unit << ", queue length " << mgr.work_unit_queue_.size() << ", @ " << (uint32_t)id;
 
 		// Perform the translation, and destroy the translation work unit.
 		::llvm::LLVMContext llvm_ctx;
@@ -154,71 +188,45 @@ void AsynchronousTranslationWorker::stop()
 	join();
 }
 
-static llvm::Function *BuildDispatchFunction(llvm::Module *module, const TranslationWorkUnit &unit, const std::map<uint32_t, llvm::Function*> &fns)
+static unsigned __int128 uremi128(unsigned __int128 a, unsigned __int128 b)
 {
-	auto voidTy = llvm::Type::getVoidTy(module->getContext());
-	auto i32Ty = llvm::Type::getInt32Ty(module->getContext());
-	auto i32PtrTy = llvm::Type::getInt32PtrTy(module->getContext());
-	auto i8PtrTy = llvm::Type::getInt8PtrTy(module->getContext());
-
-	// TODO: check this if on 64 bit
-	auto nativePtrTy = llvm::Type::getInt64Ty(module->getContext());
-
-	llvm::FunctionType *ftype = llvm::FunctionType::get(voidTy, {i8PtrTy, i8PtrTy}, false);
-	llvm::Function *fn = (llvm::Function*)module->getOrInsertFunction("region", ftype);
-
-	auto arg_iterator = fn->arg_begin();
-	auto arg_regptr = &*arg_iterator++;
-	auto arg_stateptr = &*arg_iterator++;
-
-	llvm::BasicBlock *entryblock = llvm::BasicBlock::Create(module->getContext(), "", fn);
-	llvm::BasicBlock *switch_block = llvm::BasicBlock::Create(fn->getContext(), "", fn);
-	llvm::BasicBlock *default_block = llvm::BasicBlock::Create(fn->getContext(), "", fn);
-	llvm::IRBuilder<> builder(entryblock);
-
-	// load PC
-	// get PC descriptor
-	const auto &pc_descriptor = unit.GetThread()->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
-	llvm::Value *pc_ptr = builder.CreatePtrToInt(arg_regptr, nativePtrTy);
-	pc_ptr = builder.CreateAdd(pc_ptr, llvm::ConstantInt::get(nativePtrTy, pc_descriptor.GetOffset(), false));
-	pc_ptr = builder.CreateIntToPtr(pc_ptr, i32PtrTy);
-	llvm::Value *pc = builder.CreateLoad(pc_ptr);
-
-	// check PC is on a virtual image
-	auto page_base = builder.CreateAnd(pc, ~archsim::RegionArch::PageMask);
-	llvm::Value *on_page = nullptr;
-	if(unit.potential_virtual_bases.size() == 1) {
-		on_page = builder.CreateICmpEQ(page_base, llvm::ConstantInt::get(i32Ty, *unit.potential_virtual_bases.begin()));
-	} else {
-		UNIMPLEMENTED;
-	}
-
-	builder.CreateCondBr(on_page, switch_block, default_block);
-	builder.SetInsertPoint(switch_block);
-
-	// mask page offset
-	auto page_offset = builder.CreateAnd(pc, archsim::RegionArch::PageMask);
-
-	llvm::ReturnInst::Create(fn->getContext(), default_block);
-
-	// switch statement
-	auto switch_statement = builder.CreateSwitch(page_offset, default_block, fns.size());
-	for(auto i : fns) {
-		llvm::BasicBlock *block = llvm::BasicBlock::Create(module->getContext(), "", fn);
-
-		llvm::CallInst::Create(fns.at(i.first), {arg_regptr, arg_stateptr}, "", block);
-		llvm::ReturnInst::Create(fn->getContext(), block);
-		switch_statement->addCase(llvm::ConstantInt::get(i32Ty, i.first), block);
-	}
-
-	return fn;
+	return a % b;
+}
+static unsigned __int128 udivi128(unsigned __int128 a, unsigned __int128 b)
+{
+	return a / b;
+}
+static __int128 remi128(__int128 a, __int128 b)
+{
+	return a % b;
+}
+static __int128 divi128(__int128 a, __int128 b)
+{
+	return a / b;
 }
 
+static bool shunt_builtin_f32_is_snan(archsim::core::thread::ThreadInstance* thread, float f)
+{
+	return thread->fn___builtin_f32_is_snan(f);
+}
+static bool shunt_builtin_f32_is_qnan(archsim::core::thread::ThreadInstance* thread, float f)
+{
+	return thread->fn___builtin_f32_is_qnan(f);
+}
+static bool shunt_builtin_f64_is_snan(archsim::core::thread::ThreadInstance* thread, double f)
+{
+	return thread->fn___builtin_f64_is_snan(f);
+}
+static bool shunt_builtin_f64_is_qnan(archsim::core::thread::ThreadInstance* thread, double f)
+{
+	return thread->fn___builtin_f64_is_qnan(f);
+}
 LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUnit& unit, ::llvm::Module* module, llvm::Function* function)
 {
-
 	std::map<std::string, void *> jit_symbols;
 
+	jit_symbols["memset"] = (void*)memset;
+	jit_symbols["cpuTrap"] = (void*)cpuTrap;
 	jit_symbols["cpuTakeException"] = (void*)cpuTakeException;
 	jit_symbols["cpuReadDevice"] = (void*)devReadDevice;
 	jit_symbols["cpuWriteDevice"] = (void*)devWriteDevice;
@@ -233,9 +241,40 @@ LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUni
 	jit_symbols["blkRead8"] = (void*)blkRead8;
 	jit_symbols["blkRead16"] = (void*)blkRead16;
 	jit_symbols["blkRead32"] = (void*)blkRead32;
-	jit_symbols["blkWrite8"] = (void*)cpuWrite8;
-	jit_symbols["blkWrite16"] = (void*)cpuWrite16;
-	jit_symbols["blkWrite32"] = (void*)cpuWrite32;
+	jit_symbols["blkRead64"] = (void*)blkRead64;
+	jit_symbols["cpuWrite8"] = (void*)cpuWrite8;
+	jit_symbols["cpuWrite16"] = (void*)cpuWrite16;
+	jit_symbols["cpuWrite32"] = (void*)cpuWrite32;
+	jit_symbols["cpuWrite64"] = (void*)cpuWrite64;
+
+	jit_symbols["cpuTraceOnlyMemWrite8"] = (void*)cpuTraceOnlyMemWrite8;
+	jit_symbols["cpuTraceOnlyMemWrite16"] = (void*)cpuTraceOnlyMemWrite16;
+	jit_symbols["cpuTraceOnlyMemWrite32"] = (void*)cpuTraceOnlyMemWrite32;
+	jit_symbols["cpuTraceOnlyMemWrite64"] = (void*)cpuTraceOnlyMemWrite64;
+
+	jit_symbols["cpuTraceOnlyMemRead8"] = (void*)cpuTraceOnlyMemRead8;
+	jit_symbols["cpuTraceOnlyMemRead16"] = (void*)cpuTraceOnlyMemRead16;
+	jit_symbols["cpuTraceOnlyMemRead32"] = (void*)cpuTraceOnlyMemRead32;
+	jit_symbols["cpuTraceOnlyMemRead64"] = (void*)cpuTraceOnlyMemRead64;
+
+	jit_symbols["cpuTraceRegBankWrite"] = (void*)cpuTraceRegBankWrite;
+	jit_symbols["cpuTraceRegWrite"] = (void*)cpuTraceRegWrite;
+	jit_symbols["cpuTraceRegBankRead"] = (void*)cpuTraceRegBankRead;
+	jit_symbols["cpuTraceRegRead"] = (void*)cpuTraceRegRead;
+
+	jit_symbols["cpuTraceInstruction"] = (void*)cpuTraceInstruction;
+	jit_symbols["cpuTraceInsnEnd"] = (void*)cpuTraceInsnEnd;
+
+	jit_symbols["__umodti3"] = (void*)uremi128;
+	jit_symbols["__udivti3"] = (void*)udivi128;
+	jit_symbols["__modti3"] = (void*)remi128;
+	jit_symbols["__divti3"] = (void*)divi128;
+
+	// todo: change these to actual bitcode
+	jit_symbols["txln_shunt___builtin_f32_is_snan"] = (void*)shunt_builtin_f32_is_snan;
+	jit_symbols["txln_shunt___builtin_f32_is_qnan"] = (void*)shunt_builtin_f32_is_qnan;
+	jit_symbols["txln_shunt___builtin_f64_is_snan"] = (void*)shunt_builtin_f64_is_snan;
+	jit_symbols["txln_shunt___builtin_f64_is_qnan"] = (void*)shunt_builtin_f64_is_qnan;
 
 	auto resolver = llvm::orc::createLambdaResolver(
 	[&](const std::string &name) {
@@ -273,14 +312,27 @@ LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUni
 		return nullptr;
 	}
 
+
 	LLVMTranslation *txln = new LLVMTranslation((LLVMTranslation::translation_fn)address.get(), nullptr);
 	for(auto i : unit.GetBlocks()) {
-		txln->AddContainedBlock(i.first);
+		if(i.second->IsEntryBlock()) {
+			txln->AddContainedBlock(i.first);
+		}
+	}
+
+	if(archsim::options::Debug) {
+		std::stringstream filename_str;
+		filename_str << "code_" << std::hex << unit.GetRegion().GetPhysicalBaseAddress();
+		std::ofstream str(filename_str.str().c_str());
+		str.write((char*)address.get(), memory_manager_->getAllocatedCodeSize((void*)address.get()));
+	}
+
+	if(archsim::options::EnablePerfMap) {
+		WritePerfMap(unit.GetRegion().GetPhysicalBaseAddress(), (void*)address.get(),  memory_manager_->getAllocatedCodeSize((void*)address.get()));
 	}
 
 	return txln;
 }
-
 
 /**
  * Translates the given translation work unit.
@@ -289,6 +341,7 @@ LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUni
  */
 void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, TranslationWorkUnit& unit)
 {
+	unit.GetRegion().SetStatus(Region::InTranslation);
 	// If debugging is turned on, dump the control-flow graph for this work unit.
 	if (archsim::options::Debug) {
 		unit.DumpGraph();
@@ -301,46 +354,11 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 
 	LC_DEBUG2(LogTranslate) << "[" << (uint32_t)id << "] Translating: " << unit;
 
-	// Create a new LLVM translation context.
-	LLVMOptimiser opt;
-
-	// Create a new llvm module to contain the translation
-	llvm::Module *module = new llvm::Module("region_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress()), llvm_ctx);
-	module->setDataLayout(GetNativeMachine()->createDataLayout());
-
-	translate::adapt::BlockJITToLLVMAdaptor adaptor(llvm_ctx);
-
-	gensim::blockjit::BaseBlockJITTranslate *translate = translate_;
-	translate->InitialiseFeatures(unit.GetThread());
-	translate->InitialiseIsaMode(unit.GetThread());
-	translate->SetDecodeContext(unit.GetThread()->GetEmulationModel().GetNewDecodeContext(*unit.GetThread()));
-	// create a function for each block in the region
-
-	std::map<uint32_t, llvm::Function *> block_map;
-
-	for(auto block : unit.GetBlocks()) {
-		captive::arch::jit::TranslationContext blockjit_ctx;
-		captive::shared::IRBuilder builder;
-		builder.SetBlock(blockjit_ctx.alloc_block());
-		builder.SetContext(&blockjit_ctx);
-
-		for(auto insn : block.second->GetInstructions()) {
-			translate->emit_instruction_decoded(unit.GetThread(), Address(unit.GetRegion().GetPhysicalBaseAddress() + insn->GetOffset()), &insn->GetDecode(), builder);
-		}
-		builder.ret();
-
-		auto fn = adaptor.AdaptIR(unit.GetThread(), module, "block_" + std::to_string(block.first), blockjit_ctx);
-		block_map[block.first] = fn;
-	}
-
-	// build a dispatch function
-	auto dispatch_function_ = BuildDispatchFunction(module, unit, block_map);
-
-	// optimise
-	opt.Optimise(module, target_machine_->createDataLayout());
+	translate_llvm::LLVMWorkUnitTranslator txltr(translate_);
+	auto txlt_result = txltr.TranslateWorkUnit(unit);
 
 	// compile
-	auto txln = CompileModule(unit, module, dispatch_function_);
+	auto txln = CompileModule(unit, txlt_result.first, txlt_result.second);
 
 	if (!txln) {
 		LC_ERROR(LogTranslate) << "[" << (uint32_t)id << "] Translation Failed: " << unit;

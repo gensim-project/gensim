@@ -20,4 +20,5 @@ TARGET_ADD_SOURCES(gensim-lib
 	SSAPass.cpp
 	UnreachableBlockElimination.cpp
 	ValuePropagationPass.cpp
+	ReadStructMergingPass.cpp
 )

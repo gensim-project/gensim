@@ -9,7 +9,7 @@
 
 #include "blockjit/block-compiler/transforms/Transform.h"
 
-#include "util/wutils/tick-timer.h"
+#include <wutils/tick-timer.h>
 
 #include <vector>
 #include <set>
@@ -26,7 +26,7 @@ DeadBlockEliminationTransform::~DeadBlockEliminationTransform()
 
 bool DeadBlockEliminationTransform::Apply(TranslationContext &ctx)
 {
-	tick_timer timer(0);
+	wutils::tick_timer timer(0);
 	timer.reset();
 
 	std::vector<bool> live_blocks (ctx.block_count(), false);

@@ -301,7 +301,7 @@ namespace archsim
 					return true;
 				}
 
-				const PageInfo GetInfo(uint32_t virt_addr) override
+				const PageInfo GetInfo(Address virt_addr) override
 				{
 					LC_DEBUG1(LogArmMMUInfov6) << "Getting info for MVA " << std::hex << virt_addr;
 
@@ -318,7 +318,7 @@ namespace archsim
 						return pi;
 					}
 
-					tx_l1_descriptor first_level_lookup = get_l1_descriptor(virt_addr);
+					tx_l1_descriptor first_level_lookup = get_l1_descriptor(virt_addr.Get());
 
 					LC_DEBUG4(LogArmMMUInfov6) << "GetInfo";
 
@@ -331,7 +331,7 @@ namespace archsim
 						case tx_l1_descriptor::TXE_Section:
 							return GetSectionInfo(first_level_lookup);
 						case tx_l1_descriptor::TXE_Coarse:
-							return GetCoarseInfo(virt_addr, first_level_lookup);
+							return GetCoarseInfo(virt_addr.Get(), first_level_lookup);
 						default:
 							assert(!"Unimplemented");
 							__builtin_unreachable();
@@ -343,7 +343,7 @@ namespace archsim
 				{
 					PageInfo pi;
 					pi.Present = 1;
-					pi.phys_addr = descriptor.BaseAddr;
+					pi.phys_addr = Address(descriptor.BaseAddr);
 					pi.mask = 0x000fffff;
 
 					uint32_t dacr = get_dacr();
@@ -401,12 +401,12 @@ namespace archsim
 					switch(l2_descriptor.type) {
 						case tx_l2_descriptor::TXE_Large:
 							LC_DEBUG2(LogArmMMUTxlnv6) << "L2 lookup resulted in large page descriptor";
-							pi.phys_addr = (l2_descriptor.base_addr & 0xffff0000) | (mva & 0x0000ffff);
+							pi.phys_addr = Address((l2_descriptor.base_addr & 0xffff0000) | (mva & 0x0000ffff));
 							pi.mask = 0xffff;
 							break;
 						case tx_l2_descriptor::TXE_Small:
 							LC_DEBUG2(LogArmMMUTxlnv6) << "L2 lookup resulted in small page descriptor";
-							pi.phys_addr = (l2_descriptor.base_addr & 0xfffff000) | (mva & 0x00000fff);
+							pi.phys_addr = Address((l2_descriptor.base_addr & 0xfffff000) | (mva & 0x00000fff));
 							pi.mask = 0xfff;
 							break;
 						default:
@@ -450,13 +450,14 @@ namespace archsim
 
 				}
 
-				TranslateResult Translate(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr, uint32_t &phys_addr, AccessInfo info) override
+				TranslateResult Translate(archsim::core::thread::ThreadInstance *cpu, Address va, Address &phys_addr, AccessInfo info) override
 				{
+					uint32_t virt_addr = va.Get();
 					//Canary value to catch invalid accesses
-					phys_addr = 0xf0f0f0f0;
+					phys_addr = Address(0xf0f0f0f0);
 					LC_DEBUG4(LogArmMMUv6) << "Translating MVA " << std::hex << virt_addr;
 					if(!is_enabled()) {
-						phys_addr = virt_addr;
+						phys_addr = va;
 						return TXLN_OK;
 					}
 
@@ -561,7 +562,7 @@ namespace archsim
 
 					uint32_t data;
 					LC_DEBUG4(LogArmMMUv6) << "Reading L1 descriptor from " << std::hex << descriptor_addr;
-					GetPhysMem()->Read32(descriptor_addr, data);
+					GetPhysMem()->Read32(Address(descriptor_addr), data);
 					LC_DEBUG4(LogArmMMUv6) << "Descriptor data"<< data;
 					tx_l1_descriptor descriptor(data);
 					LC_DEBUG4(LogArmMMUv6) << "Got descriptor "<< descriptor.Print();
@@ -574,7 +575,7 @@ namespace archsim
 					return cocoprocessor->get_ttbr() & ~0x3fff;
 				}
 
-				TranslateResult translate_section(uint32_t mva, tx_l1_descriptor &section_descriptor, uint32_t &out_phys_addr, const struct AccessInfo info)
+				TranslateResult translate_section(uint32_t mva, tx_l1_descriptor &section_descriptor, Address &out_phys_addr, const struct AccessInfo info)
 				{
 					uint32_t section_base_addr = section_descriptor.BaseAddr;
 					uint32_t section_index = mva & 0xfffff;
@@ -589,7 +590,7 @@ namespace archsim
 					bool kernel_mode = info.Kernel;
 					bool is_write = info.Write;
 
-					LC_DEBUG1(LogArmMMUAccessv6) << "Translate Section DACR: " << dacr;
+					LC_DEBUG3(LogArmMMUAccessv6) << "Translate Section DACR: " << dacr;
 
 					switch(dacr) {
 						case 2:
@@ -607,12 +608,12 @@ namespace archsim
 							break;
 					}
 
-					out_phys_addr = section_base_addr | section_index;
+					out_phys_addr = Address(section_base_addr | section_index);
 					//		update_tlb_entry(mva, out_phys_addr, kernel_mode, !is_write);
 					return TXLN_OK;
 				}
 
-				TranslateResult translate_coarse(uint32_t mva, tx_l1_descriptor &l1_descriptor, uint32_t &out_phys_addr, const struct AccessInfo info)
+				TranslateResult translate_coarse(uint32_t mva, tx_l1_descriptor &l1_descriptor, Address &out_phys_addr, const struct AccessInfo info)
 				{
 					tx_l2_descriptor l2_desc = get_l2_descriptor_coarse(mva, l1_descriptor);
 					uint8_t region_domain = l1_descriptor.Domain;
@@ -655,7 +656,7 @@ namespace archsim
 									return TranslateResult::TXLN_ACCESS_PERMISSION_PAGE;
 								}
 							}
-							out_phys_addr = (l2_desc.base_addr & 0xfffff000) | (mva & 0x00000fff);
+							out_phys_addr = Address((l2_desc.base_addr & 0xfffff000) | (mva & 0x00000fff));
 							break;
 						case tx_l2_descriptor::TXE_Large:
 							LC_DEBUG2(LogArmMMUTxlnv6) << "L2 lookup resulted in large page descriptor";
@@ -664,7 +665,7 @@ namespace archsim
 									return TranslateResult::TXLN_ACCESS_PERMISSION_PAGE;
 								}
 							}
-							out_phys_addr = (l2_desc.base_addr & 0xffff0000) | (mva & 0x0000ffff);
+							out_phys_addr = Address((l2_desc.base_addr & 0xffff0000) | (mva & 0x0000ffff));
 							break;
 						default:
 							assert(false);
@@ -746,7 +747,7 @@ namespace archsim
 
 					uint32_t data;
 					LC_DEBUG4(LogArmMMUv6) << "Reading Coarse L2 descriptor from " << std::hex << l2_desc_addr;
-					GetPhysMem()->Read32(l2_desc_addr, data);
+					GetPhysMem()->Read32(Address(l2_desc_addr), data);
 
 					LC_DEBUG4(LogArmMMUv6) << "Descriptor data: " << std::hex << data;
 

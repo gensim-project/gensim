@@ -72,7 +72,10 @@ void BlockPageProfile::Insert(Address address, const BlockTranslation &txln)
 	// XXX ARM HAX
 	uint32_t index = address_offset >> kInstructionAlignment;
 
-	assert(Get(address).GetFn() == nullptr);
+//	assert(Get(address).GetFn() == nullptr);
+	if(Get(address).GetFn() != nullptr) {
+		InvalidateTxln(address);
+	}
 	_txlns.insert(txln.GetFn());
 	Get(address) = txln;
 }

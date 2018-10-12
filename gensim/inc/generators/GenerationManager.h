@@ -95,7 +95,8 @@ namespace gensim
 			ExecutionEngine,
 			BlockJITTranslator,
 			Interpreter,
-			ArchDescriptor
+			ArchDescriptor,
+			LLVMTranslator
 		};
 
 		class ModuleEntry
@@ -175,7 +176,10 @@ namespace gensim
 			}
 			void AddFunctionEntry(const FunctionEntry &entry)
 			{
-				function_entries_.push_back(entry);
+				if(function_entries_.count(entry.FormatPrototype())) {
+					return;
+				}
+				function_entries_.insert({entry.FormatPrototype(), entry});
 			}
 
 			bool Generate();
@@ -201,7 +205,7 @@ namespace gensim
 			{
 				return module_entries_;
 			}
-			const std::vector<FunctionEntry> &GetFunctionEntries() const
+			const std::map<std::string, FunctionEntry> &GetFunctionEntries() const
 			{
 				return function_entries_;
 			}
@@ -211,7 +215,7 @@ namespace gensim
 			std::string target;
 
 			std::vector<ModuleEntry> module_entries_;
-			std::vector<FunctionEntry> function_entries_;
+			std::map<std::string, FunctionEntry> function_entries_;
 
 			std::multimap<std::string, GenerationComponent *> Components;
 			mutable bool _components_up_to_date;
