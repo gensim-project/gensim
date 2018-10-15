@@ -166,6 +166,12 @@ static bool isBreaker(llvm::Instruction *inst)
 		if(call->getCalledFunction() == nullptr) {
 			return true;
 		}
+
+		std::string fnname = call->getCalledFunction()->getName().str();
+		if(fnname.find("Trace") != std::string::npos) {
+			return false;
+		}
+
 		if(!call->getCalledFunction()->doesNotAccessMemory()) {
 			return true;
 		}

@@ -54,6 +54,7 @@ namespace archsim
 
 			uint8_t id;
 			translate_llvm::LLVMCompiler compiler_;
+			translate_llvm::LLVMOptimiser optimiser_;
 			AsynchronousTranslationManager& mgr;
 			volatile bool terminate;
 
