@@ -14,6 +14,7 @@
 #include "interpret/Interpreter.h"
 #include "blockjit/BlockJitTranslate.h"
 #include "translate/AsynchronousTranslationManager.h"
+#include "translate/SynchronousTranslationManager.h"
 #include "translate/profile/RegionProfile.h"
 #include "module/Module.h"
 #include "gensim/gensim_translate.h"

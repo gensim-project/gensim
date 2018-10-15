@@ -171,6 +171,8 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 	translate_llvm::LLVMWorkUnitTranslator txltr(translate_);
 	auto txlt_result = txltr.TranslateWorkUnit(unit);
 
+	optimiser_.Optimise(txlt_result.first, txlt_result.first->getDataLayout());
+
 	// compile
 	auto txln = CompileModule(unit, txlt_result.first, txlt_result.second);
 

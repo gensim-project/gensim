@@ -58,7 +58,7 @@ LLVMCompiler::LLVMCompiler() :
 }),
 compiler_(linker_, llvm::orc::SimpleCompiler(*target_machine_))
 {
-
+	initJitSymbols();
 }
 
 
@@ -96,66 +96,70 @@ static bool shunt_builtin_f64_is_qnan(archsim::core::thread::ThreadInstance* thr
 	return thread->fn___builtin_f64_is_qnan(f);
 }
 
-LLVMCompiledModuleHandle LLVMCompiler::AddModule(llvm::Module* module)
+
+void LLVMCompiler::initJitSymbols()
 {
-	std::map<std::string, void *> jit_symbols;
+	jit_symbols_["memset"] = (void*)memset;
+	jit_symbols_["cpuTrap"] = (void*)cpuTrap;
+	jit_symbols_["cpuTakeException"] = (void*)cpuTakeException;
+	jit_symbols_["cpuReadDevice"] = (void*)devReadDevice;
+	jit_symbols_["cpuWriteDevice"] = (void*)devWriteDevice;
+	jit_symbols_["cpuSetFeature"] = (void*)cpuSetFeature;
 
-	jit_symbols["memset"] = (void*)memset;
-	jit_symbols["cpuTrap"] = (void*)cpuTrap;
-	jit_symbols["cpuTakeException"] = (void*)cpuTakeException;
-	jit_symbols["cpuReadDevice"] = (void*)devReadDevice;
-	jit_symbols["cpuWriteDevice"] = (void*)devWriteDevice;
-	jit_symbols["cpuSetFeature"] = (void*)cpuSetFeature;
+	jit_symbols_["cpuSetRoundingMode"] = (void*)cpuSetRoundingMode;
+	jit_symbols_["cpuGetRoundingMode"] = (void*)cpuGetRoundingMode;
+	jit_symbols_["cpuSetFlushMode"] = (void*)cpuSetFlushMode;
+	jit_symbols_["cpuGetFlushMode"] = (void*)cpuGetFlushMode;
 
-	jit_symbols["cpuSetRoundingMode"] = (void*)cpuSetRoundingMode;
-	jit_symbols["cpuGetRoundingMode"] = (void*)cpuGetRoundingMode;
-	jit_symbols["cpuSetFlushMode"] = (void*)cpuSetFlushMode;
-	jit_symbols["cpuGetFlushMode"] = (void*)cpuGetFlushMode;
+	jit_symbols_["genc_adc_flags"] = (void*)genc_adc_flags;
+	jit_symbols_["blkRead8"] = (void*)blkRead8;
+	jit_symbols_["blkRead16"] = (void*)blkRead16;
+	jit_symbols_["blkRead32"] = (void*)blkRead32;
+	jit_symbols_["blkRead64"] = (void*)blkRead64;
+	jit_symbols_["cpuWrite8"] = (void*)cpuWrite8;
+	jit_symbols_["cpuWrite16"] = (void*)cpuWrite16;
+	jit_symbols_["cpuWrite32"] = (void*)cpuWrite32;
+	jit_symbols_["cpuWrite64"] = (void*)cpuWrite64;
 
-	jit_symbols["genc_adc_flags"] = (void*)genc_adc_flags;
-	jit_symbols["blkRead8"] = (void*)blkRead8;
-	jit_symbols["blkRead16"] = (void*)blkRead16;
-	jit_symbols["blkRead32"] = (void*)blkRead32;
-	jit_symbols["blkRead64"] = (void*)blkRead64;
-	jit_symbols["cpuWrite8"] = (void*)cpuWrite8;
-	jit_symbols["cpuWrite16"] = (void*)cpuWrite16;
-	jit_symbols["cpuWrite32"] = (void*)cpuWrite32;
-	jit_symbols["cpuWrite64"] = (void*)cpuWrite64;
+	jit_symbols_["cpuTraceOnlyMemWrite8"] = (void*)cpuTraceOnlyMemWrite8;
+	jit_symbols_["cpuTraceOnlyMemWrite16"] = (void*)cpuTraceOnlyMemWrite16;
+	jit_symbols_["cpuTraceOnlyMemWrite32"] = (void*)cpuTraceOnlyMemWrite32;
+	jit_symbols_["cpuTraceOnlyMemWrite64"] = (void*)cpuTraceOnlyMemWrite64;
 
-	jit_symbols["cpuTraceOnlyMemWrite8"] = (void*)cpuTraceOnlyMemWrite8;
-	jit_symbols["cpuTraceOnlyMemWrite16"] = (void*)cpuTraceOnlyMemWrite16;
-	jit_symbols["cpuTraceOnlyMemWrite32"] = (void*)cpuTraceOnlyMemWrite32;
-	jit_symbols["cpuTraceOnlyMemWrite64"] = (void*)cpuTraceOnlyMemWrite64;
+	jit_symbols_["cpuTraceOnlyMemRead8"] = (void*)cpuTraceOnlyMemRead8;
+	jit_symbols_["cpuTraceOnlyMemRead16"] = (void*)cpuTraceOnlyMemRead16;
+	jit_symbols_["cpuTraceOnlyMemRead32"] = (void*)cpuTraceOnlyMemRead32;
+	jit_symbols_["cpuTraceOnlyMemRead64"] = (void*)cpuTraceOnlyMemRead64;
 
-	jit_symbols["cpuTraceOnlyMemRead8"] = (void*)cpuTraceOnlyMemRead8;
-	jit_symbols["cpuTraceOnlyMemRead16"] = (void*)cpuTraceOnlyMemRead16;
-	jit_symbols["cpuTraceOnlyMemRead32"] = (void*)cpuTraceOnlyMemRead32;
-	jit_symbols["cpuTraceOnlyMemRead64"] = (void*)cpuTraceOnlyMemRead64;
+	jit_symbols_["cpuTraceRegBankWrite"] = (void*)cpuTraceRegBankWrite;
+	jit_symbols_["cpuTraceRegWrite"] = (void*)cpuTraceRegWrite;
+	jit_symbols_["cpuTraceRegBankRead"] = (void*)cpuTraceRegBankRead;
+	jit_symbols_["cpuTraceRegRead"] = (void*)cpuTraceRegRead;
 
-	jit_symbols["cpuTraceRegBankWrite"] = (void*)cpuTraceRegBankWrite;
-	jit_symbols["cpuTraceRegWrite"] = (void*)cpuTraceRegWrite;
-	jit_symbols["cpuTraceRegBankRead"] = (void*)cpuTraceRegBankRead;
-	jit_symbols["cpuTraceRegRead"] = (void*)cpuTraceRegRead;
+	jit_symbols_["cpuTraceInstruction"] = (void*)cpuTraceInstruction;
+	jit_symbols_["cpuTraceInsnEnd"] = (void*)cpuTraceInsnEnd;
 
-	jit_symbols["cpuTraceInstruction"] = (void*)cpuTraceInstruction;
-	jit_symbols["cpuTraceInsnEnd"] = (void*)cpuTraceInsnEnd;
-
-	jit_symbols["__umodti3"] = (void*)uremi128;
-	jit_symbols["__udivti3"] = (void*)udivi128;
-	jit_symbols["__modti3"] = (void*)remi128;
-	jit_symbols["__divti3"] = (void*)divi128;
+	jit_symbols_["__umodti3"] = (void*)uremi128;
+	jit_symbols_["__udivti3"] = (void*)udivi128;
+	jit_symbols_["__modti3"] = (void*)remi128;
+	jit_symbols_["__divti3"] = (void*)divi128;
 
 	// todo: change these to actual bitcode
-	jit_symbols["txln_shunt___builtin_f32_is_snan"] = (void*)shunt_builtin_f32_is_snan;
-	jit_symbols["txln_shunt___builtin_f32_is_qnan"] = (void*)shunt_builtin_f32_is_qnan;
-	jit_symbols["txln_shunt___builtin_f64_is_snan"] = (void*)shunt_builtin_f64_is_snan;
-	jit_symbols["txln_shunt___builtin_f64_is_qnan"] = (void*)shunt_builtin_f64_is_qnan;
+	jit_symbols_["txln_shunt___builtin_f32_is_snan"] = (void*)shunt_builtin_f32_is_snan;
+	jit_symbols_["txln_shunt___builtin_f32_is_qnan"] = (void*)shunt_builtin_f32_is_qnan;
+	jit_symbols_["txln_shunt___builtin_f64_is_snan"] = (void*)shunt_builtin_f64_is_snan;
+	jit_symbols_["txln_shunt___builtin_f64_is_qnan"] = (void*)shunt_builtin_f64_is_qnan;
+}
+
+LLVMCompiledModuleHandle LLVMCompiler::AddModule(llvm::Module* module)
+{
+
 
 	auto resolver = llvm::orc::createLambdaResolver(
-	[&](const std::string &name) {
+	[this](const std::string &name) {
 		// first, check our internal symbols
-		if(jit_symbols.count(name)) {
-			return llvm::JITSymbol((intptr_t)jit_symbols.at(name), llvm::JITSymbolFlags::Exported);
+		if(jit_symbols_.count(name)) {
+			return llvm::JITSymbol((intptr_t)jit_symbols_.at(name), llvm::JITSymbolFlags::Exported);
 		}
 
 		// then check more generally
@@ -166,9 +170,9 @@ LLVMCompiledModuleHandle LLVMCompiler::AddModule(llvm::Module* module)
 		// we couldn't find the symbol
 		return llvm::JITSymbol(nullptr);
 	},
-	[jit_symbols](const std::string &name) {
-		if(jit_symbols.count(name)) {
-			return llvm::JITSymbol((intptr_t)jit_symbols.at(name), llvm::JITSymbolFlags::Exported);
+	[this](const std::string &name) {
+		if(jit_symbols_.count(name)) {
+			return llvm::JITSymbol((intptr_t)jit_symbols_.at(name), llvm::JITSymbolFlags::Exported);
 		} else return llvm::JITSymbol(nullptr);
 	}
 	                );
@@ -183,6 +187,9 @@ LLVMCompiledModuleHandle LLVMCompiler::AddModule(llvm::Module* module)
 LLVMTranslation * LLVMCompiler::GetTranslation(LLVMCompiledModuleHandle& handle, TranslationWorkUnit &twu)
 {
 	auto symbol = compiler_.findSymbolIn(handle.Get(), "fn", true);
+	if(!symbol) {
+		return nullptr;
+	}
 
 	auto address = symbol.getAddress();
 	if(!address) {

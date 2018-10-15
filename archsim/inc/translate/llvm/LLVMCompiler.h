@@ -42,10 +42,13 @@ namespace archsim
 					code_pool.GC();
 				}
 			private:
+				void initJitSymbols();
+
 				std::shared_ptr<archsim::translate::translate_llvm::LLVMMemoryManager> memory_manager_;
 				std::unique_ptr<llvm::TargetMachine> target_machine_;
 				LinkLayer linker_;
 				CompileLayer compiler_;
+				std::map<std::string, void *> jit_symbols_;
 
 				util::PagePool code_pool;
 			};
