@@ -19,7 +19,10 @@ ExternalProject_Get_Property(gtest source_dir binary_dir)
 SET(GTEST_LIBS_DIR "${binary_dir}/lib/")
 SET(GTEST_INCLUDE_DIR "${source_dir}/googletest/include")
 
-FILE(GLOB_RECURSE TEST_SRCS ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
+SET(TEST_SRCS 
+	blockjit/test-cmov.cpp blockjit/test-cmp-branch.cpp blockjit/test-cmp.cpp blockjit/test-compile.cpp
+	general/test_test.cpp
+)
 
 ADD_EXECUTABLE(archsim-tests ${TEST_SRCS})
 standard_flags(archsim-tests)
