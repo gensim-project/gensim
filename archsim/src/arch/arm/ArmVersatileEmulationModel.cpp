@@ -24,7 +24,7 @@
 #include "abi/devices/WSBlockDevice.h"
 
 extern char bootloader_start, bootloader_end;
-extern uint32_t bootloader_size;
+extern uint64_t bootloader_size;
 
 using namespace archsim::arch::arm;
 using namespace archsim::abi;
