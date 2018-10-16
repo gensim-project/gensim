@@ -10,7 +10,7 @@ pipeline {
         stage ('Build') {
             agent any
             steps {
-				sh 'mkdir -p build; cd build; cmake ..; make'
+				sh 'mkdir -p build; cd build; cmake .. -DTESTING_ENABLED=TRUE; make'
             }
         }
 
