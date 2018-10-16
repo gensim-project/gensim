@@ -58,7 +58,7 @@ ISABehavioursDescriptor::ISABehavioursDescriptor(const std::initializer_list<Beh
 	}
 }
 
-ISADescriptor::ISADescriptor(const std::string &name, uint32_t id, const DecodeFunction &decoder, const NewDecoderFunction &newdecoder, const NewJumpInfoFunction &newjumpinfo, const NewDTCFunction &newdtc, const ISABehavioursDescriptor &behaviours)
+ISADescriptor::ISADescriptor(const std::string &name, uint32_t id, const DecodeFunction &decoder, gensim::BaseDisasm *disasm, const NewDecoderFunction &newdecoder, const NewJumpInfoFunction &newjumpinfo, const NewDTCFunction &newdtc, const ISABehavioursDescriptor &behaviours)
 	:
 	name_(name),
 	id_(id),
@@ -66,7 +66,8 @@ ISADescriptor::ISADescriptor(const std::string &name, uint32_t id, const DecodeF
 	new_decoder_(newdecoder),
 	new_jump_info_(newjumpinfo),
 	new_dtc_(newdtc),
-	behaviours_(behaviours)
+	behaviours_(behaviours),
+	disasm_(disasm)
 {
 
 }

@@ -25,7 +25,7 @@ endfunction()
 
 function(cross_compile_try_compiler prefix)
 	execute_process(
-		COMMAND "sh" "-c" "which ${prefix}gcc"
+		COMMAND "sh" "-c" "which ${prefix}gcc >/dev/null 2>/dev/null"
 		RESULT_VARIABLE COMPILE_RESULT
 		OUTPUT_QUIET
 		ERROR_QUIET
@@ -42,34 +42,44 @@ function(cross_compile_try_arch_prefix arch prefix)
 	cross_compile_try_compiler(${prefix})
 	IF(COMPILER_FOUND)
 		SET(CC_PREFIX_${arch} "${prefix}" CACHE STRING "Cross compiler prefix for ${arch}")
+		SET(CC_PREFIX_${arch}_valid "${prefix}" CACHE BOOLEAN "Is cross compiler prefix for ${arch} valid?")
 	ENDIF()
 endfunction()
 
-# Lookup cross compiler prefix for given architecture
-function(cross_compile_prefix arch outvar)
-
-	if(CC_PREFIX_${arch})
+function(cross_compile_try_prefix arch outvar)
+	MESSAGE(STATUS "Looking for ${arch} (${CC_PREFIX_${arch}})")
+	if(CC_PREFIX_${arch}_valid)
 		SET(${outvar} ${CC_PREFIX_${arch}} PARENT_SCOPE)
+		SET(${outvar}_valid 1 PARENT_SCOPE)
 		return()
 	endif()
 
 	MESSAGE(STATUS "Looking for a compiler prefix for ${arch}...")
 
 	IF("${arch}" STREQUAL "${CMAKE_HOST_SYSTEM_PROCESSOR}")
-		SET(${CC_PREFIX_${arch}} "" GLOBAL)
 		SET(${outvar} "" PARENT_SCOPE)
-		RETURN()
+		SET(${outvar}_valid 1 PARENT_SCOPE)
+	ELSE()
+#		arm-linux-gnu is for building kernels, not user space programs (apparently), so remove that one from the list
+		cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnu-")
+
+		cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnueabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnueabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-none-eabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-redhat-linux-")		
+		
+		SET(${outvar} ${CC_PREFIX_${arch}} PARENT_SCOPE)
+		SET(${outvar}_valid ${CC_PREFIX_${arch}}_valid PARENT_SCOPE)
 	ENDIF()
 
-#	arm-linux-gnu is for building kernels, not user space programs, so remove that one from the list
-	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnu-")
+endfunction()
 
-	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnueabi-")
-	cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnueabi-")
-	cross_compile_try_arch_prefix("${arch}" "${arch}-none-eabi-")
-	cross_compile_try_arch_prefix("${arch}" "${arch}-redhat-linux-")
+# Lookup cross compiler prefix for given architecture
+function(cross_compile_prefix arch outvar)
+
+	cross_compile_try_prefix(${arch} ${outvar})
 	
-	IF(CC_PREFIX_${arch})
+	IF(${outvar}_valid)
 		MESSAGE(STATUS "Found ${arch} cross compiler prefix: ${CC_PREFIX_${arch}}")
 		SET(${outvar} ${CC_PREFIX_${arch}} PARENT_SCOPE)
 	ELSE()
@@ -126,7 +136,7 @@ function(cross_compile_bin ARCHITECTURE FLAGS SOURCE_FILE SYMBOL_NAME)
 		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_start: >> ${CC_OUTPUT_FILE}"
 		COMMAND "sh" "-c" "echo .incbin \\\"${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_FILE}.o.bin\\\"" >> ${CC_OUTPUT_FILE}
 		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_end: .word 0 >> ${CC_OUTPUT_FILE}"
-		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_size: .4byte ${SYMBOL_NAME}_end - ${SYMBOL_NAME}_start >> ${CC_OUTPUT_FILE}"
+		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_size: .8byte ${SYMBOL_NAME}_end - ${SYMBOL_NAME}_start >> ${CC_OUTPUT_FILE}"
 		DEPENDS ${CC_SOURCE_FILE} 
 		COMMENT "Repacking ${SOURCE_FILE}"
 		VERBATIM

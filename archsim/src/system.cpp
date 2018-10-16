@@ -131,7 +131,7 @@ void System::PrintStatistics(std::ostream& stream)
 	archsim::core::thread::ThreadMetricPrinter printer;
 	for(auto context : GetECM()) {
 		for(auto thread : context->GetThreads()) {
-			printer.PrintStats(thread->GetMetrics(), stream);
+			printer.PrintStats(thread->GetArch(), thread->GetMetrics(), stream);
 		}
 	}
 

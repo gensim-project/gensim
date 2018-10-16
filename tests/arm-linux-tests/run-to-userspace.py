@@ -54,6 +54,8 @@ def main():
 	# (which replaces the shell with the child process) to avoid this.
 	command="exec " + archsim + " " + model_flags + " " + kernel_flags 
 
+	print("Running command " + command)
+
 	final_line = '---[ end Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)'
 	process = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 	result = wait_for_line(process, final_line, 30)
