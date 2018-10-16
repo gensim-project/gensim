@@ -25,7 +25,7 @@ endfunction()
 
 function(cross_compile_try_compiler prefix)
 	execute_process(
-		COMMAND "sh" "-c" "which ${prefix}gcc"
+		COMMAND "sh" "-c" "which ${prefix}gcc >/dev/null 2>/dev/null"
 		RESULT_VARIABLE COMPILE_RESULT
 		OUTPUT_QUIET
 		ERROR_QUIET
@@ -45,9 +45,7 @@ function(cross_compile_try_arch_prefix arch prefix)
 	ENDIF()
 endfunction()
 
-# Lookup cross compiler prefix for given architecture
-function(cross_compile_prefix arch outvar)
-
+function(cross_compile_try_prefix arch outvar)
 	if(CC_PREFIX_${arch})
 		SET(${outvar} ${CC_PREFIX_${arch}} PARENT_SCOPE)
 		return()
@@ -61,6 +59,12 @@ function(cross_compile_prefix arch outvar)
 	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnueabi-")
 	cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnueabi-")
 	cross_compile_try_arch_prefix("${arch}" "${arch}-none-eabi-")
+endfunction()
+
+# Lookup cross compiler prefix for given architecture
+function(cross_compile_prefix arch outvar)
+
+	cross_compile_try_prefix(arch outvar)
 	
 	IF(CC_PREFIX_${arch})
 		MESSAGE(STATUS "Found ${arch} cross compiler prefix: ${CC_PREFIX_${arch}}")
