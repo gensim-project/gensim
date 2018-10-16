@@ -1,14 +1,51 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "core/thread/ThreadMetrics.h"
+#include "util/SimOptions.h"
+
+#include <fstream>
+#include <sstream>
 
 using namespace archsim::core::thread;
 
 void ThreadMetricPrinter::PrintStats(const ThreadMetrics& metrics, std::ostream &str)
 {
+	HistogramPrinter hp;
+
 	str << "Thread Metrics" << std::endl;
+
+	if(archsim::options::Profile) {
+		str << "Instruction Profile" << std::endl;
+		hp.PrintHistogram(metrics.OpcodeHistogram, str, [](uint32_t i) {
+			return std::to_string(i);
+		});
+	}
+	if(archsim::options::ProfileIrFreq) {
+		std::ofstream ir_str ("ir_freq.out");
+		hp.PrintHistogram(metrics.InstructionIRHistogram, ir_str, [](uint32_t i) {
+			std::stringstream str;
+			str << std::hex << i;
+			return str.str();
+		});
+	}
+	if(archsim::options::ProfilePcFreq) {
+		std::ofstream pc_str("pc_freq.out");
+		hp.PrintHistogram(metrics.PCHistogram, pc_str, [](uint32_t i) {
+			std::stringstream str;
+			str << std::hex << i;
+			return str.str();
+		});
+	}
+
 	str << "Instructions: " << metrics.InstructionCount.get_value() << std::endl;
 
 	str << "Self Runtime: " << metrics.SelfRuntime.GetElapsedS() << " seconds" << std::endl;
 	str << "Execution Rate: " << (metrics.InstructionCount.get_value() / 1000000.0) / metrics.SelfRuntime.GetElapsedS() << " MIPS" << std::endl;
+}
+
+void HistogramPrinter::PrintHistogram(const archsim::util::Histogram& hist, std::ostream& str, std::function<std::string(archsim::util::HistogramEntry::histogram_key_t) > key_formatter)
+{
+	for(auto i : hist.get_value_map()) {
+		str << key_formatter(i.first) << "\t" << *i.second << std::endl;
+	}
 }

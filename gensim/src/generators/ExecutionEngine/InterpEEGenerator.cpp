@@ -176,7 +176,12 @@ bool InterpEEGenerator::GenerateStepInstruction(util::cppformatstream& str) cons
 
 	str <<
 	    "archsim::core::execution::ExecutionResult Interpreter::StepInstruction(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &inst) {";
+	str << "if(archsim::options::Verbose) {";
+	str << "thread->GetMetrics().PCHistogram.inc(thread->GetPC().Get());";
+	str << "thread->GetMetrics().OpcodeHistogram.inc(inst.Instr_Code);";
+	str << "thread->GetMetrics().InstructionIRHistogram.inc(inst.ir);";
 	str << "thread->GetMetrics().InstructionCount++;";
+	str << "}";
 	str << "switch(thread->GetModeID()) {";
 
 	for(auto i : Manager.GetArch().ISAs) {

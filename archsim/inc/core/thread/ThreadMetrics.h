@@ -15,6 +15,7 @@
 #include "util/CounterTimer.h"
 #include "util/Histogram.h"
 
+#include <functional>
 #include <ostream>
 
 namespace archsim
@@ -40,6 +41,12 @@ namespace archsim
 			{
 			public:
 				void PrintStats(const ThreadMetrics &metrics, std::ostream &str);
+			};
+
+			class HistogramPrinter
+			{
+			public:
+				void PrintHistogram(const archsim::util::Histogram &hist, std::ostream &str, std::function<std::string(archsim::util::HistogramEntry::histogram_key_t)> key_formatter);
 			};
 		}
 	}
