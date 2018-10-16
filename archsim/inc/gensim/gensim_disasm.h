@@ -10,6 +10,7 @@
 #ifndef _GENSIM_DISASM_H
 #define _GENSIM_DISASM_H
 
+#include "abi/Address.h"
 #include <stdint.h>
 
 #include <string>
@@ -22,8 +23,8 @@ namespace gensim
 	class BaseDisasm
 	{
 	public:
-		virtual std::string DisasmInstr(const gensim::BaseDecode &decode, uint32_t pc) = 0;
-		virtual std::string GetInstrName(uint32_t instr_code) = 0;
+		virtual std::string DisasmInstr(const gensim::BaseDecode &decode, archsim::Address pc) const = 0;
+		virtual std::string GetInstrName(uint32_t instr_code) const = 0;
 	};
 }
 
