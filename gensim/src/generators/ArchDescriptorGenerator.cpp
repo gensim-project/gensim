@@ -4,6 +4,7 @@
 #include "arch/ArchDescription.h"
 #include "isa/ISADescription.h"
 #include "generators/ArchDescriptorGenerator.h"
+#include "generators/DisasmGenerator.h"
 #include "generators/GenCInterpreter/GenCInterpreterGenerator.h"
 #include "genC/ssa/SSAContext.h"
 #include "genC/ssa/SSAFormAction.h"
@@ -117,6 +118,20 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 	}
 	str << "static archsim::FeaturesDescriptor features ({" << feature_list << "});";
 
+
+	// Eventually this will probably be per-ISA but for now it's per-arch and
+	// shared between ISAs.
+	std::string disasm_ptr;
+	if(Manager.GetComponent(GenerationManager::FnDisasm) == nullptr) {
+		disasm_ptr = "nullptr";
+	} else {
+		auto component = (gensim::generator::DisasmGenerator*)Manager.GetComponent(GenerationManager::FnDisasm);
+
+		str << "#include \"disasm.h\"" << std::endl;
+		str << "static gensim::" << Manager.GetArch().Name << "::Disasm _disasm;";
+		disasm_ptr = "&_disasm";
+	}
+
 	std::string isa_list;
 	for(const auto &isa : Manager.GetArch().ISAs) {
 		if(!isa_list.empty()) {
@@ -191,7 +206,7 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 		str << "static auto " << isa->ISAName << "_newjumpinfo = []() { return new gensim::" << Manager.GetArch().Name << "::JumpInfo(); };";
 		str << "static auto " << isa->ISAName << "_newdtc = []() { return nullptr; };";
 
-		str << "static archsim::ISADescriptor isa_" << isa->ISAName << " (\"" << isa->ISAName << "\", " << (uint32_t)isa->isa_mode_id << ", " << isa->ISAName << "_decode_instr, " << isa->ISAName << "_newdecoder, " << isa->ISAName << "_newjumpinfo, " << isa->ISAName << "_newdtc, get_behaviours_" << isa->ISAName << "());";
+		str << "static archsim::ISADescriptor isa_" << isa->ISAName << " (\"" << isa->ISAName << "\", " << (uint32_t)isa->isa_mode_id << ", " << isa->ISAName << "_decode_instr, " << disasm_ptr << ", " << isa->ISAName << "_newdecoder, " << isa->ISAName << "_newjumpinfo, " << isa->ISAName << "_newdtc, get_behaviours_" << isa->ISAName << "());";
 
 	}
 

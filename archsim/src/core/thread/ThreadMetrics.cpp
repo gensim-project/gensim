@@ -1,6 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "core/thread/ThreadMetrics.h"
+#include "gensim/gensim_disasm.h"
 #include "util/SimOptions.h"
 
 #include <fstream>
@@ -8,17 +9,27 @@
 
 using namespace archsim::core::thread;
 
-void ThreadMetricPrinter::PrintStats(const ThreadMetrics& metrics, std::ostream &str)
+void ThreadMetricPrinter::PrintStats(const ArchDescriptor &arch, const ThreadMetrics& metrics, std::ostream &str)
 {
 	HistogramPrinter hp;
 
 	str << "Thread Metrics" << std::endl;
 
+	// TODO: Improve profiling to be per-isa
 	if(archsim::options::Profile) {
 		str << "Instruction Profile" << std::endl;
-		hp.PrintHistogram(metrics.OpcodeHistogram, str, [](uint32_t i) {
-			return std::to_string(i);
-		});
+
+		auto disasm = arch.GetISA(0).GetDisasm();
+		if(disasm != nullptr) {
+			hp.PrintHistogram(metrics.OpcodeHistogram, str, [disasm](uint32_t i) {
+				return disasm->GetInstrName(i);
+			});
+		} else {
+			str << "(No instruction disassembly available)" << std::endl;
+			hp.PrintHistogram(metrics.OpcodeHistogram, str, [disasm](uint32_t i) {
+				return std::to_string(i);
+			});
+		}
 	}
 	if(archsim::options::ProfileIrFreq) {
 		std::ofstream ir_str ("ir_freq.out");
