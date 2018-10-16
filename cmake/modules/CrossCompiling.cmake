@@ -123,7 +123,7 @@ function(cross_compile_bin ARCHITECTURE FLAGS SOURCE_FILE SYMBOL_NAME)
 		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_start: >> ${CC_OUTPUT_FILE}"
 		COMMAND "sh" "-c" "echo .incbin \\\"${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_FILE}.o.bin\\\"" >> ${CC_OUTPUT_FILE}
 		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_end: .word 0 >> ${CC_OUTPUT_FILE}"
-		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_size: .word ${SYMBOL_NAME}_end - ${SYMBOL_NAME}_start >> ${CC_OUTPUT_FILE}"
+		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_size: .8byte ${SYMBOL_NAME}_end - ${SYMBOL_NAME}_start >> ${CC_OUTPUT_FILE}"
 		DEPENDS ${CC_SOURCE_FILE} 
 		COMMENT "Repacking ${SOURCE_FILE}"
 		VERBATIM
