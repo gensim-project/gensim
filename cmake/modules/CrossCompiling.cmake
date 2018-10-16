@@ -42,35 +42,55 @@ function(cross_compile_try_arch_prefix arch prefix)
 	cross_compile_try_compiler(${prefix})
 	IF(COMPILER_FOUND)
 		SET(CC_PREFIX_${arch} "${prefix}" CACHE STRING "Cross compiler prefix for ${arch}")
+		SET(CC_PREFIX_${arch}_valid "${prefix}" CACHE BOOLEAN "Is cross compiler prefix for ${arch} valid?")
 	ENDIF()
 endfunction()
 
 function(cross_compile_try_prefix arch outvar)
-	if(CC_PREFIX_${arch})
+	MESSAGE(STATUS "Looking for a compiler for ${arch}")
+	if(CC_PREFIX_${arch}_valid)
+		MESSAGE(STATUS " - Got cached result ${CC_PREFIX_${arch}}")
 		SET(${outvar} ${CC_PREFIX_${arch}} PARENT_SCOPE)
+		SET(${outvar}_valid 1 PARENT_SCOPE)
 		return()
 	endif()
 
 	MESSAGE(STATUS "Looking for a compiler prefix for ${arch}...")
 
-#	arm-linux-gnu is for building kernels, not user space programs, so remove that one from the list
-	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnu-")
+	IF("${arch}" STREQUAL "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+		MESSAGE(STATUS " - Got native compiler")
+		SET(${outvar} "" PARENT_SCOPE)
+		SET(${outvar}_valid 1 PARENT_SCOPE)
+	ELSE()
+#		arm-linux-gnu is for building kernels, not user space programs (apparently), so remove that one from the list
+		cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnu-")
 
-	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnueabi-")
-	cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnueabi-")
-	cross_compile_try_arch_prefix("${arch}" "${arch}-none-eabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnueabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnueabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-none-eabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-redhat-linux-")		
+		
+		IF(CC_PREFIX_${arch}_valid)
+			MESSAGE(STATUS " - Got cross compiler ${CC_PREFIX_${arch}}")
+		ELSE()
+			MESSAGE(STATUS " - No valid cross compiler")
+		ENDIF()
+		
+		SET(${outvar} ${CC_PREFIX_${arch}} PARENT_SCOPE)
+		SET(${outvar}_valid ${CC_PREFIX_${arch}}_valid PARENT_SCOPE)
+	ENDIF()
+
 endfunction()
 
 # Lookup cross compiler prefix for given architecture
 function(cross_compile_prefix arch outvar)
 
-	cross_compile_try_prefix(arch outvar)
+	cross_compile_try_prefix(${arch} ${outvar})
 	
-	IF(CC_PREFIX_${arch})
-		MESSAGE(STATUS "Found ${arch} cross compiler prefix: ${CC_PREFIX_${arch}}")
+	IF(${outvar}_valid)
 		SET(${outvar} ${CC_PREFIX_${arch}} PARENT_SCOPE)
 	ELSE()
-		MESSAGE(SEND_ERROR "Failed to find a cross compiler for ${arch}")
+		MESSAGE(SEND_ERROR "Failed to find a necessary cross compiler for ${arch}")
 	ENDIF()
 	
 endfunction()
