@@ -6,6 +6,7 @@ ENABLE_LANGUAGE(ASM)
 SET(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
 INCLUDE(StandardFlags)
+INCLUDE(GTest)
 
 # Use ccache if it can be found
 find_program(CCACHE_PROGRAM ccache)
