@@ -261,6 +261,15 @@ namespace gensim
 				}
 				throw std::logic_error("");
 			}
+			const RegSlotViewDescriptor &GetSlot(const std::string &id) const
+			{
+				for(RegSlotViewDescriptor *i : slot_views) {
+					if(i->GetID() == id) {
+						return *i;
+					}
+				}
+				throw std::logic_error("");
+			}
 			RegBankViewDescriptor &GetBank(const std::string &id)
 			{
 				for(RegBankViewDescriptor *i : bank_views) {

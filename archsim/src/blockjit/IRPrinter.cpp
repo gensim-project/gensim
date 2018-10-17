@@ -24,9 +24,9 @@ static void dump_insn(const IRInstruction *insn, std::ostream &str)
 
 			if (oper->is_vreg()) {
 				char alloc_char = oper->alloc_mode == IROperand::NOT_ALLOCATED ? 'N' : (oper->alloc_mode == IROperand::ALLOCATED_REG ? 'R' : (oper->alloc_mode == IROperand::ALLOCATED_STACK ? 'S' : '?'));
-				str << "i" << (uint32_t)oper->size << " r" << std::dec << oper->value << "(" << alloc_char << oper->alloc_data << ")";
+				str << "i" << std::dec << (uint32_t)oper->size << " r" << std::dec << oper->value << "(" << alloc_char << oper->alloc_data << ")";
 			} else if (oper->is_constant()) {
-				str << "i" << (uint32_t)oper->size << " $0x" << std::hex << oper->value;
+				str << "i" << std::dec << (uint32_t)oper->size << " $0x" << std::hex << oper->value;
 			} else if (oper->is_pc()) {
 				str << "i4 pc (" << std::hex << oper->value << ")";
 			} else if (oper->is_block()) {

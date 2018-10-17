@@ -21,6 +21,9 @@ namespace gensim
 		class FieldDescription
 		{
 		public:
+			FieldDescription() {}
+			FieldDescription(const std::string &name, const std::string &type) : field_name(name), field_type(type) {}
+
 			std::string field_name;
 			std::string field_type;
 		};

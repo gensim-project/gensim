@@ -37,10 +37,17 @@ namespace gensim
 			std::ofstream makefile((Manager.GetTarget() + "/Makefile").c_str());
 
 			makefile << "UNAME := $(shell uname)\n"
-			         "LLVM_INCLUDE=" << GetProperty("llvm_path") << "/include\n"
+			         "LLVM_INCLUDE=" << GetProperty("llvm_path") << "\n"
 			         "ARCHSIM_INCLUDE=" << GetProperty("archsim_path") << "\n"
-			         "LIBTRACE_INCLUDE=" << GetProperty("libtrace_path") << "\n"
-			         "CFLAGS= -std=c++11 -fPIC -I$(ARCHSIM_INCLUDE) -I$(LLVM_INCLUDE) -I$(LIBTRACE_INCLUDE) -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -fno-rtti -fmax-errors=10";
+			         "LIBTRACE_INCLUDE=" << GetProperty("libtrace_path") << "\n";
+
+			std::string llvm_include = "";
+			if(GetProperty("llvm_path") != "") {
+				llvm_include = "-I" + GetProperty("llvm_path");
+			}
+
+			makefile <<
+			         "CFLAGS= -std=c++11 -fPIC -I$(ARCHSIM_INCLUDE) " << llvm_include << " -I$(LIBTRACE_INCLUDE) -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -fno-rtti -fmax-errors=10";
 			if (GetProperty("Debug") == "1") makefile << " -g ";
 			makefile << " -O" << GetProperty("Optimise") << " ";
 			if (GetProperty("Tune") == "1") makefile << " -mtune=native -march=native ";

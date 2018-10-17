@@ -46,7 +46,7 @@ namespace archsim
 
 				bool ResolveGuestAddress(host_const_addr_t, guest_addr_t&) override;
 
-				uint32_t PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info) override;
+				uint32_t PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info) override;
 
 				enum UnalignedBehaviour {
 					Unaligned_TRAP,

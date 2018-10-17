@@ -61,8 +61,8 @@ namespace gensim
 			}
 
 			// loop through each block and if it is fixed or sometimes fixed, emit code for it
-			for (std::list<SSABlock *>::const_iterator block_iterator = action.Blocks.begin(); block_iterator != action.Blocks.end(); ++block_iterator) {
-				SSABlock &block = **block_iterator;
+			for (auto block_ : action.GetBlocks()) {
+				SSABlock &block = *block_;
 				GenerateFixedBlockEmitter(cstream, block);
 			}
 
@@ -111,11 +111,11 @@ namespace gensim
 
 		bool DynamicTranslationGenerator::EmitDynamicEmitter(util::cppformatstream &cstream, util::cppformatstream &hstream, const SSAFormAction &action, std::string name_prefix /* = "Execute_" */) const
 		{
-			hstream << "void " << name_prefix << action.GetPrototype().GetIRSignature().GetName() << "(archsim::translate::llvm::LLVMInstructionTranslationContext& ctx, llvm::Value*& __result, bool __trace);";
+//			hstream << "void " << name_prefix << action.GetPrototype().GetIRSignature().GetName() << "(archsim::translate::llvm::LLVMInstructionTranslationContext& ctx, llvm::Value*& __result, bool __trace);";
 
 			// emit a translation method for the action:
 			// emit the method header
-			cstream << "void gensim::" << Manager.GetArch().Name << "::Translate::" << name_prefix << action.GetPrototype().GetIRSignature().GetName() << "(archsim::translate::llvm::LLVMInstructionTranslationContext& ctx, llvm::Value*& __result, bool __trace) {";
+			cstream << "{";
 
 			// keep a map of non-fixed block numbers to llvm basic blocks. We only want to add a block if
 			// we have a chance of executing it so don't add anything here yet.
@@ -126,15 +126,11 @@ namespace gensim
 			// first, number the blocks. we'll use the numbers later on when emitting code dynamically
 			std::map<SSABlock *, uint16_t> block_numbers;
 			uint16_t blocks = 0;
-			for (std::list<SSABlock *>::const_iterator block_i = action.Blocks.begin(); block_i != action.Blocks.end(); ++block_i) {
-				block_numbers[*block_i] = blocks;
-				cstream << "    const int __block_" << (*block_i)->GetName() << " = " << blocks << ";";
+			for (auto block : action.GetBlocks()) {
+				block_numbers[block] = blocks;
+				cstream << "    const int __block_" << block->GetName() << " = " << blocks << ";";
 				blocks++;
 			}
-
-			// emit our execute function argument - the instruction we are JITing
-			cstream << "const Decode* const CV_top_inst = (Decode*)(&ctx.tiu.GetDecode());";
-			cstream << "llvm::IRBuilder<>& __irBuilder = ctx.block.region.builder;";
 
 			// we don't want to manually keep track of fixed variables, so have our C++ compiler do it
 			// for us. emit declarations for ALL symbols here.
@@ -150,19 +146,22 @@ namespace gensim
 				cstream << sym->GetType().GetCType() << " CV_" << sym->GetName() << ";";
 			}
 
-			cstream << "llvm_registers.resize(0, NULL);";
-			cstream << "llvm_registers.resize(" << i << ", NULL);";
+			for(auto sym : action.Symbols()) {
+				if(sym->GetType().IsStruct()) {
+					continue;
+				}
+				cstream << "ctx.AllocateRegister(" << sym->GetType().GetLLVMType() << ", __idx_" << sym->GetName() << ");";
+			}
 
 			// loop through each block and if it is fixed or sometimes fixed, emit code for it
-			for (std::list<SSABlock *>::const_iterator block_iterator = action.Blocks.begin(); block_iterator != action.Blocks.end(); ++block_iterator) {
-				SSABlock &block = **block_iterator;
-				if (block.IsFixed() == BLOCK_ALWAYS_CONST) GenerateDynamicBlockEmitter(cstream, block);
+			for (auto block : action.GetBlocks()) {
+				if (block->IsFixed() == BLOCK_ALWAYS_CONST) GenerateDynamicBlockEmitter(cstream, *block);
 			}
 
 			// first, count the dynamic blocks to see if we should emit a dynamic block emitter loop
 			uint32_t dynamic_block_count = 0;
-			for (std::list<SSABlock *>::const_iterator block_i = action.Blocks.begin(); block_i != action.Blocks.end(); ++block_i) {
-				if ((*block_i)->IsFixed() != BLOCK_ALWAYS_CONST) dynamic_block_count++;
+			for (auto block : action.GetBlocks()) {
+				if (block->IsFixed() != BLOCK_ALWAYS_CONST) dynamic_block_count++;
 			}
 			if (dynamic_block_count) {
 				cstream << ""
@@ -171,7 +170,7 @@ namespace gensim
 				        "{"
 				        // if we're emitting dynamic blocks, we assume that we're going to jump out of the block we
 				        // started in so we should emit an 'end of instruction' 'block
-				        "     llvm::BasicBlock *__end_of_instruction = llvm::BasicBlock::Create(txln_ctx.llvm_ctx, \"\", ctx.block.region.region_fn);"
+				        "     llvm::BasicBlock *__end_of_instruction = llvm::BasicBlock::Create(llvm_ctx, \"\", fn);"
 				        "     std::set<uint16> emitted_blocks;"
 				        "     while(dynamic_block_queue.size()) "
 				        "     {"
@@ -183,13 +182,12 @@ namespace gensim
 				        "             {";
 
 				// loop over each sometimes_fixed and never_fixed block and emit an emitter for that block
-				for (std::list<SSABlock *>::const_iterator block_i = action.Blocks.begin(); block_i != action.Blocks.end(); ++block_i) {
-					SSABlock *block = *block_i;
+				for (auto block : action.GetBlocks()) {
 					if (block->IsFixed() == BLOCK_ALWAYS_CONST) continue;
 					cstream << ""
 					        "case __block_" << block->GetName() << ": // BLOCK START LINE " << block->GetStartLine() << ", END LINE " << block->GetEndLine() << "\n"
 					        "{"
-					        "   ctx.block.region.builder.SetInsertPoint(dynamic_blocks[__block_" << block->GetName() << "]);";
+					        "	__irBuilder.SetInsertPoint(dynamic_blocks[__block_" << block->GetName() << "]);";
 
 					DynamicTranslationNodeWalkerFactory factory;
 
@@ -210,7 +208,7 @@ namespace gensim
 				cstream << ""
 				        "}"
 				        "dynamic_done:;"
-				        "ctx.block.region.builder.SetInsertPoint(__end_of_instruction);"
+				        "__irBuilder.SetInsertPoint(__end_of_instruction);"
 				        "}"
 				        "}";
 			}
@@ -221,10 +219,11 @@ namespace gensim
 			for (SSASymbol *sym : action.Symbols()) {
 				// skip the inst field since we already have that
 				// also skip references
-				if (sym->GetName() == "top_inst" || sym->GetType().Reference) {
+				if (sym->GetName() == "top_inst" || sym->GetType().Reference || sym->GetType().DataType != gensim::genc::IRType::PlainOldData) {
 					continue;
 				}
 
+				/*
 				if (sym->GetType().VectorWidth != 1) {
 					cstream << "SafeFreeVector(__idx_" << sym->GetName() << ");";
 					continue;
@@ -237,16 +236,22 @@ namespace gensim
 					case gensim::genc::IRPlainOldDataType::INT16:
 						cstream << "SafeFreeVR16(__idx_" << sym->GetName() << ");";
 						break;
+					case gensim::genc::IRPlainOldDataType::FLOAT:
 					case gensim::genc::IRPlainOldDataType::INT32:
 						cstream << "SafeFreeVR32(__idx_" << sym->GetName() << ");";
 						break;
+					case gensim::genc::IRPlainOldDataType::DOUBLE:
 					case gensim::genc::IRPlainOldDataType::INT64:
 						cstream << "SafeFreeVR64(__idx_" << sym->GetName() << ");";
+						break;
+					case gensim::genc::IRPlainOldDataType::INT128:
+						cstream << "SafeFreeVR128(__idx_" << sym->GetName() << ");";
 						break;
 
 					default:
 						throw std::logic_error("Unhandled");
 				}
+				*/
 			}
 
 			cstream << "}";
@@ -414,7 +419,7 @@ namespace gensim
 			        "{"
 			        "  if(block_map.find(block_id) == block_map.end())"
 			        "  {"
-			        "    llvm::Value *block = block_map[block_id] = llvm::BasicBlock::Create(ctx.txln.llvm_ctx, \"\", ctx.region_fn);"
+			        "    llvm::Value *block = block_map[block_id] = llvm::BasicBlock::Create(ctx.txln.llvm_ctx, \"\", fn);"
 			        "    block_queue.push_back(block_id);"
 			        "  }"
 			        "}"

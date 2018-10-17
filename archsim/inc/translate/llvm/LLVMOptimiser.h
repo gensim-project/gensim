@@ -27,17 +27,12 @@ namespace archsim
 		namespace translate_llvm
 		{
 
-			class ArchSimAA : public llvm::AliasAnalysis, llvm::FunctionPass
+			class ArchSimAA : public llvm::AAResultBase<ArchSimAA>
 			{
 				static char ID;
 			public:
-
 				ArchSimAA();
 
-				bool runOnFunction(llvm::Function &F) override;
-
-
-				void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
 				virtual llvm::AliasResult alias(const llvm::MemoryLocation &L1, const llvm::MemoryLocation &L2);
 
 			private:
@@ -58,6 +53,7 @@ namespace archsim
 				bool AddPass(::llvm::Pass*);
 
 				::llvm::legacy::PassManager pm;
+				ArchSimAA *my_aa_;
 				bool isInitialised;
 			};
 		}

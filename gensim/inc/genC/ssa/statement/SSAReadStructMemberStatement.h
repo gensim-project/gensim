@@ -18,8 +18,7 @@ namespace gensim
 			public:
 				SYMBOL_OPERAND(Target, 0)
 
-				std::string MemberName;
-				int32_t Index;
+				std::vector<std::string> MemberNames;
 
 				virtual bool IsFixed() const override;
 				virtual bool Resolve(DiagnosticContext &ctx) override;
@@ -29,17 +28,19 @@ namespace gensim
 				virtual void PrettyPrint(std::ostringstream &str) const override;
 				virtual std::set<SSASymbol *> GetKilledVariables() override;
 
-				SSAReadStructMemberStatement(SSABlock *parent, SSASymbol *target, std::string member, int32_t idx = -1, SSAStatement *before = NULL);
+				SSAReadStructMemberStatement(SSABlock *parent, SSASymbol *target, const std::vector<std::string>& member, SSAStatement *before = NULL);
 
 				void Accept(SSAStatementVisitor& visitor) override;
 
 				const SSAType GetType() const override
 				{
-					return ResolveType(Target(), MemberName, Index);
+					return ResolveType(Target(), MemberNames);
 				}
 
+				std::string FormatMembers() const;
+
 			private:
-				static SSAType ResolveType(const SSASymbol *target, const std::string& member_name, int index);
+				static SSAType ResolveType(const SSASymbol *target, const std::vector<std::string>& member_name);
 			};
 		}
 	}

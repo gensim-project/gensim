@@ -22,7 +22,7 @@ void SSAActionCFGPrinter::Print(std::ostringstream& output) const
 	output << "digraph " << ssa_form_action.GetPrototype().GetIRSignature().GetName() << "{" << std::endl;
 
 	// First, declare basic block nodes
-	for (const auto& block : ssa_form_action.Blocks) {
+	for (const auto& block : ssa_form_action.GetBlocks()) {
 		output << block->GetName() << "[style=filled,fillcolor=";
 		switch (block->IsFixed()) {
 			case BLOCK_ALWAYS_CONST:
@@ -45,7 +45,7 @@ void SSAActionCFGPrinter::Print(std::ostringstream& output) const
 	}
 
 	// Now, declare links between blocks
-	for (const auto& block : ssa_form_action.Blocks) {
+	for (const auto& block : ssa_form_action.GetBlocks()) {
 		for (const auto& successor : block->GetSuccessors()) {
 			output << block->GetName() << " -> " << successor->GetName() << ";" << std::endl;
 		}

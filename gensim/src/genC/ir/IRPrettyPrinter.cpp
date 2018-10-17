@@ -79,42 +79,7 @@ namespace gensim
 
 		void IRType::PrettyPrint(std::ostringstream &out) const
 		{
-			if (Const) out << "const ";
-
-			if(!IsFloating()) {
-				if (Signed) out << "s";
-				else out << "u";
-			}
-
-			if (DataType == PlainOldData) switch (BaseType.PlainOldDataType) {
-					case IRPlainOldDataType::VOID:
-						out << "void";
-						break;
-					case IRPlainOldDataType::INT8:
-						out << "int8";
-						break;
-					case IRPlainOldDataType::INT16:
-						out << "int16";
-						break;
-					case IRPlainOldDataType::INT32:
-						out << "int32";
-						break;
-					case IRPlainOldDataType::INT64:
-						out << "int64";
-						break;
-					case IRPlainOldDataType::FLOAT:
-						out << "float";
-						break;
-					case IRPlainOldDataType::DOUBLE:
-						out << "double";
-						break;
-					default:
-						out << "<?>";
-						break;
-				} else {
-				out << "(struct " << BaseType.StructType->Name << ")";
-			}
-			if (Reference) out << "&";
+			out << GetUnifiedType();
 		}
 
 		std::string IRType::PrettyPrint() const

@@ -16,7 +16,7 @@ for file in $FILES; do
 		continue
 	fi
 	
-	GUARD="_`echo ${file^^} | sed 's/^\.\///g ; s/\./_/g ; s/\//_/g' -`_"
+	GUARD="_`echo ${file^^} | sed 's/^\.\///g ; s/-/_/g ; s/\./_/g ; s/\//_/g' -`_"
 
 	IFNDEF=`grep -E "^#ifndef $GUARD" $file | head -n1`
 	DEFINE=`grep -E "^#ifndef $GUARD" $file | head -n1`

@@ -61,7 +61,10 @@ namespace archsim
 				FlushToZero
 			};
 			enum class RoundingMode {
-				RoundTowardZero
+				RoundDownward,
+				RoundToNearest,
+				RoundTowardZero,
+				RoundUpward
 			};
 
 			class FPState
@@ -70,6 +73,7 @@ namespace archsim
 				void SetFlushMode(FlushMode newMode)
 				{
 					flush_mode_ = newMode;
+					Apply();
 				}
 				FlushMode GetFlushMode() const
 				{
@@ -79,6 +83,7 @@ namespace archsim
 				void SetRoundingMode(RoundingMode newMode)
 				{
 					rounding_mode_ = newMode;
+					Apply();
 				}
 				RoundingMode GetRoundingMode() const
 				{
@@ -218,11 +223,19 @@ namespace archsim
 				}
 				Address GetPC()
 				{
-					return GetRegisterFileInterface().GetTaggedSlot("PC");
+					if(pc_is_64bit_) {
+						return Address(*(uint64_t*)pc_ptr_);
+					} else {
+						return Address(*(uint32_t*)pc_ptr_);
+					}
 				}
 				void SetPC(Address target)
 				{
-					GetRegisterFileInterface().SetTaggedSlot("PC", target);
+					if(pc_is_64bit_) {
+						*(uint64_t*)pc_ptr_ = target.Get();
+					} else {
+						*(uint32_t*)pc_ptr_ = target.Get();
+					}
 				}
 				Address GetSP()
 				{
@@ -258,7 +271,187 @@ namespace archsim
 				{
 					pubsub_.Publish(PubSubType::FlushTranslations, 0);
 				}
-				void fn_flush_dtlb_entry(Address::underlying_t entry) {}
+				void fn_flush_dtlb_entry(Address::underlying_t entry)
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_pgt_change()
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_flush()
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_mmu_notify_asid_change(uint32_t)
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_mmu_notify_pgt_change()
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_mmu_flush_all()
+				{
+					UNIMPLEMENTED;
+				}
+				void fn_mmu_flush_va(uint64_t)
+				{
+					UNIMPLEMENTED;
+				}
+
+				uint32_t fn___builtin_polymul8(uint8_t, uint8_t)
+				{
+					UNIMPLEMENTED;
+				}
+				uint32_t fn___builtin_polymul16(uint8_t, uint8_t)
+				{
+					UNIMPLEMENTED;
+				}
+				uint32_t fn___builtin_polymul64(uint8_t, uint8_t)
+				{
+					UNIMPLEMENTED;
+				}
+
+				void fn___builtin_cmpf32_flags(float a, float b)
+				{
+					UNIMPLEMENTED;
+				}
+				void fn___builtin_cmpf64_flags(double a, double b)
+				{
+					// do it aarch64 style
+
+					// N Z C V
+					uint8_t *N = GetRegisterFileInterface().GetEntry<uint8_t>("N");
+					uint8_t *Z = GetRegisterFileInterface().GetEntry<uint8_t>("Z");
+					uint8_t *C = GetRegisterFileInterface().GetEntry<uint8_t>("C");
+					uint8_t *V = GetRegisterFileInterface().GetEntry<uint8_t>("V");
+
+					uint32_t result = 0;
+
+					if(a == b) {
+						result = 6;
+					} else if(a < b) {
+						result = 8;
+					} else if(a > b) {
+						result = 2;
+					}
+
+					*N = (result & 8) != 0;
+					*Z = (result & 4) != 0;
+					*C = (result & 2) != 0;
+					*V = (result & 1) != 0;
+				}
+				void fn___builtin_cmpf32e_flags(float a, float b)
+				{
+					UNIMPLEMENTED;
+				}
+				void fn___builtin_cmpf64e_flags(double a, double b)
+				{
+					UNIMPLEMENTED;
+				}
+
+				int32_t fn___builtin_fcvt_f32_s32(float f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				int32_t fn___builtin_fcvt_f64_s32(double f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				int64_t fn___builtin_fcvt_f32_s64(float f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				int64_t fn___builtin_fcvt_f64_s64(double f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				uint32_t fn___builtin_fcvt_f32_u32(float f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				uint32_t fn___builtin_fcvt_f64_u32(double f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				uint64_t fn___builtin_fcvt_f32_u64(float f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				uint64_t fn___builtin_fcvt_f64_u64(double f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+
+				float fn___builtin_f32_round(float f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+				double fn___builtin_f64_round(double f, uint8_t mode)
+				{
+					UNIMPLEMENTED;
+				}
+
+				bool fn___builtin_f64_is_posinfinity(double f)
+				{
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+					return u.y == 0x7ff0000000000000;
+				}
+				bool fn___builtin_f64_is_neginfinity(double f)
+				{
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+					return u.y == 0xfff0000000000000;
+				}
+
+				bool fn___builtin_f32_is_snan(float f)
+				{
+					union {
+						float x;
+						uint32_t y;
+					} u;
+					u.x = f;
+
+					return (u.y & 0x7fc00000) == 0x7fc00000;
+				}
+				bool fn___builtin_f32_is_qnan(float f)
+				{
+					union {
+						float x;
+						uint32_t y;
+					} u;
+					u.x = f;
+
+					return (u.y & 0x7fc00000) == 0x7f800000;
+				}
+				bool fn___builtin_f64_is_snan(double f)
+				{
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+
+					return (u.y & 0x7ff8000000000000) == 0x7ff8000000000000;
+				}
+				bool fn___builtin_f64_is_qnan(double f)
+				{
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+
+					return ((u.y & 0x7ff8000000000000) == 0x7ff0000000000000) && !fn___builtin_f64_is_posinfinity(f) && !fn___builtin_f64_is_neginfinity(f);
+				}
 
 				// Functions to do with manipulating state according to the architecture
 				archsim::abi::ExceptionAction TakeException(uint64_t category, uint64_t data);
@@ -328,6 +521,9 @@ namespace archsim
 
 				uint32_t mode_offset_;
 				uint32_t ring_offset_;
+
+				void *pc_ptr_;
+				bool pc_is_64bit_;
 
 				std::mutex message_lock_;
 				std::queue<ThreadMessage> message_queue_;

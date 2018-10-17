@@ -107,12 +107,15 @@ namespace archsim
 					return trace_sink_;
 				}
 
+			protected:
+				virtual ExecutionEngineThreadContext *GetNewContext(thread::ThreadInstance *thread) = 0;
+
 			private:
 				friend class ExecutionEngineThreadContext;
 				virtual ExecutionResult Execute(ExecutionEngineThreadContext *thread) = 0;
 
 				ExecutionEngineThreadContext *GetContext(thread::ThreadInstance *thread);
-				virtual ExecutionEngineThreadContext *GetNewContext(thread::ThreadInstance *thread) = 0;
+
 
 				libtrace::TraceSink *trace_sink_;
 

@@ -10,6 +10,7 @@
 #include "translate/TranslationWorkUnit.h"
 #include "util/ComponentManager.h"
 
+using archsim::Address;
 using namespace archsim::translate;
 using namespace archsim::translate::interrupts;
 
@@ -26,7 +27,7 @@ InterruptCheckingScheme::~InterruptCheckingScheme()
 
 }
 
-bool NoneInterruptCheckingScheme::ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks)
+bool NoneInterruptCheckingScheme::ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks)
 {
 	for (auto block : blocks) {
 		block.second->SetInterruptCheck(false);
@@ -35,7 +36,7 @@ bool NoneInterruptCheckingScheme::ApplyInterruptChecks(std::map<addr_t, Translat
 	return true;
 }
 
-bool FullInterruptCheckingScheme::ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks)
+bool FullInterruptCheckingScheme::ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks)
 {
 	for (auto block : blocks) {
 		block.second->SetInterruptCheck(true);
@@ -44,8 +45,10 @@ bool FullInterruptCheckingScheme::ApplyInterruptChecks(std::map<addr_t, Translat
 	return true;
 }
 
-bool BackwardsBranchCheckingScheme::ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks)
+bool BackwardsBranchCheckingScheme::ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks)
 {
+	UNIMPLEMENTED;
+	/*
 	for (auto block : blocks) {
 		if (block.second->HasSuccessors()) {
 			for (auto succ : block.second->GetSuccessors()) {
@@ -64,12 +67,13 @@ bool BackwardsBranchCheckingScheme::ApplyInterruptChecks(std::map<addr_t, Transl
 	}
 
 	return true;
+	*/
 }
 
 class TarjanInterruptScheme : public InterruptCheckingScheme
 {
 public:
-	bool ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks) override
+	bool ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks) override
 	{
 		TarjanContext ctx;
 
@@ -103,7 +107,7 @@ public:
 
 private:
 	struct TarjanBlock {
-		addr_t block_addr;
+		Address block_addr;
 		uint32_t index;
 		uint32_t lowlink;
 
@@ -117,8 +121,8 @@ private:
 	struct TarjanContext {
 		uint32_t next_index, rmcount;
 
-		std::map<addr_t, TarjanBlock> tarjan_blocks;
-		std::list<addr_t> block_stack;
+		std::map<Address, TarjanBlock> tarjan_blocks;
+		std::list<Address> block_stack;
 	};
 
 	bool PerformStrongConnect(TarjanContext& ctx)
@@ -187,7 +191,7 @@ private:
 		}
 
 		if (block.lowlink == block.index) {
-			addr_t stacked_block;
+			Address stacked_block;
 			uint32_t count = 0;
 			do {
 				stacked_block = ctx.block_stack.front();

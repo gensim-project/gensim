@@ -47,6 +47,7 @@ DefineFlag(Profiling, ProfilePcFreq, "Enables PC frequency profiling", false);
 DefineFlag(Profiling, ProfileIrFreq, "Enables IR frequency profiling", false);
 
 DefineFlag(Tracing, Trace, "Enables tracing output", false);
+DefineInt64Setting(Tracing, TraceSkip, "Skip instruction count", 0);
 DefineFlag(Tracing, SimpleTrace, "Simplified tracing", false);
 DefineFlag(Tracing, TraceSymbols, "Enables symbol resolution in tracing output", false);
 DefineFlag(Tracing, SuppressTracing, "Suppress tracing output at system startup", false);
@@ -71,6 +72,7 @@ DefineSetting(System, Mode, "Selects the simulation mode to use", "interp");
 DefineFlag(System, CacheModel, "Enables CPU cache modelling", false);
 
 DefineSetting(System, TargetBinary, "Selects the target binary to execute", "target.x");
+DefineIntSetting(System, StackFaffle, "Initial stack pointer bias used to align stack pointers to external reference", 0);
 DefineSetting(System, TargetBinaryFormat, "Selects the target binary format", "elf");
 DefineSetting(System, ZImageSymbolMap, "Symbol Map for a ZIMAGE binary", "");
 
@@ -90,7 +92,7 @@ DefineFlag(System, UserPermitSignalHandling, "Allow or disable installation of s
 DefineSetting(JIT, JitTranslationManager, "Selects the translation manager to user", "interp");
 DefineSetting(JIT, JitEngine, "Selects the type of JIT engine to use", "llvm");
 DefineIntSetting(JIT, JitThreads, "Chooses the number of threads to employ for JIT compilation", 1);
-DefineSetting(JIT, JitInterruptScheme, "Selects the interrupt checking scheme to use when using the JIT", "backwards");
+DefineSetting(JIT, JitInterruptScheme, "Selects the interrupt checking scheme to use when using the JIT", "full");
 DefineFlag(JIT, JitDisableAA, "Disables custom alias-analysis in the JIT", false);
 DefineIntSetting(JIT, JitHotspotThreshold, "Chooses the number of times a region must be profiled to become hot", 20);
 DefineIntSetting(JIT, JitProfilingInterval, "Chooses the number of basic-blocks to execute before considering regions for compilation", 30000);

@@ -36,13 +36,13 @@ void SSABuilder::AddInstruction(SSAStatement &insn)
 void SSABuilder::AddBlock(SSABlock &block)
 {
 	assert(block.Parent == Target);
-	Target->Blocks.push_back(&block);
+	Target->AddBlock(&block);
 }
 
 void SSABuilder::AddBlockAndChange(SSABlock &block)
 {
 	assert(block.Parent == Target);
-	Target->Blocks.push_back(&block);
+	Target->AddBlock(&block);
 	curr_block = &block;
 }
 

@@ -60,6 +60,17 @@ namespace gensim
 			return true;
 		}
 
+		uint32_t ArchDescription::GetMaxInstructionSize() const
+		{
+			uint32_t size = 0;
+			for(auto isa : ISAs) {
+				if(isa->GetMaxInstructionLength() > size) {
+					size = isa->GetMaxInstructionLength();
+				}
+			}
+			return size;
+		}
+
 
 
 	}  // namespace arch
