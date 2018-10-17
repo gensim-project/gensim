@@ -30,7 +30,7 @@ namespace gensim
 	class DecodeContext;
 	class BaseDecode;
 	class BaseDisasm;
-	class BaseJumpInfo;
+	class BaseJumpInfoProvider;
 }
 
 namespace archsim
@@ -164,7 +164,7 @@ namespace archsim
 		{
 			return disasm_;
 		}
-		gensim::BaseJumpInfo *GetNewJumpInfo() const
+		gensim::BaseJumpInfoProvider *GetNewJumpInfo() const
 		{
 			return new_jump_info_();
 		}

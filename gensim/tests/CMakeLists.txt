@@ -1,15 +1,3 @@
-# Import and build gtest
-# From http://www.kaizou.org/2014/11/gtest-cmake/
-
-# We need thread support
-find_package(Threads REQUIRED)
-
-# Get GTest source and binary directories from CMake project
-ExternalProject_Get_Property(gtest source_dir binary_dir)
-
-SET(GTEST_LIBS_DIR "${binary_dir}/lib/")
-SET(GTEST_INCLUDE_DIR "${source_dir}/googletest/include")
-
 FILE(GLOB_RECURSE TEST_SRCS ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 
 ADD_EXECUTABLE(gensim-tests ${TEST_SRCS})
