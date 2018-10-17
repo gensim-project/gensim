@@ -186,6 +186,8 @@ std::pair<llvm::Module *, llvm::Function *> LLVMWorkUnitTranslator::TranslateWor
 
 	}
 
+	ctx.Finalize();
+
 	if(archsim::options::Debug) {
 		std::stringstream filename_str;
 		filename_str << "fn_" << std::hex << unit.GetRegion().GetPhysicalBaseAddress();

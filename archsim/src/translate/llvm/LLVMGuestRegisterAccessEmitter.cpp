@@ -3,6 +3,7 @@
 #include "translate/llvm/LLVMGuestRegisterAccessEmitter.h"
 #include "translate/llvm/LLVMTranslationContext.h"
 #include "translate/llvm/LLVMAliasAnalysis.h"
+#include <wutils/vbitset.h>
 
 #include <llvm/IR/DerivedTypes.h>
 
@@ -14,6 +15,16 @@ LLVMGuestRegisterAccessEmitter::LLVMGuestRegisterAccessEmitter(LLVMTranslationCo
 }
 
 LLVMGuestRegisterAccessEmitter::~LLVMGuestRegisterAccessEmitter()
+{
+
+}
+
+void LLVMGuestRegisterAccessEmitter::Finalize()
+{
+
+}
+
+void LLVMGuestRegisterAccessEmitter::Reset()
 {
 
 }
@@ -196,12 +207,12 @@ llvm::Value* GEPLLVMGuestRegisterAccessEmitter::GetPointerToRegBank(llvm::IRBuil
 	return ptr;
 }
 
-llvm::Type* GEPLLVMGuestRegisterAccessEmitter::GetTypeForRegView(const archsim::RegisterFileEntryDescriptor& reg_view)
+llvm::Type* LLVMGuestRegisterAccessEmitter::GetTypeForRegView(const archsim::RegisterFileEntryDescriptor& reg_view)
 {
 	return llvm::ArrayType::get(GetTypeForRegViewEntry(reg_view), reg_view.GetRegisterCount());
 }
 
-llvm::Type* GEPLLVMGuestRegisterAccessEmitter::GetTypeForRegViewEntry(const archsim::RegisterFileEntryDescriptor& reg_view)
+llvm::Type* LLVMGuestRegisterAccessEmitter::GetTypeForRegViewEntry(const archsim::RegisterFileEntryDescriptor& reg_view)
 {
 	llvm::Type *base_type = nullptr;
 	if(reg_view.GetEntryCountPerRegister() > 1) {
@@ -227,4 +238,293 @@ llvm::Type* GEPLLVMGuestRegisterAccessEmitter::GetTypeForRegViewEntry(const arch
 	}
 
 	return llvm::StructType::get(GetCtx().LLVMCtx, entries);
+}
+
+ShadowLLVMGuestRegisterAccessEmitter::ShadowLLVMGuestRegisterAccessEmitter(LLVMTranslationContext& ctx) : LLVMGuestRegisterAccessEmitter(ctx)
+{
+
+}
+
+ShadowLLVMGuestRegisterAccessEmitter::~ShadowLLVMGuestRegisterAccessEmitter()
+{
+
+}
+
+llvm::Value* ShadowLLVMGuestRegisterAccessEmitter::EmitRegisterRead(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index)
+{
+	if(index == nullptr) {
+		index = llvm::ConstantInt::get(GetCtx().Types.i32, 0);
+	}
+
+	auto ptr = GetUndefPtrFor(reg);
+	ptr = builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(GetCtx().Types.i32, 0), llvm::ConstantInt::get(GetCtx().Types.i32, 0)});
+	auto load = builder.CreateLoad(ptr);
+
+	loads_[ {&reg, index}].push_back(load);
+
+	return load;
+}
+
+void ShadowLLVMGuestRegisterAccessEmitter::EmitRegisterWrite(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index, llvm::Value* value)
+{
+	if(index == nullptr) {
+		index = llvm::ConstantInt::get(GetCtx().Types.i32, 0);
+	}
+
+	auto ptr = GetUndefPtrFor(reg);
+	ptr = builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(GetCtx().Types.i32, 0), llvm::ConstantInt::get(GetCtx().Types.i32, 0)});
+	auto store = builder.CreateStore(value, ptr);
+	stores_[ {&reg, index}].push_back(store);
+}
+
+static bool intervals_overlap(int a1, int a2, int b1, int b2)
+{
+	return !((b1 > a2) || (a2 > b2));
+}
+
+void ShadowLLVMGuestRegisterAccessEmitter::Finalize()
+{
+	auto intervals = GetIntervals();
+	auto allocas = CreateAllocas(intervals);
+
+	// Fix loads and stores
+	FixLoads(allocas);
+	FixStores(allocas);
+
+	// insert loads/saves of shadow registers
+	// load registers on entry
+	LoadShadowRegs(GetCtx().GetFunction()->getEntryBlock().getTerminator(), allocas);
+
+	for(auto &block : *GetCtx().GetFunction()) {
+		for(auto &inst : block) {
+			if(llvm::isa<llvm::ReturnInst>(inst)) {
+				SaveShadowRegs(&inst, allocas);
+			}
+		}
+	}
+
+	// load/store registers around exceptions
+//	for(each take_exception) {
+//		SaveShadowRegs(the take_exception, allocas);
+//		LoadShadowRegs(after the take_exception, allocas);
+//	}
+
+	// all done!
+}
+
+void ShadowLLVMGuestRegisterAccessEmitter::Reset()
+{
+	stores_.clear();
+	loads_.clear();
+}
+
+llvm::Value* ShadowLLVMGuestRegisterAccessEmitter::GetUndefPtrFor(const archsim::RegisterFileEntryDescriptor& reg)
+{
+	return llvm::UndefValue::get(GetTypeForRegViewEntry(reg)->getPointerTo(0));
+}
+
+std::pair<int, int> ShadowLLVMGuestRegisterAccessEmitter::GetInterval(const register_descriptor_t& reg)
+{
+	auto register_entry = reg.first;
+	auto index = reg.second;
+
+	// two situations:
+	// 1. index is constant, so we return an interval which covers exactly one register
+	// 2. index is non constant, so we return an interval which covers an entire register bank
+
+	if(llvm::isa<llvm::ConstantInt>(index)) {
+		uint64_t constant_index = llvm::dyn_cast<llvm::ConstantInt>(index)->getZExtValue();
+
+		int lower_bound = register_entry->GetOffset() + (constant_index * register_entry->GetRegisterStride());
+		int upper_bound = lower_bound + register_entry->GetRegisterSize();
+
+		return {lower_bound, upper_bound};
+	} else {
+		int lower_bound = register_entry->GetOffset();
+		int upper_bound = lower_bound + (register_entry->GetRegisterStride() * register_entry->GetRegisterCount());
+
+		return {lower_bound, upper_bound};
+	}
+}
+
+static std::set<std::pair<int, int>> ConvertToIntervals(const wutils::vbitset<> &bits)
+{
+	ShadowLLVMGuestRegisterAccessEmitter::intervals_t intervals;
+
+	int interval_start = 0;
+	int interval_end = 0;
+	bool in_interval = false;
+
+	int index = 0;
+	while(index < bits.size()) {
+
+		bool bit = bits.get(index);
+		if(in_interval) {
+			if(bit) {
+				// continue current interval
+				interval_end = index;
+			} else {
+				// end interval
+				intervals.insert({interval_start, interval_end+1});
+				in_interval = false;
+			}
+
+		} else {
+			if(bit) {
+				// start a new interval
+				interval_start = index;
+				in_interval = true;
+			}
+		}
+
+		index++;
+	}
+
+	return intervals;
+}
+
+ShadowLLVMGuestRegisterAccessEmitter::intervals_t ShadowLLVMGuestRegisterAccessEmitter::GetIntervals()
+{
+	wutils::vbitset<> bits (GetCtx().GetArch().GetRegisterFileDescriptor().GetSize() * 8);
+
+	for(auto load : loads_) {
+		auto loaded_interval = GetInterval(load.first);
+
+		for(int i = loaded_interval.first; i < loaded_interval.second; ++i) {
+			bits.set(i, true);
+		}
+	}
+	for(auto store : stores_) {
+		auto stored_interval = GetInterval(store.first);
+
+		// merge into intervals
+		for(int i = stored_interval.first; i < stored_interval.second; ++i) {
+			bits.set(i, true);
+		}
+	}
+
+	return ConvertToIntervals(bits);;
+}
+
+ShadowLLVMGuestRegisterAccessEmitter::allocas_t ShadowLLVMGuestRegisterAccessEmitter::CreateAllocas(const intervals_t& intervals)
+{
+	// create an alloca for each interval
+	allocas_t allocas;
+
+	// insert allocas just before the end of the entry block
+	auto insertion_point = GetCtx().GetFunction()->getEntryBlock().getTerminator();
+	for(auto i : intervals) {
+		auto type = GetIntervalType(i);
+		auto alloca = new llvm::AllocaInst(type, 0, nullptr, "", insertion_point);
+
+		allocas[i] = alloca;
+	}
+
+	return allocas;
+}
+
+void ShadowLLVMGuestRegisterAccessEmitter::FixLoads(const allocas_t& allocas)
+{
+	for(auto load_list : loads_) {
+		for(auto load : load_list.second) {
+			llvm::IRBuilder<> builder (load);
+			auto ptr = GetShadowRegPtr(builder, load_list.first, allocas);
+			load->setOperand(0, ptr);
+		}
+	}
+}
+
+void ShadowLLVMGuestRegisterAccessEmitter::FixStores(const allocas_t& allocas)
+{
+	for(auto store_list : stores_) {
+		for(auto store : store_list.second) {
+			llvm::IRBuilder<> builder (store);
+			auto ptr = GetShadowRegPtr(builder, store_list.first, allocas);
+			store->setOperand(1, ptr);
+		}
+	}
+}
+
+void ShadowLLVMGuestRegisterAccessEmitter::LoadShadowRegs(llvm::Instruction* insertbefore, const allocas_t& allocas)
+{
+	// copy each registered interval from the real alloca to the real register file
+	llvm::IRBuilder<> builder(insertbefore);
+	for(auto i : allocas) {
+		// get register file pointer
+		auto reg_ptr = GetRealRegPtr(builder, i.first);
+
+		// load register file entry
+		auto reg_val = builder.CreateLoad(reg_ptr);
+
+		// save to alloca
+		builder.CreateStore(reg_val, i.second);
+	}
+}
+
+void ShadowLLVMGuestRegisterAccessEmitter::SaveShadowRegs(llvm::Instruction* insertbefore, const allocas_t& allocas)
+{
+	// copy each registered interval from the real register file to the appropriate alloca
+	llvm::IRBuilder<> builder(insertbefore);
+	for(auto i : allocas) {
+		// get register file pointer
+		auto reg_ptr = GetRealRegPtr(builder, i.first);
+
+		// load appropriate alloca
+		auto reg_val = builder.CreateLoad(i.second);
+
+		// save to real reg
+		builder.CreateStore(reg_val, reg_ptr);
+	}
+}
+
+llvm::Type* ShadowLLVMGuestRegisterAccessEmitter::GetIntervalType(const interval_t& i)
+{
+	return llvm::IntegerType::get(GetCtx().LLVMCtx, 8*(i.second - i.first));
+}
+
+llvm::Value* ShadowLLVMGuestRegisterAccessEmitter::GetRealRegPtr(llvm::IRBuilder<> &builder, const interval_t& interval)
+{
+	auto regfile_ptr = GetCtx().GetRegStatePtr();
+	auto regfile_ptr_int = builder.CreatePtrToInt(regfile_ptr, GetCtx().Types.i64);
+	auto reg_ptr = builder.CreateAdd(regfile_ptr_int, llvm::ConstantInt::get(GetCtx().Types.i64, interval.first));
+	reg_ptr = builder.CreateIntToPtr(reg_ptr, GetIntervalType(interval)->getPointerTo(0));
+
+	return reg_ptr;
+}
+
+static bool interval_contains(const ShadowLLVMGuestRegisterAccessEmitter::interval_t &bigger, const ShadowLLVMGuestRegisterAccessEmitter::interval_t &smaller)
+{
+	UNIMPLEMENTED;
+}
+
+llvm::Value* ShadowLLVMGuestRegisterAccessEmitter::GetShadowRegPtr(llvm::IRBuilder<> &builder, const interval_t& interval, const allocas_t& allocas)
+{
+	// find the first alloca'd interval which might contain the given interval (it must exist)
+	llvm::AllocaInst *alloca = nullptr;
+	interval_t alloca_interval;
+	for(auto i : allocas) {
+		if(interval_contains(i.first, interval)) {
+			alloca = i.second;
+			alloca_interval = i.first;
+			break;
+		}
+	}
+
+	if(alloca == nullptr) {
+		throw std::logic_error("Failed to find alloca");
+	}
+
+	// index alloca by correct offset
+	int offset = interval.first - alloca_interval.first;
+
+	auto ptr = builder.CreatePtrToInt(alloca, GetCtx().Types.i64);
+	ptr = builder.CreateAdd(ptr, llvm::ConstantInt::get(GetCtx().Types.i64, offset));
+	ptr = builder.CreateIntToPtr(ptr, GetIntervalType(interval));
+
+	return ptr;
+}
+
+llvm::Value *ShadowLLVMGuestRegisterAccessEmitter::GetShadowRegPtr(llvm::IRBuilder<> &builder, const register_descriptor_t &reg, const allocas_t &allocas)
+{
+	UNIMPLEMENTED;
 }
