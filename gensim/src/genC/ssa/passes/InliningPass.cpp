@@ -15,7 +15,7 @@ using namespace gensim::genc::ssa;
 static bool InlineOneCall(SSAFormAction &action)
 {
 	SSAInliner inliner;
-	for(SSABlock *block : action.Blocks) {
+	for(SSABlock *block : action.GetBlocks()) {
 		for(SSAStatement *statement: block->GetStatements()) {
 			SSACallStatement *call = dynamic_cast<SSACallStatement*>(statement);
 

@@ -45,7 +45,7 @@ public:
 
 	ArchSimBlockJITTest() : Arch(GetArch()) {}
 
-	static const int kIterations = 0x100000;
+	static const int kIterations = 0x10000;
 
 	archsim::ArchDescriptor Arch;
 	archsim::StateBlockDescriptor StateBlockDescriptor;

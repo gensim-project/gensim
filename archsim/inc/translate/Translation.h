@@ -13,6 +13,7 @@
 #include "core/thread/ThreadInstance.h"
 #include "util/Lifetime.h"
 #include "blockjit/ir.h"
+#include "wutils/dense-set.h"
 
 #include <unordered_set>
 
@@ -43,23 +44,18 @@ namespace archsim
 			virtual void Install(captive::shared::block_txln_fn *location) = 0;
 			virtual uint32_t GetCodeSize() const = 0;
 
-			inline void AddContainedBlock(virt_addr_t addr)
+			inline void AddContainedBlock(Address addr)
 			{
-				contained_blocks.insert(addr);
+				contained_blocks.insert(addr.GetPageOffset());
 			}
 
-			inline bool ContainsBlock(virt_addr_t addr) const
+			inline bool ContainsBlock(Address addr) const
 			{
-				return contained_blocks.count(addr) > 0;
-			}
-
-			inline const std::unordered_set<virt_addr_t>& GetBlocks() const
-			{
-				return contained_blocks;
+				return contained_blocks.count(addr.GetPageOffset()) > 0;
 			}
 
 		private:
-			std::unordered_set<virt_addr_t> contained_blocks;
+			wutils::dense_set<uint32_t> contained_blocks;
 			bool is_registered;
 		};
 	}

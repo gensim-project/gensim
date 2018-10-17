@@ -9,8 +9,11 @@
 #include "translate/TranslationEngine.h"
 #include "translate/TranslationWorkUnit.h"
 #include "translate/llvm/LLVMTranslationContext.h"
+#include "translate/llvm/LLVMWorkUnitTranslator.h"
+#include "translate/profile/Region.h"
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
+
 
 UseLogContext(LogTranslate);
 
@@ -21,7 +24,7 @@ RegisterComponent(TranslationManager, SynchronousTranslationManager, "sync", "Sy
 /**
  * Default constructor.
  */
-SynchronousTranslationManager::SynchronousTranslationManager(archsim::util::PubSubContext *psctx) : TranslationManager(psctx), llvm_ctx(NULL)
+SynchronousTranslationManager::SynchronousTranslationManager(archsim::util::PubSubContext *psctx) : TranslationManager(*psctx)
 {
 
 }
@@ -38,13 +41,12 @@ SynchronousTranslationManager::~SynchronousTranslationManager()
  * Initialises the synchronous translation manager.
  * @return Returns true if the translation manager was successfully initialised.
  */
-bool SynchronousTranslationManager::Initialise()
+bool SynchronousTranslationManager::Initialise(gensim::BaseLLVMTranslate *translator)
 {
 	if (!TranslationManager::Initialise())
 		return false;
 
-	// Create an LLVM context for performing translations in.
-	llvm_ctx = new ::llvm::LLVMContext();
+	translator_ = translator;
 	return true;
 }
 
@@ -62,25 +64,43 @@ void SynchronousTranslationManager::Destroy()
  * @param region The profiled region object.
  * @return Returns true if the region was accepted for translation.
  */
-bool SynchronousTranslationManager::TranslateRegion(gensim::Processor& cpu, profile::Region& region, uint32_t weight)
+bool SynchronousTranslationManager::TranslateRegion(archsim::core::thread::ThreadInstance *thread, profile::Region& region, uint32_t weight)
 {
-	TranslationWorkUnit *twu = TranslationWorkUnit::Build(cpu, region, *ics, weight);
+	TranslationWorkUnit *twu = TranslationWorkUnit::Build(thread, region, *ics, weight);
 	if (!twu)
 		return false;
 
-	// Create a new LLVM translation context.
-	llvm::LLVMTranslationContext tctx(*this, *twu, *llvm_ctx, optimiser, code_pool);
-
-	// Perform the translation.
-	Translation *txln;
-	LC_DEBUG1(LogTranslate) << "Translating " << *twu;
-	if (!tctx.Translate(txln, timers)) {
-		delete twu;
-		return false;
+	region.SetStatus(Region::InTranslation);
+	// If debugging is turned on, dump the control-flow graph for this work unit.
+	if (archsim::options::Debug) {
+		twu->DumpGraph();
 	}
 
-	// Register the new translation.
-	MarkTranslationAsComplete(twu->GetRegion(), *txln);
+// 	LC_DEBUG2(LogTranslate) << "[" << (uint32_t)id << "] Translating: " << unit;
+
+	translate_llvm::LLVMWorkUnitTranslator txltr(translator_);
+	auto txlt_result = txltr.TranslateWorkUnit(*twu);
+
+	optimiser_.Optimise(txlt_result.first, txlt_result.first->getDataLayout());
+
+	// compile
+	auto handle = compiler_.AddModule(txlt_result.first);
+	auto txln = compiler_.GetTranslation(handle, *twu);
+
+
+	if (!txln) {
+// 		LC_ERROR(LogTranslate) << "[" << (uint32_t)id << "] Translation Failed: " << unit;
+	} else {
+// 		LC_DEBUG2(LogTranslate) << "[" << (uint32_t)id << "] Translation Succeeded: " << unit;
+
+		if (archsim::options::Verbose) {
+// 			txlns.inc();
+		}
+
+		if (!MarkTranslationAsComplete(twu->GetRegion(), *txln)) {
+			delete txln;
+		}
+	}
 
 	delete twu;
 	return true;

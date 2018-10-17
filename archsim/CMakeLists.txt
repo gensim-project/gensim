@@ -1,6 +1,7 @@
 # Archsim top-level CMAKE file
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
+include(ExternalProject)
 
 # Dependencies
 FIND_PACKAGE(Threads REQUIRED)
@@ -35,15 +36,48 @@ SET_PROPERTY(GLOBAL PROPERTY ARCHSIM_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/inc")
 
 TARGET_LINK_LIBRARIES(archsim
 	archsim-core
+	 -Wl,-z,now
 )
 
 TARGET_LINK_LIBRARIES(archsim-core 
 	trace 
 	gvnc
+	wutils
 
 	${CMAKE_THREAD_LIBS_INIT}
 	${CMAKE_DL_LIBS}
 )
+
+# Need intel XED for the x86 model
+
+# It has its own weird mbuild stuff (lucky us)
+ExternalProject_Add(
+	mbuild
+	
+	GIT_REPOSITORY https://github.com/intelxed/mbuild.git
+	PREFIX intel-xed
+	CONFIGURE_COMMAND true
+	BUILD_COMMAND true
+	INSTALL_COMMAND true
+)
+
+ExternalProject_Add(
+	IntelXED
+	
+	GIT_REPOSITORY https://github.com/intelxed/xed.git
+	PREFIX intel-xed
+	DEPENDS mbuild
+	CONFIGURE_COMMAND true
+	BUILD_COMMAND cd ../IntelXED && ./mfile.py --shared --opt=3 --install-dir ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/ install
+	INSTALL_COMMAND echo "XED ready at ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/"
+)
+
+SET(ARCHSIM_XED_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/ CACHE STRING "XED Kit location")
+ADD_DEPENDENCIES(archsim-core IntelXED)
+
+TARGET_INCLUDE_DIRECTORIES(archsim-core PRIVATE "${ARCHSIM_XED_DIRECTORY}/include")
+TARGET_LINK_LIBRARIES(archsim-core "${ARCHSIM_XED_DIRECTORY}/lib/libxed.so")
+
 
 
 # Add each provided source file along with its source directory
@@ -95,6 +129,8 @@ ENDIF()
 
 IF(ARCHSIM_ENABLE_LLVM)
 	FIND_PACKAGE(LLVM 6.0.0 REQUIRED CONFIG)
+	TARGET_COMPILE_OPTIONS(archsim-core PUBLIC "-DARCHSIM_ENABLE_LLVM=1")
+	
 	IF(LLVM_FOUND)
 		llvm_map_components_to_libnames(llvm_libs target x86desc x86info x86codegen x86asmparser runtimedyld support core irreader codegen mcjit executionengine passes )
 

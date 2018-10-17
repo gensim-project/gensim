@@ -10,19 +10,11 @@
 #ifndef SYNCHRONOUSTRANSLATIONMANAGER_H
 #define	SYNCHRONOUSTRANSLATIONMANAGER_H
 
+#include "gensim/gensim_translate.h"
 #include "translate/TranslationManager.h"
+#include "translate/llvm/LLVMCompiler.h"
 #include "translate/llvm/LLVMOptimiser.h"
 #include "util/PagePool.h"
-
-namespace gensim
-{
-	class Processor;
-}
-
-namespace llvm
-{
-	class LLVMContext;
-}
 
 namespace archsim
 {
@@ -40,15 +32,17 @@ namespace archsim
 			SynchronousTranslationManager(util::PubSubContext *psctx);
 			~SynchronousTranslationManager();
 
-			bool Initialise() override;
+			bool Initialise(gensim::BaseLLVMTranslate *translator);
 			void Destroy() override;
 
-			bool TranslateRegion(gensim::Processor& cpu, profile::Region& rgn, uint32_t weight);
+			bool TranslateRegion(archsim::core::thread::ThreadInstance *thread, profile::Region& rgn, uint32_t weight);
 
 		private:
 			TranslationTimers timers;
-			::llvm::LLVMContext *llvm_ctx;
-			llvm::LLVMOptimiser optimiser;
+
+			gensim::BaseLLVMTranslate *translator_;
+			translate_llvm::LLVMOptimiser optimiser_;
+			translate_llvm::LLVMCompiler compiler_;
 
 			util::PagePool code_pool;
 		};

@@ -14,3 +14,4 @@ SET(GENSIM_TEST_ARTIFACTS "${CMAKE_CURRENT_BINARY_DIR}/gensim-test-artifacts-pre
 
 ADD_SUBDIRECTORY(arm-linux-tests)
 ADD_SUBDIRECTORY(arm-user-tests)
+ADD_SUBDIRECTORY(x86_64-user-tests)

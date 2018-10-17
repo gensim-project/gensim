@@ -36,8 +36,8 @@ public:
 				}
 			}
 
-			file_sizes[smallest_file] += fn_entry.GetBodySize();
-			file_descriptors[smallest_file].push_back(fn_entry);
+			file_sizes[smallest_file] += fn_entry.second.GetBodySize();
+			file_descriptors[smallest_file].push_back(fn_entry.second);
 		}
 
 		for(unsigned file_idx = 0; file_idx < GetFileCount(); ++file_idx) {
@@ -77,10 +77,10 @@ public:
 		std::set<std::string> system_headers;
 
 		for(auto &fn_entry : Manager.GetFunctionEntries()) {
-			for(auto local_header : fn_entry.GetLocalHeaders()) {
+			for(auto local_header : fn_entry.second.GetLocalHeaders()) {
 				local_headers.insert(local_header);
 			}
-			for(auto system_header : fn_entry.GetSystemHeaders()) {
+			for(auto system_header : fn_entry.second.GetSystemHeaders()) {
 				system_headers.insert(system_header);
 			}
 		}
@@ -92,8 +92,8 @@ public:
 			str << "#include <" << i << ">\n";
 		}
 		for(auto &fn_entry : Manager.GetFunctionEntries()) {
-			if(fn_entry.IsGlobal()) {
-				str << fn_entry.FormatPrototype() << ";\n";
+			if(fn_entry.second.IsGlobal()) {
+				str << fn_entry.second.FormatPrototype() << ";\n";
 			}
 		}
 		WriteOutputFile("function_header.h", str);

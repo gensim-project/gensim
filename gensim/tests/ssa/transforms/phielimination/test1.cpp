@@ -36,6 +36,7 @@ s_2_2: return;
 )||";
 
 auto test_action = CompileAsm(ssaasm, "noloop");
+ASSERT_NE(nullptr, test_action);
 
 const SSAPass *phieliminationpass = SSAPassDB::Get("PhiElimination");
 ASSERT_NE(nullptr, phieliminationpass);

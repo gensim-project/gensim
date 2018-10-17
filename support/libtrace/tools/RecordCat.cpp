@@ -30,7 +30,13 @@ int main(int argc, char **argv)
 	InstructionPrinter ip;
 
 	while(begin != end) {
-		std::cout << ip(&tpsa) << std::endl;
+		std::string insn;
+		if(ip.TryFormat(&tpsa, insn)) {
+			std::cout << insn << std::endl;
+		} else {
+			std::cout << "(end of valid stream)";
+			break;
+		}
 	}
 
 	return 0;

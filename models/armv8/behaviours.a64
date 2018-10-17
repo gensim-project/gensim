@@ -1,0 +1,211 @@
+/*
+ * GenSim AARCH64 Model
+ *
+ * Copyright (C) University of Edinburgh 2016.  All Rights Reserved.
+ *
+ * Tom Spink <tspink@inf.ed.ac.uk>
+ */
+ 
+decode(LOGICAL_IMM)
+{
+	int len = 31 - __CLZ32((N << 6) | (~imms & 0x3f));
+
+	unsigned int e = 1 << len;
+
+	unsigned int levels = e - 1;
+	unsigned int s = imms & levels;
+	unsigned int r = immr & levels;
+
+	uint64_t mask = __ONES(s + 1);
+	if (r) {
+		mask = (mask >> r) | (mask << (e - r));
+		mask &= __ONES(e);
+	}
+
+	if (sf) {
+		immu64 = __REPLICATE(mask, e);
+	} else {
+		immu32 = (uint32_t)__REPLICATE(mask, e);
+	}
+}
+
+decode(LS_REG_UIMM)
+{
+	if (size == 0 && opc == 2 && V == 1) {
+		immu64 = ((uint64_t)imm12) << 4;
+	} else {
+		immu64 = ((uint64_t)imm12) << size;
+	}
+}
+
+decode(LS_REG_REG_OFF)
+{
+	ext_type = option0 | (option21 << 1);
+}
+
+decode(LS_REG_USIMM)
+{
+	imms64 = __SEXT64(imm9, 9);
+}
+
+decode(LS_REG_PAIR_IDX)
+{
+	int scale = 2 + ((V == 1) ? (opc) : (opc >> 1));
+	immu64 = (((int64_t)imm7 << (64 - 7)) >> (64 - 7)) << scale;
+}
+
+decode(LS_REG_PAIR_OFF)
+{
+	int scale = 2 + ((V == 1) ? (opc) : (opc >> 1));
+	imms64 = __SEXT64(imm7, 7) << scale;
+}
+
+decode(LS_REG_IMM_POST)
+{
+	imms64 = __SEXT64(imm9, 9);
+}
+
+decode(LOAD_REG_LIT)
+{
+	label = __SEXT64(imm19 << 2, 21);
+}
+
+decode(LS_NO_ALLOC)
+{
+	if (opc == 0) {
+		imms64 = __SEXT64(imm7, 7) << 2;
+	} else if (opc == 2) {
+		imms64 = __SEXT64(imm7, 7) << 3;
+	}
+}
+
+decode(ADD_SUB_EREG)
+{
+	shift_amount = imm3;
+}
+
+decode(PC_REL)
+{
+	uint64_t imm = ((uint64_t)immhi << 2) | (uint64_t)(immlo & 0x3);
+	
+	if (op == 1) {
+		imms64 = __SEXT64(imm << 12, 33);
+	} else {
+		imms64 = __SEXT64(imm, 21);
+	}
+}
+
+decode(UB_IMM)
+{
+	imms64 = ((int64_t)imm26 << (64 - 26)) >> (64 - 28);
+}
+
+decode(COND_B_IMM)
+{
+	imms64 = ((int64_t)imm19 << (64 - 19)) >> (64 - 21);
+}
+
+decode(CMP_B_IMM)
+{
+	imms64 = ((int64_t)imm19 << (64 - 19)) >> (64 - 21);
+}
+
+decode(TEST_B_IMM)
+{
+	imms64 = __SEXT64(imm14 << 2, 16);
+	bit_pos = (b5 << 5) | b40;
+}
+
+decode(MOVE_WIDE_IMM)
+{
+	shift_amount = hw << 4;
+}
+
+behaviour(is_predicated)
+{
+	//return internal_opcode() == opcodes::aarch64_a64_bcond;
+	return opcode == aarch64_a64_bcond;
+}
+
+behaviour(instruction_predicate)
+{
+	uint8 state = 0;
+	
+	switch(cond >> 1) {
+	case 0: {
+		state = read_register(Z);
+		break;
+	}
+	
+	}
+	
+	if (cond & 1) {
+		return !state;
+	} else {
+		return state;
+	}
+}
+
+behaviour(handle_exception) global
+{
+}
+
+behaviour(reset) global
+{
+}
+
+behaviour(irq) global
+{
+	if (isr & 2) {
+		if (!read_register(I)) {
+			take_arm_exception(1, 255, 0, 0, read_pc(), 0x80);
+			return true;
+		}
+	} else if (isr & 1) {
+		if (!read_register(F)) {
+			trap();
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+behaviour(mmu_fault) global
+{
+	if (ctx.type == captive::arch::mmu::AddressTranslationType::FETCH) {
+		uint32 syndrome = (uint32)ctx.private_data;
+		take_arm_exception(1, 4, syndrome, va, read_pc(), 0);
+	} else {
+		uint32 syndrome = (uint32)ctx.private_data;
+		take_arm_exception(1, 1, syndrome, va, read_pc(), 0);
+	}
+	
+	return true;
+}
+
+behaviour(page_fault) global
+{
+	return false;
+}
+
+behaviour(undefined_instruction) global
+{
+	take_arm_exception(1, 2, 0, 0, read_pc(), 0);
+	return false;
+}
+
+behaviour(single_step) global
+{
+	if (!read_register(D)) {
+		take_arm_exception(1, 6, 0x1000022, 0, read_pc(), 0);
+		return true;
+	}
+	
+	return false;
+}
+
+behaviour(undef) global
+{
+	take_arm_exception(1, 2, 0, 0, read_pc(), 0);
+}
