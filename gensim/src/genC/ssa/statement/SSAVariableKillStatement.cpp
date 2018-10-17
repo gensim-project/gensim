@@ -8,8 +8,8 @@ using namespace gensim::genc::ssa;
 SSAVariableKillStatement::SSAVariableKillStatement(int extra_operands, SSABlock *_parent, SSASymbol *_target, SSAStatement *_before)
 	: SSAStatement(Class_Unknown, extra_operands+1, _parent, _before)
 {
-	assert(_target);
-	assert(_target->GetType() != IRTypes::Void);
+	GASSERT(_target);
+	GASSERT(_target->GetType() != IRTypes::Void);
 	SetTarget(_target);
 }
 

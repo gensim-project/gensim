@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <cstring>
 
 namespace libtrace
 {
@@ -27,10 +28,17 @@ namespace libtrace
 		virtual void Terminate();
 		void EmitPackets();
 
+		void SetInstructionSkip(uint64_t skip)
+		{
+			skip_ = skip;
+		}
+
 	private:
 		template <typename PCT> void TraceInstructionHeader(PCT pc, uint8_t isa_mode);
 		template <typename CodeT> void TraceInstructionCode(CodeT pc, uint8_t irq_mode);
 		template <typename PCT> void TraceBundleHeader(PCT pc);
+
+		uint64_t skip_;
 
 	public:
 		template<typename PCT> void Trace_StartBundle(PCT PC)
@@ -41,6 +49,11 @@ namespace libtrace
 
 		template<typename PCT, typename CodeT> void Trace_Insn(PCT PC, CodeT IR, bool JIT, uint8_t isa_mode, uint8_t irq_mode, uint8_t exec)
 		{
+			if(skip_ > 0) {
+				skip_--;
+				return;
+			}
+
 			assert(!IsTerminated() && !IsPacketOpen());
 
 			TraceInstructionHeader(PC, isa_mode);
@@ -79,7 +92,61 @@ namespace libtrace
 		 * Banked Register Operation Tracing
 		 */
 
-		inline void Trace_Bank_Reg_Read(bool Trace, uint8_t Bank, uint8_t Regnum, uint32_t Value)
+	private:
+		uint32_t getDataWord(char *data, uint32_t total_size, uint32_t word_idx)
+		{
+			assert(word_idx <= getExtensionCount(total_size));
+
+			uint32_t out_data = 0;
+			memcpy((char*)&out_data, data + (word_idx * 4), std::min(total_size, 4U));
+			return out_data;
+		}
+
+		uint32_t getExtensionCount(uint32_t size)
+		{
+			if(size <= 4) {
+				return 0;
+			}
+			return (size / 4) - 1;
+		}
+
+	public:
+		void Trace_Bank_Reg_Read(bool Trace, uint8_t Bank, uint8_t Regnum, char *data, uint32_t size)
+		{
+			if(!IsPacketOpen()) {
+				return;
+			}
+			assert(!IsTerminated() && IsPacketOpen());
+
+			int extension_count = getExtensionCount(size);
+
+			BankRegReadRecord *header = (BankRegReadRecord*)(getNextPacket());
+			*header = BankRegReadRecord(Bank, Regnum, getDataWord(data, size, 0), extension_count);
+
+			for(int i = 0; i < extension_count; ++i) {
+				DataExtensionRecord *extension = (DataExtensionRecord*)getNextPacket();
+				*extension = DataExtensionRecord(BankRegRead, getDataWord(data, size, i+1));
+			}
+		}
+		void Trace_Bank_Reg_Write(bool Trace, uint8_t Bank, uint8_t Regnum, char *data, uint32_t size)
+		{
+			if(!IsPacketOpen()) {
+				return;
+			}
+			assert(!IsTerminated() && IsPacketOpen());
+
+			int extension_count = getExtensionCount(size);
+
+			BankRegWriteRecord *header = (BankRegWriteRecord*)(getNextPacket());
+			*header = BankRegWriteRecord(Bank, Regnum, getDataWord(data, size, 0), extension_count);
+
+			for(int i = 0; i < extension_count; ++i) {
+				DataExtensionRecord *extension = (DataExtensionRecord*)getNextPacket();
+				*extension = DataExtensionRecord(BankRegWrite, getDataWord(data, size, i+1));
+			}
+		}
+
+		template<typename T> void Trace_Bank_Reg_Read(bool Trace, uint8_t Bank, uint8_t Regnum, T Value)
 		{
 			if(!IsPacketOpen()) return;
 			assert(!IsTerminated() && IsPacketOpen());
@@ -88,13 +155,13 @@ namespace libtrace
 			*header = BankRegReadRecord(Bank, Regnum, Value, 0);
 		}
 
-		inline void Trace_Bank_Reg_Write(bool Trace, uint8_t Bank, uint8_t Regnum, uint32_t Value)
+		template<typename T> void Trace_Bank_Reg_Write(bool Trace, uint8_t Bank, uint8_t Regnum, T value)
 		{
 			if(!IsPacketOpen()) return;
 			assert(!IsTerminated() && IsPacketOpen());
 
 			BankRegWriteRecord *header = (BankRegWriteRecord*)(getNextPacket());
-			*header = BankRegWriteRecord(Bank, Regnum, Value, 0);
+			*header = BankRegWriteRecord(Bank, Regnum, value, 0);
 		}
 
 		/*
@@ -116,8 +183,8 @@ namespace libtrace
 			if(!IsPacketOpen()) return;
 			assert(!IsTerminated() && IsPacketOpen());
 
-			TraceMemReadAddr(Width, Addr);
-			TraceMemReadData(Width, Value);
+			TraceMemReadAddr<AddrT>(Addr, Width);
+			TraceMemReadData<DataT>(Value, Width);
 		}
 
 	private:
@@ -224,6 +291,89 @@ namespace libtrace
 
 	}
 
+	template<> inline void TraceSource::Trace_Bank_Reg_Read(bool Trace, uint8_t Bank, uint8_t Regnum, float fValue)
+	{
+		uint32_t *pValue = (uint32_t*)&fValue;
+		uint32_t Value = *pValue;
+
+		if(!IsPacketOpen()) return;
+		assert(!IsTerminated() && IsPacketOpen());
+
+		BankRegReadRecord *header = (BankRegReadRecord*)(getNextPacket());
+		*header = BankRegReadRecord(Bank, Regnum, Value, 0);
+	}
+	template<> inline void TraceSource::Trace_Bank_Reg_Read(bool Trace, uint8_t Bank, uint8_t Regnum, double fValue)
+	{
+		uint64_t *pValue = (uint64_t*)&fValue;
+		uint64_t Value = *pValue;
+
+		if(!IsPacketOpen()) return;
+		assert(!IsTerminated() && IsPacketOpen());
+
+		BankRegReadRecord *header = (BankRegReadRecord*)(getNextPacket());
+		*header = BankRegReadRecord(Bank, Regnum, Value, 1);
+
+		auto *extension = (DataExtensionRecord*)getNextPacket();
+		*extension = DataExtensionRecord(BankRegRead, Value >> 32);
+	}
+	template<> inline void TraceSource::Trace_Bank_Reg_Read(bool Trace, uint8_t Bank, uint8_t Regnum, uint64_t Value)
+	{
+		if(!IsPacketOpen()) return;
+		assert(!IsTerminated() && IsPacketOpen());
+
+		BankRegReadRecord *header = (BankRegReadRecord*)(getNextPacket());
+		*header = BankRegReadRecord(Bank, Regnum, Value, 1);
+
+		auto *extension = (DataExtensionRecord*)getNextPacket();
+		*extension = DataExtensionRecord(BankRegRead, Value >> 32);
+	}
+	template<> inline void TraceSource::Trace_Bank_Reg_Write(bool Trace, uint8_t Bank, uint8_t Regnum, float fValue)
+	{
+		uint32_t *pValue = (uint32_t*)&fValue;
+		uint32_t Value = *pValue;
+
+		if(!IsPacketOpen()) return;
+		assert(!IsTerminated() && IsPacketOpen());
+
+		BankRegWriteRecord *header = (BankRegWriteRecord*)(getNextPacket());
+		*header = BankRegWriteRecord(Bank, Regnum, Value, 0);
+	}
+	template<> inline void TraceSource::Trace_Bank_Reg_Write(bool Trace, uint8_t Bank, uint8_t Regnum, double fValue)
+	{
+		uint64_t *pValue = (uint64_t*)&fValue;
+		uint64_t Value = *pValue;
+
+		if(!IsPacketOpen()) return;
+		assert(!IsTerminated() && IsPacketOpen());
+
+		BankRegWriteRecord *header = (BankRegWriteRecord*)(getNextPacket());
+		*header = BankRegWriteRecord(Bank, Regnum, Value, 1);
+
+		auto *extension = (DataExtensionRecord*)getNextPacket();
+		*extension = DataExtensionRecord(BankRegWrite, Value >> 32);
+	}
+
+	template<> inline void TraceSource::Trace_Bank_Reg_Write(bool Trace, uint8_t Bank, uint8_t Regnum, uint32_t Value)
+	{
+		if(!IsPacketOpen()) return;
+		assert(!IsTerminated() && IsPacketOpen());
+
+		BankRegWriteRecord *header = (BankRegWriteRecord*)(getNextPacket());
+		*header = BankRegWriteRecord(Bank, Regnum, Value, 0);
+	}
+	template<> inline void TraceSource::Trace_Bank_Reg_Write(bool Trace, uint8_t Bank, uint8_t Regnum, uint64_t Value)
+	{
+		if(!IsPacketOpen()) return;
+		assert(!IsTerminated() && IsPacketOpen());
+
+		BankRegWriteRecord *header = (BankRegWriteRecord*)(getNextPacket());
+		*header = BankRegWriteRecord(Bank, Regnum, Value, 1);
+
+		auto *extension = (DataExtensionRecord*)getNextPacket();
+		*extension = DataExtensionRecord(BankRegWrite, Value >> 32);
+	}
+
+
 	template <> inline void TraceSource::Trace_Reg_Read(bool Trace, uint8_t Regnum, uint64_t Value)
 	{
 		if(!IsPacketOpen()) return;
@@ -281,30 +431,40 @@ namespace libtrace
 		Trace_Reg_Write(Trace, Regnum, (uint32_t)Value);
 	}
 
-
-	template<> inline void TraceSource::TraceMemReadAddr(uint32_t Addr, uint32_t Width)
-	{
-		auto *record = (MemReadAddrRecord*)getNextPacket();
-		*record = MemReadAddrRecord(Addr, Width, 0);
-	}
 	template<> inline void TraceSource::TraceMemReadAddr(uint64_t Addr, uint32_t Width)
 	{
 		auto *record = (MemReadAddrRecord*)getNextPacket();
-		*record = MemReadAddrRecord(Addr, Width, 1);
+		*record = MemReadAddrRecord(Width, Addr, 1);
 
 		auto *extension = (DataExtensionRecord*)getNextPacket();
 		*extension = DataExtensionRecord(MemReadAddr, Addr >> 32);
 	}
+	template<> inline void TraceSource::TraceMemReadAddr(uint32_t Addr, uint32_t Width)
+	{
+		auto *record = (MemReadAddrRecord*)getNextPacket();
+		*record = MemReadAddrRecord(Width, Addr, 0);
+	}
 
+
+	template<> inline void TraceSource::TraceMemReadData(uint8_t Data, uint32_t Width)
+	{
+		auto *record = (MemReadDataRecord*)getNextPacket();
+		*record = MemReadDataRecord(Width, Data, 0);
+	}
+	template<> inline void TraceSource::TraceMemReadData(uint16_t Data, uint32_t Width)
+	{
+		auto *record = (MemReadDataRecord*)getNextPacket();
+		*record = MemReadDataRecord(Width, Data, 0);
+	}
 	template<> inline void TraceSource::TraceMemReadData(uint32_t Data, uint32_t Width)
 	{
 		auto *record = (MemReadDataRecord*)getNextPacket();
-		*record = MemReadDataRecord(Data, Width, 0);
+		*record = MemReadDataRecord(Width, Data, 0);
 	}
 	template<> inline void TraceSource::TraceMemReadData(uint64_t Data, uint32_t Width)
 	{
 		auto *record = (MemReadDataRecord*)getNextPacket();
-		*record = MemReadDataRecord(Data, Width, 1);
+		*record = MemReadDataRecord(Width, Data, 1);
 
 		auto *extension = (DataExtensionRecord*)getNextPacket();
 		*extension = DataExtensionRecord(MemReadData, Data >> 32);

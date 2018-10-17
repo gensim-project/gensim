@@ -133,20 +133,25 @@ int main(int argc, char *argv[])
 
 	// Now, load modules. We still haven't initialised logging, so any messages
 	// will go to the early log.
-	session.GetModuleManager().LoadStandardModuleDirectory();
+	if(!session.GetModuleManager().LoadStandardModuleDirectory()) {
+		rc = 1;
+		goto out;
+	}
 
 
 	// By default, we only show errors;
-	archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_ERROR);
+	if(!archsim::options::LogLevel.IsSpecified()) {
+		archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_ERROR);
 
-	// Update the reporting level.  If verbose is specified, then we show information messages.
-	if (archsim::options::Verbose && (archsim::options::LogLevel > archsim::util::LogEvent::LL_INFO)) {
-		archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_INFO);
-	}
+		// Update the reporting level.  If verbose is specified, then we show information messages.
+		if (archsim::options::Verbose && (archsim::options::LogLevel > archsim::util::LogEvent::LL_INFO)) {
+			archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_INFO);
+		}
 
-	// If debug is specified, then we show debug1 messages.
-	if (archsim::options::Debug && !archsim::options::LogLevel.IsSpecified() && (archsim::options::LogLevel > archsim::util::LogEvent::LL_DEBUG1)) {
-		archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_DEBUG1);
+		// If debug is specified, then we show debug1 messages.
+		if (archsim::options::Debug && !archsim::options::LogLevel.IsSpecified() && (archsim::options::LogLevel > archsim::util::LogEvent::LL_DEBUG1)) {
+			archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_DEBUG1);
+		}
 	}
 
 	// Initialise the logging subsystem.

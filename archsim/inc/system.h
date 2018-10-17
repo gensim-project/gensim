@@ -164,9 +164,14 @@ public:
 	}
 
 	//TODO: move this into user mode emulation model
+	inline bool HasFD(int guest_fd)
+	{
+		return fds.count(guest_fd);
+	}
+
 	inline int GetFD(int guest_fd)
 	{
-		return fds[guest_fd];
+		return fds.at(guest_fd);
 	}
 	inline int OpenFD(int host_fd)
 	{

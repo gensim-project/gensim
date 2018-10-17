@@ -19,6 +19,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <mutex>
 
 #ifndef CONFIG_NO_MEMORY_EVENTS
 #ifndef CONFIG_MEMORY_EVENTS
@@ -66,7 +67,7 @@ namespace archsim
 				BigEndian,
 			};
 
-			typedef uint32_t guest_addr_t;
+			typedef Address guest_addr_t;
 			typedef uint32_t guest_size_t;
 			typedef const void *host_const_addr_t;
 
@@ -90,6 +91,7 @@ namespace archsim
 				virtual bool MapRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot, std::string name) = 0;
 				virtual bool RemapRegion(guest_addr_t addr, guest_size_t size) = 0;
 				virtual bool UnmapRegion(guest_addr_t addr, guest_size_t size) = 0;
+				virtual bool UnmapSubregion(guest_addr_t addr, guest_size_t size) = 0;
 				virtual bool ProtectRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot) = 0;
 				virtual bool GetRegionProtection(guest_addr_t addr, RegionFlags& prot) = 0;
 				virtual guest_addr_t MapAnonymousRegion(guest_size_t size, RegionFlags prot) = 0;
@@ -97,6 +99,43 @@ namespace archsim
 			};
 
 			class MemoryEventHandler;
+
+			class LockedMemoryRegion
+			{
+			public:
+				LockedMemoryRegion() {}
+				LockedMemoryRegion(Address base, std::vector<void*> host_ptrs) : guest_base_(base), host_ptrs_(host_ptrs) {}
+
+				uint8_t Read8(Address addr)
+				{
+					return *(uint8_t*)GetPtr(addr, 1);
+				}
+				uint16_t Read16(Address addr)
+				{
+					return Read8(addr) | (((uint16_t)Read8(addr+1)) << 8);
+				}
+				uint32_t Read32(Address addr)
+				{
+					return Read16(addr) | (((uint32_t)Read16(addr+2)) << 16);
+				}
+
+				void *GetPtr(Address addr, uint32_t size) const
+				{
+					ASSERT(addr >= guest_base_);
+					ASSERT(addr < guest_base_ + (host_ptrs_.size() * Address::PageSize));
+
+					return ((uint8_t*)GetPage(addr)) + addr.GetPageOffset();
+				}
+
+			private:
+				void *GetPage(Address addr) const
+				{
+					return host_ptrs_.at((addr - guest_base_).GetPageIndex());
+				}
+
+				Address guest_base_;
+				std::vector<void*> host_ptrs_;
+			};
 
 			/**
 			 * Base memory model class. A memory model supports reading and writing, which may affect state,
@@ -135,6 +174,8 @@ namespace archsim
 				 */
 				virtual bool LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr);
 
+				virtual bool LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion &regions);
+
 				/**
 				 * Unlock a region of memory previously locked by a LockRegion call.
 				 */
@@ -149,7 +190,7 @@ namespace archsim
 				 * Evict the specified cache entry from the cache
 				* @param virt_addr
 				*/
-				virtual void EvictCacheEntry(virt_addr_t virt_addr);
+				virtual void EvictCacheEntry(Address virt_addr);
 
 				/**
 				 * Perform a virtual->physical (oe equivalant) memory translation. This function
@@ -157,7 +198,7 @@ namespace archsim
 				 * If this memory model does not support translation, it should set the physical
 				 * address to the virtual address and return 0 (ie., perform an identity translation)
 				 */
-				virtual uint32_t PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct abi::devices::AccessInfo &info);
+				virtual uint32_t PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct abi::devices::AccessInfo &info);
 
 				/**
 				 * Loads and copies the given file into this memory model.
@@ -236,18 +277,18 @@ namespace archsim
 
 				inline guest_addr_t AlignDown(guest_addr_t addr) const __attribute__((pure))
 				{
-					return addr & ~4095;
+					return addr.PageBase();
 				}
 
 				inline guest_addr_t AlignUp(guest_addr_t addr) const __attribute__((pure))
 				{
-					if ((addr & ~4095) == addr) return addr;
+					if ((addr.PageBase()) == addr) return addr;
 					return AlignDown(addr) + 4096;
 				}
 
 				inline bool IsAligned(guest_addr_t addr) const __attribute__((pure))
 				{
-					return (addr & ~4095) == addr;
+					return addr.PageBase() == addr;
 				}
 
 				inline void RegisterEventHandler(MemoryEventHandler& handler)
@@ -267,7 +308,17 @@ namespace archsim
 
 				bool RaiseEvent(MemoryEventType type, guest_addr_t addr, uint8_t size);
 
+				void Lock()
+				{
+					lock_.lock();
+				}
+				void Unlock()
+				{
+					lock_.unlock();
+				}
+
 			private:
+				std::mutex lock_;
 				std::vector<MemoryEventHandler *> event_handlers;
 			};
 
@@ -293,7 +344,7 @@ namespace archsim
 				virtual bool HandleSegFault(host_const_addr_t host_addr) override;
 
 				virtual MemoryTranslationModel &GetTranslationModel() override;
-				virtual uint32_t PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct abi::devices::AccessInfo &info) override;
+				virtual uint32_t PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct abi::devices::AccessInfo &info);
 
 			private:
 				MemoryTranslationModel *translation_model;
@@ -321,6 +372,8 @@ namespace archsim
 				guest_addr_t MapAnonymousRegion(guest_size_t size, RegionFlags prot) override;
 				bool RemapRegion(guest_addr_t addr, guest_size_t size) override;
 				bool UnmapRegion(guest_addr_t addr, guest_size_t size) override;
+				bool UnmapSubregion(guest_addr_t addr, guest_size_t size) override;
+
 				bool ProtectRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot) override;
 				bool GetRegionProtection(guest_addr_t addr, RegionFlags& prot) override;
 				void DumpRegions() override;
@@ -366,6 +419,8 @@ namespace archsim
 				bool ResolveGuestAddress(host_const_addr_t host_addr, guest_addr_t &guest_addr) override;
 
 				bool LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr) override;
+				bool LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion& regions) override;
+
 				bool UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr) override;
 
 				uint32_t Read(guest_addr_t addr, uint8_t *data, int size) override;
@@ -383,7 +438,10 @@ namespace archsim
 				uint32_t Write16(guest_addr_t addr, uint16_t data) override;
 				uint32_t Write32(guest_addr_t addr, uint32_t data) override;
 
-				virtual uint32_t PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct abi::devices::AccessInfo &info) override;
+				virtual uint32_t PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct abi::devices::AccessInfo &info) override;
+
+				bool MapRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot, std::string name) override;
+				guest_addr_t MapAnonymousRegion(guest_size_t size, RegionFlags prot) override;
 
 				MemoryTranslationModel &GetTranslationModel() override;
 				host_addr_t mem_base;
@@ -401,7 +459,7 @@ namespace archsim
 
 				inline host_addr_t GuestToHost(guest_addr_t addr) const
 				{
-					return (host_addr_t)((unsigned long)mem_base + (unsigned long)addr);
+					return (host_addr_t)((unsigned long)mem_base + (unsigned long)addr.Get());
 				}
 			};
 		}

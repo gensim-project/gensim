@@ -1,5 +1,7 @@
 archsim_add_sources(
 	gensim_decode_context.cpp
+
+	gensim_translate.cpp
 )
 
 IF("${ARCHSIM_SIMULATION_HOST}" STREQUAL "x86_64")

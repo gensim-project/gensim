@@ -49,7 +49,7 @@ TEST_F(ArchSimBlockJITTest, WriteRegFromStack)
 	Builder().streg(written_value, IROperand::const32(0));
 	Builder().ret();
 
-	CompileResult cr(true, 8, archsim::util::vbitset(8, 0xff));
+	CompileResult cr(true, 8, wutils::vbitset<>(8, 0xff));
 
 	auto fn = Lower(cr);
 	ASSERT_NE(nullptr, fn);

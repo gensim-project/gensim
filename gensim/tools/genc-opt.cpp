@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 
 
 	gensim::genc::InstStructBuilder isb;
-	ctx->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa));
+	ctx->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa, ctx->GetTypeManager()));
 
 	gensim::genc::ssa::io::ContextAssembler assembler;
 	assembler.SetTarget(ctx);

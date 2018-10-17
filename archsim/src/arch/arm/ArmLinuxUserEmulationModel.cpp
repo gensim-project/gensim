@@ -30,7 +30,7 @@ RegisterComponent(archsim::abi::EmulationModel, ArmLinuxUserEmulationModel, "arm
 
 ArmLinuxUserEmulationModel::ArmLinuxUserEmulationModel() : ArmLinuxUserEmulationModel(archsim::options::ArmOabi ? ABI_OABI : ABI_EABI) { }
 
-ArmLinuxUserEmulationModel::ArmLinuxUserEmulationModel(ArmLinuxABIVersion version) : LinuxUserEmulationModel("arm"), abi_version(version) { }
+ArmLinuxUserEmulationModel::ArmLinuxUserEmulationModel(ArmLinuxABIVersion version) : LinuxUserEmulationModel("arm", false, AuxVectorEntries("arm", 0x8197, 0)), abi_version(version) { }
 
 ArmLinuxUserEmulationModel::~ArmLinuxUserEmulationModel() { }
 
@@ -93,13 +93,13 @@ bool ArmLinuxUserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, Sign
 	LC_DEBUG1(LogEmulationModelArmLinux) << "Invoking Signal " << signum << ", Next PC = " << std::hex << next_pc << ", Target PC = " << std::hex << data->pc;
 
 	// Store the target PC, i.e. the address of the signal handler
-	GetMemoryModel().Poke(0xffff201c, (uint8_t *)&data->pc, 4);
+	GetMemoryModel().Poke(0xffff201c_ga, (uint8_t *)&data->pc, 4);
 
 	// Store the next PC after the signal handler to be executed
-	GetMemoryModel().Poke(0xffff205c, (uint8_t *)&next_pc, 4);
+	GetMemoryModel().Poke(0xffff205c_ga, (uint8_t *)&next_pc, 4);
 
 	// Write the PC of the signal dispatch helper into the CPU
-	GetMainThread()->SetPC(Address(0xffff2000));
+	GetMainThread()->SetPC(0xffff2000_ga);
 
 	return false;
 }
@@ -108,7 +108,7 @@ bool ArmLinuxUserEmulationModel::InstallKernelHelpers()
 {
 	LC_DEBUG1(LogEmulationModelArmLinux) << "Initialising ARM Kernel Helpers";
 
-	memory::guest_addr_t kernel_helper_region = 0xffff0000;
+	memory::guest_addr_t kernel_helper_region = 0xffff0000_ga;
 	GetMemoryModel().GetMappingManager()->MapRegion(kernel_helper_region, 0x4000, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[eabi]");
 
 	// TODO: (1) Improve this code sequence by unlocking the whole page, and writing it in a one'er.
@@ -116,50 +116,50 @@ bool ArmLinuxUserEmulationModel::InstallKernelHelpers()
 	//       (3) Load machine code from external file, to increase portability (e.g. use xcc to generate)
 
 	/* random data */
-	GetMemoryModel().Write32(0xffff0000, 0xbabecafe);
-	GetMemoryModel().Write32(0xffff0004, 0xdeadbabe);
-	GetMemoryModel().Write32(0xffff0008, 0xfeedc0de);
-	GetMemoryModel().Write32(0xffff000c, 0xcafedead);
+	GetMemoryModel().Write32(0xffff0000_ga, 0xbabecafe);
+	GetMemoryModel().Write32(0xffff0004_ga, 0xdeadbabe);
+	GetMemoryModel().Write32(0xffff0008_ga, 0xfeedc0de);
+	GetMemoryModel().Write32(0xffff000c_ga, 0xcafedead);
 
 	/* cmpxchg64 */
-	GetMemoryModel().Write32(0xffff0f60, 0xe92d4070);
-	GetMemoryModel().Write32(0xffff0f64, 0xe8900030);
-	GetMemoryModel().Write32(0xffff0f68, 0xe8914040);
-	GetMemoryModel().Write32(0xffff0f6c, 0xe8920003);
-	GetMemoryModel().Write32(0xffff0f70, 0xe0303004);
-	GetMemoryModel().Write32(0xffff0f74, 0x00313005);
-	GetMemoryModel().Write32(0xffff0f78, 0x08824040);
-	GetMemoryModel().Write32(0xffff0f7c, 0xe2730000);
-	GetMemoryModel().Write32(0xffff0f80, 0xe8bd8070);
-	AddSymbol(0xffff0f60, 36, "__aeabi_cmpxchg64", FunctionSymbol);
+	GetMemoryModel().Write32(0xffff0f60_ga, 0xe92d4070);
+	GetMemoryModel().Write32(0xffff0f64_ga, 0xe8900030);
+	GetMemoryModel().Write32(0xffff0f68_ga, 0xe8914040);
+	GetMemoryModel().Write32(0xffff0f6c_ga, 0xe8920003);
+	GetMemoryModel().Write32(0xffff0f70_ga, 0xe0303004);
+	GetMemoryModel().Write32(0xffff0f74_ga, 0x00313005);
+	GetMemoryModel().Write32(0xffff0f78_ga, 0x08824040);
+	GetMemoryModel().Write32(0xffff0f7c_ga, 0xe2730000);
+	GetMemoryModel().Write32(0xffff0f80_ga, 0xe8bd8070);
+	AddSymbol(0xffff0f60_ga, 36, "__aeabi_cmpxchg64", FunctionSymbol);
 
-	GetMemoryModel().Write32(0xffff0fa0, 0xe12fff1e); /* memory_barrier */
-	AddSymbol(0xffff0fa0, 4, "__aeabi_memory_barrier", FunctionSymbol);
+	GetMemoryModel().Write32(0xffff0fa0_ga, 0xe12fff1e); /* memory_barrier */
+	AddSymbol(0xffff0fa0_ga, 4, "__aeabi_memory_barrier", FunctionSymbol);
 
 	/* cmpxchg */
-	GetMemoryModel().Write32(0xffff0fc0, 0xe5923000);
-	GetMemoryModel().Write32(0xffff0fc4, 0xe0533000);
-	GetMemoryModel().Write32(0xffff0fc8, 0x05821000);
-	GetMemoryModel().Write32(0xffff0fcc, 0xe2730000);
-	GetMemoryModel().Write32(0xffff0fd0, 0xe12fff1e);
-	AddSymbol(0xffff0fc0, 20, "__aeabi_cmpxchg", FunctionSymbol);
+	GetMemoryModel().Write32(0xffff0fc0_ga, 0xe5923000);
+	GetMemoryModel().Write32(0xffff0fc4_ga, 0xe0533000);
+	GetMemoryModel().Write32(0xffff0fc8_ga, 0x05821000);
+	GetMemoryModel().Write32(0xffff0fcc_ga, 0xe2730000);
+	GetMemoryModel().Write32(0xffff0fd0_ga, 0xe12fff1e);
+	AddSymbol(0xffff0fc0_ga, 20, "__aeabi_cmpxchg", FunctionSymbol);
 
 	/* get_tls */
-	GetMemoryModel().Write32(0xffff0fe0, 0xe59f0008);
-	GetMemoryModel().Write32(0xffff0fe4, 0xe12fff1e);
-	AddSymbol(0xffff0fe0, 8, "__aeabi_get_tls", FunctionSymbol);
+	GetMemoryModel().Write32(0xffff0fe0_ga, 0xe59f0008);
+	GetMemoryModel().Write32(0xffff0fe4_ga, 0xe12fff1e);
+	AddSymbol(0xffff0fe0_ga, 8, "__aeabi_get_tls", FunctionSymbol);
 
 	/* version */
-	GetMemoryModel().Write32(0xffff1000, 4);
+	GetMemoryModel().Write32(0xffff1000_ga, 4);
 
 	/* signal handling */
-	GetMemoryModel().Write32(0xffff2000, 0xe58f0018);	// str r0, [pc, #24]		// Save r0
-	GetMemoryModel().Write32(0xffff2004, 0xe28f0018);	// add r0, pc, #24		// Utilise r0 to point to the reg save area
-	GetMemoryModel().Write32(0xffff2008, 0xe8807ffe);	// stm r0, {r1-r14}		// Store all registers into the save area
-	GetMemoryModel().Write32(0xffff200c, 0xe59f0008);	// ldr r0, [pc, #8]		// Load the address of the signal handler in to r0
-	GetMemoryModel().Write32(0xffff2010, 0xe12fff30);	// blx r0				// Branch to the signal handler
-	GetMemoryModel().Write32(0xffff2014, 0xe28f0004);	// add r0, pc, #4		// Load the address of the reg save area into r0
-	GetMemoryModel().Write32(0xffff2018, 0xe890ffff);	// ldm r0, {r0-r15}		// Restore all registers (including the PC)
+	GetMemoryModel().Write32(0xffff2000_ga, 0xe58f0018);	// str r0, [pc, #24]		// Save r0
+	GetMemoryModel().Write32(0xffff2004_ga, 0xe28f0018);	// add r0, pc, #24		// Utilise r0 to point to the reg save area
+	GetMemoryModel().Write32(0xffff2008_ga, 0xe8807ffe);	// stm r0, {r1-r14}		// Store all registers into the save area
+	GetMemoryModel().Write32(0xffff200c_ga, 0xe59f0008);	// ldr r0, [pc, #8]		// Load the address of the signal handler in to r0
+	GetMemoryModel().Write32(0xffff2010_ga, 0xe12fff30);	// blx r0				// Branch to the signal handler
+	GetMemoryModel().Write32(0xffff2014_ga, 0xe28f0004);	// add r0, pc, #4		// Load the address of the reg save area into r0
+	GetMemoryModel().Write32(0xffff2018_ga, 0xe890ffff);	// ldm r0, {r0-r15}		// Restore all registers (including the PC)
 
 	GetMemoryModel().GetMappingManager()->ProtectRegion(kernel_helper_region, 0x4000, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite | memory::RegFlagExecute));
 
@@ -172,7 +172,7 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsi
 		auto bank = thread->GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 		uint32_t* registers = (uint32_t*)bank;
 
-		archsim::abi::SyscallRequest request {0, thread};
+		archsim::abi::SyscallRequest request {0, thread, 0, 0, 0, 0, 0, 0};
 		if(IsOABI()) {
 			request.syscall = data & 0xfffff;
 		} else if(IsEABI()) {

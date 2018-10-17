@@ -33,7 +33,7 @@ extern "C" {
 		UNIMPLEMENTED;
 	}
 
-	uint8_t blkRead8(archsim::core::thread::ThreadInstance **thread_p, uint32_t address, uint32_t interface)
+	uint8_t blkRead8(archsim::core::thread::ThreadInstance **thread_p, uint64_t address, uint32_t interface)
 	{
 		auto *thread = *thread_p;
 		uint8_t data;
@@ -46,7 +46,7 @@ extern "C" {
 		return data;
 	}
 
-	uint16_t blkRead16(archsim::core::thread::ThreadInstance **thread_p, uint32_t address, uint32_t interface)
+	uint16_t blkRead16(archsim::core::thread::ThreadInstance **thread_p, uint64_t address, uint32_t interface)
 	{
 		auto *thread = *thread_p;
 		uint16_t data;
@@ -59,11 +59,23 @@ extern "C" {
 		return data;
 	}
 
-	uint32_t blkRead32(archsim::core::thread::ThreadInstance **thread_p, uint32_t address, uint32_t interface)
+	uint32_t blkRead32(archsim::core::thread::ThreadInstance **thread_p, uint64_t address, uint32_t interface)
 	{
 		auto *thread = *thread_p;
 		uint32_t data;
 		auto rval = thread->GetMemoryInterface(interface).Read32(Address(address), data);
+
+		if(rval != archsim::MemoryResult::OK) {
+			thread->TakeMemoryException(thread->GetMemoryInterface(interface), Address(address));
+		}
+
+		return data;
+	}
+	uint64_t blkRead64(archsim::core::thread::ThreadInstance **thread_p, uint64_t address, uint32_t interface)
+	{
+		auto *thread = *thread_p;
+		uint64_t data;
+		auto rval = thread->GetMemoryInterface(interface).Read64(Address(address), data);
 
 		if(rval != archsim::MemoryResult::OK) {
 			thread->TakeMemoryException(thread->GetMemoryInterface(interface), Address(address));

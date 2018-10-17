@@ -58,7 +58,7 @@ const std::set<SSABlock *> RegisterAllocationAnalysis::GetExitBlocks(const SSAFo
 	SuccessorAnalysis succs(&action);
 
 	std::set<SSABlock *> exit_blocks;
-	for (const auto& block : action.Blocks) {
+	for (const auto& block : action.GetBlocks()) {
 		if (succs.GetSuccessors(block).size() == 0) {
 			exit_blocks.insert(block);
 		}
