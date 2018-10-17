@@ -120,6 +120,11 @@ namespace archsim
 				llvm::Value *GetRegPtr(llvm::IRBuilder<> &builder, llvm::Value *offset, llvm::Type *type);
 
 				void ResetLiveRegisters(llvm::IRBuilder<> &builder);
+
+				void Finalize()
+				{
+					guest_reg_emitter_->Finalize();
+				}
 			private:
 				std::map<llvm::Type*, llvm::Value *> trace_slots_;
 
