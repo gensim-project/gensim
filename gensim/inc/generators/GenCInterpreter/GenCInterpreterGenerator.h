@@ -29,10 +29,23 @@ namespace gensim
 		class GenCInterpreterGenerator : public InterpretiveExecutionEngineGenerator
 		{
 		public:
+			enum class HelperPrototypeVariant {
+				INVALID,
+				DeclarationWithDefault,
+				DeclarationNoDefault,
+				SpecialisationWithTracing,
+				SpecialisationNoTracing
+			};
+
 			GenCInterpreterGenerator(GenerationManager &manager);
 
 			bool GenerateExecuteBodyFor(util::cppformatstream &str, const genc::ssa::SSAFormAction &action) const;
-			bool GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action, bool addTemplateDefaultValue) const;
+			bool GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action, HelperPrototypeVariant variant) const;
+			std::string GeneratePrototype(const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action, HelperPrototypeVariant variant) const;
+
+			bool Generate() const override;
+
+			bool RegisterHelpers(const gensim::isa::ISADescription &isa) const;
 		protected:
 			virtual bool GenerateExecutionForBehaviour(util::cppformatstream &, bool, std::string, const isa::ISADescription &) const override;
 			virtual bool GenerateExtraProcessorClassMembers(util::cppformatstream &stream) const override;

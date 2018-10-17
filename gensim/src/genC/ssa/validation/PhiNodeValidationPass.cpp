@@ -64,7 +64,7 @@ private:
 	std::vector<SSAPhiStatement*> GetPhiStatements(const SSAFormAction *action)
 	{
 		std::vector<SSAPhiStatement*> output;
-		for(auto block : action->Blocks) {
+		for(auto block : action->GetBlocks()) {
 			for(auto stmt : block->GetStatements()) {
 				if(dynamic_cast<SSAPhiStatement*>(stmt)) {
 					output.push_back((SSAPhiStatement*)stmt);

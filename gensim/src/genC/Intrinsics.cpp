@@ -201,14 +201,34 @@ static ssa::SSAStatement *BitcastIntrinsicEmitter(const IRIntrinsicAction *intri
 	SSACastStatement::CastType type;
 	SSACastStatement::CastOption option = SSACastStatement::Option_None;
 
+	SSAStatement *arg = call->Args[0]->EmitSSAForm(bldr);
+
 	if (call->TargetName == "bitcast_u32_float") {
 		from = IRTypes::UInt32;
 		to = IRTypes::Float;
 		type = SSACastStatement::Cast_Reinterpret;
+
+		if(arg->GetType().IsFloating()) {
+			UNIMPLEMENTED;
+		}
+		if(arg->GetType().SizeInBytes() < 4) {
+			arg = new SSACastStatement(&bldr.GetBlock(), IRTypes::UInt32, arg, SSACastStatement::Cast_ZeroExtend);
+		} else if(arg->GetType().SizeInBytes() > 4) {
+			arg = new SSACastStatement(&bldr.GetBlock(), IRTypes::UInt32, arg, SSACastStatement::Cast_Truncate);
+		}
+
 	} else if (call->TargetName == "bitcast_u64_double") {
 		from = IRTypes::UInt64;
 		to = IRTypes::Double;
 		type = SSACastStatement::Cast_Reinterpret;
+
+		if(arg->GetType().IsFloating()) {
+			UNIMPLEMENTED;
+		}
+		if(arg->GetType().SizeInBytes() < 8) {
+			arg = new SSACastStatement(&bldr.GetBlock(), IRTypes::UInt64, arg, SSACastStatement::Cast_ZeroExtend);
+		}
+
 	} else if (call->TargetName == "bitcast_float_u32") {
 		from = IRTypes::Float;
 		to = IRTypes::UInt32;
@@ -236,7 +256,6 @@ static ssa::SSAStatement *BitcastIntrinsicEmitter(const IRIntrinsicAction *intri
 		throw std::logic_error("Unsupported intrinsic bitcast '" + call->TargetName + "'");
 	}
 
-	SSAStatement *arg = call->Args[0]->EmitSSAForm(bldr);
 	auto stmt = new SSACastStatement(&bldr.GetBlock(), to, arg, type);
 	stmt->SetOption(option);
 	stmt->SetDiag(call->Diag());
@@ -286,6 +305,9 @@ void GenCContext::LoadIntrinsics()
 	AddIntrinsic("mem_write_32", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRTypes::UInt32)}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 	AddIntrinsic("mem_write_64", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRTypes::UInt64)}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 
+	AddIntrinsic("mem_lock", IRTypes::Void, {IRParam("interface", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemLock);
+	AddIntrinsic("mem_unlock", IRTypes::Void, {IRParam("interface", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemUnlock);
+
 //	AddIntrinsic("mem_read_8_user", IRTypes::Void, {IRParam("addr", wordtype), IRParam("value", IRType::Ref(IRTypes::UInt8))}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 //	AddIntrinsic("mem_read_16_user", IRTypes::Void, {IRParam("addr", wordtype), IRParam("value", IRType::Ref(IRTypes::UInt16))}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 //	AddIntrinsic("mem_read_32_user", IRTypes::Void, {IRParam("addr", wordtype), IRParam("value", IRType::Ref(IRTypes::UInt32))}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
@@ -332,13 +354,18 @@ void GenCContext::LoadIntrinsics()
 
 	// Carry + Flags Optimisation: TODO New GenSim flag-capturing operator stuff
 	AddIntrinsic("__builtin_adc", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Adc);
+	AddIntrinsic("__builtin_adc8_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt8), IRParam("rhs", IRTypes::UInt8), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Adc8WithFlags);
+	AddIntrinsic("__builtin_adc16_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt16), IRParam("rhs", IRTypes::UInt16), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Adc16WithFlags);
 	AddIntrinsic("__builtin_adc_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags);
 	AddIntrinsic("__builtin_sbc", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc);
 	AddIntrinsic("__builtin_sbc_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags);
+	AddIntrinsic("__builtin_sbc8_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt8), IRParam("rhs", IRTypes::UInt8), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc8WithFlags);
+	AddIntrinsic("__builtin_sbc16_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt16), IRParam("rhs", IRTypes::UInt16), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc16WithFlags);
+	AddIntrinsic("__builtin_sbc64_flags", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags);
 	AddIntrinsic("__builtin_adc64", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Adc64);
 	AddIntrinsic("__builtin_adc64_flags", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags);
 	AddIntrinsic("__builtin_sbc64", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc64);
-	AddIntrinsic("__builtin_sbc64_flags", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags);
+
 
 	// Wide multiplication: TODO support 128-bit types
 	AddIntrinsic("__builtin_umull", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_UMULL);

@@ -37,7 +37,7 @@ DominanceFrontierAnalysis::dominance_frontier_t DominanceFrontierAnalysis::GetDo
 	// just do it super dumb
 	SSAFormAction *action = n->Parent;
 
-	for(auto x : action->Blocks) {
+	for(auto x : action->GetBlocks()) {
 		if(!StrictlyDominates(dominance, n, x) && DominatesAPredecessor(dominance, n, x)) {
 			frontier.insert(x);
 		}

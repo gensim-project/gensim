@@ -21,6 +21,23 @@ using namespace captive::shared;
 // Therefore, we try to emit as few instructions as possible for frequent cases (such as read-modify-write
 // operations on a single register).
 
+static bool ModifierIsMergable(IRInstruction::IRInstructionType type)
+{
+	switch(type) {
+		case IRInstruction::ADD:
+		case IRInstruction::SUB:
+		case IRInstruction::OR:
+		case IRInstruction::AND:
+		case IRInstruction::XOR:
+		case IRInstruction::SHL:
+		case IRInstruction::SHR:
+		case IRInstruction::ROR:
+			return true;
+		default:
+			return false;
+	}
+}
+
 bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 {
 	const IROperand *offset = &insn->operands[0];
@@ -67,7 +84,7 @@ bool LowerReadReg::Lower(const captive::shared::IRInstruction *&insn)
 	// add $0x10, $0x0(REGSTATE_REG)
 	// mov $0x8(REGSTATE_REG), [v0]
 	unsigned reg_offset = insn->operands[0].value;
-	if(mod_insn->ir_block == insn->ir_block && store_insn->ir_block == insn->ir_block && store_insn->type == IRInstruction::WRITE_REG && store_insn->operands[1].value == reg_offset) {
+	if(mod_insn->ir_block == insn->ir_block && ModifierIsMergable(mod_insn->type) && store_insn->ir_block == insn->ir_block && store_insn->type == IRInstruction::WRITE_REG && store_insn->operands[1].value == reg_offset) {
 
 		const IROperand *my_target =     &insn->operands[1];
 		const IROperand *modify_source = &mod_insn->operands[0];

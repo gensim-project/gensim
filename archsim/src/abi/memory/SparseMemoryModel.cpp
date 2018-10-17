@@ -14,15 +14,6 @@
 
 #define ADDRESS_SPACE_SIZE	(0x100000000)
 
-#define PAGE_BITS			(12)
-#define PAGE_SIZE			((1) << (PAGE_BITS))
-#define PAGE_OFFSET_MASK	(PAGE_SIZE - (1))
-#define PAGE_BASE_MASK		(~PAGE_OFFSET_MASK)
-
-#define PAGE_INDEX(_addr)	((_addr) >> (PAGE_BITS))
-#define PAGE_BASE(_addr)	((_addr) & (PAGE_BASE_MASK))
-#define PAGE_OFFSET(_addr)	((_addr) & (PAGE_OFFSET_MASK))
-
 using namespace archsim::abi::memory;
 
 //#define FAST_SPARSE_TRANSLATION
@@ -139,21 +130,59 @@ bool SparseMemoryTranslationModel::EmitMemoryWrite(archsim::internal::translate:
 #endif
 #endif
 
-SparseMemoryModel::SparseMemoryModel() : _page_map(NULL)
+SparseMemoryModel::SparseMemoryModel() : prev_page_data_(nullptr)
 {
+	pages_remaining_ = 1024*1024;
 }
 
 SparseMemoryModel::~SparseMemoryModel()
 {
-	if (_page_map)
-		free(_page_map);
+
+}
+
+bool SparseMemoryModel::SynchroniseVMAProtection(GuestVMA& vma)
+{
+	return true;
+}
+
+bool SparseMemoryModel::LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr)
+{
+	if(guest_addr.GetPageIndex() != (guest_addr + guest_size - 1).GetPageIndex()) {
+		return false;
+	}
+
+	auto page = GetPage(guest_addr);
+	host_addr = page + guest_addr.GetPageOffset();
+	return true;
+}
+
+bool SparseMemoryModel::LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion& regions)
+{
+	std::vector<void*> ptrs;
+
+	// lock each page
+	guest_addr = guest_addr.PageBase();
+	for(Address addr = guest_addr; addr < (guest_addr + guest_size); addr += Address::PageSize) {
+		void *ptr;
+		if(!LockRegion(addr, Address::PageSize, ptr)) {
+			return false;
+		}
+
+		ptrs.push_back(ptr);
+	}
+
+	regions = LockedMemoryRegion(guest_addr, ptrs);
+	return true;
+}
+
+
+bool SparseMemoryModel::UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr)
+{
+	return false;
 }
 
 bool SparseMemoryModel::Initialise()
 {
-	_page_map = (void **)calloc(ADDRESS_SPACE_SIZE / PAGE_SIZE, sizeof(void *));
-	if (_page_map == NULL)
-		return false;
 
 #if CONFIG_LLVM
 	translation_model = new SparseMemoryTranslationModel(*this);
@@ -175,101 +204,131 @@ MemoryTranslationModel& SparseMemoryModel::GetTranslationModel()
 #endif
 }
 
-void SparseMemoryModel::SyncPageMap(GuestVMA &vma)
-{
-	uint32_t guest_addr = vma.base;
-	unsigned long host_addr = (unsigned long)vma.host_base;
-	while (guest_addr < vma.base + vma.size) {
-		_page_map[PAGE_INDEX(guest_addr)] = (void *)host_addr;
-
-		guest_addr += PAGE_SIZE;
-		host_addr += PAGE_SIZE;
-	}
-}
-
-void SparseMemoryModel::ErasePageMap(GuestVMA &vma)
-{
-	uint32_t guest_addr = vma.base;
-	while (guest_addr < vma.base + vma.size) {
-		_page_map[PAGE_INDEX(guest_addr)] = NULL;
-		guest_addr += PAGE_SIZE;
-	}
-}
-
 bool SparseMemoryModel::AllocateVMA(GuestVMA &vma)
 {
-	vma.host_base = mmap(NULL, vma.size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-
-	if (vma.host_base != MAP_FAILED) {
-		SyncPageMap(vma);
-		return true;
-	} else {
-		return false;
-	}
+	// HACK:
+	return true;
 }
 
 bool SparseMemoryModel::DeallocateVMA(GuestVMA &vma)
 {
-	munmap(vma.host_base, vma.size);
-	ErasePageMap(vma);
 
 	return true;
 }
 
 bool SparseMemoryModel::ResizeVMA(GuestVMA &vma, guest_size_t new_size)
 {
-	void *addr = mremap(vma.host_base, vma.size, new_size, MREMAP_MAYMOVE);
-	if (addr == MAP_FAILED)
-		return false;
-
-	vma.host_base = addr;
+//	vma.host_base = addr;
 	vma.size = new_size;
 
-	SyncPageMap(vma);
 	return true;
 }
 
-bool SparseMemoryModel::SynchroniseVMAProtection(GuestVMA &vma)
+char* SparseMemoryModel::GetPageUncached(Address addr)
 {
-	return true;
+	char *ptr = nullptr;
+
+	if(!data_.count(addr.PageBase())) {
+
+		if(pages_remaining_ == 0) {
+			throw std::bad_alloc();
+		}
+		pages_remaining_--;
+		ptr = (char*)mmap(0, 4096, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+		if(ptr == MAP_FAILED) {
+			throw std::bad_alloc();
+		}
+
+		bzero(ptr, 4096);
+
+		data_[addr.PageBase()] = ptr;
+	} else {
+		ptr = data_.at(addr.PageBase());
+	}
+
+	return ptr;
+}
+
+
+char* SparseMemoryModel::GetPage(Address addr)
+{
+	std::lock_guard<std::mutex> lg(map_lock_);
+
+	char **ptr_ptr;
+	if(cache_.try_cache_fetch(addr.GetPageIndex(), ptr_ptr) == archsim::util::CACHE_MISS) {
+		*ptr_ptr = GetPageUncached(addr.PageBase());
+	}
+	return *ptr_ptr;
 }
 
 uint32_t SparseMemoryModel::Read(guest_addr_t addr, uint8_t *data, int size)
 {
-	RaiseEvent(MemoryModel::MemEventRead, addr, size);
+//	RaiseEvent(MemoryModel::MemEventRead, addr, size);
+	if((addr + size - 1).PageBase() != addr.PageBase()) {
+		for(int i = 0; i < size; ++i) {
+			auto result = Read(addr + i, data + i, 1);
+			if(result) {
+				return result;
+			}
+		}
+		return 0;
+	}
 
-	void *host = (void *)((unsigned long)_page_map[PAGE_INDEX(addr)] + (unsigned long)PAGE_OFFSET(addr));
-	memcpy(data, host, size);
+	RegionFlags flags;
+	if(GetMappingManager()->GetRegionProtection(addr, flags) && (flags & RegFlagRead)) {
+		auto offset = addr.GetPageOffset();
 
-	return 0;
+		memcpy(data, GetPage(addr) + offset, size);
+
+		return 0;
+	} else {
+		return 1;
+	}
 }
 
 uint32_t SparseMemoryModel::Fetch(guest_addr_t addr, uint8_t *data, int size)
 {
-	RaiseEvent(MemoryModel::MemEventFetch, addr, size);
+//	RaiseEvent(MemoryModel::MemEventFetch, addr, size);
+	if((addr + size).PageBase() != addr.PageBase()) {
+		UNIMPLEMENTED;
+	}
 
-	void *host = (void *)((unsigned long)_page_map[PAGE_INDEX(addr)] + (unsigned long)PAGE_OFFSET(addr));
-	memcpy(data, host, size);
+	auto &page = data_[addr.PageBase()];
+	auto offset = addr.GetPageOffset();
+
+	memcpy(data, GetPage(addr) + offset, size);
 
 	return 0;
 }
 
 uint32_t SparseMemoryModel::Write(guest_addr_t addr, uint8_t *data, int size)
 {
-	RaiseEvent(MemoryModel::MemEventWrite, addr, size);
+//	RaiseEvent(MemoryModel::MemEventWrite, addr, size);
+	if((addr + size - 1).PageBase() != addr.PageBase()) {
+		for(int i = 0; i < size; ++i) {
+			auto result = Write(addr + i, data + i, 1);
+			if(result) {
+				return result;
+			}
+		}
+		return 0;
+	}
 
-	void *host = (void *)((unsigned long)_page_map[PAGE_INDEX(addr)] + (unsigned long)PAGE_OFFSET(addr));
-	memcpy(host, data, size);
+	auto page = GetPage(addr);
+	auto offset = addr.GetPageOffset();
 
+	memcpy(page + offset, data, size);
 	return 0;
 }
 
 uint32_t SparseMemoryModel::Peek(guest_addr_t addr, uint8_t *data, int size)
 {
+	UNIMPLEMENTED;
 	return 1;
 }
 
 uint32_t SparseMemoryModel::Poke(guest_addr_t addr, uint8_t *data, int size)
 {
-	return 1;
+	Write(addr, data, size);
+	return 0;
 }

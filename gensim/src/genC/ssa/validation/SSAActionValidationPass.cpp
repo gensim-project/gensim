@@ -23,7 +23,7 @@ bool SSAValidationManager::Run(SSAFormAction* action, DiagnosticContext &ctx)
 		}
 	}
 
-	for(auto block : action->Blocks) {
+	for(auto block : action->GetBlocks()) {
 		for(auto stmt : block->GetStatements()) {
 			if(!Run(stmt, ctx)) {
 				return false;
