@@ -165,7 +165,9 @@ execute(extr)
 		uint64 v = rm >> inst.imms;
 		
 		if (inst.sf) {
-			v |= rn << (64 - inst.imms);
+			if (inst.imms > 0) {
+				v |= rn << (64 - inst.imms);
+			}
 		} else {
 			v |= rn << (32 - inst.imms);
 		}
@@ -490,6 +492,10 @@ execute(sys)
 			
 			uint64 addr = read_gpr64(inst.rt);
 			mem_write_64(Data, addr, 0);
+		} else if (inst.op1 == 0 && (inst.crm == 1 || inst.crm == 5) && inst.op2 == 0) {
+			invalidate_translations();
+		} else if (inst.op1 == 3 && inst.crm == 5 && inst.op2 == 1) {
+			invalidate_translation(read_gpr64(inst.rt));
 		}
 	} else if (inst.crn == 8) {
 		// TLBI
@@ -2155,7 +2161,25 @@ execute(clz)
 
 execute(cls)
 {
-	not_implemented();
+	if (inst.sf) {
+		uint64 rn = read_gpr64(inst.rn);
+		
+		if (rn == 0) {
+			write_gpr64(inst.rd, 63);
+		} else {
+			rn = (rn >> 1) ^ (rn & (~(uint64)0x8000000000000000));
+			write_gpr64(inst.rd, ((uint64)__builtin_clz64(rn))-(uint64)1);
+		}
+	} else {
+		uint32 rn = read_gpr32(inst.rn);
+		
+		if (rn == 0) {
+			write_gpr32(inst.rd, 31);
+		} else {
+			rn = (rn >> 1) ^ (rn & (~(uint32)0x80000000));
+			write_gpr32(inst.rd, ((uint32)__builtin_clz(rn))-(uint32)1);
+		}
+	}
 }
 
 // ----------------------------------------------------------------------------

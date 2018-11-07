@@ -184,7 +184,32 @@ decode(SIMD_LS_MULT_PI)
 
 decode(SIMD_SHIFT_IMM)
 {
-	shift_amount = 128 - ((immh << 3) | immb);
+	if (SCALAR) {
+		shift_amount = ((immh << 3) | immb) - 64;
+	} else {
+		if (immh == 1 && Q == 0) {				// 8B
+			arrangement = 0;
+			shift_amount = ((immh << 3) | immb) - 8;
+		} else if (immh == 1 && Q == 1) {		// 16B
+			arrangement = 1;
+			shift_amount = ((immh << 3) | immb) - 8;
+		} else if ((immh & 0xe) == 2 && Q == 0) {	// 4H
+			arrangement = 2;
+			shift_amount = ((immh << 3) | immb) - 16;
+		} else if ((immh & 0xe) == 2 && Q == 1) {	// 8H
+			arrangement = 3;
+			shift_amount = ((immh << 3) | immb) - 16;
+		} else if ((immh & 0xc) == 4 && Q == 0) {	// 2S
+			arrangement = 4;
+			shift_amount = ((immh << 3) | immb) - 32;
+		} else if ((immh & 0xc) == 4 && Q == 1) {	// 4S
+			arrangement = 5;
+			shift_amount = ((immh << 3) | immb) - 32;
+		} else if ((immh & 0x8) == 8 && Q == 1) {	// 2D
+			arrangement = 6;
+			shift_amount = ((immh << 3) | immb) - 64;
+		}
+	}
 }
 
 decode(SIMD_MOD_IMM)
