@@ -487,6 +487,10 @@ namespace gensim
 				std::string GetFixedValue() const
 				{
 					const SSACastStatement &Statement = static_cast<const SSACastStatement &> (this->Statement);
+
+					// HACK HACK HACK
+					if (Statement.GetType().VectorWidth > 1) return Factory.GetOrCreate(Statement.Expr())->GetFixedValue() ;
+
 					std::stringstream str;
 
 					str << "((" << Statement.GetType().GetCType() << ")" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ")";
@@ -969,21 +973,25 @@ namespace gensim
 					uint32_t stride = bank_descriptor->GetRegisterStride();
 					uint32_t register_width = bank_descriptor->GetRegisterWidth();
 
-					output << "if (TRACE) {";
-					output << "emitter.trace(dbt::el::TraceEvent::STORE_REGISTER,"
-					       << "emitter.const_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
-					       << operand_for_node(*Value) << ","
-					       << "emitter.const_u8(" << register_width << ")"
-					       << ");";
-					output << "}";
-
 					if (rd.RegNum()->IsFixed()) {
+						output << "if (TRACE) {";
+						output << "emitter.trace(dbt::el::TraceEvent::STORE_REGISTER,"
+						       << "emitter.const_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
+						       << operand_for_node(*Value) << ","
+						       << "emitter.const_u8(" << register_width << ")"
+						       << ");";
+						output << "}";
+
 						output << "emitter.store_register("
 						       << "emitter.const_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
 						       << operand_for_node(*Value) << ");\n";
 						return true;
 					} else {
-						assert(false);
+						output << "{";
+						output << "auto mulp = emitter.mul(emitter.const_u32(" << stride << "), " << operand_for_node(*RegNum) << ");";
+						output << "auto add = emitter.add(emitter.const_u32(" << offset << "), mulp);";
+						output << "emitter.store_register(add, " << operand_for_node(*Value) << ");\n";
+						output << "}";
 					}
 
 					return true;
@@ -998,12 +1006,24 @@ namespace gensim
 					uint32_t stride = bank_descriptor->GetRegisterStride();
 					uint32_t register_width = bank_descriptor->GetRegisterWidth();
 
-					output << "auto " << Statement.GetName() << " = ";
-
 					if (rd.RegNum()->IsFixed()) {
-						output << "emitter.load_register(emitter.const_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))), " << type_for_statement(Statement) << ");\n";
+						output << "auto " << Statement.GetName() << " = emitter.load_register(emitter.const_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))), " << type_for_statement(Statement) << ");\n";
+
+						output << "if (TRACE) {";
+						output << "emitter.trace(dbt::el::TraceEvent::LOAD_REGISTER, "
+						       << "emitter.const_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
+						       << operand_for_stmt(Statement) << ","
+						       << "emitter.const_u8(" << register_width << ")"
+						       << ");";
+						output << "}";
 					} else {
-						assert(false);
+						output << "dbt::el::Value *" << Statement.GetName() << ";";
+
+						output << "{";
+						output << "auto mulp = emitter.mul(emitter.const_u32(" << stride << "), " << operand_for_node(*RegNum) << ");";
+						output << "auto add = emitter.add(emitter.const_u32(" << offset << "), mulp);";
+						output << Statement.GetName() << " = emitter.load_register(add, " << type_for_statement(Statement) << ");\n";
+						output << "}";
 					}
 
 #ifdef REGISTER_ALLOCATION_HINTS
@@ -1011,14 +1031,6 @@ namespace gensim
 						output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
 					}
 #endif
-
-					output << "if (TRACE) {";
-					output << "emitter.trace(dbt::el::TraceEvent::LOAD_REGISTER, "
-					       << "emitter.const_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
-					       << operand_for_stmt(Statement) << ","
-					       << "emitter.const_u8(" << register_width << ")"
-					       << ");";
-					output << "}";
 
 					return true;
 				}

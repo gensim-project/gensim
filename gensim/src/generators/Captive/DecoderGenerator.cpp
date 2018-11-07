@@ -66,8 +66,7 @@ namespace gensim
 				{
 					const arch::ArchDescription &arch = Manager.GetArch();
 
-					str << "#ifndef __" << arch.Name << "_DECODE_H__\n";
-					str << "#define __" << arch.Name << "_DECODE_H__\n";
+					str << "#pragma once\n";
 
 					str << "#include <decode.h>\n";
 
@@ -86,8 +85,8 @@ namespace gensim
 					str << arch.Name << "_opcodes opcode;";
 					str << "uint32_t ir;"; // XXX HACK
 
-					str << "bool decode(" << arch.Name << "_isa_modes isa_mode, uint64_t insn_pc, const uint8_t *ptr);";
-					str << "static JumpInfo get_jump_info(const " << ClassNameForDecoder() << " *insn);";
+					str << "bool decode(uint32_t isa_mode, uint64_t insn_pc, const uint8_t *ptr) override;";
+					str << "JumpInfo get_jump_info() override;";
 
 					str << "private:\n";
 
@@ -182,8 +181,6 @@ namespace gensim
 					str << "}";
 					str << "}";
 					str << "}";
-
-					str << "#endif\n";
 
 					return true;
 				}
@@ -350,7 +347,7 @@ namespace gensim
 					str << "#include <" << arch.Name << "-decode.h>\n";
 					str << "using namespace captive::arch::" << arch.Name << ";";
 
-					str << "bool " << ClassNameForDecoder() << "::decode(" << arch.Name << "_isa_modes isa_mode, uint64_t insn_pc, const uint8_t *ptr)";
+					str << "bool " << ClassNameForDecoder() << "::decode(uint32_t isa_mode, uint64_t insn_pc, const uint8_t *ptr)";
 					str << "{";
 					str << "opcode = " << arch.Name << "_unknown;";
 					str << "pc = insn_pc;";
@@ -359,7 +356,7 @@ namespace gensim
 					str << "is_predicated = false;";
 
 					str << "bool result = false;";
-					str << "switch (isa_mode) {";
+					str << "switch ((" << arch.Name << "_isa_modes)isa_mode) {";
 					for (auto tree : decode_trees) {
 						str << "case " << EnumElementForISA(*tree.first) << ": ";
 						str << "result = decode_" << tree.first->ISAName << "(ir);";
@@ -376,10 +373,10 @@ namespace gensim
 
 					str << "}";
 
-					str << "captive::arch::JumpInfo " << ClassNameForDecoder() << "::get_jump_info(const " << ClassNameForDecoder() << "* insn)";
+					str << "captive::arch::JumpInfo " << ClassNameForDecoder() << "::get_jump_info()";
 					str << "{";
 					str << "JumpInfo info; info.type = captive::arch::JumpInfo::NONE; info.target = 0;";
-					str << "switch (insn->opcode) {";
+					str << "switch (opcode) {";
 
 					for (auto isa : arch.ISAs) {
 						for (auto insn : isa->Instructions) {
@@ -389,10 +386,10 @@ namespace gensim
 								str << "info.type = ";
 								if (insn.second->FixedJump) {
 									str << "captive::arch::JumpInfo::DIRECT;";
-									str << "info.target = insn->pc + ((" << ClassNameForFormatDecoder(*insn.second->Format) << " *)insn)->" << insn.second->FixedJumpField << ";";
+									str << "info.target = pc + ((" << ClassNameForFormatDecoder(*insn.second->Format) << " *)this)->" << insn.second->FixedJumpField << ";";
 								} else if (insn.second->FixedJumpPred) {
 									str << "captive::arch::JumpInfo::DIRECT_PREDICATED;";
-									str << "info.target = insn->pc + ((" << ClassNameForFormatDecoder(*insn.second->Format) << " *)insn)->" << insn.second->FixedJumpField << ";";
+									str << "info.target = pc + ((" << ClassNameForFormatDecoder(*insn.second->Format) << " *)this)->" << insn.second->FixedJumpField << ";";
 								} else {
 									str << "captive::arch::JumpInfo::INDIRECT;";
 								}
