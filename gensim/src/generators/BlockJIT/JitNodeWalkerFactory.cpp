@@ -1040,7 +1040,7 @@ namespace gensim
 							output << "UNIMPLEMENTED; // enterusermode\n";
 //							output << "builder.call(IROperand::func((void*)cpuEnterUserMode));";
 							break;
-							
+
 						case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatAbs:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";

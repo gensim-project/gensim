@@ -642,7 +642,7 @@ namespace gensim
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
 							output << "if (emit_trace_calls_) {";
-							output << "trace_store_dev("
+							output << "trace_store_device("
 							       << operand_for_node(*arg0)
 							       << ", "
 							       << operand_for_node(*arg1)
@@ -666,7 +666,7 @@ namespace gensim
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_TriggerIRQ:
-							output << "call0(__captive_builtin_trigger_irq);\n";
+							output << "call0((void *)&__captive___builtin_trigger_irq, gnode_type::voidtype());\n";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
@@ -679,23 +679,20 @@ namespace gensim
 
 						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
 							output << "auto " << Statement.GetName() << " = ";
-							output << "call1(__captive_builtin_popcnt32, " << operand_for_node(*arg0) << ");\n";
+							output << "call1((void *)&__captive___builtin_popcnt32, gnode_type::u8type(), " << operand_for_node(*arg0) << ");\n";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
-							output << "auto " << Statement.GetName() << " = call1(__captive__builtin_bswap32, " << operand_for_node(*arg0) << ");";
+							output << "auto " << Statement.GetName() << " = call1((void *)&__captive___builtin_bswap32, gnode_type::u32type(), " << operand_for_node(*arg0) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
-							output << "auto " << Statement.GetName() << " = call1(__captive__builtin_bswap64, " << operand_for_node(*arg0) << ");";
+							output << "auto " << Statement.GetName() << " = call1((void *)&__captive___builtin_bswap64, gnode_type::u64type(), " << operand_for_node(*arg0) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatAbs:
-							output << "raise(constant_u8(0));";
-							break;
-
 						case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
-							output << "raise(constant_u8(0));";
+							output << "auto " << Statement.GetName() << " = abs(" << operand_for_node(*arg0) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_DoubleIsQnan:
@@ -714,11 +711,11 @@ namespace gensim
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
-							output << "raise(constant_u8(0));";
+							output << "call1((void *)&__captive___builtin_set_rounding_mode, gnode_type::voidtype(), " << operand_for_node(*arg0) << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
-							output << "raise(constant_u8(0));";
+							output << "auto " << Statement.GetName() << " = call0((void *)&__captive___builtin_get_rounding_mode, gnode_type::u8type());";
 							break;
 
 						default:
@@ -1234,15 +1231,15 @@ namespace gensim
 				bool EmitDynamicCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
 					const SSAVariableReadStatement &Statement = static_cast<const SSAVariableReadStatement &> (this->Statement);
-					
+
 					bool is_global = Statement.Target()->HasDynamicUses();
-					
+
 					if (is_global) {
 						output << "auto " << Statement.GetName() << " = load_global(DV_" << Statement.Target()->GetName() << ");";
 					} else {
 						output << "auto " << Statement.GetName() << " = load_local(DV_" << Statement.Target()->GetName() << ");";
 					}
-				
+
 					return true;
 				}
 
@@ -1270,11 +1267,11 @@ namespace gensim
 
 					if (Statement.Parent->Parent->HasDynamicDominatedReads(&Statement)) {
 						bool is_global = Statement.Target()->HasDynamicUses();
-						
+
 						if (is_global) {
-							output << "store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_node(*expr) << ");";
-						} else {
 							output << "store_global(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_node(*expr) << ");";
+						} else {
+							output << "store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_node(*expr) << ");";
 						}
 					}
 
@@ -1287,14 +1284,14 @@ namespace gensim
 
 					SSANodeWalker *value_node = Factory.GetOrCreate(Statement.Expr());
 
-					bool is_global = Statement.Target()->HasDynamicUses();					
+					bool is_global = Statement.Target()->HasDynamicUses();
 					output << "store_";
 					if (is_global) {
 						output << "global(";
 					} else {
 						output << "local(";
 					}
-					
+
 					if (Statement.Target()->GetType().SizeInBytes() > value_node->Statement.GetType().SizeInBytes()) {
 						output << operand_for_symbol(*Statement.Target()) << ", zero_extend(" << operand_for_node(*value_node) << ", " << type_for_symbol(*Statement.Target()) << "));";
 					} else if (Statement.Target()->GetType().SizeInBytes() < value_node->Statement.GetType().SizeInBytes()) {
@@ -1351,7 +1348,7 @@ namespace gensim
 					} else {
 						output << "gnode_type::voidtype()";
 					}
-					
+
 					for (unsigned argIndex = 0; argIndex < Statement.ArgCount(); argIndex++) {
 						auto arg = dynamic_cast<const SSAStatement *> (Statement.Arg(argIndex));
 						assert(arg);
@@ -1562,7 +1559,7 @@ namespace gensim
 					       << ");";
 
 					bool is_global = target->HasDynamicUses();
-					
+
 					if (is_global) {
 						output << "store_global(" << operand_for_symbol(*target) << ", tmp);";
 					} else {

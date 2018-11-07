@@ -55,23 +55,36 @@ namespace gensim
 				bool Generate() const override
 				{
 					const arch::ArchDescription &arch = Manager.GetArch();
-					
+
 					util::cppformatstream dbt_glue_str;
 					dbt_glue_str << "#pragma once\n";
+					dbt_glue_str << "#include <jit/dbt.h>\n";
+					dbt_glue_str << "#include <dbt/define.h>\n";
+					dbt_glue_str << "#include <dbt/gen/generator.h>\n";
+					dbt_glue_str << "#include <aarch64-decode.h>\n";
+					dbt_glue_str << "#include <aarch64-jit3.h>\n";
+
 					dbt_glue_str << "namespace captive {";
 					dbt_glue_str << "namespace arch {";
 					dbt_glue_str << "namespace " << arch.Name << " {";
-					
-					dbt_glue_str << "template<bool _emit_trace_calls>\n";
+
+					dbt_glue_str << "template<bool emit_trace_calls_>\n";
 					dbt_glue_str << "class aarch64_dbt : public captive::arch::jit::DBT\n";
 					dbt_glue_str << "{";
 					dbt_glue_str << "public:\n";
+
+					dbt_glue_str << "bool generate_instruction(dbt::support& support, dbt::gen::block_context& block_context, const Decode* decoded_instruction) override";
+					dbt_glue_str << "{";
+					dbt_glue_str << "generator_dispatcher<emit_trace_calls_> dispatcher;";
+					dbt_glue_str << "return dispatcher.generate_instruction(support, block_context, *(aarch64_decode *) decoded_instruction);";
+					dbt_glue_str << "}";
+
 					dbt_glue_str << "};";
-					
+
 					dbt_glue_str << "}";
 					dbt_glue_str << "}";
 					dbt_glue_str << "}";
-					
+
 					WriteOutputFile(Manager.GetArch().Name + "-dbt.h", dbt_glue_str);
 
 					util::cppformatstream header_str;
@@ -81,11 +94,11 @@ namespace gensim
 					if (!GenerateJITHeader(header_str)) {
 						return false;
 					}
-					
+
 					if (!GenerateJITSource(source_str)) {
 						return false;
 					}
-					
+
 					WriteOutputFile(Manager.GetArch().Name + "-jit3.h", header_str);
 					WriteOutputFile(Manager.GetArch().Name + "-jit3.cpp", source_str);
 
@@ -96,11 +109,11 @@ namespace gensim
 							if (!GenerateJITChunkPrologue(insn_str)) {
 								return false;
 							}
-							
+
 							if (!GenerateJITFunction(insn_str, *isa, *insn.second)) {
 								return false;
 							}
-							
+
 							bool generate_predicate_generator = isa->GetDefaultPredicated();
 
 							if (!generate_predicate_generator && insn.second->Format->HasAttribute("predicated")) {
@@ -112,12 +125,12 @@ namespace gensim
 							if (generate_predicate_generator) {
 								GeneratePredicateFunction(insn_str, *isa, *insn.second->Format, *insn.second);
 							}
-							
+
 							if (!GenerateJITChunkEpilogue(insn_str)) {
 								return false;
 							}
-							
-							std::string filename = Manager.GetArch().Name + "-jit3-" + isa->ISAName + "-" + insn.first + ".cpp";							
+
+							std::string filename = Manager.GetArch().Name + "-jit3-" + isa->ISAName + "-" + insn.first + ".cpp";
 							WriteOutputFile(filename, insn_str);
 						}
 					}
@@ -226,13 +239,13 @@ namespace gensim
 
 						for (auto insn : isa->Instructions) {
 							//str << "bool translate_" << isa->ISAName << "_" << insn.second->Name << "(const " << ClassNameForFormatDecoder(*insn.second->Format) << "& insn, dbt::gen::generator_context& context);";
-							
+
 							str << "template<bool emit_trace_calls_>\n";
 							str << "class " << isa->ISAName << "_" << insn.second->Name << "_generator : public dbt::gen::generator {";
 							str << "public:\n";
-							str << isa->ISAName << "_" << insn.second->Name << "_generator(dbt::support& support, dbt::gen::block *block) : generator(support, block) { }";
+							str << isa->ISAName << "_" << insn.second->Name << "_generator(dbt::support& support, dbt::gen::block_context& block_context) : generator(support, block_context) { }";
 							str << "bool generate(const " << ClassNameForFormatDecoder(*(insn.second->Format)) << "&);";
-							
+
 							bool generate_predicate_generator = isa->GetDefaultPredicated();
 
 							if (!generate_predicate_generator && insn.second->Format->HasAttribute("predicated")) {
@@ -245,16 +258,16 @@ namespace gensim
 								str << "private:\n";
 								str << "dbt::gen::gvar *generate_predicate(const " << ClassNameForFormatDecoder(*(insn.second->Format)) << "&);";
 							}
-							
+
 							str << "};";
 						}
 					}
-					
+
 					str << "template<bool emit_trace_calls_>\n";
 					str << "class generator_dispatcher {\n";
 					str << "public:\n";
-					str << "bool generate_instruction(dbt::support& support, dbt::gen::block *block, " << ClassNameForDecoder() << "& instruction) {";
-					
+					str << "bool generate_instruction(dbt::support& support, dbt::gen::block_context& block_context, " << ClassNameForDecoder() << "& instruction) {";
+
 					str << "switch (instruction.opcode) {";
 
 					for (auto isa : arch.ISAs) {
@@ -262,7 +275,7 @@ namespace gensim
 							str << "case " << ClassNameForDecoder() << "::" << EnumElementForInstruction(*insn.second) << ":\n";
 							str << "{";
 							//str << "return translate_" << isa->ISAName << "_" << insn.second->Name << "((const " << ClassNameForFormatDecoder(*insn.second->Format) << "&)insn, emitter);";
-							str << isa->ISAName << "_" << insn.second->Name << "_generator g(support, block);";
+							str << isa->ISAName << "_" << insn.second->Name << "_generator<emit_trace_calls_> g(support, block_context);";
 							str << "return g.generate((" << ClassNameForFormatDecoder(*(insn.second->Format)) << "&)instruction);";
 							str << "}";
 						}
@@ -270,14 +283,14 @@ namespace gensim
 
 					str << "case " << ClassNameForDecoder() << "::" << arch.Name << "_unknown: ";
 					str << "{";
-					str << "dbt::gen::generator g(support, block);";
-					str << "g.call0(__captive_builtin_undefined_instruction, dbt::gen::gnode_type::voidtype());";
+					str << "dbt::gen::generator g(support, block_context);";
+					str << "g.call0(&__captive_builtin_undefined_instruction, dbt::gen::gnode_type::voidtype());";
 					str << "return true;";
 					str << "}";
 					str << "default: return false;";
 					str << "}";
 					str << "}";
-					
+
 					str << "};";
 
 					str << "}";
@@ -291,7 +304,7 @@ namespace gensim
 				{
 					const arch::ArchDescription &arch = Manager.GetArch();
 					str << "#include <" << arch.Name << "-jit3.h>\n";
-					
+
 
 					return true;
 				}
@@ -397,6 +410,9 @@ namespace gensim
 					src_stream << "	return true;"
 					           << "}";
 
+					src_stream << "template class " << isa.ISAName << "_" << insn.Name << "_generator<false>;";
+					src_stream << "template class " << isa.ISAName << "_" << insn.Name << "_generator<true>;";
+
 					return true;
 				}
 
@@ -417,14 +433,14 @@ namespace gensim
 							continue;
 						}
 						src_stream << sym->GetType().GetCType() << " CV_" << sym->GetName() << ";\n";
-						
+
 						bool is_global = sym->HasDynamicUses();
-						
+
 						if (is_global) {
 							src_stream << "auto DV_" << sym->GetName() << " = create_global(gnode_type::" << sym->GetType().GetUnifiedType() << "type());";
 						} else {
 							src_stream << "auto DV_" << sym->GetName() << " = create_local(gnode_type::" << sym->GetType().GetUnifiedType() << "type());";
-						}						
+						}
 					}
 
 					src_stream << "goto fixed_block_" << action.EntryBlock->GetName() << ";\n";
