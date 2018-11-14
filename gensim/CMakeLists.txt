@@ -38,4 +38,4 @@ gensim_tool(genc-opt)
 
 
 # Also include tests
-ADD_SUBDIRECTORY(tests)
+#ADD_SUBDIRECTORY(tests)

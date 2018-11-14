@@ -2,11 +2,78 @@
 
 #include "arch/arm/ArmDoomLinuxUserEmulationModel.h"
 #include "abi/devices/gfx/VirtualScreen.h"
+#include "abi/devices/generic/Keyboard.h"
 #include "util/ComponentManager.h"
 
 using namespace archsim::arch::arm;
+using archsim::Address;
 
 RegisterComponent(archsim::abi::EmulationModel, ArmDoomLinuxUserEmulationModel, "arm-user-doom", "ARM Linux user emulation model");
+
+
+class DoomKeyboard : public generic::Keyboard
+{
+public:
+	DoomKeyboard(archsim::abi::memory::MemoryModel *mem_model, archsim::Address base_addr) : mem_(mem_model), base_addr_(base_addr) {}
+	virtual ~DoomKeyboard()
+	{
+
+	}
+
+	void KeyDown(uint32_t keycode) override
+	{
+		uint32_t ready;
+
+		PushEntry(keycode);
+	}
+
+	void KeyUp(uint32_t keycode) override
+	{
+		uint32_t ready;
+
+		// convert keycode to keyup code
+		keycode |= 0xf000;
+
+		PushEntry(keycode);
+	}
+
+	void PushEntry(uint32_t keycode)
+	{
+		Address writer_ptr_addr = base_addr_;
+		Address reader_ptr_addr = base_addr_ + 4;
+		Address buffer_addr = base_addr_ + 8;
+
+		uint32_t writer_ptr, reader_ptr;
+
+		mem_->Read32(writer_ptr_addr, writer_ptr);
+		mem_->Read32(reader_ptr_addr, reader_ptr);
+		mem_->Write32(buffer_addr + (writer_ptr * 4), keycode);
+
+//		printf(" ** Archsim writing keycode to %u\n", writer_ptr);
+		writer_ptr += 1;
+		writer_ptr %= kEntryCount;
+//		printf(" ** Writer ptr now %u\n", writer_ptr);
+
+		mem_->Write32(writer_ptr_addr, writer_ptr);
+	}
+
+	void Initialise()
+	{
+		Address writer_ptr_addr = base_addr_;
+		Address reader_ptr_addr = base_addr_ + 4;
+		Address buffer_addr = base_addr_ + 8;
+
+		mem_->Write32(writer_ptr_addr, 1);
+		mem_->Write32(reader_ptr_addr, 0);
+	}
+
+private:
+	archsim::abi::memory::MemoryModel *mem_;
+	archsim::Address base_addr_;
+
+	static const uint32_t kEntryCount = 64;
+};
+
 
 bool ArmDoomLinuxUserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 {
@@ -23,9 +90,17 @@ bool ArmDoomLinuxUserEmulationModel::Initialise(System& system, uarch::uArch& ua
 	auto screen = screen_man->CreateScreenInstance("lcd", &GetMemoryModel(), &GetSystem());
 
 	GetMemoryModel().GetMappingManager()->MapRegion(Address(0xe0000000), 640 * 480 * 3, archsim::abi::memory::RegFlagReadWrite, "Screen");
+	GetMemoryModel().GetMappingManager()->MapRegion(Address(0xe1000000), 8, archsim::abi::memory::RegFlagReadWrite, "Keyboard");
+
+	DoomKeyboard *dk = new DoomKeyboard(&GetMemoryModel(), Address(0xe1000000));
+	dk->Initialise();
+
+	screen->SetKeyboard(*dk);
+
 	screen->SetFramebufferPointer(Address(0xe0000000));
-	screen->Configure(640, 480, archsim::abi::devices::gfx::VirtualScreenMode::VSM_RGB);
+	screen->Configure(320, 200, archsim::abi::devices::gfx::VirtualScreenMode::VSM_RGB);
 	screen->Initialise();
+
 
 	return true;
 }
