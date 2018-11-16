@@ -128,11 +128,11 @@ IF(GTK3_FOUND)
 ENDIF()
 
 IF(ARCHSIM_ENABLE_LLVM)
-	FIND_PACKAGE(LLVM 6.0.0 REQUIRED CONFIG)
+	FIND_PACKAGE(LLVM 8.0.0 REQUIRED CONFIG)
 	TARGET_COMPILE_OPTIONS(archsim-core PUBLIC "-DARCHSIM_ENABLE_LLVM=1")
 	
 	IF(LLVM_FOUND)
-		llvm_map_components_to_libnames(llvm_libs target x86desc x86info x86codegen x86asmparser runtimedyld support core irreader codegen mcjit executionengine passes )
+		llvm_map_components_to_libnames(llvm_libs target x86desc x86info x86codegen x86asmparser runtimedyld linker support core irreader codegen mcjit orcjit executionengine passes)
 
 		message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 		message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -141,7 +141,7 @@ IF(ARCHSIM_ENABLE_LLVM)
 
 		TARGET_COMPILE_DEFINITIONS(archsim-core PRIVATE ${LLVM_DEFINITIONS})
 		TARGET_COMPILE_DEFINITIONS(archsim-core PUBLIC "-DARCHSIM_ENABLE_LLVM=1")
-		TARGET_LINK_LIBRARIES(archsim-core LLVM)
+		TARGET_LINK_LIBRARIES(archsim-core ${llvm_libs})
 		TARGET_INCLUDE_DIRECTORIES(archsim-core PRIVATE ${LLVM_INCLUDE_DIRS})
 	ELSE()
 		MESSAGE(SEND_ERROR "ARCHSIM_ENABLE_LLVM was set but LLVM could not be found.")

@@ -13,6 +13,7 @@
 #include "core/execution/BasicJITExecutionEngine.h"
 #include "core/execution/BlockToLLVMExecutionEngine.h"
 #include "module/Module.h"
+#include "translate/llvm/LLVMCompiler.h"
 
 #include "BlockJITLLVMMemoryManager.h"
 
@@ -42,6 +43,11 @@ namespace archsim
 
 				static ExecutionEngine *Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix);
 
+				llvm::LLVMContext &GetContext()
+				{
+					return *llvm_ctx_.getContext();
+				}
+
 			protected:
 				bool translateBlock(thread::ThreadInstance* thread, archsim::Address block_pc, bool support_chaining, bool support_profiling) override;
 
@@ -53,11 +59,8 @@ namespace archsim
 
 				gensim::BaseLLVMTranslate *translator_;
 
-				llvm::LLVMContext llvm_ctx_;
-				std::shared_ptr<archsim::core::execution::BlockJITLLVMMemoryManager> memory_manager_;
-				std::unique_ptr<llvm::TargetMachine> target_machine_;
-				llvm::orc::RTDyldObjectLinkingLayer linker_;
-				llvm::orc::IRCompileLayer<decltype(linker_), llvm::orc::SimpleCompiler> compiler_;
+				llvm::orc::ThreadSafeContext llvm_ctx_;
+				archsim::translate::translate_llvm::LLVMCompiler compiler_;
 
 			};
 		}

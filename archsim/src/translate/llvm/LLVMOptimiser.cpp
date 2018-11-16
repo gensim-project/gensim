@@ -251,9 +251,66 @@ bool TryRecover_StateBlock(const llvm::Value *v, std::vector<int> &aaai)
 
 bool RecoverAAAI(const llvm::Value *v, int size, std::vector<int> &aaai);
 
+bool MergePhiValues(const llvm::PHINode *phi, std::set<llvm::Value*> &values)
+{
+	for(auto i = 0; i < phi->getNumIncomingValues(); ++i) {
+		auto value = phi->getIncomingValue(i);
+
+		if(llvm::isa<llvm::PHINode>(value)) {
+			if(!values.count(value)) {
+				MergePhiValues((llvm::PHINode*)value, values);
+			}
+		}
+
+		values.insert(value);
+	}
+
+	return true;
+}
+
+std::vector<int> MergeAAAI(std::vector<int> &a, std::vector<int> &b)
+{
+	if(a.empty() || b.empty()) {
+		return {};
+	}
+
+	if(a.at(0) == b.at(0)) {
+
+		if(a == b) {
+			return a;
+		} else {
+			return {a.at(0)};
+		}
+
+	} else {
+		return {};
+	}
+}
+
 bool TryRecover_FromPhi(const llvm::Value *v, int size, std::vector<int> &aaai)
 {
 	// Don't try to recover alias information from a phi node just now. Lots to consider e.g. loops, merging information, etc.
+
+	if(llvm::isa<llvm::PHINode>(v)) {
+		std::set<llvm::Value*> phi_values;
+		MergePhiValues((llvm::PHINode*)v, phi_values);
+
+		std::vector<int> base_aaai;
+		RecoverAAAI(*phi_values.begin(), size, base_aaai);
+
+		for(auto i : phi_values) {
+			if(llvm::isa<llvm::PHINode>(i)) {
+				continue;
+			}
+
+			RecoverAAAI(i, size, aaai);
+			base_aaai = MergeAAAI(base_aaai, aaai);
+		}
+
+		aaai = base_aaai;
+		return true;
+	}
+
 	return false;
 }
 
@@ -377,13 +434,13 @@ llvm::AliasResult ArchSimAA::alias(const llvm::MemoryLocation &L1, const llvm::M
 		if(print) {
 
 			std::vector<int> v1aa, v2aa;
-			auto v1hasaa = GetArchsimAliasAnalysisInfo(v1, L1.Size, v1aa);
-			auto v2hasaa = GetArchsimAliasAnalysisInfo(v2, L2.Size, v2aa);
+			auto v1hasaa = GetArchsimAliasAnalysisInfo(v1, L1.Size.getValue(), v1aa);
+			auto v2hasaa = GetArchsimAliasAnalysisInfo(v2, L2.Size.getValue(), v2aa);
 
 			// it's OK if two memory pointers might alias.
-//             if(v1hasaa && v2hasaa && v1aa[0] == TAG_MEM_ACCESS && v2aa[0] == TAG_MEM_ACCESS) {
-//                 return rc;
-//             }
+			if(v1hasaa && v2hasaa && v1aa[0] == TAG_MEM_ACCESS && v2aa[0] == TAG_MEM_ACCESS) {
+				return rc;
+			}
 
 			fprintf(stderr, "ALIAS PROBLEM:\n");
 
@@ -392,13 +449,19 @@ llvm::AliasResult ArchSimAA::alias(const llvm::MemoryLocation &L1, const llvm::M
 			if(v1hasaa && v1aa[0] == TAG_JT_ELEMENT) {
 				fprintf(stderr, "(JT)\n");
 			} else {
-// 				v1->dump();
+				std::string str;
+				llvm::raw_string_ostream stream(str);
+				v1->print(stream, false);
+				fprintf(stderr, "%s\n", str.c_str());
 			}
 
 			if(v2hasaa && v2aa[0] == TAG_JT_ELEMENT) {
 				fprintf(stderr, "(JT)\n");
 			} else {
-// 				v2->dump();
+				std::string str;
+				llvm::raw_string_ostream stream(str);
+				v2->print(stream, false);
+				fprintf(stderr, "%s\n", str.c_str());
 			}
 
 			if(v1hasaa) {
@@ -431,8 +494,11 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 	std::vector<int> metadata_1, metadata_2;
 
 	// Retrieve the ArcSim Alias-Analysis Information metadata node.
-	GetArchsimAliasAnalysisInfo(v1, L1.Size, metadata_1);
-	GetArchsimAliasAnalysisInfo(v2, L2.Size, metadata_2);
+	int size1 = L1.Size.hasValue() ? L1.Size.getValue() : -1;
+	int size2 = L2.Size.hasValue() ? L2.Size.getValue() : -1;
+
+	GetArchsimAliasAnalysisInfo(v1, size1, metadata_1);
+	GetArchsimAliasAnalysisInfo(v2, size2, metadata_2);
 
 	// We must have AAAI for BOTH instructions to proceed.
 	if (metadata_1.size() && metadata_2.size()) {
@@ -444,58 +510,27 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 			// Tagged memory operations that have different types cannot alias.  I guarantee it.
 			return llvm::NoAlias;
 		} else {
-			AliasAnalysisTag tag = (AliasAnalysisTag)metadata_1.at(0);
-			switch (tag) {
+			switch (tag_1) {
 				case TAG_REG_ACCESS: {
 					// The new register model produces alias information specifying pairs of
 					// extents which are accessed.
 
-					// If the number of operands is low, this indicates an automatically
-					// generated register access which we should treat as MayAlias in all
-					// cases.
-					if(metadata_1.size() != 4 || metadata_2.size() != 4) return llvm::MayAlias;
-
-					auto &min1_val = metadata_1.at(1);
-					auto &max1_val = metadata_1.at(2);
-
-					auto &size1_val = metadata_1.at(3);
-
-					auto &min2_val = metadata_2.at(1);
-					auto &max2_val = metadata_2.at(2);
-
-					auto &size2_val = metadata_2.at(3);
-
-					uint32_t size1 = (size1_val);
-					uint32_t size2 = (size2_val);
-
-					assert(size1 && size2);
-
-					uint32_t min1 = (min1_val);
-					uint32_t max1 = (max1_val);
-					uint32_t min2 = (min2_val);
-					uint32_t max2 = (max2_val);
-
-					assert(min1 != max1);
-					assert(min2 != max2);
-
-					// If the extents are identical (and the sizes are the same), the pointers MUST alias
-					if((min1 == min2) && (max1 == max2) && (size1 == size2)) {
-						return llvm::MustAlias;
+					if(metadata_1.size() != 3 || metadata_2.size() != 3) {
+						return llvm::MayAlias;
 					}
 
-					// If the extents overlap, the pointers MAY alias
-					if((min1 < max2) && (max1 > min2)) {
-//							printf("PARTIAL alias: %u->%u (%u) vs %u->%u (%u)\n", min1, max1, size1, min2, max2, size2);
-						if(min1 == min2) {
-							return llvm::MustAlias;
-						} else {
-							return llvm::PartialAlias;
-						}
+					auto base_1 = metadata_1.at(1);
+					auto base_2 = metadata_2.at(1);
+
+					auto size_1 = metadata_1.at(2);
+					auto size_2 = metadata_2.at(2);
+
+					// if a size is unknown then the access may alias
+					if(size_1 == -1 || size_2 == -1) {
+						return llvm::MayAlias;
 					}
-					// If there is no overlap, the pointers DO NOT alias
-					else {
-						return llvm::NoAlias;
-					}
+
+					UNIMPLEMENTED;
 
 					break;
 				}
@@ -571,13 +606,14 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 	if(my_aa_ == nullptr) {
 		my_aa_ = new ArchSimAA();
 	}
-	pm.add(llvm::createExternalAAWrapperPass([&](llvm::Pass &pass, llvm::Function &function, llvm::AAResults &results) {
-		results.addAAResult(*my_aa_);
-	}));
+
+	if(!archsim::options::JitDisableAA) {
+		pm.add(llvm::createExternalAAWrapperPass([&](llvm::Pass &pass, llvm::Function &function, llvm::AAResults &results) {
+			results.addAAResult(*my_aa_);
+		}));
+	}
 
 	pmp.populateModulePassManager(pm);
-
-	pm.add(new LLVMRegisterOptimisationPass());
 
 	isInitialised = true;
 

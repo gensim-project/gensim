@@ -53,14 +53,8 @@ static llvm::TargetMachine *GetNativeMachine()
 
 BlockLLVMExecutionEngine::BlockLLVMExecutionEngine(gensim::BaseLLVMTranslate *translator) :
 	BasicJITExecutionEngine(0),
-	target_machine_(GetNativeMachine()),
-	memory_manager_(std::make_shared<BlockJITLLVMMemoryManager>(GetMemAllocator())),
-	linker_([&]()
-{
-	return memory_manager_;
-}),
-compiler_(linker_, llvm::orc::SimpleCompiler(*target_machine_)),
-translator_(translator)
+	translator_(translator),
+	compiler_(llvm_ctx_)
 {
 
 }
@@ -122,8 +116,7 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 	// we couldn't find the block in the physical profile, so create a new translation
 	thread->GetEmulationModel().GetSystem().GetCodeRegions().MarkRegionAsCode(PhysicalAddress(physaddr.PageBase().Get()));
 
-	std::unique_ptr<llvm::Module> module (new llvm::Module("mod_"+ std::to_string(block_pc.Get()), llvm_ctx_));
-	module->setDataLayout(target_machine_->createDataLayout());
+	std::unique_ptr<llvm::Module> module (new llvm::Module("mod_"+ std::to_string(block_pc.Get()), *llvm_ctx_.getContext()));
 
 	std::string fn_name = "fn_" + std::to_string(block_pc.Get());
 	auto function = translateToFunction(thread, physaddr, fn_name, module);
@@ -141,113 +134,48 @@ bool BlockLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, ar
 		fpm.add(llvm::createVerifierPass(true));
 		fpm.doInitialization();
 		fpm.run(*function);
-
 	}
 
 	archsim::translate::translate_llvm::LLVMOptimiser opt;
 	opt.Optimise(module.get(), GetNativeMachine()->createDataLayout());
 
-	std::map<std::string, void *> jit_symbols;
-
-	jit_symbols["cpuTrap"] = (void*)cpuTrap;
-	jit_symbols["cpuTakeException"] = (void*)cpuTakeException;
-	jit_symbols["cpuReadDevice"] = (void*)devReadDevice;
-	jit_symbols["cpuWriteDevice"] = (void*)devWriteDevice;
-	jit_symbols["cpuSetFeature"] = (void*)cpuSetFeature;
-
-	jit_symbols["cpuSetRoundingMode"] = (void*)cpuSetRoundingMode;
-	jit_symbols["cpuGetRoundingMode"] = (void*)cpuGetRoundingMode;
-	jit_symbols["cpuSetFlushMode"] = (void*)cpuSetFlushMode;
-	jit_symbols["cpuGetFlushMode"] = (void*)cpuGetFlushMode;
-
-	jit_symbols["genc_adc_flags"] = (void*)genc_adc_flags;
-	jit_symbols["blkRead8"] = (void*)blkRead8;
-	jit_symbols["blkRead16"] = (void*)blkRead16;
-	jit_symbols["blkRead32"] = (void*)blkRead32;
-	jit_symbols["blkRead64"] = (void*)blkRead64;
-	jit_symbols["cpuWrite8"] = (void*)cpuWrite8;
-	jit_symbols["cpuWrite16"] = (void*)cpuWrite16;
-	jit_symbols["cpuWrite32"] = (void*)cpuWrite32;
-	jit_symbols["cpuWrite64"] = (void*)cpuWrite64;
-
-	jit_symbols["cpuTraceOnlyMemWrite8"] = (void*)cpuTraceOnlyMemWrite8;
-	jit_symbols["cpuTraceOnlyMemWrite16"] = (void*)cpuTraceOnlyMemWrite16;
-	jit_symbols["cpuTraceOnlyMemWrite32"] = (void*)cpuTraceOnlyMemWrite32;
-	jit_symbols["cpuTraceOnlyMemWrite64"] = (void*)cpuTraceOnlyMemWrite64;
-
-	jit_symbols["cpuTraceOnlyMemRead8"] = (void*)cpuTraceOnlyMemRead8;
-	jit_symbols["cpuTraceOnlyMemRead16"] = (void*)cpuTraceOnlyMemRead16;
-	jit_symbols["cpuTraceOnlyMemRead32"] = (void*)cpuTraceOnlyMemRead32;
-	jit_symbols["cpuTraceOnlyMemRead64"] = (void*)cpuTraceOnlyMemRead64;
-
-	jit_symbols["cpuTraceRegBankWrite"] = (void*)cpuTraceRegBankWrite;
-	jit_symbols["cpuTraceRegWrite"] = (void*)cpuTraceRegWrite;
-	jit_symbols["cpuTraceRegBankRead"] = (void*)cpuTraceRegBankRead;
-	jit_symbols["cpuTraceRegRead"] = (void*)cpuTraceRegRead;
-
-	jit_symbols["cpuTraceInstruction"] = (void*)cpuTraceInstruction;
-	jit_symbols["cpuTraceInsnEnd"] = (void*)cpuTraceInsnEnd;
-
-	jit_symbols["__umodti3"] = (void*)uremi128;
-	jit_symbols["__udivti3"] = (void*)udivi128;
-	jit_symbols["__modti3"] = (void*)remi128;
-	jit_symbols["__divti3"] = (void*)divi128;
-
-	// todo: change these to actual bitcode
-	jit_symbols["txln_shunt___builtin_f32_is_snan"] = (void*)shunt_builtin_f32_is_snan;
-	jit_symbols["txln_shunt___builtin_f32_is_qnan"] = (void*)shunt_builtin_f32_is_qnan;
-	jit_symbols["txln_shunt___builtin_f64_is_snan"] = (void*)shunt_builtin_f64_is_snan;
-	jit_symbols["txln_shunt___builtin_f64_is_qnan"] = (void*)shunt_builtin_f64_is_qnan;
-
-	auto resolver = llvm::orc::createLambdaResolver(
-	[&](const std::string &name) {
-		// first, check our internal symbols
-		if(jit_symbols.count(name)) {
-			return llvm::JITSymbol((intptr_t)jit_symbols.at(name), llvm::JITSymbolFlags::Exported);
-		}
-
-		// then check more generally
-		if(auto sym = compiler_.findSymbol(name, false)) {
-			return sym;
-		}
-
-		// we couldn't find the symbol
-		return llvm::JITSymbol(nullptr);
-	},
-	[jit_symbols](const std::string &name) {
-		if(jit_symbols.count(name)) {
-			return llvm::JITSymbol((intptr_t)jit_symbols.at(name), llvm::JITSymbolFlags::Exported);
-		} else return llvm::JITSymbol(nullptr);
-	}
-	                );
-
-	auto handle = compiler_.addModule(std::move(module), std::move(resolver));
-
-	if(!handle) {
-		throw std::logic_error("Failed to JIT block");
+	if(archsim::options::Debug) {
+		std::ofstream str(fn_name + "-opt.ll");
+		llvm::raw_os_ostream llvm_str(str);
+		module->print(llvm_str, nullptr);
 	}
 
-	auto symbol = compiler_.findSymbolIn(handle.get(), fn_name, true);
-	auto address = symbol.getAddress();
+	auto handle = module.get();
+	auto error = compiler_.AddModule(handle);
 
-	if(address) {
-		block_txln_fn fn = (block_txln_fn)address.get();
-		txln.SetFn(fn);
-		txln.SetSize(memory_manager_->GetSectionSize((uint8_t*)fn));
 
-		if(archsim::options::Debug) {
-			txln.Dump("llvm-bin-" + std::to_string(physaddr.Get()));
-		}
+//	if(error) {
+//		throw std::logic_error("Failed to JIT block");
+//	}
 
-		registerTranslation(physaddr, block_pc, txln);
+	UNIMPLEMENTED;
 
-		return true;
-	} else {
-		// if we failed to produce a translation, then try and stop the simulation
-//		LC_ERROR(LogBlockJitCpu) << "Failed to compile block! Aborting.";
-		thread->SendMessage(archsim::core::thread::ThreadMessage::Halt);
-		return false;
-	}
+//	auto symbol = compiler_.findSymbolIn(handle, fn_name, true);
+//	auto address = symbol.getAddress();
+
+//	if(address) {
+//		block_txln_fn fn = (block_txln_fn)address.get();
+//		txln.SetFn(fn);
+//		txln.SetSize(memory_manager_->GetSectionSize((uint8_t*)fn));
+//
+//		if(archsim::options::Debug) {
+//			txln.Dump("llvm-bin-" + std::to_string(physaddr.Get()));
+//		}
+//
+//		registerTranslation(physaddr, block_pc, txln);
+//
+//		return true;
+//	} else {
+//		// if we failed to produce a translation, then try and stop the simulation
+////		LC_ERROR(LogBlockJitCpu) << "Failed to compile block! Aborting.";
+//		thread->SendMessage(archsim::core::thread::ThreadMessage::Halt);
+//		return false;
+//	}
 
 }
 
@@ -260,7 +188,7 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 	auto jumpinfo = isa.GetNewJumpInfo();
 	auto decode = isa.GetNewDecode();
 
-	auto entry_block = llvm::BasicBlock::Create(llvm_ctx_, "", fn);
+	auto entry_block = llvm::BasicBlock::Create(GetContext(), "", fn);
 	llvm::IRBuilder<> builder (entry_block);
 
 	auto pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
@@ -297,14 +225,16 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 	auto end_block = txltr.TranslateBlock(block_start, tbu, entry_block);
 	llvm::ReturnInst::Create(module->getContext(), llvm::ConstantInt::get(ctx.Types.i32, 0), end_block);
 
+	ctx.Finalize();
+
 	return fn;
 }
 
 llvm::FunctionType *BlockLLVMExecutionEngine::getFunctionType()
 {
-	auto i8ptrty = llvm::IntegerType::getInt8PtrTy(llvm_ctx_);
+	auto i8ptrty = llvm::IntegerType::getInt8PtrTy(GetContext());
 
-	return llvm::FunctionType::get(llvm::IntegerType::getInt32Ty(llvm_ctx_), {i8ptrty, i8ptrty}, false);
+	return llvm::FunctionType::get(llvm::IntegerType::getInt32Ty(GetContext()), {i8ptrty, i8ptrty}, false);
 }
 //
 //class NullLLVMTranslator : public gensim::BaseLLVMTranslate

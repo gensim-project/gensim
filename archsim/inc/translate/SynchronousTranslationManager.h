@@ -41,6 +41,8 @@ namespace archsim
 			TranslationTimers timers;
 
 			gensim::BaseLLVMTranslate *translator_;
+
+			llvm::orc::ThreadSafeContext llvm_ctx_;
 			translate_llvm::LLVMOptimiser optimiser_;
 			translate_llvm::LLVMCompiler compiler_;
 

@@ -116,6 +116,9 @@ namespace archsim
 				std::map<register_descriptor_t, std::vector<llvm::LoadInst*>> loads_;
 				std::map<register_descriptor_t, std::vector<llvm::StoreInst*>> stores_;
 
+				std::map<interval_t, llvm::Value*> shadow_interval_ptrs_;
+				std::map<interval_t, llvm::Value*> real_interval_ptrs_;
+
 				std::pair<int, int> GetInterval(const register_descriptor_t &reg);
 
 				// Figure out which chunks of the register file we should be

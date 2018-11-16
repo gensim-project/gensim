@@ -70,6 +70,7 @@ namespace archsim
 			 */
 			std::mutex work_unit_queue_lock;
 			std::condition_variable work_unit_queue_cond;
+			llvm::LLVMContext ctx_;
 
 			std::vector<TranslationWorkUnit *> work_unit_queue_;
 		};

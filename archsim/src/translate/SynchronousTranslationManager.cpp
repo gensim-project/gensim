@@ -24,7 +24,7 @@ RegisterComponent(TranslationManager, SynchronousTranslationManager, "sync", "Sy
 /**
  * Default constructor.
  */
-SynchronousTranslationManager::SynchronousTranslationManager(archsim::util::PubSubContext *psctx) : TranslationManager(*psctx)
+SynchronousTranslationManager::SynchronousTranslationManager(archsim::util::PubSubContext *psctx) : TranslationManager(*psctx), llvm_ctx_(), compiler_(llvm_ctx_)
 {
 
 }
@@ -78,7 +78,7 @@ bool SynchronousTranslationManager::TranslateRegion(archsim::core::thread::Threa
 
 // 	LC_DEBUG2(LogTranslate) << "[" << (uint32_t)id << "] Translating: " << unit;
 
-	translate_llvm::LLVMWorkUnitTranslator txltr(translator_);
+	translate_llvm::LLVMWorkUnitTranslator txltr(translator_, *llvm_ctx_.getContext());
 	auto txlt_result = txltr.TranslateWorkUnit(*twu);
 
 	optimiser_.Optimise(txlt_result.first, txlt_result.first->getDataLayout());
