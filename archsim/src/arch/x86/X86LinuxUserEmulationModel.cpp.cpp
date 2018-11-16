@@ -102,7 +102,7 @@ archsim::abi::ExceptionAction X86LinuxUserEmulationModel::HandleException(archsi
 		GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, (void*)(uint64_t)0);
 		return archsim::abi::ResumeNext;
 	}
-	uint64_t* registers = (uint64_t*)cpu->GetRegisterFileInterface().GetData();
+	uint64_t* registers = (uint64_t*)cpu->GetRegisterFileInterface().GetEntry<uint64_t>("RQ");
 
 	if(category == 0) {
 		LC_DEBUG1(LogEmulationModelX86Linux) << "Syscall at " << Address(cpu->GetPC());

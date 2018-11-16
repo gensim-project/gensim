@@ -14,6 +14,8 @@
 #include <llvm/ExecutionEngine/SectionMemoryManager.h>
 #include <llvm/ExecutionEngine/JITSymbol.h>
 
+#include <memory>
+
 using namespace archsim;
 using namespace archsim::core::execution;
 
@@ -65,14 +67,8 @@ static llvm::TargetMachine *GetNativeMachine()
 
 BlockToLLVMExecutionEngine::BlockToLLVMExecutionEngine(gensim::blockjit::BaseBlockJITTranslate *translator) :
 	BlockJITExecutionEngine(translator),
-	target_machine_(GetNativeMachine()),
-	memory_manager_(std::make_shared<BlockJITLLVMMemoryManager>(GetMemAllocator())),
-	linker_([&]()
-{
-	return memory_manager_;
-}),
-compiler_(linker_, llvm::orc::SimpleCompiler(*target_machine_)),
-adaptor_(llvm_ctx_)
+	adaptor_(*llvm_ctx_.getContext()),
+	compiler_(llvm_ctx_)
 {
 
 }
@@ -135,8 +131,7 @@ bool BlockToLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, 
 	// we couldn't find the block in the physical profile, so create a new translation
 	thread->GetEmulationModel().GetSystem().GetCodeRegions().MarkRegionAsCode(PhysicalAddress(physaddr.PageBase().Get()));
 
-	std::unique_ptr<llvm::Module> module (new llvm::Module("mod_"+ std::to_string(block_pc.Get()), llvm_ctx_));
-	module->setDataLayout(target_machine_->createDataLayout());
+	std::unique_ptr<llvm::Module> module (new llvm::Module("mod_"+ std::to_string(block_pc.Get()), *llvm_ctx_.getContext()));
 
 	blockjit::BlockTranslation txln;
 	captive::arch::jit::TranslationContext txln_ctx;
@@ -150,77 +145,35 @@ bool BlockToLLVMExecutionEngine::translateBlock(thread::ThreadInstance* thread, 
 		return false;
 	}
 
-	std::map<std::string, void *> jit_symbols;
+	auto handle = compiler_.AddModule(module.get());
+	UNIMPLEMENTED;
+//	compiler_.GetTranslation(handle, )
 
-	jit_symbols["cpuTakeException"] = (void*)cpuTakeException;
-	jit_symbols["cpuReadDevice"] = (void*)devReadDevice;
-	jit_symbols["cpuWriteDevice"] = (void*)devWriteDevice;
-	jit_symbols["cpuSetFeature"] = (void*)cpuSetFeature;
+//	if(!handle) {
+//		throw std::logic_error("Failed to JIT block");
+//	}
 
-	jit_symbols["cpuSetRoundingMode"] = (void*)cpuSetRoundingMode;
-	jit_symbols["cpuGetRoundingMode"] = (void*)cpuGetRoundingMode;
-	jit_symbols["cpuSetFlushMode"] = (void*)cpuSetFlushMode;
-	jit_symbols["cpuGetFlushMode"] = (void*)cpuGetFlushMode;
-
-	jit_symbols["genc_adc_flags"] = (void*)genc_adc_flags;
-	jit_symbols["blkRead8"] = (void*)blkRead8;
-	jit_symbols["blkRead16"] = (void*)blkRead16;
-	jit_symbols["blkRead32"] = (void*)blkRead32;
-	jit_symbols["blkRead64"] = (void*)blkRead64;
-	jit_symbols["blkWrite8"] = (void*)cpuWrite8;
-	jit_symbols["blkWrite16"] = (void*)cpuWrite16;
-	jit_symbols["blkWrite32"] = (void*)cpuWrite32;
-	jit_symbols["blkWrite64"] = (void*)cpuWrite64;
-
-	auto resolver = llvm::orc::createLambdaResolver(
-	[&](const std::string &name) {
-		// first, check our internal symbols
-		if(jit_symbols.count(name)) {
-			return llvm::JITSymbol((intptr_t)jit_symbols.at(name), llvm::JITSymbolFlags::Exported);
-		}
-
-		// then check more generally
-		if(auto sym = compiler_.findSymbol(name, false)) {
-			return sym;
-		}
-
-		// we couldn't find the symbol
-		return llvm::JITSymbol(nullptr);
-	},
-	[jit_symbols](const std::string &name) {
-		if(jit_symbols.count(name)) {
-			return llvm::JITSymbol((intptr_t)jit_symbols.at(name), llvm::JITSymbolFlags::Exported);
-		} else return llvm::JITSymbol(nullptr);
-	}
-	                );
-
-	auto handle = compiler_.addModule(std::move(module), std::move(resolver));
-
-	if(!handle) {
-		throw std::logic_error("Failed to JIT block");
-	}
-
-	auto symbol = compiler_.findSymbolIn(handle.get(), fn_name, true);
-	auto address = symbol.getAddress();
-
-	if(address) {
-		block_txln_fn fn = (block_txln_fn)address.get();
-		txln.SetFn(fn);
-		txln.SetSize(memory_manager_->GetSectionSize((uint8_t*)fn));
-
-		if(archsim::options::Debug) {
-			txln.Dump("llvm-bin-" + std::to_string(physaddr.Get()));
-		}
-
-		registerTranslation(physaddr, block_pc, txln);
-
-		return true;
-	} else {
-		// if we failed to produce a translation, then try and stop the simulation
-//		LC_ERROR(LogBlockJitCpu) << "Failed to compile block! Aborting.";
-		thread->SendMessage(archsim::core::thread::ThreadMessage::Halt);
-		return false;
-	}
+//	auto symbol = compiler_.findSymbolIn(handle, fn_name, true);
+//	auto address = symbol.getAddress();
+//
+//	if(address) {
+//		block_txln_fn fn = (block_txln_fn)address.get();
+//		txln.SetFn(fn);
+//		txln.SetSize(memory_manager_->GetSectionSize((uint8_t*)fn));
+//
+//		if(archsim::options::Debug) {
+//			txln.Dump("llvm-bin-" + std::to_string(physaddr.Get()));
+//		}
+//
+//		registerTranslation(physaddr, block_pc, txln);
+//
+//		return true;
+//	} else {
+//		// if we failed to produce a translation, then try and stop the simulation
+////		LC_ERROR(LogBlockJitCpu) << "Failed to compile block! Aborting.";
+//		thread->SendMessage(archsim::core::thread::ThreadMessage::Halt);
+//		return false;
+//	}
 
 	return false;
 }

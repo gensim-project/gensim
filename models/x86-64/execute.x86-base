@@ -1537,7 +1537,7 @@ helper void update_zs_flags(uint64 value, uint8 width)
 
 helper void update_parity(uint8 value)
 {
-	write_register(PF, (__builtin_popcount((uint32)value) & 1) == 0);
+	write_register(PF, (__builtin_popcount((uint8)value) & (uint32)1) == 0);
 	return;
 }
 

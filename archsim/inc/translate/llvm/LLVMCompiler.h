@@ -23,15 +23,22 @@ namespace archsim
 		namespace translate_llvm
 		{
 
-			class LLVMCompiledModuleHandle;
+			class LLVMCompiledModuleHandle
+			{
+			public:
+				LLVMCompiledModuleHandle(llvm::orc::JITDylib *lib, llvm::orc::VModuleKey key) : Lib(lib), Key(key) {}
+
+				llvm::orc::JITDylib *Lib;
+				llvm::orc::VModuleKey Key;
+			};
 
 			class LLVMCompiler
 			{
 			public:
 				using LinkLayer = llvm::orc::RTDyldObjectLinkingLayer;
-				using CompileLayer = llvm::orc::IRCompileLayer<LinkLayer, llvm::orc::SimpleCompiler>;
+				using CompileLayer = llvm::orc::IRCompileLayer;
 
-				LLVMCompiler();
+				LLVMCompiler(llvm::orc::ThreadSafeContext &ctx);
 
 				LLVMCompiledModuleHandle AddModule(llvm::Module *module);
 
@@ -41,30 +48,25 @@ namespace archsim
 				{
 					code_pool.GC();
 				}
+
+				llvm::orc::ThreadSafeContext &GetContext()
+				{
+					return ctx_;
+				}
 			private:
 				void initJitSymbols();
 
+				using SymbolResolver = std::function<llvm::JITSymbol(std::string)>;
+
 				std::shared_ptr<archsim::translate::translate_llvm::LLVMMemoryManager> memory_manager_;
 				std::unique_ptr<llvm::TargetMachine> target_machine_;
+				llvm::orc::ExecutionSession session_;
 				LinkLayer linker_;
-				CompileLayer compiler_;
+				std::unique_ptr<CompileLayer> compiler_;
+				llvm::orc::ThreadSafeContext &ctx_;
 				std::map<std::string, void *> jit_symbols_;
 
 				util::PagePool code_pool;
-			};
-
-			class LLVMCompiledModuleHandle
-			{
-			public:
-				using HandleT = LLVMCompiler::CompileLayer::ModuleHandleT;
-
-				LLVMCompiledModuleHandle(HandleT handle) : handle_(handle) {}
-				HandleT Get()
-				{
-					return handle_;
-				}
-			private:
-				HandleT handle_;
 			};
 		}
 	}

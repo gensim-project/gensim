@@ -311,7 +311,7 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 	Functions.cpuTraceInstruction = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInstruction", Types.vtype, Types.i8Ptr, Types.i64, Types.i32, Types.i32, Types.i32, Types.i32);
 	Functions.cpuTraceInsnEnd = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInsnEnd", Types.vtype, Types.i8Ptr);
 
-	guest_reg_emitter_ = new ShadowLLVMGuestRegisterAccessEmitter(*this);
+	guest_reg_emitter_ = new GEPLLVMGuestRegisterAccessEmitter(*this);
 }
 
 llvm::Value* LLVMTranslationContext::GetThreadPtr(llvm::IRBuilder<> &builder)

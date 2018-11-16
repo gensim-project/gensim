@@ -3,10 +3,12 @@
 #include "translate/llvm/LLVMGuestRegisterAccessEmitter.h"
 #include "translate/llvm/LLVMTranslationContext.h"
 #include "translate/llvm/LLVMAliasAnalysis.h"
+#include "util/LogContext.h"
 #include <wutils/vbitset.h>
 
 #include <llvm/IR/DerivedTypes.h>
 
+DeclareLogContext(LogGRAE, "GRAE");
 using namespace archsim::translate::translate_llvm;
 
 LLVMGuestRegisterAccessEmitter::LLVMGuestRegisterAccessEmitter(LLVMTranslationContext& ctx) : ctx_(ctx)
@@ -253,6 +255,12 @@ ShadowLLVMGuestRegisterAccessEmitter::~ShadowLLVMGuestRegisterAccessEmitter()
 llvm::Value* ShadowLLVMGuestRegisterAccessEmitter::EmitRegisterRead(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index)
 {
 	if(index == nullptr) {
+		LC_DEBUG1(LogGRAE) << "Emitting Register Read " << reg.GetName() << " (no index)";
+	} else {
+		LC_DEBUG1(LogGRAE) << "Emitting Register Read " << reg.GetName() << " " << index;
+	}
+
+	if(index == nullptr) {
 		index = llvm::ConstantInt::get(GetCtx().Types.i32, 0);
 	}
 
@@ -267,6 +275,12 @@ llvm::Value* ShadowLLVMGuestRegisterAccessEmitter::EmitRegisterRead(llvm::IRBuil
 
 void ShadowLLVMGuestRegisterAccessEmitter::EmitRegisterWrite(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index, llvm::Value* value)
 {
+	if(index == nullptr) {
+		LC_DEBUG1(LogGRAE) << "Emitting Register Write " << reg.GetName() << " (no index)";
+	} else {
+		LC_DEBUG1(LogGRAE) << "Emitting Register Write " << reg.GetName() << " " << index;
+	}
+
 	if(index == nullptr) {
 		index = llvm::ConstantInt::get(GetCtx().Types.i32, 0);
 	}
@@ -300,16 +314,20 @@ void ShadowLLVMGuestRegisterAccessEmitter::Finalize()
 			if(llvm::isa<llvm::ReturnInst>(inst)) {
 				SaveShadowRegs(&inst, allocas);
 			}
+
+			if(llvm::isa<llvm::CallInst>(inst)) {
+				llvm::CallInst *call = (llvm::CallInst*)&inst;
+
+				// if it's an indirect call, it must be a chain
+				if(call->getCalledFunction() == nullptr) {
+					SaveShadowRegs(&inst, allocas);
+				} else if(!call->getCalledFunction()->doesNotAccessMemory()) {
+					SaveShadowRegs(&inst, allocas);
+					LoadShadowRegs(inst.getNextNode(), allocas);
+				}
+			}
 		}
 	}
-
-	// load/store registers around exceptions
-//	for(each take_exception) {
-//		SaveShadowRegs(the take_exception, allocas);
-//		LoadShadowRegs(after the take_exception, allocas);
-//	}
-
-	// all done!
 }
 
 void ShadowLLVMGuestRegisterAccessEmitter::Reset()
@@ -355,17 +373,17 @@ static std::set<std::pair<int, int>> ConvertToIntervals(const wutils::vbitset<> 
 	int interval_end = 0;
 	bool in_interval = false;
 
-	int index = 0;
+	unsigned int index = 0;
 	while(index < bits.size()) {
 
 		bool bit = bits.get(index);
 		if(in_interval) {
 			if(bit) {
 				// continue current interval
-				interval_end = index;
 			} else {
 				// end interval
-				intervals.insert({interval_start, interval_end+1});
+
+				intervals.insert({interval_start, index});
 				in_interval = false;
 			}
 
@@ -403,7 +421,7 @@ ShadowLLVMGuestRegisterAccessEmitter::intervals_t ShadowLLVMGuestRegisterAccessE
 		}
 	}
 
-	return ConvertToIntervals(bits);;
+	return ConvertToIntervals(bits);
 }
 
 ShadowLLVMGuestRegisterAccessEmitter::allocas_t ShadowLLVMGuestRegisterAccessEmitter::CreateAllocas(const intervals_t& intervals)
@@ -411,8 +429,8 @@ ShadowLLVMGuestRegisterAccessEmitter::allocas_t ShadowLLVMGuestRegisterAccessEmi
 	// create an alloca for each interval
 	allocas_t allocas;
 
-	// insert allocas just before the end of the entry block
-	auto insertion_point = GetCtx().GetFunction()->getEntryBlock().getTerminator();
+	// insert allocas at the start of the entry block
+	auto insertion_point = &GetCtx().GetFunction()->getEntryBlock().front();
 	for(auto i : intervals) {
 		auto type = GetIntervalType(i);
 		auto alloca = new llvm::AllocaInst(type, 0, nullptr, "", insertion_point);
@@ -425,6 +443,8 @@ ShadowLLVMGuestRegisterAccessEmitter::allocas_t ShadowLLVMGuestRegisterAccessEmi
 
 void ShadowLLVMGuestRegisterAccessEmitter::FixLoads(const allocas_t& allocas)
 {
+	LC_DEBUG1(LogGRAE) << "Fixing Loads";
+
 	for(auto load_list : loads_) {
 		for(auto load : load_list.second) {
 			llvm::IRBuilder<> builder (load);
@@ -436,11 +456,13 @@ void ShadowLLVMGuestRegisterAccessEmitter::FixLoads(const allocas_t& allocas)
 
 void ShadowLLVMGuestRegisterAccessEmitter::FixStores(const allocas_t& allocas)
 {
+	LC_DEBUG1(LogGRAE) << "Fixing Stores";
+
 	for(auto store_list : stores_) {
 		for(auto store : store_list.second) {
 			llvm::IRBuilder<> builder (store);
 			auto ptr = GetShadowRegPtr(builder, store_list.first, allocas);
-			store->setOperand(1, ptr);
+			store->setOperand(1, builder.CreatePointerCast(ptr, store->getValueOperand()->getType()->getPointerTo(0)));
 		}
 	}
 }
@@ -484,47 +506,81 @@ llvm::Type* ShadowLLVMGuestRegisterAccessEmitter::GetIntervalType(const interval
 
 llvm::Value* ShadowLLVMGuestRegisterAccessEmitter::GetRealRegPtr(llvm::IRBuilder<> &builder, const interval_t& interval)
 {
-	auto regfile_ptr = GetCtx().GetRegStatePtr();
-	auto regfile_ptr_int = builder.CreatePtrToInt(regfile_ptr, GetCtx().Types.i64);
-	auto reg_ptr = builder.CreateAdd(regfile_ptr_int, llvm::ConstantInt::get(GetCtx().Types.i64, interval.first));
-	reg_ptr = builder.CreateIntToPtr(reg_ptr, GetIntervalType(interval)->getPointerTo(0));
+	if(real_interval_ptrs_.count(interval) == 0) {
+		llvm::IRBuilder<> reg_builder (&GetCtx().GetFunction()->getEntryBlock().front());
 
-	return reg_ptr;
+		auto regfile_ptr = GetCtx().GetRegStatePtr();
+		auto regfile_ptr_int = reg_builder.CreatePtrToInt(regfile_ptr, GetCtx().Types.i64);
+		auto reg_ptr = reg_builder.CreateAdd(regfile_ptr_int, llvm::ConstantInt::get(GetCtx().Types.i64, interval.first));
+		reg_ptr = reg_builder.CreateIntToPtr(reg_ptr, GetIntervalType(interval)->getPointerTo(0));
+
+		real_interval_ptrs_[interval] = reg_ptr;
+	}
+	return real_interval_ptrs_.at(interval);
 }
 
 static bool interval_contains(const ShadowLLVMGuestRegisterAccessEmitter::interval_t &bigger, const ShadowLLVMGuestRegisterAccessEmitter::interval_t &smaller)
 {
-	UNIMPLEMENTED;
+	if(smaller.first >= bigger.first && smaller.second <= bigger.second) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 llvm::Value* ShadowLLVMGuestRegisterAccessEmitter::GetShadowRegPtr(llvm::IRBuilder<> &builder, const interval_t& interval, const allocas_t& allocas)
 {
-	// find the first alloca'd interval which might contain the given interval (it must exist)
-	llvm::AllocaInst *alloca = nullptr;
-	interval_t alloca_interval;
-	for(auto i : allocas) {
-		if(interval_contains(i.first, interval)) {
-			alloca = i.second;
-			alloca_interval = i.first;
-			break;
+	if(shadow_interval_ptrs_.count(interval) == 0) {
+		LC_DEBUG1(LogGRAE) << "Getting reg ptr for interval " << interval.first << " -> " << interval.second;
+
+		// find the first alloca'd interval which might contain the given interval (it must exist)
+		llvm::AllocaInst *alloca = nullptr;
+		interval_t alloca_interval;
+		for(auto i : allocas) {
+			if(interval_contains(i.first, interval)) {
+				LC_DEBUG1(LogGRAE) << " - interval contained by " << i.first.first << " -> " << i.first.second;
+				alloca = i.second;
+				alloca_interval = i.first;
+				break;
+			}
 		}
+
+		if(alloca == nullptr) {
+			throw std::logic_error("Failed to find alloca");
+		}
+
+		llvm::IRBuilder<> local_builder = builder;
+		local_builder.SetInsertPoint(alloca->getNextNode());
+
+		// index alloca by correct offset
+		int offset = interval.first - alloca_interval.first;
+		LC_DEBUG1(LogGRAE) << " - offset in alloca is " << offset;
+
+		auto ptr = local_builder.CreatePtrToInt(alloca, GetCtx().Types.i64);
+		ptr = local_builder.CreateAdd(ptr, llvm::ConstantInt::get(GetCtx().Types.i64, offset));
+		ptr = local_builder.CreateIntToPtr(ptr, GetIntervalType(interval)->getPointerTo(0));
+
+		shadow_interval_ptrs_[interval] = ptr;
 	}
 
-	if(alloca == nullptr) {
-		throw std::logic_error("Failed to find alloca");
-	}
-
-	// index alloca by correct offset
-	int offset = interval.first - alloca_interval.first;
-
-	auto ptr = builder.CreatePtrToInt(alloca, GetCtx().Types.i64);
-	ptr = builder.CreateAdd(ptr, llvm::ConstantInt::get(GetCtx().Types.i64, offset));
-	ptr = builder.CreateIntToPtr(ptr, GetIntervalType(interval));
-
-	return ptr;
+	return shadow_interval_ptrs_.at(interval);
 }
 
 llvm::Value *ShadowLLVMGuestRegisterAccessEmitter::GetShadowRegPtr(llvm::IRBuilder<> &builder, const register_descriptor_t &reg, const allocas_t &allocas)
 {
-	UNIMPLEMENTED;
+	LC_DEBUG1(LogGRAE) << "Getting reg ptr for " << reg.first->GetName() << " " << reg.second;
+
+	// first, convert given register descriptor to an interval
+	auto interval = GetInterval(reg);
+	LC_DEBUG1(LogGRAE) << " - Got interval " << interval.first << " -> " << interval.second;
+
+	// get base of given interval
+	auto base = GetShadowRegPtr(builder, interval, allocas);
+	base = builder.CreatePtrToInt(base, GetCtx().Types.i64);
+	base = builder.CreateSub(base, llvm::ConstantInt::get(GetCtx().Types.i64, interval.first));
+	base = builder.CreateAdd(base, llvm::ConstantInt::get(GetCtx().Types.i64, reg.first->GetOffset()));
+	base = builder.CreateAdd(base, builder.CreateMul(llvm::ConstantInt::get(GetCtx().Types.i64, reg.first->GetRegisterStride()), builder.CreateZExtOrTrunc(reg.second, GetCtx().Types.i64)));
+	base = builder.CreateIntToPtr(base, GetIntervalType(interval)->getPointerTo(0));
+
+	return base;
 }

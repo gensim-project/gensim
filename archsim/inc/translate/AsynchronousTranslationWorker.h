@@ -53,12 +53,12 @@ namespace archsim
 			gensim::BaseLLVMTranslate *translate_;
 
 			uint8_t id;
+			llvm::orc::ThreadSafeContext llvm_ctx_;
 			translate_llvm::LLVMCompiler compiler_;
-			translate_llvm::LLVMOptimiser optimiser_;
 			AsynchronousTranslationManager& mgr;
 			volatile bool terminate;
 
-			void Translate(::llvm::LLVMContext& llvm_ctx, TranslationWorkUnit& unit);
+			void Translate(TranslationWorkUnit& unit);
 			translate_llvm::LLVMTranslation *CompileModule(TranslationWorkUnit& unit, ::llvm::Module *module, llvm::Function *function);
 		};
 	}

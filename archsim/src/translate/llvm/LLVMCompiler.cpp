@@ -40,7 +40,10 @@ static llvm::TargetMachine *GetNativeMachine()
 		llvm::InitializeNativeTarget();
 		llvm::InitializeNativeTargetAsmPrinter();
 		llvm::InitializeNativeTargetAsmParser();
-		machine = llvm::EngineBuilder().selectTarget();
+		llvm::EngineBuilder builder;
+		builder.setMAttrs<>(std::vector<std::string> {"+popcnt"});
+		builder.setMCPU("haswell");
+		machine = builder.selectTarget();
 		machine->setOptLevel(llvm::CodeGenOpt::Aggressive);
 		machine->setFastISel(false);
 	}
@@ -49,15 +52,17 @@ static llvm::TargetMachine *GetNativeMachine()
 	return machine;
 }
 
-LLVMCompiler::LLVMCompiler() :
+LLVMCompiler::LLVMCompiler(llvm::orc::ThreadSafeContext &ctx) :
 	target_machine_(GetNativeMachine()),
 	memory_manager_(new archsim::translate::translate_llvm::LLVMMemoryManager(code_pool, code_pool)),
-	linker_([&]()
+	linker_(session_, [this]()
 {
-	return memory_manager_;
+	return std::unique_ptr<llvm::RuntimeDyld::MemoryManager>(memory_manager_.get());
 }),
-compiler_(linker_, llvm::orc::SimpleCompiler(*target_machine_))
+ctx_(ctx)
 {
+	compiler_ = std::unique_ptr<CompileLayer>(new CompileLayer(session_, linker_, llvm::orc::SimpleCompiler(*target_machine_)));
+
 	initJitSymbols();
 }
 
@@ -153,50 +158,52 @@ void LLVMCompiler::initJitSymbols()
 
 LLVMCompiledModuleHandle LLVMCompiler::AddModule(llvm::Module* module)
 {
+	auto vmodule = session_.allocateVModule();
+	auto &dylib = session_.createJITDylib(module->getName(), false);
+	dylib.setGenerator([vmodule,this](llvm::orc::JITDylib &Parent, const llvm::orc::SymbolNameSet &Names) {
+		llvm::orc::SymbolMap map;
 
-
-	auto resolver = llvm::orc::createLambdaResolver(
-	[this](const std::string &name) {
-		// first, check our internal symbols
-		if(jit_symbols_.count(name)) {
-			return llvm::JITSymbol((intptr_t)jit_symbols_.at(name), llvm::JITSymbolFlags::Exported);
+		for(auto i : Names) {
+			void *addr = jit_symbols_.at((*i).str());
+			llvm::JITEvaluatedSymbol jes((uint64_t)addr, llvm::JITSymbolFlags(llvm::JITSymbolFlags::None));
+			map[i] = jes;
 		}
 
-		// then check more generally
-		if(auto sym = compiler_.findSymbol(name, false)) {
-			return sym;
+		llvm::orc::AbsoluteSymbolsMaterializationUnit *asmu = new llvm::orc::AbsoluteSymbolsMaterializationUnit(map, vmodule);
+		llvm::Error e = Parent.define(std::unique_ptr<llvm::orc::MaterializationUnit>(asmu));
+		if(e) {
+			throw std::logic_error("Error defining symbols");
 		}
+		return Names;
+	});
 
-		// we couldn't find the symbol
-		return llvm::JITSymbol(nullptr);
-	},
-	[this](const std::string &name) {
-		if(jit_symbols_.count(name)) {
-			return llvm::JITSymbol((intptr_t)jit_symbols_.at(name), llvm::JITSymbolFlags::Exported);
-		} else return llvm::JITSymbol(nullptr);
-	}
-	                );
+	auto error = compiler_->add(dylib, llvm::orc::ThreadSafeModule(std::unique_ptr<llvm::Module>(module), GetContext()), vmodule);
 
-	auto handle = compiler_.addModule(std::unique_ptr<llvm::Module>(module), std::move(resolver));
-	if(!handle) {
-		throw std::logic_error("Failed to build module.");
+	if(error) {
+		std::string str;
+		llvm::raw_string_ostream stream(str);
+
+		stream << error;
+
+		throw std::logic_error("Failed to build module.: " + stream.str());
 	}
-	return LLVMCompiledModuleHandle(handle.get());
+	return LLVMCompiledModuleHandle(&dylib, vmodule);
 }
 
 LLVMTranslation * LLVMCompiler::GetTranslation(LLVMCompiledModuleHandle& handle, TranslationWorkUnit &twu)
 {
-	auto symbol = compiler_.findSymbolIn(handle.Get(), "fn", true);
+	auto symbol = session_.lookup({handle.Lib}, llvm::StringRef("fn_" + std::to_string(twu.GetRegion().GetPhysicalBaseAddress().Get())));
 	if(!symbol) {
+		auto error (std::move(symbol.takeError()));
 		return nullptr;
 	}
 
-	auto address = symbol.getAddress();
+	auto address = symbol->getAddress();
 	if(!address) {
 		return nullptr;
 	}
 
-	LLVMTranslation *txln = new LLVMTranslation((LLVMTranslation::translation_fn)address.get(), nullptr);
+	LLVMTranslation *txln = new LLVMTranslation((LLVMTranslation::translation_fn)address, nullptr);
 
 	for(auto i : twu.GetBlocks()) {
 		if(i.second->IsEntryBlock()) {
@@ -208,11 +215,11 @@ LLVMTranslation * LLVMCompiler::GetTranslation(LLVMCompiledModuleHandle& handle,
 		std::stringstream filename_str;
 		filename_str << "code_" << std::hex << twu.GetRegion().GetPhysicalBaseAddress();
 		std::ofstream str(filename_str.str().c_str());
-		str.write((char*)address.get(), memory_manager_->getAllocatedCodeSize((void*)address.get()));
+		str.write((char*)address, memory_manager_->getAllocatedCodeSize((void*)address));
 	}
 
 	if(archsim::options::EnablePerfMap) {
-		WritePerfMap(twu.GetRegion().GetPhysicalBaseAddress(), (void*)address.get(),  memory_manager_->getAllocatedCodeSize((void*)address.get()));
+		WritePerfMap(twu.GetRegion().GetPhysicalBaseAddress(), (void*)address,  memory_manager_->getAllocatedCodeSize((void*)address));
 	}
 
 	return txln;

@@ -14,6 +14,7 @@
 #include "core/execution/ExecutionEngine.h"
 #include "BlockJITExecutionEngine.h"
 #include "translate/adapt/BlockJITToLLVM.h"
+#include "translate/llvm/LLVMCompiler.h"
 #include "BlockJITLLVMMemoryManager.h"
 
 #include <llvm/IR/LLVMContext.h>
@@ -49,13 +50,10 @@ namespace archsim
 				bool translateBlock(thread::ThreadInstance* thread, archsim::Address block_pc, bool support_chaining, bool support_profiling) override;
 				bool buildBlockJITIR(thread::ThreadInstance *thread, archsim::Address block_pc, captive::arch::jit::TranslationContext &ctx, archsim::blockjit::BlockTranslation &txln);
 
-				llvm::LLVMContext llvm_ctx_;
+				llvm::orc::ThreadSafeContext llvm_ctx_;
 				archsim::translate::adapt::BlockJITToLLVMAdaptor adaptor_;
 
-				std::shared_ptr<BlockJITLLVMMemoryManager> memory_manager_;
-				std::unique_ptr<llvm::TargetMachine> target_machine_;
-				llvm::orc::RTDyldObjectLinkingLayer linker_;
-				llvm::orc::IRCompileLayer<decltype(linker_), llvm::orc::SimpleCompiler> compiler_;
+				archsim::translate::translate_llvm::LLVMCompiler compiler_;
 			};
 		}
 	}

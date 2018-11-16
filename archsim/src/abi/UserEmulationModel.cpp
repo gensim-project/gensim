@@ -52,6 +52,10 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	auto module = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName);
 
 	execution_engine_ = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
+	if(execution_engine_ == nullptr) {
+		return false;
+	}
+
 	GetSystem().GetECM().AddEngine(execution_engine_);
 
 	auto main_thread = CreateThread(nullptr);

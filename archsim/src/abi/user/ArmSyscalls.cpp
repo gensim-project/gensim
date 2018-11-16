@@ -1510,6 +1510,7 @@ DEFINE_SYSCALL(x86, 48, sys_shutdown, "shutdown()");
 DEFINE_SYSCALL(x86, 51, sys_getpeername, "getpeername()");
 DEFINE_SYSCALL(x86, 52, sys_getsockname, "getsockname()");
 DEFINE_SYSCALL(x86, 56, sys_clone_x86, "clone[x86]()");
+DEFINE_SYSCALL(x86, 60, sys_exit, "exit()");
 DEFINE_SYSCALL(x86, 63, sys_uname_x86, "uname[x86]()");
 DEFINE_SYSCALL(x86, 72, sys_fcntl64, "fcntl()");
 DEFINE_SYSCALL(x86, 78, sys_getdents_x86_64, "getdents[x86]()");

@@ -22,12 +22,12 @@ namespace archsim
 			class LLVMWorkUnitTranslator
 			{
 			public:
-				LLVMWorkUnitTranslator(gensim::BaseLLVMTranslate *txlt);
+				LLVMWorkUnitTranslator(gensim::BaseLLVMTranslate *txlt, llvm::LLVMContext &ctx);
 
 				std::pair<llvm::Module*, llvm::Function*> TranslateWorkUnit(TranslationWorkUnit &twu);
 
 			private:
-				llvm::LLVMContext llvm_ctx_;
+				llvm::LLVMContext &llvm_ctx_;
 				std::unique_ptr<llvm::TargetMachine> target_machine_;
 
 				gensim::BaseLLVMTranslate *translate_;

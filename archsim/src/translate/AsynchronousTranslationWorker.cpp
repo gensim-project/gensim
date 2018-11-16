@@ -35,7 +35,9 @@ AsynchronousTranslationWorker::AsynchronousTranslationWorker(AsynchronousTransla
 	mgr(mgr),
 	terminate(false),
 	id(id),
-	translate_(translate)
+	llvm_ctx_(std::unique_ptr<llvm::LLVMContext>(new llvm::LLVMContext())),
+	translate_(translate),
+	compiler_(llvm_ctx_)
 
 {
 
@@ -118,8 +120,7 @@ void AsynchronousTranslationWorker::run()
 		LC_DEBUG1(LogWorkQueue) << "[DEQUEUE] Dequeueing " << *unit << ", queue length " << mgr.work_unit_queue_.size() << ", @ " << (uint32_t)id;
 
 		// Perform the translation, and destroy the translation work unit.
-		::llvm::LLVMContext llvm_ctx;
-		Translate(llvm_ctx, *unit);
+		Translate(*unit);
 		delete unit;
 	}
 
@@ -153,7 +154,7 @@ LLVMTranslation* AsynchronousTranslationWorker::CompileModule(TranslationWorkUni
  * @param llvm_ctx The LLVM context to perform the translation with.
  * @param unit The unit to translate.
  */
-void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, TranslationWorkUnit& unit)
+void AsynchronousTranslationWorker::Translate(TranslationWorkUnit& unit)
 {
 	unit.GetRegion().SetStatus(Region::InTranslation);
 	// If debugging is turned on, dump the control-flow graph for this work unit.
@@ -168,10 +169,8 @@ void AsynchronousTranslationWorker::Translate(::llvm::LLVMContext& llvm_ctx, Tra
 
 	LC_DEBUG2(LogTranslate) << "[" << (uint32_t)id << "] Translating: " << unit;
 
-	translate_llvm::LLVMWorkUnitTranslator txltr(translate_);
+	translate_llvm::LLVMWorkUnitTranslator txltr(translate_, *llvm_ctx_.getContext());
 	auto txlt_result = txltr.TranslateWorkUnit(unit);
-
-	optimiser_.Optimise(txlt_result.first, txlt_result.first->getDataLayout());
 
 	// compile
 	auto txln = CompileModule(unit, txlt_result.first, txlt_result.second);

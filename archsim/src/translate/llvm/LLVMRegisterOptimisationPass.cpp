@@ -79,8 +79,8 @@ static bool isCandidateRegion(const llvm::Region *region)
 
 		reached_blocks.insert(block);
 
-		for(auto i : block->getTerminator()->successors()) {
-			work_list.push_back(i);
+		for(unsigned i = 0; i < block->getTerminator()->getNumSuccessors(); ++i) {
+			work_list.push_back(block->getTerminator()->getSuccessor(i));
 		}
 	}
 
@@ -301,7 +301,8 @@ bool LLVMRegisterOptimisationPass::runOnRegion(llvm::Function &f, const llvm::Re
 		}
 
 		std::map<llvm::BasicBlock*, block_register_out_t> live_register_ins;
-		for(auto S : B->getTerminator()->successors()) {
+		for(unsigned i = 0; i < B->getTerminator()->getNumSuccessors(); ++i) {
+			auto S = B->getTerminator()->getSuccessor(i);
 // 			fprintf(stderr, " - For successor %p (%s)\n", S, S->getName().str().c_str());
 
 			auto live_ins = getLiveRegisterIns(S);

@@ -45,7 +45,7 @@ static llvm::TargetMachine *GetNativeMachine()
 	return machine;
 }
 
-LLVMWorkUnitTranslator::LLVMWorkUnitTranslator(gensim::BaseLLVMTranslate *txlt) : target_machine_(GetNativeMachine()), translate_(txlt)
+LLVMWorkUnitTranslator::LLVMWorkUnitTranslator(gensim::BaseLLVMTranslate *txlt, llvm::LLVMContext &ctx) : target_machine_(GetNativeMachine()), translate_(txlt), llvm_ctx_(ctx)
 {
 
 }
@@ -159,7 +159,8 @@ std::pair<llvm::Module *, llvm::Function *> LLVMWorkUnitTranslator::TranslateWor
 
 	llvm::FunctionType *fn_type = llvm::FunctionType::get(llvm::Type::getInt32Ty(llvm_ctx_), {i8ptrty, i8ptrty}, false);
 
-	llvm::Function *fn = (llvm::Function*)module->getOrInsertFunction("fn", fn_type);
+	std::string fn_name = "fn_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get());
+	llvm::Function *fn = (llvm::Function*)module->getOrInsertFunction(fn_name, fn_type);
 
 	auto entry_block = llvm::BasicBlock::Create(llvm_ctx_, "entry_block", fn);
 
