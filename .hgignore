@@ -11,3 +11,6 @@ nbproject/
 CMakeFiles
 
 ^tests/arm-linux-tests/linux-4.3/
+
+models/.*/output
+models/.*/output3
