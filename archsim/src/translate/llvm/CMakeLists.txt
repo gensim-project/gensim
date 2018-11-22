@@ -1,4 +1,5 @@
 archsim_add_sources(
+	LLVMAliasAnalysis.cpp
 	LLVMGuestRegisterAccessEmitter.cpp
 	LLVMMemoryManager.cpp
 	LLVMOptimiser.cpp

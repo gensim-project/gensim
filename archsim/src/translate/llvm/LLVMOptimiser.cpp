@@ -80,320 +80,28 @@ static bool IsConstVal(const ::llvm::MDOperand &v)
 
 char ArchSimAA::ID = 0;
 
-bool TryRecover_RegAccess(const llvm::Value *v, int size, std::vector<int> &aaai)
-{
-	const llvm::Instruction *insn = llvm::dyn_cast<const llvm::Instruction>(v);
-
-	bool is_reg_access = false;
-	uint64_t offset = 0;
-
-	const llvm::Argument *arg = llvm::dyn_cast<const llvm::Argument>(v);
-	if(arg != nullptr) {
-		const llvm::Value *reg_file_ptr = &*arg->getParent()->arg_begin();
-		if(arg == reg_file_ptr) {
-			is_reg_access = true;
-			offset = 0;
-		}
-	}
-
-	if(insn != nullptr) {
-		const llvm::Value *reg_file_ptr = &*insn->getParent()->getParent()->arg_begin();
-		llvm::DataLayout dl = insn->getParent()->getParent()->getParent()->getDataLayout();
-		llvm::APInt accumulated_offset(64, 0, false);
-		if(v->stripAndAccumulateInBoundsConstantOffsets(dl, accumulated_offset) == reg_file_ptr) {
-			// definitely a register access. Now try and figure out offsets + size
-
-			is_reg_access = true;
-			offset = accumulated_offset.getZExtValue();
-		}
-	}
-
-	if(is_reg_access) {
-		aaai = {TAG_REG_ACCESS, offset, size};
-		return true;
-	}
-	return false;
-
-	if(const llvm::BitCastInst *bc = llvm::dyn_cast<const llvm::BitCastInst>(v)) {
-		const llvm::Value *reg_file_ptr = &*bc->getParent()->getParent()->arg_begin();
-		if(bc->getOperand(0) == reg_file_ptr) {
-			int addend = 0;
-			int size = bc->getType()->getPointerElementType()->getScalarSizeInBits()/8;
-			aaai = {TAG_REG_ACCESS, addend, addend + size, size};
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	if(const llvm::IntToPtrInst *inst = llvm::dyn_cast<const llvm::IntToPtrInst>(v)) {
-		const llvm::Value *reg_file_ptr = &*inst->getParent()->getParent()->arg_begin();
-
-		auto op0 = inst->getOperand(0);
-
-		// either we have an add of a ptr to int and a constant, or we have a ptrtoint (with an addend of 0)
-		int addend = 0;
-		bool is_constant = true;
-		llvm::Instruction *ptrtoint = nullptr;
-
-		const llvm::BinaryOperator *add_inst = llvm::dyn_cast<const llvm::BinaryOperator>(op0);
-		if(add_inst != nullptr && add_inst->getOpcode() == llvm::BinaryOperator::Add) {
-			auto add_op0 = add_inst->getOperand(0);
-			auto add_op1 = add_inst->getOperand(1);
-
-			// add op0 should be a ptrtoint
-			if(!llvm::isa<llvm::PtrToIntInst>(add_op0)) {
-				return false;
-			}
-
-			ptrtoint = (llvm::PtrToIntInst*)add_op0;
-
-			if(const llvm::ConstantInt *constant_val = llvm::dyn_cast<const llvm::ConstantInt>(add_op1)) {
-				addend = constant_val->getValue().getZExtValue();
-			} else {
-				is_constant = false;
-			}
-		} else {
-			ptrtoint = (llvm::Instruction*)op0;
-		}
-		auto ptrtoint_op = ptrtoint->getOperand(0);
-
-		if(ptrtoint_op == reg_file_ptr) {
-			int size = inst->getType()->getPointerElementType()->getScalarSizeInBits() / 8;
-
-			if(is_constant) {
-				aaai = {(int)TAG_REG_ACCESS, addend, addend + size, size};
-				return true;
-			} else {
-				aaai = {(int)TAG_REG_ACCESS};
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-bool TryRecover_MemAccess(const llvm::Value *v, std::vector<int>& aaai)
-{
-	if(llvm::isa<llvm::Instruction>(v)) {
-		auto mem_base = ((llvm::Instruction*)v)->getParent()->getParent()->getParent()->getGlobalVariable("contiguous_mem_base");
-		if(v->stripInBoundsOffsets() == mem_base) {
-			aaai = {TAG_MEM_ACCESS};
-			return true;
-		}
-	}
-
-	// a memory access is either:
-	// 1. an instruction inttoptr of a value >= 0x80000000
-	// 1b. a constantexpr inttoptr of a value >= 0x80000000
-	// 2. a gep with a base of >= 0x80000000
-	// 3. a pointercast of (2)
-
-	if(llvm::isa<llvm::IntToPtrInst>(v)) {
-		llvm::IntToPtrInst *inst = (llvm::IntToPtrInst*)v;
-		llvm::ConstantInt *value = llvm::dyn_cast<llvm::ConstantInt>(inst->getOperand(0));
-		if(value != nullptr && value->getZExtValue() >= 0x80000000) {
-			aaai = {TAG_MEM_ACCESS};
-			return true;
-		}
-	} else if(llvm::isa<llvm::ConstantExpr>(v)) {
-		// possibly 1a
-		llvm::ConstantExpr *expr = (llvm::ConstantExpr*)v;
-
-		if(expr->getOpcode() == llvm::Instruction::IntToPtr) {
-			auto op0 = expr->getOperand(0);
-			auto const_op0 = llvm::dyn_cast<llvm::ConstantInt>(op0);
-			if(const_op0 != nullptr && const_op0->getZExtValue() >= 0x80000000) {
-				aaai = {TAG_MEM_ACCESS};
-				return true;
-			}
-		}
-
-	} else if(llvm::isa<llvm::GetElementPtrInst>(v)) {
-		// return recovered data from base of gep
-		llvm::GetElementPtrInst *gepinst = (llvm::GetElementPtrInst*)v;
-		return TryRecover_MemAccess(gepinst->getOperand(0), aaai);
-	} else if(llvm::isa<llvm::CastInst>(v)) {
-		// return recovered data from base of bitcast
-		llvm::CastInst *inst = (llvm::CastInst*)v;
-		return TryRecover_MemAccess(inst->getOperand(0), aaai);
-	}
-
-	return false;
-}
-
-bool TryRecover_StateBlock(const llvm::Value *v, std::vector<int> &aaai)
-{
-	// state block access is anything indexed off of arg 1 (%1)
-	if(llvm::isa<llvm::Argument>(v)) {
-		auto arg = (llvm::Argument*)v;
-		auto state_block_ptr = &*(arg->getParent()->arg_begin() + 1);
-
-		if(arg == state_block_ptr) {
-			aaai = {TAG_CPU_STATE};
-			return true;
-		}
-	}
-
-	// try thread ptr
-	const llvm::BitCastInst *bitcast = llvm::dyn_cast<const llvm::BitCastInst>(v);
-	if(bitcast != nullptr) {
-		auto state_block_ptr = &*(bitcast->getParent()->getParent()->arg_begin() + 1);
-
-		if(bitcast->getOperand(0) == state_block_ptr) {
-			aaai = {TAG_CPU_STATE};
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool RecoverAAAI(const llvm::Value *v, int size, std::vector<int> &aaai);
-
-bool MergePhiValues(const llvm::PHINode *phi, std::set<llvm::Value*> &values)
-{
-	for(auto i = 0; i < phi->getNumIncomingValues(); ++i) {
-		auto value = phi->getIncomingValue(i);
-
-		if(llvm::isa<llvm::PHINode>(value)) {
-			if(!values.count(value)) {
-				MergePhiValues((llvm::PHINode*)value, values);
-			}
-		}
-
-		values.insert(value);
-	}
-
-	return true;
-}
-
-std::vector<int> MergeAAAI(std::vector<int> &a, std::vector<int> &b)
-{
-	if(a.empty() || b.empty()) {
-		return {};
-	}
-
-	if(a.at(0) == b.at(0)) {
-
-		if(a == b) {
-			return a;
-		} else {
-			return {a.at(0)};
-		}
-
-	} else {
-		return {};
-	}
-}
-
-bool TryRecover_FromPhi(const llvm::Value *v, int size, std::vector<int> &aaai)
-{
-	// Don't try to recover alias information from a phi node just now. Lots to consider e.g. loops, merging information, etc.
-
-	if(llvm::isa<llvm::PHINode>(v)) {
-		std::set<llvm::Value*> phi_values;
-		MergePhiValues((llvm::PHINode*)v, phi_values);
-
-		std::vector<int> base_aaai;
-		RecoverAAAI(*phi_values.begin(), size, base_aaai);
-
-		for(auto i : phi_values) {
-			if(llvm::isa<llvm::PHINode>(i)) {
-				continue;
-			}
-
-			RecoverAAAI(i, size, aaai);
-			base_aaai = MergeAAAI(base_aaai, aaai);
-		}
-
-		aaai = base_aaai;
-		return true;
-	}
-
-	return false;
-}
-
-bool TryRecover_FromSelect(const llvm::Value *v, int size, std::vector<int> &aaai)
-{
-	if(llvm::isa<llvm::SelectInst>(v)) {
-		llvm::SelectInst *inst = (llvm::SelectInst*)v;
-		std::vector<int> true_aaai, false_aaai;
-
-		if(RecoverAAAI(inst->getTrueValue(), size, true_aaai) && RecoverAAAI(inst->getFalseValue(), size, false_aaai) && true_aaai == false_aaai) {
-			aaai = true_aaai;
-			return true;
-		}
-
-	}
-	return false;
-}
-
-bool TryRecover_Chain(const llvm::Value *v, int size, std::vector<int> &output_aaai)
-{
-	return false;
-}
-
-// attempt to figure out what v actually is
-bool RecoverAAAI(const llvm::Value *v, int size, std::vector<int> &output_aaai)
-{
-	if(TryRecover_FromPhi(v, size, output_aaai)) {
-		return true;
-	}
-	if(TryRecover_FromSelect(v, size, output_aaai)) {
-		return true;
-	}
-
-	if(TryRecover_RegAccess(v, size, output_aaai)) {
-		return true;
-	}
-	if(TryRecover_MemAccess(v, output_aaai)) {
-		return true;
-	}
-	if(TryRecover_StateBlock(v, output_aaai)) {
-		return true;
-	}
-	if(TryRecover_Chain(v, size, output_aaai)) {
-		return true;
-	}
-
-	return false;
-}
-
-bool GetArchsimAliasAnalysisInfo(const llvm::Value *v, int size, std::vector<int>& out)
-{
-	out.clear();
-	llvm::MDNode *mdnode = nullptr;
-
-	if(const llvm::Instruction *inst = llvm::dyn_cast<const llvm::Instruction>(v)) {
-		mdnode = inst->getMetadata("aaai");
-	} else if(const llvm::GlobalVariable *gv = llvm::dyn_cast<const llvm::GlobalVariable>(v)) {
-		mdnode = gv->getMetadata("aaai");
-	}
-
-	if(mdnode) {
-		for(int i = 0; i < mdnode->getNumOperands(); ++i) {
-			auto &op = mdnode->getOperand(i);
-
-			llvm::ConstantAsMetadata *constant = llvm::dyn_cast<llvm::ConstantAsMetadata>(op);
-			if(!constant) {
-				throw std::logic_error("unexpected metadata node");
-			}
-
-			llvm::ConstantInt *ci = llvm::dyn_cast<llvm::ConstantInt>(constant->getValue());
-			if(!ci) {
-				throw std::logic_error("unexpected metadata constant");
-			}
-
-			out.push_back(ci->getZExtValue());
-		}
-		return true;
-	}
-
-	return RecoverAAAI(v, size, out);
-}
-
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+static llvm::Function *GetFunction(const llvm::Value *v1, const llvm::Value *v2)
+{
+	llvm::Function *fn = nullptr;
+
+	if(llvm::isa<llvm::Instruction>(v1)) {
+		fn = ((llvm::Instruction*)v1)->getFunction();
+	}
+	if(llvm::isa<llvm::Instruction>(v2)) {
+		fn = ((llvm::Instruction*)v2)->getFunction();
+	}
+
+	if(llvm::isa<llvm::Argument>(v1)) {
+		fn = ((llvm::Argument*)v1)->getParent();
+	}
+	if(llvm::isa<llvm::Argument>(v2)) {
+		fn = ((llvm::Argument*)v2)->getParent();
+	}
+
+	return fn;
+}
 
 llvm::AliasResult ArchSimAA::alias(const llvm::MemoryLocation &L1, const llvm::MemoryLocation &L2)
 {
@@ -433,9 +141,16 @@ llvm::AliasResult ArchSimAA::alias(const llvm::MemoryLocation &L1, const llvm::M
 
 		if(print) {
 
+			llvm::Function *fn = GetFunction(v1, v2);
+			if(fn == nullptr) {
+				UNEXPECTED;
+			}
+
 			std::vector<int> v1aa, v2aa;
-			auto v1hasaa = GetArchsimAliasAnalysisInfo(v1, L1.Size.getValue(), v1aa);
-			auto v2hasaa = GetArchsimAliasAnalysisInfo(v2, L2.Size.getValue(), v2aa);
+
+			PointerInformationProvider pip (fn);
+			auto v1hasaa = pip.GetPointerInfo(v1, v1aa);
+			auto v2hasaa = pip.GetPointerInfo(v2, v2aa);
 
 			// it's OK if two memory pointers might alias.
 			if(v1hasaa && v2hasaa && v1aa[0] == TAG_MEM_ACCESS && v2aa[0] == TAG_MEM_ACCESS) {
@@ -497,8 +212,17 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 	int size1 = L1.Size.hasValue() ? L1.Size.getValue() : -1;
 	int size2 = L2.Size.hasValue() ? L2.Size.getValue() : -1;
 
-	GetArchsimAliasAnalysisInfo(v1, size1, metadata_1);
-	GetArchsimAliasAnalysisInfo(v2, size2, metadata_2);
+	llvm::Function *fn = GetFunction(v1, v2);
+	if(fn == nullptr) {
+		return llvm::MayAlias;
+	}
+
+	PointerInformationProvider pip (fn);
+	pip.GetPointerInfo(v1, metadata_1);
+	pip.GetPointerInfo(v2, metadata_2);
+
+//	GetArchsimAliasAnalysisInfo(v1, size1, metadata_1);
+//	GetArchsimAliasAnalysisInfo(v2, size2, metadata_2);
 
 	// We must have AAAI for BOTH instructions to proceed.
 	if (metadata_1.size() && metadata_2.size()) {
@@ -530,7 +254,8 @@ llvm::AliasResult ArchSimAA::do_alias(const llvm::MemoryLocation &L1, const llvm
 						return llvm::MayAlias;
 					}
 
-					UNIMPLEMENTED;
+					//TODO: fix this
+					return llvm::MayAlias;
 
 					break;
 				}
@@ -613,7 +338,11 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 		}));
 	}
 
+	pm.add(new LLVMRegisterOptimisationPass());
+
 	pmp.populateModulePassManager(pm);
+
+//	pm.add(new LLVMRegisterOptimisationPass());
 
 	isInitialised = true;
 

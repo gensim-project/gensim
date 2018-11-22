@@ -65,7 +65,7 @@ void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit
 	builder.SetInsertPoint(on_page_block);
 
 	auto pc_offset = builder.CreateAnd(pc, archsim::Address::PageMask);
-	auto target = builder.CreateGEP(gv, {llvm::ConstantInt::get(ctx.Types.i64, 0), pc_offset});
+	auto target = builder.CreateInBoundsGEP(gv, {llvm::ConstantInt::get(ctx.Types.i64, 0), pc_offset});
 	if(llvm::isa<llvm::GetElementPtrInst>(target)) {
 		((llvm::GetElementPtrInst*)target)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_JT_ELEMENT)) }));
 	}
@@ -125,7 +125,7 @@ llvm::BasicBlock *LLVMRegionTranslationContext::GetRegionChainBlock()
 
 		auto cache_index = builder.CreateURem(page_index, llvm::ConstantInt::get(GetContext().Types.i64, 1024));
 
-		auto cache_tag = builder.CreateGEP(cache_base, {cache_index, llvm::ConstantInt::get(GetContext().Types.i32, 0)});
+		auto cache_tag = builder.CreateInBoundsGEP(cache_base, {cache_index, llvm::ConstantInt::get(GetContext().Types.i32, 0)});
 		//cache_tag->setMetadata("aaai", llvm::MDNode::get(GetContext().LLVMCtx, {llvm::ConstantAsMetadata(llvm::ConstantInt::get(GetContext().Types.i64, TAG_REGION_CHAIN_TABLE))}));
 		cache_tag = builder.CreateLoad(cache_tag);
 
@@ -142,7 +142,7 @@ llvm::BasicBlock *LLVMRegionTranslationContext::GetRegionChainBlock()
 			GetTxlt()->EmitIncrementCounter(builder, GetContext(), GetContext().GetThread()->GetMetrics().JITSuccessfulChains, 1);
 		}
 
-		auto fn_ptr = builder.CreateGEP(cache_base, {cache_index, llvm::ConstantInt::get(GetContext().Types.i32, 1)});
+		auto fn_ptr = builder.CreateInBoundsGEP(cache_base, {cache_index, llvm::ConstantInt::get(GetContext().Types.i32, 1)});
 		//fn_ptr->setMetadata("aaai", llvm::MDNode::get(GetContext().LLVMCtx, {llvm::ConstantAsMetadata(llvm::ConstantInt::get(GetContext().Types.i64, TAG_REGION_CHAIN_TABLE))}));
 		fn_ptr = builder.CreateLoad(fn_ptr);
 
