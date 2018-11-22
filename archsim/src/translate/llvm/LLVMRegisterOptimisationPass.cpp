@@ -1,15 +1,37 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
+#include "define.h"
+#include "translate/llvm/LLVMAliasAnalysis.h"
 #include "translate/llvm/LLVMRegisterOptimisationPass.h"
 #include <llvm/Analysis/RegionInfo.h>
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/PassSupport.h>
 
+#include <sstream>
+
 using namespace archsim::translate::translate_llvm;
 
 char LLVMRegisterOptimisationPass::ID = 0;
 
+//#define DEBUGLOG(...) fprintf(stderr, __VA_ARGS__)
+//#define DEBUGLOG2(...) fprintf(stderr, __VA_ARGS__)
+
+#ifndef DEBUGLOG
+#define DEBUGLOG(...)
+#endif
+#ifndef DEBUGLOG2
+#define DEBUGLOG2(...)
+#endif
+
 //static llvm::RegisterPass<LLVMRegisterOptimisationPass> X("register-opt", "Optimise register accesses", false, false);
+
+static std::string FormatLLVMInst(llvm::Value *inst)
+{
+	std::string st;
+	llvm::raw_string_ostream str(st);
+	str << *inst;
+	return str.str();
+}
 
 static void *initializeLLVMRegisterOptimisationPass(llvm::PassRegistry &Registry)
 {
@@ -25,113 +47,21 @@ static void initPass(llvm::PassRegistry &r)
 }
 
 static llvm::once_flag init_flag;
+class OptRegisterer
+{
+public:
+	OptRegisterer()
+	{
+		llvm::call_once(init_flag, initPass, *llvm::PassRegistry::getPassRegistry());
+	}
+};
+
+OptRegisterer opt;
 
 
 LLVMRegisterOptimisationPass::LLVMRegisterOptimisationPass() : llvm::FunctionPass(ID)
 {
-	llvm::call_once(init_flag, initPass, *llvm::PassRegistry::getPassRegistry());
-}
 
-const char *indent(int count)
-{
-	static std::map<int, std::string> indentations;
-	if(!indentations.count(count)) {
-		indentations[count] = std::string(count, '\t');
-	}
-
-	return indentations.at(count).c_str();
-}
-
-void printregion(const llvm::Region *rgn, int depth = 0)
-{
-	fprintf(stderr, "%sRegion %p\n", indent(depth), rgn);
-	for(const auto &i : rgn->blocks()) {
-		fprintf(stderr, "%s - block %s\n", indent(depth), i->getName().str().c_str());
-	}
-
-	fprintf(stderr, "%s - subregions:\n", indent(depth));
-	for(const auto &i : *rgn) {
-		printregion(i.get(), depth+1);
-	}
-}
-
-static bool isCandidateRegion(const llvm::Region *region)
-{
-	// a region is a candidate if it contains no loops.
-	std::set<llvm::BasicBlock*> reached_blocks;
-
-	std::list<llvm::BasicBlock*> work_list;
-	work_list.push_back(region->getEntry());
-
-	while(!work_list.empty()) {
-		auto block = work_list.back();
-		work_list.pop_back();
-
-		if(!region->contains(block)) {
-			continue;
-		}
-
-
-		// If we've already seen this block, we must have looped
-		if(reached_blocks.count(block)) {
-			return false;
-		}
-
-		reached_blocks.insert(block);
-
-		for(unsigned i = 0; i < block->getTerminator()->getNumSuccessors(); ++i) {
-			work_list.push_back(block->getTerminator()->getSuccessor(i));
-		}
-	}
-
-	return true;
-}
-
-static void getCandidateRegions(const llvm::Region *tlregion, std::vector<const llvm::Region *> &candidate_regions)
-{
-	if(isCandidateRegion(tlregion)) {
-		candidate_regions.push_back(tlregion);
-	}
-
-	for(auto &i : *tlregion) {
-		getCandidateRegions(i.get(), candidate_regions);
-	}
-}
-
-static std::vector<llvm::StoreInst*> getRegisterStores(llvm::Value *register_base, const llvm::Region *rgn)
-{
-	std::vector<llvm::StoreInst*> register_stores;
-
-	for(auto block : rgn->blocks()) {
-		for(auto &insn : *block) {
-			if(llvm::isa<llvm::StoreInst>(&insn)) {
-				llvm::StoreInst *store = (llvm::StoreInst*)&insn;
-				auto ptr = store->getPointerOperand();
-				if(ptr->stripInBoundsConstantOffsets() == register_base) {
-					register_stores.push_back(store);
-				}
-			}
-		}
-	}
-
-	return register_stores;
-}
-
-static int countRedundantRegisterStores(const llvm::DataLayout &dl, std::vector<llvm::StoreInst*> stores)
-{
-	std::map<int, int> store_count;
-	for(auto i : stores) {
-		llvm::APInt offset(64, 0, false);
-		i->getPointerOperand()->stripAndAccumulateInBoundsConstantOffsets(dl, offset);
-		store_count[offset.getZExtValue()]++;
-	}
-
-	int redundants = 0;
-	for(auto i : store_count) {
-		redundants += i.second-1;
-	}
-
-	return redundants;
 }
 
 static bool isRegisterStore(llvm::Instruction *inst)
@@ -139,8 +69,12 @@ static bool isRegisterStore(llvm::Instruction *inst)
 	if(llvm::isa<llvm::StoreInst>(inst)) {
 		llvm::StoreInst *store = (llvm::StoreInst*)inst;
 
-		if(store->getPointerOperand()->stripInBoundsConstantOffsets() == &*inst->getFunction()->arg_begin()) {
-			return true;
+		PointerInformationProvider pip(inst->getFunction());
+		std::vector<int> info;
+		pip.GetPointerInfo(store->getPointerOperand(), info);
+
+		if(info.size()) {
+			return info.at(0) == 0;
 		}
 	}
 	return false;
@@ -151,8 +85,12 @@ static bool isRegisterLoad(llvm::Instruction *inst)
 	if(llvm::isa<llvm::LoadInst>(inst)) {
 		llvm::LoadInst *load = (llvm::LoadInst*)inst;
 
-		if(load->getPointerOperand()->stripInBoundsConstantOffsets() == &*inst->getFunction()->arg_begin()) {
-			return true;
+		PointerInformationProvider pip(inst->getFunction());
+		std::vector<int> info;
+		pip.GetPointerInfo(load->getPointerOperand(), info);
+
+		if(info.size()) {
+			return info.at(0) == 0;
 		}
 	}
 	return false;
@@ -171,6 +109,9 @@ static bool isBreaker(llvm::Instruction *inst)
 		if(fnname.find("Trace") != std::string::npos) {
 			return false;
 		}
+		if(fnname.find("llvm.assume") == 0) {
+			return false;
+		}
 
 		if(!call->getCalledFunction()->doesNotAccessMemory()) {
 			return true;
@@ -179,181 +120,332 @@ static bool isBreaker(llvm::Instruction *inst)
 	return false;
 }
 
-static std::pair<uint64_t, uint64_t> getRegisterStoreInfo(llvm::StoreInst *inst)
+class RegisterDefinitions
 {
-	llvm::APInt offset(64, 0, false);
-	auto dl = inst->getModule()->getDataLayout();
-	inst->getPointerOperand()->stripAndAccumulateInBoundsConstantOffsets(dl, offset);
+public:
+	using Interval = std::pair<int, int>;
+	using DefinitionList = std::unordered_set<llvm::StoreInst*>;
 
-	return {offset.getZExtValue(), dl.getTypeSizeInBits(inst->getValueOperand()->getType()) / 8};
+	static RegisterDefinitions MergeDefinitions(const std::vector<RegisterDefinitions> &defs)
+	{
+		RegisterDefinitions output_defs;
+
+		for(auto &i : defs) {
+			for(int byte = 0; byte < i.interval_definition_.size(); ++byte) {
+				output_defs.AddByteDefinition(byte, i.interval_definition_.at(byte));
+			}
+		}
+
+		return output_defs;
+	}
+	static RegisterDefinitions MergeDefinitions(const std::vector<RegisterDefinitions*> &defs)
+	{
+		RegisterDefinitions output_defs;
+
+		for(auto &i : defs) {
+			for(int byte = 0; byte < i->interval_definition_.size(); ++byte) {
+				output_defs.AddByteDefinition(byte, i->interval_definition_.at(byte));
+			}
+		}
+
+		return output_defs;
+	}
+
+	void SetDefinition(const Interval &interval, llvm::StoreInst *inst)
+	{
+		for(int i = interval.first; i <= interval.second; ++i) {
+			SetByteDefinition(i, inst);
+		}
+	}
+
+	void AddDefinition(const Interval &interval, llvm::StoreInst *inst)
+	{
+		for(int i = interval.first; i <= interval.second; ++i) {
+			AddByteDefinition(i, inst);
+		}
+	}
+
+	std::set<llvm::StoreInst*> GetDefinitions() const
+	{
+		std::set<llvm::StoreInst*> defs;
+		for(auto i : interval_definition_) {
+			for(auto j : i) {
+				defs.insert(j);
+			}
+		}
+		return defs;
+	}
+
+	std::set<llvm::StoreInst*> GetDefinitionsForByte(int b) const
+	{
+		if(interval_definition_.size() <= b) {
+			return {};
+		}
+
+		std::set<llvm::StoreInst*> stores;
+		for(auto i : interval_definition_.at(b)) {
+			stores.insert(i);
+		}
+		return stores;
+	}
+
+	bool operator==(const RegisterDefinitions &other) const
+	{
+		return interval_definition_ == other.interval_definition_;
+	}
+	bool operator!=(const RegisterDefinitions &other) const
+	{
+		return !operator==(other);
+	}
+
+
+private:
+	friend std::ostream &operator<<(std::ostream &str, const RegisterDefinitions &rd);
+
+	// TODO: be a bit smarter with this
+	std::vector<DefinitionList> interval_definition_;
+
+	void AddByteDefinition(int byte, const DefinitionList &inst)
+	{
+		if(interval_definition_.size() <= byte+1) {
+			interval_definition_.resize(byte+1);
+		}
+		interval_definition_.at(byte).insert(inst.begin(), inst.end());
+	}
+
+	void AddByteDefinition(int byte, llvm::StoreInst *inst)
+	{
+		if(interval_definition_.size() <= byte+1) {
+			interval_definition_.resize(byte+1);
+		}
+		interval_definition_.at(byte).insert(inst);
+	}
+
+	void SetByteDefinition(int byte, llvm::StoreInst *inst)
+	{
+		if(interval_definition_.size() < byte+1) {
+			interval_definition_.resize(byte+1);
+		}
+		interval_definition_.at(byte) = { inst };
+	}
+};
+
+std::ostream &operator<<(std::ostream &str, const RegisterDefinitions &rd)
+{
+	for(int i = 0; i < rd.interval_definition_.size(); ++i) {
+		str << i << " = (";
+
+		for(auto j : rd.interval_definition_.at(i)) {
+			str << j << " ";
+		}
+
+		str << ")";
+	}
+
+	return str;
 }
 
-static std::pair<uint64_t, uint64_t> getRegisterLoadInfo(llvm::LoadInst *inst)
+bool IsDefinition(llvm::Instruction *inst)
 {
-	llvm::APInt offset(64, 0, false);
-	auto dl = inst->getModule()->getDataLayout();
-	inst->getPointerOperand()->stripAndAccumulateInBoundsConstantOffsets(dl, offset);
-
-	return {offset.getZExtValue(), dl.getTypeSizeInBits(inst->getType()) / 8};
+	return isRegisterStore(inst);
 }
 
-using register_info_t = std::pair<uint64_t, uint64_t>;
-using block_register_out_t = std::map<register_info_t, llvm::StoreInst*>;
-
-bool registerAccessAliases(const register_info_t &i1, const register_info_t &i2)
+bool AddDefinition(llvm::Instruction *store, RegisterDefinitions &definitions, LLVMRegisterOptimisationPass::DefinitionSet &all_definitions)
 {
-	if(i1.first >= i2.first + i2.second) {
-		return false;
+	PointerInformationProvider pip(store->getFunction());
+
+	if(llvm::isa<llvm::StoreInst>(store)) {
+		llvm::StoreInst *st = (llvm::StoreInst*)store;
+		std::vector<int> info;
+		bool success = pip.GetPointerInfo(st->getPointerOperand(), st->getPointerOperandType()->getPointerElementType()->getPrimitiveSizeInBits()/8, info);
+		if(!success) {
+			fprintf(stderr, "Failed to get pointer info for %s\n", FormatLLVMInst(st->getPointerOperand()).c_str());
+			UNEXPECTED;
+		}
+
+		// If we have precise information about this store, then override any
+		// definitions available for the detected interval. Otherwise, override
+		// the entire register file.
+		if(info.size() > 1) {
+			definitions.SetDefinition({info.at(1), info.at(1) + info.at(2) - 1}, st);
+		} else {
+			UNIMPLEMENTED;
+		}
+
+		DEBUGLOG(" ** Definition added for %u - %u: %s\n", info.at(1), info.at(1) + info.at(2)-1, FormatLLVMInst(st).str().c_str());
+
+		all_definitions.insert(st);
+
+	} else {
+		UNEXPECTED;
 	}
-	if(i2.first >= i1.first + i1.second) {
-		return false;
-	}
+
 	return true;
 }
 
-void killRegisterStore(block_register_out_t &info, register_info_t reg_info)
+bool IsUse(llvm::Instruction *inst)
 {
-	// first, remove anything from existing info which aliases new_store
-	std::vector<register_info_t> aliasing_entries;
-
-	for(auto i : info) {
-		if(registerAccessAliases(i.first, reg_info)) {
-			aliasing_entries.push_back(i.first);
-		}
-	}
-
-	for(auto i : aliasing_entries) {
-		info.erase(i);
-	}
+	return isRegisterLoad(inst) || isBreaker(inst) || llvm::isa<llvm::ReturnInst>(inst);
 }
 
-static block_register_out_t getLiveRegisterOuts(llvm::BasicBlock *block)
+bool AddUse(llvm::Instruction *inst, const RegisterDefinitions &live_defs, LLVMRegisterOptimisationPass::DefinitionSet &live_definition_instructions)
 {
-	block_register_out_t register_outs;
+	// two cases: if inst is a register load, then add live definitions for any store instructions which touch the loaded range.
+	//            if inst is a call, then add live definitions for all live stores
 
-	for(auto &inst : block->getInstList()) {
-		if(isRegisterStore(&inst)) {
-			auto info = getRegisterStoreInfo((llvm::StoreInst*)&inst);
-			killRegisterStore(register_outs, info);
-			register_outs[info] = (llvm::StoreInst*)&inst;
+	if(isRegisterLoad(inst)) {
+		llvm::LoadInst *load = (llvm::LoadInst*)inst;
+
+		PointerInformationProvider pip(inst->getFunction());
+		std::vector<int> info;
+		bool success = pip.GetPointerInfo(load->getPointerOperand(), load->getPointerOperandType()->getPointerElementType()->getPrimitiveSizeInBits()/8, info);
+
+		DEBUGLOG(" *** %s is a load\n", FormatLLVMInst(inst).c_str());
+
+		if(!success || info.at(0) != 0 || info.size() < 3) {
+			UNEXPECTED;
 		}
 
-		if(isRegisterLoad(&inst)) {
-			auto info = getRegisterLoadInfo((llvm::LoadInst*)&inst);
-			killRegisterStore(register_outs, info);
-		}
+		for(int i = info.at(1); i < info.at(1) + info.at(2); ++i) {
+			auto defs = live_defs.GetDefinitionsForByte(i);
+			for(auto d : defs) {
+				live_definition_instructions.insert(d);
 
-		if(isBreaker(&inst)) {
-			register_outs.clear();
-		}
-	}
-
-	return register_outs;
-}
-
-static block_register_out_t getLiveRegisterIns(llvm::BasicBlock *block)
-{
-	block_register_out_t register_ins;
-
-	for(auto i = block->getInstList().rbegin(); i != block->getInstList().rend(); ++i) {
-		auto &inst = *i;
-		if(isRegisterStore(&inst)) {
-			auto info = getRegisterStoreInfo((llvm::StoreInst*)&inst);
-			killRegisterStore(register_ins, info);
-			register_ins[info] = (llvm::StoreInst*)&inst;
-		}
-
-		if(isRegisterLoad(&inst)) {
-			auto info = getRegisterLoadInfo((llvm::LoadInst*)&inst);
-			killRegisterStore(register_ins, info);
-		}
-
-		if(isBreaker(&inst)) {
-			register_ins.clear();
-		}
-	}
-
-	return register_ins;
-}
-
-bool LLVMRegisterOptimisationPass::runOnRegion(llvm::Function &f, const llvm::Region* region)
-{
-	// Do a very basic DSE:
-	// 1. For each block B, identify all writes W to registers R
-	// 2. For each immediate successor S of B, determine if B writes to R before it is read
-	// 3. If all successors write to R before it is read, delete the write W
-
-	// In future this should be extended.
-
-	bool changed = false;
-
-	std::map<llvm::BasicBlock*, block_register_out_t> live_register_outs;
-
-// 	fprintf(stderr, "In Function %s\n", f.getParent()->getName().str().c_str());
-
-	for(auto &b : f.getBasicBlockList()) {
-		auto B = &b;
-// 		fprintf(stderr, "For block %p (%s)\n", B, B->getName().str().c_str());
-
-		block_register_out_t live_outs = getLiveRegisterOuts(B);
-		for(auto i : live_outs) {
-// 			fprintf(stderr, " - %p wrote to %u:%u\n", i.second, i.first.first, i.first.second);
-		}
-
-		std::map<llvm::BasicBlock*, block_register_out_t> live_register_ins;
-		for(unsigned i = 0; i < B->getTerminator()->getNumSuccessors(); ++i) {
-			auto S = B->getTerminator()->getSuccessor(i);
-// 			fprintf(stderr, " - For successor %p (%s)\n", S, S->getName().str().c_str());
-
-			auto live_ins = getLiveRegisterIns(S);
-			live_register_ins[S] = live_ins;
-
-			for(auto i : live_ins) {
-// 				fprintf(stderr, " - - %u:%u is live in\n", i.first.first, i.first.second);
+				DEBUGLOG(" *** Use added for %u: %s\n", i, FormatLLVMInst(d).c_str());
 			}
 		}
 
-		for(auto R : live_outs) {
-			// check each successor to see if R is live
-			bool live = true;
+	} else if(isBreaker(inst) || llvm::isa<llvm::ReturnInst>(inst)) {
+		// all current reachable definitions become live
+		DEBUGLOG(" *** %s is a breaker\n", FormatLLVMInst(inst).c_str());
+		for(auto def : live_defs.GetDefinitions()) {
+			live_definition_instructions.insert(def);
+			DEBUGLOG(" *** Use added for %s\n", FormatLLVMInst(def).c_str());
+		}
+	} else {
+		// some unhandled case
+		UNEXPECTED;
+	}
 
-			for(auto S : live_register_ins) {
-				if(S.second.count(R.first) == 0) {
-					live = false;
-					break;
-				}
-			}
+	return true;
+}
 
-			if(live) {
-// 				fprintf(stderr, " - Deleted %p (%u:%u)\n", R.second, R.first.first, R.first.second);
-				// delete the write to R in B
-				R.second->removeFromParent();
-				R.second->dropAllReferences();
-				delete R.second;
-				changed = true;
+bool ProcessInstructionRange(llvm::BasicBlock::iterator start, llvm::BasicBlock::iterator end, const RegisterDefinitions &incoming_definitions, RegisterDefinitions &outgoing_definitions, LLVMRegisterOptimisationPass::DefinitionSet &all_definitions, LLVMRegisterOptimisationPass::DefinitionSet &live_definitions)
+{
+	DEBUGLOG2(" *** %u incoming defs\n", incoming_definitions.GetDefinitions().size());
+	DEBUGLOG2("%s\n", incoming_definitions.print().c_str());
+
+	auto oldout = outgoing_definitions;
+	DEBUGLOG2(" *** %u initial outgoing defs\n", oldout.GetDefinitions().size());
+	DEBUGLOG2(" %s\n", oldout.print().c_str());
+
+	outgoing_definitions = incoming_definitions;
+
+	for(auto it = start; it != end; ++it) {
+		llvm::Instruction *inst = &*it;
+
+		if(IsDefinition(inst)) {
+			// add store as a definition
+			AddDefinition(inst, outgoing_definitions, all_definitions);
+		}
+
+		if(IsUse(inst)) {
+			// process use into reachable definitions
+			AddUse(inst, outgoing_definitions, live_definitions);
+		}
+	}
+
+	DEBUGLOG2(" *** %u outgoing defs\n", outgoing_definitions.GetDefinitions().size());
+	DEBUGLOG2(" %s\n", outgoing_definitions.print().c_str());
+
+	if(oldout != outgoing_definitions) {
+		DEBUGLOG(" *** Difference detected!\n");
+	}
+	return oldout != outgoing_definitions;
+}
+
+bool ProcessBlock(llvm::BasicBlock *block, const RegisterDefinitions &incoming_definitions, RegisterDefinitions &outgoing_definitions, LLVMRegisterOptimisationPass::DefinitionSet &all_definitions, LLVMRegisterOptimisationPass::DefinitionSet &live_definitions)
+{
+	DEBUGLOG(" *** Processing block %s\n", block->getName().str().c_str());
+	return ProcessInstructionRange(block->begin(), block->end(), incoming_definitions, outgoing_definitions, all_definitions, live_definitions);
+}
+
+std::set<llvm::BasicBlock*> GetPredecessors(llvm::BasicBlock *block)
+{
+	std::set<llvm::BasicBlock*> preds;
+	for(auto &b : *(block->getParent())) {
+		for(int i = 0; i < b.getTerminator()->getNumSuccessors(); ++i) {
+			auto p = b.getTerminator()->getSuccessor(i);
+			if(p == block) {
+				preds.insert(&b);
 			}
 		}
 	}
 
-	return changed;
+	return preds;
 }
+
+bool LLVMRegisterOptimisationPass::ProcessFunction(llvm::Function &f, LLVMRegisterOptimisationPass::DefinitionSet &all_definitions, LLVMRegisterOptimisationPass::DefinitionSet &live_definitions)
+{
+	std::set<llvm::BasicBlock *> work_set;
+	std::map<llvm::BasicBlock *, RegisterDefinitions> outgoing_defs;
+	std::vector<RegisterDefinitions*> incoming_defs;
+
+	for(auto &b : f) {
+		work_set.insert(&b);
+		outgoing_defs[&b];
+	}
+
+	while(!work_set.empty()) {
+		auto *block = *work_set.begin();
+		work_set.erase(block);
+
+		incoming_defs.clear();
+		for(auto pred : GetPredecessors(block)) {
+			incoming_defs.push_back(&outgoing_defs.at(pred));
+		}
+		RegisterDefinitions incoming = RegisterDefinitions::MergeDefinitions(incoming_defs);
+
+		if(ProcessBlock(block, incoming, outgoing_defs.at(block), all_definitions, live_definitions)) {
+			auto *terminator = block->getTerminator();
+			for(int i = 0; i < terminator->getNumSuccessors(); ++i) {
+				work_set.insert(terminator->getSuccessor(i));
+			}
+		}
+	}
+
+	return true;
+}
+
 
 bool LLVMRegisterOptimisationPass::runOnFunction(llvm::Function &f)
 {
-	const auto *tlregion = getAnalysis<llvm::RegionInfoPass>().getRegionInfo().getTopLevelRegion();
-
-	std::vector<const llvm::Region*> candidate_regions;
-	// recurse through regions, identifying those which do not contain loops
-	getCandidateRegions(tlregion, candidate_regions);
+	DEBUGLOG(" *** Starting to work on %s\n", f.getName().str().c_str());
 
 	bool changed = false;
-	changed |= runOnRegion(f, nullptr);
+
+	DefinitionSet live_definitions, all_definitions, dead_definitions;
+	ProcessFunction(f, all_definitions, live_definitions);
+
+	for(auto i : all_definitions) {
+		if(!live_definitions.count(i)) {
+			dead_definitions.insert(i);
+		}
+	}
+
+	DEBUGLOG(" *** Found %u/%u/%u all/live/dead defs\n", all_definitions.size(), live_definitions.size(), dead_definitions.size());
+//	fprintf(stderr, " *** Found %u/%u/%u all/live/dead defs\n", all_definitions.size(), live_definitions.size(), dead_definitions.size());
+
+	for(llvm::Instruction *dead_store : dead_definitions) {
+		dead_store->removeFromParent();
+		dead_store->deleteValue();
+		changed = true;
+	}
 
 	return changed;
 }
 
 void archsim::translate::translate_llvm::LLVMRegisterOptimisationPass::getAnalysisUsage(llvm::AnalysisUsage &au) const
 {
-	au.addRequired<llvm::RegionInfoPass>();
 	au.setPreservesCFG();
 }

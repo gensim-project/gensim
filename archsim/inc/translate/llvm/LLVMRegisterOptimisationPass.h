@@ -6,6 +6,8 @@
 #include <llvm/Pass.h>
 #include <llvm/Analysis/RegionInfo.h>
 
+#include <unordered_set>
+
 namespace archsim
 {
 	namespace translate
@@ -22,8 +24,10 @@ namespace archsim
 
 				static char ID;
 
+				using DefinitionSet = std::unordered_set<llvm::Instruction*>;
+
 			private:
-				bool runOnRegion(llvm::Function &f, const llvm::Region *region);
+				bool ProcessFunction(llvm::Function &f, DefinitionSet &all_definitions, DefinitionSet &live_definitions);
 			};
 
 
