@@ -47,19 +47,24 @@ namespace gensim
 					return Manager.GetArch().Name + "_" + isa.ISAName;
 				}
 
+				inline std::string ClassNameForInstructionDecoder(const isa::InstructionDescription& insn) const
+				{
+					return Manager.GetArch().Name + "_" + insn.Format->GetISA().ISAName + "_" + insn.Name + "_instruction";
+				}
+
 				inline std::string ClassNameForFormatDecoder(const isa::InstructionFormatDescription& fmt) const
 				{
-					return Manager.GetArch().Name + "_decode_" + fmt.GetISA().ISAName + "_" + fmt.GetName();
+					return Manager.GetArch().Name + "_" + fmt.GetISA().ISAName + "_" + fmt.GetName() + "_format";
 				}
 
 				inline std::string ClassNameForISADecoder(const isa::ISADescription& isa) const
 				{
-					return Manager.GetArch().Name + "_decode_" + isa.ISAName;
+					return Manager.GetArch().Name + "_" + isa.ISAName + "_isa";
 				}
 
-				inline std::string ClassNameForDecoder() const
+				inline std::string ClassNameForBaseInstruction() const
 				{
-					return Manager.GetArch().Name + "_decode";
+					return Manager.GetArch().Name + "_instruction";
 				}
 
 				virtual bool GenerateDecodeHeader(util::cppformatstream &str) const override
@@ -68,40 +73,26 @@ namespace gensim
 
 					str << "#pragma once\n";
 
-					str << "#include <decode.h>\n";
-
 					str << "namespace captive {";
 					str << "namespace arch {";
+					str << "namespace guest {";
 					str << "namespace " << arch.Name << " {";
+					str << "namespace isa {";
 
-					// Root Arch Decode Class
-					str << "class " << ClassNameForDecoder() << " : public Decode";
-					str << "{";
-					str << "public:\n";
-
+					// OPCODE Enum
 					GenerateDecodeEnum(str);
 
-					str << arch.Name << "_isa_modes isa_mode;";
-					str << arch.Name << "_opcodes opcode;";
-					str << "uint32_t ir;"; // XXX HACK
-
-					str << "bool decode(uint32_t isa_mode, uint64_t insn_pc, const uint8_t *ptr) override;";
-					str << "JumpInfo get_jump_info() override;";
-
-					str << "private:\n";
-
-					for (auto tree : decode_trees) {
-						str << "bool decode_" << tree.first->ISAName << "(uint32_t ir);"; // XXX HACK
-					}
-
+					// Root Arch Decode Class
+					str << "struct " << ClassNameForBaseInstruction();
+					str << "{";
+					str << "u32 length() const { return 4; }";
 					str << "};";
 
 					// Per-ISA Decode Class
 					for (auto isa : arch.ISAs) {
-						str << "class " << ClassNameForISADecoder(*isa) << " : public " << ClassNameForDecoder();
+						str << "struct " << ClassNameForISADecoder(*isa) << " : public " << ClassNameForBaseInstruction();
 						str << "{";
-						str << "public:\n";
-						for (auto user_field : isa->UserFields) {
+						/*for (auto user_field : isa->UserFields) {
 							if (user_field.field_type == "uint64") {
 								str << "uint64_t";
 							} else if (user_field.field_type == "uint32") {
@@ -123,61 +114,78 @@ namespace gensim
 							}
 
 							str << " " << user_field.field_name << ";";
-						}
+						}*/
+
+						str << arch.Name << "_" << isa->ISAName <<  "_opcodes opcode() const;";
 						str << "};";
 
 						// Per-Format Decode Class
 						for (auto fmt : isa->Formats) {
-							str << "class " << ClassNameForFormatDecoder(*fmt.second) << " : public " << ClassNameForISADecoder(*isa);
+							str << "struct " << ClassNameForFormatDecoder(*fmt.second) << " : public " << ClassNameForISADecoder(*isa);
 							str << "{";
-							str << "public:\n";
-							auto fields = isa->Get_Decode_Fields();
 
+							int index = 0;
 							for (const auto& chunk : fmt.second->GetChunks()) {
-								if (!chunk.generate_field)
-									continue;
-
-								int size = fields[chunk.Name];
-
-								if (size < 9) {
-									str << "uint8_t";
-								} else if (size < 17) {
-									str << "uint16_t";
-								} else if (size < 33) {
-									str << "uint32_t";
+								if (chunk.is_constrained) {
+									str << "u32 __fixed_val_" << index++ << " /* == " << chunk.constrained_value << " */ : " << (unsigned int)chunk.length << ";";
 								} else {
-									str << "??";
+									str << "u32 " << chunk.Name << " : " << (unsigned int)chunk.length << ";";
+								}
+							}
+
+							str << "} __packed;";
+
+							str << "static_assert(sizeof(" << ClassNameForFormatDecoder(*fmt.second) << ") == 4, \"Instruction format " << fmt.first << " is incorrectly sized!\");";
+
+							for (auto insn : fmt.second->GetInstructions()) {
+								str << "struct " << ClassNameForInstructionDecoder(*insn) << " : public " << ClassNameForFormatDecoder(*fmt.second);
+								str << "{";
+
+								if (insn->EOB_Contraints.size() == 0) {
+									str << "bool end_of_block() const { return false; }";
+								} else {
+									str << "bool end_of_block() const {";
+									for (const auto& eob : insn->EOB_Contraints) {
+										if (eob.size() == 0) {
+											str << "return true;";
+											break;
+										}
+
+										str << "if (";
+
+										bool first = true;
+										for (const auto& con : eob) {
+											if (!first) {
+												str << " && ";
+											} else {
+												first = false;
+											}
+
+											switch (con.Type) {
+												case isa::InstructionDescription::Constraint_Equals:
+													str << "(" << "((" << ClassNameForFormatDecoder(*insn->Format) << "&)*this)." << con.Field << " == " << con.Value << ")";
+													break;
+												case isa::InstructionDescription::Constraint_BitwiseAnd:
+													str << "((" << "((" << ClassNameForFormatDecoder(*insn->Format) << "&)*this)." << con.Field << " & " << con.Value << ") == " << con.Value << ")";
+													break;
+												default:
+													str << "(" << "((" << ClassNameForFormatDecoder(*insn->Format) << "&)*this)." << con.Field << " != " << con.Value << ")";
+													break;
+											}
+										}
+
+										str << ") { return true; } else { return false; }";
+									}
+									str << "}";
 								}
 
-								str << " " << chunk.Name << ";";
+								str << "};";
 							}
-
-							str << "inline void decode_behaviour()";
-							str << "{";
-							str << fmt.second->DecodeBehaviourCode;
-							str << "}";
-
-							bool generate_is_predicate = isa->GetDefaultPredicated();
-
-							if (!generate_is_predicate && fmt.second->HasAttribute("predicated")) {
-								generate_is_predicate = true;
-							} else if (generate_is_predicate && fmt.second->HasAttribute("notpredicated")) {
-								generate_is_predicate = false;
-							}
-
-							if (generate_is_predicate) {
-								str << "inline bool decode_is_predicated() const";
-								str << "{";
-								str << *(isa->BehaviourActions.at("is_predicated"));
-								str << "}";
-							}
-
-							str << "};";
-
-							str << "static_assert(sizeof(" << ClassNameForFormatDecoder(*fmt.second) << ") <= 128, \"Decode class for format " << fmt.first << " is too big!\");";
 						}
 					}
 
+					str << "}";
+					str << "}";
 					str << "}";
 					str << "}";
 					str << "}";
@@ -187,8 +195,12 @@ namespace gensim
 
 				bool GenerateDecodeLeaf(util::cppformatstream& str, const isa::ISADescription& isa, const isa::InstructionDescription& insn) const
 				{
-					str << "opcode = " << EnumElementForInstruction(insn) << ";";
-					str << "length = " << (uint32_t) (insn.Format->GetLength() / 8) << ";";
+					const arch::ArchDescription &arch = Manager.GetArch();
+
+					str << "return " << arch.Name << "_" << isa.ISAName << "_opcodes::" << insn.Name << ";";
+					return true;
+
+					/*str << "length = " << (uint32_t) (insn.Format->GetLength() / 8) << ";";
 
 					int pos = 31;
 
@@ -271,7 +283,7 @@ namespace gensim
 
 					str << "return true;";
 
-					return true;
+					return true;*/
 				}
 
 				bool GenerateDecodeTree(util::cppformatstream& str, const isa::ISADescription& isa, const DecodeNode& node, int& i) const
@@ -312,9 +324,9 @@ namespace gensim
 
 							// if this transition is only one bit long, use a faster way of getting at that bit
 							if (group->first == 1)
-								str << "(ir & BIT_LSB(" << high_bit << ")) >> " << high_bit << ")\n {\n";
+								str << "(instruction_data & BIT_LSB(" << high_bit << ")) >> " << high_bit << ")\n {\n";
 							else
-								str << "UNSIGNED_BITS(ir, " << high_bit << "," << low_bit << ")) \n{\n";
+								str << "UNSIGNED_BITS(instruction_data, " << high_bit << "," << low_bit << ")) \n{\n";
 
 							// loop through the transitions of this group and emit their subtrees
 							for (std::list<DecodeTransition>::iterator trans = list.begin(); trans != list.end(); ++trans) {
@@ -344,80 +356,35 @@ namespace gensim
 				{
 					const arch::ArchDescription &arch = Manager.GetArch();
 
-					str << "#include <" << arch.Name << "-decode.h>\n";
-					str << "using namespace captive::arch::" << arch.Name << ";";
+					str << "#include <captive/arch/guest/" << arch.Name << "/isa/" << arch.Name << "-decode.h>\n";
 
-					str << "bool " << ClassNameForDecoder() << "::decode(uint32_t isa_mode, uint64_t insn_pc, const uint8_t *ptr)";
-					str << "{";
-					str << "opcode = " << arch.Name << "_unknown;";
-					str << "pc = insn_pc;";
-					str << "ir = *(const uint32_t *)ptr;";
-					str << "end_of_block = false;";
-					str << "is_predicated = false;";
+					// Helpers
 
-					str << "bool result = false;";
-					str << "switch ((" << arch.Name << "_isa_modes)isa_mode) {";
-					for (auto tree : decode_trees) {
-						str << "case " << EnumElementForISA(*tree.first) << ": ";
-						str << "result = decode_" << tree.first->ISAName << "(ir);";
-						str << "break;";
-					}
-					str << "}";
+					str << "#define UNSIGNED_BITS(v, u, l) (((u32)(v) << (31 - u)) >> (31 - u + l))\n";
+					str << "#define SIGNED_BITS(v, u, l) (((s32)(v) << (31 - u)) >> (31 - u + l))\n";
+					str << "#define BITSEL(v, b) (((v) >> b) & 1UL)\n";
+					str << "#define BIT_LSB(i) (1 << (i))\n";
 
-					str << "if (opcode == " << arch.Name << "_unknown) {";
-					str << "end_of_block = true;";
-					str << "result = true;";
-					str << "}";
+					/*#define __ROR(v, s, a) (((v) >> a) | ((v) << (s - a)))
+					#define __ROR32(v, a) __ROR((uint32_t)(v), 32, a)
+					#define __ROR64(v, a) __ROR((uint64_t)(v), 64, a)
+					#define __SEXT64(v, from) (((int64_t)(((uint64_t)(v)) << (64 - (from)))) >> (64 - (from)))
 
-					str << "return result;";
+					#define __ONES(a) (~0ULL >> (64 - (a)))
+					#define __CLZ32(a) __builtin_clz((a))*/
 
-					str << "}";
-
-					str << "captive::arch::JumpInfo " << ClassNameForDecoder() << "::get_jump_info()";
-					str << "{";
-					str << "JumpInfo info; info.type = captive::arch::JumpInfo::NONE; info.target = 0;";
-					str << "switch (opcode) {";
-
-					for (auto isa : arch.ISAs) {
-						for (auto insn : isa->Instructions) {
-							if (insn.second->FixedJump || insn.second->FixedJumpPred || insn.second->VariableJump) {
-								str << "case " << EnumElementForInstruction(*insn.second) << ":";
-
-								str << "info.type = ";
-								if (insn.second->FixedJump) {
-									str << "captive::arch::JumpInfo::DIRECT;";
-									str << "info.target = pc + ((" << ClassNameForFormatDecoder(*insn.second->Format) << " *)this)->" << insn.second->FixedJumpField << ";";
-								} else if (insn.second->FixedJumpPred) {
-									str << "captive::arch::JumpInfo::DIRECT_PREDICATED;";
-									str << "info.target = pc + ((" << ClassNameForFormatDecoder(*insn.second->Format) << " *)this)->" << insn.second->FixedJumpField << ";";
-								} else {
-									str << "captive::arch::JumpInfo::INDIRECT;";
-								}
-
-								str << "break;";
-							}
-						}
-					}
-
-					str << "case " << arch.Name << "_unknown:";
-					str << "info.type = captive::arch::JumpInfo::INDIRECT;";
-					str << "break;";
-
-					str << "default: break;";
-					str << "}";
-					str << "return info;";
-					str << "}";
+					str << "using namespace captive::arch::guest::" << arch.Name << "::isa;";
 
 					int i = 0;
 					for (auto tree : decode_trees) {
-						str << "inline bool " << ClassNameForDecoder() << "::decode_" << tree.first->ISAName << "(uint32_t ir)"; // XXX HACK
+						str << arch.Name << "_" << tree.first->ISAName << "_opcodes " << arch.Name << "_" << tree.first->ISAName << "_instruction::opcode() const";
 						str << "{";
-						str << "isa_mode = " << EnumElementForISA(*tree.first) << ";";
+						str << "u32 instruction_data = *(u32 *)this;";
 						GenerateDecodeTree(str, *tree.first, *tree.second, i);
-
-						str << "return false;";
+						str << "return " << arch.Name << "_" << tree.first->ISAName << "_opcodes::__unknown__;";
 						str << "}";
 					}
+
 					return true;
 				}
 
@@ -425,21 +392,22 @@ namespace gensim
 				{
 					const arch::ArchDescription& arch = Manager.GetArch();
 
-					str << "enum " << arch.Name << "_isa_modes {";
+					str << "enum class " << arch.Name << "_isas {";
 					for (auto isa : arch.ISAs) {
 						str << EnumElementForISA(*isa) << " = " << isa->isa_mode_id << ",\n";
 					}
 					str << "};\n";
 
-					str << "enum " << arch.Name << "_opcodes {\n";
 
 					for (auto isa : arch.ISAs) {
+						str << "enum class " << arch.Name << "_" << isa->ISAName <<  "_opcodes {\n";
+
 						for (auto insn : isa->Instructions) {
-							str << EnumElementForInstruction(*insn.second) << ",\n";
+							str << insn.second->Name << ",\n";
 						}
 					}
 
-					str << arch.Name << "_unknown = -1\n";
+					str << "__unknown__ = -1\n";
 					str << "};";
 				}
 			};

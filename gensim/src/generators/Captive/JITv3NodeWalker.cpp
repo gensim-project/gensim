@@ -142,7 +142,7 @@ namespace gensim
 				bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
 					const SSABinaryArithmeticStatement &stmt = static_cast<const SSABinaryArithmeticStatement &> (this->Statement);
-					output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = ((" << stmt.GetType().GetCType() << ")";
+					output << stmt.GetType().GetUnifiedType() << " " << stmt.GetName() << " = ((" << stmt.GetType().GetUnifiedType() << ")";
 
 					SSANodeWalker *LHSNode = Factory.GetOrCreate(stmt.LHS());
 					SSANodeWalker *RHSNode = Factory.GetOrCreate(stmt.RHS());
@@ -346,7 +346,7 @@ namespace gensim
 							output << "double " << stmt.GetName() << ";";
 
 							output << "{";
-							output << "uint64_t __tmp = " << *(uint64_t *)&value << ";";
+							output << "u64 __tmp = " << *(uint64_t *)&value << ";";
 							output << stmt.GetName() << " = *(double *)&__tmp;";
 							output << "}";
 
@@ -359,7 +359,7 @@ namespace gensim
 							output << "float " << stmt.GetName() << ";";
 
 							output << "{";
-							output << "uint32_t __tmp = " << *(uint32_t *)&value << ";";
+							output << "u32 __tmp = " << *(uint32_t *)&value << ";";
 							output << stmt.GetName() << " = *(float *)&__tmp;";
 							output << "}";
 
@@ -400,7 +400,7 @@ namespace gensim
 
 					switch (stmt.Constant.Type()) {
 						case IRConstant::Type_Integer:
-							str << "(" << stmt.GetType().GetCType() << ")" << stmt.Constant.Int() << "ULL";
+							str << "(" << stmt.GetType().GetUnifiedType() << ")" << stmt.Constant.Int() << "ULL";
 							return str.str();
 						case IRConstant::Type_Vector:
 							str << stmt.Constant.VGet(0).Int() << "ULL";
@@ -473,7 +473,7 @@ namespace gensim
 					const SSACastStatement &Statement = static_cast<const SSACastStatement &> (this->Statement);
 					std::stringstream str;
 
-					str << "((" << Statement.GetType().GetCType() << ")" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ")";
+					str << "((" << Statement.GetType().GetUnifiedType() << ")" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ")";
 					return str.str();
 				}
 			};
@@ -577,15 +577,15 @@ namespace gensim
 							assert(false && "ReadPC/WritePC cannot be fixed");
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
-							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = __builtin_popcount(" << arg0->GetFixedValue() << ");";
+							output << Statement.GetType().GetUnifiedType() << " " << Statement.GetName() << " = __builtin_popcount(" << arg0->GetFixedValue() << ");";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
-							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = __builtin_clz(" << arg0->GetFixedValue() << ");";
+							output << Statement.GetType().GetUnifiedType() << " " << Statement.GetName() << " = __builtin_clz(" << arg0->GetFixedValue() << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_GetFeature:
-							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = get_support().get_feature(" << arg0->GetFixedValue() << ");";
+							output << Statement.GetType().GetUnifiedType() << " " << Statement.GetName() << " = c.get_feature(" << arg0->GetFixedValue() << ");";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
@@ -900,7 +900,7 @@ namespace gensim
 					std::stringstream str;
 
 					if (stmt.Index != -1)
-						str << "((uint32_t *)(";
+						str << "((u32 *)(";
 
 					if (stmt.MemberName == "IsPredicated") {
 						str << "insn.is_predicated";
@@ -935,14 +935,14 @@ namespace gensim
 
 					output << "if (emit_trace_calls_) {";
 					output << "trace_store_register("
-					       << "constant_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
+					       << "constant_u32((u32)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
 					       << operand_for_node(*Value)
 					       << ");";
 					output << "}";
 
 					if (rd.RegNum()->IsFixed()) {
 						output << "store_register("
-						       << "constant_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
+						       << "constant_u32((u32)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
 						       << operand_for_node(*Value) << ");\n";
 						return true;
 					} else {
@@ -964,14 +964,14 @@ namespace gensim
 					output << "auto " << Statement.GetName() << " = ";
 
 					if (rd.RegNum()->IsFixed()) {
-						output << "load_register(constant_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))), " << type_for_statement(Statement) << ");\n";
+						output << "load_register(constant_u32((u32)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))), " << type_for_statement(Statement) << ");\n";
 					} else {
 						assert(false);
 					}
 
 					output << "if (emit_trace_calls_) {";
 					output << "trace_load_register("
-					       << "constant_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
+					       << "constant_u32((u32)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
 					       << operand_for_stmt(Statement)
 					       << ");";
 					output << "}";
@@ -1134,7 +1134,7 @@ namespace gensim
 					SSANodeWalker *True = Factory.GetOrCreate(Statement.TrueVal());
 					SSANodeWalker *False = Factory.GetOrCreate(Statement.FalseVal());
 
-					output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = ((" << Statement.GetType().GetCType() << ")";
+					output << Statement.GetType().GetUnifiedType() << " " << Statement.GetName() << " = ((" << Statement.GetType().GetUnifiedType() << ")";
 					output << "(" << Cond->GetFixedValue() << " ? (" << True->GetFixedValue() << ") : (" << False->GetFixedValue() << ")));";
 					return true;
 				}
@@ -1386,11 +1386,11 @@ namespace gensim
 					SSANodeWalker *to = Factory.GetOrCreate(stmt.BitTo());
 					SSANodeWalker *value = Factory.GetOrCreate(stmt.Value());
 
-					output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
+					output << stmt.GetType().GetUnifiedType() << " " << stmt.GetName() << ";";
 					output << "{";
-					output << "uint64_t mask = (((uint64_t)1 << (" << to->GetFixedValue() << " - (" << from->GetFixedValue() << "))) - 1) << (" << to->GetFixedValue() << ");";
-					output << "uint64_t value = ((uint64_t)(" << value->GetFixedValue() << ")) << (" << to->GetFixedValue() << ");";
-					output << stmt.GetName() << " = ((uint64_t)" << expr->GetFixedValue() << " & ~mask) | (value & mask);";
+					output << "u64 mask = (((u64)1 << (" << to->GetFixedValue() << " - (" << from->GetFixedValue() << "))) - 1) << (" << to->GetFixedValue() << ");";
+					output << "u64 value = ((u64)(" << value->GetFixedValue() << ")) << (" << to->GetFixedValue() << ");";
+					output << stmt.GetName() << " = ((u64)" << expr->GetFixedValue() << " & ~mask) | (value & mask);";
 					output << "}";
 
 					/*if (Statement.Parent->Parent->HasDynamicDominatedReads(&Statement)) {
@@ -1434,10 +1434,10 @@ namespace gensim
 					SSANodeWalker *from = Factory.GetOrCreate(stmt.BitFrom());
 					SSANodeWalker *to = Factory.GetOrCreate(stmt.BitTo());
 
-					output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
+					output << stmt.GetType().GetUnifiedType() << " " << stmt.GetName() << ";";
 					output << "{";
-					output << "uint64_t mask = (((uint64_t)1 << (" << to->GetFixedValue() << " - (" << from->GetFixedValue() << "))) - 1) << (" << to->GetFixedValue() << ");";
-					output << stmt.GetName() << " = ((uint64_t)" << expr->GetFixedValue() << " >> " << from->GetFixedValue() << ") & mask;";
+					output << "u64 mask = (((u64)1 << (" << to->GetFixedValue() << " - (" << from->GetFixedValue() << "))) - 1) << (" << to->GetFixedValue() << ");";
+					output << stmt.GetName() << " = ((u64)" << expr->GetFixedValue() << " >> " << from->GetFixedValue() << ") & mask;";
 					output << "}";
 
 					/*if (Statement.Parent->Parent->HasDynamicDominatedReads(&Statement)) {
@@ -1474,7 +1474,7 @@ namespace gensim
 					SSANodeWalker *index = Factory.GetOrCreate(stmt.Index());
 					SSANodeWalker *value = Factory.GetOrCreate(stmt.Value());
 
-					output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << base->GetFixedValue() << ";";
+					output << stmt.GetType().GetUnifiedType() << " " << stmt.GetName() << " = " << base->GetFixedValue() << ";";
 
 					output << stmt.GetName() << "[" << index->GetFixedValue() << "] = " << value->GetFixedValue() << ";";
 					return true;
@@ -1509,7 +1509,7 @@ namespace gensim
 					SSANodeWalker *base = Factory.GetOrCreate(stmt.Base());
 					SSANodeWalker *index = Factory.GetOrCreate(stmt.Index());
 
-					output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << base->GetFixedValue() << "[" << index->GetFixedValue() << "];";
+					output << stmt.GetType().GetUnifiedType() << " " << stmt.GetName() << " = " << base->GetFixedValue() << "[" << index->GetFixedValue() << "];";
 					return true;
 				}
 
@@ -1593,13 +1593,13 @@ namespace gensim
 					const SSAUnaryArithmeticStatement &Statement = static_cast<const SSAUnaryArithmeticStatement &> (this->Statement);
 					switch (Statement.Type) {
 						case SSAUnaryOperator::OP_NEGATIVE:
-							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = -" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ";";
+							output << Statement.GetType().GetUnifiedType() << " " << Statement.GetName() << " = -" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ";";
 							break;
 						case SSAUnaryOperator::OP_NEGATE:
-							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = !" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ";";
+							output << Statement.GetType().GetUnifiedType() << " " << Statement.GetName() << " = !" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ";";
 							break;
 						case SSAUnaryOperator::OP_COMPLEMENT:
-							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = ~" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ";";
+							output << Statement.GetType().GetUnifiedType() << " " << Statement.GetName() << " = ~" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ";";
 							break;
 						default:
 							assert(false);
