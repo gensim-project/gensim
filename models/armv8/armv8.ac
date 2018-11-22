@@ -1,11 +1,11 @@
 /*
- * GenSim AARCH64 Model
+ * GenSim ARMv8 Model
  *
  * Copyright (C) University of Edinburgh 2016.  All Rights Reserved.
  *
  * Tom Spink <tspink@inf.ed.ac.uk>
  */
-AC_ARCH(aarch64)
+AC_ARCH(armv8)
 {
 	ac_mem Data(64, 64, little, 0);
 	ac_mem Fetch(64, 64, little, 1);
@@ -115,7 +115,7 @@ AC_ARCH(aarch64)
 		feature EMULATE_LINUX_ARCHSIM;
 	}
 
-	ARCH_CTOR(arm)
+	ARCH_CTOR(a64)
 	{
 		ac_isa("isa.ac");
 		set_endian("little");
