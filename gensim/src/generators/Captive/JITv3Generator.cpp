@@ -56,37 +56,6 @@ namespace gensim
 				{
 					const arch::ArchDescription &arch = Manager.GetArch();
 
-					util::cppformatstream dbt_glue_str;
-					dbt_glue_str << "#pragma once\n";
-					dbt_glue_str << "#include <jit/dbt.h>\n";
-					dbt_glue_str << "#include <dbt/define.h>\n";
-					dbt_glue_str << "#include <dbt/gen/generator.h>\n";
-					dbt_glue_str << "#include <aarch64-decode.h>\n";
-					dbt_glue_str << "#include <aarch64-jit3.h>\n";
-
-					dbt_glue_str << "namespace captive {";
-					dbt_glue_str << "namespace arch {";
-					dbt_glue_str << "namespace " << arch.Name << " {";
-
-					dbt_glue_str << "template<bool emit_trace_calls_>\n";
-					dbt_glue_str << "class aarch64_dbt : public captive::arch::jit::DBT\n";
-					dbt_glue_str << "{";
-					dbt_glue_str << "public:\n";
-
-					dbt_glue_str << "bool generate_instruction(dbt::support& support, dbt::gen::block_context& block_context, const Decode* decoded_instruction) override";
-					dbt_glue_str << "{";
-					dbt_glue_str << "generator_dispatcher<emit_trace_calls_> dispatcher;";
-					dbt_glue_str << "return dispatcher.generate_instruction(support, block_context, *(aarch64_decode *) decoded_instruction);";
-					dbt_glue_str << "}";
-
-					dbt_glue_str << "};";
-
-					dbt_glue_str << "}";
-					dbt_glue_str << "}";
-					dbt_glue_str << "}";
-
-					WriteOutputFile(Manager.GetArch().Name + "-dbt.h", dbt_glue_str);
-
 					util::cppformatstream header_str;
 					util::cppformatstream source_str;
 
@@ -99,8 +68,8 @@ namespace gensim
 						return false;
 					}
 
-					WriteOutputFile(Manager.GetArch().Name + "-jit3.h", header_str);
-					WriteOutputFile(Manager.GetArch().Name + "-jit3.cpp", source_str);
+					WriteOutputFile(Manager.GetArch().Name + "-generator.h", header_str);
+					WriteOutputFile(Manager.GetArch().Name + "-generator.cpp", source_str);
 
 					for (auto isa : arch.ISAs) {
 						for (auto insn : isa->Instructions) {
@@ -114,23 +83,11 @@ namespace gensim
 								return false;
 							}
 
-							bool generate_predicate_generator = isa->GetDefaultPredicated();
-
-							if (!generate_predicate_generator && insn.second->Format->HasAttribute("predicated")) {
-								generate_predicate_generator = true;
-							} else if (generate_predicate_generator && insn.second->Format->HasAttribute("notpredicated")) {
-								generate_predicate_generator = false;
-							}
-
-							if (generate_predicate_generator) {
-								GeneratePredicateFunction(insn_str, *isa, *insn.second->Format, *insn.second);
-							}
-
 							if (!GenerateJITChunkEpilogue(insn_str)) {
 								return false;
 							}
 
-							std::string filename = Manager.GetArch().Name + "-jit3-" + isa->ISAName + "-" + insn.first + ".cpp";
+							std::string filename = Manager.GetArch().Name + "-generator-" + isa->ISAName + "-" + insn.first + ".cpp";
 							WriteOutputFile(filename, insn_str);
 						}
 					}
@@ -160,7 +117,12 @@ namespace gensim
 
 				inline std::string ClassNameForFormatDecoder(const isa::InstructionFormatDescription& fmt) const
 				{
-					return Manager.GetArch().Name + "_decode_" + fmt.GetISA().ISAName + "_" + fmt.GetName();
+					return "captive::arch::guest::" + Manager.GetArch().Name + "::isa::" + Manager.GetArch().Name + "_" + fmt.GetISA().ISAName + "_" + fmt.GetName() + "_format";
+				}
+
+				inline std::string ClassNameForInstructionDecoder(const isa::InstructionDescription& insn) const
+				{
+					return "captive::arch::guest::" + Manager.GetArch().Name + "::isa::" + Manager.GetArch().Name + "_" + insn.Format->GetISA().ISAName + "_" + insn.Name + "_instruction";
 				}
 
 				inline std::string EnumElementForInstruction(const isa::InstructionDescription& insn) const
@@ -172,127 +134,47 @@ namespace gensim
 				{
 					const arch::ArchDescription &arch = Manager.GetArch();
 
-					str << "#include <" << arch.Name << "-jit3.h>\n";
-					str << "#include <queue>\n";
-					str << "#include <set>\n";
+					str << "#include <captive/arch/guest/" << arch.Name << "/dbt/" << arch.Name << "-generator.h>\n";
 
-					/*const isa::ISADescription *isa = arch.ISAs.front();
-					for (const auto& helper_item : isa->GetSSAContext().Actions()) {
-						if (!helper_item.second->HasAttribute(ActionAttribute::Helper)) continue;
-
-						const genc::IRHelperAction *helper = dynamic_cast<const genc::IRHelperAction*> (((const SSAFormAction *)helper_item.second)->GetAction());
-						if (!helper->GetSignature().HasAttribute(ActionAttribute::NoInline) || helper->GetSignature().GetName() == "instruction_predicate") continue;
-
-						str << "extern " << helper->GetSignature().GetType().GetCType() << " __helper_trampoline_" << helper->GetSignature().GetName() << "(" << ClassNameForCPU(true) << " *";
-
-						for (const auto& param : helper->GetSignature().GetParams()) {
-							str << ", " << param.GetType().GetCType();
-						}
-
-						str << ");";
-					}*/
-
-					str << "using namespace captive::arch::" << arch.Name << ";";
-					str << "using namespace dbt::gen;";
+					str << "using namespace captive::arch::guest::" << arch.Name << "::dbt;";
+					str << "using namespace captive::crt::ee::dbt;";
 
 					return true;
 				}
 
 				bool GenerateJITChunkEpilogue(util::cppformatstream& str) const
 				{
-					//str << "template class " << ClassNameForJIT() << "<true>;";
-					//str << "template class " << ClassNameForJIT() << "<false>;";
-
 					return true;
 				}
 
 				bool GenerateJITHeader(util::cppformatstream& str) const
 				{
 					const arch::ArchDescription &arch = Manager.GetArch();
+					const std::string& arch_name = arch.Name;
 
 					str << "#pragma once\n";
-
-					str << "#include <define.h>\n";
-					str << "#include <" << arch.Name << "-decode.h>\n";
-					str << "#include <jit/builtins.h>\n";
-					str << "#include <dbt/define.h>\n";
-					str << "#include <dbt/gen/generator.h>\n";
-
+					str << "#include <captive/crt/ee/dbt/generator.h>\n";
+					str << "#include <captive/arch/guest/"<<arch_name<<"/isa/"<<arch_name<<"-decode.h>\n";
 					str << "namespace captive {";
 					str << "namespace arch {";
-					str << "namespace " << arch.Name << " {";
+					str << "namespace guest {";
+					str << "namespace "<<arch_name<<" {";
+					str << "namespace dbt {";
+					str << "	template<bool generate_trace_>\n";
+					str << "	class "<<arch_name<<"_generator : public crt::ee::dbt::generator {";
+					str << "	public:\n";
+					str << "		crt::ee::dbt::generation_result generate(crt::ee::dbt::compilation_context& c, arch::guest::address_space& as, off_t& offset) override;";
 
+					str << "private:\n";
 					for (auto isa : arch.ISAs) {
-						/*for (auto fmt : isa->Formats) {
-							bool generate_predicate_generator = isa->GetDefaultPredicated();
-
-							if (!generate_predicate_generator && fmt.second->HasAttribute("predicated")) {
-								generate_predicate_generator = true;
-							} else if (generate_predicate_generator && fmt.second->HasAttribute("notpredicated")) {
-								generate_predicate_generator = false;
-							}
-
-							if (generate_predicate_generator) {
-								str << "dbt::gen gnode *generate_predicate_" << isa->ISAName << "_" << fmt.second->GetName() << "(const " << ClassNameForFormatDecoder(*fmt.second) << "& insn, dbt::gen::generator_context& context);\n";
-							}
-						}*/
-
 						for (auto insn : isa->Instructions) {
-							//str << "bool translate_" << isa->ISAName << "_" << insn.second->Name << "(const " << ClassNameForFormatDecoder(*insn.second->Format) << "& insn, dbt::gen::generator_context& context);";
-
-							str << "template<bool emit_trace_calls_>\n";
-							str << "class " << isa->ISAName << "_" << insn.second->Name << "_generator : public dbt::gen::generator {";
-							str << "public:\n";
-							str << isa->ISAName << "_" << insn.second->Name << "_generator(dbt::support& support, dbt::gen::block_context& block_context) : generator(support, block_context) { }";
-							str << "bool generate(const " << ClassNameForFormatDecoder(*(insn.second->Format)) << "&);";
-
-							bool generate_predicate_generator = isa->GetDefaultPredicated();
-
-							if (!generate_predicate_generator && insn.second->Format->HasAttribute("predicated")) {
-								generate_predicate_generator = true;
-							} else if (generate_predicate_generator && insn.second->Format->HasAttribute("notpredicated")) {
-								generate_predicate_generator = false;
-							}
-
-							if (generate_predicate_generator) {
-								str << "private:\n";
-								str << "dbt::gen::gvar *generate_predicate(const " << ClassNameForFormatDecoder(*(insn.second->Format)) << "&);";
-							}
-
-							str << "};";
+							str << "crt::ee::dbt::generation_result generate_" << isa->ISAName << "_" << insn.first << "(crt::ee::dbt::compilation_context&, const " << ClassNameForInstructionDecoder(*insn.second) << "&);";
 						}
 					}
 
-					str << "template<bool emit_trace_calls_>\n";
-					str << "class generator_dispatcher {\n";
-					str << "public:\n";
-					str << "bool generate_instruction(dbt::support& support, dbt::gen::block_context& block_context, " << ClassNameForDecoder() << "& instruction) {";
-
-					str << "switch (instruction.opcode) {";
-
-					for (auto isa : arch.ISAs) {
-						for (auto insn : isa->Instructions) {
-							str << "case " << ClassNameForDecoder() << "::" << EnumElementForInstruction(*insn.second) << ":\n";
-							str << "{";
-							//str << "return translate_" << isa->ISAName << "_" << insn.second->Name << "((const " << ClassNameForFormatDecoder(*insn.second->Format) << "&)insn, emitter);";
-							str << isa->ISAName << "_" << insn.second->Name << "_generator<emit_trace_calls_> g(support, block_context);";
-							str << "return g.generate((" << ClassNameForFormatDecoder(*(insn.second->Format)) << "&)instruction);";
-							str << "}";
-						}
-					}
-
-					str << "case " << ClassNameForDecoder() << "::" << arch.Name << "_unknown: ";
-					str << "{";
-					str << "dbt::gen::generator g(support, block_context);";
-					str << "g.call0(&__captive_builtin_undefined_instruction, dbt::gen::gnode_type::voidtype());";
-					str << "return true;";
-					str << "}";
-					str << "default: return false;";
+					str << "	};";
 					str << "}";
 					str << "}";
-
-					str << "};";
-
 					str << "}";
 					str << "}";
 					str << "}";
@@ -303,26 +185,49 @@ namespace gensim
 				bool GenerateJITSource(util::cppformatstream& str) const
 				{
 					const arch::ArchDescription &arch = Manager.GetArch();
-					str << "#include <" << arch.Name << "-jit3.h>\n";
+					const std::string& arch_name = arch.Name;
 
+					str << "#include <captive/arch/guest/" << arch_name << "/dbt/" << arch_name << "-generator.h>\n";
 
-					return true;
-				}
+					str << "#include <captive/arch/guest/"<<arch_name<<"/isa/"<<arch_name<<"-decode.h>\n";
+					str << "#include <captive/arch/guest/address-space.h>\n";
+					str << "#include <captive/arch/guest/address-space-region.h>\n";
 
-				bool GeneratePredicateFunction(util::cppformatstream& str, const isa::ISADescription& isa, const isa::InstructionFormatDescription& fmt, const isa::InstructionDescription& insn) const
-				{
-					str << "template<bool emit_trace_calls_>";
-					str << "gvar *" << isa.ISAName << "_" << insn.Name << "_generator<emit_trace_calls_>::generate_predicate(const " << ClassNameForFormatDecoder(fmt) << "& insn)";
+					str << "using namespace captive::crt::ee::dbt;";
+					str << "using namespace captive::arch::guest::"<<arch_name<<"::dbt;";
+					str << "using namespace captive::arch::guest::"<<arch_name<<"::isa;";
+
+					str << "template<bool generate_trace_>";
+					str << "generation_result "<<arch_name<<"_generator<generate_trace_>::generate(compilation_context& c, arch::guest::address_space& as, off_t& offset)";
 					str << "{";
+					str << "	char buffer[4];";
+					str << "	as.read(buffer, offset, sizeof(buffer));";
 
-					str << "std::queue<block *> dynamic_block_queue;";
-					str << "block *__exit_block = create_block();";
-					str << "gvar *__result = create_global(gnode_type::u8type());";
+					str << "	const "<<arch_name<<"_a64_isa *i = (const "<<arch_name<<"_a64_isa *)buffer;";
+					str << "	offset += i->length();";
 
-					EmitJITFunction(str, *(SSAFormAction *)isa.GetSSAContext().GetAction("instruction_predicate"));
+					str << "	"<<arch_name<<"_a64_opcodes opcode = i->opcode();";
 
-					str << "return __result;";
+					str << "	switch (opcode) {";
+
+					for (auto isa : arch.ISAs) {
+						for (auto insn : isa->Instructions) {
+							//str << "crt::ee::dbt::generation_result generate_" << isa->ISAName << "_" << insn.first << "(crt::ee::dbt::compilation_context&, const " << ClassNameForFormatDecoder(*(insn.second->Format)) << "&);";
+							str << "case "<<arch_name<<"_a64_opcodes::" << insn.first << ":\n";
+							str << "return generate_" << isa->ISAName << "_" << insn.first << "(c, *(const " << ClassNameForInstructionDecoder(*insn.second) << " *)i);";
+						}
+					}
+
+					str << "case "<<arch_name<<"_a64_opcodes::__unknown__:\n";
+					str << "		return generation_result::abort;";
+
+					str << "	default:\n";
+					str << "		return generation_result::abort;";
+					str << "	}";
 					str << "}";
+
+					str << "template class "<<arch_name<<"_generator<true>;";
+					str << "template class "<<arch_name<<"_generator<false>;";
 
 					return true;
 				}
@@ -330,6 +235,7 @@ namespace gensim
 				bool GenerateJITFunction(util::cppformatstream& src_stream, const isa::ISADescription& isa, const isa::InstructionDescription& insn) const
 				{
 					const arch::ArchDescription &arch = Manager.GetArch();
+					const std::string& arch_name = arch.Name;
 
 					if (!isa.GetSSAContext().HasAction(insn.BehaviourName)) {
 						fprintf(stderr, "ERROR: execute action '%s' does not exist.\n", insn.BehaviourName.c_str());
@@ -339,12 +245,12 @@ namespace gensim
 					const SSAFormAction &action = *(SSAFormAction *)isa.GetSSAContext().GetAction(insn.BehaviourName);
 
 					src_stream << "template<bool emit_trace_calls_>";
-					src_stream << "bool " << isa.ISAName << "_" << insn.Name << "_generator<emit_trace_calls_>::generate(const " << ClassNameForFormatDecoder(*insn.Format) << "& insn) {";
+					src_stream << "generation_result "<<arch_name<<"_generator<emit_trace_calls_>::generate_" << isa.ISAName << "_" << insn.Name << "(compilation_context& c, const " << ClassNameForInstructionDecoder(insn) << "& insn) {";
 
 					FeatureUseAnalysis fua;
 					auto used_features = fua.GetUsedFeatures(&action);
 					for (auto feature : used_features) {
-						src_stream << "get_support().use_feature(" << feature->GetId() << ");\n";
+						src_stream << "c.use_feature(" << feature->GetId() << ");\n";
 					}
 
 					bool have_dynamic_blocks = false;
@@ -361,57 +267,16 @@ namespace gensim
 
 					src_stream << "block *__exit_block = create_block();";
 
-					bool generate_predicate_executor = isa.GetDefaultPredicated();
-
-					if (!generate_predicate_executor && insn.Format->HasAttribute("predicated")) {
-						generate_predicate_executor = true;
-					} else if (generate_predicate_executor && insn.Format->HasAttribute("notpredicated")) {
-						generate_predicate_executor = false;
-					}
-
-					if (generate_predicate_executor) {
-						src_stream << "if (insn.is_predicated) {";
-						src_stream << "block *__predicate_taken = create_block();";
-						src_stream << "gvar *predicate_result = generate_predicate(insn);";
-
-						src_stream << "if (emit_trace_calls_) {";
-						src_stream << "block *__predicate_not_taken = create_block();";
-						src_stream << "branch(load_global(predicate_result), __predicate_taken, __predicate_not_taken);\n";
-
-						src_stream << "set_block_context(__predicate_not_taken);";
-						src_stream << "trace_not_taken();";
-
-						src_stream << "if (insn.end_of_block) {";
-						src_stream << "increment_pc(constant_u8(" << (insn.Format->GetLength() / 8) << "));";
-						src_stream << "}";
-
-						src_stream << "jump(__exit_block);";
-
-						src_stream << "} else if (insn.end_of_block) {";
-						src_stream << "block *__predicate_not_taken = create_block();";
-						src_stream << "branch(load_global(predicate_result), __predicate_taken, __predicate_not_taken);\n";
-						src_stream << "set_block_context(__predicate_not_taken);";
-						src_stream << "increment_pc(constant_u8(" << (insn.Format->GetLength() / 8) << "));";
-						src_stream << "jump(__exit_block);";
-						src_stream << "} else {";
-						src_stream << "branch(load_global(predicate_result), __predicate_taken, __exit_block);\n";
-						src_stream << "}";
-
-						src_stream << "set_block_context(__predicate_taken);";
-						src_stream << "}";
-					}
-
 					EmitJITFunction(src_stream, action);
 
-					src_stream << "if (!insn.end_of_block) {";
+					src_stream << "if (!insn.end_of_block()) {";
 					src_stream << "increment_pc(constant_u64(" << (insn.Format->GetLength() / 8) << "));";
+					src_stream << "return generation_result::continue_generation;";
+					src_stream << "} else {";
+					src_stream << "return generation_result::finalise;";
 					src_stream << "}";
 
-					src_stream << "	return true;"
-					           << "}";
-
-					src_stream << "template class " << isa.ISAName << "_" << insn.Name << "_generator<false>;";
-					src_stream << "template class " << isa.ISAName << "_" << insn.Name << "_generator<true>;";
+					src_stream << "}";
 
 					return true;
 				}
@@ -432,7 +297,7 @@ namespace gensim
 						if(sym->GetType().Reference || sym->SType == Symbol_Parameter) {
 							continue;
 						}
-						src_stream << sym->GetType().GetCType() << " CV_" << sym->GetName() << ";\n";
+						src_stream << sym->GetType().GetUnifiedType() << " CV_" << sym->GetName() << ";\n";
 
 						bool is_global = sym->HasDynamicUses();
 
@@ -502,7 +367,7 @@ namespace gensim
 
 							src_stream << "if (block_index == block_" << block->GetName() << ") // BLOCK START LINE " << block->GetStartLine() << ", END LINE " << block->GetEndLine() << "\n";
 							src_stream << "{";
-							src_stream << "set_block_context(block_" << block->GetName() << ");";
+							src_stream << "set_current_block(block_" << block->GetName() << ");";
 
 							for (const auto stmt : block->GetStatements()) {
 								src_stream << "/* " << stmt->GetDiag() << " ";
@@ -531,7 +396,7 @@ namespace gensim
 						src_stream << "jump(__exit_block);\n";
 					}
 
-					src_stream << "set_block_context(__exit_block);";
+					src_stream << "set_current_block(__exit_block);";
 
 					return true;
 				}
