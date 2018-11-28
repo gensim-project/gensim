@@ -135,9 +135,12 @@ namespace gensim
 					const arch::ArchDescription &arch = Manager.GetArch();
 
 					str << "#include <captive/arch/guest/" << arch.Name << "/dbt/" << arch.Name << "-generator.h>\n";
+					str << "#include <captive/util/list.h>\n";
+					str << "#include <captive/util/set.h>\n";
 
 					str << "using namespace captive::arch::guest::" << arch.Name << "::dbt;";
 					str << "using namespace captive::crt::ee::dbt;";
+					str << "using namespace captive::util;";
 
 					return true;
 				}
@@ -262,10 +265,9 @@ namespace gensim
 					}
 
 					if (have_dynamic_blocks) {
-						src_stream << "std::queue<block *> dynamic_block_queue;";
+						src_stream << "list<block *> dynamic_block_queue;";
+						src_stream << "block *__exit_block = create_block();";
 					}
-
-					src_stream << "block *__exit_block = create_block();";
 
 					EmitJITFunction(src_stream, action);
 
@@ -277,6 +279,9 @@ namespace gensim
 					src_stream << "}";
 
 					src_stream << "}";
+
+					src_stream << "template generation_result "<<arch_name<<"_generator<true>::generate_" << isa.ISAName << "_" << insn.Name << "(compilation_context&, const " << ClassNameForInstructionDecoder(insn) << "&);";
+					src_stream << "template generation_result "<<arch_name<<"_generator<false>::generate_" << isa.ISAName << "_" << insn.Name << "(compilation_context&, const " << ClassNameForInstructionDecoder(insn) << "&);";
 
 					return true;
 				}
@@ -346,13 +351,12 @@ namespace gensim
 					src_stream << "fixed_done:\n";
 
 					if (have_dynamic_blocks) {
-						src_stream << "if (dynamic_block_queue.size() > 0) {\n";
-						src_stream << "std::set<block *> emitted_blocks;";
-						src_stream << "while (dynamic_block_queue.size() > 0) {\n";
+						src_stream << "if (dynamic_block_queue.count() > 0) {\n";
+						src_stream << "set<block *> emitted_blocks;";
+						src_stream << "while (dynamic_block_queue.count() > 0) {\n";
 
-						src_stream << "block *block_index = dynamic_block_queue.front();"
-						           << "dynamic_block_queue.pop();"
-						           << "if (emitted_blocks.count(block_index)) continue;"
+						src_stream << "block *block_index = dynamic_block_queue.dequeue();"
+						           << "if (emitted_blocks.contains(block_index)) continue;"
 						           << "emitted_blocks.insert(block_index);";
 
 						bool first = true;
@@ -391,12 +395,12 @@ namespace gensim
 						src_stream << "jump(__exit_block);\n";
 						src_stream << "}";
 
-						//src_stream << "emitter.set_current_block(__exit_block);";
+						src_stream << "set_current_block(__exit_block);";
 					} else {
-						src_stream << "jump(__exit_block);\n";
+						//src_stream << "jump(__exit_block);\n";
 					}
 
-					src_stream << "set_current_block(__exit_block);";
+					//src_stream << "set_current_block(__exit_block);";
 
 					return true;
 				}
