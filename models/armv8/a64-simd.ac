@@ -107,7 +107,7 @@ AC_ISA(a64)
 	
 	ac_field<uint8> arrangement;
 	ac_field<uint8> width;
-	ac_field<uint8> size;
+	ac_field<uint8> xsize;
 	ac_field<uint8> regcnt;
 	ac_field<uint8> elemcnt;
 	ac_field<uint8> elemsize;
@@ -245,6 +245,7 @@ AC_ISA(a64)
 		// -----------
 		
 		dup_elem.set_decoder(op=0, imm4=0);
+		
 		dup_elem.set_behaviour(dup_elem);
 		
 		dup_gen.set_decoder(op=0, imm4=1);

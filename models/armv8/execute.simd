@@ -203,14 +203,14 @@ execute(smov)
 execute(umov)
 {
 	// arrg, width, sz
-	uint8 index = (inst.imm5 & 0x1f) >> (inst.size+1);
+	uint8 index = (inst.imm5 & 0x1f) >> (inst.xsize+1);
 
 	uint64 rnl;
 	uint64 rnh;
 	read_vector_reg128(inst.rn, rnl, rnh);
 		
 	uint64 value;
-	switch (inst.size) {
+	switch (inst.xsize) {
 	case 0: {
 		if (index < 8) {
 			/*uint8[8] v;
