@@ -7,6 +7,8 @@
 #include <llvm/Pass.h>
 #include <llvm/Analysis/RegionInfo.h>
 
+#include <wutils/vset.h>
+
 #include <unordered_set>
 
 namespace archsim
@@ -15,6 +17,22 @@ namespace archsim
 	{
 		namespace translate_llvm
 		{
+
+			class TagContext
+			{
+			public:
+				TagContext() : next_tag_(0) {}
+				uint64_t NextTag()
+				{
+					return next_tag_++;
+				}
+				uint64_t MaxTag() const
+				{
+					return next_tag_;
+				}
+			private:
+				uint64_t next_tag_;
+			};
 
 			class RegisterExtent : public std::pair<int, int>
 			{
@@ -37,10 +55,7 @@ namespace archsim
 				RegisterReference() : extents_(UnlimitedExtent()), precise_(false) {}
 				RegisterReference(Extents extents, bool precise) : extents_(extents), precise_(precise) {}
 
-				Extents GetExtents() const
-				{
-					return extents_;
-				}
+				Extents GetExtents() const;
 				size_t GetSize() const
 				{
 					return extents_.second - extents_.first + 1;
@@ -51,7 +66,9 @@ namespace archsim
 				}
 				bool IsUnlimited() const
 				{
-					return extents_.first == 0 && extents_.second == INT_MAX;
+					// We don't care about where an extent starts, it's only
+					// unlimited if it ends at infinity.
+					return extents_.second == INT_MAX;
 				}
 
 			private:
@@ -62,13 +79,15 @@ namespace archsim
 			class RegisterAccess
 			{
 			public:
-				static RegisterAccess Store(llvm::Instruction *llvm_inst, const RegisterReference &reg)
+				using TagT = uint64_t;
+
+				static RegisterAccess Store(llvm::Instruction *llvm_inst, const RegisterReference &reg, uint64_t tag)
 				{
-					return RegisterAccess(llvm_inst, reg, true);
+					return RegisterAccess(llvm_inst, reg, true, tag);
 				}
-				static RegisterAccess Load(llvm::Instruction *llvm_inst, const RegisterReference &reg)
+				static RegisterAccess Load(llvm::Instruction *llvm_inst, const RegisterReference &reg, uint64_t tag)
 				{
-					return RegisterAccess(llvm_inst, reg, false);
+					return RegisterAccess(llvm_inst, reg, false, tag);
 				}
 
 				bool IsStore() const
@@ -84,17 +103,61 @@ namespace archsim
 					return llvm_inst_;
 				}
 
+				TagT GetTag() const
+				{
+					return tag_;
+				}
+
 			protected:
 				RegisterAccess() = delete;
-				RegisterAccess(llvm::Instruction *llvm_inst, const RegisterReference &reg, bool is_store) : is_store_(is_store), llvm_inst_(llvm_inst), reg_(reg) {}
+				RegisterAccess(llvm::Instruction *llvm_inst, const RegisterReference &reg, bool is_store, TagT tag) : is_store_(is_store), llvm_inst_(llvm_inst), reg_(reg), tag_(tag) {}
 
 			private:
 				bool is_store_;
 
 				llvm::Instruction *llvm_inst_;
 				RegisterReference reg_;
+				TagT tag_;
 			};
 
+
+			class RegisterDefinitions
+			{
+			public:
+
+				RegisterDefinitions()
+				{
+					definitions_[RegisterReference::UnlimitedExtent()] = {};
+
+					FailIfInvariantBroken();
+				}
+
+				void AddDefinition(RegisterAccess *access);
+
+				wutils::vset<RegisterAccess*> GetDefinitions(RegisterReference::Extents extents) const;
+
+				static RegisterDefinitions MergeDefinitions(const std::vector<RegisterDefinitions*> &incoming_defs);
+
+				bool operator==(const RegisterDefinitions &other) const
+				{
+					return definitions_ == other.definitions_;
+				}
+				bool operator!=(const RegisterDefinitions &other) const
+				{
+					return !operator==(other);
+				}
+
+			private:
+				void InsertDefinition(RegisterReference::Extents n_extent, const std::vector<RegisterAccess*> &n_accesses, std::map<RegisterReference::Extents, std::vector<RegisterAccess*>> &output);
+
+				void Flatten();
+
+				void SetDefinitionForRange(RegisterReference::Extents extents, RegisterAccess *access);
+				void EraseDefinitionsForRange(RegisterReference::Extents erase);
+				void FailIfInvariantBroken() const;
+
+				std::map<RegisterReference::Extents, std::vector<RegisterAccess*>> definitions_;
+			};
 
 			class LLVMRegisterOptimisationPass : public llvm::FunctionPass
 			{
@@ -102,6 +165,8 @@ namespace archsim
 				LLVMRegisterOptimisationPass();
 				bool runOnFunction(llvm::Function & F) override;
 				void getAnalysisUsage(llvm::AnalysisUsage & ) const override;
+
+				std::vector<RegisterAccess*> getDeadStores(llvm::Function &f);
 
 				static char ID;
 
@@ -115,4 +180,12 @@ namespace archsim
 		}
 	}
 }
+
+static std::ostream &operator<<(std::ostream &str, const archsim::translate::translate_llvm::RegisterExtent &ref)
+{
+	str << "(" << ref.first << ", " << ref.second << ")";
+	return str;
+}
+std::ostream &operator<<(std::ostream &str, const archsim::translate::translate_llvm::RegisterReference &ref);
+std::ostream &operator<<(std::ostream &str, const archsim::translate::translate_llvm::RegisterAccess &access);
 #endif
