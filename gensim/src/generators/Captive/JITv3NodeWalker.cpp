@@ -36,7 +36,7 @@ namespace gensim
 			void CreateBlock(util::cppformatstream &output, std::string block_id_name)
 			{
 				output << "auto block = " << block_id_name << ";\n";
-				output << "dynamic_block_queue.push(" << block_id_name << ");\n";
+				output << "dynamic_block_queue.enqueue(" << block_id_name << ");\n";
 			}
 
 			static std::string type_for_statement(const SSAStatement& stmt)
@@ -471,6 +471,10 @@ namespace gensim
 				std::string GetFixedValue() const
 				{
 					const SSACastStatement &Statement = static_cast<const SSACastStatement &> (this->Statement);
+
+					// HACK HACK HACK
+					if (Statement.GetType().VectorWidth > 1) return Factory.GetOrCreate(Statement.Expr())->GetFixedValue() ;
+
 					std::stringstream str;
 
 					str << "((" << Statement.GetType().GetUnifiedType() << ")" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ")";
@@ -890,7 +894,7 @@ namespace gensim
 							assert(false);
 					}
 
-					output << "(insn." << Statement.MemberName << ");";
+					output << "(insn." << Statement.MemberName << "());";
 					return true;
 				}
 
@@ -905,7 +909,7 @@ namespace gensim
 					if (stmt.MemberName == "IsPredicated") {
 						str << "insn.is_predicated";
 					} else {
-						str << "insn" << "." << stmt.MemberName;
+						str << "insn" << "." << stmt.MemberName << "()";
 					}
 
 					if (stmt.Index != -1)

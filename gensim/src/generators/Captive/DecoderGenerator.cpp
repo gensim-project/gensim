@@ -92,30 +92,6 @@ namespace gensim
 					for (auto isa : arch.ISAs) {
 						str << "struct " << ClassNameForISADecoder(*isa) << " : public " << ClassNameForBaseInstruction();
 						str << "{";
-						/*for (auto user_field : isa->UserFields) {
-							if (user_field.field_type == "uint64") {
-								str << "uint64_t";
-							} else if (user_field.field_type == "uint32") {
-								str << "uint32_t";
-							} else if (user_field.field_type == "uint16") {
-								str << "uint16_t";
-							} else if (user_field.field_type == "uint8") {
-								str << "uint8_t";
-							} else if (user_field.field_type == "sint64") {
-								str << "int64_t";
-							} else if (user_field.field_type == "sint32") {
-								str << "int32_t";
-							} else if (user_field.field_type == "sint16") {
-								str << "int16_t";
-							} else if (user_field.field_type == "sint8") {
-								str << "int8_t";
-							} else {
-								str << "??";
-							}
-
-							str << " " << user_field.field_name << ";";
-						}*/
-
 						str << arch.Name << "_" << isa->ISAName <<  "_opcodes opcode() const;";
 						str << "};";
 
@@ -127,15 +103,51 @@ namespace gensim
 							int index = 0;
 							for (const auto& chunk : fmt.second->GetChunks()) {
 								if (chunk.is_constrained) {
-									str << "u32 __fixed_val_" << index++ << " /* == " << chunk.constrained_value << " */ : " << (unsigned int)chunk.length << ";";
+									str << "u32 __constrained_val_" << index++ << " /* == " << chunk.constrained_value << " */ : " << (unsigned int)chunk.length << ";";
 								} else {
-									str << "u32 " << chunk.Name << " : " << (unsigned int)chunk.length << ";";
+									str << "u32 __unconstrained_val_" << chunk.Name << " : " << (unsigned int)chunk.length << ";";
+
+									if (chunk.generate_field) {
+										str << "u32 " << chunk.Name << "() const { return __unconstrained_val_" << chunk.Name << "; }";
+									}
 								}
 							}
 
+							for (auto user_field : isa->UserFields) {
+								std::string user_field_type;
+
+								if (user_field.field_type == "uint64") {
+									user_field_type = "u64";
+								} else if (user_field.field_type == "uint32") {
+									user_field_type = "u32";
+								} else if (user_field.field_type == "uint16") {
+									user_field_type = "u16";
+								} else if (user_field.field_type == "uint8") {
+									user_field_type = "u8";
+								} else if (user_field.field_type == "sint64") {
+									user_field_type = "s64";
+								} else if (user_field.field_type == "sint32") {
+									user_field_type = "s32";
+								} else if (user_field.field_type == "sint16") {
+									user_field_type = "s16";
+								} else if (user_field.field_type == "sint8") {
+									user_field_type = "s8";
+								} else {
+									user_field_type = "??";
+								}
+
+								str << user_field_type << " __user_field_" << user_field.field_name << ";";
+
+								str << user_field_type << " " << user_field.field_name << "() const { return __user_field_" << user_field.field_name << "; }";
+								str << "void " << user_field.field_name << "(" << user_field_type << " v__) { __user_field_" << user_field.field_name << " = v__; }";
+							}
+
+							str << "u32 ir() const { return *(u32 *)this; }";
+							str << "void decode();";
+
 							str << "} __packed;";
 
-							str << "static_assert(sizeof(" << ClassNameForFormatDecoder(*fmt.second) << ") == 4, \"Instruction format " << fmt.first << " is incorrectly sized!\");";
+							str << "static_assert(sizeof(" << ClassNameForFormatDecoder(*fmt.second) << ") >= 4, \"Instruction format " << fmt.first << " is incorrectly sized!\");";
 
 							for (auto insn : fmt.second->GetInstructions()) {
 								str << "struct " << ClassNameForInstructionDecoder(*insn) << " : public " << ClassNameForFormatDecoder(*fmt.second);
@@ -377,7 +389,7 @@ namespace gensim
 
 					int i = 0;
 					for (auto tree : decode_trees) {
-						str << arch.Name << "_" << tree.first->ISAName << "_opcodes " << arch.Name << "_" << tree.first->ISAName << "_instruction::opcode() const";
+						str << arch.Name << "_" << tree.first->ISAName << "_opcodes " << ClassNameForISADecoder(*tree.first) << "::opcode() const";
 						str << "{";
 						str << "u32 instruction_data = *(u32 *)this;";
 						GenerateDecodeTree(str, *tree.first, *tree.second, i);
