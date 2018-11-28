@@ -11,6 +11,8 @@
 
 #include <sstream>
 #include <wutils/vset.h>
+#include <wutils/vbitset.h>
+#include <wutils/dense-set.h>
 
 using namespace archsim::translate::translate_llvm;
 
@@ -161,9 +163,9 @@ std::ostream &operator<<(std::ostream &str, const RegisterAccess &access)
 class BlockInformation
 {
 public:
-	using AccessList = std::vector<RegisterAccess>;
+	using AccessList = std::vector<uint64_t>;
 
-	BlockInformation(llvm::BasicBlock *block, TagContext &tags) : tags_(tags)
+	BlockInformation(llvm::BasicBlock *block, RegisterAccessDB &radb) : radb_(radb)
 	{
 		ProcessBlock(block);
 	}
@@ -211,9 +213,9 @@ private:
 		if(info.size() != 3) {
 			// treat as an imprecise unlimited load
 			// TODO: fix this
-			AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference(), tags_.NextTag()));
+			AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference()));
 		} else {
-			AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference({info.at(1), info.at(1) + info.at(2) - 1}, true), tags_.NextTag()));
+			AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference({info.at(1), info.at(1) + info.at(2) - 1}, true)));
 		}
 	}
 	void ProcessStore(llvm::Instruction *insn)
@@ -232,30 +234,30 @@ private:
 		if(info.size() != 3) {
 			// treat as an imprecise unlimited load
 			// TODO: fix this
-			AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference(), tags_.NextTag()));
+			AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference()));
 		} else {
-			AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference({info.at(1), info.at(1) + info.at(2) - 1}, true), tags_.NextTag()));
+			AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference({info.at(1), info.at(1) + info.at(2) - 1}, true)));
 		}
 	}
 	void ProcessBreaker(llvm::Instruction *insn)
 	{
 		// load anything, then store anything
 
-		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference(), tags_.NextTag()));
-		AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference(), tags_.NextTag()));
+		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference()));
+		AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference()));
 	}
 	void ProcessReturn(llvm::Instruction *insn)
 	{
 		// load everything
-		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference(), tags_.NextTag()));
+		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference()));
 	}
 
 	void AddRegisterAccess(const RegisterAccess &access)
 	{
-		register_accesses_.push_back(access);
+		register_accesses_.push_back(radb_.Insert(access));
 	}
 
-	TagContext &tags_;
+	RegisterAccessDB &radb_;
 	AccessList register_accesses_;
 };
 
@@ -282,7 +284,7 @@ void RegisterDefinitions::AddDefinition(RegisterAccess* access)
 		if (access->GetRegRef().IsUnlimited()) {
 			// add definition to all register ranges
 			for (auto &i : definitions_) {
-				i.second.push_back(access);
+				i.second.push_back(GetRADB().GetReverse(*access));
 			}
 
 		} else {
@@ -297,32 +299,41 @@ void RegisterDefinitions::AddDefinition(RegisterAccess* access)
 
 void RegisterDefinitions::SetDefinitionForRange(RegisterReference::Extents extents, RegisterAccess* access)
 {
-	definitions_.emplace(extents, std::vector<RegisterAccess*> {access});
+	definitions_.emplace(extents, std::vector<uint64_t> {GetRADB().GetReverse(*access)});
 
 	FailIfInvariantBroken();
 }
 
-RegisterDefinitions RegisterDefinitions::MergeDefinitions(const std::vector<RegisterDefinitions*>& incoming_defs)
+RegisterDefinitions RegisterDefinitions::MergeDefinitions(const std::vector<RegisterDefinitions*>& incoming_defs, RegisterAccessDB &radb)
 {
 	if(incoming_defs.size() == 1) {
 		return *incoming_defs.at(0);
 	}
 
-	RegisterDefinitions output_defs;
+	RegisterDefinitions output_defs(radb);
 
-	std::map<RegisterReference::Extents, wutils::vset<RegisterAccess*>> new_accesses;
+	std::map<RegisterReference::Extents, wutils::dense_set<uint64_t>> new_accesses;
 
 	for (auto incoming : incoming_defs) {
 		for (auto &def : incoming->definitions_) {
-			auto &accesses = new_accesses[def.first];
-			accesses.insert(def.second.begin(), def.second.end());
+			if(!new_accesses.count(def.first)) {
+				new_accesses.emplace(def.first, wutils::dense_set<uint64_t>(radb.Size()));
+			}
+
+			auto &accesses = new_accesses.at(def.first);
+			for(auto i : def.second) {
+				accesses.insert(i);
+			}
 		}
 	}
 	for(auto &def : new_accesses) {
 		auto &merged = def.second;
 		auto &output_def = output_defs.definitions_[def.first];
 
-		output_def.insert(output_def.end(), merged.begin(), merged.end());
+		output_def.reserve(output_def.size() + merged.size());
+		for(auto i : merged) {
+			output_def.push_back(i);
+		}
 	}
 
 	// flatten output defs
@@ -335,9 +346,9 @@ RegisterReference::Extents RegisterReference::GetExtents() const
 	return extents_;
 }
 
-wutils::vset<RegisterAccess*> RegisterDefinitions::GetDefinitions(RegisterReference::Extents extents) const
+wutils::vset<uint64_t> RegisterDefinitions::GetDefinitions(RegisterReference::Extents extents) const
 {
-	wutils::vset<RegisterAccess*> output;
+	wutils::vset<uint64_t> output;
 	for (auto &i : definitions_) {
 		// definitions are ordered so if i.first > extents.second, then return
 		if(i.first.first > extents.second) {
@@ -355,7 +366,7 @@ wutils::vset<RegisterAccess*> RegisterDefinitions::GetDefinitions(RegisterRefere
 void RegisterDefinitions::Flatten()
 {
 	// get a complete. sorted list of definitions to add
-	std::map<RegisterReference::Extents, std::vector < RegisterAccess*>> new_definitions;
+	std::map<RegisterReference::Extents, std::vector < uint64_t>> new_definitions;
 
 	// Pre populate definitions_ with the merged extent. First, we need to
 	// figure out what those extents are though.
@@ -441,7 +452,7 @@ void RegisterDefinitions::FailIfInvariantBroken() const
 void RegisterDefinitions::EraseDefinitionsForRange(RegisterReference::Extents erase)
 {
 	std::vector<RegisterReference::Extents> delete_extents;
-	std::vector<std::pair<RegisterReference::Extents, std::vector <RegisterAccess*>>> new_extents;
+	std::vector<std::pair<RegisterReference::Extents, std::vector <uint64_t>>> new_extents;
 
 	for (auto &current : definitions_) {
 		auto curr_extent = current.first;
@@ -483,14 +494,16 @@ std::ostream &operator<<(std::ostream &str, const RegisterDefinitions &defs)
 {
 	str << "defs(";
 
-	for(const auto &def : defs.GetDefinitions(RegisterReference::UnlimitedExtent())) {
-		str << def->GetRegRef();
-		if(def->IsStore()) {
+	for(const auto &def_i : defs.GetDefinitions(RegisterReference::UnlimitedExtent())) {
+		const auto &def = defs.GetRADB().Get(def_i);
+
+		str << def.GetRegRef();
+		if(def.IsStore()) {
 			str << " <= ";
 		} else {
 			str << " => ";
 		}
-		str << def->GetInstruction();
+		str << def.GetInstruction();
 
 		str << ", ";
 	}
@@ -502,12 +515,12 @@ std::ostream &operator<<(std::ostream &str, const RegisterDefinitions &defs)
 class BlockDefinitions
 {
 public:
-	BlockDefinitions(BlockInformation &block)
+	BlockDefinitions(BlockInformation &block, RegisterAccessDB &radb) : radb_(radb)
 	{
 		ProcessBlock(block);
 	}
 
-	RegisterDefinitions PropagateDefinitions(RegisterDefinitions &incoming_defs, std::vector<RegisterAccess*> &live_accesses)
+	RegisterDefinitions PropagateDefinitions(RegisterDefinitions &incoming_defs, std::vector<uint64_t> &live_accesses)
 	{
 		RegisterDefinitions outgoing_defs = incoming_defs;
 
@@ -569,9 +582,10 @@ private:
 
 	void ProcessBlock(BlockInformation &block)
 	{
-		RegisterDefinitions live_definitions;
+		RegisterDefinitions live_definitions (radb_);
 
-		for(auto &access : block.GetAccesses()) {
+		for(auto &access_tag : block.GetAccesses()) {
+			auto &access = radb_.Get(access_tag);
 			if(access.IsStore()) {
 				live_definitions.AddDefinition(&access);
 			} else {
@@ -581,7 +595,7 @@ private:
 
 				auto touched_defs = live_definitions.GetDefinitions(access.GetRegRef().GetExtents());
 				for(auto i : touched_defs) {
-					locally_live_stores_.push_back(i);
+					locally_live_stores_.push_back(&radb_.Get(i));
 
 				}
 
@@ -591,8 +605,9 @@ private:
 					// live incoming bytes
 					std::vector<bool> live (access.GetRegRef().GetSize(), true);
 					for(auto i : touched_defs) {
-						int start = std::max(access.GetRegRef().GetExtents().first, i->GetRegRef().GetExtents().first);
-						int end = std::min(access.GetRegRef().GetExtents().second, i->GetRegRef().GetExtents().second);
+						auto &def = radb_.Get(i);
+						int start = std::max(access.GetRegRef().GetExtents().first, def.GetRegRef().GetExtents().first);
+						int end = std::min(access.GetRegRef().GetExtents().second, def.GetRegRef().GetExtents().second);
 
 						for(int b = start; b <= end; ++b) {
 							live.at(b - start) = false;
@@ -620,11 +635,12 @@ private:
 						int max_byte = 0;
 
 						for(auto store : all_defs) {
-							if(store->GetRegRef().IsUnlimited()) {
+							auto &st = radb_.Get(store);
+							if(st.GetRegRef().IsUnlimited()) {
 								continue;
 							}
 
-							auto store_max = store->GetRegRef().GetExtents().second;
+							auto store_max = st.GetRegRef().GetExtents().second;
 							if(store_max > max_byte) {
 								max_byte = store_max;
 							}
@@ -633,8 +649,9 @@ private:
 						// todo: do this better
 						std::vector<bool> incoming_bytes(max_byte+1, 1);
 						for(auto store : all_defs) {
-							if(store->GetRegRef().IsPrecise()) {
-								for(int b = store->GetRegRef().GetExtents().first; b <= store->GetRegRef().GetExtents().second; ++b) {
+							auto &st = radb_.Get(store);
+							if(st.GetRegRef().IsPrecise()) {
+								for(int b = st.GetRegRef().GetExtents().first; b <= st.GetRegRef().GetExtents().second; ++b) {
 									incoming_bytes.at(b) = false;
 								}
 							}
@@ -653,10 +670,11 @@ private:
 		// put every currently live access into outgoing_stored_regs.
 		auto live_defs = live_definitions.GetDefinitions(RegisterReference::UnlimitedExtent());
 		for(auto def : live_defs) {
-			outgoing_stored_regs_.push_back(def);
+			outgoing_stored_regs_.push_back(&radb_.Get(def));
 		}
 	}
 
+	RegisterAccessDB &radb_;
 	std::vector<RegisterAccess *> locally_live_stores_;
 	std::vector<RegisterReference> incoming_loaded_regs_;
 	std::vector<RegisterAccess*> outgoing_stored_regs_;
@@ -697,19 +715,18 @@ std::vector<llvm::BasicBlock*> GetPredecessors(llvm::BasicBlock *block)
 	return preds;
 }
 
-static void GetDefinitions(BlockInformation &block, std::vector<RegisterAccess*> &all_defs)
+static void GetDefinitions(BlockInformation &block, RegisterAccessDB &radb, std::vector<uint64_t> &all_defs)
 {
-	for(auto &i : block.GetAccesses()) {
+	for(auto index : block.GetAccesses()) {
+		auto &i = radb.Get(index);
 		if(i.IsStore()) {
-			all_defs.push_back(&i);
+			all_defs.push_back(index);
 		}
 	}
 }
 
-bool LLVMRegisterOptimisationPass::ProcessFunction(llvm::Function &f, std::vector<RegisterAccess*> &all_definitions, std::vector<RegisterAccess*> &live_definitions)
+bool LLVMRegisterOptimisationPass::ProcessFunction(llvm::Function &f, RegisterAccessDB &radb, std::vector<uint64_t> &all_definitions, std::vector<uint64_t> &live_definitions)
 {
-	TagContext tags;
-
 	std::unordered_set<llvm::BasicBlock *> work_set;
 	std::map<llvm::BasicBlock *, RegisterDefinitions> outgoing_defs;
 
@@ -720,15 +737,15 @@ bool LLVMRegisterOptimisationPass::ProcessFunction(llvm::Function &f, std::vecto
 
 	for(auto &b : f) {
 		work_set.insert(&b);
-		outgoing_defs[&b];
+		outgoing_defs.insert({&b, RegisterDefinitions(radb)});
 
-		block_info.insert({&b, new BlockInformation(&b, tags)});
-		block_defs.insert({&b, new BlockDefinitions(*block_info.at(&b))});
+		block_info.insert({&b, new BlockInformation(&b, radb)});
+		block_defs.insert({&b, new BlockDefinitions(*block_info.at(&b), radb)});
 
 		for(auto i : block_defs.at(&b)->GetLocalLive()) {
-			live_definitions.push_back(i);
+			live_definitions.push_back(radb.GetReverse(*i));
 		}
-		GetDefinitions(*block_info.at(&b), all_definitions);
+		GetDefinitions(*block_info.at(&b), radb, all_definitions);
 
 		preds[&b] = GetPredecessors(&b);
 //		std::cout << *block_info.at(&b) << std::endl << *block_defs.at(&b) << std::endl;
@@ -742,11 +759,11 @@ bool LLVMRegisterOptimisationPass::ProcessFunction(llvm::Function &f, std::vecto
 		for(auto pred : preds.at(block)) {
 			incoming_defs.push_back(&outgoing_defs.at(pred));
 		}
-		auto incoming_def_set = RegisterDefinitions::MergeDefinitions(incoming_defs);
+		auto incoming_def_set = RegisterDefinitions::MergeDefinitions(incoming_defs, radb);
 
 		auto new_outgoing_defs = block_defs.at(block)->PropagateDefinitions(incoming_def_set, live_definitions);
 		if(new_outgoing_defs != outgoing_defs.at(block)) {
-			outgoing_defs[block] = new_outgoing_defs;
+			outgoing_defs.at(block) = std::move(new_outgoing_defs);
 
 			auto terminator = block->getTerminator();
 			for(int i = 0; i < terminator->getNumSuccessors(); ++i) {
@@ -787,7 +804,7 @@ bool LLVMRegisterOptimisationPass::runOnFunction(llvm::Function &f)
 	auto dead_definitions = getDeadStores(f);
 
 	for(auto dead_def : dead_definitions) {
-		auto dead_store = dead_def->GetInstruction();
+		auto dead_store = dead_def;
 		deep_delete(dead_store);
 
 		changed = true;
@@ -796,10 +813,13 @@ bool LLVMRegisterOptimisationPass::runOnFunction(llvm::Function &f)
 	return changed;
 }
 
-std::vector<RegisterAccess*> LLVMRegisterOptimisationPass::getDeadStores(llvm::Function& f)
+std::vector<llvm::Instruction*> LLVMRegisterOptimisationPass::getDeadStores(llvm::Function& f)
 {
-	std::vector<RegisterAccess*> all_definitions, dead_definitions, live_definitions;
-	ProcessFunction(f, all_definitions, live_definitions);
+	RegisterAccessDB radb;
+
+	std::vector<uint64_t> all_definitions, dead_definitions;
+	std::vector<uint64_t> live_definitions;
+	ProcessFunction(f, radb, all_definitions, live_definitions);
 
 	std::sort(all_definitions.begin(), all_definitions.end());
 	std::sort(live_definitions.begin(), live_definitions.end());
@@ -808,9 +828,14 @@ std::vector<RegisterAccess*> LLVMRegisterOptimisationPass::getDeadStores(llvm::F
 	auto last = std::unique(dead_definitions.begin(), dead_definitions.end());
 	dead_definitions.erase(last, dead_definitions.end());
 
+	std::vector<llvm::Instruction*> out;
+	for(auto i : dead_definitions) {
+		out.push_back(radb.Get(i).GetInstruction());
+	}
+
 	DEBUGLOG(" *** Found %u/%u/%u all/live/dead defs\n", all_definitions.size(), live_definitions.size(), dead_definitions.size());
 
-	return dead_definitions;
+	return out;
 }
 
 
