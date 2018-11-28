@@ -7,8 +7,10 @@
 #include <llvm/Analysis/RegionInfo.h>
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/PassSupport.h>
+#include <llvm/Support/raw_os_ostream.h>
 
 #include <sstream>
+#include <wutils/vset.h>
 
 using namespace archsim::translate::translate_llvm;
 
@@ -126,12 +128,42 @@ static bool isReturn(llvm::Instruction *inst)
 	return llvm::isa<llvm::ReturnInst>(inst);
 }
 
+std::ostream &operator<<(std::ostream &str, const RegisterReference &ref)
+{
+	str << "(";
+	if(ref.IsUnlimited()) {
+		str << ref.GetExtents().first << ", infinity";
+	} else {
+		str << ref.GetExtents().first << ", " << ref.GetExtents().second;
+	}
+	str << ")";
+	if(!ref.IsPrecise()) {
+		str << "?";
+	}
+
+	return str;
+}
+
+std::ostream &operator<<(std::ostream &str, const RegisterAccess &access)
+{
+	llvm::raw_os_ostream llvm_str(str);
+
+	llvm_str << *access.GetInstruction() << ": ";
+	if(access.IsStore()) {
+		llvm_str << " store ";
+	} else {
+		llvm_str << " load ";
+	}
+	str << access.GetRegRef();
+	return str;
+}
+
 class BlockInformation
 {
 public:
 	using AccessList = std::vector<RegisterAccess>;
 
-	BlockInformation(llvm::BasicBlock *block)
+	BlockInformation(llvm::BasicBlock *block, TagContext &tags) : tags_(tags)
 	{
 		ProcessBlock(block);
 	}
@@ -157,6 +189,11 @@ public:
 		return register_accesses_;
 	}
 
+	const AccessList &GetAccesses() const
+	{
+		return register_accesses_;
+	}
+
 private:
 	void ProcessLoad(llvm::Instruction *insn)
 	{
@@ -167,11 +204,17 @@ private:
 		PointerInformationProvider::PointerInfo info;
 		pip.GetPointerInfo(load->getPointerOperand(), info);
 
-		if(info.size() != 3 || info.at(0) != TAG_REG_ACCESS) {
+		if(info.size() < 1 || info.at(0) != TAG_REG_ACCESS) {
 			UNEXPECTED;
 		}
 
-		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference({info.at(1), info.at(1) + info.at(2) - 1}, true)));
+		if(info.size() != 3) {
+			// treat as an imprecise unlimited load
+			// TODO: fix this
+			AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference(), tags_.NextTag()));
+		} else {
+			AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference({info.at(1), info.at(1) + info.at(2) - 1}, true), tags_.NextTag()));
+		}
 	}
 	void ProcessStore(llvm::Instruction *insn)
 	{
@@ -182,23 +225,29 @@ private:
 		PointerInformationProvider::PointerInfo info;
 		pip.GetPointerInfo(store->getPointerOperand(), info);
 
-		if(info.size() != 3 || info.at(0) != TAG_REG_ACCESS) {
+		if(info.size() < 1 || info.at(0) != TAG_REG_ACCESS) {
 			UNEXPECTED;
 		}
 
-		AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference({info.at(1), info.at(1) + info.at(2) - 1}, true)));
+		if(info.size() != 3) {
+			// treat as an imprecise unlimited load
+			// TODO: fix this
+			AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference(), tags_.NextTag()));
+		} else {
+			AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference({info.at(1), info.at(1) + info.at(2) - 1}, true), tags_.NextTag()));
+		}
 	}
 	void ProcessBreaker(llvm::Instruction *insn)
 	{
 		// load anything, then store anything
 
-		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference()));
-		AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference()));
+		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference(), tags_.NextTag()));
+		AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference(), tags_.NextTag()));
 	}
 	void ProcessReturn(llvm::Instruction *insn)
 	{
 		// load everything
-		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference()));
+		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference(), tags_.NextTag()));
 	}
 
 	void AddRegisterAccess(const RegisterAccess &access)
@@ -206,239 +255,249 @@ private:
 		register_accesses_.push_back(access);
 	}
 
+	TagContext &tags_;
 	AccessList register_accesses_;
 };
 
-class RegisterDefinitions
+std::ostream &operator<< (std::ostream &str, const BlockInformation &block)
 {
-public:
-
-	RegisterDefinitions()
-	{
-		definitions_[RegisterReference::UnlimitedExtent()] = {};
-
-		FailIfInvariantBroken();
+	str << "block info {" << &block << "}:" << std::endl;
+	for(auto &access : block.GetAccesses()) {
+		str << " - " << access << std::endl;
 	}
+	return str;
+}
 
-	void AddDefinition(RegisterAccess *access)
-	{
-		if(access->GetRegRef().IsPrecise()) {
-			if(access->GetRegRef().IsUnlimited()) {
-				// not sure what kind of access this would even be
-				UNIMPLEMENTED;
+void RegisterDefinitions::AddDefinition(RegisterAccess* access)
+{
+	if (access->GetRegRef().IsPrecise()) {
+		if (access->GetRegRef().IsUnlimited()) {
+			// not sure what kind of access this would even be
+			UNIMPLEMENTED;
+		}
+
+		EraseDefinitionsForRange(access->GetRegRef().GetExtents());
+		SetDefinitionForRange(access->GetRegRef().GetExtents(), access);
+	} else {
+		if (access->GetRegRef().IsUnlimited()) {
+			// add definition to all register ranges
+			for (auto &i : definitions_) {
+				i.second.push_back(access);
 			}
 
-			EraseDefinitionsForRange(access->GetRegRef().GetExtents());
-			SetDefinitionForRange(access->GetRegRef().GetExtents(), access);
 		} else {
-			if(access->GetRegRef().IsUnlimited()) {
-				// add definition to all register ranges
-				for(auto i : definitions_) {
-					i.second.push_back(access);
-				}
-
-			} else {
-				// need to add definition to each range touched by incoming
-				// extent. This might involve splitting ranges.
-				UNIMPLEMENTED;
-			}
+			// need to add definition to each range touched by incoming
+			// extent. This might involve splitting ranges.
+			UNIMPLEMENTED;
 		}
+	}
 
+	FailIfInvariantBroken();
+}
+
+void RegisterDefinitions::SetDefinitionForRange(RegisterReference::Extents extents, RegisterAccess* access)
+{
+	definitions_.emplace(extents, std::vector<RegisterAccess*> {access});
+
+	FailIfInvariantBroken();
+}
+
+RegisterDefinitions RegisterDefinitions::MergeDefinitions(const std::vector<RegisterDefinitions*>& incoming_defs)
+{
+	if(incoming_defs.size() == 1) {
+		return *incoming_defs.at(0);
+	}
+
+	RegisterDefinitions output_defs;
+
+	std::map<RegisterReference::Extents, wutils::vset<RegisterAccess*>> new_accesses;
+
+	for (auto incoming : incoming_defs) {
+		for (auto &def : incoming->definitions_) {
+			auto &accesses = new_accesses[def.first];
+			accesses.insert(def.second.begin(), def.second.end());
+		}
+	}
+	for(auto &def : new_accesses) {
+		auto &merged = def.second;
+		auto &output_def = output_defs.definitions_[def.first];
+
+		output_def.insert(output_def.end(), merged.begin(), merged.end());
+	}
+
+	// flatten output defs
+	output_defs.Flatten();
+	return output_defs;
+}
+
+RegisterReference::Extents RegisterReference::GetExtents() const
+{
+	return extents_;
+}
+
+wutils::vset<RegisterAccess*> RegisterDefinitions::GetDefinitions(RegisterReference::Extents extents) const
+{
+	wutils::vset<RegisterAccess*> output;
+	for (auto &i : definitions_) {
+		// definitions are ordered so if i.first > extents.second, then return
+		if(i.first.first > extents.second) {
+			break;
+		}
+		if (extents.first > i.first.second || extents.second < i.first.first) {
+			continue;
+		}
+		output.insert(i.second.begin(), i.second.end());
+	}
+
+	return output;
+}
+
+void RegisterDefinitions::Flatten()
+{
+	// get a complete. sorted list of definitions to add
+	std::map<RegisterReference::Extents, std::vector < RegisterAccess*>> new_definitions;
+
+	// Pre populate definitions_ with the merged extent. First, we need to
+	// figure out what those extents are though.
+	// 1. Figure out the top most non infinite byte
+	// 2. Create a vector of bools that length.
+	//    This vector represents the edges in the output extent set.
+	//    If an extent (x, y) exists, then edges (x, y+1) exist.
+	// 3. Iterate over that vector, creating empty extents in the output
+	//    extent set as we go.
+
+	int top_most_byte = -1;
+	for (auto extent : definitions_) {
+		if (extent.first.second == INT_MAX) {
+			continue;
+		}
+		if (extent.first.second > top_most_byte) {
+			top_most_byte = extent.first.second;
+		}
+	}
+
+	if (top_most_byte == -1) {
+		// nothing mode to do, apparently. We have only one infinitely sized definition
 		FailIfInvariantBroken();
+		return;
 	}
 
-	std::set<RegisterAccess*> GetDefinitions(RegisterReference::Extents extents)
-	{
-		std::set<RegisterAccess*> output;
-		for(auto &i : definitions_) {
-			if(extents.first > i.first.second || extents.second < i.first.first) {
-				continue;
-			}
-			output.insert(i.second.begin(), i.second.end());
+	std::vector<bool> edges(top_most_byte + 2, false);
+	for (auto extent : definitions_) {
+		edges.at(extent.first.first) = true;
+
+		if (extent.first.second != INT_MAX) {
+			edges.at(extent.first.second + 1) = true;
 		}
-
-		return output;
 	}
 
-	static RegisterDefinitions MergeDefinitions(std::vector<RegisterDefinitions*> &incoming_defs)
-	{
-		RegisterDefinitions output_defs;
+	ASSERT(edges.at(0)); // there must be an edge at byte 0
 
-		for(auto incoming : incoming_defs) {
-			for(auto &def : incoming->definitions_) {
-				auto &output_def_list = output_defs.definitions_[def.first];
-				output_def_list.insert(output_def_list.begin(), def.second.begin(), def.second.end());
-			}
+	int extent_start = 0;
+	for (int b = 1; b < edges.size(); ++b) { // skip the edge at byte 0
+		if (edges.at(b)) {
+			new_definitions[ {extent_start, b - 1}] = {};
+			extent_start = b;
 		}
-
-		// flatten output defs
-		output_defs.Flatten();
-		return output_defs;
 	}
+	new_definitions[ {extent_start, INT_MAX}];
 
-	bool operator==(const RegisterDefinitions &other) const
-	{
-		return definitions_ == other.definitions_;
-	}
-	bool operator!=(const RegisterDefinitions &other) const
-	{
-		return !operator==(other);
-	}
+	for (auto &new_def : new_definitions) {
+		auto new_extent = new_def.first;
+		for (const auto &old_def : definitions_) {
+			auto old_extent = old_def.first;
 
-private:
-	void InsertDefinition(RegisterReference::Extents n_extent, std::vector<RegisterAccess*> &n_accesses, std::map<RegisterReference::Extents, std::vector<RegisterAccess*>> &output)
-	{
-		ASSERT(n_extent.second >= n_extent.first);
-
-		for(auto e : output) {
-			auto e_extent = e.first;
-
-			// z
-			if(e_extent == n_extent) {
-				auto &p = output.at(e_extent);
-				p.insert(p.begin(), n_accesses.begin(), n_accesses.end());
-				return;
+			if (old_extent.first > new_extent.second) {
+				break;
 			}
 
-			// (a)
-			if(e_extent.first == n_extent.first  && n_extent.second > e_extent.second) {
-				auto &p = output.at(e_extent);
-				p.insert(p.begin(), n_accesses.begin(), n_accesses.end());
-				InsertDefinition({e_extent.second+1, n_extent.second}, n_accesses, output);
-				return;
-			}
-
-			// (b)
-			if(n_extent.first > e_extent.first && n_extent.second < e_extent.second) {
-				output.erase(e_extent);
-				InsertDefinition({e_extent.first, n_extent.first-1}, e.second, output);
-				InsertDefinition({n_extent.first, n_extent.second}, e.second, output);
-				InsertDefinition({n_extent.first, n_extent.second}, n_accesses, output);
-				InsertDefinition({n_extent.second+1, e_extent.second}, e.second, output);
-				return;
-			}
-
-			// (c)
-			if(n_extent.first > e_extent.first && n_extent.second == e_extent.second) {
-				output.erase(e.first);
-				InsertDefinition({e_extent.first, n_extent.first-1}, e.second, output);
-				InsertDefinition({n_extent.first, n_extent.second}, e.second, output);
-				InsertDefinition({n_extent.first, n_extent.second}, n_accesses, output);
-				return;
-			}
-
-			// (d)
-			if(e_extent.second >= n_extent.first && e_extent.second <= n_extent.second) {
-
-				//       + [{E.start, N.start-1}] = E.accesses
-				//       + [{N.start, E.end}] = E.accesses + N.accesses
-				//       + [{E.end+1, N.end}] = N.accesses
-				output.erase(e.first);
-				InsertDefinition({e_extent.first, n_extent.first-1}, e.second, output);
-				InsertDefinition({n_extent.first, e_extent.second}, e.second, output);
-				InsertDefinition({n_extent.first, e_extent.second}, n_accesses, output);
-				InsertDefinition({e_extent.second+1, n_extent.second}, n_accesses, output);
-				return;
-			}
-		}
-
-		// did not encounter any overlap: add directly to output
-		output[n_extent] = n_accesses;
-	}
-
-	void Flatten()
-	{
-		// get a complete. sorted list of definitions to add
-		std::map<RegisterReference::Extents, std::vector<RegisterAccess*>> all_extents = definitions_;
-
-		// Add overlapping extents to new definitions one by one. The extents must be added in order.
-		// This results in the following situations:
-		// 1. The new extent N is after every existing extent
-		//    + [{N.start, N.end}] = N.accesses
-		// 2. The new extent overlaps an existing extent:
-		//    z) it exactly overlaps an existing extent
-		//       M [{E.start, E.end}] += N.accesses
-		//    a) it starts at the same byte as an existing extent E, but is larger
-		//       M [{E.start, E.end}] += N.accesses
-		//       + [{E.end+1, N.end}] = N.accesses
-		//    b) it starts after an existing extent E, but finishes before it
-		//       - E
-		//       + [{E.start, N.start-1}] = E.accesses
-		//       + [{N.start, N.end}] = E.accesses + N.accesses
-		//       + [{N.end+1, E.end}] = E.accesses
-		//    c) it starts after an existing extent, but finishes at the same byte as it
-		//       - E
-		//       + [{E.start, N.start-1}] = E.accesses
-		//       + [{N.start, N.end}] = E.accesses + N.accesses
-		//    d) it starts after an existing extent, but finishes after it
-		//       - E
-		//       + [{E.start, N.start-1}] = E.accesses
-		//       + [{N.start, E.end}] = E.accesses + N.accesses
-		//       + [{E.end+1, N.end}] = N.accesses
-
-		definitions_.clear();
-		for(auto d : all_extents) {
-			InsertDefinition(d.first, d.second, definitions_);
-		}
-
-		FailIfInvariantBroken();
-	}
-
-	void SetDefinitionForRange(RegisterReference::Extents extents, RegisterAccess *access)
-	{
-		definitions_[extents] = {access};
-
-		FailIfInvariantBroken();
-	}
-	void EraseDefinitionsForRange(RegisterReference::Extents erase)
-	{
-		std::vector<RegisterReference::Extents> delete_extents;
-		std::vector<std::pair<RegisterReference::Extents, std::vector<RegisterAccess*>>> new_extents;
-
-		for(auto current : definitions_) {
-			auto curr_extent = current.first;
-			// if the extents don't overlap, continue
-			if(curr_extent.first > erase.second || erase.first > curr_extent.second) {
+			if (new_extent.first > old_extent.second) {
 				continue;
 			}
 
-			delete_extents.push_back(curr_extent);
-
-			// if some of the current extent is left at the start, add a new extent
-			if(curr_extent.first < erase.first) {
-				new_extents.push_back({{curr_extent.first, erase.first-1}, current.second});
-			}
-
-			// if some of the current extent is left at the end, add a new extent
-			if(curr_extent.second > erase.second) {
-				new_extents.push_back({{erase.second+1, curr_extent.second}, current.second});
-			}
-		}
-
-		for(auto i : delete_extents) {
-			definitions_.erase(i);
-		}
-		for(auto i : new_extents) {
-			definitions_[i.first] = i.second;
-		}
-
-		// This does not check the invariant, so should always be followed by
-		// something which reinserts values for the deleted extent.
-	}
-	void FailIfInvariantBroken()
-	{
-		// there should be precisely one extent for every value from 0 to INT_MAX
-
-		// pairs are sorted by first, then second.
-		int current_value = 0;
-		for(auto i : definitions_) {
-			ASSERT(i.first.first == current_value);
-			current_value = i.first.second + 1;
+			new_def.second.insert(new_def.second.end(), old_def.second.begin(), old_def.second.end());
 		}
 	}
 
-	std::map<RegisterReference::Extents, std::vector<RegisterAccess*>> definitions_;
-};
+	definitions_ = std::move(new_definitions);
+
+	FailIfInvariantBroken();
+}
+
+void RegisterDefinitions::FailIfInvariantBroken() const
+{
+#ifndef NDEBUG
+	// there should be precisely one extent for every value from 0 to INT_MAX
+
+	// pairs are sorted by first, then second.
+	int current_value = 0;
+	for (auto &i : definitions_) {
+		ASSERT(i.first.first == current_value);
+		current_value = i.first.second + 1;
+	}
+#endif
+}
+
+void RegisterDefinitions::EraseDefinitionsForRange(RegisterReference::Extents erase)
+{
+	std::vector<RegisterReference::Extents> delete_extents;
+	std::vector<std::pair<RegisterReference::Extents, std::vector <RegisterAccess*>>> new_extents;
+
+	for (auto &current : definitions_) {
+		auto curr_extent = current.first;
+		// if the extents don't overlap, continue
+		if (curr_extent.first > erase.second || erase.first > curr_extent.second) {
+			continue;
+		}
+
+		delete_extents.push_back(curr_extent);
+
+		// if some of the current extent is left at the start, add a new extent
+		if (curr_extent.first < erase.first) {
+			new_extents.push_back( {
+				{curr_extent.first, erase.first - 1}, current.second
+			});
+		}
+
+		// if some of the current extent is left at the end, add a new extent
+		if (curr_extent.second > erase.second) {
+			new_extents.push_back( {
+				{erase.second + 1, curr_extent.second}, current.second
+			});
+		}
+	}
+
+	for (auto i : delete_extents) {
+		definitions_.erase(i);
+	}
+	for (auto i : new_extents) {
+		definitions_.emplace(i.first, i.second);
+	}
+
+	// This does not check the invariant, so should always be followed by
+	// something which reinserts values for the deleted extent.
+}
+
+
+std::ostream &operator<<(std::ostream &str, const RegisterDefinitions &defs)
+{
+	str << "defs(";
+
+	for(const auto &def : defs.GetDefinitions(RegisterReference::UnlimitedExtent())) {
+		str << def->GetRegRef();
+		if(def->IsStore()) {
+			str << " <= ";
+		} else {
+			str << " => ";
+		}
+		str << def->GetInstruction();
+
+		str << ", ";
+	}
+
+	str << ")";
+	return str;
+}
 
 class BlockDefinitions
 {
@@ -454,7 +513,8 @@ public:
 
 		for(auto &ref : incoming_loaded_regs_) {
 			auto touched_stores = incoming_defs.GetDefinitions(ref.GetExtents());
-			live_accesses.insert(live_accesses.begin(), touched_stores.begin(), touched_stores.end());
+
+			live_accesses.insert(live_accesses.end(), touched_stores.begin(), touched_stores.end());
 		}
 
 		for(auto outgoing_def : outgoing_stored_regs_) {
@@ -464,12 +524,49 @@ public:
 		return outgoing_defs;
 	}
 
-	const std::vector<RegisterAccess*> &GetLocalLive()
+	const std::vector<RegisterAccess*> &GetLocalLive() const
 	{
 		return locally_live_stores_;
 	}
 
+	const std::vector<RegisterReference> &GetIncomingLoads() const
+	{
+		return incoming_loaded_regs_;
+	}
+
+	const std::vector<RegisterAccess*> &GetOutgoingStores() const
+	{
+		return outgoing_stored_regs_;
+	}
+
 private:
+	std::vector<RegisterReference> ConvertToImpreciseReferences(const std::vector<bool> &bytes)
+	{
+		std::vector<RegisterReference> refs;
+
+		int ref_start = -1;
+		int ref_end = -1;
+		for(int b = 0; b < bytes.size(); ++b) {
+			if(bytes[b]) {
+				if(ref_start == -1) {
+					ref_start = b;
+				}
+				ref_end = b;
+			} else {
+				if(ref_start != -1) {
+					refs.push_back(RegisterReference({ref_start, ref_end}, false));
+					ref_start = -1;
+					ref_end = -1;
+				}
+			}
+		}
+		if(ref_start != -1) {
+			refs.push_back(RegisterReference({ref_start, ref_end}, false));
+		}
+
+		return refs;
+	}
+
 	void ProcessBlock(BlockInformation &block)
 	{
 		RegisterDefinitions live_definitions;
@@ -497,7 +594,7 @@ private:
 						int start = std::max(access.GetRegRef().GetExtents().first, i->GetRegRef().GetExtents().first);
 						int end = std::min(access.GetRegRef().GetExtents().second, i->GetRegRef().GetExtents().second);
 
-						for(int b = start; b < end; ++b) {
+						for(int b = start; b <= end; ++b) {
 							live.at(b - start) = false;
 						}
 					}
@@ -510,10 +607,44 @@ private:
 					}
 
 				} else {
-					// if the access is not limited, treat every incoming byte
-					// as being live.
+					// if the access is not limited, we need to treat every
+					// incoming byte as live, except for those which have been
+					// precisely written before this load occurs.
 
-					incoming_loaded_regs_.push_back(RegisterReference());
+					auto all_defs = live_definitions.GetDefinitions(RegisterReference::UnlimitedExtent());
+
+					if(all_defs.empty()) {
+						// no previous defs, so add a 0-unlimited load
+						incoming_loaded_regs_.push_back(RegisterReference({0, INT_MAX}, false));
+					} else {
+						int max_byte = 0;
+
+						for(auto store : all_defs) {
+							if(store->GetRegRef().IsUnlimited()) {
+								continue;
+							}
+
+							auto store_max = store->GetRegRef().GetExtents().second;
+							if(store_max > max_byte) {
+								max_byte = store_max;
+							}
+						}
+
+						// todo: do this better
+						std::vector<bool> incoming_bytes(max_byte+1, 1);
+						for(auto store : all_defs) {
+							if(store->GetRegRef().IsPrecise()) {
+								for(int b = store->GetRegRef().GetExtents().first; b <= store->GetRegRef().GetExtents().second; ++b) {
+									incoming_bytes.at(b) = false;
+								}
+							}
+						}
+
+						// now convert incoming bytes to extents
+						auto refs = ConvertToImpreciseReferences(incoming_bytes);
+						incoming_loaded_regs_.insert(incoming_loaded_regs_.end(), refs.begin(), refs.end());
+						incoming_loaded_regs_.push_back(RegisterReference({max_byte+1, INT_MAX}, false));
+					}
 				}
 
 			}
@@ -531,14 +662,34 @@ private:
 	std::vector<RegisterAccess*> outgoing_stored_regs_;
 };
 
-std::set<llvm::BasicBlock*> GetPredecessors(llvm::BasicBlock *block)
+std::ostream &operator<<(std::ostream &str, const BlockDefinitions &defs)
 {
-	std::set<llvm::BasicBlock*> preds;
+	str << "Block Defs for {" << &defs << "}:" << std::endl;
+	str << " - Incoming loads:" << std::endl;
+	for(auto in : defs.GetIncomingLoads()) {
+		str << " - - " << in << std::endl;
+	}
+
+	str << " - Locally live refs:" << std::endl;
+	for(auto &local : defs.GetLocalLive()) {
+		str << " - - " << *local << std::endl;
+	}
+
+	str << " - Outgoing stores:" << std::endl;
+	for(auto &out : defs.GetOutgoingStores()) {
+		str << " - - " << *out << std::endl;
+	}
+	return str;
+}
+
+std::vector<llvm::BasicBlock*> GetPredecessors(llvm::BasicBlock *block)
+{
+	std::vector<llvm::BasicBlock*> preds;
 	for(auto &b : *(block->getParent())) {
 		for(int i = 0; i < b.getTerminator()->getNumSuccessors(); ++i) {
 			auto p = b.getTerminator()->getSuccessor(i);
 			if(p == block) {
-				preds.insert(&b);
+				preds.push_back(&b);
 			}
 		}
 	}
@@ -557,24 +708,30 @@ static void GetDefinitions(BlockInformation &block, std::vector<RegisterAccess*>
 
 bool LLVMRegisterOptimisationPass::ProcessFunction(llvm::Function &f, std::vector<RegisterAccess*> &all_definitions, std::vector<RegisterAccess*> &live_definitions)
 {
-	std::set<llvm::BasicBlock *> work_set;
+	TagContext tags;
+
+	std::unordered_set<llvm::BasicBlock *> work_set;
 	std::map<llvm::BasicBlock *, RegisterDefinitions> outgoing_defs;
 
 	std::map<llvm::BasicBlock*, BlockInformation*> block_info;
 	std::map<llvm::BasicBlock*, BlockDefinitions*> block_defs;
+	std::map<llvm::BasicBlock*, std::vector<llvm::BasicBlock*>> preds;
 	std::vector<RegisterDefinitions*> incoming_defs;
 
 	for(auto &b : f) {
 		work_set.insert(&b);
 		outgoing_defs[&b];
 
-		block_info.insert({&b, new BlockInformation(&b)});
+		block_info.insert({&b, new BlockInformation(&b, tags)});
 		block_defs.insert({&b, new BlockDefinitions(*block_info.at(&b))});
 
 		for(auto i : block_defs.at(&b)->GetLocalLive()) {
 			live_definitions.push_back(i);
 		}
 		GetDefinitions(*block_info.at(&b), all_definitions);
+
+		preds[&b] = GetPredecessors(&b);
+//		std::cout << *block_info.at(&b) << std::endl << *block_defs.at(&b) << std::endl;
 	}
 
 	while(!work_set.empty()) {
@@ -582,7 +739,7 @@ bool LLVMRegisterOptimisationPass::ProcessFunction(llvm::Function &f, std::vecto
 		work_set.erase(block);
 
 		incoming_defs.clear();
-		for(auto pred : GetPredecessors(block)) {
+		for(auto pred : preds.at(block)) {
 			incoming_defs.push_back(&outgoing_defs.at(pred));
 		}
 		auto incoming_def_set = RegisterDefinitions::MergeDefinitions(incoming_defs);
@@ -601,6 +758,24 @@ bool LLVMRegisterOptimisationPass::ProcessFunction(llvm::Function &f, std::vecto
 	return true;
 }
 
+static void deep_delete(llvm::Instruction *insn)
+{
+	if(insn->hasNUsesOrMore(1)) {
+		return;
+	}
+
+	for(int i = 0; i < insn->getNumOperands(); ++i) {
+		auto operand = insn->getOperand(i);
+		if(llvm::isa<llvm::Instruction>(operand)) {
+			auto child = (llvm::Instruction*)operand;
+			insn->setOperand(i, nullptr);
+			deep_delete(child);
+		}
+	}
+
+	insn->removeFromParent();
+	insn->deleteValue();
+}
 
 bool LLVMRegisterOptimisationPass::runOnFunction(llvm::Function &f)
 {
@@ -608,7 +783,22 @@ bool LLVMRegisterOptimisationPass::runOnFunction(llvm::Function &f)
 
 	bool changed = false;
 
-	std::vector<RegisterAccess*> all_definitions, live_definitions, dead_definitions;
+//	fprintf(stderr, " *** Found %u/%u/%u all/live/dead defs\n", all_definitions.size(), live_definitions.size(), dead_definitions.size());
+	auto dead_definitions = getDeadStores(f);
+
+	for(auto dead_def : dead_definitions) {
+		auto dead_store = dead_def->GetInstruction();
+		deep_delete(dead_store);
+
+		changed = true;
+	}
+
+	return changed;
+}
+
+std::vector<RegisterAccess*> LLVMRegisterOptimisationPass::getDeadStores(llvm::Function& f)
+{
+	std::vector<RegisterAccess*> all_definitions, dead_definitions, live_definitions;
 	ProcessFunction(f, all_definitions, live_definitions);
 
 	std::sort(all_definitions.begin(), all_definitions.end());
@@ -619,20 +809,10 @@ bool LLVMRegisterOptimisationPass::runOnFunction(llvm::Function &f)
 	dead_definitions.erase(last, dead_definitions.end());
 
 	DEBUGLOG(" *** Found %u/%u/%u all/live/dead defs\n", all_definitions.size(), live_definitions.size(), dead_definitions.size());
-//	fprintf(stderr, " *** Found %u/%u/%u all/live/dead defs\n", all_definitions.size(), live_definitions.size(), dead_definitions.size());
 
-	for(auto dead_def : dead_definitions) {
-		auto dead_store = dead_def->GetInstruction();
-
-		if(llvm::isa<llvm::StoreInst>(dead_store)) {
-			dead_store->removeFromParent();
-			dead_store->deleteValue();
-			changed = true;
-		}
-	}
-
-	return changed;
+	return dead_definitions;
 }
+
 
 void archsim::translate::translate_llvm::LLVMRegisterOptimisationPass::getAnalysisUsage(llvm::AnalysisUsage &au) const
 {

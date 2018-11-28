@@ -80,7 +80,9 @@ bool TryRecover_RegAccess(const llvm::Value *v, int size, std::vector<int> &aaai
 			is_reg_access = true;
 			offset = accumulated_offset.getZExtValue();
 		} else if(v->stripInBoundsOffsets() == reg_file_ptr) {
-			UNIMPLEMENTED;
+			// register access of unknown bounds
+			aaai = {TAG_REG_ACCESS};
+			return true;
 		}
 	}
 
