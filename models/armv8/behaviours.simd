@@ -26,16 +26,16 @@ decode(SIMD_COPY)
 	
 	if ((imm5 & 1) == 1) {
 		width = 32;
-		size = 0;
+		xsize = 0;
 	} else if ((imm5 & 3) == 2) {
 		width = 32;
-		size = 1;
+		xsize = 1;
 	} else if ((imm5 & 7) == 4) {
 		width = 32;
-		size = 2;
+		xsize = 2;
 	} else if ((imm5 & 15) == 8) {
 		width = 64;
-		size = 3;
+		xsize = 3;
 	}
 }
 

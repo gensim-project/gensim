@@ -198,7 +198,7 @@ AC_ISA(a64)
 	ac_field<sint64> label;
 	ac_field<uint8> bit_pos;
 	ac_field<uint8> ext_type;
-
+	
 	ISA_CTOR(a64)
 	{
 		//set_asm("and%[cond]%sf %reg, %reg, %reg, rrx", cond, s, rd, rn, rm, shift_type=3, shift_amt=0);
