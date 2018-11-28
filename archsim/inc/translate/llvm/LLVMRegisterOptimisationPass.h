@@ -9,6 +9,7 @@
 
 #include <wutils/vset.h>
 
+#include <vector>
 #include <unordered_set>
 
 namespace archsim
@@ -79,15 +80,14 @@ namespace archsim
 			class RegisterAccess
 			{
 			public:
-				using TagT = uint64_t;
 
-				static RegisterAccess Store(llvm::Instruction *llvm_inst, const RegisterReference &reg, uint64_t tag)
+				static RegisterAccess Store(llvm::Instruction *llvm_inst, const RegisterReference &reg)
 				{
-					return RegisterAccess(llvm_inst, reg, true, tag);
+					return RegisterAccess(llvm_inst, reg, true);
 				}
-				static RegisterAccess Load(llvm::Instruction *llvm_inst, const RegisterReference &reg, uint64_t tag)
+				static RegisterAccess Load(llvm::Instruction *llvm_inst, const RegisterReference &reg)
 				{
-					return RegisterAccess(llvm_inst, reg, false, tag);
+					return RegisterAccess(llvm_inst, reg, false);
 				}
 
 				bool IsStore() const
@@ -103,29 +103,66 @@ namespace archsim
 					return llvm_inst_;
 				}
 
-				TagT GetTag() const
-				{
-					return tag_;
-				}
-
 			protected:
 				RegisterAccess() = delete;
-				RegisterAccess(llvm::Instruction *llvm_inst, const RegisterReference &reg, bool is_store, TagT tag) : is_store_(is_store), llvm_inst_(llvm_inst), reg_(reg), tag_(tag) {}
+				RegisterAccess(llvm::Instruction *llvm_inst, const RegisterReference &reg, bool is_store) : is_store_(is_store), llvm_inst_(llvm_inst), reg_(reg) {}
 
 			private:
 				bool is_store_;
 
 				llvm::Instruction *llvm_inst_;
 				RegisterReference reg_;
-				TagT tag_;
 			};
 
+			class RegisterAccessDB
+			{
+			public:
+				RegisterAccess &Get(uint64_t i)
+				{
+					return *storage_.at(i);
+				}
+				uint64_t GetReverse(RegisterAccess &ra) const
+				{
+					return reverse_storage_.at(&ra);
+				}
+
+				const RegisterAccess &Get(uint64_t i) const
+				{
+					return *storage_.at(i);
+				}
+
+				uint64_t Size() const
+				{
+					return storage_.size();
+				}
+
+				uint64_t Insert(const RegisterAccess &ra)
+				{
+					auto ptr = new RegisterAccess(ra);
+
+					storage_.push_back(ptr);
+					uint64_t index = storage_.size()-1;
+					reverse_storage_[ptr] = index;
+					return index;
+				}
+
+				~RegisterAccessDB()
+				{
+					for(auto i : storage_) {
+						delete i;
+					}
+				}
+
+			private:
+				std::vector<RegisterAccess*> storage_;
+				std::map<RegisterAccess*, uint64_t> reverse_storage_;
+			};
 
 			class RegisterDefinitions
 			{
 			public:
 
-				RegisterDefinitions()
+				RegisterDefinitions(RegisterAccessDB &radb) : radb_(&radb)
 				{
 					definitions_[RegisterReference::UnlimitedExtent()] = {};
 
@@ -134,9 +171,9 @@ namespace archsim
 
 				void AddDefinition(RegisterAccess *access);
 
-				wutils::vset<RegisterAccess*> GetDefinitions(RegisterReference::Extents extents) const;
+				wutils::vset<uint64_t> GetDefinitions(RegisterReference::Extents extents) const;
 
-				static RegisterDefinitions MergeDefinitions(const std::vector<RegisterDefinitions*> &incoming_defs);
+				static RegisterDefinitions MergeDefinitions(const std::vector<RegisterDefinitions*> &incoming_defs, RegisterAccessDB &radb);
 
 				bool operator==(const RegisterDefinitions &other) const
 				{
@@ -147,16 +184,19 @@ namespace archsim
 					return !operator==(other);
 				}
 
+				const RegisterAccessDB &GetRADB() const
+				{
+					return *radb_;
+				}
 			private:
-				void InsertDefinition(RegisterReference::Extents n_extent, const std::vector<RegisterAccess*> &n_accesses, std::map<RegisterReference::Extents, std::vector<RegisterAccess*>> &output);
-
 				void Flatten();
 
 				void SetDefinitionForRange(RegisterReference::Extents extents, RegisterAccess *access);
 				void EraseDefinitionsForRange(RegisterReference::Extents erase);
 				void FailIfInvariantBroken() const;
 
-				std::map<RegisterReference::Extents, std::vector<RegisterAccess*>> definitions_;
+				RegisterAccessDB *radb_;
+				std::map<RegisterReference::Extents, std::vector<uint64_t>> definitions_;
 			};
 
 			class LLVMRegisterOptimisationPass : public llvm::FunctionPass
@@ -166,14 +206,14 @@ namespace archsim
 				bool runOnFunction(llvm::Function & F) override;
 				void getAnalysisUsage(llvm::AnalysisUsage & ) const override;
 
-				std::vector<RegisterAccess*> getDeadStores(llvm::Function &f);
+				std::vector<llvm::Instruction*> getDeadStores(llvm::Function &f);
 
 				static char ID;
 
 				using DefinitionSet = std::unordered_set<llvm::Instruction*>;
 
 			private:
-				bool ProcessFunction(llvm::Function &f, std::vector<RegisterAccess*> &all_definitions, std::vector<RegisterAccess*> &live_definitions);
+				bool ProcessFunction(llvm::Function &f, RegisterAccessDB &radb, std::vector<uint64_t> &all_definitions, std::vector<uint64_t> &live_definitions);
 			};
 
 

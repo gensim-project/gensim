@@ -91,7 +91,7 @@ TEST(Archsim_LLVM_Transform_DSE, Test2)
 	auto dead_stores = rop.getDeadStores(*fn);
 
 	ASSERT_EQ(dead_stores.size(), 1);
-	ASSERT_EQ(dead_stores.at(0)->GetInstruction(), dead_store);
+	ASSERT_EQ(dead_stores.at(0), dead_store);
 }
 
 
@@ -247,7 +247,7 @@ TEST(Archsim_LLVM_Transform_DSE, Test5)
 	auto dead_stores = rop.getDeadStores(*fn);
 
 	ASSERT_EQ(dead_stores.size(), 1);
-	ASSERT_EQ(dead_stores.at(0)->GetInstruction(), dead_store);
+	ASSERT_EQ(dead_stores.at(0), dead_store);
 }
 
 TEST(Archsim_LLVM_Transform_DSE, Test_Unknown_Bounds)
