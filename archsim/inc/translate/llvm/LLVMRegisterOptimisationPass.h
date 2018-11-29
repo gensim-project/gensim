@@ -199,6 +199,77 @@ namespace archsim
 				std::map<RegisterReference::Extents, std::vector<uint64_t>> definitions_;
 			};
 
+
+			class BlockInformation
+			{
+			public:
+				using AccessList = std::vector<uint64_t>;
+
+				BlockInformation(RegisterAccessDB &radb);
+
+				BlockInformation(llvm::BasicBlock *block, RegisterAccessDB &radb);
+
+				void ProcessBlock(llvm::BasicBlock *block);
+
+				AccessList &GetAccesses()
+				{
+					return register_accesses_;
+				}
+
+				const AccessList &GetAccesses() const
+				{
+					return register_accesses_;
+				}
+
+			private:
+				void ProcessLoad(llvm::Instruction *insn);
+				void ProcessStore(llvm::Instruction *insn);
+				void ProcessBreaker(llvm::Instruction *insn);
+				void ProcessReturn(llvm::Instruction *insn);
+
+				void AddRegisterAccess(const RegisterAccess &access)
+				{
+					register_accesses_.push_back(radb_.Insert(access));
+				}
+
+				RegisterAccessDB &radb_;
+				AccessList register_accesses_;
+			};
+
+
+			class BlockDefinitions
+			{
+			public:
+				BlockDefinitions(BlockInformation &block, RegisterAccessDB &radb);
+
+				RegisterDefinitions PropagateDefinitions(RegisterDefinitions &incoming_defs, std::vector<uint64_t> &live_accesses);
+
+				const std::vector<RegisterAccess*> &GetLocalLive() const
+				{
+					return locally_live_stores_;
+				}
+
+				const std::vector<RegisterReference> &GetIncomingLoads() const
+				{
+					return incoming_loaded_regs_;
+				}
+
+				const std::vector<RegisterAccess*> &GetOutgoingStores() const
+				{
+					return outgoing_stored_regs_;
+				}
+
+			private:
+				std::vector<RegisterReference> ConvertToImpreciseReferences(const std::vector<bool> &bytes);
+
+				void ProcessBlock(BlockInformation &block);
+
+				RegisterAccessDB &radb_;
+				std::vector<RegisterAccess *> locally_live_stores_;
+				std::vector<RegisterReference> incoming_loaded_regs_;
+				std::vector<RegisterAccess*> outgoing_stored_regs_;
+			};
+
 			class LLVMRegisterOptimisationPass : public llvm::FunctionPass
 			{
 			public:
