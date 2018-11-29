@@ -153,7 +153,7 @@ namespace archsim
 				uint64_t max_block_interp_count_;
 				uint64_t total_interp_count;
 
-				typedef std::unordered_map<Address, Block*> block_map_t;
+				typedef std::map<Address, Block*> block_map_t;
 
 				/**
 				 * Map of page offsets to blocks
