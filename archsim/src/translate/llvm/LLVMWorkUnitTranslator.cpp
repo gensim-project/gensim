@@ -112,13 +112,15 @@ void EmitControlFlow_Indirect(llvm::IRBuilder<> &builder, translate_llvm::LLVMTr
 void EmitControlFlow(llvm::IRBuilder<> &builder, translate_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region)
 {
 	// several options here:
-	// 1. an instruction which isn't a jump but happens to be at the end of a block (due to being at the end of the page): return since we can't do anything
+	// 1. an instruction which isn't a jump but happens to be at the end of a block. It either falls through to a block which exists (jump there) or falls off the page.
 	// 2. a direct non predicated jump: br directly to target block if it is on this page and has been translated
 	// 3. a direct predicated jump: check the PC and either branch to the target block (if it's on this page and has been translated) or to the fallthrough block (if on this page and translated)
 	// 4. an indirect jump: create a switch statement for profiled branch targets, and add the dispatch block to it.
 
 	auto decode = &ctrlflow->GetDecode();
 	auto insn_pc = unit.GetRegion().GetPhysicalBaseAddress() + block.GetOffset() + ctrlflow->GetOffset();
+	auto next_pc = insn_pc + decode->Instr_Length;
+	auto next_offset = block.GetOffset() + ctrlflow->GetOffset() + decode->Instr_Length;
 
 	gensim::JumpInfo ji;
 	auto jip = unit.GetThread()->GetArch().GetISA(decode->isa_mode).GetNewJumpInfo();
@@ -126,7 +128,11 @@ void EmitControlFlow(llvm::IRBuilder<> &builder, translate_llvm::LLVMTranslation
 
 	if(!ji.IsJump) {
 		// situation 1
-		EmitControlFlow_FallOffPage(builder, ctx, translate, region);
+		if(next_offset.Get() >= archsim::Address::PageSize || region.GetBlockMap().count(next_offset) == 0) {
+			EmitControlFlow_FallOffPage(builder, ctx, translate, region);
+		} else {
+			builder.CreateBr(region.GetBlockMap().at(next_offset));
+		}
 	} else {
 		if(!ji.IsIndirect) {
 			if(!ji.IsConditional) {

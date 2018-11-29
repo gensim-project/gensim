@@ -81,13 +81,20 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	phys_interface->Connect(*phys_device);
 
 	for (auto block : region.blocks) {
+		auto next_block_it = ++region.blocks.lower_bound(block.first);
+		Address next_block_start;
+		if(next_block_it != region.blocks.end()) {
+			next_block_start = next_block_it->second->GetOffset();
+		}
+
 		auto tbu = twu->AddBlock(*block.second, block.second->IsRootBlock());
 
 		bool end_of_block = false;
 		Address offset = tbu->GetOffset();
 		uint32_t insn_count = 0;
 
-		while (!end_of_block && offset.Get() < profile::RegionArch::PageSize) {
+		while (!end_of_block && offset.Get() < profile::RegionArch::PageSize && (next_block_start == 0_ga || offset < next_block_start)) {
+//		while (!end_of_block && offset.Get() < profile::RegionArch::PageSize) {
 			gensim::BaseDecode *decode = thread->GetArch().GetISA(block.second->GetISAMode()).GetNewDecode();
 
 			thread->GetArch().GetISA(block.second->GetISAMode()).DecodeInstr(Address(region.GetPhysicalBaseAddress() + offset), phys_interface, *decode);
