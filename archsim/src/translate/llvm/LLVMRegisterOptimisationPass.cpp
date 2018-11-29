@@ -160,107 +160,6 @@ std::ostream &operator<<(std::ostream &str, const RegisterAccess &access)
 	return str;
 }
 
-class BlockInformation
-{
-public:
-	using AccessList = std::vector<uint64_t>;
-
-	BlockInformation(llvm::BasicBlock *block, RegisterAccessDB &radb) : radb_(radb)
-	{
-		ProcessBlock(block);
-	}
-
-	void ProcessBlock(llvm::BasicBlock *block)
-	{
-		for(auto &inst : *block) {
-			auto *insn = &inst;
-			if(isRegisterLoad(insn)) {
-				ProcessLoad(insn);
-			} else if(isRegisterStore(insn)) {
-				ProcessStore(insn);
-			} else if(isBreaker(insn)) {
-				ProcessBreaker(insn);
-			} else if(isReturn(insn)) {
-				ProcessReturn(insn);
-			}
-		}
-	}
-
-	AccessList &GetAccesses()
-	{
-		return register_accesses_;
-	}
-
-	const AccessList &GetAccesses() const
-	{
-		return register_accesses_;
-	}
-
-private:
-	void ProcessLoad(llvm::Instruction *insn)
-	{
-		PointerInformationProvider pip(insn->getFunction());
-		ASSERT(llvm::isa<llvm::LoadInst>(insn));
-		llvm::LoadInst* load = (llvm::LoadInst*)insn;
-
-		PointerInformationProvider::PointerInfo info;
-		pip.GetPointerInfo(load->getPointerOperand(), info);
-
-		if(info.size() < 1 || info.at(0) != TAG_REG_ACCESS) {
-			UNEXPECTED;
-		}
-
-		if(info.size() != 3) {
-			// treat as an imprecise unlimited load
-			// TODO: fix this
-			AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference()));
-		} else {
-			AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference({info.at(1), info.at(1) + info.at(2) - 1}, true)));
-		}
-	}
-	void ProcessStore(llvm::Instruction *insn)
-	{
-		PointerInformationProvider pip(insn->getFunction());
-		ASSERT(llvm::isa<llvm::StoreInst>(insn));
-		llvm::StoreInst* store = (llvm::StoreInst*)insn;
-
-		PointerInformationProvider::PointerInfo info;
-		pip.GetPointerInfo(store->getPointerOperand(), info);
-
-		if(info.size() < 1 || info.at(0) != TAG_REG_ACCESS) {
-			UNEXPECTED;
-		}
-
-		if(info.size() != 3) {
-			// treat as an imprecise unlimited load
-			// TODO: fix this
-			AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference()));
-		} else {
-			AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference({info.at(1), info.at(1) + info.at(2) - 1}, true)));
-		}
-	}
-	void ProcessBreaker(llvm::Instruction *insn)
-	{
-		// load anything, then store anything
-
-		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference()));
-		AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference()));
-	}
-	void ProcessReturn(llvm::Instruction *insn)
-	{
-		// load everything
-		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference()));
-	}
-
-	void AddRegisterAccess(const RegisterAccess &access)
-	{
-		register_accesses_.push_back(radb_.Insert(access));
-	}
-
-	RegisterAccessDB &radb_;
-	AccessList register_accesses_;
-};
-
 std::ostream &operator<< (std::ostream &str, const BlockInformation &block)
 {
 	str << "block info {" << &block << "}:" << std::endl;
@@ -269,6 +168,91 @@ std::ostream &operator<< (std::ostream &str, const BlockInformation &block)
 	}
 	return str;
 }
+
+BlockInformation::BlockInformation(RegisterAccessDB& radb) : radb_(radb)
+{
+
+}
+
+BlockInformation::BlockInformation(llvm::BasicBlock* block, RegisterAccessDB& radb) : radb_(radb)
+{
+	ProcessBlock(block);
+}
+
+void BlockInformation::ProcessBlock(llvm::BasicBlock* block)
+{
+	for (auto &inst : *block) {
+		auto *insn = &inst;
+		if (isRegisterLoad(insn)) {
+			ProcessLoad(insn);
+		} else if (isRegisterStore(insn)) {
+			ProcessStore(insn);
+		} else if (isBreaker(insn)) {
+			ProcessBreaker(insn);
+		} else if (isReturn(insn)) {
+			ProcessReturn(insn);
+		}
+	}
+}
+
+void BlockInformation::ProcessLoad(llvm::Instruction* insn)
+{
+	PointerInformationProvider pip(insn->getFunction());
+	ASSERT(llvm::isa<llvm::LoadInst>(insn));
+	llvm::LoadInst* load = (llvm::LoadInst*)insn;
+
+	PointerInformationProvider::PointerInfo info;
+	pip.GetPointerInfo(load->getPointerOperand(), info);
+
+	if (info.size() < 1 || info.at(0) != TAG_REG_ACCESS) {
+		UNEXPECTED;
+	}
+
+	if (info.size() != 3) {
+		// treat as an imprecise unlimited load
+		// TODO: fix this
+		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference()));
+	} else {
+		AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference( {info.at(1), info.at(1) + info.at(2) - 1}, true)));
+	}
+}
+
+void BlockInformation::ProcessStore(llvm::Instruction* insn)
+{
+	PointerInformationProvider pip(insn->getFunction());
+	ASSERT(llvm::isa<llvm::StoreInst>(insn));
+	llvm::StoreInst* store = (llvm::StoreInst*)insn;
+
+	PointerInformationProvider::PointerInfo info;
+	pip.GetPointerInfo(store->getPointerOperand(), info);
+
+	if (info.size() < 1 || info.at(0) != TAG_REG_ACCESS) {
+		UNEXPECTED;
+	}
+
+	if (info.size() != 3) {
+		// treat as an imprecise unlimited load
+		// TODO: fix this
+		AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference()));
+	} else {
+		AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference( {info.at(1), info.at(1) + info.at(2) - 1}, true)));
+	}
+}
+
+void BlockInformation::ProcessBreaker(llvm::Instruction* insn)
+{
+	// load anything, then store anything
+
+	AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference()));
+	AddRegisterAccess(RegisterAccess::Store(insn, RegisterReference()));
+}
+
+void BlockInformation::ProcessReturn(llvm::Instruction* insn)
+{
+	// load everything
+	AddRegisterAccess(RegisterAccess::Load(insn, RegisterReference()));
+}
+
 
 void RegisterDefinitions::AddDefinition(RegisterAccess* access)
 {
@@ -349,6 +333,15 @@ RegisterReference::Extents RegisterReference::GetExtents() const
 wutils::vset<uint64_t> RegisterDefinitions::GetDefinitions(RegisterReference::Extents extents) const
 {
 	wutils::vset<uint64_t> output;
+
+	int max_defs = 0;
+	for(auto &i : definitions_) {
+		if(i.second.size() > max_defs) {
+			max_defs = i.second.size();
+		}
+	}
+	output.reserve(max_defs);
+
 	for (auto &i : definitions_) {
 		// definitions are ordered so if i.first > extents.second, then return
 		if(i.first.first > extents.second) {
@@ -512,173 +505,151 @@ std::ostream &operator<<(std::ostream &str, const RegisterDefinitions &defs)
 	return str;
 }
 
-class BlockDefinitions
+BlockDefinitions::BlockDefinitions(BlockInformation& block, RegisterAccessDB& radb) : radb_(radb)
 {
-public:
-	BlockDefinitions(BlockInformation &block, RegisterAccessDB &radb) : radb_(radb)
-	{
-		ProcessBlock(block);
+	ProcessBlock(block);
+}
+
+RegisterDefinitions BlockDefinitions::PropagateDefinitions(RegisterDefinitions& incoming_defs, std::vector<uint64_t>& live_accesses)
+{
+	RegisterDefinitions outgoing_defs = incoming_defs;
+
+	for (auto &ref : incoming_loaded_regs_) {
+		auto touched_stores = incoming_defs.GetDefinitions(ref.GetExtents());
+
+		live_accesses.insert(live_accesses.end(), touched_stores.begin(), touched_stores.end());
 	}
 
-	RegisterDefinitions PropagateDefinitions(RegisterDefinitions &incoming_defs, std::vector<uint64_t> &live_accesses)
-	{
-		RegisterDefinitions outgoing_defs = incoming_defs;
-
-		for(auto &ref : incoming_loaded_regs_) {
-			auto touched_stores = incoming_defs.GetDefinitions(ref.GetExtents());
-
-			live_accesses.insert(live_accesses.end(), touched_stores.begin(), touched_stores.end());
-		}
-
-		for(auto outgoing_def : outgoing_stored_regs_) {
-			outgoing_defs.AddDefinition(outgoing_def);
-		}
-
-		return outgoing_defs;
+	for (auto outgoing_def : outgoing_stored_regs_) {
+		outgoing_defs.AddDefinition(outgoing_def);
 	}
 
-	const std::vector<RegisterAccess*> &GetLocalLive() const
-	{
-		return locally_live_stores_;
-	}
+	return outgoing_defs;
+}
 
-	const std::vector<RegisterReference> &GetIncomingLoads() const
-	{
-		return incoming_loaded_regs_;
-	}
+void BlockDefinitions::ProcessBlock(BlockInformation& block)
+{
+	RegisterDefinitions live_definitions(radb_);
 
-	const std::vector<RegisterAccess*> &GetOutgoingStores() const
-	{
-		return outgoing_stored_regs_;
-	}
+	for (auto &access_tag : block.GetAccesses()) {
+		auto &access = radb_.Get(access_tag);
+		if (access.IsStore()) {
+			live_definitions.AddDefinition(&access);
+		} else {
+			// we're dealing with a load. Does it load any values
+			// which have been stored in this block? If so, mark those
+			// stores as locally live.
 
-private:
-	std::vector<RegisterReference> ConvertToImpreciseReferences(const std::vector<bool> &bytes)
-	{
-		std::vector<RegisterReference> refs;
+			auto touched_defs = live_definitions.GetDefinitions(access.GetRegRef().GetExtents());
+			for (auto i : touched_defs) {
+				locally_live_stores_.push_back(&radb_.Get(i));
 
-		int ref_start = -1;
-		int ref_end = -1;
-		for(int b = 0; b < bytes.size(); ++b) {
-			if(bytes[b]) {
-				if(ref_start == -1) {
-					ref_start = b;
-				}
-				ref_end = b;
-			} else {
-				if(ref_start != -1) {
-					refs.push_back(RegisterReference({ref_start, ref_end}, false));
-					ref_start = -1;
-					ref_end = -1;
-				}
 			}
-		}
-		if(ref_start != -1) {
-			refs.push_back(RegisterReference({ref_start, ref_end}, false));
-		}
 
-		return refs;
-	}
+			if (!access.GetRegRef().IsUnlimited()) {
+				// if this access is limited, figure out which bytes are
+				// not written to before this point in the block: these are
+				// live incoming bytes
+				std::vector<bool> live(access.GetRegRef().GetSize(), true);
+				for (auto i : touched_defs) {
+					auto &def = radb_.Get(i);
+					int start = std::max(access.GetRegRef().GetExtents().first, def.GetRegRef().GetExtents().first);
+					int end = std::min(access.GetRegRef().GetExtents().second, def.GetRegRef().GetExtents().second);
 
-	void ProcessBlock(BlockInformation &block)
-	{
-		RegisterDefinitions live_definitions (radb_);
-
-		for(auto &access_tag : block.GetAccesses()) {
-			auto &access = radb_.Get(access_tag);
-			if(access.IsStore()) {
-				live_definitions.AddDefinition(&access);
-			} else {
-				// we're dealing with a load. Does it load any values
-				// which have been stored in this block? If so, mark those
-				// stores as locally live.
-
-				auto touched_defs = live_definitions.GetDefinitions(access.GetRegRef().GetExtents());
-				for(auto i : touched_defs) {
-					locally_live_stores_.push_back(&radb_.Get(i));
-
+					for (int b = start; b <= end; ++b) {
+						live.at(b - start) = false;
+					}
 				}
 
-				if(!access.GetRegRef().IsUnlimited()) {
-					// if this access is limited, figure out which bytes are
-					// not written to before this point in the block: these are
-					// live incoming bytes
-					std::vector<bool> live (access.GetRegRef().GetSize(), true);
-					for(auto i : touched_defs) {
-						auto &def = radb_.Get(i);
-						int start = std::max(access.GetRegRef().GetExtents().first, def.GetRegRef().GetExtents().first);
-						int end = std::min(access.GetRegRef().GetExtents().second, def.GetRegRef().GetExtents().second);
-
-						for(int b = start; b <= end; ++b) {
-							live.at(b - start) = false;
-						}
+				for (int b = 0; b < live.size(); ++b) {
+					if (live.at(b)) {
+						auto byte = b + access.GetRegRef().GetExtents().first;
+						incoming_loaded_regs_.push_back(RegisterReference( {byte, byte}, 1));
 					}
+				}
 
-					for(int b = 0; b < live.size(); ++b) {
-						if(live.at(b)) {
-							auto byte = b + access.GetRegRef().GetExtents().first;
-							incoming_loaded_regs_.push_back(RegisterReference({byte, byte}, 1));
-						}
-					}
+			} else {
+				// if the access is not limited, we need to treat every
+				// incoming byte as live, except for those which have been
+				// precisely written before this load occurs.
 
+				auto all_defs = live_definitions.GetDefinitions(RegisterReference::UnlimitedExtent());
+
+				if (all_defs.empty()) {
+					// no previous defs, so add a 0-unlimited load
+					incoming_loaded_regs_.push_back(RegisterReference( {0, INT_MAX}, false));
 				} else {
-					// if the access is not limited, we need to treat every
-					// incoming byte as live, except for those which have been
-					// precisely written before this load occurs.
+					int max_byte = 0;
 
-					auto all_defs = live_definitions.GetDefinitions(RegisterReference::UnlimitedExtent());
-
-					if(all_defs.empty()) {
-						// no previous defs, so add a 0-unlimited load
-						incoming_loaded_regs_.push_back(RegisterReference({0, INT_MAX}, false));
-					} else {
-						int max_byte = 0;
-
-						for(auto store : all_defs) {
-							auto &st = radb_.Get(store);
-							if(st.GetRegRef().IsUnlimited()) {
-								continue;
-							}
-
-							auto store_max = st.GetRegRef().GetExtents().second;
-							if(store_max > max_byte) {
-								max_byte = store_max;
-							}
+					for (auto store : all_defs) {
+						auto &st = radb_.Get(store);
+						if (st.GetRegRef().IsUnlimited()) {
+							continue;
 						}
 
-						// todo: do this better
-						std::vector<bool> incoming_bytes(max_byte+1, 1);
-						for(auto store : all_defs) {
-							auto &st = radb_.Get(store);
-							if(st.GetRegRef().IsPrecise()) {
-								for(int b = st.GetRegRef().GetExtents().first; b <= st.GetRegRef().GetExtents().second; ++b) {
-									incoming_bytes.at(b) = false;
-								}
-							}
+						auto store_max = st.GetRegRef().GetExtents().second;
+						if (store_max > max_byte) {
+							max_byte = store_max;
 						}
-
-						// now convert incoming bytes to extents
-						auto refs = ConvertToImpreciseReferences(incoming_bytes);
-						incoming_loaded_regs_.insert(incoming_loaded_regs_.end(), refs.begin(), refs.end());
-						incoming_loaded_regs_.push_back(RegisterReference({max_byte+1, INT_MAX}, false));
 					}
+
+					// todo: do this better
+					std::vector<bool> incoming_bytes(max_byte + 1, 1);
+					for (auto store : all_defs) {
+						auto &st = radb_.Get(store);
+						if (st.GetRegRef().IsPrecise()) {
+							for (int b = st.GetRegRef().GetExtents().first; b <= st.GetRegRef().GetExtents().second; ++b) {
+								incoming_bytes.at(b) = false;
+							}
+						}
+					}
+
+					// now convert incoming bytes to extents
+					auto refs = ConvertToImpreciseReferences(incoming_bytes);
+					incoming_loaded_regs_.insert(incoming_loaded_regs_.end(), refs.begin(), refs.end());
+					incoming_loaded_regs_.push_back(RegisterReference( {max_byte + 1, INT_MAX}, false));
 				}
-
 			}
-		}
 
-		// put every currently live access into outgoing_stored_regs.
-		auto live_defs = live_definitions.GetDefinitions(RegisterReference::UnlimitedExtent());
-		for(auto def : live_defs) {
-			outgoing_stored_regs_.push_back(&radb_.Get(def));
 		}
 	}
 
-	RegisterAccessDB &radb_;
-	std::vector<RegisterAccess *> locally_live_stores_;
-	std::vector<RegisterReference> incoming_loaded_regs_;
-	std::vector<RegisterAccess*> outgoing_stored_regs_;
-};
+	// put every currently live access into outgoing_stored_regs.
+	// These defs must be ordered by their position within their block, so that
+	// later definitions overlay earlier definitions
+	wutils::vset<uint64_t, true> live_defs = live_definitions.GetDefinitions(RegisterReference::UnlimitedExtent());
+	for (auto def : live_defs) {
+		outgoing_stored_regs_.push_back(&radb_.Get(def));
+	}
+}
+
+
+std::vector<RegisterReference> BlockDefinitions::ConvertToImpreciseReferences(const std::vector<bool>& bytes)
+{
+	std::vector<RegisterReference> refs;
+
+	int ref_start = -1;
+	int ref_end = -1;
+	for (int b = 0; b < bytes.size(); ++b) {
+		if (bytes[b]) {
+			if (ref_start == -1) {
+				ref_start = b;
+			}
+			ref_end = b;
+		} else {
+			if (ref_start != -1) {
+				refs.push_back(RegisterReference( {ref_start, ref_end}, false));
+				ref_start = -1;
+				ref_end = -1;
+			}
+		}
+	}
+	if (ref_start != -1) {
+		refs.push_back(RegisterReference( {ref_start, ref_end}, false));
+	}
+
+	return refs;
+}
 
 std::ostream &operator<<(std::ostream &str, const BlockDefinitions &defs)
 {
@@ -704,7 +675,12 @@ std::vector<llvm::BasicBlock*> GetPredecessors(llvm::BasicBlock *block)
 {
 	std::vector<llvm::BasicBlock*> preds;
 	for(auto &b : *(block->getParent())) {
-		for(int i = 0; i < b.getTerminator()->getNumSuccessors(); ++i) {
+		auto *terminator = b.getTerminator();
+		if(terminator == nullptr) {
+			continue;
+		}
+
+		for(int i = 0; i < terminator->getNumSuccessors(); ++i) {
 			auto p = b.getTerminator()->getSuccessor(i);
 			if(p == block) {
 				preds.push_back(&b);

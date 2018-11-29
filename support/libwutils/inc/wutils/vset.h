@@ -16,22 +16,47 @@ namespace wutils
 	template<typename T, bool ordered=false, typename storage=std::vector<T>> class vset
 	{
 	public:
+		friend class vset<T, false, storage>;
+		friend class vset<T, true, storage>;
+
+		using ThisT = vset<T, ordered, storage>;
 		using StorageT = storage;
 		using ValueT = T;
+
+		template<bool other_ordered> ThisT &operator=(const vset<T, other_ordered, storage> &other)
+		{
+			storage_ = other.storage_;
+			if(ordered) {
+				sort();
+			}
+			return *this;
+		}
+
+		vset() {}
+
+		template<bool other_ordered> vset(const vset<T, other_ordered, storage> &other)
+		{
+			*this = other;
+		}
 
 		void insert(const T& t)
 		{
 			if(!count(t)) {
 				storage_.push_back(t);
 			}
+
+			sort();
 		}
 
 		template<typename it> void insert(it b, it e)
 		{
 			while(b != e) {
-				insert(*b);
+				if(!count(*b)) {
+					storage_.push_back(*b);
+				}
 				b++;
 			}
+			sort();
 		}
 
 		void erase(const T& t)
@@ -39,9 +64,10 @@ namespace wutils
 			for(auto i = storage_.begin(); i < storage_.end(); ++i) {
 				if(*i == t) {
 					storage_.erase(i);
-					return;
+					break;
 				}
 			}
+			sort();
 		}
 
 		bool count(const T& t) const
@@ -52,6 +78,11 @@ namespace wutils
 				}
 			}
 			return false;
+		}
+
+		void reserve(int i)
+		{
+			storage_.reserve(i);
 		}
 
 		size_t size() const
@@ -84,7 +115,9 @@ namespace wutils
 	private:
 		void sort()
 		{
-			abort();
+			if(ordered) {
+				std::sort(storage_.begin(), storage_.end());
+			}
 		}
 
 		StorageT storage_;

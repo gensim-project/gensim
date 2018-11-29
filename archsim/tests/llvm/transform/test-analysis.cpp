@@ -83,3 +83,34 @@ TEST(Archsim_LLVM_Analysis_RegisterDefinition, Merge3)
 
 	ASSERT_EQ(others.size(), 0);
 }
+
+TEST(Archsim_LLVM_Analysis_RegisterDefinition, Definitions1)
+{
+	RegisterAccessDB radb;
+
+	auto store0to3 = radb.Insert(RegisterAccess::Store(nullptr, RegisterReference({0, 3},true)));
+	auto store0to0 = radb.Insert(RegisterAccess::Store(nullptr, RegisterReference({0, 0},true)));
+
+	BlockInformation bi (radb);
+	bi.GetAccesses().push_back(store0to3);
+	bi.GetAccesses().push_back(store0to0);
+
+	BlockDefinitions bd (bi, radb);
+
+	RegisterDefinitions rd(radb);
+	std::vector<uint64_t> live;
+	rd = bd.PropagateDefinitions(rd, live);
+
+	auto defs0 = rd.GetDefinitions({0,0});
+	ASSERT_EQ(defs0.size(), 1);
+	ASSERT_EQ(defs0.count(store0to0), 1);
+
+	auto defs1to3 = rd.GetDefinitions({1,3});
+	ASSERT_EQ(defs1to3.size(), 1);
+	ASSERT_EQ(defs1to3.count(store0to3), 1);
+
+	auto defs0to3 = rd.GetDefinitions({0,3});
+	ASSERT_EQ(defs0to3.size(), 2);
+	ASSERT_EQ(defs0to3.count(store0to3), 1);
+	ASSERT_EQ(defs0to3.count(store0to0), 1);
+}
