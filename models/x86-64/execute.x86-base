@@ -37,6 +37,12 @@ execute(and) {
 
 helper uint8 do_bsf(uint64 op, uint8 size) 
 {
+	if(size == 32) {
+		return __builtin_ctz32(op);
+	} else if(size == 64) {
+		return __builtin_ctz64(op);
+	}
+	
 	for(sint64 i = 0; i < size; ++i) {
 		if(op & (1 << i)) {
 			return i;

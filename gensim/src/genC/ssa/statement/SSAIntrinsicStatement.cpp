@@ -73,8 +73,10 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 			return IRTypes::UInt64;
 
 		case SSAIntrinsic_Clz32:
+		case SSAIntrinsic_Ctz32:
 			return IRTypes::UInt32;
 		case SSAIntrinsic_Clz64:
+		case SSAIntrinsic_Ctz64:
 			return IRTypes::UInt64;
 
 		case SSAIntrinsic_UMULL:

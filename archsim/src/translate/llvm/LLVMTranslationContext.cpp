@@ -249,6 +249,10 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 // 		Values.contiguous_mem_base = new llvm::IntToPtrInst(llvm::ConstantInt::get(Types.i64, 0x80000000), Types.i8Ptr, "contiguous_mem_base", &(fn->getEntryBlock()));
 	}
 
+	Functions.clz_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ctlz, Types.i32);
+	Functions.clz_i64 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ctlz, Types.i64);
+	Functions.ctz_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::cttz, Types.i32);
+	Functions.ctz_i64 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::cttz, Types.i64);
 	Functions.ctpop_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::ctpop, Types.i32);
 	Functions.bswap_i32 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::bswap, Types.i32);
 	Functions.bswap_i64 = llvm::Intrinsic::getDeclaration(Module, llvm::Intrinsic::bswap, Types.i64);

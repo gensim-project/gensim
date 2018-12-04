@@ -347,6 +347,8 @@ void GenCContext::LoadIntrinsics()
 
 	AddIntrinsic("__builtin_clz", IRTypes::UInt32, {IRParam("value", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Clz32);
 	AddIntrinsic("__builtin_clz64", IRTypes::UInt64, {IRParam("value", IRTypes::UInt64)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Clz64);
+	AddIntrinsic("__builtin_ctz32", IRTypes::UInt32, {IRParam("value", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Ctz32);
+	AddIntrinsic("__builtin_ctz64", IRTypes::UInt64, {IRParam("value", IRTypes::UInt64)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Ctz64);
 	AddIntrinsic("__builtin_popcount", IRTypes::UInt32, {IRParam("value", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Popcount32);
 
 	AddIntrinsic("__builtin_update_zn_flags", IRTypes::Void, {IRParam("value", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32);

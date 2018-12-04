@@ -378,6 +378,12 @@ namespace gensim
 					case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = __builtin_clzll(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
+					case SSAIntrinsicStatement::SSAIntrinsic_Ctz32:
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = __builtin_ctz(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						break;
+					case SSAIntrinsicStatement::SSAIntrinsic_Ctz64:
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = __builtin_ctzll(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
 						output << "thread->TakeException(" << (Factory.GetOrCreate(stmt.Args(0))->GetFixedValue()) << "," << (Factory.GetOrCreate(stmt.Args(1))->GetFixedValue()) << ");";
 						break;
