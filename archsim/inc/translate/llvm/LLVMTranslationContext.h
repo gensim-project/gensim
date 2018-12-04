@@ -46,6 +46,10 @@ namespace archsim
 					llvm::Function *double_sqrt;
 					llvm::Function *float_sqrt;
 
+					llvm::Function *clz_i32;
+					llvm::Function *ctz_i32;
+					llvm::Function *clz_i64;
+					llvm::Function *ctz_i64;
 					llvm::Function *ctpop_i32;
 					llvm::Function *bswap_i32;
 					llvm::Function *bswap_i64;

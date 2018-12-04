@@ -836,12 +836,30 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
 							assert(arg0);
 
-							output << "std::vector<llvm::Type*> args;"
-							       "args.push_back(ctx.Types.i32);"
-							       "args.push_back(ctx.Types.i1);"
-							       "llvm::FunctionType *intrinsicType = llvm::FunctionType::get(ctx.Types.i32, args, false);"
-							       "llvm::Function *intrinsic = (llvm::Function*)ctx.block.region.region_fn->getParent()->getOrInsertFunction(\"llvm.ctlz.i32\", intrinsicType);"
-							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall2(intrinsic, " << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i1, 0, false));";
+							output <<
+							       "llvm::Function *intrinsic = (llvm::Function*)ctx.Functions.clz_i32;"
+							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(intrinsic, {" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i1, 0, false)});";
+							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
+							assert(arg0);
+
+							output <<
+							       "llvm::Function *intrinsic = (llvm::Function*)ctx.Functions.clz_i64;"
+							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(intrinsic, {" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i1, 0, false)});";
+							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_Ctz32:
+							assert(arg0);
+
+							output <<
+							       "llvm::Function *intrinsic = (llvm::Function*)ctx.Functions.ctz_i32;"
+							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(intrinsic, {" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i1, 0, false)});";
+							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_Ctz64:
+							assert(arg0);
+
+							output <<
+							       "llvm::Function *intrinsic = (llvm::Function*)ctx.Functions.ctz_i64;"
+							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(intrinsic, {" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i1, 0, false)});";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
 							assert(arg0);
@@ -1062,6 +1080,9 @@ namespace gensim
 
 					switch (Statement.Type) {
 						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
+						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
+						case SSAIntrinsicStatement::SSAIntrinsic_Ctz32:
+						case SSAIntrinsicStatement::SSAIntrinsic_Ctz64:
 						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
 						case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode:
 						case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
