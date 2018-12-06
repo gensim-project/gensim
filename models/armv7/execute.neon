@@ -1,12 +1,12 @@
 helper uint8 neon_float_is_nan(float f)
 {
-	uint32 bits = bitcast_float_u32(f);
+	uint32 bits = <uint32>(f);
 	return ((bits >> 23) == 0x1ff);
 }
 
 helper float neon_get_default_nan_float()
 {
-	return bitcast_u32_float((uint32)0x7fc00000);
+	return <float>((uint32)0x7fc00000);
 }
 
 helper float[2] neon_multiply_float2(float[2] a, float[2] b)
@@ -1394,8 +1394,8 @@ execute(neon_vmovl)
 		{
 			uint32[2] vm = read_register_bank(VU32, inst.vm);
 			
-			write_register_bank(FPDP, inst.vd, bitcast_u64_double(vm[0]));
-			write_register_bank(FPDP, inst.vd+1, bitcast_u64_double(vm[1]));
+			write_register_bank(FPDP, inst.vd, <double>(vm[0]));
+			write_register_bank(FPDP, inst.vd+1, <double>(vm[1]));
 			break;
 		}
 		default:
@@ -1452,8 +1452,8 @@ execute(neon_vmovl_sx)
 		{
 			uint32[2] vm = read_register_bank(VU32, inst.vm);
 			
-			write_register_bank(FPDP, inst.vd, bitcast_u64_double((sint64)(sint32)vm[0]));
-			write_register_bank(FPDP, inst.vd+1, bitcast_u64_double((sint64)(sint32)vm[1]));
+			write_register_bank(FPDP, inst.vd, <double>((sint64)(sint32)vm[0]));
+			write_register_bank(FPDP, inst.vd+1, <double>((sint64)(sint32)vm[1]));
 			break;
 		}
 		default:
@@ -2014,7 +2014,7 @@ execute(neon_scalar_to_arm)
 	{
 		float[2] vector = read_register_bank(VD, inst.vn);
 		float fval = vector[inst.imm8];
-		value = bitcast_float_u32(fval);
+		value = <uint32>(fval);
 	}
 	else 
 	{
@@ -2047,7 +2047,7 @@ execute(neon_arm_to_scalar)
 	else if(inst.U == 0 && inst.opc == 0)
 	{
 		float[2] vector = read_register_bank(VD, inst.vn);
-		vector[inst.imm8] = bitcast_u32_float(value);
+		vector[inst.imm8] = <float>(value);
 		write_register_bank(VD, inst.vn, vector);
 	}
 	else 
@@ -2124,7 +2124,7 @@ execute(neon_memory_ld1_mul)
 	{
 		uint64 value;
 		neon_memory_read_64(address, value);
-		write_register_bank(FPDP, inst.vd + i, bitcast_u64_double(value));
+		write_register_bank(FPDP, inst.vd + i, <double>(value));
 		
 		address += 8;
 	}
@@ -2534,9 +2534,9 @@ execute(neon_memory_ld1_sal)
 		}
 	}
 	
-	write_register_bank(FPDP, inst.vd, bitcast_u64_double(rep_element));
+	write_register_bank(FPDP, inst.vd, <double>(rep_element));
 	if(inst.T) {
-		write_register_bank(FPDP, inst.vd+1, bitcast_u64_double(rep_element));
+		write_register_bank(FPDP, inst.vd+1, <double>(rep_element));
 	}
 	
 	uint8 wback = inst.rm != 15;

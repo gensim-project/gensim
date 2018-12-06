@@ -24,13 +24,13 @@ helper uint8 get_rounding_mode()
 
 helper uint8 vfp_float_is_nan(float f)
 {
-	uint32 bits = bitcast_float_u32(f);
+	uint32 bits = <uint32>(f);
 	return ((bits >> 23) == 0x1ff);
 }
 
 helper float vfp_get_default_nan_float()
 {
-	return bitcast_u32_float((uint32)0x7fc00000);
+	return <float>((uint32)0x7fc00000);
 }
 
 helper float vfp_multiply_float(float a, float b)
@@ -128,7 +128,7 @@ helper double double_expand_imm(uint8 val)
 	
 	uint64 v = (sign << 63) | (top << 62) | (rep << 54) | (rem << 48);
 	
-	return bitcast_u64_double(v);
+	return <double>(v);
 }
 
 helper float float_expand_imm(uint8 val)
@@ -144,7 +144,7 @@ helper float float_expand_imm(uint8 val)
 	
 	uint32 v = (sign << 31) | (top << 30) | (rep << 25) | (rem << 19);
 	
-	return bitcast_u32_float(v);
+	return <float>(v);
 }
 
 helper double double_read_register(uint32 reg)
@@ -341,7 +341,7 @@ execute(vsqrt_sp)
 	
 	float out;
 	if(vm < 0) {
-		out = bitcast_u32_float((uint32)0x7ff00000); // positive NAN
+		out = <float>((uint32)0x7ff00000); // positive NAN
 	} else {
 		out = float_sqrt(vm);
 	}
@@ -486,7 +486,7 @@ execute(vsqrt_dp)
 	double vm = double_read_register(inst.vm);
 	double out;
 	if(vm < 0) {
-		out = bitcast_u64_double((uint64)0x7ff8000000000000);
+		out = <double>((uint64)0x7ff8000000000000);
 	} else {
 		out = double_sqrt(vm);
 	}
@@ -554,7 +554,7 @@ execute(vcvt_s32_f64) // convert double to sint32
 	sint32 val = (sint32)data64;
 
 	uint32 uval = val;
-	float si = bitcast_u32_float(uval);
+	float si = <float>(uval);
 	write_register_bank(FPSP, inst.vd, si);
 	
 	if(inst.N)
@@ -587,7 +587,7 @@ execute(vcvt_u32_f32) // convert float to uint32
 		data = (uint32)fdata;
 	}
 	
-	float ui = bitcast_u32_float(data);
+	float ui = <float>(data);
 	write_register_bank(FPSP, inst.vd, ui);
 	
 	if(inst.N)
@@ -622,7 +622,7 @@ execute(vcvt_u32_f64) // convert double to uint32
 	
 	uint32 data32 = data64;
 	// Write back to SP register as INTEGER
-	float ui = bitcast_u32_float(data32);
+	float ui = <float>(data32);
 	write_register_bank(FPSP, inst.vd, ui);
 	
 }
@@ -650,7 +650,7 @@ execute(vcvt_s32_f32) // convert float to sint32
 	}
 	uint32 udata = data;
 	
-	float si = bitcast_u32_float(udata);
+	float si = <float>(udata);
 	write_register_bank(FPSP, inst.vd, si);
 	
 	if(inst.N)
@@ -667,7 +667,7 @@ execute(vcvt_f32_s32) // convert sint32 to float
 	
 	// read INTEGER value from FP register
 	float dataf = read_register_bank(FPSP, inst.vm);
-	sint32 data = bitcast_float_u32(dataf);
+	sint32 data = <uint32>(dataf);
 	
 	// cast to float
 	float fdata = (float)data;
@@ -684,7 +684,7 @@ execute(vcvt_f32_u32) // convert uint32 to float
 		
 	// read INTEGER value from FP register
 	float dataf = read_register_bank(FPSP, inst.vm);
-	uint32 data = bitcast_float_u32(dataf);
+	uint32 data = <uint32>(dataf);
 	
 	// cast to float
 	float fdata = (float)data;
@@ -702,7 +702,7 @@ execute(vcvt_f64_u32) // convert uint32 to double
 	
 	// Read INTEGER from FP register
 	float dataf = read_register_bank(FPSP, inst.vm);
-	uint64 data = (uint64)bitcast_float_u32(dataf);
+	uint64 data = (uint64)<uint32>(dataf);
 	
 	// Cast to DOUBLE
 	double ddata = (double)data;
@@ -719,7 +719,7 @@ execute(vcvt_f64_s32) // convert sint32 to double
 	
 	// Read INTEGER from FP register
 	float dataf = read_register_bank(FPSP, inst.vm);
-	sint32 data = bitcast_float_u32(dataf);
+	sint32 data = <uint32>(dataf);
 	
 	// Cast to DOUBLE
 	double ddata = (double)data;
@@ -765,7 +765,7 @@ execute(vcvt_f64_s32_fxp)
 	check_vfp4_enabled();
 	
 	double vdd = read_register_bank(FPDP, inst.vd);
-	uint64 vd = bitcast_double_u64(vdd);
+	uint64 vd = <uint64>(vdd);
 	uint32 bits = vd;
 	
 	double result = fxp_32_to_double(bits, 32-inst.vm, 0, 1, 1);
@@ -797,7 +797,7 @@ execute(vcvt_f32_u32_fxp)
 	// size = 32
 	
 	float input = read_register_bank(FPSP, inst.vd);
-	uint32 bits = bitcast_float_u32(input);
+	uint32 bits = <uint32>(input);
 	
 	float result = fxp_32_to_single(bits, 32-inst.vm, 1, 1, 1);
 	write_register_bank(FPSP, inst.vd, result);
@@ -818,7 +818,7 @@ execute(vldr_sp)
 	uint32 data;
 	mem_read_32(Mem, addr, data);
 	
-	float dataf = bitcast_u32_float(data);
+	float dataf = <float>(data);
 	write_register_bank(FPSP, inst.vd, dataf);
 }
 
@@ -840,7 +840,7 @@ execute(vldr_dp)
 	mem_read_32(Mem, addr+4, data2);
 	
 	uint64 data = data1 | (((uint64)data2) << 32);
-	double dataf = bitcast_u64_double(data);
+	double dataf = <double>(data);
 	double_write_register(inst.vd, dataf);
 }
 
@@ -858,7 +858,7 @@ execute(vstr_sp)
 	else addr -= imm32;
 	
 	float dataf = float_read_register(inst.vd);
-	uint32 data = bitcast_float_u32(dataf);
+	uint32 data = <uint32>(dataf);
 	
 	mem_write_32(Mem, addr, data);
 }
@@ -877,7 +877,7 @@ execute(vstr_dp)
 	else addr -= imm32;
 	
 	double dataf = double_read_register(inst.vd);
-	uint64 data = bitcast_double_u64(dataf);
+	uint64 data = <uint64>(dataf);
 	
 	uint32 data1 = data & 0xffffffff;
 	uint32 data2 = data >> 32;
@@ -908,7 +908,7 @@ execute(vldm_sp)
 		uint32 data1;
 		mem_read_32(Mem, addr, data1);
 
-		float dataf = bitcast_u32_float(data1);
+		float dataf = <float>(data1);
 		float_write_register(start_reg+i, dataf);
 
 		if(!inst.P) addr += 4;
@@ -947,7 +947,7 @@ execute(vldm_dp)
 		mem_read_32(Mem, addr+4, data2);
 
 		uint64 data = data1 | (((uint64)data2) << 32);
-		double dataf = bitcast_u64_double(data);
+		double dataf = <double>(data);
 
 		double_write_register(start_reg+i, dataf);
 
@@ -981,7 +981,7 @@ execute(vstm_sp)
 	{
 		if(inst.P) addr += 4;
 		float dataf = float_read_register(start_reg+i);
-		uint32 data = bitcast_float_u32(dataf);
+		uint32 data = <uint32>(dataf);
 
 		mem_write_32(Mem, addr, data);
 		
@@ -1015,7 +1015,7 @@ execute(vstm_dp)
 	{
 		if(inst.P) addr += 8;
 		double dataf = double_read_register(start_reg+i);
-		uint64 data = bitcast_double_u64(dataf);
+		uint64 data = <uint64>(dataf);
 		
 		uint32 data1 = data & 0xffffffff;
 		uint32 data2 = data >> 32;
@@ -1042,7 +1042,7 @@ execute(vmova_dp)
 	if(inst.op)
 	{
 		double rt = double_read_register(inst.vm);
-		uint64 data = bitcast_double_u64(rt);
+		uint64 data = <uint64>(rt);
 		
 		uint32 data1 = data & 0xffffffff;
 		uint32 data2 = data >> 32;
@@ -1056,7 +1056,7 @@ execute(vmova_dp)
 		uint64 rt2 = read_register_bank(RB, inst.rt2);
 	
 		uint64 data = rt | (rt2 << 32);
-		double dataf = bitcast_u64_double(data);
+		double dataf = <double>(data);
 		
 		double_write_register(inst.vm, dataf);
 	}
@@ -1072,14 +1072,14 @@ execute(vmova_dsp)
 		// FPSP to ARM
 		float d1 = read_register_bank(FPSP, base_reg);
 		float d2 = read_register_bank(FPSP, base_reg+1);
-		write_register_bank(RB, inst.rt, bitcast_float_u32(d1));
-		write_register_bank(RB, inst.rt2, bitcast_float_u32(d2));
+		write_register_bank(RB, inst.rt, <uint32>(d1));
+		write_register_bank(RB, inst.rt2, <uint32>(d2));
 	} else {
 		// ARM to FPSP
 		uint32 d1 = read_register_bank(RB, inst.rt);
 		uint32 d2 = read_register_bank(RB, inst.rt2);
-		write_register_bank(FPSP, base_reg, bitcast_u32_float(d1));
-		write_register_bank(FPSP, base_reg+1, bitcast_u32_float(d2));
+		write_register_bank(FPSP, base_reg, <float>(d1));
+		write_register_bank(FPSP, base_reg+1, <float>(d2));
 	}
 }
 
@@ -1109,7 +1109,7 @@ execute(vmov_a_sp)
 	
 	uint32 rt = read_register_bank(RB, inst.rt);
 	
-	float f = bitcast_u32_float(rt);
+	float f = <float>(rt);
 	
 	float_write_register(inst.vn, f);
 }
@@ -1173,7 +1173,7 @@ execute(vmov_sp_a)
 	
 	float rt = float_read_register(inst.vn);
 	
-	uint32 data = bitcast_float_u32(rt);
+	uint32 data = <uint32>(rt);
 	
 	write_register_bank(RB, inst.rt, data);
 }

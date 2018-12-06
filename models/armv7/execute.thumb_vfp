@@ -13,7 +13,7 @@ execute(tvfp_stmt1)
 
 	for(uint32 i = 0; i < regs; ++i) {
 		double dataf = double_read_register(start_reg+i);
-		uint64 data = bitcast_double_u64(dataf);
+		uint64 data = <uint64>(dataf);
 		
 		uint32 data1 = data & 0xffffffff;
 		uint32 data2 = data >> 32;
@@ -50,7 +50,7 @@ execute(tvfp_ldmt1)
 		mem_read_32(Mem, addr+4, data2);
 
 		uint64 data = data1 | (((uint64)data2) << 32);
-		double dataf = bitcast_u64_double(data);
+		double dataf = <double>(data);
 
 		double_write_register(start_reg+i, dataf);
 
@@ -106,8 +106,8 @@ execute(tvfp_txfr_arm_to_sp)
 	uint32 rt = read_register_bank(RB, inst.rt);
 	uint32 rt2 = read_register_bank(RB, inst.rt2);
 	
-	write_register_bank(FPSP, index, bitcast_u32_float(rt));
-	write_register_bank(FPSP, index+1, bitcast_u32_float(rt2));
+	write_register_bank(FPSP, index, <float>(rt));
+	write_register_bank(FPSP, index+1, <float>(rt2));
 }
 
 execute(tvfp_txfr_sp_to_arm)
@@ -116,8 +116,8 @@ execute(tvfp_txfr_sp_to_arm)
 	float v1 = read_register_bank(FPSP, index);
 	float v2 = read_register_bank(FPSP, index+1);
 	
-	write_register_bank(RB, inst.rt, bitcast_float_u32(v1));
-	write_register_bank(RB, inst.rt2, bitcast_float_u32(v2));
+	write_register_bank(RB, inst.rt, <uint32>(v1));
+	write_register_bank(RB, inst.rt2, <uint32>(v2));
 }
 
 execute(tvfp_arm_single_mov)
@@ -126,10 +126,10 @@ execute(tvfp_arm_single_mov)
 	
 	if(inst.L) {
 		float data = read_register_bank(FPSP, index);
-		write_register_bank(RB, inst.rt, bitcast_float_u32(data));
+		write_register_bank(RB, inst.rt, <uint32>(data));
 	} else {
 		uint32 data = read_register_bank(RB, inst.rt);
-		write_register_bank(FPSP, index, bitcast_u32_float(data));
+		write_register_bank(FPSP, index, <float>(data));
 	}
 }
 
@@ -316,7 +316,7 @@ helper double double_expand_imm(uint8 val)
 	
 	uint64 v = (sign << 63) | (top << 62) | (rep << 54) | (rem << 48);
 	
-	return bitcast_u64_double(v);
+	return <double>(v);
 	//double a = 0;
 	//return a;
 }
@@ -334,7 +334,7 @@ helper float float_expand_imm(uint8 val)
 	
 	uint32 v = (sign << 31) | (top << 30) | (rep << 25) | (rem << 19);
 	
-	return bitcast_u32_float(v);
+	return <float>(v);
 }
 
 helper uint8 double_compare_thumb(double a, double b)

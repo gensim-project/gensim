@@ -1036,6 +1036,31 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 			}
 		}
 
+		case BITCAST: {
+			assert(node->getChildCount(node) == 2);
+
+			pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
+			pANTLR3_BASE_TREE innerNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
+
+			assert(typeNode->getType(typeNode) == TYPE);
+
+			IRExpression *innerExpr = Parse_Expression(innerNode, containing_scope);
+			if(innerExpr == nullptr) {
+				return nullptr;
+			}
+
+			//TODO: this should be a syntax error
+			if(dynamic_cast<IRDefineExpression*>(innerExpr)) {
+				Diag().Error("Cannot cast a definition", DiagNode(CurrFilename, node));
+				return nullptr;
+			}
+
+			IRCastExpression *gce = new IRCastExpression(containing_scope, Parse_Type(typeNode), IRCastExpression::Bitcast);
+			gce->SetDiag(DiagNode(CurrFilename, node));
+			gce->Expr = innerExpr;
+
+			return gce;
+		}
 		case CAST: {
 			assert(node->getChildCount(node) == 2);
 

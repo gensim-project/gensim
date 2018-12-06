@@ -21,6 +21,7 @@ tokens
   BODY;
   DECL;
   CAST;
+  BITCAST;
 
   GENC_ATTR_FIXED='fixed';  
   GENC_ATTR_SOMETIMES_FIXED='sometimes_fixed';
@@ -295,5 +296,9 @@ mult_expression:
 
 cast_expression:
   ('(' type ')') => '('type')' cast_expression -> ^(CAST type cast_expression)
+  | bitcast_expression;
+
+bitcast_expression:
+  ('<' type '>') => '<'type'>' cast_expression -> ^(BITCAST type cast_expression)
   | unary_expression;
 

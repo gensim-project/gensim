@@ -609,35 +609,41 @@ if (const_stmt != nullptr) {
 }
 
 SSAStatement *inner_stmt = Expr->EmitSSAForm(bldr);
-IRType::PromoteResult res = inner_stmt->GetType().AutoPromote(ToType);
+
 SSACastStatement::CastType cast_type;
 SSACastStatement::CastOption cast_option = SSACastStatement::Option_None;
 
+if(CastType == Transform) {
+	IRType::PromoteResult res = inner_stmt->GetType().AutoPromote(ToType);
 
-switch (res) {
-	case IRType::PROMOTE_TRUNCATE:
-		cast_type = SSACastStatement::Cast_Truncate;
-		break;
-	case IRType::PROMOTE_CONVERT:
-		cast_type = SSACastStatement::Cast_Convert;
-		cast_option = SSACastStatement::Option_RoundDefault;
-		break;
-	case IRType::PROMOTE_OK:
-		cast_type = SSACastStatement::Cast_ZeroExtend;
-		break;
-	case IRType::PROMOTE_SIGN_CHANGE:
-		cast_type = SSACastStatement::Cast_ZeroExtend;
-		break;
-	case IRType::PROMOTE_OK_SIGNED:
-		cast_type = SSACastStatement::Cast_SignExtend;
-		break;
-	case IRType::PROMOTE_VECTOR:
-		cast_type = SSACastStatement::Cast_VectorSplat;
-		break;
-	default:
-		assert(false && "Attempting to generate SSA code for invalid cast type");
-		UNEXPECTED;
+	switch (res) {
+		case IRType::PROMOTE_TRUNCATE:
+			cast_type = SSACastStatement::Cast_Truncate;
+			break;
+		case IRType::PROMOTE_CONVERT:
+			cast_type = SSACastStatement::Cast_Convert;
+			cast_option = SSACastStatement::Option_RoundDefault;
+			break;
+		case IRType::PROMOTE_OK:
+			cast_type = SSACastStatement::Cast_ZeroExtend;
+			break;
+		case IRType::PROMOTE_SIGN_CHANGE:
+			cast_type = SSACastStatement::Cast_ZeroExtend;
+			break;
+		case IRType::PROMOTE_OK_SIGNED:
+			cast_type = SSACastStatement::Cast_SignExtend;
+			break;
+		case IRType::PROMOTE_VECTOR:
+			cast_type = SSACastStatement::Cast_VectorSplat;
+			break;
+		default:
+			assert(false && "Attempting to generate SSA code for invalid cast type");
+			UNEXPECTED;
+	}
+} else if(CastType == Bitcast) {
+	cast_type = SSACastStatement::Cast_Reinterpret;
 }
+
 
 auto stmt = new SSACastStatement(&bldr.GetBlock(), ToType, (inner_stmt), cast_type);
 stmt->SetOption(cast_option);

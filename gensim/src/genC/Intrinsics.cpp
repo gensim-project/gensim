@@ -195,29 +195,13 @@ static ssa::SSAStatement *DeviceIntrinsicEmitter(const IRIntrinsicAction *intrin
 	}
 }
 
-static ssa::SSAStatement *BitcastIntrinsicEmitter(const IRIntrinsicAction *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr, const IRType &wordtype)
+static ssa::SSAStatement *CastIntrinsicEmitter(const IRIntrinsicAction *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr, const IRType &wordtype)
 {
 	IRType from, to;
 	SSACastStatement::CastType type;
 	SSACastStatement::CastOption option = SSACastStatement::Option_None;
 
-	if (call->TargetName == "bitcast_u32_float") {
-		from = IRTypes::UInt32;
-		to = IRTypes::Float;
-		type = SSACastStatement::Cast_Reinterpret;
-	} else if (call->TargetName == "bitcast_u64_double") {
-		from = IRTypes::UInt64;
-		to = IRTypes::Double;
-		type = SSACastStatement::Cast_Reinterpret;
-	} else if (call->TargetName == "bitcast_float_u32") {
-		from = IRTypes::Float;
-		to = IRTypes::UInt32;
-		type = SSACastStatement::Cast_Reinterpret;
-	} else if (call->TargetName == "bitcast_double_u64") {
-		from = IRTypes::Double;
-		to = IRTypes::UInt64;
-		type = SSACastStatement::Cast_Reinterpret;
-	} else if (call->TargetName == "__builtin_cast_float_to_u32_truncate") {
+	if (call->TargetName == "__builtin_cast_float_to_u32_truncate") {
 		from = IRTypes::Float;
 		to = IRTypes::UInt32;
 		type = SSACastStatement::Cast_Convert;
@@ -227,13 +211,8 @@ static ssa::SSAStatement *BitcastIntrinsicEmitter(const IRIntrinsicAction *intri
 		to = IRTypes::UInt64;
 		type = SSACastStatement::Cast_Convert;
 		option = SSACastStatement::Option_RoundTowardZero;
-	} else if (call->TargetName == "bitcast_u64_v8u8") {
-		from = IRTypes::UInt64;
-		to = IRTypes::UInt8;
-		to.VectorWidth = 8;
-		type = SSACastStatement::Cast_Reinterpret;
 	} else {
-		throw std::logic_error("Unsupported intrinsic bitcast '" + call->TargetName + "'");
+		throw std::logic_error("Unsupported intrinsic cast '" + call->TargetName + "'");
 	}
 
 	SSAStatement *arg = call->Args[0]->EmitSSAForm(bldr);
@@ -361,17 +340,8 @@ void GenCContext::LoadIntrinsics()
 	AddIntrinsic("__builtin_fma32", IRTypes::Float, {IRParam("a", IRTypes::Float), IRParam("b", IRTypes::Float), IRParam("c", IRTypes::Float)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_FMA32);
 	AddIntrinsic("__builtin_fma64", IRTypes::Double, {IRParam("a", IRTypes::Double), IRParam("b", IRTypes::Double), IRParam("c", IRTypes::Double)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_FMA64);
 
-	AddIntrinsic("bitcast_u32_float", IRTypes::Float, {IRParam("value", IRTypes::UInt32)}, BitcastIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
-	AddIntrinsic("bitcast_u64_double", IRTypes::Double, {IRParam("value", IRTypes::UInt64)}, BitcastIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
-	AddIntrinsic("bitcast_float_u32", IRTypes::UInt32, {IRParam("value", IRTypes::Float)}, BitcastIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
-	AddIntrinsic("bitcast_double_u64", IRTypes::UInt64, {IRParam("value", IRTypes::Double)}, BitcastIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
-
-	auto v8u8 = IRTypes::UInt8;
-	v8u8.VectorWidth = 8;
-	AddIntrinsic("bitcast_u64_v8u8", v8u8, {IRParam("value", IRTypes::UInt64)}, BitcastIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
-
-	AddIntrinsic("__builtin_cast_float_to_u32_truncate", IRTypes::UInt32, {IRParam("value", IRTypes::Float)}, BitcastIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
-	AddIntrinsic("__builtin_cast_double_to_u64_truncate", IRTypes::UInt64, {IRParam("value", IRTypes::Double)}, BitcastIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
+	AddIntrinsic("__builtin_cast_float_to_u32_truncate", IRTypes::UInt32, {IRParam("value", IRTypes::Float)}, CastIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
+	AddIntrinsic("__builtin_cast_double_to_u64_truncate", IRTypes::UInt64, {IRParam("value", IRTypes::Double)}, CastIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 }
 
 SSAStatement *IRCallExpression::EmitIntrinsicCall(SSABuilder &bldr, const gensim::arch::ArchDescription &Arch) const
