@@ -231,8 +231,14 @@ namespace gensim
 		class IRCastExpression : public IRExpression
 		{
 		public:
+			enum IRCastType {
+				Transform,
+				Bitcast
+			};
+
 			const IRType ToType;
 			IRExpression *Expr;
+			IRCastType CastType;
 
 			virtual bool Resolve(GenCContext &Context);
 			virtual ssa::SSAStatement *EmitSSAForm(ssa::SSABuilder &bldr) const;
@@ -245,7 +251,8 @@ namespace gensim
 				return Expr->IsTrivial();
 			}
 
-			IRCastExpression(IRScope &scope, const IRType toType) : IRExpression(scope), ToType(toType) {}
+			IRCastExpression(IRScope &scope, const IRType toType) : IRExpression(scope), ToType(toType), CastType(Transform) {}
+			IRCastExpression(IRScope &scope, const IRType toType, IRCastType ctype) : IRExpression(scope), ToType(toType), CastType(ctype) {}
 		};
 
 		class IRVariableExpression : public IRExpression
