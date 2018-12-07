@@ -1489,8 +1489,9 @@ execute(neon_vmin_sp)
 	float[2] vn = read_register_bank(VD, inst.vn);
 	float[2] vm = read_register_bank(VD, inst.vm);
 	float[2] vd;
-	vd[0] = vn[0] < vm[0] ? vn[0] : vm[0];
-	vd[1] = vn[1] < vm[1] ? vn[1] : vm[1];
+	
+	vd = vn < vm ? vn : vm;
+	
 	write_register_bank(VD, inst.vd, vd);
 	
 	if(inst.Q)

@@ -161,6 +161,13 @@ namespace gensim
 				BaseType.PlainOldDataType = IRPlainOldDataType::VOID;
 			}
 
+			static IRType Vector(const IRType &base, int vectorwidth)
+			{
+				IRType b = base;
+				b.VectorWidth = vectorwidth;
+				return b;
+			}
+
 		private:
 			static IRType _UInt1(), _Int8(), _Int16(), _Int32(), _Int64(), _Int128(), _UInt8(), _UInt16(), _UInt32(), _UInt64(), _UInt128(), _Void(), _Float(), _Double(), _LongDouble(), _Block(), _Function();
 		};

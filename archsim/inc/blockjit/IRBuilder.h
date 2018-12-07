@@ -105,6 +105,7 @@ namespace captive
 			INSN4(vsubi, VSUBI);
 			INSN4(vsubf, VSUBF);
 			INSN4(vmulf, VMULF);
+			INSN4(vcmp_ltf, VCMPLTF);
 
 			INSN1(fctrl_set_round, FCTRL_SET_ROUND);
 			INSN1(fctrl_get_round, FCTRL_GET_ROUND);
