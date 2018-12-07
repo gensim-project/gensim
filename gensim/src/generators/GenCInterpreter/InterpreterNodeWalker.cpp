@@ -665,8 +665,11 @@ namespace gensim
 			bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 			{
 				const SSASelectStatement &stmt = (const SSASelectStatement &) (Statement);
-
-				output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << Factory.GetOrCreate(stmt.Cond())->GetFixedValue() << " ? (" << Factory.GetOrCreate(stmt.TrueVal())->GetFixedValue() << ") : (" << Factory.GetOrCreate(stmt.FalseVal())->GetFixedValue() << ");";
+				if(stmt.GetType().VectorWidth > 1) {
+					output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << Factory.GetOrCreate(stmt.Cond())->GetFixedValue() << ".Select(" << Factory.GetOrCreate(stmt.TrueVal())->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.FalseVal())->GetFixedValue() << ");";
+				} else {
+					output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = " << Factory.GetOrCreate(stmt.Cond())->GetFixedValue() << " ? (" << Factory.GetOrCreate(stmt.TrueVal())->GetFixedValue() << ") : (" << Factory.GetOrCreate(stmt.FalseVal())->GetFixedValue() << ");";
+				}
 
 				return true;
 			}

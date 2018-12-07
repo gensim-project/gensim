@@ -151,6 +151,7 @@ namespace captive
 				VSUBF,
 				VMULI,
 				VMULF,
+				VCMPLTF,
 
 				_END
 			};

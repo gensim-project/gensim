@@ -435,7 +435,8 @@ namespace gensim
 				if (LHS.VectorWidth > 1) {
 					// The vector width must be the same, or the RHS must be scalar.
 					if (LHS.VectorWidth == RHS.VectorWidth || RHS.VectorWidth == 1) {
-						return LHS;
+						// return a vector of uint8s of the same length
+						return IRType::Vector(IRTypes::UInt8, LHS.VectorWidth);
 					} else {
 						throw std::logic_error("comparison of vectors with different width");
 					}

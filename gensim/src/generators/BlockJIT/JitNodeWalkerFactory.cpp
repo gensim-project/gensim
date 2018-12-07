@@ -322,6 +322,8 @@ namespace gensim
 							return EmitVectorOp(output, "sub");
 						case BinaryOperator::Multiply:
 							return EmitVectorOp(output, "mul");
+						case BinaryOperator::LessThan:
+							return EmitVectorOp(output, "cmp_lt");
 
 						case BinaryOperator::Bitwise_Or:
 						case BinaryOperator::Bitwise_And:

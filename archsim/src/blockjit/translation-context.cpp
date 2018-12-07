@@ -127,6 +127,8 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "vmuli",	.format = "NIIOXX", .has_side_effects = false },
 	{ .mnemonic = "vmulf",	.format = "NIIOXX", .has_side_effects = false },
 
+	{ .mnemonic = "vcmpltf",	.format = "NIIOXX", .has_side_effects = false },
+
 };
 
 size_t captive::shared::num_descriptors = sizeof(captive::shared::insn_descriptors) / sizeof(captive::shared::insn_descriptors[0]);
