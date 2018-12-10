@@ -51,14 +51,22 @@ namespace archsim
 				bool Lower(const captive::shared::IRInstruction*& insn) override;
 			private:
 				captive::shared::IRInstruction::IRInstructionType type_;
+			};
 
+			class BlockJITVCMPILowering : public BlockJITCMPLowering
+			{
+			public:
+				BlockJITVCMPILowering(captive::shared::IRInstruction::IRInstructionType type) : BlockJITCMPLowering(type) {}
+				bool Lower(const captive::shared::IRInstruction*& insn) override;
 			};
 
 #define DEFINE_LOWERING(x) class BlockJIT ## x ## Lowering : public BlockJITAdaptorLowerer { public: bool Lower(const captive::shared::IRInstruction*& insn) override; };
 			DEFINE_LOWERING(ADCFLAGS);
+			DEFINE_LOWERING(SBCFLAGS);
 			DEFINE_LOWERING(ADD);
 			DEFINE_LOWERING(AND);
 			DEFINE_LOWERING(BARRIER);
+			DEFINE_LOWERING(BSWAP);
 			DEFINE_LOWERING(BRANCH);
 			DEFINE_LOWERING(CALL);
 			DEFINE_LOWERING(CLZ);
@@ -80,6 +88,7 @@ namespace archsim
 			DEFINE_LOWERING(SAR);
 			DEFINE_LOWERING(SCM);
 			DEFINE_LOWERING(SDIV);
+			DEFINE_LOWERING(UDIV);
 			DEFINE_LOWERING(SETFEATURE);
 			DEFINE_LOWERING(SHL);
 			DEFINE_LOWERING(SHR);
@@ -103,6 +112,8 @@ namespace archsim
 			DEFINE_LOWERING(FCNTL_GETROUND);
 			DEFINE_LOWERING(FCNTL_SETFLUSH);
 			DEFINE_LOWERING(FCNTL_GETFLUSH);
+
+			DEFINE_LOWERING(VORI);
 #undef DEFINE_LOWERING
 		}
 	}

@@ -21,6 +21,21 @@ namespace archsim
 	{
 		namespace execution
 		{
+			class InterpreterExecutionEngineThreadContext : public ExecutionEngineThreadContext
+			{
+			public:
+				InterpreterExecutionEngineThreadContext(ExecutionEngine *engine, thread::ThreadInstance *thread);
+				~InterpreterExecutionEngineThreadContext();
+
+				gensim::DecodeContext *GetDC()
+				{
+					return decode_ctx_;
+				}
+
+			private:
+				gensim::DecodeContext *decode_ctx_;
+			};
+
 			class InterpreterExecutionEngine : public ExecutionEngine
 			{
 			public:

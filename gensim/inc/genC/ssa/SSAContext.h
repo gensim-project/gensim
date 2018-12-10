@@ -8,6 +8,7 @@
 
 #include <list>
 #include <map>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <vector>
@@ -39,6 +40,7 @@ namespace gensim
 				typedef ActionList::const_iterator ActionListConstIterator;
 
 				SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch);
+				SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch, std::shared_ptr<SSATypeManager> type_manager);
 				virtual ~SSAContext();
 
 				const gensim::arch::ArchDescription& GetArchDescription() const
@@ -98,7 +100,7 @@ namespace gensim
 
 				SSATypeManager& GetTypeManager()
 				{
-					return type_manager_;
+					return *type_manager_;
 				}
 
 				bool ShouldParallelOptimise() const
@@ -131,7 +133,7 @@ namespace gensim
 				ActionList actions_;
 
 				SSAValueNamespace vns_;
-				SSATypeManager type_manager_;
+				std::shared_ptr<SSATypeManager> type_manager_;
 				bool parallel_optimise_;
 				bool test_optimise_;
 			};

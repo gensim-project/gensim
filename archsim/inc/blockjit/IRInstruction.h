@@ -64,7 +64,10 @@ namespace captive
 				SHR,
 				SAR,
 				ROR,
+				ROL,
 				CLZ,
+				POPCNT,
+				BSWAP,
 
 				AND,
 				OR,
@@ -105,6 +108,7 @@ namespace captive
 				FLUSH_DTLB_ENTRY,
 
 				ADC_WITH_FLAGS,
+				SBC_WITH_FLAGS,
 				SET_ZN_FLAGS,
 
 				BARRIER,
@@ -122,6 +126,7 @@ namespace captive
 				FADD,
 				FSUB,
 				FSQRT,
+				FABS,
 
 				FCMP_LT,
 				FCMP_LTE,
@@ -151,6 +156,13 @@ namespace captive
 				VSUBF,
 				VMULI,
 				VMULF,
+				VORI,
+				VANDI,
+				VXORI,
+
+				VCMPEQI,
+				VCMPGTI,
+				VCMPGTEI,
 				VCMPLTF,
 
 				_END

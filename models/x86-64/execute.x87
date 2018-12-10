@@ -1,0 +1,111 @@
+
+execute(fnstcw) 
+{
+	// TODO 
+	write_operand(inst.op0, 0);
+}
+
+execute(fld)
+{
+	uint128 value = read_operand(inst.op0);
+	push_stack(value);
+}
+
+execute(fild)
+{
+	// todo: should be 80-bit
+	double value = (double)read_operand(inst.op0);
+	
+	push_stack(<uint64>(value));
+}
+
+execute(fst)
+{
+	uint128 value = read_stack();
+	write_operand(inst.op0, value);
+}
+
+execute(fstp)
+{
+	uint128 value = pop_stack();
+	write_operand(inst.op0, value);
+}
+
+execute(fsubp)
+{
+	double op0 = <double>((uint64)read_x87_operand(inst.op0));
+	double op1 = <double>((uint64)read_x87_operand(inst.op1));
+	
+	double result = op0 - op1;
+	
+	write_x87_operand(inst.op0, <uint64>(result));
+}
+
+uint128 read_x87_operand(struct Operand &op)
+{
+	if(op.is_reg && op.reg.regclass == 2) {
+		if(op.reg.index == 0x10) {
+			return pop_stack();
+		} else {
+			return read_x87_stack_entry(op.reg.index);
+		}
+	} else {
+		return read_operand(op);
+	}
+}
+
+void write_x87_operand(struct Operand &op, uint128 d)
+{
+	if(op.is_reg && op.reg.regclass == 2) {
+		if(op.reg.index == 0x20) {
+			push_stack(d);
+		} else {
+			write_x87_stack_entry(op.reg.index, d);
+		}
+	} else {
+		write_operand(op, d);
+	}
+	
+	return;
+}
+
+
+void write_x87_stack_entry(uint8 index, uint128 value)
+{
+	write_register_bank(FPSTACK, (read_register(STACKTOP) + index) % 8, value);
+	return;
+}
+
+
+uint128 read_x87_stack_entry(uint8 index)
+{
+	return read_register_bank(FPSTACK, (read_register(STACKTOP) + index) % 8);
+}
+
+// Stack is full descending
+void push_stack(uint128 i)
+{
+	uint8 stacktop = read_register(STACKTOP);
+	stacktop -= 1;
+	stacktop = stacktop % 8;
+	write_register(STACKTOP, stacktop);
+	
+	write_x87_stack_entry(0, i);
+	return;
+}
+
+uint128 read_stack()
+{
+	return read_x87_stack_entry(0);
+}
+
+uint128 pop_stack()
+{
+	uint128 value = read_x87_stack_entry(0);
+	
+	uint8 stacktop = read_register(STACKTOP);
+	stacktop += 1;
+	stacktop = stacktop % 8;
+	write_register(STACKTOP, stacktop );
+	return value;
+}

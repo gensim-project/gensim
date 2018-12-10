@@ -1,0 +1,287 @@
+AC_ISA(x86)
+{
+	// Most of the actual decoding for this model is handled by XED
+	// through an external decoder.
+	ac_format FORMAT_DUMMY = "%dummy:32";
+	
+	ac_instr<FORMAT_DUMMY> adc, add, and;
+	ac_instr<FORMAT_DUMMY> bsf, bsr, bswap, bt, btr, bts;
+	ac_instr<FORMAT_DUMMY> call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde;
+	ac_instr<FORMAT_DUMMY> dec, div;
+	ac_instr<FORMAT_DUMMY> idiv, imul1, imul2, imul3, inc;
+	ac_instr<FORMAT_DUMMY> jcond, jmp;
+	ac_instr<FORMAT_DUMMY> lea, leave;
+	ac_instr<FORMAT_DUMMY> mov, movsb, movsd, movsq, movsx, movzx, movsxd, mul;
+	ac_instr<FORMAT_DUMMY> neg, nop, not;
+	ac_instr<FORMAT_DUMMY> or;
+	ac_instr<FORMAT_DUMMY> pop, popf, push, pushfq;
+	ac_instr<FORMAT_DUMMY> rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, rol, ror;
+	ac_instr<FORMAT_DUMMY> sar, sbb, setcc, shl, shld, shr, shrd, sub, syscall;
+	ac_instr<FORMAT_DUMMY> test, tzcnt;
+	ac_instr<FORMAT_DUMMY> xadd, xchg, xgetbv, xor;
+	
+	ac_behaviour adc, add, and;
+	ac_behaviour bsf, bsr, bt, btr, bts, bswap;
+	ac_behaviour call, cbw, cdq, cdqe, cld, cmov, cmp, cmpxchg, cqo, cpuid, cwd, cwde;
+	ac_behaviour dec, div;
+	ac_behaviour idiv, imul1, imul2, imul3, inc;
+	ac_behaviour jcond, jmp;
+	ac_behaviour lea, leave;
+	ac_behaviour mov, movsb, movsd, movsq, movsx, movzx, movsxd, mul;
+	ac_behaviour neg, nop, not;
+	ac_behaviour or, pop, popf, push, pushfq;
+	ac_behaviour rdtsc, repe_cmpsb, rep_movsb, rep_movsd, rep_movsq, rep_stosb, rep_stosd, rep_stosq, repne_scasb, ret, rol, ror;
+	ac_behaviour sar, sbb, setcc, shl, shld, shr, shrd, sub, syscall;
+	ac_behaviour test, tzcnt;
+	ac_behaviour xadd, xchg, xgetbv, xor;
+
+	ISA_CTOR(x86) {
+		
+		adc.set_decoder();
+		adc.set_behaviour(adc);
+		
+		add.set_decoder();
+		add.set_behaviour(add);
+		
+		and.set_decoder();
+		and.set_behaviour(and);
+	
+		bsf.set_decoder();
+		bsf.set_behaviour(bsf);
+	
+		bsr.set_decoder();
+		bsr.set_behaviour(bsr);
+	
+		bswap.set_decoder();
+		bswap.set_behaviour(bswap);
+	
+		bt.set_decoder();
+		bt.set_behaviour(bt);
+	
+		btr.set_decoder();
+		btr.set_behaviour(btr);
+	
+		bts.set_decoder();
+		bts.set_behaviour(bts);
+	
+		call.set_decoder();
+		call.set_behaviour(call);
+		call.set_end_of_block();
+		call.set_variable_jump();
+		
+		cbw.set_decoder();
+		cbw.set_behaviour(cbw);
+	
+		cdqe.set_decoder();
+		cdqe.set_behaviour(cdqe);
+	
+		cdq.set_decoder();
+		cdq.set_behaviour(cdq);
+	
+		cld.set_decoder();
+		cld.set_behaviour(cld);
+	
+		cmov.set_decoder();
+		cmov.set_behaviour(cmov);
+	
+		cmp.set_decoder();
+		cmp.set_behaviour(cmp);
+	
+		cmpxchg.set_decoder();
+		cmpxchg.set_behaviour(cmpxchg);
+	
+		cpuid.set_decoder();
+		cpuid.set_behaviour(cpuid);
+	
+		cqo.set_decoder();
+		cqo.set_behaviour(cqo);
+	
+		cwde.set_decoder();
+		cwde.set_behaviour(cwde);
+	
+		cwd.set_decoder();
+		cwd.set_behaviour(cwd);
+	
+		dec.set_decoder();
+		dec.set_behaviour(dec);
+	
+		div.set_decoder();
+		div.set_behaviour(div);
+	
+		idiv.set_decoder();
+		idiv.set_behaviour(idiv);
+	
+		imul1.set_decoder();
+		imul1.set_behaviour(imul1);
+	
+		imul2.set_decoder();
+		imul2.set_behaviour(imul2);
+	
+		imul3.set_decoder();
+		imul3.set_behaviour(imul3);
+	
+		inc.set_decoder();
+		inc.set_behaviour(inc);
+	
+		jcond.set_decoder();
+		jcond.set_behaviour(jcond);
+		jcond.set_end_of_block();
+		jcond.set_variable_jump();
+	
+		jmp.set_decoder();
+		jmp.set_behaviour(jmp);
+		jmp.set_end_of_block();
+		jmp.set_variable_jump();
+	
+		lea.set_decoder();
+		lea.set_behaviour(lea);
+	
+		leave.set_decoder();
+		leave.set_behaviour(leave);
+	
+		mov.set_decoder();
+		mov.set_behaviour(mov);
+		
+		movsb.set_decoder();
+		movsb.set_behaviour(movsb);
+		
+		movsd.set_decoder();
+		movsd.set_behaviour(movsd);
+		
+		movsq.set_decoder();
+		movsq.set_behaviour(movsq);
+		
+		movsxd.set_decoder();
+		movsxd.set_behaviour(movsxd);
+		
+		movsx.set_decoder();
+		movsx.set_behaviour(movsx);
+		
+		movzx.set_decoder();
+		movzx.set_behaviour(movzx);
+		
+		mul.set_decoder();
+		mul.set_behaviour(mul);
+		
+		neg.set_decoder();
+		neg.set_behaviour(neg);
+		
+		nop.set_decoder();
+		nop.set_behaviour(nop);
+		
+		not.set_decoder();
+		not.set_behaviour(not);
+		
+		or.set_decoder();
+		or.set_behaviour(or);
+		
+		pop.set_decoder();
+		pop.set_behaviour(pop);
+		
+		popf.set_decoder();
+		popf.set_behaviour(popf);
+		
+		push.set_decoder();
+		push.set_behaviour(push);
+		
+		pushfq.set_decoder();
+		pushfq.set_behaviour(pushfq);
+		
+		rep_movsb.set_decoder();
+		rep_movsb.set_behaviour(rep_movsb);
+		rep_movsb.set_end_of_block();
+		rep_movsb.set_variable_jump();
+		
+		rdtsc.set_decoder();
+		rdtsc.set_behaviour(rdtsc);
+		
+		repe_cmpsb.set_decoder();
+		repe_cmpsb.set_behaviour(repe_cmpsb);
+		repe_cmpsb.set_end_of_block();
+		repe_cmpsb.set_variable_jump();
+		
+		rep_movsd.set_decoder();
+		rep_movsd.set_behaviour(rep_movsd);
+		rep_movsd.set_end_of_block();
+		rep_movsd.set_variable_jump();
+		
+		rep_movsq.set_decoder();
+		rep_movsq.set_behaviour(rep_movsq);
+		rep_movsq.set_end_of_block();
+		rep_movsq.set_variable_jump();
+		
+		rep_stosb.set_decoder();
+		rep_stosb.set_behaviour(rep_stosb);
+		rep_stosb.set_end_of_block();
+		rep_stosb.set_variable_jump();
+		
+		rep_stosd.set_decoder();
+		rep_stosd.set_behaviour(rep_stosd);
+		rep_stosd.set_end_of_block();
+		rep_stosd.set_variable_jump();
+		
+		rep_stosq.set_decoder();
+		rep_stosq.set_behaviour(rep_stosq);
+		rep_stosq.set_end_of_block();
+		rep_stosq.set_variable_jump();
+		
+		repne_scasb.set_decoder();
+		repne_scasb.set_behaviour(repne_scasb);
+		repne_scasb.set_end_of_block();
+		repne_scasb.set_variable_jump();
+		
+		ret.set_decoder();
+		ret.set_behaviour(ret);
+		ret.set_end_of_block();
+		ret.set_variable_jump();
+
+		rol.set_decoder();
+		rol.set_behaviour(rol);
+
+		ror.set_decoder();
+		ror.set_behaviour(ror);
+
+		sar.set_decoder();
+		sar.set_behaviour(sar);
+		
+		sbb.set_decoder();
+		sbb.set_behaviour(sbb);
+		
+		setcc.set_decoder();
+		setcc.set_behaviour(setcc);
+		
+		shl.set_decoder();
+		shl.set_behaviour(shl);
+		
+		shr.set_decoder();
+		shr.set_behaviour(shr);
+		
+		shrd.set_decoder();
+		shrd.set_behaviour(shrd);
+		
+		sub.set_decoder();
+		sub.set_behaviour(sub);
+		
+		syscall.set_decoder();
+		syscall.set_behaviour(syscall);
+		
+		test.set_decoder();
+		test.set_behaviour(test);
+		
+		tzcnt.set_decoder();
+		tzcnt.set_behaviour(tzcnt);
+		
+		xadd.set_decoder();
+		xadd.set_behaviour(xadd);
+		
+		xchg.set_decoder();
+		xchg.set_behaviour(xchg);
+		
+		xgetbv.set_decoder();
+		xgetbv.set_behaviour(xgetbv);
+		
+		xor.set_decoder();
+		xor.set_behaviour(xor);
+	};
+	
+};

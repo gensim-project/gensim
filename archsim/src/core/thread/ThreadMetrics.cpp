@@ -49,9 +49,22 @@ void ThreadMetricPrinter::PrintStats(const ArchDescriptor &arch, const ThreadMet
 	}
 
 	str << "Instructions: " << metrics.InstructionCount.get_value() << std::endl;
+	str << "Translated Instructions: " << metrics.JITInstructionCount.get_value() << std::endl;
+	str << "(% JITTED): " << metrics.JITInstructionCount.get_value() / (float)(metrics.InstructionCount.get_value()) << std::endl;
+
+	str << "Reads: " << metrics.Reads.get_value() << std::endl;
+	str << "Read hits: " << metrics.ReadHits.get_value() << std::endl;
+	str << "Writes: " << metrics.Writes.get_value() << std::endl;
+	str << "Write hits: " << metrics.WriteHits.get_value() << std::endl;
 
 	str << "Self Runtime: " << metrics.SelfRuntime.GetElapsedS() << " seconds" << std::endl;
+	str << "JIT Runtime: " << metrics.JITTime.GetElapsedS() << " seconds" << std::endl;
 	str << "Execution Rate: " << (metrics.InstructionCount.get_value() / 1000000.0) / metrics.SelfRuntime.GetElapsedS() << " MIPS" << std::endl;
+
+	str << "JIT Rate: " << (metrics.JITInstructionCount.get_value() / 1000000.0) / metrics.JITTime.GetElapsedS() << " MIPS" << std::endl;
+
+	str << "Successful chains: " << metrics.JITSuccessfulChains.get_value() << std::endl;
+	str << "Failed chains: " << metrics.JITFailedChains.get_value() << std::endl;
 }
 
 void HistogramPrinter::PrintHistogram(const archsim::util::Histogram& hist, std::ostream& str, std::function<std::string(archsim::util::HistogramEntry::histogram_key_t) > key_formatter)

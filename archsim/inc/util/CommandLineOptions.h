@@ -41,10 +41,12 @@ DefineLongFlag(CacheModel, "cache-model");
 
 DefineFlag(ArmOabi, 'b', "oabi");
 
+DefineLongRequiredArgument(uint32_t, StackFaffle, "stack-faffle");
 DefineRequiredArgument(std::string, TargetBinary, 'e', "target");
 DefineLongRequiredArgument(std::string, ZImageSymbolMap, "symbol-map");
 
 DefineFlag(Trace, 't', "trace");
+DefineLongRequiredArgument(uint64_t, TraceSkip, "trace-skip");
 DefineFlag(SimpleTrace, 'T', "simple-trace");
 DefineLongFlag(TraceSymbols, "trace-symbols");
 DefineRequiredArgument(std::string, TraceMode, 'M', "trace-mode");

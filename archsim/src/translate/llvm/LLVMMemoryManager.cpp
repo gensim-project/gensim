@@ -31,6 +31,9 @@ uint8_t *LLVMMemoryManager::allocateCodeSection(uintptr_t Size, unsigned Alignme
 	auto code_page = code_pool.AllocateB(Size);
 	code_pages.push_back(code_page);
 	code_size += Size;
+
+	region_sizes_.insert({code_page->Data, Size});
+
 	return (uint8_t*)code_page->Data;
 }
 
@@ -39,6 +42,9 @@ uint8_t *LLVMMemoryManager::allocateDataSection(uintptr_t Size, unsigned Alignme
 	auto data_page = data_pool.AllocateB(Size);
 	data_pages.push_back(data_page);
 	data_size += Size;
+
+	region_sizes_.insert({data_page->Data, Size});
+
 	return (uint8_t*)data_page->Data;
 }
 
