@@ -19,9 +19,9 @@
 #include "blockjit/block-compiler/analyses/Analysis.h"
 
 #include "blockjit/translation-context.h"
-#include "util/wutils/small-set.h"
+#include <wutils/small-set.h>
 #include "core/thread/ThreadInstance.h"
-#include "util/vbitset.h"
+#include <wutils/vbitset.h>
 
 #include <map>
 #include <vector>
@@ -39,10 +39,10 @@ namespace captive
 			{
 			public:
 				CompileResult(bool Success) : Success(Success), UsedPhysRegs(0) {}
-				CompileResult(bool Success, uint32_t StackFrameSize, const archsim::util::vbitset &bitset) : Success(Success), StackFrameSize(StackFrameSize), UsedPhysRegs(bitset) {}
+				CompileResult(bool Success, uint32_t StackFrameSize, const wutils::vbitset<> &bitset) : Success(Success), StackFrameSize(StackFrameSize), UsedPhysRegs(bitset) {}
 
 				bool Success;
-				archsim::util::vbitset UsedPhysRegs;
+				wutils::vbitset<> UsedPhysRegs;
 				uint32_t StackFrameSize;
 			};
 

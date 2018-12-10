@@ -8,7 +8,7 @@ add_library(gensim-test SHARED)
 STANDARD_FLAGS(gensim-lib)
 STANDARD_FLAGS(gensim-test)
 
-TARGET_LINK_LIBRARIES(gensim-lib PRIVATE gensim-test gensim-grammar ${ANTLR_LIB})
+TARGET_LINK_LIBRARIES(gensim-lib PRIVATE gensim-test gensim-grammar wutils ${ANTLR_LIB})
 
 TARGET_INCLUDE_DIRECTORIES(gensim-lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 TARGET_INCLUDE_DIRECTORIES(gensim-lib PUBLIC ${ANTLR_INCLUDE_DIR})

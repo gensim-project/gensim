@@ -58,6 +58,12 @@ namespace archsim
 		}
 
 		template <>
+		void SimOptionArgumentDescriptor<uint64_t>::Marshal(std::string str)
+		{
+			option.SetValue(strtoll(str.c_str(), nullptr, 0));
+		}
+
+		template <>
 		void SimOptionArgumentDescriptor<bool>::Marshal(std::string str)
 		{
 			option.SetValue(str == "true");

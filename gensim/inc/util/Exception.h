@@ -14,17 +14,11 @@
 
 namespace gensim
 {
-	class Exception
+	class Exception : public std::logic_error
 	{
 	public:
-		Exception() : what_("") {}
-		Exception(const std::string &what) : what_(what) {}
-		const std::string &what() const
-		{
-			return what_;
-		}
-	private:
-		const std::string what_;
+		Exception() : std::logic_error("") {}
+		Exception(const std::string &what) : std::logic_error(what) {}
 	};
 
 	class NotImplementedException : public Exception

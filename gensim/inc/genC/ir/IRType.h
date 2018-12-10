@@ -55,7 +55,7 @@ namespace gensim
 
 			static bool ParseType(std::string text, IRType &out);
 			static IRType Ref(const IRType &BaseType);
-			static IRType CreateStruct(const IRStructType &Type);
+			static IRType CreateStruct(const IRStructType * const Type);
 			static const IRType Resolve(BinaryOperator::EBinaryOperator op, const IRType &LHS, const IRType &RHS);
 			static const IRType &GetIntType(uint8_t width);
 
@@ -75,7 +75,7 @@ namespace gensim
 			/**
 			 * Get the size of this type in bytes
 			 */
-			uint32_t Size() const;
+			uint32_t SizeInBytes() const;
 
 			/**
 			 * If this is a vector, return the size of a single element. Otherwise, return the total size.

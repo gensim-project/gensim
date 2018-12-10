@@ -21,6 +21,7 @@ using namespace archsim::translate::interrupts;
 TranslationWorkUnit::TranslationWorkUnit(archsim::core::thread::ThreadInstance *thread, profile::Region& region, uint32_t generation, uint32_t weight) : thread(thread), region(region), generation(generation), weight(weight), emit_trace_calls(thread->GetTraceSource() != nullptr)
 {
 	region.Acquire();
+	dispatch_heat_ = region.total_interp_count;
 }
 
 TranslationWorkUnit::~TranslationWorkUnit()
@@ -29,6 +30,12 @@ TranslationWorkUnit::~TranslationWorkUnit()
 
 	region.Release();
 }
+
+uint32_t TranslationWorkUnit::GetWeight() const
+{
+	return GetRegion().total_interp_count - dispatch_heat_;
+}
+
 
 void TranslationWorkUnit::DumpGraph()
 {
@@ -55,7 +62,7 @@ void TranslationWorkUnit::DumpGraph()
 
 TranslationBlockUnit *TranslationWorkUnit::AddBlock(profile::Block& block, bool entry)
 {
-	auto tbu = new TranslationBlockUnit(*this, block.GetOffset(), block.GetISAMode(), entry);
+	auto tbu = new TranslationBlockUnit(block.GetOffset(), block.GetISAMode(), entry);
 	blocks[block.GetOffset()] = tbu;
 	return tbu;
 }
@@ -74,27 +81,32 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	phys_interface->Connect(*phys_device);
 
 	for (auto block : region.blocks) {
+		auto next_block_it = ++region.blocks.lower_bound(block.first);
+		Address next_block_start;
+		if(next_block_it != region.blocks.end()) {
+			next_block_start = next_block_it->second->GetOffset();
+		}
+
 		auto tbu = twu->AddBlock(*block.second, block.second->IsRootBlock());
 
 		bool end_of_block = false;
-		addr_t offset = tbu->GetOffset();
+		Address offset = tbu->GetOffset();
 		uint32_t insn_count = 0;
 
-		auto decode_ctx = twu->GetThread()->GetEmulationModel().GetNewDecodeContext(*twu->GetThread());
-
-		while (!end_of_block && offset < profile::RegionArch::PageSize) {
+		while (!end_of_block && offset.Get() < profile::RegionArch::PageSize && (next_block_start == 0_ga || offset < next_block_start)) {
+//		while (!end_of_block && offset.Get() < profile::RegionArch::PageSize) {
 			gensim::BaseDecode *decode = thread->GetArch().GetISA(block.second->GetISAMode()).GetNewDecode();
 
 			thread->GetArch().GetISA(block.second->GetISAMode()).DecodeInstr(Address(region.GetPhysicalBaseAddress() + offset), phys_interface, *decode);
 
 			if(decode->Instr_Code == (uint16_t)(-1)) {
-				LC_WARNING(LogTranslate) << "Invalid Instruction at " << std::hex << (uint32_t)(region.GetPhysicalBaseAddress() + offset) <<  ", ir=" << decode->ir << ", isa mode=" << (uint32_t)block.second->GetISAMode() << " whilst building " << *twu;
+				LC_WARNING(LogTranslate) << "Invalid Instruction at " << std::hex << (uint32_t)(region.GetPhysicalBaseAddress().Get() + offset.Get()) <<  ", ir=" << decode->ir << ", isa mode=" << (uint32_t)block.second->GetISAMode() << " whilst building " << *twu;
 				delete decode;
 				delete twu;
 				return NULL;
 			}
 
-			tbu->AddInstruction(decode, offset);
+			tbu->AddInstruction(decode, offset - tbu->GetOffset());
 
 			offset += decode->Instr_Length;
 			end_of_block = decode->GetEndOfBlock();
@@ -137,43 +149,33 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	return twu;
 }
 
-TranslationBlockUnit::TranslationBlockUnit(TranslationWorkUnit& twu, addr_t offset, uint8_t isa_mode, bool entry)
-	: twu(twu),
-	  offset(offset),
-	  isa_mode(isa_mode),
-	  entry(entry),
-	  interrupt_check(false),
-	  spanning(false)
+TranslationBlockUnit::TranslationBlockUnit(Address offset, uint8_t isa_mode, bool entry)
+	:
+	offset(offset),
+	isa_mode(isa_mode),
+	entry(entry),
+	interrupt_check(false),
+	spanning(false)
 {
 
 }
 
 TranslationBlockUnit::~TranslationBlockUnit()
 {
-
+	for(auto i : instructions) {
+		delete i;
+	}
 }
 
-TranslationInstructionUnit *TranslationBlockUnit::AddInstruction(gensim::BaseDecode* decode, addr_t offset)
+TranslationInstructionUnit *TranslationBlockUnit::AddInstruction(gensim::BaseDecode* decode, Address offset)
 {
 	assert(decode);
-	auto tiu = twu.GetInstructionZone().Construct(decode, offset);
+	auto tiu = new TranslationInstructionUnit(decode, offset);
 	instructions.push_back(tiu);
 	return tiu;
 }
 
-void TranslationBlockUnit::GetCtrlFlowInfo(bool &direct_jump, bool &indirect_jump, int32_t &direct_offset, int32_t &fallthrough_offset) const
-{
-	uint32_t direct_target;
-
-	auto jumpinfo = twu.GetThread()->GetArch().GetISA(twu.GetThread()->GetModeID()).GetNewJumpInfo();
-	jumpinfo->GetJumpInfo(&GetLastInstruction().GetDecode(), 0, indirect_jump, direct_jump, direct_target);
-	delete jumpinfo;
-
-	direct_offset = (int32_t)direct_target;
-	fallthrough_offset = GetLastInstruction().GetOffset() + GetLastInstruction().GetDecode().Instr_Length;
-}
-
-TranslationInstructionUnit::TranslationInstructionUnit(gensim::BaseDecode* decode, addr_t offset) : decode(decode), offset(offset)
+TranslationInstructionUnit::TranslationInstructionUnit(gensim::BaseDecode* decode, Address offset) : decode(decode), offset(offset)
 {
 
 }

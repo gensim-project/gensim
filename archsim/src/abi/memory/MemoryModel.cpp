@@ -102,6 +102,11 @@ bool MemoryModel::LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, h
 	return false;
 }
 
+bool MemoryModel::LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion& regions)
+{
+	return false;
+}
+
 bool MemoryModel::UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr)
 {
 	return false;
@@ -112,12 +117,12 @@ void MemoryModel::FlushCaches()
 
 }
 
-void MemoryModel::EvictCacheEntry(virt_addr_t virt_addr)
+void MemoryModel::EvictCacheEntry(Address virt_addr)
 {
 
 }
 
-uint32_t MemoryModel::PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct abi::devices::AccessInfo &info)
+uint32_t MemoryModel::PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct abi::devices::AccessInfo &info)
 {
 	out_phys_addr = virt_addr;
 	return 0;
@@ -273,7 +278,7 @@ uint32_t MemoryModel::ReadN(guest_addr_t addr, uint8_t *buffer, size_t size)
 		uint32_t c = Read8(addr, *buffer);
 		if(c) return c;
 		buffer++;
-		addr++;
+		addr += 1;
 		size--;
 	}
 	return 0;
@@ -285,7 +290,7 @@ uint32_t MemoryModel::WriteN(guest_addr_t addr, uint8_t *buffer, size_t size)
 		uint32_t c = Write8(addr, *buffer);
 		if(c) return c;
 		buffer++;
-		addr++;
+		addr += 1;
 		size--;
 	}
 	return 0;
@@ -303,7 +308,7 @@ uint32_t MemoryModel::Peek32Unsafe(guest_addr_t addr)
 	return data;
 }
 
-static struct GuestVMA null_vma = { 0, 0, 0, RegFlagNone, "NULL" };
+static struct GuestVMA null_vma = { 0, archsim::Address(0), 0, RegFlagNone, "NULL" };
 RegionBasedMemoryModel::RegionBasedMemoryModel() : cached_vma(&null_vma) {}
 
 RegionBasedMemoryModel::~RegionBasedMemoryModel()
@@ -408,7 +413,7 @@ bool RegionBasedMemoryModel::MapAll(RegionFlags prot)
 
 	GuestVMA *vma = new GuestVMA();
 
-	vma->base = 0;
+	vma->base = Address(0);
 	vma->size = 0xffffffff;
 	vma->protection = prot;
 	vma->name = "all";
@@ -418,21 +423,21 @@ bool RegionBasedMemoryModel::MapAll(RegionFlags prot)
 		return false;
 	}
 
-	guest_vmas[0] = vma;
+	guest_vmas[Address(0)] = vma;
 
 	return true;
 }
 
 bool RegionBasedMemoryModel::MapRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot, std::string name)
 {
-	size = AlignUp(size);
-
-	if (HasIntersectingRegions(addr, size)) {
-		LC_ERROR(LogMemoryModel) << "Overlapping regions not supported";
-		return false;
-	}
+	size = AlignUp(Address(size)).Get();
 
 	LC_DEBUG1(LogMemoryModel) << "Map Region: addr = " << std::hex << addr << ", size = " << std::hex << size << ", prot = " << prot << ", name = " << name;
+
+	if (HasIntersectingRegions(addr, size)) {
+		LC_DEBUG1(LogMemoryModel) << " - Overlap detected";
+		UnmapSubregion(addr, size);
+	}
 
 	GuestVMA *vma = new GuestVMA();
 
@@ -454,13 +459,13 @@ bool RegionBasedMemoryModel::MapRegion(guest_addr_t addr, guest_size_t size, Reg
 guest_addr_t RegionBasedMemoryModel::MapAnonymousRegion(guest_size_t size, RegionFlags prot)
 {
 	// Force size alignment.
-	size = AlignUp(size);
+	size = AlignUp(Address(size)).Get();
 
 	LC_DEBUG1(LogMemoryModel) << "Map anonymous region: size = " << std::hex << size << ", prot = " << prot;
 
 	// Start from a (random?) base address, and find the first address that doesn't
 	// contain an intersecting region.
-	guest_addr_t addr = 0x40000000;
+	guest_addr_t addr = Address(0x40000000);
 	while (HasIntersectingRegions(addr, size)) {
 		addr += 4096;
 	}
@@ -468,8 +473,10 @@ guest_addr_t RegionBasedMemoryModel::MapAnonymousRegion(guest_size_t size, Regio
 	// Attempt to map it.
 	if (MapRegion(addr, size, prot, ""))
 		return addr;
-	else
-		return -1;
+	else {
+		LC_ERROR(LogMemoryModel) << "Failed to map anonymous region!";
+		return Address(-1);
+	}
 }
 
 bool RegionBasedMemoryModel::RemapRegion(guest_addr_t addr, guest_size_t size)
@@ -482,7 +489,7 @@ bool RegionBasedMemoryModel::RemapRegion(guest_addr_t addr, guest_size_t size)
 	}
 
 	// Force size alignment.
-	size = AlignUp(size);
+	size = AlignUp(Address(size)).Get();
 
 	// Check for overlapping regions.
 	if (VMAIntersects(*vma, size)) {
@@ -503,7 +510,7 @@ bool RegionBasedMemoryModel::UnmapRegion(guest_addr_t addr, guest_size_t size)
 	}
 
 	// Force size alignment.
-	size = AlignUp(size);
+	size = AlignUp(Address(size)).Get();
 
 	LC_DEBUG1(LogMemoryModel) << "Unmap Region: addr = " << std::hex << vma->base << ", real addr = " << std::hex << vma->host_base << ", size = " << std::hex << vma->size;
 
@@ -513,10 +520,72 @@ bool RegionBasedMemoryModel::UnmapRegion(guest_addr_t addr, guest_size_t size)
 	return true;
 }
 
+bool RegionBasedMemoryModel::UnmapSubregion(guest_addr_t addr, guest_size_t size)
+{
+	Address u_start = addr;
+	Address u_end = addr + size;
+
+	LC_DEBUG1(LogMemoryModel) << "Subregion " << u_start << " to " << u_end;
+
+	for(auto &i : guest_vmas) {
+		auto i_start = Address(i.second->base);
+		auto i_end = Address(i.second->base + i.second->size);
+
+		LC_DEBUG2(LogMemoryModel) << "Checking against " << i_start << " to " << i_end;
+
+		// 6 possible situations:
+		// 1. i is completely before the unmapped subregion
+		//    - do nothing
+		// 2. i is completely covered by the unmapped subregion
+		//    - unmap i
+		// 3. i overlaps the start of the unmapped subregion
+		//    - move the start of i to the end of the unmapped subregion
+		// 4. i overlaps the middle of the unmapped subregion
+		//    - resize i to end at the start of the unmapped region
+		//    - create a new guest vma after the end of the unmapped region
+		// 5. i overlaps the end of the unmapped subregion
+		//    - move the start of i to the end of the unmapped region
+		// 6. i is completely after the unmapped subregion
+		//    - do nothing
+
+		// 2:
+		if(i_start >= u_start && u_end >= i_end) {
+			LC_DEBUG1(LogMemoryModel) << "Unmapping entire region and recursing";
+			UnmapRegion(addr, size);
+			return UnmapSubregion(addr, size);
+		}
+
+		// 3:
+		if(i_start < u_start && i_end > u_start && i_end < u_end) {
+			LC_DEBUG1(LogMemoryModel) << "Shifting start of region";
+			i.second->base = u_end;
+		}
+
+		// 4:
+		if(u_start > i_start && u_end < i_end) {
+			LC_DEBUG1(LogMemoryModel) << "Splitting existing vma and recursing";
+			// shift the end of the current vma and also create a new one, then recurse
+			auto new_size = u_start - i_start;
+			i.second->size = new_size.Get();
+
+			MapRegion(u_end, (i_end - u_end).Get(), i.second->protection, i.second->name);
+			return UnmapSubregion(addr, size);
+		}
+
+		// 5:
+		if(i_start > u_start && i_start < u_end) {
+			UNIMPLEMENTED;
+		}
+	}
+
+	return true;
+}
+
+
 bool RegionBasedMemoryModel::ProtectRegion(guest_addr_t addr, guest_size_t size, RegionFlags prot)
 {
 	// Force size alignment.
-	size = AlignUp(size);
+	size = AlignUp(Address(size)).Get();
 
 	LC_DEBUG1(LogMemoryModel) << "Protect Region: addr = " << std::hex << addr << ", size = " << std::hex << size << ", prot = " << prot;
 
@@ -651,7 +720,7 @@ MemoryTranslationModel &NullMemoryModel::GetTranslationModel()
 	return *translation_model;
 }
 
-uint32_t NullMemoryModel::PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
+uint32_t NullMemoryModel::PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
 {
 	out_phys_addr = virt_addr;
 	return 0;

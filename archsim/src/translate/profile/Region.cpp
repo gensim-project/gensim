@@ -5,6 +5,7 @@
 #include "translate/profile/Region.h"
 #include "translate/profile/Block.h"
 #include "util/LogContext.h"
+#include "abi/Address.h"
 
 #include <mutex>
 
@@ -13,14 +14,16 @@ UseLogContext(LogLifetime);
 
 using namespace archsim::translate::profile;
 
-Region::Region(TranslationManager& mgr, phys_addr_t phys_base_addr)
+Region::Region(TranslationManager& mgr, Address phys_base_addr)
 	:	mgr(mgr),
 	  phys_base_addr(phys_base_addr),
 	  current_generation(0),
+	  total_interp_count(0),
 	  max_generation(0),
 	  status(NotInTranslation),
 	  invalid_(false),
-	  txln(NULL)
+	  txln(NULL),
+	  max_block_interp_count_(0)
 {
 
 }
@@ -59,7 +62,7 @@ void Region::dump_dot()
 
 Block& Region::GetBlock(Address virt_addr, uint8_t isa_mode)
 {
-	addr_t offset = virt_addr.GetPageOffset();
+	Address offset = virt_addr.PageOffset();
 
 	Block *&block = blocks[offset];
 	if (UNLIKELY(!block)) {
@@ -70,27 +73,42 @@ Block& Region::GetBlock(Address virt_addr, uint8_t isa_mode)
 	return *block;
 }
 
-void Region::EraseBlock(virt_addr_t virt_addr)
+void Region::EraseBlock(Address virt_addr)
 {
-	addr_t offset = RegionArch::PageOffsetOf(virt_addr);
+	Address offset = virt_addr.PageOffset();
 	blocks.erase(offset);
+}
+
+void Region::InvalidateHeat()
+{
+	for(auto block : blocks) {
+		block.second->ClearInterpCount();
+	}
+	total_interp_count = 0;
+	max_block_interp_count_ = 0;
 }
 
 bool Region::HasTranslations() const
 {
-	return (GetStatus() == InTranslation) || txln;
+	return (GetStatus() != NotInTranslation) || txln;
 }
 
 void Region::TraceBlock(archsim::core::thread::ThreadInstance *thread, Address virt_addr)
 {
-	if (status == InTranslation)
-		return;
-
-	virtual_images.insert(virt_addr.GetPageBase());
-	block_interp_count[virt_addr.GetPageOffset()]++;
 	total_interp_count++;
 
-	mgr.TraceBlock(thread, GetBlock(virt_addr, thread->GetModeID()));
+	if (GetStatus() == InTranslation)
+		return;
+
+	virtual_images.insert(virt_addr.PageBase());
+
+	auto &block = GetBlock(virt_addr, thread->GetModeID());
+	block.IncrementInterpCount();
+	if(block.GetInterpCount() > max_block_interp_count_) {
+		max_block_interp_count_ = block.GetInterpCount();
+	}
+
+	mgr.TraceBlock(thread, block);
 }
 
 void Region::Invalidate()
@@ -103,7 +121,6 @@ size_t Region::GetApproximateMemoryUsage() const
 	size_t size = sizeof(*this);
 
 	for(auto i : virtual_images) size += sizeof(i);
-	for(auto i : block_interp_count) size += sizeof(i);
 	for(auto i : blocks) size += sizeof(i);
 	size += block_zone.GetAllocatedSize();
 
@@ -119,7 +136,8 @@ namespace archsim
 
 			std::ostream& operator<< (std::ostream& out, const Region& rgn)
 			{
-				out << "[Region " << std::hex << rgn.phys_base_addr << "(" << &rgn << "), generation=" << std::dec << rgn.current_generation << "/" << rgn.max_generation;
+				// todo: fix lookup of Address::operator<<
+				out << "[Region " << std::hex << rgn.phys_base_addr.Get() << "(" << &rgn << "), generation=" << std::dec << rgn.current_generation << "/" << rgn.max_generation;
 
 				if (rgn.invalid_)
 					out << " INVALID";

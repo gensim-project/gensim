@@ -36,7 +36,7 @@ bool LinuxSystemEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	if (archsim::options::RootFS.IsSpecified()) {
 		// Load the root filesystem
 		LC_DEBUG1(LogLinuxSystemEmulationModel) << "Installing root filesystem";
-		if(!InstallRootFS(archsim::options::RootFS, archsim::options::RootFSLocation)) {
+		if(!InstallRootFS(archsim::options::RootFS, Address(archsim::options::RootFSLocation))) {
 			LC_ERROR(LogLinuxSystemEmulationModel) << "Unable to install root filesystem";
 			return false;
 		}
@@ -45,7 +45,7 @@ bool LinuxSystemEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	if (archsim::options::DeviceTreeFile.IsSpecified()) {
 		// Load the device tree.
 		LC_DEBUG1(LogLinuxSystemEmulationModel) << "Installing device tree";
-		if (!InstallDeviceTree(archsim::options::DeviceTreeFile, 0x1000)) {
+		if (!InstallDeviceTree(archsim::options::DeviceTreeFile, Address(0x1000))) {
 			LC_ERROR(LogLinuxSystemEmulationModel) << "Unable to install device tree.";
 			return false;
 		}
@@ -53,7 +53,7 @@ bool LinuxSystemEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 		// Install ATAGS.
 		LC_DEBUG1(LogLinuxSystemEmulationModel) << "Installing ATAGS";
 		// earlyprintk=serial console=ttyAMA0 root=/dev/vda1 rw verbose", 0x100))
-		if (!InstallATAGS(archsim::options::KernelArgs, 0x100)) {
+		if (!InstallATAGS(archsim::options::KernelArgs, Address(0x100))) {
 			LC_ERROR(LogLinuxSystemEmulationModel) << "Unable to install ATAGS.";
 			return false;
 		}
@@ -62,7 +62,7 @@ bool LinuxSystemEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
 	return true;
 }
 
-bool LinuxSystemEmulationModel::InstallRootFS(std::string rootfs_file, uint32_t location)
+bool LinuxSystemEmulationModel::InstallRootFS(std::string rootfs_file, Address location)
 {
 	uint32_t size = 0;
 	bool rc = GetMemoryModel().InsertFile(location, rootfs_file, size);
@@ -72,14 +72,14 @@ bool LinuxSystemEmulationModel::InstallRootFS(std::string rootfs_file, uint32_t 
 		return false;
 	}
 
-	rootfs.address = location;
+	rootfs.address = location.Get();
 	rootfs.size = size;
 	rootfs.valid = true;
 
 	return true;
 }
 
-bool LinuxSystemEmulationModel::InstallDeviceTree(std::string device_tree_file, uint32_t addr)
+bool LinuxSystemEmulationModel::InstallDeviceTree(std::string device_tree_file, Address addr)
 {
 	uint32_t size = 0;
 	bool rc = GetMemoryModel().InsertFile(addr, device_tree_file, size);
@@ -89,7 +89,7 @@ bool LinuxSystemEmulationModel::InstallDeviceTree(std::string device_tree_file, 
 		return false;
 	}
 
-	devicetree.address = addr;
+	devicetree.address = addr.Get();
 	devicetree.size = size;
 	devicetree.valid = true;
 
@@ -98,9 +98,9 @@ bool LinuxSystemEmulationModel::InstallDeviceTree(std::string device_tree_file, 
 
 #define ATAG_CMDLINE 0x54410009
 
-bool LinuxSystemEmulationModel::InstallATAGS(std::string kernel_args, uint32_t base_address)
+bool LinuxSystemEmulationModel::InstallATAGS(std::string kernel_args, Address base_address)
 {
-	uint32_t addr = base_address;
+	auto addr = base_address;
 
 	// CORE
 	GetMemoryModel().Write32(addr, 5);
@@ -168,8 +168,8 @@ bool LinuxSystemEmulationModel::InstallATAGS(std::string kernel_args, uint32_t b
 	addr += 4;
 	GetMemoryModel().Write32(addr, 0);
 
-	atags.address = base_address;
-	atags.size = addr - base_address;
+	atags.address = base_address.Get();
+	atags.size = (addr - base_address).Get();
 	atags.valid = true;
 
 	return true;

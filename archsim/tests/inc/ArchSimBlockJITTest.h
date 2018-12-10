@@ -30,7 +30,7 @@ static archsim::ArchDescriptor GetArch()
 	archsim::ISADescriptor isa("isa", 0, [](archsim::Address addr, archsim::MemoryInterface *, gensim::BaseDecode&) {
 		UNIMPLEMENTED;
 		return 0u;
-	}, nullptr, []()->gensim::BaseDecode* { UNIMPLEMENTED; }, []()->gensim::BaseJumpInfo* { UNIMPLEMENTED; }, []()->gensim::DecodeTranslateContext* { UNIMPLEMENTED; }, behaviours);
+	}, nullptr, []()->gensim::BaseDecode* { UNIMPLEMENTED; }, []()->gensim::BaseJumpInfoProvider* { UNIMPLEMENTED; }, []()->gensim::DecodeTranslateContext* { UNIMPLEMENTED; }, behaviours);
 	archsim::FeaturesDescriptor f({});
 	archsim::MemoryInterfacesDescriptor mem({}, "");
 	archsim::RegisterFileDescriptor rf(128, {});
@@ -45,7 +45,7 @@ public:
 
 	ArchSimBlockJITTest() : Arch(GetArch()) {}
 
-	static const int kIterations = 0x100000;
+	static const int kIterations = 0x10000;
 
 	archsim::ArchDescriptor Arch;
 	archsim::StateBlockDescriptor StateBlockDescriptor;

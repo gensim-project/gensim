@@ -13,7 +13,7 @@ SuccessorAnalysis::SuccessorAnalysis(const SSAFormAction* action)
 
 void SuccessorAnalysis::BuildSuccessors(const SSAFormAction* action)
 {
-	for (const auto& block : action->Blocks) {
+	for (const auto& block : action->GetBlocks()) {
 		successors_[block] = block->GetSuccessors();
 	}
 }
@@ -27,11 +27,11 @@ void PredecessorAnalysis::BuildPredecessors(const SSAFormAction* action)
 {
 	SuccessorAnalysis successors (action);
 
-	for(auto block : action->Blocks) {
+	for(auto block : action->GetBlocks()) {
 		predecessors_[block].resize(0);
 	}
 
-	for(auto block : action->Blocks) {
+	for(auto block : action->GetBlocks()) {
 		for(auto successor : successors.GetSuccessors(block)) {
 			predecessors_[successor].push_back(block);
 		}
