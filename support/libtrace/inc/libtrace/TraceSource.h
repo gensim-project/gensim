@@ -10,6 +10,8 @@
 #include <vector>
 #include <cstring>
 
+using uint128_t = __uint128_t;
+
 namespace libtrace
 {
 	class TraceSink;
@@ -469,6 +471,20 @@ namespace libtrace
 		auto *extension = (DataExtensionRecord*)getNextPacket();
 		*extension = DataExtensionRecord(MemReadData, Data >> 32);
 	}
+	template<> inline void TraceSource::TraceMemReadData(uint128_t Data, uint32_t Width)
+	{
+		auto *record = (MemReadDataRecord*)getNextPacket();
+		*record = MemReadDataRecord(Width, Data, 3);
+
+		auto *extension = (DataExtensionRecord*)getNextPacket();
+		*extension = DataExtensionRecord(MemReadData, Data >> 32);
+		
+		extension = (DataExtensionRecord*)getNextPacket();
+		*extension = DataExtensionRecord(MemReadData, Data >> 64);
+		
+		extension = (DataExtensionRecord*)getNextPacket();
+		*extension = DataExtensionRecord(MemReadData, Data >> 96);
+	}
 
 	template<> inline void TraceSource::TraceMemWriteAddr(uint32_t Addr, uint32_t Width)
 	{
@@ -496,6 +512,18 @@ namespace libtrace
 
 		auto *extension = (DataExtensionRecord*)getNextPacket();
 		*extension = DataExtensionRecord(MemWriteData, Data >> 32);
+	}
+	template<> inline void TraceSource::TraceMemWriteData(uint128_t Data, uint32_t Width)
+	{
+		auto *record = (MemWriteDataRecord*)getNextPacket();
+		*record = MemWriteDataRecord(Data, Width, 3);
+
+		auto *extension = (DataExtensionRecord*)getNextPacket();
+		*extension = DataExtensionRecord(MemWriteData, Data >> 32);
+		extension = (DataExtensionRecord*)getNextPacket();
+		*extension = DataExtensionRecord(MemWriteData, Data >> 64);
+		extension = (DataExtensionRecord*)getNextPacket();
+		*extension = DataExtensionRecord(MemWriteData, Data >> 96);
 	}
 
 }

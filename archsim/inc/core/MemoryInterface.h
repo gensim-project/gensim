@@ -89,12 +89,14 @@ namespace archsim
 		virtual MemoryResult Read16(Address address, uint16_t &data) = 0;
 		virtual MemoryResult Read32(Address address, uint32_t &data) = 0;
 		virtual MemoryResult Read64(Address address, uint64_t &data) = 0;
+		virtual MemoryResult Read128(Address address, uint128_t &data) = 0;
 
 		virtual MemoryResult Write8(Address address, uint8_t data) = 0;
+		virtual MemoryResult Write16(Address address, uint16_t data) = 0;
 		virtual MemoryResult Write32(Address address, uint32_t data) = 0;
 		virtual MemoryResult Write64(Address address, uint64_t data) = 0;
-		virtual MemoryResult Write16(Address address, uint16_t data) = 0;
-
+		virtual MemoryResult Write128(Address address, uint128_t data) = 0;
+		
 		virtual void Lock() = 0;
 		virtual void Unlock() = 0;
 	};
@@ -108,10 +110,12 @@ namespace archsim
 		MemoryResult Read16(Address address, uint16_t& data) override;
 		MemoryResult Read32(Address address, uint32_t& data) override;
 		MemoryResult Read64(Address address, uint64_t& data) override;
+		MemoryResult Read128(Address address, uint128_t& data) override;
 		MemoryResult Write8(Address address, uint8_t data) override;
 		MemoryResult Write16(Address address, uint16_t data) override;
 		MemoryResult Write32(Address address, uint32_t data) override;
 		MemoryResult Write64(Address address, uint64_t data) override;
+		MemoryResult Write128(Address address, uint128_t data) override;
 
 		void Lock() override
 		{
@@ -146,10 +150,12 @@ namespace archsim
 		MemoryResult Read16(Address address, uint16_t& data) override;
 		MemoryResult Read32(Address address, uint32_t& data) override;
 		MemoryResult Read64(Address address, uint64_t& data) override;
+		MemoryResult Read128(Address address, uint128_t& data) override;
 		MemoryResult Write8(Address address, uint8_t data) override;
 		MemoryResult Write16(Address address, uint16_t data) override;
 		MemoryResult Write32(Address address, uint32_t data) override;
 		MemoryResult Write64(Address address, uint64_t data) override;
+		MemoryResult Write128(Address address, uint128_t data) override;
 
 		void Lock() override
 		{
@@ -186,10 +192,12 @@ namespace archsim
 		MemoryResult Read16(Address address, uint16_t& data) override;
 		MemoryResult Read32(Address address, uint32_t& data) override;
 		MemoryResult Read64(Address address, uint64_t& data) override;
+		MemoryResult Read128(Address address, uint128_t& data) override;
 		MemoryResult Write8(Address address, uint8_t data) override;
 		MemoryResult Write16(Address address, uint16_t data) override;
 		MemoryResult Write32(Address address, uint32_t data) override;
 		MemoryResult Write64(Address address, uint64_t data) override;
+		MemoryResult Write128(Address address, uint128_t data) override;
 
 		void Lock() override
 		{
@@ -233,6 +241,10 @@ namespace archsim
 		{
 			return device_->Read64(address, data);
 		}
+		MemoryResult Read128(Address address, uint128_t &data)
+		{
+			return device_->Read128(address, data);
+		}
 
 		MemoryResult Write8 (Address address, uint8_t data)
 		{
@@ -249,6 +261,10 @@ namespace archsim
 		MemoryResult Write64(Address address, uint64_t data)
 		{
 			return device_->Write64(address, data);
+		}
+		MemoryResult Write128(Address address, uint128_t data)
+		{
+			return device_->Write128(address, data);
 		}
 
 		MemoryResult ReadString(Address address,  char *data, size_t max_size);

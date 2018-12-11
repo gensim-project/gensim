@@ -242,6 +242,7 @@ namespace archsim
 				virtual uint32_t Read16(guest_addr_t addr, uint16_t &data);
 				virtual uint32_t Read32(guest_addr_t addr, uint32_t &data);
 				virtual uint32_t Read64(guest_addr_t addr, uint64_t &data);
+				virtual uint32_t Read128(guest_addr_t addr, uint128_t &data);
 
 				virtual uint32_t Read8_zx(guest_addr_t addr, uint32_t &data);
 				virtual uint32_t Read16_zx(guest_addr_t addr, uint32_t &data);
@@ -256,6 +257,7 @@ namespace archsim
 				virtual uint32_t Write16(guest_addr_t addr, uint16_t data);
 				virtual uint32_t Write32(guest_addr_t addr, uint32_t data);
 				virtual uint32_t Write64(guest_addr_t addr, uint64_t data);
+				virtual uint32_t Write128(guest_addr_t addr, uint128_t data);
 
 				virtual uint32_t Read8User(guest_addr_t addr, uint32_t &data);
 				virtual uint32_t Read32User(guest_addr_t addr, uint32_t &data);

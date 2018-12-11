@@ -77,6 +77,11 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 		is_user_access = false;
 		data_width = 8;
 		data_type = IRTypes::UInt64;
+	} else if (call->TargetName == "mem_read_128") {
+		is_memory_write = false;
+		is_user_access = false;
+		data_width = 16;
+		data_type = IRTypes::UInt128;
 	} else if (call->TargetName == "mem_write_8") {
 		is_memory_write = true;
 		is_user_access = false;
@@ -97,6 +102,11 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 		is_user_access = false;
 		data_width = 8;
 		data_type = IRTypes::UInt64;
+	} else if (call->TargetName == "mem_write_128") {
+		is_memory_write = true;
+		is_user_access = false;
+		data_width = 16;
+		data_type = IRTypes::UInt128;
 	} else {
 		throw std::logic_error("Unsupported memory intrinsic: " + call->TargetName);
 	}
@@ -260,10 +270,12 @@ void GenCContext::LoadIntrinsics()
 	AddIntrinsic("mem_read_16", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRType::Ref(IRTypes::UInt16))}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 	AddIntrinsic("mem_read_32", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRType::Ref(IRTypes::UInt32))}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 	AddIntrinsic("mem_read_64", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRType::Ref(IRTypes::UInt64))}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
+	AddIntrinsic("mem_read_128", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRType::Ref(IRTypes::UInt128))}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 	AddIntrinsic("mem_write_8", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRTypes::UInt8)}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 	AddIntrinsic("mem_write_16", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRTypes::UInt16)}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 	AddIntrinsic("mem_write_32", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRTypes::UInt32)}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 	AddIntrinsic("mem_write_64", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRTypes::UInt64)}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
+	AddIntrinsic("mem_write_128", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("addr", wordtype), IRParam("value", IRTypes::UInt128)}, MemoryIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 
 	AddIntrinsic("mem_lock", IRTypes::Void, {IRParam("interface", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemLock);
 	AddIntrinsic("mem_unlock", IRTypes::Void, {IRParam("interface", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemUnlock);

@@ -13,6 +13,7 @@ function(build_model target-name arch-name arch-file gensim-options)
 	SET(OUTPUT_DLL_PATH "${ARCHSIM_MODULE_DIRECTORY}/${arch-name}.dll")
 
 	IF(MODEL_${target-name}_ENABLED)
+		MESSAGE(STATUS "Model ${target-name} Enabled")
 		
 		ADD_CUSTOM_COMMAND(
 			OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/output/Makefile"

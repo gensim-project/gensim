@@ -56,6 +56,8 @@
 	void operator=(const TypeName&) = delete
 
 using host_addr_t = void*;
+using uint128_t = __uint128_t;
+using int128_t = __int128_t;
 
 #include "cmake-config.h"
 

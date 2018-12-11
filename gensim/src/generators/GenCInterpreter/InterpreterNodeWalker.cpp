@@ -167,18 +167,20 @@ namespace gensim
 						return cast_stmt;
 					}
 					case SSACastStatement::Cast_Reinterpret:
-						switch (stmt.GetType().BaseType.PlainOldDataType) {
-							case genc::IRPlainOldDataType::DOUBLE:
-								return "(bitcast_u64_double(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
-							case genc::IRPlainOldDataType::FLOAT:
-								return "(bitcast_u32_float(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
-							case genc::IRPlainOldDataType::INT64:
-								return "(bitcast_double_u64(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
-							case genc::IRPlainOldDataType::INT32:
-								return "(bitcast_float_u32(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
-							default:
-								throw std::logic_error("Unhandled");
-						}
+						return Statement.GetName();
+//						
+//						switch (stmt.GetType().BaseType.PlainOldDataType) {
+//							case genc::IRPlainOldDataType::DOUBLE:
+//								return "(bitcast_u64_double(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
+//							case genc::IRPlainOldDataType::FLOAT:
+//								return "(bitcast_u32_float(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
+//							case genc::IRPlainOldDataType::INT64:
+//								return "(bitcast_double_u64(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
+//							case genc::IRPlainOldDataType::INT32:
+//								return "(bitcast_float_u32(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
+//							default:
+//								throw std::logic_error("Unhandled");
+//						}
 
 					case SSACastStatement::Cast_Convert: {
 						auto option = stmt.GetOption();
@@ -201,6 +203,15 @@ namespace gensim
 			{
 				const SSACastStatement &stmt = (const SSACastStatement &)Statement;
 
+				if(stmt.GetCastType() == SSACastStatement::Cast_Reinterpret) {
+					output << stmt.GetType().GetCType() << " " << Statement.GetName() << ";";
+					output << "{";
+					output << "auto value = " << Factory.GetOrCreate(stmt.Expr())->GetFixedValue() << ";";
+					output << Statement.GetName() << " = *(" << Statement.GetType().GetCType() << "*)&value;";
+					output << "}";
+					return true;
+				}
+				
 				if(stmt.GetCastType() == SSACastStatement::Cast_Convert) {
 					auto option = stmt.GetOption();
 					std::stringstream str;
