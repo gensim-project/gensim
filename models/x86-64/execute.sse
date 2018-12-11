@@ -16,8 +16,8 @@ execute(addss) {
 	uint64 op0 = read_operand_sse_scalar(inst.op0);
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	
-	float dop0 = <float>(op0);
-	float dop1 = <float>(op1);
+	float dop0 = <float>((uint32)op0);
+	float dop1 = <float>((uint32)op1);
 	
 	float result = dop0 + dop1;
 	
@@ -95,8 +95,8 @@ execute(cmpss) {
 	if(!inst.op2.is_imm) { trap(); }
 	uint64 op2 = inst.op2.imm.value;
 	
-	float dop0 = <float>(op0);
-	float dop1 = <float>(op1);
+	float dop0 = <float>((uint32)op0);
+	float dop1 = <float>((uint32)op1);
 	
 	uint8 result = 0;
 	switch(op2) {
@@ -208,7 +208,7 @@ helper uint64 float_to_int(float f, uint8 op_size)
 
 execute(cvttss2si) {
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
-	float dop1 = <float>(op1);
+	float dop1 = <float>((uint32)op1);
 	uint64 result;
 	
 	uint8 op_size = operand_get_size(inst.op0);
@@ -275,8 +275,8 @@ execute(divss) {
 	uint64 op0 = read_operand_sse_scalar(inst.op0);
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	
-	float dop0 = <float>(op0);
-	float dop1 = <float>(op1);
+	float dop0 = <float>((uint32)op0);
+	float dop1 = <float>((uint32)op1);
 	
 	float result = dop0 / dop1;
 	
@@ -293,8 +293,8 @@ execute(maxss) {
 	uint64 op0 = read_operand_sse_scalar(inst.op0);
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	
-	float dop0 = <float>(op0);
-	float dop1 = <float>(op1);
+	float dop0 = <float>((uint32)op0);
+	float dop1 = <float>((uint32)op1);
 	
 	float result = dop0 > dop1 ? dop0 : dop1;
 	
@@ -321,8 +321,8 @@ execute(minss) {
 	uint64 op0 = read_operand_sse_scalar(inst.op0);
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	
-	float dop0 = <float>(op0);
-	float dop1 = <float>(op1);
+	float dop0 = <float>((uint32)op0);
+	float dop1 = <float>((uint32)op1);
 	
 	float result = dop0 < dop1 ? dop0 : dop1;
 	
@@ -431,8 +431,8 @@ execute(mulss) {
 	uint64 op0 = read_operand_sse_scalar(inst.op0);
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	
-	float dop0 = <float>(op0);
-	float dop1 = <float>(op1);
+	float dop0 = <float>((uint32)op0);
+	float dop1 = <float>((uint32)op1);
 	
 	float result = dop0 * dop1;
 	
@@ -899,8 +899,8 @@ execute(subss) {
 	uint64 op0 = read_operand_sse_scalar(inst.op0);
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	
-	float dop0 = <float>(op0);
-	float dop1 = <float>(op1);
+	float dop0 = <float>((uint32)op0);
+	float dop1 = <float>((uint32)op1);
 	
 	float result = dop0 - dop1;
 	
@@ -936,8 +936,8 @@ execute(ucomiss) {
 	uint64 op0 = read_operand_sse_scalar(inst.op0);
 	uint64 op1 = read_operand_sse_scalar(inst.op1);
 	
-	float dop0 = <float>(op0);
-	float dop1 = <float>(op1);
+	float dop0 = <float>((uint32)op0);
+	float dop1 = <float>((uint32)op1);
 
 	if(dop0 > dop1) {
 		write_zpc(0,0,0);
