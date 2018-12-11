@@ -195,6 +195,11 @@ uint32_t MemoryModel::Read64(guest_addr_t addr, uint64_t &data)
 	return Read(addr, (uint8_t*)&data, 8);
 }
 
+uint32_t MemoryModel::Read128(guest_addr_t addr, uint128_t &data)
+{
+	return Read(addr, (uint8_t*)&data, 16);
+}
+
 uint32_t MemoryModel::Fetch8(guest_addr_t addr, uint8_t &data)
 {
 	return Fetch(addr, &data, 1);
@@ -229,6 +234,11 @@ uint32_t MemoryModel::Write32(guest_addr_t addr, uint32_t data)
 uint32_t MemoryModel::Write64(guest_addr_t addr, uint64_t data)
 {
 	return Write(addr, (uint8_t*)&data, 8);
+}
+
+uint32_t MemoryModel::Write128(guest_addr_t addr, uint128_t data)
+{
+	return Write(addr, (uint8_t*)&data, 16);
 }
 
 uint32_t MemoryModel::Read8User(guest_addr_t addr, uint32_t&data)

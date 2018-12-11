@@ -992,31 +992,12 @@ helper uint8[16] read_xmm_u8(struct Operand &op)
 		return read_register_bank(XMM_U8, op.reg.index);
 	} else if(op.is_mem) {
 		uint8[16] val;
-		uint64 data;
+		uint128 data;
 		
 		uint64 addr = mem_get_addr(op.memory);
-		mem_read_64(Data, addr, data);
+		mem_read_128(Data, addr, data);
 		
-		val[0] = data;
-		val[1] = data >> 8;
-		val[2] = data >> 16;
-		val[3] = data >> 24;
-		val[4] = data >> 32;
-		val[5] = data >> 40;
-		val[6] = data >> 48;
-		val[7] = data >> 56;
-		
-		mem_read_64(Data, addr + 8, data);
-		
-		val[8] =  data;
-		val[9] =  data >> 8;
-		val[10] = data >> 16;
-		val[11] = data >> 24;
-		val[12] = data >> 32;
-		val[13] = data >> 40;
-		val[14] = data >> 48;
-		val[15] = data >> 56;
-		
+		val = <uint8[16]>(data);		
 		return val;
 	} else {
 		trap();
@@ -1062,17 +1043,11 @@ helper uint32[4] read_xmm_u32(struct Operand &op)
 		return op.imm.value;
 	} else if(op.is_mem) {
 		uint64 addr = mem_get_addr(op.memory);
-		uint32 data;
+		uint128 data;
 		uint32[4] output;
 		
-		mem_read_32(Data, addr, data);
-		output[0] = data;
-		mem_read_32(Data, addr+4, data);
-		output[1] = data;
-		mem_read_32(Data, addr+8, data);
-		output[2] = data;
-		mem_read_32(Data, addr+12, data);
-		output[3] = data;
+		mem_read_128(Data, addr, data);
+		output = <uint32[4]>(data);
 		
 		return output;
 	} else {
@@ -1096,14 +1071,12 @@ helper uint64[2] read_xmm_u64(struct Operand &op)
 	if(op.is_reg) {
 		return read_register_bank(XMM_U64, op.reg.index);
 	} else if(op.is_mem) {
-		uint64 data;
 		uint64 addr = mem_get_addr(op.memory);
 		
 		uint64[2] output;
-		mem_read_64(Data, addr, data);
-		output[0] = data;
-		mem_read_64(Data, addr + 8, data);
-		output[1] = data;
+		uint128 data;
+		mem_read_128(Data, addr, data);
+		output = <uint64[2]>(data);
 		
 		return output;
 		
@@ -1121,9 +1094,7 @@ helper void write_xmm_u64(struct Operand &op, uint64[2] value)
 		write_register_bank(XMM_U64, op.reg.index, value);
 	} else if(op.is_mem) {
 		uint64 addr = mem_get_addr(op.memory);
-		
-		mem_write_64(Data, addr, value[0]);
-		mem_write_64(Data, addr+8, value[1]);
+		mem_write_128(Data, addr, <uint128>(value));
 		
 	} else {
 		trap();
@@ -1138,13 +1109,9 @@ helper uint128 read_xmm_u128(struct Operand &op)
 		return read_register_bank(XMM_U128, op.reg.index);
 	} else if(op.is_mem) {
 		uint128 result = 0;
-		uint64 data;
 		uint64 addr = mem_get_addr(op.memory);
 		
-		mem_read_64(Data, addr, data);
-		result |= data;
-		mem_read_64(Data, addr+8, data);
-		result |= ((uint128)data) << 64;
+		mem_read_128(Data, addr, result);
 		
 		return result;
 	} else {
