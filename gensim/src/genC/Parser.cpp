@@ -1061,8 +1061,10 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 				Diag().Error("Cannot cast a definition", DiagNode(CurrFilename, node));
 				return nullptr;
 			}
+			
+			IRType target_type = Parse_Type(typeNode);
 
-			IRCastExpression *gce = new IRCastExpression(containing_scope, Parse_Type(typeNode), IRCastExpression::Bitcast);
+			IRCastExpression *gce = new IRCastExpression(containing_scope, target_type, IRCastExpression::Bitcast);
 			gce->SetDiag(DiagNode(CurrFilename, node));
 			gce->Expr = innerExpr;
 

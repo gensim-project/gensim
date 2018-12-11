@@ -50,8 +50,6 @@ SSACastStatement::CastType SSACastStatement::GetCastType() const
 	return cast_type_;
 }
 
-
-
 bool SSACastStatement::IsFixed() const
 {
 	return Expr()->IsFixed();
@@ -63,6 +61,13 @@ bool SSACastStatement::Resolve(DiagnosticContext &ctx)
 	success &= SSAStatement::Resolve(ctx);
 	success &= Expr()->Resolve(ctx);
 
+	if(GetCastType() == Cast_Reinterpret) {
+		if(Expr()->GetType().SizeInBytes() != GetType().SizeInBytes()) {
+			ctx.Error("Cannot bitcast between types of different sizes", GetDiag());
+			success = false;
+		}
+	}
+	
 	Resolved = success;
 
 	return success;
