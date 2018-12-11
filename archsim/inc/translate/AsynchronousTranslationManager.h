@@ -20,6 +20,8 @@
 #include <queue>
 #include <unordered_set>
 
+#include <llvm/IR/LLVMContext.h>
+
 namespace gensim
 {
 	class Processor;
