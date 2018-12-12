@@ -1394,8 +1394,8 @@ execute(neon_vmovl)
 		{
 			uint32[2] vm = read_register_bank(VU32, inst.vm);
 			
-			write_register_bank(FPDP, inst.vd, <double>(vm[0]));
-			write_register_bank(FPDP, inst.vd+1, <double>(vm[1]));
+			write_register_bank(FPDP, inst.vd, <double>((uint64)vm[0]));
+			write_register_bank(FPDP, inst.vd+1, <double>((uint64)vm[1]));
 			break;
 		}
 		default:
