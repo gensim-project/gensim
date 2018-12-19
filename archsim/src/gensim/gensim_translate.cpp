@@ -49,6 +49,9 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archs
 		case 8:
 			trace_fn_ptr = ctx.Functions.cpuTraceMemRead64;
 			break;
+		case 16:
+			trace_fn_ptr = nullptr;
+			break;
 		default:
 			UNIMPLEMENTED;
 	}
@@ -138,7 +141,9 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archs
 #endif
 #endif
 	if(archsim::options::Trace) {
-		builder.CreateCall(trace_fn_ptr, {ctx.GetThreadPtr(builder), address, value});
+		if(trace_fn_ptr != nullptr) {
+			builder.CreateCall(trace_fn_ptr, {ctx.GetThreadPtr(builder), address, value});
+		}
 	}
 
 	return value;
@@ -169,6 +174,9 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 			break;
 		case 8:
 			trace_fn_ptr = ctx.Functions.cpuTraceMemWrite64;
+			break;
+		case 16:
+			trace_fn_ptr = nullptr;
 			break;
 		default:
 			UNIMPLEMENTED;
@@ -254,7 +262,9 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 #endif
 #endif
 	if(archsim::options::Trace) {
-		builder.CreateCall(trace_fn_ptr, {ctx.GetThreadPtr(builder), address, value});
+		if(trace_fn_ptr != nullptr) {
+			builder.CreateCall(trace_fn_ptr, {ctx.GetThreadPtr(builder), address, value});
+		}
 	}
 }
 

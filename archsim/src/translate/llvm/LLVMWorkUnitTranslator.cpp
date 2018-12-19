@@ -158,7 +158,7 @@ std::pair<llvm::Module *, llvm::Function *> LLVMWorkUnitTranslator::TranslateWor
 
 	// Create a new llvm module to contain the translation
 	llvm::Module *module = new llvm::Module("region_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()), llvm_ctx_);
-	module->setDataLayout(target_machine_->createDataLayout());
+	module->setDataLayout("e-m:e-i64:64-f80:128-n8:16:32:64-S128-v128:64");
 	module->setTargetTriple(target_machine_->getTargetTriple().normalize());
 
 	auto i8ptrty = llvm::Type::getInt8PtrTy(llvm_ctx_);
