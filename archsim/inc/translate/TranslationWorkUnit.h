@@ -68,7 +68,7 @@ namespace archsim
 		{
 		public:
 			TranslationBlockUnit(const TranslationBlockUnit&) = delete;
-			TranslationBlockUnit(Address offset, uint8_t isa_mode, bool entry_block);
+			TranslationBlockUnit(Address offset, uint8_t isa_mode, bool entry_block, uint64_t interp_count);
 			~TranslationBlockUnit();
 
 			TranslationInstructionUnit *AddInstruction(gensim::BaseDecode* decode, Address offset);
@@ -143,9 +143,15 @@ namespace archsim
 				return spanning;
 			}
 
+			uint64_t GetInterpCount() const
+			{
+				return interp_count_;
+			}
+
 		private:
 
 			Address offset;
+			uint64_t interp_count_;
 			uint8_t isa_mode;
 			bool entry;
 			bool interrupt_check;
