@@ -63,7 +63,8 @@ namespace wutils
 		{
 			for(auto i = storage_.begin(); i < storage_.end(); ++i) {
 				if(*i == t) {
-					storage_.erase(i);
+					std::swap(*i, storage_.back());
+					storage_.pop_back();
 					break;
 				}
 			}
