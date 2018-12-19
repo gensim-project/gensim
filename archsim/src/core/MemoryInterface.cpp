@@ -285,11 +285,7 @@ MemoryResult CachedLegacyMemoryInterface::Read64(Address address, uint64_t& data
 }
 MemoryResult CachedLegacyMemoryInterface::Read128(Address address, uint128_t& data)
 {
-	if(address.GetPageIndex() != (address + 15).GetPageIndex()) {
-		return Read(address, (char*)&data, 16);
-	}
-	data = *(uint128_t*)GetPtr(address);
-	return MemoryResult::OK;
+	return Read(address, (char*)&data, 16);
 }
 
 MemoryResult CachedLegacyMemoryInterface::Write8(Address address, uint8_t data)
@@ -327,11 +323,7 @@ MemoryResult CachedLegacyMemoryInterface::Write64(Address address, uint64_t data
 
 MemoryResult CachedLegacyMemoryInterface::Write128(Address address, uint128_t data)
 {
-	if(address.GetPageIndex() != (address + 15).GetPageIndex()) {
-		return Write(address, (char*)&data, 16);
-	}
-	*(uint128_t*)GetPtr(address) = data;
-	return MemoryResult::OK;
+	return Write(address, (char*)&data, 16);
 }
 
 MemoryResult CachedLegacyMemoryInterface::Read(Address addr, char* data, size_t len)
