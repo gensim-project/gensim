@@ -2,6 +2,7 @@
 
 #include "translate/llvm/LLVMOptimiser.h"
 #include "translate/llvm/LLVMAliasAnalysis.h"
+#include "translate/llvm/passes/LexicographicallyOrderBlocksPass.h"
 
 #include "util/SimOptions.h"
 #include "util/LogContext.h"
@@ -336,9 +337,12 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 		pm.add(llvm::createExternalAAWrapperPass([&](llvm::Pass &pass, llvm::Function &function, llvm::AAResults &results) {
 			results.addAAResult(*my_aa_);
 		}));
+
 	}
 
 	pm.add(new LLVMRegisterOptimisationPass());
+	pm.add(new LexicographicallyOrderBlocksPass());
+
 
 	pmp.populateModulePassManager(pm);
 

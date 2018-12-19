@@ -46,7 +46,7 @@ void TranslationWorkUnit::DumpGraph()
 	fprintf(f, "digraph a {\n");
 
 	for (auto block : blocks) {
-		fprintf(f, "B_%08x [color=%s,shape=Mrecord]\n", block.first, block.second->IsEntryBlock() ? "red" : "black");
+		fprintf(f, "B_%08x [color=%s,shape=Mrecord,label=\"B_%08x (%llu)\"]\n", block.first, block.second->IsEntryBlock() ? "red" : "black", block.first.Get(), block.second->GetInterpCount());
 
 		if (block.second->IsInterruptCheck())
 			fprintf(f, "B_%08x [fillcolor=yellow,style=filled]\n", block.second->GetOffset());
@@ -62,7 +62,7 @@ void TranslationWorkUnit::DumpGraph()
 
 TranslationBlockUnit *TranslationWorkUnit::AddBlock(profile::Block& block, bool entry)
 {
-	auto tbu = new TranslationBlockUnit(block.GetOffset(), block.GetISAMode(), entry);
+	auto tbu = new TranslationBlockUnit(block.GetOffset(), block.GetISAMode(), entry, block.GetInterpCount());
 	blocks[block.GetOffset()] = tbu;
 	return tbu;
 }
@@ -149,13 +149,14 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	return twu;
 }
 
-TranslationBlockUnit::TranslationBlockUnit(Address offset, uint8_t isa_mode, bool entry)
+TranslationBlockUnit::TranslationBlockUnit(Address offset, uint8_t isa_mode, bool entry, uint64_t interp_count)
 	:
 	offset(offset),
 	isa_mode(isa_mode),
 	entry(entry),
 	interrupt_check(false),
-	spanning(false)
+	spanning(false),
+	interp_count_(interp_count)
 {
 
 }

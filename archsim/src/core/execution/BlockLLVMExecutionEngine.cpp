@@ -194,7 +194,7 @@ llvm::Function* BlockLLVMExecutionEngine::translateToFunction(archsim::core::thr
 	auto pc_desc = thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
 
 	// construct a translationblockunit
-	archsim::translate::TranslationBlockUnit tbu (thread->GetPC(), 0, 1);
+	archsim::translate::TranslationBlockUnit tbu (thread->GetPC(), 0, 1, 0);
 
 	Address insn_pc = thread->GetPC();
 	Address block_start = insn_pc;

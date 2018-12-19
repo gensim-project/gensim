@@ -10,3 +10,5 @@ archsim_add_sources(
 	LLVMBlockTranslator.cpp
 	LLVMCompiler.cpp
 )
+
+ADD_SUBDIRECTORY(passes)
