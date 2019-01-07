@@ -15,7 +15,7 @@ if(CCACHE_PROGRAM)
 endif()
 
 # Enable tests if requested by the user
-SET(TESTING_ENABLED FALSE CACHE STRING "Should test programs be compiled?")
+SET(TESTING_ENABLED FALSE CACHE BOOL "Should test programs be compiled?")
 
 IF(TESTING_ENABLED)
 	ENABLE_TESTING()

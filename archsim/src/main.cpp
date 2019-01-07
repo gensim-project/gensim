@@ -37,7 +37,7 @@
 \t\tArchsim: The Edinburgh High Speed (EHS) Simulator\n \
 \t\t\tUniversity of Edinburgh (c) 2017\n \
 \t\t\t\tRevision : SCM_REV\n \
-\t\t\t\tConfiguration: CONFIGSTRING\n\n)
+\t\t\t\tConfiguration: ARCHSIM_CONFIGSTRING\n\n)
 
 
 #ifdef CONFIG_MEMTRACE
