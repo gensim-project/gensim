@@ -34,6 +34,7 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archs
 		((llvm::Instruction*)ptr)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_MEM_ACCESS)) }));
 	}
 	auto value = builder.CreateLoad(ptr);
+        value->setAlignment(1);
 
 	llvm::Function *trace_fn_ptr = nullptr;
 	switch(size_in_bytes) {
@@ -159,8 +160,9 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 		((llvm::IntToPtrInst*)ptr)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_MEM_ACCESS)) }));
 	}
 
-	builder.CreateStore(value, ptr);
-
+	auto store = builder.CreateStore(value, ptr);
+        store->setAlignment(1);
+        
 	llvm::Function *trace_fn_ptr = nullptr;
 	switch(size_in_bytes) {
 		case 1:
