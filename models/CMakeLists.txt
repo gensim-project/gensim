@@ -8,7 +8,7 @@ function(build_model target-name arch-name arch-file gensim-options)
 
 	SET(gensim-binary "$<TARGET_FILE:gensim>")
 	
-	SET(MODEL_${target-name}_ENABLED TRUE CACHE BOOLEAN "Should the ${target-name} Model be enabled?")
+	SET(MODEL_${target-name}_ENABLED TRUE CACHE BOOL "Should the ${target-name} Model be enabled?")
 	SET(DLL_PATH "${CMAKE_CURRENT_BINARY_DIR}/output/${arch-name}.dll")
 	SET(OUTPUT_DLL_PATH "${ARCHSIM_MODULE_DIRECTORY}/${arch-name}.dll")
 
