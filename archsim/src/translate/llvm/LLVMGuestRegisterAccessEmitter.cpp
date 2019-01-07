@@ -143,12 +143,15 @@ GEPLLVMGuestRegisterAccessEmitter::~GEPLLVMGuestRegisterAccessEmitter()
 
 llvm::Value* GEPLLVMGuestRegisterAccessEmitter::EmitRegisterRead(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index)
 {
-	return builder.CreateLoad(GetPointerToReg(builder, reg, index));
+    auto load = builder.CreateLoad(GetPointerToReg(builder, reg, index));
+    load->setAlignment(1);
+    return load;
 }
 
 void GEPLLVMGuestRegisterAccessEmitter::EmitRegisterWrite(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index, llvm::Value* value)
 {
-	builder.CreateStore(value, GetPointerToReg(builder, reg, index));
+    auto store = builder.CreateStore(value, GetPointerToReg(builder, reg, index));
+    store->setAlignment(1);
 }
 
 llvm::Value* GEPLLVMGuestRegisterAccessEmitter::GetPointerToReg(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg_view, llvm::Value* index)
