@@ -350,10 +350,8 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 	pm.add(llvm::createLowerExpectIntrinsicPass());
 
 	pm.add(llvm::createPromoteMemoryToRegisterPass());
-	pm.add(llvm::createInstructionCombiningPass(false));
 	pm.add(llvm::createJumpThreadingPass());
 	pm.add(llvm::createCFGSimplificationPass());
-	pm.add(llvm::createInstructionCombiningPass(false));
 	pm.add(llvm::createReassociatePass());
 
 	pm.add(llvm::createMemCpyOptPass());
@@ -364,7 +362,6 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 	pm.add(llvm::createSCCPPass());
 
 	pm.add(llvm::createBitTrackingDCEPass());
-	pm.add(llvm::createInstructionCombiningPass(false));
 	pm.add(llvm::createJumpThreadingPass());
 	pm.add(llvm::createDeadStoreEliminationPass());
 
