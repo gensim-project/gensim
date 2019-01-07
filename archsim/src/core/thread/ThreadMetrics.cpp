@@ -62,6 +62,7 @@ void ThreadMetricPrinter::PrintStats(const ArchDescriptor &arch, const ThreadMet
 	str << "Execution Rate: " << (metrics.InstructionCount.get_value() / 1000000.0) / metrics.SelfRuntime.GetElapsedS() << " MIPS" << std::endl;
 
 	str << "JIT Rate: " << (metrics.JITInstructionCount.get_value() / 1000000.0) / metrics.JITTime.GetElapsedS() << " MIPS" << std::endl;
+	str << "Interpreter Rate: " << ((metrics.InstructionCount.get_value() - metrics.JITInstructionCount.get_value()) / 1000000.0) / (metrics.SelfRuntime.GetElapsedS() - metrics.JITTime.GetElapsedS()) << " MIPS" << std::endl;
 
 	str << "Successful chains: " << metrics.JITSuccessfulChains.get_value() << std::endl;
 	str << "Failed chains: " << metrics.JITFailedChains.get_value() << std::endl;
