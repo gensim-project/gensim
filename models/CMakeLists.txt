@@ -2,6 +2,7 @@
 
 function(build_model target-name arch-name arch-file gensim-options)
 
+	SET(model-files ${ARGN})
 
 	SET(DLL_PATH "${CMAKE_CURRENT_BINARY_DIR}/output/${arch-name}.dll")
 	SET(OUTPUT_DLL_PATH "${ARCHSIM_MODULE_DIRECTORY}/${arch-name}.dll")
@@ -66,8 +67,6 @@ function(define_model target-name arch-name arch-file)
 	# include directories directory.
 	GET_PROPERTY(libtrace-includes GLOBAL PROPERTY LIBTRACE_INCLUDES)
 	GET_PROPERTY(archsim-includes GLOBAL PROPERTY ARCHSIM_INCLUDES)
-
-	SET(model-files ${ARGN})
 
 	# Some sort of weird bug with cmake if we try to get the interface
 	# include directories directory.
