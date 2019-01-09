@@ -93,6 +93,7 @@ DefineSetting(JIT, JitTranslationManager, "Selects the translation manager to us
 DefineSetting(JIT, JitEngine, "Selects the type of JIT engine to use", "llvm");
 DefineIntSetting(JIT, JitThreads, "Chooses the number of threads to employ for JIT compilation", 1);
 DefineSetting(JIT, JitInterruptScheme, "Selects the interrupt checking scheme to use when using the JIT", "full");
+DefineSetting(JIT, JitOptString, "Selects the optimisation passes to use with LLVM", "");
 DefineFlag(JIT, JitDisableAA, "Disables custom alias-analysis in the JIT", false);
 DefineIntSetting(JIT, JitHotspotThreshold, "Chooses the number of times a region must be profiled to become hot", 20);
 DefineIntSetting(JIT, JitProfilingInterval, "Chooses the number of basic-blocks to execute before considering regions for compilation", 30000);

@@ -61,6 +61,7 @@ DefineLongRequiredArgument(uint32_t, TickScale, "tick-scale");
 DefineLongRequiredArgument(std::string, JitInterruptScheme, "icp");
 DefineLongRequiredArgument(std::string, JitEngine, "engine");
 DefineLongRequiredArgument(uint32_t, JitThreads, "fast-num-threads");
+DefineLongRequiredArgument(std::string, JitOptString, "jit-opts");
 DefineLongRequiredArgument(std::string, Mode, "mode");
 DefineLongFlag(JitDisableAA, "no-aa");
 DefineLongFlag(JitDebugAA, "debug-aa");

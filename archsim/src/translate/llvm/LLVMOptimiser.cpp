@@ -332,48 +332,111 @@ bool LLVMOptimiser::Initialise(const ::llvm::DataLayout &datalayout)
 		my_aa_ = new ArchSimAA();
 	}
 
-	if(archsim::options::JitOptLevel == 4) {
+	if(archsim::options::JitOptLevel.GetValue() == 4) {
 		pm.add(new LLVMRegisterOptimisationPass());
 	}
 
-	if(!archsim::options::JitDisableAA) {
-		pm.add(llvm::createExternalAAWrapperPass([&](llvm::Pass &pass, llvm::Function &function, llvm::AAResults &results) {
-			results.addAAResult(*my_aa_);
-		}));
+	if(archsim::options::JitOptString.IsSpecified()) {
+		std::string str = archsim::options::JitOptString.GetValue();
+		for(int i = 0; i < str.size(); ++i) {
+			switch(str[i]) {
+				case 'N':
+					break; // nop
+				case 'a':
+					pm.add(llvm::createCFGSimplificationPass());
+					break;
+				case 'b':
+					pm.add(llvm::createEarlyCSEPass());
+					break;
+				case 'c':
+					pm.add(llvm::createLowerExpectIntrinsicPass());
+					break;
+				case 'd':
+					pm.add(llvm::createPromoteMemoryToRegisterPass());
+					break;
+				case 'e':
+					pm.add(llvm::createJumpThreadingPass());
+					break;
+				case 'f':
+					pm.add(llvm::createCFGSimplificationPass());
+				case 'g':
+					pm.add(llvm::createReassociatePass());
+					break;
+				case 'h':
+					pm.add(llvm::createMemCpyOptPass());
+					break;
+				case 'i':
+					pm.add(llvm::createSimpleLoopUnrollPass(2));
+					break;
+				case 'j':
+					pm.add(llvm::createLICMPass());
+					break;
+				case 'k':
+					pm.add(llvm::createSCCPPass());
+					break;
+				case 'l':
+					pm.add(llvm::createBitTrackingDCEPass());
+					break;
+				case 'm':
+					pm.add(llvm::createAggressiveDCEPass());
+					break;
+				case 'n':
+					pm.add(llvm::createCFGSimplificationPass(1, true, true, false, true));
+					break;
+				case 'o':
+					pm.add(llvm::createNewGVNPass());
+					break;
+				case 'p':
+					pm.add(llvm::createDeadStoreEliminationPass());
+					break;
+				case 'q':
+					pm.add(llvm::createInstructionCombiningPass(false));
+					break;
+				case 'r':
+					pm.add(llvm::createInstructionCombiningPass(true));
+					break;
+			}
+		}
+
+	} else {
+		if(!archsim::options::JitDisableAA) {
+			pm.add(llvm::createExternalAAWrapperPass([&](llvm::Pass &pass, llvm::Function &function, llvm::AAResults &results) {
+				results.addAAResult(*my_aa_);
+			}));
+		}
+
+		pm.add(llvm::createTypeBasedAAWrapperPass());
+		pm.add(llvm::createBasicAAWrapperPass());
+
+		pm.add(llvm::createCFGSimplificationPass());
+		pm.add(llvm::createEarlyCSEPass());
+		pm.add(llvm::createLowerExpectIntrinsicPass());
+
+		pm.add(llvm::createPromoteMemoryToRegisterPass());
+		pm.add(llvm::createJumpThreadingPass());
+		pm.add(llvm::createCFGSimplificationPass());
+		pm.add(llvm::createReassociatePass());
+
+		pm.add(llvm::createMemCpyOptPass());
+
+		pm.add(llvm::createSimpleLoopUnrollPass(2));   // Unroll small loops
+		pm.add(llvm::createLICMPass());
+
+		pm.add(llvm::createSCCPPass());
+
+		pm.add(llvm::createBitTrackingDCEPass());
+		pm.add(llvm::createJumpThreadingPass());
+		pm.add(llvm::createDeadStoreEliminationPass());
+
+		pm.add(llvm::createSCCPPass());
+		pm.add(llvm::createAggressiveDCEPass());
+		pm.add(llvm::createCFGSimplificationPass(1, true, true, false, true));
+
+		pm.add(llvm::createNewGVNPass());
+		pm.add(llvm::createDeadStoreEliminationPass());
+
+		pm.add(llvm::createInstructionCombiningPass(true));
 	}
-
-	pm.add(llvm::createTypeBasedAAWrapperPass());
-	pm.add(llvm::createBasicAAWrapperPass());
-
-	pm.add(llvm::createCFGSimplificationPass());
-	pm.add(llvm::createEarlyCSEPass());
-	pm.add(llvm::createLowerExpectIntrinsicPass());
-
-	pm.add(llvm::createPromoteMemoryToRegisterPass());
-	pm.add(llvm::createJumpThreadingPass());
-	pm.add(llvm::createCFGSimplificationPass());
-	pm.add(llvm::createReassociatePass());
-
-	pm.add(llvm::createMemCpyOptPass());
-
-	pm.add(llvm::createSimpleLoopUnrollPass(2));   // Unroll small loops
-	pm.add(llvm::createLICMPass());
-
-	pm.add(llvm::createSCCPPass());
-
-	pm.add(llvm::createBitTrackingDCEPass());
-	pm.add(llvm::createJumpThreadingPass());
-	pm.add(llvm::createDeadStoreEliminationPass());
-
-	pm.add(llvm::createSCCPPass());
-	pm.add(llvm::createAggressiveDCEPass());
-	pm.add(llvm::createCFGSimplificationPass(1, true, true, false, true));
-
-	pm.add(llvm::createNewGVNPass());
-	pm.add(llvm::createDeadStoreEliminationPass());
-
-	pm.add(llvm::createInstructionCombiningPass(true));
-
 	isInitialised = true;
 
 	return true;
