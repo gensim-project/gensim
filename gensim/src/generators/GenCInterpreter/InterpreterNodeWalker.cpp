@@ -168,7 +168,7 @@ namespace gensim
 					}
 					case SSACastStatement::Cast_Reinterpret:
 						return Statement.GetName();
-//						
+//
 //						switch (stmt.GetType().BaseType.PlainOldDataType) {
 //							case genc::IRPlainOldDataType::DOUBLE:
 //								return "(bitcast_u64_double(" + Factory.GetOrCreate(stmt.Expr())->GetFixedValue() + "))";
@@ -211,7 +211,7 @@ namespace gensim
 					output << "}";
 					return true;
 				}
-				
+
 				if(stmt.GetCastType() == SSACastStatement::Cast_Convert) {
 					auto option = stmt.GetOption();
 					std::stringstream str;
@@ -279,7 +279,7 @@ namespace gensim
 							str << "(" << stmt.GetType().GetCType() << ")(" << stmt.Constant.Int() << "ULL)";
 							break;
 						case genc::IRConstant::Type_Vector:
-							str << "archsim::Vector<" << gensim::genc::IRConstant::GetValueTypeName(stmt.Constant.VGet(0).Type()) << ", " << stmt.Constant.VSize() << ">({";
+							str << "archsim::Vector<" << stmt.GetType().GetElementType().GetCType() << ", " << stmt.Constant.VSize() << ">({";
 							for(unsigned i = 0; i < stmt.Constant.VSize(); ++i) {
 								if(i) {
 									str << ", ";
