@@ -441,41 +441,40 @@ execute(mulss) {
 	write_operand_sse_scalar32(inst.op0, uresult);
 }
 
-uint8 saturate_sw_ub(sint16 s)
+uint8[16] saturate_sw_ub(sint16[16] value)
 {
-	if(s > 0xff) { return 0xff; }
-	if(s < 0) { return 0; }
+	uint8[16] mask_1 = value > (sint16[16])0xff;
+	uint8[16] mask_0 = (value >= 0) & value;
 	
-	return s;
+	return (mask_1) | (mask_0);
 }
 
 execute(packuswb) {
 	uint16[8] op0 = read_xmm_u16(inst.op0);
 	uint16[8] op1 = read_xmm_u16(inst.op1);
+	sint16[16] temp;
 	
-	uint8[16] result = read_xmm_u8(inst.op0);
+	temp[0] = op0[0];
+	temp[1] = op0[1];
+	temp[2] = op0[2];
+	temp[3] = op0[3];
+	temp[4] = op0[4];
+	temp[5] = op0[5];
+	temp[6] = op0[6];
+	temp[7] = op0[7];
 	
-	result[0] = saturate_sw_ub(op0[0]);
-	result[1] = saturate_sw_ub(op0[1]);
-	result[2] = saturate_sw_ub(op0[2]);
-	result[3] = saturate_sw_ub(op0[3]);
+	temp[8] =  op1[0];
+	temp[9] =  op1[1];
+	temp[10] = op1[2];
+	temp[11] = op1[3];
+	temp[12] = op1[4];
+	temp[13] = op1[5];
+	temp[14] = op1[6];
+	temp[15] = op1[7];
 	
-	result[4] = saturate_sw_ub(op0[4]);
-	result[5] = saturate_sw_ub(op0[5]);
-	result[6] = saturate_sw_ub(op0[6]);
-	result[7] = saturate_sw_ub(op0[7]);
+	uint8[16] saturated = saturate_sw_ub(temp);
 	
-	result[8] = saturate_sw_ub(op1[0]);
-	result[9] = saturate_sw_ub(op1[1]);
-	result[10] = saturate_sw_ub(op1[2]);
-	result[11] = saturate_sw_ub(op1[3]);
-
-	result[12] = saturate_sw_ub(op1[4]);
-	result[13] = saturate_sw_ub(op1[5]);
-	result[14] = saturate_sw_ub(op1[6]);
-	result[15] = saturate_sw_ub(op1[7]);
-	
-	write_xmm_u8(inst.op0, result);
+	write_xmm_u8(inst.op0, saturated);
 }
 
 execute(paddb) {
