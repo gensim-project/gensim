@@ -23,6 +23,11 @@ tokens
   CAST;
   BITCAST;
 
+  VCONCATENATE = '::';
+
+  OBRACE = '{';
+  CBRACE = '}';
+
   GENC_ATTR_FIXED='fixed';  
   GENC_ATTR_SOMETIMES_FIXED='sometimes_fixed';
 
@@ -165,7 +170,7 @@ system_definition : 'system' '(' GENC_ID ')' body -> ^(SYSTEM GENC_ID body);
 
 //Statements
 
-body : '{' statement* '}' -> ^(BODY statement*);
+body : OBRACE statement* CBRACE -> ^(BODY statement*);
 
 statement : expression_statement | selection_statement | iteration_statement | flow_statement | body;
 
@@ -181,39 +186,45 @@ flow_statement :
   |('continue' ';' -> ^(CONTINUE))
   |('raise' ';' -> ^(RAISE))
   |('return' ';' -> ^(RETURN))
-  |('return' expression ';' -> ^(RETURN expression))
+  |('return' ternary_expression ';' -> ^(RETURN ternary_expression))
   ;
 
 iteration_statement : 
-   ('while' '(' expression ')' statement -> ^(WHILE expression statement))
+   ('while' '(' ternary_expression ')' statement -> ^(WHILE ternary_expression statement))
   |('do' statement 'while' '(' expression ')' -> ^(DO statement expression))
-  |('for' '(' pre=expression ';' check=expression ';' post=expression? ')' statement -> ^(FOR $pre $check $post statement))
+  |('for' '(' pre=expression ';' check=ternary_expression ';' post=ternary_expression? ')' statement -> ^(FOR $pre $check $post statement))
   ;
 
 selection_statement : 
 	if_statement | switch_statement;
 
 if_statement
-	:	 'if' '(' expression ')' statement (options { greedy=true; }: 'else' statement)? -> ^(IF expression statement statement?);
+	:	 'if' '(' ternary_expression ')' statement (options { greedy=true; }: 'else' statement)? -> ^(IF ternary_expression statement statement?);
 	 
 switch_statement
-	:	  'switch' '(' expression ')' body -> ^(SWITCH expression body);
+	:	  'switch' '(' ternary_expression ')' body -> ^(SWITCH ternary_expression body);
 
 
 // Expressions
 
 expression: 
    declaration_expression
- | ternary_expression (assignment_operator^ ternary_expression)?;
+ | left_expression (assignment_operator^ ternary_expression)?;
+
+left_expression: GENC_ID | call_expression | left_index_expression;
+
+left_index_expression : GENC_ID '[' ternary_expression ']' -> ^(POSTFIX GENC_ID ^(IDX ^(IDX_ELEM ternary_expression)));
 
 constant_expr: log_or_expression; 
 
-argument_list: (expression (','! expression )*)?;
+argument_list: (ternary_expression (','! ternary_expression )*)?;
 
 constant: HEX_VAL | INT_CONST | FLOAT_CONST;
 
+vector_expression: OBRACE ternary_expression (',' ternary_expression)* CBRACE -> ^(VECTOR ternary_expression*);
+
 primary_expression:
-  call_expression | GENC_ID | constant | '('! expression ')'!;
+  call_expression | GENC_ID | vector_expression | constant | '('! ternary_expression ')'!;
 
 call_expression:
   GENC_ID '(' argument_list ')' -> ^(CALL GENC_ID argument_list);
@@ -229,7 +240,7 @@ postfix_expression:
     | primary_expression;
 
 index_expression
-	: expression -> ^(IDX_ELEM expression)
+	: ternary_expression -> ^(IDX_ELEM ternary_expression)
 	| F=constant ':' T=constant -> ^(IDX_BITS $F $T);
 
 postfix_operator:
@@ -294,7 +305,10 @@ add_expression:
    mult_expression (('+'^ | '-'^) mult_expression)*;
 
 mult_expression:
-   cast_expression (('*'^|'/'^|'%'^) cast_expression)*;
+   concat_expression (('*'^|'/'^|'%'^) concat_expression)*;
+
+concat_expression:
+	cast_expression (VCONCATENATE^ cast_expression)*;
 
 cast_expression:
   ('(' type ')') => '('type')' cast_expression -> ^(CAST type cast_expression)

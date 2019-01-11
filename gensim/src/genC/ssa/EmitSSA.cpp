@@ -200,6 +200,14 @@ SSAStatement *IRBinaryExpression::EmitSSAForm(SSABuilder &bldr) const
 			return shift_statement;
 		}
 
+		case VConcatenate: {
+			// emit a concatenating vector shuffle
+			SSAStatement *left = Left->EmitSSAForm(bldr);
+			SSAStatement *right = Right->EmitSSAForm(bldr);
+
+			return SSAVectorShuffleStatement::Concatenate(left, right);
+		}
+
 		case Bitwise_Or:
 		case Bitwise_And:
 		case Bitwise_XOR:
@@ -332,7 +340,7 @@ SSAStatement *IRBinaryExpression::EmitSSAForm(SSABuilder &bldr) const
 
 						return stmt;
 					}
-					case BitSequence: {
+					case Sequence: {
 						IRVariableExpression *variable = dynamic_cast<IRVariableExpression*> (var->BaseExpression);
 						assert(variable);
 
@@ -491,18 +499,40 @@ SSAStatement *IRUnaryExpression::EmitSSAForm(SSABuilder &bldr) const
 			return stmt;
 		}
 
-		case BitSequence: {
-			IRVariableExpression *variable = dynamic_cast<IRVariableExpression*> (BaseExpression);
-			assert(variable);
+		case Sequence: {
+			// if the base expression is a scalar, emit a bit extraction. otherwise, emit a vector shuffle
 
 			SSAStatement *baseStatement = BaseExpression->EmitSSAForm(bldr);
 			SSAStatement *faeStatement = Arg->EmitSSAForm(bldr);
 			SSAStatement *taeStatement = Arg2->EmitSSAForm(bldr);
 
-			SSAStatement *bit_extract = new SSABitExtractStatement(&bldr.GetBlock(), baseStatement, faeStatement, taeStatement);
-			bit_extract->SetDiag(Diag());
+			if(baseStatement->GetType().VectorWidth == 1) {
+				SSAStatement *bit_extract = new SSABitExtractStatement(&bldr.GetBlock(), baseStatement, faeStatement, taeStatement);
+				bit_extract->SetDiag(Diag());
 
-			return bit_extract;
+				return bit_extract;
+			} else {
+				// arg and arg2 must be constant
+				SSAConstantStatement *start = dynamic_cast<SSAConstantStatement*>(faeStatement);
+				SSAConstantStatement *end   = dynamic_cast<SSAConstantStatement*>(taeStatement);
+
+				GASSERT(start != nullptr && end != nullptr);
+				int start_constant = start->Constant.Int();
+				int end_constant = end->Constant.Int();
+				int result_len = end->Constant.Int() - start->Constant.Int();
+
+				IRType indices_type = IRType::Vector(IRTypes::UInt32, result_len);
+				IRConstant indices_constant = IRConstant::Vector(result_len, IRConstant::Integer(0));
+				for(int i = 0; i < result_len; ++i) {
+					indices_constant.VPut(i, IRConstant::Integer(start_constant + i));
+				}
+
+				SSAConstantStatement *indices = new SSAConstantStatement(&bldr.GetBlock(), indices_constant, indices_type);
+
+				SSAStatement *shuffle = new SSAVectorShuffleStatement(&bldr.GetBlock(), baseStatement, baseStatement, indices);
+				shuffle->SetDiag(Diag());
+				return shuffle;
+			}
 		}
 		default: {
 			assert(false && "Unary operator unimplemented");
@@ -598,7 +628,7 @@ SSAStatement *IRCastExpression::EmitSSAForm(SSABuilder &bldr) const
 	IRConstExpression *const_stmt = dynamic_cast<IRConstExpression*> (Expr);
 	if (const_stmt != nullptr) {
 		if (!const_stmt->Type.IsFloating() && !ToType.IsFloating()) {
-			SSAConstantStatement *stmt = new SSAConstantStatement(&bldr.GetBlock(), IRType::Cast(const_stmt->Value, const_stmt->Type, ToType), ToType);
+			SSAConstantStatement *stmt = new SSAConstantStatement(&bldr.GetBlock(), IRType::Cast(const_stmt->GetValue(), const_stmt->Type, ToType), ToType);
 			stmt->SetDiag(Diag());
 			return stmt;
 		}
@@ -650,10 +680,129 @@ SSAStatement *IRCastExpression::EmitSSAForm(SSABuilder &bldr) const
 
 SSAStatement *IRConstExpression::EmitSSAForm(SSABuilder &bldr) const
 {
-	auto stmt = new SSAConstantStatement(&bldr.GetBlock(), Value, Type);
+	auto stmt = new SSAConstantStatement(&bldr.GetBlock(), GetValue(), Type);
 	stmt->SetDiag(Diag());
 
 	return stmt;
+}
+
+struct CanShuffleResult {
+	bool CanBeShuffle;
+	const IRSymbol *Sym1;
+	const IRSymbol *Sym2;
+	std::vector<int> Indices;
+};
+CanShuffleResult ShouldBeShuffle(const IRVectorExpression *expr)
+{
+	// A vector expression can be lowered to a shuffle if:
+	// 1. every element of the expression is a vector extraction from a variable
+	// 2. no more than two vector variables are referenced
+
+	const IRSymbol *s1 = nullptr;
+	const IRSymbol *s2 = nullptr;
+
+	CanShuffleResult result;
+	result.CanBeShuffle = false;
+
+	for(auto element : expr->GetElements()) {
+		// element must be a unary expression
+		IRUnaryExpression *unary = dynamic_cast<IRUnaryExpression*>(element);
+		if(unary == nullptr) {
+			return result;
+		}
+
+		// element must be an index expression
+		if(unary->Type != IRUnaryOperator::Index) {
+			return result;
+		}
+
+		// expression must have a variable as its base
+		IRVariableExpression *base = dynamic_cast<IRVariableExpression*>(unary->BaseExpression);
+		if(base == nullptr) {
+			return result;
+		}
+
+		// expression must have a constant as its index
+		IRConstExpression *constant = dynamic_cast<IRConstExpression*>(unary->Arg);
+		if(constant == nullptr) {
+			return result;
+		}
+
+		const IRSymbol *sym = base->Symbol;
+
+		if(s1 == nullptr) {
+			s1 = sym;
+		} else if(s2 == nullptr) {
+			s2 = sym;
+		} else if(s1 != sym && s2 != sym) {
+			return result;
+		}
+
+		if(sym == s1) {
+			result.Indices.push_back(constant->GetValue().Int());
+		} else if(sym == s2) {
+			result.Indices.push_back(constant->GetValue().Int() + s1->Type.VectorWidth);
+		} else {
+			UNEXPECTED;
+		}
+	}
+
+	result.Sym1 = s1;
+	result.Sym2 = s2;
+	result.CanBeShuffle = true;
+	return result;
+}
+
+SSAStatement *IRVectorExpression::EmitSSAForm(ssa::SSABuilder& bldr) const
+{
+	// We can do two things here:
+	// 1. if two or less distinct vector inputs are referenced, create a vector shuffle of those two vectors
+	// 2. otherwise, create a sequence of vector insertions
+
+	CanShuffleResult can_shuffle = ShouldBeShuffle(this);
+
+	if(can_shuffle.CanBeShuffle) {
+		if(can_shuffle.Sym2 == nullptr) {
+			can_shuffle.Sym2 = can_shuffle.Sym1;
+		}
+
+		SSAVariableReadStatement *sym1 = new SSAVariableReadStatement(&bldr.GetBlock(), bldr.GetSymbol(can_shuffle.Sym1));
+		sym1->SetDiag(Diag());
+		SSAVariableReadStatement *sym2 = new SSAVariableReadStatement(&bldr.GetBlock(), bldr.GetSymbol(can_shuffle.Sym1));
+		sym2->SetDiag(Diag());
+
+		int indices_width = can_shuffle.Indices.size();
+
+		IRConstant indices_constant = IRConstant::Vector(indices_width, IRConstant::Integer(0));
+		IRType indices_type = IRType::Vector(IRTypes::UInt32, indices_width);
+
+		for(int i = 0; i < indices_width; ++i) {
+			indices_constant.VPut(i, IRConstant::Integer(can_shuffle.Indices.at(i)));
+		}
+
+		SSAConstantStatement *indices_statement = new SSAConstantStatement(&bldr.GetBlock(), indices_constant, indices_type);
+
+		SSAVectorShuffleStatement *shuffle = new SSAVectorShuffleStatement(&bldr.GetBlock(), sym1, sym2, indices_statement);
+
+		shuffle->SetDiag(Diag());
+		return shuffle;
+
+	} else {
+		// figure out correct type
+		IRType vtype = elements_.at(0)->EvaluateType();
+		vtype.VectorWidth = elements_.size();
+
+		IRConstant default_element = IRConstant::GetDefault(vtype.GetElementType());
+
+		IRConstant empty_vector = IRConstant::Vector(vtype.VectorWidth, default_element);
+		SSAStatement *vector = new SSAConstantStatement(&bldr.GetBlock(), empty_vector, vtype);
+
+		for(int i = 0; i < vtype.VectorWidth; ++i) {
+			vector = new SSAVectorInsertElementStatement(&bldr.GetBlock(), vector, new SSAConstantStatement(&bldr.GetBlock(), IRConstant::Integer(i), IRTypes::UInt64), elements_.at(i)->EmitSSAForm(bldr));
+		}
+
+		return vector;
+	}
 }
 
 SSAStatement *EmptyExpression::EmitSSAForm(SSABuilder &bldr) const

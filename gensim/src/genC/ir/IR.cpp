@@ -13,6 +13,10 @@ namespace gensim
 {
 	namespace genc
 	{
+		IRVectorExpression::~IRVectorExpression()
+		{
+
+		}
 
 /////////////////////////////////////////////////////////////
 // Constructors
@@ -52,6 +56,17 @@ namespace gensim
 /////////////////////////////////////////////////////////////
 // Resolve Pass
 /////////////////////////////////////////////////////////////
+		bool IRVectorExpression::Resolve(GenCContext& Context)
+		{
+			bool success = true;
+			for(auto i : elements_) {
+				success &= i->Resolve(Context);
+			}
+
+			Resolved = success;
+			return success;
+		}
+
 
 		bool IRSelectionStatement::Resolve(GenCContext &Context)
 		{
@@ -148,7 +163,7 @@ namespace gensim
 
 			// If the user gives a parameter which is a constant and is too large to fit within the parameter, signal an error
 			if(IRConstExpression * constant = dynamic_cast<IRConstExpression*>(givenParameter)) {
-				if(constant->Value.Int() > paramType.GetMaxValue()) {
+				if(constant->GetValue().Int() > paramType.GetMaxValue()) {
 					std::string errstring = Format("In call to %s, parameter %u: Constant value is to large to fit in parameter type %s", TargetName.c_str(), idx, givenType.PrettyPrint().c_str());
 					Context.Diag().Error(errstring, Diag());
 
@@ -315,7 +330,7 @@ namespace gensim
 					case Index:
 						if(!Arg->Resolve(Context)) return false;
 						break;
-					case BitSequence:
+					case Sequence:
 						if(!Arg->Resolve(Context)) return false;
 						if(!Arg2->Resolve(Context)) return false;
 						break;
@@ -536,6 +551,12 @@ namespace gensim
 // Type Evaluation
 /////////////////////////////////////////////////////////////
 
+		const IRType IRVectorExpression::EvaluateType()
+		{
+			GASSERT(!elements_.empty());
+			return elements_.at(0)->EvaluateType();
+		}
+
 		const IRType IRCallExpression::EvaluateType()
 		{
 			return Target->GetSignature().GetType();
@@ -592,7 +613,7 @@ namespace gensim
 					type.VectorWidth = 1;
 					return type;
 				}
-				case BitSequence:	{
+				case Sequence:	{
 					IRType type = BaseExpression->EvaluateType();
 					type.VectorWidth = 1;
 					return type;

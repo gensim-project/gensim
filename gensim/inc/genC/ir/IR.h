@@ -282,14 +282,18 @@ namespace gensim
 		{
 		public:
 			const IRType Type;
-			IRConstant Value;
 
-			IRConstExpression(IRScope &scope, const IRType &type, IRConstant value) : IRExpression(scope), Type(type), Value()
+			IRConstExpression(IRScope &scope, const IRType &type, IRConstant value) : IRExpression(scope), Type(type), value_()
 			{
 				if(IRType::Cast(value, type, type) != value) {
 					throw std::logic_error("Given type cannot store given value");
 				}
-				Value = value;
+				value_ = value;
+			}
+
+			const IRConstant &GetValue() const
+			{
+				return value_;
 			}
 
 			virtual bool Resolve(GenCContext &Context);
@@ -301,6 +305,39 @@ namespace gensim
 			{
 				return true;
 			}
+
+		private:
+			IRConstant value_;
+
+		};
+
+		class IRVectorExpression : public IRExpression
+		{
+		public:
+			IRVectorExpression(IRScope &scope, std::vector<IRExpression*> elements) : IRExpression(scope), elements_(elements) {}
+			~IRVectorExpression();
+
+			bool Resolve(GenCContext& Context) override;
+			ssa::SSAStatement* EmitSSAForm(ssa::SSABuilder& bldr) const override;
+			void PrettyPrint(std::ostringstream& out) const override;
+
+			const IRType EvaluateType() override;
+
+			bool IsTrivial() const override
+			{
+				return false;
+			}
+			std::vector<IRExpression*> &GetElements()
+			{
+				return elements_;
+			}
+			const std::vector<IRExpression*> &GetElements() const
+			{
+				return elements_;
+			}
+
+		private:
+			std::vector<IRExpression*> elements_;
 		};
 
 		class IRDefineExpression : public IRExpression

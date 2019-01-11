@@ -600,6 +600,12 @@ void SSAInterpreterStatementVisitor::VisitVectorInsertElementStatement(SSAVector
 	_vmstate.SetResult(InterpretResult::Interpret_Normal);
 }
 
+void SSAInterpreterStatementVisitor::VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt)
+{
+	UNIMPLEMENTED;
+}
+
+
 void SSAInterpreterStatementVisitor::VisitBitDepositStatement(SSABitDepositStatement& stmt)
 {
 	UNIMPLEMENTED;

@@ -178,6 +178,10 @@ public:
 	{
 		_clone_context.add(&stmt, new SSAVectorInsertElementStatement(_block, _clone_context.get(stmt.Base()), _clone_context.get(stmt.Index()), _clone_context.get(stmt.Value())));
 	}
+	void VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt) override
+	{
+		_clone_context.add(&stmt, new SSAVectorShuffleStatement(_block, _clone_context.get(stmt.LHS()), _clone_context.get(stmt.RHS()), _clone_context.get(stmt.Indices())));
+	}
 
 	void VisitBitDepositStatement(SSABitDepositStatement& stmt) override
 	{

@@ -452,26 +452,8 @@ uint8[16] saturate_sw_ub(sint16[16] value)
 execute(packuswb) {
 	uint16[8] op0 = read_xmm_u16(inst.op0);
 	uint16[8] op1 = read_xmm_u16(inst.op1);
-	sint16[16] temp;
-	
-	temp[0] = op0[0];
-	temp[1] = op0[1];
-	temp[2] = op0[2];
-	temp[3] = op0[3];
-	temp[4] = op0[4];
-	temp[5] = op0[5];
-	temp[6] = op0[6];
-	temp[7] = op0[7];
-	
-	temp[8] =  op1[0];
-	temp[9] =  op1[1];
-	temp[10] = op1[2];
-	temp[11] = op1[3];
-	temp[12] = op1[4];
-	temp[13] = op1[5];
-	temp[14] = op1[6];
-	temp[15] = op1[7];
-	
+	sint16[16] temp = op0 :: op1;
+		
 	uint8[16] saturated = saturate_sw_ub(temp);
 	
 	write_xmm_u8(inst.op0, saturated);
@@ -638,24 +620,7 @@ execute(punpcklbw) {
 		uint8[16] op0 = read_xmm_u8(inst.op0);
 		uint8[16] op1 = read_xmm_u8(inst.op1);
 		
-		uint8[16] dest;
-		dest[0] = op0[0];
-		dest[1] = op1[0];
-		dest[2] = op0[1];
-		dest[3] = op1[1];
-		dest[4] = op0[2];
-		dest[5] = op1[2];
-		dest[6] = op0[3];
-		dest[7] = op1[3];
-		dest[8] = op0[4];
-		dest[9] = op1[4];
-		dest[10] = op0[5];
-		dest[11] = op1[5];
-		dest[12] = op0[6];
-		dest[13] = op1[6];
-		dest[14] = op0[7];
-		dest[15] = op1[7];
-		
+		uint8[16] dest = { op0[0], op1[0], op0[1], op1[1], op0[2], op1[2], op0[3], op1[3], op0[4], op1[4], op0[5], op1[5], op0[6], op1[6], op0[7], op1[7] };
 		write_xmm_u8(inst.op0, dest);
 	}
 }
@@ -669,15 +634,7 @@ execute(punpcklwd) {
 		uint16[8] op0 = read_xmm_u16(inst.op0);
 		uint16[8] op1 = read_xmm_u16(inst.op1);
 		
-		uint16[8] dest;
-		dest[0] = op0[0];
-		dest[1] = op1[0];
-		dest[2] = op0[1];
-		dest[3] = op1[1];
-		dest[4] = op0[2];
-		dest[5] = op1[2];
-		dest[6] = op0[3];
-		dest[7] = op1[3];
+		uint16[8] dest = {op0[0], op1[0], op0[1], op1[1], op0[2], op1[2], op0[3], op1[3] };
 		write_xmm_u16(inst.op0, dest);
 	}
 }
@@ -691,11 +648,7 @@ execute(punpckldq) {
 		uint32[4] op0 = read_xmm_u32(inst.op0);
 		uint32[4] op1 = read_xmm_u32(inst.op1);
 		
-		uint32[4] dest;
-		dest[0] = op0[0];
-		dest[1] = op1[0];
-		dest[2] = op0[1];
-		dest[3] = op1[1];
+		uint32[4] dest = {op0[0], op1[0], op0[1], op1[1]};
 		
 		write_xmm_u32(inst.op0, dest);
 	}
@@ -708,9 +661,7 @@ execute(punpckhqdq) {
 		uint64[2] op0 = read_xmm_u64(inst.op0);
 		uint64[2] op1 = read_xmm_u64(inst.op1);
 		
-		uint64[2] dest;
-		dest[0] = op0[1];
-		dest[1] = op1[1];
+		uint64[2] dest = { op0[1], op1[1] };
 		write_xmm_u64(inst.op0, dest);
 	}
 }
@@ -722,11 +673,7 @@ execute(punpckhdq) {
 		uint32[4] op0 = read_xmm_u32(inst.op0);
 		uint32[4] op1 = read_xmm_u32(inst.op1);
 		
-		uint32[4] dest;
-		dest[0] = op0[2];
-		dest[1] = op1[2];
-		dest[2] = op0[3];
-		dest[3] = op1[3];
+		uint32[4] dest = {op0[2], op1[2], op0[3], op1[3]};
 		
 		write_xmm_u32(inst.op0, dest);
 	}
@@ -741,15 +688,7 @@ execute(punpckhwd) {
 		uint16[8] op0 = read_xmm_u16(inst.op0);
 		uint16[8] op1 = read_xmm_u16(inst.op1);
 		
-		uint16[8] dest;
-		dest[0] = op0[4];
-		dest[1] = op1[4];
-		dest[2] = op0[5];
-		dest[3] = op1[5];
-		dest[4] = op0[6];
-		dest[5] = op1[6];
-		dest[6] = op0[7];
-		dest[7] = op1[7];
+		uint16[8] dest = { op0[4], op1[4], op0[5], op1[5], op0[6], op1[6], op0[7], op1[7] };
 		write_xmm_u16(inst.op0, dest);
 	}
 }

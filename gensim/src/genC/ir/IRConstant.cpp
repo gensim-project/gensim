@@ -1,6 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "genC/ir/IRConstant.h"
+#include "genC/ir/IRType.h"
 #include <functional>
 
 using namespace gensim::genc;
@@ -40,6 +41,40 @@ IRConstant::IRConstant(const IRConstant& other) : type_(other.type_), integer_(o
 			// nothing extra to do
 			break;
 	}
+}
+
+IRConstant IRConstant::GetDefault(const gensim::genc::IRType& type)
+{
+	GASSERT(type.VectorWidth == 1);
+	GASSERT(type.IsStruct() == 0);
+
+	switch(type.BaseType.PlainOldDataType) {
+			using namespace gensim::genc;
+		case IRPlainOldDataType::VOID:
+			UNIMPLEMENTED;
+			break;
+		case IRPlainOldDataType::FLOAT:
+			return IRConstant::Float(0);
+		case IRPlainOldDataType::DOUBLE:
+			return IRConstant::Double(0);
+
+		case IRPlainOldDataType::INT1:
+			return IRConstant::Integer(0);
+		case IRPlainOldDataType::INT8:
+			return IRConstant::Integer(0);
+		case IRPlainOldDataType::INT16:
+			return IRConstant::Integer(0);
+		case IRPlainOldDataType::INT32:
+			return IRConstant::Integer(0);
+		case IRPlainOldDataType::INT64:
+			return IRConstant::Integer(0);
+		case IRPlainOldDataType::INT128:
+			return IRConstant::Integer(0);
+
+		default:
+			UNIMPLEMENTED;
+	}
+	return IRConstant::Integer(0);
 }
 
 IRConstant & IRConstant::operator=(const IRConstant& other)

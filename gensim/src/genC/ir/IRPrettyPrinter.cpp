@@ -174,7 +174,7 @@ namespace gensim
 					Arg->PrettyPrint(out);
 					out << "]";
 					break;
-				case BitSequence:
+				case Sequence:
 					out << "[";
 					Arg->PrettyPrint(out);
 					out << ":";
@@ -220,12 +220,17 @@ namespace gensim
 			Expr->PrettyPrint(out);
 		}
 
+		void IRVectorExpression::PrettyPrint(std::ostringstream& out) const
+		{
+			out << "{}";
+		}
+
 		void IRConstExpression::PrettyPrint(std::ostringstream &out) const
 		{
 			if (Type.BaseType.PlainOldDataType > IRPlainOldDataType::INT64)
-				out << "(" << Value.Dbl() << " : ";
+				out << "(" << GetValue().Dbl() << " : ";
 			else
-				out << "(" << Value.Int() << " : ";
+				out << "(" << GetValue().Int() << " : ";
 			Type.PrettyPrint(out);
 			out << ")";
 		}

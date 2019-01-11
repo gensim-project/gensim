@@ -60,7 +60,7 @@ bool FBScreen::Initialise()
 
 bool FBScreen::Reset()
 {
-
+	return false;
 }
 
 void FBScreen::run()
