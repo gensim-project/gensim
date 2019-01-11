@@ -26,4 +26,5 @@ TARGET_ADD_SOURCES(gensim-lib
 	SSAVariableWriteStatement.cpp
 	SSAVectorExtractElementStatement.cpp
 	SSAVectorInsertElementStatement.cpp
+	SSAVectorShuffleStatement.cpp
 )

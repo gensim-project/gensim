@@ -192,6 +192,7 @@ namespace gensim
 			bool Parse_Helper(pANTLR3_BASE_TREE Behaviour);
 			bool Parse_Behaviour(pANTLR3_BASE_TREE Action);
 			bool Parse_Execute(pANTLR3_BASE_TREE Execute);
+			bool Parse_Vector(pANTLR3_BASE_TREE Execute);
 
 			uint64_t Parse_ConstantInt(pANTLR3_BASE_TREE node);
 

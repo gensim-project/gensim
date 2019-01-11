@@ -176,6 +176,16 @@ namespace archsim
 
 	};
 
+	template<typename ElementT, unsigned Width1, unsigned Width2, unsigned Width3> static Vector<ElementT, Width3> VectorShuffle(const Vector<ElementT, Width1> &v1, const Vector<ElementT, Width2> &v2, const Vector<uint32_t, Width3> &indices)
+	{
+		Vector<ElementT, Width3> output;
+		for(int i = 0; i < Width3; ++i) {
+			uint32_t index = indices.ExtractElement(i);
+			const ElementT element = index < Width1 ? v1.ExtractElement(index) : v2.ExtractElement(index - Width1);
+			output.InsertElement(i, element);
+		}
+		return output;
+	}
 }
 
 #define OPERATE(op) \

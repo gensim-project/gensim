@@ -503,6 +503,10 @@ public:
 	{
 		str_ << Header(stmt) << " = vinsert " << stmt.Base()->GetName() << "[" << stmt.Index()->GetName() << "] " << stmt.Value()->GetName() << ";";
 	}
+	void VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt) override
+	{
+		str_ << Header(stmt) << " = vshuffle " << stmt.LHS()->GetName() << " " << stmt.RHS()->GetName() << " " << stmt.Indices()->GetName() << ";";
+	}
 
 	virtual ~StatementDisassemblerVisitor()
 	{

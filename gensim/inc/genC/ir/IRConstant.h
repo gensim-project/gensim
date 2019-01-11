@@ -14,6 +14,7 @@ namespace gensim
 {
 	namespace genc
 	{
+		class IRType;
 		class IRStructMap;
 
 		class IRConstant
@@ -42,6 +43,8 @@ namespace gensim
 					delete vector_;
 				}
 			}
+
+			static IRConstant GetDefault(const gensim::genc::IRType &type);
 
 			static IRConstant Integer(uint64_t i)
 			{

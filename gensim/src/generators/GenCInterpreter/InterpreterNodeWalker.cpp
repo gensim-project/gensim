@@ -1004,6 +1004,27 @@ namespace gensim
 
 		};
 
+		class SSAVectorShuffleStatementWalker : public SSAGenCWalker
+		{
+		public:
+			SSAVectorShuffleStatementWalker(const SSAStatement &_statement, SSAWalkerFactory &_factory) : SSAGenCWalker(_statement, _factory)
+			{
+			}
+
+			bool EmitFixedCode(util::cppformatstream& output, std::string end_label, bool fully_fixed) const override
+			{
+				const SSAVectorShuffleStatement &stmt = (const SSAVectorShuffleStatement&)(Statement);
+
+				output << stmt.GetType().GetCType() << " " << stmt.GetName () << " = archsim::VectorShuffle(" <<
+				       Factory.GetOrCreate(stmt.LHS())->GetFixedValue() << ", " <<
+				       Factory.GetOrCreate(stmt.RHS())->GetFixedValue() << ", " <<
+				       Factory.GetOrCreate(stmt.Indices())->GetFixedValue() <<
+				       ");";
+				return true;
+			}
+
+		};
+
 	}
 
 #define STMT_IS(x) std::type_index(typeid(genc::ssa::x)) == std::type_index(typeid(*stmt))
@@ -1033,6 +1054,7 @@ namespace gensim
 		HANDLE(SSAUnaryArithmeticStatement);
 		HANDLE(SSAVectorExtractElementStatement);
 		HANDLE(SSAVectorInsertElementStatement);
+		HANDLE(SSAVectorShuffleStatement);
 		HANDLE(SSACallStatement);
 		assert(false && "Unrecognized statement type");
 		return NULL;

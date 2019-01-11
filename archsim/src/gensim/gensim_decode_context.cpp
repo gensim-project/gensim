@@ -62,7 +62,12 @@ uint32_t CachedDecodeContext::DecodeSync(archsim::MemoryInterface& mem_interface
 			target = *cache_ptr;
 			target->Acquire();
 			return 0;
+
+		default:
+			UNEXPECTED;
 	}
+
+
 }
 
 void CachedDecodeContext::Reset(archsim::core::thread::ThreadInstance* thread)

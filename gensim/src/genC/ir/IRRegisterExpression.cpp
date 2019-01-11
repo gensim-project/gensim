@@ -175,9 +175,9 @@ bool IRRegisterBankReadExpression::Resolve(GenCContext &Context)
 	const arch::RegBankViewDescriptor*rbv = &GetScope().GetContainingAction().Context.Arch.GetRegFile().GetBankByIdx(bank_idx);
 
 	IRConstExpression *idx;
-	if((idx = dynamic_cast<IRConstExpression*>(Args[1])) && (idx->Value.Int() >= rbv->GetRegisterCount())) {
+	if((idx = dynamic_cast<IRConstExpression*>(Args[1])) && (idx->GetValue().Int() >= rbv->GetRegisterCount())) {
 		std::ostringstream str;
-		str << "Read of register index " << idx->Value.Int() << " exceeds register count of bank view "<< rbv->ID;
+		str << "Read of register index " << idx->GetValue().Int() << " exceeds register count of bank view "<< rbv->ID;
 		Context.Diag().Error(str.str(), Diag());
 		success = false;
 	}
@@ -253,9 +253,9 @@ bool IRRegisterBankWriteExpression::Resolve(GenCContext &Context)
 	const arch::RegBankViewDescriptor*rbv = &GetScope().GetContainingAction().Context.Arch.GetRegFile().GetBankByIdx(bank_idx);
 
 	IRConstExpression *idx;
-	if((idx = dynamic_cast<IRConstExpression*>(Args[1])) && (idx->Value.Int() >= rbv->GetRegisterCount())) {
+	if((idx = dynamic_cast<IRConstExpression*>(Args[1])) && (idx->GetValue().Int() >= rbv->GetRegisterCount())) {
 		std::ostringstream str;
-		str << "Read of register index " << idx->Value.Int() << " exceeds register count of bank view "<< rbv->ID;
+		str << "Read of register index " << idx->GetValue().Int() << " exceeds register count of bank view "<< rbv->ID;
 		Context.Diag().Error(str.str(), Diag());
 		success = false;
 	}

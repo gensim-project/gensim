@@ -1678,6 +1678,33 @@ namespace gensim
 				}
 			};
 
+			class SSAVectorShuffleStatementWalker : public SSANodeWalker
+			{
+			public:
+				SSAVectorShuffleStatementWalker(const SSAStatement &stmt, SSAWalkerFactory *_fact) : SSANodeWalker(stmt, *_fact) {}
+
+				bool EmitDynamicCode(util::cppformatstream& output, std::string end_label, bool fully_fixed) const override
+				{
+					const SSAVectorShuffleStatement *stmt = dynamic_cast<const SSAVectorShuffleStatement*>(&Statement);
+					output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateShuffleVector(" <<
+					       Factory.GetOrCreate(stmt->LHS())->GetDynamicValue() << ", " <<
+					       Factory.GetOrCreate(stmt->RHS())->GetDynamicValue() << ", " <<
+					       Factory.GetOrCreate(stmt->Indices())->GetDynamicValue() <<
+					       ");";
+
+					return true;
+				}
+
+				bool EmitFixedCode(util::cppformatstream& output, std::string end_label, bool fully_fixed) const override
+				{
+					output << Statement.GetType().GetCType() << " " << Statement.GetName() << ";";
+					output << "UNIMPLEMENTED;";
+					return true;
+				}
+
+
+			};
+
 		}
 	}
 
@@ -1707,6 +1734,7 @@ namespace gensim
 		HANDLE(SSAVariableWriteStatement);
 		HANDLE(SSAVectorExtractElementStatement);
 		HANDLE(SSAVectorInsertElementStatement);
+		HANDLE(SSAVectorShuffleStatement);
 		HANDLE(SSACallStatement);
 		assert(false && "Unrecognized statement type");
 		return NULL;

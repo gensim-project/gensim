@@ -45,7 +45,7 @@ static bool CanAssign(IRExpression *expr)
 		if(unary_expr != nullptr) {
 			if(unary_expr->Type == IRUnaryOperator::Index) {
 				return true;
-			} else if(unary_expr->Type == IRUnaryOperator::BitSequence) {
+			} else if(unary_expr->Type == IRUnaryOperator::Sequence) {
 				return true;
 			}
 		}
@@ -1061,7 +1061,7 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 				Diag().Error("Cannot cast a definition", DiagNode(CurrFilename, node));
 				return nullptr;
 			}
-			
+
 			IRType target_type = Parse_Type(typeNode);
 
 			IRCastExpression *gce = new IRCastExpression(containing_scope, target_type, IRCastExpression::Bitcast);
@@ -1163,7 +1163,7 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 							pANTLR3_BASE_TREE from_node = (pANTLR3_BASE_TREE) index_expression->getChild(index_expression, 0);
 							pANTLR3_BASE_TREE to_node = (pANTLR3_BASE_TREE) index_expression->getChild(index_expression, 1);
 
-							unaryExpr->Type = IRUnaryOperator::BitSequence;
+							unaryExpr->Type = IRUnaryOperator::Sequence;
 							unaryExpr->Arg = new IRConstExpression(containing_scope, IRTypes::Int32, IRConstant::Integer(Parse_ConstantInt(from_node)));
 							unaryExpr->Arg2 = new IRConstExpression(containing_scope, IRTypes::Int32, IRConstant::Integer(Parse_ConstantInt(to_node)));
 						} else {
@@ -1230,6 +1230,19 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 			expr->SetDiag(DiagNode(CurrFilename, node));
 
 			return expr;
+		}
+		case VECTOR: {
+			std::vector<IRExpression *> elements;
+
+			for(int i = 0; i < node->getChildCount(node); ++i) {
+				pANTLR3_BASE_TREE child = (pANTLR3_BASE_TREE)node->getChild(node, i);
+
+				auto element = Parse_Expression(child, containing_scope);
+				elements.push_back(element);
+			}
+
+			IRVectorExpression *vector = new IRVectorExpression(containing_scope, elements);
+			return vector;
 		}
 		default: {
 			assert(node->getChildCount(node) == 2);
@@ -1329,9 +1342,12 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 				exp->Type = BinaryOperator::Equality;
 			else if (op == "!=")
 				exp->Type = BinaryOperator::Inequality;
-
-			else
+			else if(op == "::") {
+				exp->Type = BinaryOperator::VConcatenate;
+			} else {
 				Diag().Error("Unrecognized operator " + op, DiagNode(CurrFilename, node));
+				return nullptr;
+			}
 
 
 			// If we're a set operation, then the LHS must be settable

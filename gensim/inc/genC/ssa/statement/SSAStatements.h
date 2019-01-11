@@ -28,3 +28,4 @@
 #include "genC/ssa/statement/SSAVariableWriteStatement.h"
 #include "genC/ssa/statement/SSAVectorExtractElementStatement.h"
 #include "genC/ssa/statement/SSAVectorInsertElementStatement.h"
+#include "genC/ssa/statement/SSAVectorShuffleStatement.h"
