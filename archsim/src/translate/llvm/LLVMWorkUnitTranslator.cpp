@@ -103,7 +103,7 @@ void EmitControlFlow_Indirect(llvm::IRBuilder<> &builder, translate_llvm::LLVMTr
 		auto succ_addr = (unit.GetRegion().GetPhysicalBaseAddress() + succ->GetOffset());
 
 		if(region.GetBlockMap().count(succ->GetOffset())) {
-			out_switch->addCase(llvm::ConstantInt::get(ctx.Types.i64, succ_addr.Get()), region.GetBlockMap().at(succ->GetOffset()));
+			out_switch->addCase((llvm::ConstantInt*)llvm::ConstantInt::get(pc_val->getType(), succ_addr.Get()), region.GetBlockMap().at(succ->GetOffset()));
 		}
 	}
 }
@@ -158,7 +158,7 @@ std::pair<llvm::Module *, llvm::Function *> LLVMWorkUnitTranslator::TranslateWor
 
 	// Create a new llvm module to contain the translation
 	llvm::Module *module = new llvm::Module("region_" + std::to_string(unit.GetRegion().GetPhysicalBaseAddress().Get()), llvm_ctx_);
-        module->setDataLayout(target_machine_->createDataLayout());
+	module->setDataLayout(target_machine_->createDataLayout());
 	module->setTargetTriple(target_machine_->getTargetTriple().normalize());
 
 	auto i8ptrty = llvm::Type::getInt8PtrTy(llvm_ctx_);

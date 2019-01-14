@@ -164,6 +164,13 @@ namespace gensim
 						return true;
 					}
 
+					if(Statement.Type == BinaryOperator::SignedShiftRight) {
+						auto signed_type = Statement.LHS()->GetType();
+						signed_type.Signed = true;
+						output << "(" << signed_type.GetCType() << ")" << Factory.GetOrCreate(Statement.LHS())->GetFixedValue() << " /* signed */ >> " << Factory.GetOrCreate(Statement.RHS())->GetFixedValue() << ");";
+						return true;
+					}
+
 					output << "(" << LHSNode->GetFixedValue();
 
 					switch (Statement.Type) {
@@ -781,7 +788,7 @@ namespace gensim
 					switch (Statement.Type) {
 						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc: {
 							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
-							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = " << GetLLVMValue(IRTypes::UInt64, "phys_pc.Get()") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
+							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = " << GetLLVMValue(pc_desc->GetIRType(), "phys_pc.Get()") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
 							break;
 						}
 						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
@@ -819,7 +826,7 @@ namespace gensim
 					switch (Statement.Type) {
 						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc: {
 							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
-							output << "llvm::Value *" << Statement.GetName() << " = " << GetLLVMValue(IRTypes::UInt64, "phys_pc.Get()") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
+							output << "llvm::Value *" << Statement.GetName() << " = " << GetLLVMValue(pc_desc->GetIRType(), "phys_pc.Get()") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
 							break;
 						}
 						case SSAIntrinsicStatement::SSAIntrinsic_WritePc: {

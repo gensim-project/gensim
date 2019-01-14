@@ -127,6 +127,32 @@ static unsigned long sys_uname_x86(archsim::core::thread::ThreadInstance* cpu, u
 	return 0;
 }
 
+static unsigned long sys_uname_riscv(archsim::core::thread::ThreadInstance* cpu, unsigned long addr)
+{
+	LC_DEBUG1(LogSyscalls) << "Uname: addr=" << Address(addr);
+	if (addr == 0) {
+		return -EFAULT;
+	}
+	auto interface = cpu->GetMemoryInterface(0);
+
+	interface.WriteString(Address(addr), "Linux");
+
+	addr += 65;
+	interface.WriteString(Address(addr), "archsim");
+
+	addr += 65;
+	interface.WriteString(Address(addr), "4.16.11-100.fc26.x86_64");
+
+	addr += 65;
+	interface.WriteString(Address(addr), "#1 SMP Tue May 22 20:02:12 UTC 2018");
+
+	addr += 65;
+	// HACK:
+	interface.WriteString(Address(addr), "riscv");
+
+	return 0;
+}
+
 static unsigned long sys_open(archsim::core::thread::ThreadInstance* cpu, unsigned long filename_addr, unsigned int flags, unsigned int mode)
 {
 	LC_DEBUG1(LogSyscalls) << "open " << Address(filename_addr) << " flags=" << flags << ", mode=" << mode;
@@ -1550,14 +1576,15 @@ DEFINE_SYSCALL(aarch64, 222, sys_mmap2, "brk()");
 
 /* RISC-V SYSTEM CALLS */
 DEFINE_SYSCALL(riscv, 64, sys_write, "write(fd=%d, addr=%p, len=%d)");
-DEFINE_SYSCALL(riscv, 160, sys_uname, "uname(addr=%p)");
+DEFINE_SYSCALL(riscv, 160, sys_uname_riscv, "uname(addr=%p)");
 DEFINE_SYSCALL(riscv, 214, sys_brk, "brk(new_brk=%p)");
 DEFINE_SYSCALL(riscv, 78, syscall_return_enosys, "readlinkat(dirfd=%d, pathname=%p, buf=%p, bufsiz=%u)");
 DEFINE_SYSCALL(riscv, 222, sys_mmap, "mmap()");
 //DEFINE_SYSCALL("risc-v", 80, sys_fstat, "fstat()");
 DEFINE_SYSCALL(riscv, 93, sys_exit, "exit()");
 DEFINE_SYSCALL(riscv, 94, sys_exit, "exit_group()");
-DEFINE_SYSCALL(riscv, 215, sys_munmap, "fstat()");
+DEFINE_SYSCALL(riscv, 215, sys_munmap, "munmap()");
+DEFINE_SYSCALL(riscv, 216, sys_mremap, "mremap()");
 
 
 DEFINE_SYSCALL(riscv, 56, sys_openat, "openat(dirfd=%d, pathname=%p, flags=%d, mode=%d)");
