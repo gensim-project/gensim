@@ -123,4 +123,4 @@ public:
 };
 
 DEFINE_COMPONENT(FunctionGenerator, function);
-COMPONENT_OPTION(function, FileCount, "5", "The number of separate files to generate functions into.")
+COMPONENT_OPTION(function, FileCount, "10", "The number of separate files to generate functions into.")
