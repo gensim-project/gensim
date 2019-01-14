@@ -4,12 +4,14 @@ AC_ISA(riscv)
 	ac_format Type_FS = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %imm1:5 %opcode:7";
 	
 	ac_instr<Type_FI> flw, fld;
-	ac_instr<Type_FS> fsw, fsd; 
+	ac_instr<Type_FS> fsw, fsd, feqd; 
 
 	ac_behaviour flw;
 	ac_behaviour fsw;
 	ac_behaviour fld;
 	ac_behaviour fsd;
+	
+	ac_behaviour feqd;
 
 	ISA_CTOR(riscv)
 	{
@@ -30,5 +32,9 @@ AC_ISA(riscv)
 		fsd.set_decoder(funct3=0x3, opcode=0x27);
 		fsd.set_asm("fsd %reg, %reg, %imm, %imm", rs1, rs2, imm2, imm1);
 		fsd.set_behaviour(fsd);
+		
+		feqd.set_decoder(imm2=0x51, opcode=0x53);
+		feqd.set_asm("feqd");
+		feqd.set_behaviour(feqd);
 	};
 };
