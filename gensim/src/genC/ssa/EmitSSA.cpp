@@ -768,7 +768,7 @@ SSAStatement *IRVectorExpression::EmitSSAForm(ssa::SSABuilder& bldr) const
 
 		SSAVariableReadStatement *sym1 = new SSAVariableReadStatement(&bldr.GetBlock(), bldr.GetSymbol(can_shuffle.Sym1));
 		sym1->SetDiag(Diag());
-		SSAVariableReadStatement *sym2 = new SSAVariableReadStatement(&bldr.GetBlock(), bldr.GetSymbol(can_shuffle.Sym1));
+		SSAVariableReadStatement *sym2 = new SSAVariableReadStatement(&bldr.GetBlock(), bldr.GetSymbol(can_shuffle.Sym2));
 		sym2->SetDiag(Diag());
 
 		int indices_width = can_shuffle.Indices.size();
