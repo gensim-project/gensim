@@ -1657,8 +1657,13 @@ namespace gensim
 
 				bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
-					// calls are never fixed
-					output << "assert(false);";
+					const SSAVectorInsertElementStatement *stmt = dynamic_cast<const SSAVectorInsertElementStatement*>(&Statement);
+					const SSAStatement *base = stmt->Base();
+					const SSAStatement *index = stmt->Index();
+					const SSAStatement *value = stmt->Value();
+
+					output << stmt->GetType().GetCType() << " " << stmt->GetName() << " = " << Factory.GetOrCreate(base)->GetFixedValue() << ";";
+					output << stmt->GetName() << ".InsertElement(" << Factory.GetOrCreate(index)->GetFixedValue() << ", " << Factory.GetOrCreate(value)->GetFixedValue() << ");";
 
 					return true;
 				}
