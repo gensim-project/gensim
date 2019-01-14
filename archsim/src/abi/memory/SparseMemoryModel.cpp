@@ -200,7 +200,7 @@ MemoryTranslationModel& SparseMemoryModel::GetTranslationModel()
 #if CONFIG_LLVM
 	return *translation_model;
 #else
-	assert(false);
+	UNIMPLEMENTED;
 #endif
 }
 
