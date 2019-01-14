@@ -4,6 +4,7 @@
 #include "arch/x86/X86Decoder.h"
 
 using namespace archsim::arch::x86;
+using namespace gensim::x86;
 
 X86JumpInfoProvider::~X86JumpInfoProvider()
 {

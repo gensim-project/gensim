@@ -252,10 +252,10 @@ bool InterpEEGenerator::GenerateStepInstructionISA(util::cppformatstream& str, i
 		}
 	}
 	if(has_is_predicated) {
-		str << "bool " << isa.ISAName << "_is_predicated(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_is_predicated<false>(thread, insn); }";
+		str << "static bool " << isa.ISAName << "_is_predicated(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_is_predicated<false>(thread, insn); }";
 	}
 	if(has_instruction_predicate) {
-		str << "bool " << isa.ISAName << "_check_predicate(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_predicate<false>(thread, insn); }";
+		str << "static bool " << isa.ISAName << "_check_predicate(archsim::core::thread::ThreadInstance *thread, Interpreter::decode_t &insn) { return helper_" << isa.ISAName << "_instruction_predicate<false>(thread, insn); }";
 	}
 
 

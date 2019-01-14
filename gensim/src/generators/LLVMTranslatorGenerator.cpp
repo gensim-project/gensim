@@ -149,6 +149,7 @@ namespace gensim
 				str << "{";
 
 				str << "switch(decode->Instr_Code) {";
+				str << "using namespace gensim::" << Manager.GetArch().Name << ";";
 
 				for(auto insn_ : isa.Instructions) {
 					gensim::isa::InstructionDescription *insn = insn_.second;

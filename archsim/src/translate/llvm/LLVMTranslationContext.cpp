@@ -55,8 +55,8 @@ void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit
 	llvm::Value *pc = GetContext().LoadGuestRegister(builder, GetContext().GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
 
 	// need to make sure we're still on the right page
-	auto pc_check_less = builder.CreateICmpULT(pc, llvm::ConstantInt::get(ctx.Types.i64, work_unit.GetRegion().GetPhysicalBaseAddress().Get()));
-	auto pc_check_greater = builder.CreateICmpUGE(pc, llvm::ConstantInt::get(ctx.Types.i64, work_unit.GetRegion().GetPhysicalBaseAddress().Get() + 4096));
+	auto pc_check_less = builder.CreateICmpULT(pc, llvm::ConstantInt::get(pc->getType(), work_unit.GetRegion().GetPhysicalBaseAddress().Get()));
+	auto pc_check_greater = builder.CreateICmpUGE(pc, llvm::ConstantInt::get(pc->getType(), work_unit.GetRegion().GetPhysicalBaseAddress().Get() + 4096));
 	auto pc_check = builder.CreateOr(pc_check_less, pc_check_greater);
 
 	llvm::BasicBlock *on_page_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "jump_table_block", GetFunction());
@@ -123,12 +123,13 @@ llvm::BasicBlock *LLVMRegionTranslationContext::GetRegionChainBlock()
 		llvm::LoadInst *cache_base = builder.CreateLoad(cache_base_ptr);
 		cache_base->setMetadata("aaai", llvm::MDNode::get(GetContext().LLVMCtx, {llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(GetContext().Types.i64, archsim::translate::translate_llvm::TAG_REGION_CHAIN_TABLE))}));
 
-		auto cache_index = builder.CreateURem(page_index, llvm::ConstantInt::get(GetContext().Types.i64, 1024));
+		auto cache_index = builder.CreateURem(page_index, llvm::ConstantInt::get(page_index->getType(), 1024));
 
 		auto cache_tag = builder.CreateInBoundsGEP(cache_base, {cache_index, llvm::ConstantInt::get(GetContext().Types.i32, 0)});
 		//cache_tag->setMetadata("aaai", llvm::MDNode::get(GetContext().LLVMCtx, {llvm::ConstantAsMetadata(llvm::ConstantInt::get(GetContext().Types.i64, TAG_REGION_CHAIN_TABLE))}));
 		cache_tag = builder.CreateLoad(cache_tag);
 
+		page_base = builder.CreateZExtOrTrunc(page_base, cache_tag->getType());
 		auto tag_matches = builder.CreateICmpEQ(page_base, cache_tag);
 
 		llvm::BasicBlock *match_block = llvm::BasicBlock::Create(GetContext().LLVMCtx, "chain_success", GetFunction());

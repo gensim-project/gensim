@@ -92,7 +92,20 @@ llvm::BasicBlock *LLVMBlockTranslator::TranslateBlock(Address block_base, Transl
 			gensim::JumpInfo jumpinfo;
 			ji->GetJumpInfo(&insn->GetDecode(), Address(0), jumpinfo);
 			if(!jumpinfo.IsJump) {
-				ctx_.StoreGuestRegister(builder, ctx_.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr, llvm::ConstantInt::get(ctx_.Types.i64, (insn_pc + insn->GetDecode().Instr_Length).Get()));
+				auto &descriptor = ctx_.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
+				llvm::Type *type;
+				switch(descriptor.GetEntrySize()) {
+					case 4:
+						type = ctx_.Types.i32;
+						break;
+					case 8:
+						type = ctx_.Types.i64;
+						break;
+					default:
+						UNEXPECTED;
+				}
+
+				ctx_.StoreGuestRegister(builder, descriptor, nullptr, llvm::ConstantInt::get(type, (insn_pc + insn->GetDecode().Instr_Length).Get()));
 			}
 
 		}

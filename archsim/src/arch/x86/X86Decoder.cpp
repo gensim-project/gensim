@@ -365,6 +365,8 @@ bool X86Decoder::DecodeClass(void* inst_)
 	condition = GetCondition(iclass);
 
 	switch(iclass) {
+			using namespace gensim::x86;
+
 #define MAP(xed, model) case xed: Instr_Code = model; return true;
 			MAP(XED_ICLASS_ADC, INST_x86_adc);
 			MAP(XED_ICLASS_ADD, INST_x86_add);
