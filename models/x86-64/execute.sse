@@ -560,10 +560,8 @@ execute(pminub) {
 	uint8[16] op0 = read_xmm_u8(inst.op0);
 	uint8[16] op1 = read_xmm_u8(inst.op1);
 	
-	uint8[16] dest;
-	for(uint8 i = 0; i < 16; ++i) {
-		dest[i] = op0[i] < op1[i] ? op0[i] : op1[i];
-	}
+	uint8[16] mask = op0 < op1;
+	uint8[16] dest = (mask & op0) | ((~mask) & op1);
 	
 	write_xmm_u8(inst.op0, dest);
 }
@@ -572,10 +570,8 @@ execute(pmaxub) {
 	uint8[16] op0 = read_xmm_u8(inst.op0);
 	uint8[16] op1 = read_xmm_u8(inst.op1);
 	
-	uint8[16] dest;
-	for(uint8 i = 0; i < 16; ++i) {
-		dest[i] = op0[i] > op1[i] ? op0[i] : op1[i];
-	}
+	uint8[16] mask = op0 > op1;
+	uint8[16] dest = (mask & op0) | ((~mask) & op1);
 	
 	write_xmm_u8(inst.op0, dest);
 }
@@ -588,27 +584,22 @@ execute(por) {
 }
 
 execute(pmovmskb) {
-	uint8[16] op1 = read_xmm_u8(inst.op1);
-	uint32 output = 0;
-	op1 >>= 7;
-	output |= op1[0];
-	output |= (op1[1]) << 1;
-	output |= (op1[2]) << 2;
-	output |= (op1[3]) << 3;
-	output |= (op1[4]) << 4;
-	output |= (op1[5]) << 5;
-	output |= (op1[6]) << 6;
-	output |= (op1[7]) << 7;
-	output |= (op1[8]) << 8;
-	output |= (op1[9]) << 9;
-	output |= (op1[10]) << 10;
-	output |= (op1[11]) << 11;
-	output |= (op1[12]) << 12;
-	output |= (op1[13]) << 13;
-	output |= (op1[14]) << 14;
-	output |= (op1[15]) << 15;
+	uint16[16] op1 = read_xmm_u8(inst.op1);
 	
-	write_operand(inst.op0, output);
+	uint16[16] mask1 = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+	op1 = op1 >> 7;
+	op1 = op1 << mask1;
+	
+	uint64 result0 = <uint64>(op1[0:4]);
+	uint64 result1 = <uint64>(op1[4:8]);
+	uint64 result2 = <uint64>(op1[8:12]);
+	uint64 result3 = <uint64>(op1[12:16]);
+	
+	result0 = result0 | result1 | result2 | result3;
+	result1 = result0 | (result0 >> 32);
+	result2 = result1 | result1 >> 16;
+	
+	write_operand(inst.op0, (uint16)result2);
 }
 
 execute(punpcklbw) {
@@ -724,15 +715,11 @@ execute(pslld) {
 	uint32[4] shift = read_xmm_u32(inst.op1);
 	uint32[4] op = read_xmm_u32(inst.op0);
 	
-	for(uint8 i = 0 ; i < 4; ++i) {
-		if(shift[i] > 31) {
-			op[i] = 0;
-		} else {
-			op[i] = op[i] << shift[i];
-		}
-	}
-	
-	write_xmm_u32(inst.op0, op);
+	uint32[4] shiftmask = shift <= 31;
+	uint32[4] result = op << shift;
+	result = result & shiftmask;
+		
+	write_xmm_u32(inst.op0, result);
 }
 
 execute(pslldq) {
@@ -749,15 +736,15 @@ execute(pslldq) {
 }
 
 execute(psrad) {
-	sint32[4] shift = read_xmm_u32(inst.op1);
+	uint32[4] shift = read_xmm_u32(inst.op1);
 	sint32[4] op = read_xmm_u32(inst.op0);
 	
-	for(uint8 i = 0 ; i < 4; ++i) {
-		if(shift[i] > 31) {
-			op[i] = 0;
-		} else {
-			op[i] = op[i] >> shift[i];
+	for(uint32 i = 0; i < 4; ++i) {
+		uint32 s = shift[i];
+		if(s > 31) {
+			s = 31;
 		}
+		op[i] = op[i] >> s;
 	}
 	
 	write_xmm_u32(inst.op0, op);
