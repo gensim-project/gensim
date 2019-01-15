@@ -1,18 +1,28 @@
 AC_ISA(riscv) 
 {
-	ac_format Type_FI = "%imm:12 %rs1:5 %funct3:3 %rd:5 %opcode:7";
-	ac_format Type_FS = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %imm1:5 %opcode:7";
+	ac_format Type_FI  = "%imm:12 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+	ac_format Type_FS  = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %imm1:5 %opcode:7";
+	ac_format Type_FS_DATA  = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+	ac_format Type_FU = "%imm:20 %rd:5 %opcode:7";
 	
-	ac_instr<Type_FI> flw, fld;
-	ac_instr<Type_FS> fsw, fsd, feqd; 
+	ac_instr<Type_FI> flw;
+	ac_instr<Type_FS> fsw;
+	ac_instr<Type_FS_DATA> fcvt_s_wu, fdiv_s, fmv_x_s, fmv_s_x; 
+
+	ac_instr<Type_FU> frrm;
 
 	ac_behaviour flw;
 	ac_behaviour fsw;
-	ac_behaviour fld;
-	ac_behaviour fsd;
 	
-	ac_behaviour feqd;
-
+	ac_behaviour fdiv_s;
+	
+	ac_behaviour fcvt_s_wu;
+	
+	ac_behaviour fmv_x_s;
+	ac_behaviour fmv_s_x;
+	
+	ac_behaviour frrm;
+	
 	ISA_CTOR(riscv)
 	{
 		ac_execute("execute.rv32-f");
@@ -21,20 +31,28 @@ AC_ISA(riscv)
 		flw.set_asm("flw %reg, %reg, %imm", rd, rs1, imm);
 		flw.set_behaviour(flw);
 		
-		fld.set_decoder(funct3=0x3, opcode=0x07);
-		fld.set_asm("fld %reg, %reg, %imm", rd, rs1, imm);
-		fld.set_behaviour(fld);
-
 		fsw.set_decoder(funct3=0x2, opcode=0x27);
 		fsw.set_asm("fsw %reg, %reg, %imm, %imm", rs1, rs2, imm2, imm1);
 		fsw.set_behaviour(fsw);
 		
-		fsd.set_decoder(funct3=0x3, opcode=0x27);
-		fsd.set_asm("fsd %reg, %reg, %imm, %imm", rs1, rs2, imm2, imm1);
-		fsd.set_behaviour(fsd);
+		fcvt_s_wu.set_decoder(imm2=0x68, rs2=1, opcode=0x53);
+		fcvt_s_wu.set_asm("fcvt.s.wu");
+		fcvt_s_wu.set_behaviour(fcvt_s_wu);
 		
-		feqd.set_decoder(imm2=0x51, opcode=0x53);
-		feqd.set_asm("feqd");
-		feqd.set_behaviour(feqd);
+		fdiv_s.set_decoder(imm2=0x0c, opcode=0x53);
+		fdiv_s.set_asm("fdiv.s");
+		fdiv_s.set_behaviour(fdiv_s);
+		
+		fmv_x_s.set_decoder(imm2=0x70, rs2=0, funct3=0, opcode=0x53);
+		fmv_x_s.set_asm("fmv.x.s");
+		fmv_x_s.set_behaviour(fmv_x_s);
+		
+		fmv_s_x.set_decoder(imm2=0x78, rs2=0, funct3=0, opcode=0x53);
+		fmv_s_x.set_asm("fmv.s.x");
+		fmv_s_x.set_behaviour(fmv_s_x);
+		
+		frrm.set_decoder(imm=0x00202, opcode=0x73);
+		frrm.set_asm("frrm");
+		frrm.set_behaviour(frrm);
 	};
 };
