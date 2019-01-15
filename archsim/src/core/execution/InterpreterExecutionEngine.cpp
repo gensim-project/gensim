@@ -41,9 +41,20 @@ ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext
 		thread->GetTraceSource()->Trace_End_Insn();
 	}
 
-	while(thread_ctx->GetState() == ExecutionState::Running) {
-		if(thread->HasMessage()) {
-			auto result = thread->HandleMessage();
+	try {
+		while(thread_ctx->GetState() == ExecutionState::Running) {
+			if(thread->HasMessage()) {
+				auto result = thread->HandleMessage();
+				switch(result) {
+					case ExecutionResult::Continue:
+					case ExecutionResult::Exception:
+						break;
+					default:
+						return result;
+				}
+			}
+
+			auto result = interpreter_->StepBlock(ieetc);
 			switch(result) {
 				case ExecutionResult::Continue:
 				case ExecutionResult::Exception:
@@ -52,14 +63,12 @@ ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext
 					return result;
 			}
 		}
-
-		auto result = interpreter_->StepBlock(ieetc);
-		switch(result) {
-			case ExecutionResult::Continue:
-			case ExecutionResult::Exception:
-				break;
-			default:
-				return result;
+	} catch(std::exception &e) {
+		if(thread->GetTraceSource()) {
+			if(thread->GetTraceSource()->IsPacketOpen()) {
+				thread->GetTraceSource()->Trace_End_Insn();
+			}
+			thread->GetTraceSource()->Flush();
 		}
 	}
 
