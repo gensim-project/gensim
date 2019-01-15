@@ -48,35 +48,37 @@ TARGET_LINK_LIBRARIES(archsim-core
 	${CMAKE_DL_LIBS}
 )
 
+
 # Need intel XED for the x86 model
+IF(MODEL_x86_ENABLED)
+	# It has its own weird mbuild stuff (lucky us)
+	ExternalProject_Add(
+		mbuild
+		
+		GIT_REPOSITORY https://github.com/intelxed/mbuild.git
+		PREFIX intel-xed
+		CONFIGURE_COMMAND true
+		BUILD_COMMAND true
+		INSTALL_COMMAND true
+	)
 
-# It has its own weird mbuild stuff (lucky us)
-ExternalProject_Add(
-	mbuild
-	
-	GIT_REPOSITORY https://github.com/intelxed/mbuild.git
-	PREFIX intel-xed
-	CONFIGURE_COMMAND true
-	BUILD_COMMAND true
-	INSTALL_COMMAND true
-)
+	ExternalProject_Add(
+		IntelXED
+		
+		GIT_REPOSITORY https://github.com/intelxed/xed.git
+		PREFIX intel-xed
+		DEPENDS mbuild
+		CONFIGURE_COMMAND true
+		BUILD_COMMAND cd ../IntelXED && ./mfile.py --shared --opt=3 --install-dir ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/ install
+		INSTALL_COMMAND echo "XED ready at ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/"
+	)
 
-ExternalProject_Add(
-	IntelXED
-	
-	GIT_REPOSITORY https://github.com/intelxed/xed.git
-	PREFIX intel-xed
-	DEPENDS mbuild
-	CONFIGURE_COMMAND true
-	BUILD_COMMAND cd ../IntelXED && ./mfile.py --shared --opt=3 --install-dir ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/ install
-	INSTALL_COMMAND echo "XED ready at ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/"
-)
+	SET(ARCHSIM_XED_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/ CACHE STRING "XED Kit location")
+	ADD_DEPENDENCIES(archsim-core IntelXED)
 
-SET(ARCHSIM_XED_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/ CACHE STRING "XED Kit location")
-ADD_DEPENDENCIES(archsim-core IntelXED)
-
-TARGET_INCLUDE_DIRECTORIES(archsim-core PRIVATE "${ARCHSIM_XED_DIRECTORY}/include")
-TARGET_LINK_LIBRARIES(archsim-core "${ARCHSIM_XED_DIRECTORY}/lib/libxed.so")
+	TARGET_INCLUDE_DIRECTORIES(archsim-core PRIVATE "${ARCHSIM_XED_DIRECTORY}/include")
+	TARGET_LINK_LIBRARIES(archsim-core "${ARCHSIM_XED_DIRECTORY}/lib/libxed.so")
+ENDIF()
 
 
 
