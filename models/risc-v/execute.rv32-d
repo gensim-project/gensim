@@ -1,0 +1,87 @@
+execute(fld)
+{
+	uint64 data;
+	uint32 addr = inst.imm + read_register_bank(GPR, inst.rs1);
+	mem_read_64(Mem, addr, data);
+	write_register_bank(FP_D, inst.rd, <double>(data));
+}
+
+execute(fsd)
+{
+	uint32 addr = inst.imm + read_register_bank(GPR, inst.rs1);
+	mem_write_64(Mem, addr, <uint64>(read_register_bank(FP_D, inst.rd)));
+}
+
+execute(feq_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	
+	uint8 result = s1 == s2;
+	
+	write_register_bank(GPR, inst.rd, result);
+}
+
+execute(flt_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	
+	uint8 result = s1 < s2;
+	
+	write_register_bank(GPR, inst.rd, result);
+}
+
+execute(fcvt_d_wu)
+{
+	// convert unsigned 32 bit to f32
+	uint32 data =read_register_bank(GPR, inst.rs1);
+	double f = data;
+	
+	//TODO: rounding
+	
+	write_register_bank(FP_D, inst.rd, f);
+}
+
+execute(fcvt_d_s)
+{
+	// convert unsigned 32 bit to f32
+	float data =read_register_bank(FP_S, inst.rs1);
+	double f = data;
+	
+	//TODO: rounding
+	
+	write_register_bank(FP_D, inst.rd, f);
+}
+
+execute(fdiv_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	
+	write_register_bank(FP_D, inst.rd, s1 / s2);
+}
+
+execute(fsgnj_d)
+{
+	trap();
+}
+
+execute(fsgnjn_d)
+{
+	trap();
+}
+
+execute(fsgnjx_d)
+{
+	sint64 s1 = <uint64>(read_register_bank(FP_D, inst.rs1));
+	sint64 s2 = <uint64>(read_register_bank(FP_D, inst.rs2));
+	
+	uint64 sign1 = s1 < 0;
+	uint64 sign2 = s2 < 0;
+	
+	uint64 output_sign = (sign1 ^ sign2) << 63;
+	uint64 output = (((uint64)s1) & 0x7fffffffffffffff) | output_sign;
+	
+	write_register_bank(FP_D, inst.rd, <double>(output));
+}

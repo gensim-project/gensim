@@ -9,6 +9,7 @@ AC_ISA(riscv)
 	include("rv32-a.ac");
 	include("rv32-m.ac");
 	include("rv32-f.ac");
+	include("rv32-d.ac");
 
 	/* Instructions for processing data - ALU */
 

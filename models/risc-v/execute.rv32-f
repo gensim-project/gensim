@@ -1,28 +1,51 @@
 execute(flw)
 {
-
-
+	uint32 data;
+	uint32 addr = inst.imm + read_register_bank(GPR, inst.rs1);
+	mem_read_32(Mem, addr, data);
+	write_register_bank(FP_S, inst.rd, <float>(data));
 }
 
 execute(fsw)
 {
-
-
+	uint32 addr = inst.imm + read_register_bank(GPR, inst.rs1);
+	mem_write_32(Mem, addr, <uint32>(read_register_bank(FP_S, inst.rd)));
 }
 
-execute(fld)
+
+execute(fcvt_s_wu)
 {
-
-
+	// convert unsigned 32 bit to f32
+	uint32 data =read_register_bank(GPR, inst.rs1);
+	float f = data;
+	
+	//TODO: rounding
+	
+	write_register_bank(FP_S, inst.rd, f);
 }
 
-execute(fsd)
+
+execute(fdiv_s)
 {
-
-
+	float s1 = read_register_bank(FP_S, inst.rs1);
+	float s2 = read_register_bank(FP_S, inst.rs2);
+	
+	write_register_bank(FP_S, inst.rd, s1 / s2);
+}
+execute(fmv_x_s)
+{
+	float f = read_register_bank(FP_S, inst.rs1);
+	write_register_bank(GPR, inst.rd, <uint32>(f));
 }
 
-execute(feqd)
+execute(fmv_s_x)
 {
+	uint32 f = read_register_bank(GPR, inst.rs1);
+	write_register_bank(FP_S, inst.rd, <float>(f));
+}
 
+execute(frrm)
+{
+	uint8 rounding_mode = read_register(FRM);
+	write_register_bank(GPR, inst.rd, rounding_mode);
 }

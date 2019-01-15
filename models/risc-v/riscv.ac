@@ -22,6 +22,15 @@ AC_ARCH(riscv)
 		slot T (uint8, 1, 0) T;
 	}
 
+	ac_regspace(256) {
+		bank FP_D(double, 0, 32, 8, 1, 8, 8);
+		bank FP_S(float,  0, 32, 8, 1, 8, 8);
+	}
+
+	ac_regspace(1) {
+		slot FRM (uint8, 1, 0);
+	}
+
 	ac_wordsize 32;
 
 	ARCH_CTOR(riscv) {
