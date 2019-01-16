@@ -26,6 +26,9 @@ template<typename elfclass> bool ElfBinaryLoader<elfclass>::ProcessSymbolTable(t
 	for (unsigned int i = 0; i < (symbol_table_section->sh_size / symbol_table_section->sh_entsize); i++) {
 		Sym *symbol = (Sym *)((unsigned long)symbols_base + (i * symbol_table_section->sh_entsize));
 		uint32_t symbol_type = ELF32_ST_TYPE(symbol->st_info);
+
+		LC_DEBUG1(LogElf) << "Loaded symbol " << std::string(&strings_base[symbol->st_name]);
+
 		if(symbol_type == STT_FUNC)
 			_emulation_model.AddSymbol(symbol->st_value + _load_bias, symbol->st_size, std::string(&strings_base[symbol->st_name]), FunctionSymbol);
 		else

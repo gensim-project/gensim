@@ -64,6 +64,8 @@ ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext
 			}
 		}
 	} catch(std::exception &e) {
+		LC_ERROR(LogInterpreter) << "Exception caught in interpreter: " << e.what();
+
 		if(thread->GetTraceSource()) {
 			if(thread->GetTraceSource()->IsPacketOpen()) {
 				thread->GetTraceSource()->Trace_End_Insn();
