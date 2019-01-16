@@ -1,22 +1,50 @@
 execute(flw)
 {
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+
 	uint32 data;
-	uint32 addr = inst.imm + read_register_bank(GPR, inst.rs1);
+	uint32 addr = imm + read_gpr(inst.rs1);
 	mem_read_32(Mem, addr, data);
 	write_register_bank(FP_S, inst.rd, <float>(data));
 }
 
 execute(fsw)
 {
-	uint32 addr = inst.imm + read_register_bank(GPR, inst.rs1);
-	mem_write_32(Mem, addr, <uint32>(read_register_bank(FP_S, inst.rd)));
+	uint32 imm2 = inst.imm2;
+	uint32 imm1 = inst.imm1;
+	sint32 imm = (imm2 << 5) | imm1;
+	imm = (imm << 20) >> 20;
+	
+	uint32 addr = imm + read_gpr(inst.rs1);
+	mem_write_32(Mem, addr, <uint32>(read_register_bank(FP_S, inst.rs2)));
 }
 
+execute(feq_s)
+{
+	float s1 = read_register_bank(FP_S, inst.rs1);
+	float s2 = read_register_bank(FP_S, inst.rs2);
+	
+	uint8 result = s1 == s2;
+	
+	write_register_bank(GPR, inst.rd, result);
+}
+
+execute(flt_s)
+{
+	float s1 = read_register_bank(FP_S, inst.rs1);
+	float s2 = read_register_bank(FP_S, inst.rs2);
+	
+	uint8 result = s1 < s2;
+	
+	write_register_bank(GPR, inst.rd, result);
+}
 
 execute(fcvt_s_wu)
 {
 	// convert unsigned 32 bit to f32
-	uint32 data =read_register_bank(GPR, inst.rs1);
+	uint32 data = read_gpr(inst.rs1);
 	float f = data;
 	
 	//TODO: rounding
@@ -24,12 +52,57 @@ execute(fcvt_s_wu)
 	write_register_bank(FP_S, inst.rd, f);
 }
 
+execute(fcvt_s_w)
+{
+	// convert signed 32 bit to f32
+	sint32 data = read_gpr(inst.rs1);
+	float f = data;
+	
+	//TODO: rounding
+	
+	write_register_bank(FP_S, inst.rd, f);
+}
+
+execute(fcvt_w_s)
+{
+	// convert f32 to signed 32 bit
+	float data = read_register_bank(FP_S, inst.rs1);
+	sint32 f = data;
+	
+	//TODO: rounding
+	
+	write_register_bank(GPR, inst.rd, f);
+}
+
+execute(fadd_s)
+{
+	float s1 = read_register_bank(FP_S, inst.rs1);
+	float s2 = read_register_bank(FP_S, inst.rs2);
+	
+	write_register_bank(FP_S, inst.rd, s1 + s2);
+}
+
+execute(fsub_s)
+{
+	float s1 = read_register_bank(FP_S, inst.rs1);
+	float s2 = read_register_bank(FP_S, inst.rs2);
+	
+	write_register_bank(FP_S, inst.rd, s1 - s2);
+}
+
+execute(fmul_s)
+{
+	float s1 = read_register_bank(FP_S, inst.rs1);
+	float s2 = read_register_bank(FP_S, inst.rs2);
+	
+	write_register_bank(FP_S, inst.rd, s1 * s2);
+}
 
 execute(fdiv_s)
 {
 	float s1 = read_register_bank(FP_S, inst.rs1);
 	float s2 = read_register_bank(FP_S, inst.rs2);
-	
+		
 	write_register_bank(FP_S, inst.rd, s1 / s2);
 }
 execute(fmv_x_s)
@@ -40,12 +113,48 @@ execute(fmv_x_s)
 
 execute(fmv_s_x)
 {
-	uint32 f = read_register_bank(GPR, inst.rs1);
+	uint32 f = read_gpr(inst.rs1);
 	write_register_bank(FP_S, inst.rd, <float>(f));
 }
+
+/* FP CSRs */
 
 execute(frrm)
 {
 	uint8 rounding_mode = read_register(FRM);
 	write_register_bank(GPR, inst.rd, rounding_mode);
+}
+
+helper uint8 read_fflags()
+{
+	return 0;
+}
+
+helper void write_fflags(uint8 flags)
+{
+	return;
+}
+
+helper uint8 read_fcsr()
+{
+	trap();
+	return 0;
+}
+
+helper void write_fcsr(uint8 flags)
+{
+	trap();
+	return;
+}
+
+execute(frflags)
+{
+	uint8 flags = read_fflags();
+	write_register_bank(GPR, inst.rd, flags);
+}
+
+execute(fsflags)
+{
+	uint8 flags = read_gpr(inst.rs1);
+	write_fflags(flags);
 }

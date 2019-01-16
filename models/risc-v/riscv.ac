@@ -27,8 +27,13 @@ AC_ARCH(riscv)
 		bank FP_S(float,  0, 32, 8, 1, 8, 8);
 	}
 
-	ac_regspace(1) {
+	ac_regspace(6) {
 		slot FRM (uint8, 1, 0);
+		slot FLAG_NV (uint8, 1, 1);
+		slot FLAG_DZ (uint8, 1, 2);
+		slot FLAG_OF (uint8, 1, 3);
+		slot FLAG_UF (uint8, 1, 4);
+		slot FLAG_NX (uint8, 1, 5);
 	}
 
 	ac_wordsize 32;

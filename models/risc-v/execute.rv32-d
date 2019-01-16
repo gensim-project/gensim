@@ -1,21 +1,30 @@
 execute(fld)
 {
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+
 	uint64 data;
-	uint32 addr = inst.imm + read_register_bank(GPR, inst.rs1);
+	uint32 addr = imm + read_gpr(inst.rs1);
 	mem_read_64(Mem, addr, data);
 	write_register_bank(FP_D, inst.rd, <double>(data));
 }
 
 execute(fsd)
 {
-	uint32 addr = inst.imm + read_register_bank(GPR, inst.rs1);
-	mem_write_64(Mem, addr, <uint64>(read_register_bank(FP_D, inst.rd)));
+	uint32 imm2 = inst.imm2;
+	uint32 imm1 = inst.imm1;
+	sint32 imm = (imm2 << 5) | imm1;
+	imm = (imm << 20) >> 20;
+
+	uint32 addr = imm + read_gpr(inst.rs1);
+	mem_write_64(Mem, addr, <uint64>(read_register_bank(FP_D, inst.rs2)));
 }
 
 execute(feq_d)
 {
-	double s1 = read_register_bank(FP_D, inst.rs1);
-	double s2 = read_register_bank(FP_D, inst.rs2);
+	uint64 s1 = <uint64>(read_register_bank(FP_D, inst.rs1));
+	uint64 s2 = <uint64>(read_register_bank(FP_D, inst.rs2));
 	
 	uint8 result = s1 == s2;
 	
@@ -34,8 +43,8 @@ execute(flt_d)
 
 execute(fcvt_d_wu)
 {
-	// convert unsigned 32 bit to f32
-	uint32 data =read_register_bank(GPR, inst.rs1);
+	// convert unsigned 32 bit to f64
+	uint32 data = read_gpr(inst.rs1);
 	double f = data;
 	
 	//TODO: rounding
@@ -45,7 +54,7 @@ execute(fcvt_d_wu)
 
 execute(fcvt_d_s)
 {
-	// convert unsigned 32 bit to f32
+	// convert f32 to f64
 	float data =read_register_bank(FP_S, inst.rs1);
 	double f = data;
 	
@@ -54,12 +63,37 @@ execute(fcvt_d_s)
 	write_register_bank(FP_D, inst.rd, f);
 }
 
+execute(fcvt_w_d)
+{
+	// convert f64 to uint32
+	double data =read_register_bank(FP_D, inst.rs1);
+	uint32 f = data;
+	
+	write_register_bank(GPR, inst.rd, f);
+}
+
 execute(fdiv_d)
 {
 	double s1 = read_register_bank(FP_D, inst.rs1);
 	double s2 = read_register_bank(FP_D, inst.rs2);
 	
 	write_register_bank(FP_D, inst.rd, s1 / s2);
+}
+
+execute(fadd_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	
+	write_register_bank(FP_D, inst.rd, s1 + s2);
+}
+
+execute(fmul_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	
+	write_register_bank(FP_D, inst.rd, s1 * s2);
 }
 
 execute(fsgnj_d)
