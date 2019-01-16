@@ -167,6 +167,12 @@ bool EmulationModel::ResolveSymbol(std::string name, Address& value)
 			return true;
 		}
 	}
+	for (auto symbol : _symbols) {
+		if (symbol.second->Name == name) {
+			value = symbol.first;
+			return true;
+		}
+	}
 
 	return false;
 }

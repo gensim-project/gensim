@@ -1457,6 +1457,12 @@ static unsigned long syscall_return_enosys(archsim::core::thread::ThreadInstance
 	return -ENOSYS;
 }
 
+static unsigned long sys_set_tid_address(archsim::core::thread::ThreadInstance *cpu)
+{
+//	UNIMPLEMENTED;
+	return 0;
+}
+
 DEFINE_SYSCALL(arm, __NR_exit, sys_exit, "exit()");
 DEFINE_SYSCALL(arm, __NR_exit_group, sys_exit, "exit_group()");
 
@@ -1588,8 +1594,10 @@ DEFINE_SYSCALL(riscv, 216, sys_mremap, "mremap()");
 
 
 DEFINE_SYSCALL(riscv, 56, sys_openat, "openat(dirfd=%d, pathname=%p, flags=%d, mode=%d)");
+DEFINE_SYSCALL(riscv, 66, sys_writev<struct riscv32_iovec>, "writev");
 DEFINE_SYSCALL(riscv, 23, syscall_return_enosys, "_unknown_()");
 //DEFINE_SYSCALL("risc-v", 25, sys_fcntl, "fcntl()");
 DEFINE_SYSCALL(riscv, 80, sys_fstat, "fstat()");
 DEFINE_SYSCALL(riscv, 57, sys_close, "close()");
 DEFINE_SYSCALL(riscv, 63, sys_read, "read()");
+DEFINE_SYSCALL(riscv, 96, sys_set_tid_address, "set_tid_address_riscv()");

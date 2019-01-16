@@ -92,11 +92,12 @@ archsim::abi::ExceptionAction RiscVComplianceEmulationModel::HandleException(arc
 
 		switch(syscall_no) {
 			case 0: {
+				LC_DEBUG1(LogEmulationModelRiscVCompliance) << "Writing " << syscall_arg1 << " bytes from " << Address(syscall_arg0);
 				std::vector<char> buffer;
-				buffer.resize(syscall_arg0);
+				buffer.resize(syscall_arg1);
 
 				GetMemoryModel().Read(Address(syscall_arg0), (uint8_t*)buffer.data(), syscall_arg1);
-				fwrite(buffer.data(), syscall_arg0, 1, stdout);
+				fwrite(buffer.data(), syscall_arg1, 1, stdout);
 
 				return archsim::abi::ResumeNext;
 			}
