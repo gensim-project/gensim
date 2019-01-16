@@ -323,18 +323,14 @@ execute(jal)
 
 execute(jalr)
 {
+	uint32 link_address = read_pc() + 4;
+
 	sint32 imm = inst.imm;
 
-        imm <<= 20;
-        imm >>= 20;
+	imm <<= 20;
+	imm >>= 20;
 
-	uint32 addr = read_pc()+4;
-	
-
-	write_register_bank(GPR, inst.rd, addr);
-
-
-	uint32 rs = read_gpr(inst.rs1);
+	sint32 rs = read_gpr(inst.rs1);
 
 	rs += imm;
 	rs >>= 1;
@@ -343,8 +339,7 @@ execute(jalr)
 	//rs = rs + (imm & ~1);	
 
 	write_register(PC, rs);
-
-
+	write_register_bank(GPR, inst.rd, link_address);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -680,6 +675,7 @@ execute(csrrw)
 
 	write_register_bank(GPR, inst.csr, rs1);
 */
+	trap();
 }
 
 execute(csrrs)
@@ -694,6 +690,7 @@ execute(csrrs)
 
 	write_register_bank(GPR, inst.csr, csr);
 */
+	trap();
 }
 
 execute(csrrc)
@@ -708,6 +705,7 @@ execute(csrrc)
 
 	write_register_bank(GPR, inst.csr, csr);
 */
+	trap();
 }
 
 execute(csrrwi)
@@ -724,6 +722,7 @@ execute(csrrwi)
 
         write_register_bank(GPR, inst.csr, imm);
 */
+	trap();
 }
 
 execute(csrrsi)
@@ -738,6 +737,7 @@ execute(csrrsi)
 
         write_register_bank(GPR, inst.csr, csr);
 */
+	trap();
 }
 
 execute(csrrci)
@@ -753,6 +753,7 @@ execute(csrrci)
         write_register_bank(GPR, inst.csr, csr);
 
 */
+	trap();
 }
 
 

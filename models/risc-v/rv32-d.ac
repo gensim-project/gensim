@@ -6,16 +6,17 @@ AC_ISA(riscv)
 	
 	ac_instr<Type_FID> fld;
 	ac_instr<Type_FSD> fsd;
-	ac_instr<Type_FSD_DATA> feq_d, flt_d, fcvt_d_wu, fcvt_d_s, fdiv_d, fsgnj_d, fsgnjn_d, fsgnjx_d; 
+	ac_instr<Type_FSD_DATA> feq_d, flt_d, fcvt_d_wu, fcvt_d_s, fcvt_w_d, fadd_d, fdiv_d, fsgnj_d, fsgnjn_d, fsgnjx_d, fmul_d; 
 
 	ac_behaviour fld;
 	ac_behaviour fsd;
 	
 	ac_behaviour feq_d, flt_d;
-	ac_behaviour fdiv_d;
+	ac_behaviour fadd_d, fdiv_d, fmul_d;
 
 	ac_behaviour fcvt_d_wu;
 	ac_behaviour fcvt_d_s;
+	ac_behaviour fcvt_w_d;
 	
 	ac_behaviour fsgnj_d, fsgnjn_d, fsgnjx_d;
 		
@@ -39,9 +40,21 @@ AC_ISA(riscv)
 		fcvt_d_s.set_asm("fcvt.d.s");
 		fcvt_d_s.set_behaviour(fcvt_d_s);
 		
+		fcvt_w_d.set_decoder(imm2=0x61, rs2=0, opcode=0x53);
+		fcvt_w_d.set_asm("fcvt.w.d");
+		fcvt_w_d.set_behaviour(fcvt_w_d);
+		
 		fdiv_d.set_decoder(imm2=0x0d, opcode=0x53);
 		fdiv_d.set_asm("fdiv.d");
 		fdiv_d.set_behaviour(fdiv_d);
+		
+		fadd_d.set_decoder(imm2=0x01, opcode=0x53);
+		fadd_d.set_asm("fadd.d");
+		fadd_d.set_behaviour(fadd_d);
+		
+		fmul_d.set_decoder(imm2=0x09, opcode=0x53);
+		fmul_d.set_asm("fmul.d");
+		fmul_d.set_behaviour(fmul_d);
 		
 		flt_d.set_decoder(imm2=0x51, opcode=0x53, funct3=0x1);
 		flt_d.set_asm("flt.d");

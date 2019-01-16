@@ -3,25 +3,27 @@ AC_ISA(riscv)
 	ac_format Type_FI  = "%imm:12 %rs1:5 %funct3:3 %rd:5 %opcode:7";
 	ac_format Type_FS  = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %imm1:5 %opcode:7";
 	ac_format Type_FS_DATA  = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
-	ac_format Type_FU = "%imm:20 %rd:5 %opcode:7";
+	ac_format Type_FCSR = "%csr:12 %rs1:5 %funct3:3 %rd:5 %opcode:7";
 	
 	ac_instr<Type_FI> flw;
 	ac_instr<Type_FS> fsw;
-	ac_instr<Type_FS_DATA> fcvt_s_wu, fdiv_s, fmv_x_s, fmv_s_x; 
+	ac_instr<Type_FS_DATA> fcvt_s_wu, fcvt_s_w, fcvt_w_s, fdiv_s, fmv_x_s, fmv_s_x, fadd_s, fsub_s, fmul_s, feq_s, flt_s; 
 
-	ac_instr<Type_FU> frrm;
+	ac_instr<Type_FCSR> frrm, frflags, fsflags;
 
 	ac_behaviour flw;
 	ac_behaviour fsw;
 	
-	ac_behaviour fdiv_s;
+	ac_behaviour feq_s, flt_s;
 	
-	ac_behaviour fcvt_s_wu;
+	ac_behaviour fdiv_s, fadd_s, fsub_s, fmul_s;
+	
+	ac_behaviour fcvt_s_wu, fcvt_s_w, fcvt_w_s;
 	
 	ac_behaviour fmv_x_s;
 	ac_behaviour fmv_s_x;
 	
-	ac_behaviour frrm;
+	ac_behaviour frrm, frflags, fsflags;
 	
 	ISA_CTOR(riscv)
 	{
@@ -34,14 +36,42 @@ AC_ISA(riscv)
 		fsw.set_decoder(funct3=0x2, opcode=0x27);
 		fsw.set_asm("fsw %reg, %reg, %imm, %imm", rs1, rs2, imm2, imm1);
 		fsw.set_behaviour(fsw);
+	
+		feq_s.set_decoder(imm2=0x50, opcode=0x53, funct3=0x2);
+		feq_s.set_asm("feq.s");
+		feq_s.set_behaviour(feq_s);
+		
+		flt_s.set_decoder(imm2=0x50, opcode=0x53, funct3=0x1);
+		flt_s.set_asm("flt.s");
+		flt_s.set_behaviour(flt_s);
 		
 		fcvt_s_wu.set_decoder(imm2=0x68, rs2=1, opcode=0x53);
 		fcvt_s_wu.set_asm("fcvt.s.wu");
 		fcvt_s_wu.set_behaviour(fcvt_s_wu);
 		
+		fcvt_s_w.set_decoder(imm2=0x68, rs2=0, opcode=0x53);
+		fcvt_s_w.set_asm("fcvt.s.w");
+		fcvt_s_w.set_behaviour(fcvt_s_w);
+		
+		fcvt_w_s.set_decoder(imm2=0x60, rs2=0, opcode=0x53);
+		fcvt_w_s.set_asm("fcvt.w.s");
+		fcvt_w_s.set_behaviour(fcvt_w_s);
+		
 		fdiv_s.set_decoder(imm2=0x0c, opcode=0x53);
 		fdiv_s.set_asm("fdiv.s");
 		fdiv_s.set_behaviour(fdiv_s);
+		
+		fadd_s.set_decoder(imm2=0x00, opcode=0x53);
+		fadd_s.set_asm("fadd.s");
+		fadd_s.set_behaviour(fadd_s);
+		
+		fsub_s.set_decoder(imm2=0x04, opcode=0x53);
+		fsub_s.set_asm("fsub.s");
+		fsub_s.set_behaviour(fsub_s);
+		
+		fmul_s.set_decoder(imm2=0x08, opcode=0x53);
+		fmul_s.set_asm("fmul.s");
+		fmul_s.set_behaviour(fmul_s);
 		
 		fmv_x_s.set_decoder(imm2=0x70, rs2=0, funct3=0, opcode=0x53);
 		fmv_x_s.set_asm("fmv.x.s");
@@ -51,8 +81,16 @@ AC_ISA(riscv)
 		fmv_s_x.set_asm("fmv.s.x");
 		fmv_s_x.set_behaviour(fmv_s_x);
 		
-		frrm.set_decoder(imm=0x00202, opcode=0x73);
+		frrm.set_decoder(csr=0x002, funct3=2, opcode=0x73);
 		frrm.set_asm("frrm");
 		frrm.set_behaviour(frrm);
+		
+		frflags.set_decoder(csr=0x001, funct3=2, opcode=0x73);
+		frflags.set_asm("frflags");
+		frflags.set_behaviour(frflags);
+		
+		fsflags.set_decoder(csr=0x001, funct3=1, opcode=0x73);
+		fsflags.set_asm("fsflags");
+		fsflags.set_behaviour(fsflags);
 	};
 };
