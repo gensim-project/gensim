@@ -29,7 +29,8 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archs
 {
 #ifdef FASTER_READS
 	llvm::Value *mem_base = ctx.Values.contiguous_mem_base;
-	llvm::Value *final_address = builder.CreateInBoundsGEP(mem_base, {llvm::ConstantInt::get(ctx.Types.i64, 0),  address});
+	address = builder.CreateZExt(address, ctx.Types.i64);
+	llvm::Value *final_address = builder.CreateInBoundsGEP(mem_base, {llvm::ConstantInt::get(ctx.Types.i64, 0), address});
 	llvm::Value *ptr = builder.CreatePointerCast(final_address, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8, 0));
 	if(llvm::isa<llvm::Instruction>(ptr)) {
 		((llvm::Instruction*)ptr)->setMetadata("aaai", llvm::MDNode::get(ctx.LLVMCtx, { llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(ctx.Types.i32, archsim::translate::translate_llvm::TAG_MEM_ACCESS)) }));
@@ -155,6 +156,7 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 {
 #ifdef FASTER_READS
 	llvm::Value *mem_base = ctx.Values.contiguous_mem_base;
+	address = builder.CreateZExt(address, ctx.Types.i64);
 	llvm::Value *final_address = builder.CreateInBoundsGEP(mem_base, {llvm::ConstantInt::get(ctx.Types.i64, 0),  address});
 	llvm::Value *ptr = builder.CreatePointerCast(final_address, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8, 0));
 	if(llvm::isa<llvm::Instruction>(ptr)) {

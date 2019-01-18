@@ -178,7 +178,7 @@ namespace archsim
 						// prefetch this since we'll be writing to it soon
 						__builtin_prefetch(&entry.ways[victim]);
 
-						entry.lru = 1 - lru;
+						lru = 1 - lru;
 						entry.tags[victim] = _addr;
 						return &entry.ways[victim];
 					}

@@ -10,6 +10,8 @@
 #ifndef TRANSLATIONMANAGER_H
 #define	TRANSLATIONMANAGER_H
 
+#include <wutils/vset.h>
+
 #include "define.h"
 
 #include "profile/RegionTable.h"
@@ -165,7 +167,14 @@ namespace archsim
 		private:
 			bool _needs_leave;
 			profile::RegionTable regions;
-			std::unordered_set<profile::Region*> touched_regions_;
+
+			struct {
+				archsim::Address::underlying_t tag;
+				profile::Region* data;
+			} region_cache_[1024];
+
+			wutils::vset<profile::Region*> touched_regions_;
+//			std::unordered_set<profile::Region*> touched_regions_;
 
 			// ProfileManager keeps track of which pages are code and notifies when pages are invalidated
 			profile::CodeRegionTracker *manager;

@@ -10,6 +10,8 @@
 #ifndef ARMSYSCALLS_H
 #define ARMSYSCALLS_H
 
+#include <sys/stat.h>
+
 #define __NR_SYSCALL_BASE 0
 
 #define __NR_restart_syscall (__NR_SYSCALL_BASE + 0)
@@ -453,6 +455,8 @@ struct x86_64_stat64 {
 	mode_t st_attr;
 } __attribute__((packed));
 
+using x86_64_stat = struct stat;
+
 struct arm_stat {
 	uint32_t st_dev;
 	uint32_t __st_ino;
@@ -530,5 +534,60 @@ struct arm_tms {
 	uint32_t tms_cutime; /* clock_t */
 	uint32_t tms_cstime; /* clock_t */
 };
+
+struct riscv32_stat {
+	using dev_t = uint64_t;
+	using ino_t = uint64_t;
+	using mode_t = uint32_t;
+	using nlink_t = uint32_t;
+	using uid_t = uint32_t;
+	using gid_t = uint32_t;
+	using off_t = uint64_t;
+	using blksize_t = uint32_t;
+	using blkcnt_t = uint64_t;
+	using timespec = struct {
+		uint32_t tv_sec, tv_nsec;
+	};
+
+	dev_t st_dev;
+	ino_t st_ino;
+	mode_t st_mode;
+	nlink_t st_nlink;
+	uid_t st_uid;
+	gid_t st_gid;
+	dev_t st_rdev;
+	unsigned long __pad;
+	off_t st_size;
+	blksize_t st_blksize;
+	int __pad2;
+	blkcnt_t st_blocks;
+	timespec st_atim;
+	timespec st_mtim;
+	timespec st_ctim;
+	unsigned __unused[2];
+};
+
+template<typename host_stat, typename guest_stat> static void translate_stat(const host_stat &in, guest_stat &out)
+{
+	out.st_dev = in.st_dev;
+	out.st_ino = in.st_ino;
+	out.st_mode = in.st_mode;
+	out.st_nlink = in.st_nlink;
+	out.st_uid = in.st_uid;
+	out.st_gid = in.st_gid;
+	out.st_rdev = in.st_rdev;
+	out.st_size = in.st_size;
+	out.st_blksize = in.st_blksize;
+	out.st_blocks = in.st_blocks;
+
+	out.st_atim.tv_nsec = in.st_atim.tv_nsec;
+	out.st_atim.tv_sec = in.st_atim.tv_sec;
+
+	out.st_mtim.tv_sec = in.st_mtim.tv_sec;
+	out.st_mtim.tv_nsec = in.st_mtim.tv_nsec;
+
+	out.st_ctim.tv_nsec = in.st_ctim.tv_nsec;
+	out.st_ctim.tv_sec = in.st_ctim.tv_sec;
+}
 
 #endif /* ARMSYSCALLS_H */

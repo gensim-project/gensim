@@ -405,7 +405,12 @@ namespace archsim
 				typedef std::map<guest_addr_t, GuestVMA *> GuestVMAMap;
 
 			private:
+				bool AllocateRegion(archsim::Address addr, uint64_t size);
+				bool DeallocateRegion(archsim::Address addr, uint64_t size);
+				bool MergeAllocatedRegions();
+
 				GuestVMAMap guest_vmas;
+				std::map<archsim::Address, archsim::Address::underlying_t> allocated_regions_;
 				GuestVMA *cached_vma;
 			};
 

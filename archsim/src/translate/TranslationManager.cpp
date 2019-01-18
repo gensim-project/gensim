@@ -134,10 +134,18 @@ void TranslationManager::Destroy()
 
 Region& TranslationManager::GetRegion(Address phys_addr)
 {
-	GetCodeRegions().MarkRegionAsCode(PhysicalAddress(phys_addr.GetPageBase()));
-	auto &region = regions.Get(*this, phys_addr.PageBase());
-	touched_regions_.insert(&region);
-	return region;
+	auto &cache_entry = region_cache_[phys_addr.GetPageIndex() % 1024];
+	if(cache_entry.tag != phys_addr.GetPageIndex()) {
+		GetCodeRegions().MarkRegionAsCode(PhysicalAddress(phys_addr.GetPageBase()));
+		auto &region = regions.Get(*this, phys_addr.PageBase());
+
+		cache_entry.tag = phys_addr.GetPageIndex();
+		cache_entry.data = &region;
+	}
+
+	touched_regions_.insert(cache_entry.data);
+
+	return *cache_entry.data;
 }
 
 bool TranslationManager::TryGetRegion(Address phys_addr, profile::Region*& region)
@@ -215,6 +223,7 @@ bool TranslationManager::Profile(archsim::core::thread::ThreadInstance *thread)
 			txltd_regions |= ProfileRegion(thread, region);
 		}
 	}
+
 	touched_regions_.clear();
 	dirty_code_pages.clear();
 

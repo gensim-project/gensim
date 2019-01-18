@@ -96,7 +96,7 @@ namespace archsim
 				ExecutionResult Execute(ExecutionEngineThreadContext* thread) override;
 				ExecutionEngineThreadContext* GetNewContext(thread::ThreadInstance* thread) override;
 
-				ExecutionResult EpochInterpret(LLVMRegionJITExecutionEngineContext *ctx, archsim::translate::profile::Region &region);
+				ExecutionResult EpochInterpret(LLVMRegionJITExecutionEngineContext *ctx);
 				ExecutionResult EpochNative();
 
 				static ExecutionEngine *Factory(const archsim::module::ModuleInfo *module, const std::string &cpu_prefix);

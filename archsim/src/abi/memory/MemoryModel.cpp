@@ -373,14 +373,88 @@ GuestVMA *RegionBasedMemoryModel::LookupVMA(guest_addr_t addr)
 	return NULL;
 }
 
+bool RegionBasedMemoryModel::AllocateRegion(archsim::Address addr, uint64_t size)
+{
+	if(allocated_regions_.count(addr)) {
+		throw std::logic_error("Attempting to reallocate a region");
+	}
+	LC_DEBUG1(LogMemoryModel) << "Allocating a region " << addr << " (" << std::hex << size << ")";
+	allocated_regions_[addr] = size;
+	MergeAllocatedRegions();
+
+	return true;
+}
+
+bool RegionBasedMemoryModel::DeallocateRegion(archsim::Address addr, uint64_t size)
+{
+	auto iterator = allocated_regions_.lower_bound(addr);
+
+	LC_DEBUG1(LogMemoryModel) << "Deallocating a region " << addr << " (" << std::hex << size << ")";
+
+	// iterator points to either a region which has an address >= addr
+	// therefore (addr, addr+size) might overlap it.
+	if(addr + size > (iterator->first + iterator->second)) {
+		UNIMPLEMENTED;
+	} else {
+		// we didn't find a region which was allocated
+	}
+
+	MergeAllocatedRegions();
+
+	return true;
+}
+
+bool RegionBasedMemoryModel::MergeAllocatedRegions()
+{
+	std::vector<archsim::Address> removed_regions;
+	if(allocated_regions_.empty()) {
+		return true;
+	}
+
+	LC_DEBUG1(LogMemoryModel) << "Merging regions: ";
+	for(auto i : allocated_regions_) {
+		LC_DEBUG1(LogMemoryModel) << " - " << i.first << " (" << std::hex << i.second << ")";
+	}
+
+	auto iterator = allocated_regions_.begin();
+	while(iterator != allocated_regions_.end()) {
+		auto cur = iterator;
+		auto next = iterator;
+		next++;
+
+		while(next != allocated_regions_.end() && cur->first + cur->second >= next->first) {
+			LC_DEBUG1(LogMemoryModel) << "Merging region " << next->first << " into " << cur->first;
+			auto next_end = (next->first + next->second).Get();
+			cur->second = next_end - cur->first.Get();
+			removed_regions.push_back(next->first);
+
+			LC_DEBUG1(LogMemoryModel) << " - Final region: " << cur->first << " (" << std::hex << cur->second << ")";
+			next++;
+		}
+		iterator = next;
+	}
+
+	for(auto i : removed_regions) {
+		allocated_regions_.erase(i);
+	}
+
+	LC_DEBUG1(LogMemoryModel) << "Merged regions: ";
+	for(auto i : allocated_regions_) {
+		LC_DEBUG1(LogMemoryModel) << " - " << i.first << " (" << std::hex << i.second << ")";
+	}
+
+	return true;
+}
+
+
 bool RegionBasedMemoryModel::HasIntersectingRegions(guest_addr_t addr, guest_size_t size)
 {
 	guest_addr_t start1 = addr;
 	guest_addr_t end1 = addr + size;
 
-	for (auto region : guest_vmas) {
-		guest_addr_t start2 = region.second->base;
-		guest_addr_t end2 = start2 + region.second->size;
+	for (auto region : allocated_regions_) {
+		guest_addr_t start2 = region.first;
+		guest_addr_t end2 = region.first + region.second;
 
 		//(Start1 <= End2) and (Start2 <= End1)
 
@@ -462,6 +536,7 @@ bool RegionBasedMemoryModel::MapRegion(guest_addr_t addr, guest_size_t size, Reg
 	}
 
 	guest_vmas[addr] = vma;
+	AllocateRegion(addr, size);
 
 	return true;
 }
@@ -481,9 +556,9 @@ guest_addr_t RegionBasedMemoryModel::MapAnonymousRegion(guest_size_t size, Regio
 	}
 
 	// Attempt to map it.
-	if (MapRegion(addr, size, prot, ""))
+	if (MapRegion(addr, size, prot, "")) {
 		return addr;
-	else {
+	} else {
 		LC_ERROR(LogMemoryModel) << "Failed to map anonymous region!";
 		return Address(-1);
 	}
@@ -506,6 +581,9 @@ bool RegionBasedMemoryModel::RemapRegion(guest_addr_t addr, guest_size_t size)
 		return false;
 	}
 
+	DeallocateRegion(addr,vma->size);
+	AllocateRegion(addr, size);
+
 	LC_DEBUG1(LogMemoryModel) << "Remap Region: addr = " << std::hex << vma->base << ", real addr = " << std::hex << vma->host_base << ", old size = " << std::hex << vma->size << ", new size = " << std::hex << size;
 	return ResizeVMA(*vma, size);
 }
@@ -525,6 +603,7 @@ bool RegionBasedMemoryModel::UnmapRegion(guest_addr_t addr, guest_size_t size)
 	LC_DEBUG1(LogMemoryModel) << "Unmap Region: addr = " << std::hex << vma->base << ", real addr = " << std::hex << vma->host_base << ", size = " << std::hex << vma->size;
 
 	if (!DeallocateVMA(*vma)) return false;
+	DeallocateRegion(addr, size);
 
 	DeleteVMA(addr);
 	return true;
