@@ -4,26 +4,30 @@ AC_ISA(riscv)
 	ac_format Type_FS  = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %imm1:5 %opcode:7";
 	ac_format Type_FS_DATA  = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
 	ac_format Type_FCSR = "%csr:12 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+	ac_format Type_FSFUSED = "%rs3:5 %fmt:2 %rs2:5 %rs1:5 %rm:3 %rd:5 %opcode:7";
 	
 	ac_instr<Type_FI> flw;
 	ac_instr<Type_FS> fsw;
-	ac_instr<Type_FS_DATA> fcvt_s_wu, fcvt_s_w, fcvt_w_s, fdiv_s, fmv_x_s, fmv_s_x, fadd_s, fsub_s, fmul_s, feq_s, flt_s; 
+	ac_instr<Type_FS_DATA> fcvt_s_wu, fcvt_s_w, fcvt_w_s, fcvt_wu_s, fdiv_s, fmv_x_s, fmv_s_x, fadd_s, fsub_s, fmul_s, feq_s, flt_s, fle_s; 
+	ac_instr<Type_FSFUSED> fmadd_s, fmsub_s;
 
 	ac_instr<Type_FCSR> frrm, frflags, fsflags;
 
 	ac_behaviour flw;
 	ac_behaviour fsw;
 	
-	ac_behaviour feq_s, flt_s;
+	ac_behaviour feq_s, flt_s, fle_s;
 	
 	ac_behaviour fdiv_s, fadd_s, fsub_s, fmul_s;
 	
-	ac_behaviour fcvt_s_wu, fcvt_s_w, fcvt_w_s;
+	ac_behaviour fcvt_s_wu, fcvt_s_w, fcvt_w_s, fcvt_wu_s;
 	
 	ac_behaviour fmv_x_s;
 	ac_behaviour fmv_s_x;
 	
 	ac_behaviour frrm, frflags, fsflags;
+
+	ac_behaviour fmadd_s, fmsub_s;
 	
 	ISA_CTOR(riscv)
 	{
@@ -45,6 +49,10 @@ AC_ISA(riscv)
 		flt_s.set_asm("flt.s");
 		flt_s.set_behaviour(flt_s);
 		
+		fle_s.set_decoder(imm2=0x50, opcode=0x53, funct3=0x0);
+		fle_s.set_asm("fle.s");
+		fle_s.set_behaviour(fle_s);
+		
 		fcvt_s_wu.set_decoder(imm2=0x68, rs2=1, opcode=0x53);
 		fcvt_s_wu.set_asm("fcvt.s.wu");
 		fcvt_s_wu.set_behaviour(fcvt_s_wu);
@@ -56,6 +64,10 @@ AC_ISA(riscv)
 		fcvt_w_s.set_decoder(imm2=0x60, rs2=0, opcode=0x53);
 		fcvt_w_s.set_asm("fcvt.w.s");
 		fcvt_w_s.set_behaviour(fcvt_w_s);
+		
+		fcvt_wu_s.set_decoder(imm2=0x60, rs2=1, opcode=0x53);
+		fcvt_wu_s.set_asm("fcvt.wu.s");
+		fcvt_wu_s.set_behaviour(fcvt_wu_s);
 		
 		fdiv_s.set_decoder(imm2=0x0c, opcode=0x53);
 		fdiv_s.set_asm("fdiv.s");
@@ -92,5 +104,13 @@ AC_ISA(riscv)
 		fsflags.set_decoder(csr=0x001, funct3=1, opcode=0x73);
 		fsflags.set_asm("fsflags");
 		fsflags.set_behaviour(fsflags);
+		
+		fmadd_s.set_decoder(opcode=0x43, fmt=0);
+		fmadd_s.set_asm("fmadd.s");
+		fmadd_s.set_behaviour(fmadd_s);
+		
+		fmadd_s.set_decoder(opcode=0x47, fmt=0);
+		fmadd_s.set_asm("fmadd.s");
+		fmadd_s.set_behaviour(fmadd_s);
 	};
 };

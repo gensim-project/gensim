@@ -24,7 +24,7 @@ AC_ARCH(riscv)
 
 	ac_regspace(256) {
 		bank FP_D(double, 0, 32, 8, 1, 8, 8);
-		bank FP_S(float,  0, 32, 8, 1, 8, 8);
+		bank FP_S(float,  0, 32, 8, 1, 4, 4);
 	}
 
 	ac_regspace(6) {
