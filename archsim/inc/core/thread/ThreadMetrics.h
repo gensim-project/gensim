@@ -45,6 +45,8 @@ namespace archsim
 				archsim::util::Counter64 JITInstructionCount;
 				archsim::util::CounterTimer JITTime;
 
+				archsim::util::CounterTimer InterpretTime;
+
 				archsim::util::Counter64 JITSuccessfulChains;
 				archsim::util::Counter64 JITFailedChains;
 			};

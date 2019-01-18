@@ -94,7 +94,13 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 				}
 			}
 
-			auto interpret_result = EpochInterpret(ctx, region);
+			if(archsim::options::Verbose) {
+				thread->GetMetrics().InterpretTime.Start();
+			}
+			auto interpret_result = EpochInterpret(ctx);
+			if(archsim::options::Verbose) {
+				thread->GetMetrics().InterpretTime.Stop();
+			}
 			switch(interpret_result) {
 				case ExecutionResult::Continue:
 				case ExecutionResult::Exception:
@@ -111,21 +117,25 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 	return ExecutionResult::Halt;
 }
 
-ExecutionResult LLVMRegionJITExecutionEngine::EpochInterpret(LLVMRegionJITExecutionEngineContext *ctx, archsim::translate::profile::Region& region)
+ExecutionResult LLVMRegionJITExecutionEngine::EpochInterpret(LLVMRegionJITExecutionEngineContext *ctx)
 {
 	auto thread = ctx->GetThread();
-	auto epoch_region_virt_base = thread->GetPC().PageBase();
+	archsim::translate::profile::Region* region = nullptr;
 
 	while(ctx->Iterations-- > 0 && !thread->HasMessage()) {
+
+
 		auto virt_pc = thread->GetPC();
-		if(virt_pc.PageBase() != epoch_region_virt_base) {
-			return ExecutionResult::Continue;
+		if(region == nullptr || virt_pc.PageBase() != region->GetPhysicalBaseAddress()) {
+			Address phys_pc;
+			thread->GetFetchMI().PerformTranslation(virt_pc, phys_pc, false, true, false);
+			region = &ctx->TxlnMgr.GetRegion(phys_pc);
 		}
-		if(region.txln != nullptr && region.txln->ContainsBlock(virt_pc.PageOffset())) {
+		if(region->txln != nullptr && region->txln->ContainsBlock(virt_pc.PageOffset())) {
 			return ExecutionResult::Continue;
 		}
 
-		region.TraceBlock(thread, virt_pc);
+		region->TraceBlock(thread, virt_pc);
 		auto result = interpreter_->StepBlock(ctx);
 
 		switch(result) {

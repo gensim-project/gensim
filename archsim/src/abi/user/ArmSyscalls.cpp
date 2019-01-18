@@ -16,6 +16,7 @@
 #include "util/SimOptions.h"
 #include "util/LogContext.h"
 
+#include <syscall.h>
 #include <asm/prctl.h>
 #include <stdio.h>
 #include <sys/uio.h>
@@ -330,6 +331,24 @@ static unsigned long sys_unlink(archsim::core::thread::ThreadInstance* cpu, unsi
 	return 0;
 }
 
+static unsigned long sys_unlinkat(archsim::core::thread::ThreadInstance* cpu, int dirfd, Address pathname, int flags)
+{
+	if(dirfd != AT_FDCWD) {
+		dirfd = translate_fd(cpu, dirfd);
+	}
+
+	char filename[256];
+	auto interface = cpu->GetMemoryInterface(0);
+	interface.ReadString(Address(pathname), filename, sizeof(filename) - 1);
+
+	int result = unlinkat(dirfd, filename, flags);
+	if(result < 0) {
+		return -errno;
+	} else {
+		return result;
+	}
+}
+
 static unsigned long sys_mmap(archsim::core::thread::ThreadInstance* cpu, unsigned long addr, unsigned long len, unsigned int prot, unsigned int flags, unsigned int fd, unsigned long off)
 {
 	LC_DEBUG1(LogSyscalls) << "MMAP: " << Address(addr) << ", len=" << std::dec << len << ", prot=" << prot << ", flags=" << flags << ", fd=" << fd << ", off=" << off;
@@ -541,46 +560,17 @@ static unsigned long sys_fstat_x86(archsim::core::thread::ThreadInstance* cpu, u
 	return result;
 }
 
-static unsigned long sys_fstat(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned long addr)
+template<typename guest_stat> static unsigned long sys_fstat(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned long addr)
 {
 	struct stat st;
-	struct arm_stat result_st;
+	guest_stat result_st;
 
 	fd = translate_fd(cpu, fd);
 	if (fstat(fd, &st)) {
 		return -errno;
 	}
 
-	memset(&result_st, 0, sizeof(result_st));
-
-//	printf("Doing an fstat! %u %lx\n", fd, (uint64_t)addr);
-
-	result_st.st_dev = st.st_dev;
-//	printf("st_dev %lx\n", result_st.st_dev);
-	result_st.__st_ino = st.st_ino;
-//	printf("st_ino %lx\n", result_st.__st_ino);
-	result_st.st_mode = st.st_mode;
-//	printf("st_mode %lx\n", result_st.st_mode);
-	result_st.st_nlink = st.st_nlink;
-//	printf("st_nlink %lx\n", result_st.st_nlink);
-	result_st.st_uid = st.st_uid;
-//	printf("st_uid %lx\n", result_st.st_uid);
-	result_st.st_gid = st.st_gid;
-//	printf("st_gid %lx\n", result_st.st_gid);
-	result_st.st_rdev = st.st_rdev;
-//	printf("st_rdev %lx\n", result_st.st_rdev);
-	result_st.st_size = st.st_size;
-//	printf("st_size %lx\n", result_st.st_size);
-	result_st.st_blocks = st.st_blocks;
-//	printf("st_blocks %lx\n", result_st.st_blocks);
-	result_st.target_st_atime = (uint32_t)st.st_atime;
-//	printf("st_atime %lx\n", result_st.target_st_atime);
-	result_st.target_st_mtime = (uint32_t)st.st_mtime;
-//	printf("st_mtime %lx\n", result_st.target_st_mtime);
-	result_st.target_st_ctime = (uint32_t)st.st_ctime;
-//	printf("st_ctime %lx\n", result_st.target_st_ctime);
-	result_st.st_blksize = 4096;
-//	printf("st_blksize %lx\n", result_st.st_blksize);
+	translate_stat(st, result_st);
 
 	auto interface = cpu->GetMemoryInterface(0);
 	interface.Write(Address(addr), (uint8_t *)&result_st, sizeof(result_st));
@@ -1111,6 +1101,24 @@ static unsigned long sys_getdents_x86_64(archsim::core::thread::ThreadInstance *
 	return result;
 }
 
+static unsigned long sys_getdents64(archsim::core::thread::ThreadInstance *thread, unsigned int fd, unsigned long addr, unsigned int count)
+{
+	fd = translate_fd(thread, fd);
+
+	// TODO: fix this for non x86-64 host architectures
+	std::vector<char> buffer(count);
+	unsigned long result;
+
+	result = syscall(SYS_getdents64, fd, buffer.data(), count);
+
+	if(result < 0) {
+		return -errno;
+	}
+
+	thread->GetMemoryInterface(0).Write(Address(addr), (uint8_t*)buffer.data(), result);
+	return result;
+}
+
 static unsigned long sys_futex(archsim::core::thread::ThreadInstance *thread, unsigned long addr, unsigned int op, unsigned int val, unsigned long timespec_addr, unsigned long uaddr2, unsigned int val3)
 {
 	LC_DEBUG1(LogSyscalls) << "Futex: addr=" << Address(addr) << ", op=" << op << ", val=" << val << ", timespec=" << Address(timespec_addr) << ", addr2=" << Address(uaddr2) << ", val3=" << val3;
@@ -1282,24 +1290,30 @@ static unsigned long sys_clone_x86(archsim::core::thread::ThreadInstance *thread
 	return tid;
 }
 
-static unsigned long sys_newfstatat(archsim::core::thread::ThreadInstance *cpu, unsigned int dfd, unsigned long filename_addr, unsigned long statbuf_addr, unsigned int flag)
+template<typename guest_stat> static unsigned long sys_newfstatat(archsim::core::thread::ThreadInstance *cpu, unsigned int dfd, unsigned long filename_addr, unsigned long statbuf_addr, unsigned int flag)
 {
-	if(dfd != AT_FDCWD) {
-		dfd = translate_fd(cpu, dfd);
-	}
 	char filename[256];
 	cpu->GetMemoryInterface(0).ReadString(Address(filename_addr), filename, 255);
 
-	LC_ERROR(LogSyscalls) << "newfstatat dfd=" << Address(dfd) << ", filename=" << filename << ", statbufaddr=" << Address(statbuf_addr) << ", flag=" << flag;
+	LC_DEBUG1(LogSyscalls) << "newfstatat dfd=" << Address(dfd) << ", filename=" << filename << ", statbufaddr=" << Address(statbuf_addr) << ", flag=" << flag;
+
+	if(dfd != AT_FDCWD) {
+		LC_DEBUG1(LogSyscalls) << "DFD != AT_FDCWD";
+		dfd = translate_fd(cpu, dfd);
+	} else {
+		LC_DEBUG1(LogSyscalls) << "DFD == AT_FDCWD";
+	}
 
 	struct stat statbuf;
 	int result = fstatat(dfd, filename, &statbuf, flag);
+	LC_DEBUG1(LogSyscalls) << "newfstatat result " << result;
 	if(result < 0) {
 		return -errno;
 	}
 
-	// TODO: convert host to guest stat
-	cpu->GetMemoryInterface(0).Write(Address(statbuf_addr), (uint8_t*)&statbuf, sizeof(statbuf));
+	guest_stat gstat;
+	translate_stat(statbuf, gstat);
+	cpu->GetMemoryInterface(0).Write(Address(statbuf_addr), (uint8_t*)&gstat, sizeof(gstat));
 
 	return result;
 }
@@ -1463,6 +1477,22 @@ static unsigned long sys_set_tid_address(archsim::core::thread::ThreadInstance *
 	return 0;
 }
 
+static int sys_chdir(archsim::core::thread::ThreadInstance *cpu, unsigned long filename_addr)
+{
+	char filename[256];
+	auto interface = cpu->GetMemoryInterface(0);
+	interface.ReadString(Address(filename_addr), filename, sizeof(filename) - 1);
+
+	int result = chdir(filename);
+
+	LC_DEBUG1(LogSyscalls) << "CHDIR(" << filename << ") = " << result << " (" << -errno << ")";
+
+	if(result < 0) {
+		return -errno;
+	}
+	return 0;
+}
+
 DEFINE_SYSCALL(arm, __NR_exit, sys_exit, "exit()");
 DEFINE_SYSCALL(arm, __NR_exit_group, sys_exit, "exit_group()");
 
@@ -1564,7 +1594,7 @@ DEFINE_SYSCALL(x86, 202, sys_futex, "futex()");
 DEFINE_SYSCALL(x86, 228, sys_clock_gettime, "clock_gettime()");
 DEFINE_SYSCALL(x86, 231, sys_exit, "exit_group()");
 DEFINE_SYSCALL(x86, 257, sys_openat, "openat()");
-DEFINE_SYSCALL(x86, 262, sys_newfstatat, "newfstatat()");
+DEFINE_SYSCALL(x86, 262, sys_newfstatat<x86_64_stat>, "newfstatat()");
 
 /* Aarch64 System calls */
 DEFINE_SYSCALL(aarch64, 1, sys_exit, "exit()");
@@ -1581,23 +1611,27 @@ DEFINE_SYSCALL(aarch64, 214, sys_brk, "brk()");
 DEFINE_SYSCALL(aarch64, 222, sys_mmap2, "brk()");
 
 /* RISC-V SYSTEM CALLS */
+
+DEFINE_SYSCALL(riscv, 17, sys_getcwd, "getcwd()");
+DEFINE_SYSCALL(riscv, 23, syscall_return_enosys, "_unknown_()");
+DEFINE_SYSCALL(riscv, 29, sys_ioctl, "ioctl()");
+DEFINE_SYSCALL(riscv, 35, sys_unlinkat, "unlinkat()");
+DEFINE_SYSCALL(riscv, 49, sys_chdir, "chdir()");
+DEFINE_SYSCALL(riscv, 56, sys_openat, "openat(dirfd=%d, pathname=%p, flags=%d, mode=%d)");
+DEFINE_SYSCALL(riscv, 57, sys_close, "close()");
+DEFINE_SYSCALL(riscv, 61, sys_getdents64, "getdents64()");
+DEFINE_SYSCALL(riscv, 62, sys_lseek, "lseek()");
+DEFINE_SYSCALL(riscv, 63, sys_read, "read()");
 DEFINE_SYSCALL(riscv, 64, sys_write, "write(fd=%d, addr=%p, len=%d)");
-DEFINE_SYSCALL(riscv, 160, sys_uname_riscv, "uname(addr=%p)");
-DEFINE_SYSCALL(riscv, 214, sys_brk, "brk(new_brk=%p)");
+DEFINE_SYSCALL(riscv, 66, sys_writev<struct riscv32_iovec>, "writev");
 DEFINE_SYSCALL(riscv, 78, syscall_return_enosys, "readlinkat(dirfd=%d, pathname=%p, buf=%p, bufsiz=%u)");
-DEFINE_SYSCALL(riscv, 222, sys_mmap, "mmap()");
-//DEFINE_SYSCALL("risc-v", 80, sys_fstat, "fstat()");
+DEFINE_SYSCALL(riscv, 79, sys_newfstatat<riscv32_stat>, "fstatat()");
+DEFINE_SYSCALL(riscv, 80, sys_fstat<riscv32_stat>, "fstat()");
 DEFINE_SYSCALL(riscv, 93, sys_exit, "exit()");
 DEFINE_SYSCALL(riscv, 94, sys_exit, "exit_group()");
+DEFINE_SYSCALL(riscv, 96, sys_set_tid_address, "set_tid_address_riscv()");
+DEFINE_SYSCALL(riscv, 160, sys_uname_riscv, "uname(addr=%p)");
+DEFINE_SYSCALL(riscv, 214, sys_brk, "brk(new_brk=%p)");
 DEFINE_SYSCALL(riscv, 215, sys_munmap, "munmap()");
 DEFINE_SYSCALL(riscv, 216, sys_mremap, "mremap()");
-
-
-DEFINE_SYSCALL(riscv, 56, sys_openat, "openat(dirfd=%d, pathname=%p, flags=%d, mode=%d)");
-DEFINE_SYSCALL(riscv, 66, sys_writev<struct riscv32_iovec>, "writev");
-DEFINE_SYSCALL(riscv, 23, syscall_return_enosys, "_unknown_()");
-//DEFINE_SYSCALL("risc-v", 25, sys_fcntl, "fcntl()");
-DEFINE_SYSCALL(riscv, 80, sys_fstat, "fstat()");
-DEFINE_SYSCALL(riscv, 57, sys_close, "close()");
-DEFINE_SYSCALL(riscv, 63, sys_read, "read()");
-DEFINE_SYSCALL(riscv, 96, sys_set_tid_address, "set_tid_address_riscv()");
+DEFINE_SYSCALL(riscv, 222, sys_mmap, "mmap()");

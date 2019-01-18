@@ -40,6 +40,8 @@ namespace archsim
 						ptr = InstantiateRegion(mgr, phys_base);
 						dense_regions.insert(ptr);
 					}
+
+//					fprintf(stderr, " --- Getting region for %p = %p\n", phys_base.Get(), ptr);
 					return *ptr;
 				}
 

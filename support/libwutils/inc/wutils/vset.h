@@ -10,6 +10,9 @@
 #ifndef VSET_H
 #define VSET_H
 
+#include <vector>
+#include <algorithm>
+
 namespace wutils
 {
 
@@ -111,6 +114,11 @@ namespace wutils
 		bool empty() const
 		{
 			return size() == 0;
+		}
+
+		void clear()
+		{
+			storage_.clear();
 		}
 
 	private:
