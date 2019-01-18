@@ -490,12 +490,12 @@ execute(bgeu)
 ///////////lw is the same with addi?////////////////////
 execute(lw)
 {
-        sint32 imm = inst.imm;
-        imm <<= 20;
-        imm >>= 20; 
-        
-        uint32 rs1 = read_gpr(inst.rs1);
-        uint32 addr = rs1 +  imm;
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20; 
+	
+	uint32 rs1 = read_gpr(inst.rs1);
+	uint32 addr = rs1 +  imm;
 
 	uint32 val;
         
