@@ -170,6 +170,14 @@ namespace gensim
 						output << "(" << signed_type.GetCType() << ")" << Factory.GetOrCreate(Statement.LHS())->GetFixedValue() << " /* signed */ >> " << Factory.GetOrCreate(Statement.RHS())->GetFixedValue() << ");";
 						return true;
 					}
+					if(Statement.Type == BinaryOperator::RotateRight) {
+						output << "__ror" << Statement.LHS()->GetType().SizeInBytes()*8ULL << "(" << Factory.GetOrCreate(Statement.LHS())->GetFixedValue() << ", " << Factory.GetOrCreate(Statement.RHS())->GetFixedValue() << "));";
+						return true;
+					}
+					if(Statement.Type == BinaryOperator::RotateLeft) {
+						output << "__rol" << Statement.LHS()->GetType().SizeInBytes()*8ULL << "(" << Factory.GetOrCreate(Statement.LHS())->GetFixedValue() << ", " << Factory.GetOrCreate(Statement.RHS())->GetFixedValue() << "));";
+						return true;
+					}
 
 					output << "(" << LHSNode->GetFixedValue();
 
@@ -180,6 +188,7 @@ namespace gensim
 						case BinaryOperator::ShiftRight:
 							output << " >> ";
 							break;
+
 
 						case BinaryOperator::Equality:
 							output << " == ";
@@ -497,6 +506,9 @@ namespace gensim
 						case OP_NEGATE:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = !" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ";";
 							break;
+						case OP_COMPLEMENT:
+							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = ~" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ";";
+							break;
 						default:
 							assert(false);
 					}
@@ -757,8 +769,9 @@ namespace gensim
 					output << "{";
 
 					output << "UNIMPLEMENTED;";
-					output << "llvm::Value *ptr = llvm_registers[__idx_" << stmt->Target()->GetName() << "];";
-					output << Statement.GetName() << " = __irBuilder.CreateCall4(ctx.Functions.dev_read_device, ctx.GetThreadPtr(__irBuilder), " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", ptr, \"dev_read_result\");";
+					output << "llvm::Value *ptr = __irBuilder.CreateAlloca(ctx.Types.i32);";
+					output << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.dev_read_device, {ctx.GetThreadPtr(__irBuilder), " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", ptr}, \"dev_read_result\");";
+					output << "ctx.StoreRegister(__irBuilder, __idx_" << stmt->Target()->GetName() << ", __irBuilder.CreateLoad(ptr));";
 					output << "}";
 
 					return true;
@@ -799,6 +812,10 @@ namespace gensim
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = " << Statement.Parent->Parent->GetAction()->Context.ISA.isa_mode_id << ";";
+							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_GetFeature:
+							output << Statement.GetType().GetCType() << " " << Statement.GetName() << ";";
+							output << "UNIMPLEMENTED;";
 							break;
 						default:
 							assert(false && "Unimplemented");
@@ -871,8 +888,7 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
 							assert(arg0);
 							output << "{";
-							output << "llvm::Value *isa_mode_ptr = __irBuilder.CreateConstGEP2_32(ctx.block.region.values.state_val, 0, gensim::CpuStateEntries::CpuState_isa_mode);";
-							output << "ctx.AddAliasAnalysisNode((llvm::Instruction *)isa_mode_ptr, archsim::translate::llvm::TAG_CPU_STATE);";
+							output << "llvm::Value *isa_mode_ptr = ctx.GetStateBlockPointer(__irBuilder, \"ModeID\");";
 							output << "__irBuilder.CreateStore(" << arg0->GetDynamicValue() << ", isa_mode_ptr);";
 							output << "}";
 
@@ -881,8 +897,7 @@ namespace gensim
 							output << "llvm::Value *" << Statement.GetName() << " = NULL;";
 
 							output << "{";
-							output << "llvm::Value *isa_mode_ptr = __irBuilder.CreateConstGEP2_32(cpuState, 0, gensim::CpuStateEntries::CpuState_isa_mode);";
-							output << "ctx.AddAliasAnalysisNode((llvm::Instruction *)isa_mode_ptr, archsim::translate::llvm::TAG_CPU_STATE);";
+							output << "llvm::Value *isa_mode_ptr = ctx.GetStateBlockPointer(__irBuilder, \"ModeID\");";
 							output << Statement.GetName() << " = __irBuilder.CreateLoad(isa_mode_ptr);";
 							output << "}";
 							break;
@@ -898,11 +913,11 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
 							assert(arg0 && arg1 && arg2);
 							output << "llvm::Value *" << Statement.GetName();
-							output << " = __irBuilder.CreateCall4(ctx.Functions.dev_write_device, ctx.GetThreadPtr(__irBuilder), ";
-							output << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << ", \"dev_write_result\");";
+							output << " = __irBuilder.CreateCall(ctx.Functions.dev_write_device, {ctx.GetThreadPtr(__irBuilder), ";
+							output << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << "}, \"dev_write_result\");";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
-							output << "__irBuilder.CreateCall2(ctx.Functions.cpu_push_interrupt, ctx.GetThreadPtr(__irBuilder), " << GetLLVMValue(IRTypes::UInt32, "0") << ");";
+							output << "__irBuilder.CreateCall(ctx.Functions.cpuPushInterrupt, {ctx.GetThreadPtr(__irBuilder), " << GetLLVMValue(IRTypes::UInt32, "0") << "});";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpu_pop_interrupt, ctx.GetThreadPtr(__irBuilder));";
@@ -911,16 +926,16 @@ namespace gensim
 							output << "__irBuilder.CreateCall(ctx.Functions.jit_trap, {ctx.GetThreadPtr(__irBuilder)});";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
-							output << "__irBuilder.CreateCall(ctx.Functions.cpu_pend_irq, ctx.GetThreadPtr(__irBuilder));";
+							output << "__irBuilder.CreateCall(ctx.Functions.cpuPendIRQ, ctx.GetThreadPtr(__irBuilder));";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpu_halt, ctx.GetThreadPtr(__irBuilder));";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
-							output << "__irBuilder.CreateCall(ctx.Functions.cpu_enter_kernel, ctx.GetThreadPtr(__irBuilder));";
+							output << "__irBuilder.CreateCall(ctx.Functions.cpuEnterKernel, ctx.GetThreadPtr(__irBuilder));";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
-							output << "__irBuilder.CreateCall(ctx.Functions.cpu_enter_user, ctx.GetThreadPtr(__irBuilder));";
+							output << "__irBuilder.CreateCall(ctx.Functions.cpuEnterUser, ctx.GetThreadPtr(__irBuilder));";
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatIsQnan:
@@ -998,7 +1013,8 @@ namespace gensim
 							output << "{"
 							       "llvm::Value *n = __irBuilder.CreateLShr(" << arg0->GetDynamicValue() << ", 31);"
 							       "llvm::Value *z = __irBuilder.CreateICmpEQ(" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i32, 0, false));"
-							       "UNIMPLEMENTED;";
+							       "UNIMPLEMENTED;"
+							       "}";
 //							       "EmitRegisterWrite(ctx, " << (uint32_t)Z->GetIndex() << ", __irBuilder.CreateIntCast(z, " << Z->GetIRType().GetLLVMType() << ", false));"
 //							       "EmitRegisterWrite(ctx, " << (uint32_t)N->GetIndex() << ", __irBuilder.CreateIntCast(n, " << N->GetIRType().GetLLVMType() << ", false));"
 							"}";
@@ -1058,6 +1074,7 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
 						case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
 						case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
+							output << "llvm::Value *" << Statement.GetName() << " = nullptr;";
 							output << "UNIMPLEMENTED;";
 							break;
 
@@ -1072,6 +1089,13 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_MemLock:
 						case SSAIntrinsicStatement::SSAIntrinsic_MemUnlock:
 							// TODO: just do nothing for now
+							break;
+
+						case SSAIntrinsicStatement::SSAIntrinsic_SetFeature:
+						case SSAIntrinsicStatement::SSAIntrinsic_GetFeature:
+						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN64:
+							output << "llvm::Value *" << Statement.GetName() << " = nullptr;";
+							output << "UNIMPLEMENTED;";
 							break;
 
 						default:
@@ -1304,8 +1328,15 @@ namespace gensim
 					std::stringstream str;
 
 					str << Statement.Target()->GetName();
-					for(auto i : Statement.MemberNames) {
-						str << "." << i;
+
+					// slight hack to fix getispredicated
+					if(Statement.MemberNames.size() == 1 && Statement.MemberNames.at(0) == "IsPredicated") {
+						str << ".GetIsPredicated()";
+
+					} else {
+						for(auto i : Statement.MemberNames) {
+							str << "." << i;
+						}
 					}
 
 					return str.str();

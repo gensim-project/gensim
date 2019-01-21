@@ -1025,7 +1025,9 @@ SSAStatement *IRIterationStatement::EmitSSAForm(SSABuilder &bldr) const
 			SSABlock *after_block = new SSABlock(bldr);
 
 			// Emit the begin statement
-			For_Expr_Start->EmitSSAForm(bldr);
+			if(For_Expr_Start != nullptr) {
+				For_Expr_Start->EmitSSAForm(bldr);
+			}
 
 			// Emit the contents of the check block
 			bldr.EmitBranch(*check_block, *For_Expr_Check);
@@ -1041,7 +1043,9 @@ SSAStatement *IRIterationStatement::EmitSSAForm(SSABuilder &bldr) const
 			Body->EmitSSAForm(bldr);
 
 			// Emit the end statement
-			Expr->EmitSSAForm(bldr);
+			if(Expr != nullptr) {
+				Expr->EmitSSAForm(bldr);
+			}
 
 			// Emit the jump back to the check block
 			auto jmp = new SSAJumpStatement(&bldr.GetBlock(), *check_block);

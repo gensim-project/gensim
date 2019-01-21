@@ -415,15 +415,17 @@ namespace gensim
 		bool IRIterationStatement::Resolve(GenCContext &Context)
 		{
 			bool success = true;
-			switch (Type) {
-				case ITERATE_FOR:
-					success &= For_Expr_Start->Resolve(Context) && For_Expr_Check->Resolve(Context) && Expr->Resolve(Context);
-					break;
-				case ITERATE_WHILE:
-				case ITERATE_DO_WHILE:
-					success &= Expr->Resolve(Context);
-					break;
+
+			if(For_Expr_Start != nullptr) {
+				success &= For_Expr_Start->Resolve(Context);
 			}
+			if(For_Expr_Check != nullptr) {
+				success &= For_Expr_Check->Resolve(Context);
+			}
+			if(Expr != nullptr) {
+				success &= Expr->Resolve(Context);
+			}
+
 			success &= Body->Resolve(Context);
 			Resolved = success;
 			return success;

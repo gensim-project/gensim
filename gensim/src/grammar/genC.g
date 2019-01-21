@@ -55,6 +55,9 @@ tokens
   WHILE;
   DO;
   FOR;
+  FOR_PRE;
+  FOR_CHECK;
+  FOR_POST;
   
   IF;
   SWITCH;
@@ -192,7 +195,7 @@ flow_statement :
 iteration_statement : 
    ('while' '(' ternary_expression ')' statement -> ^(WHILE ternary_expression statement))
   |('do' statement 'while' '(' expression ')' -> ^(DO statement expression))
-  |('for' '(' pre=expression ';' check=ternary_expression ';' post=ternary_expression? ')' statement -> ^(FOR $pre $check $post statement))
+  |('for' '(' pre=expression? ';' check=ternary_expression ';' post=expression? ')' statement -> ^(FOR ^(FOR_PRE $pre) ^(FOR_CHECK $check) ^(FOR_POST $post) statement))
   ;
 
 selection_statement : 
@@ -209,7 +212,12 @@ switch_statement
 
 expression: 
    declaration_expression
- | left_expression (assignment_operator^ ternary_expression)?;
+ | ((left_expression assignment_operator) => left_expression assignment_operator^ right_expression)
+ | ternary_expression;
+
+right_expression : 
+	vector_expression
+      | ternary_expression;
 
 left_expression: GENC_ID | call_expression | left_index_expression;
 
@@ -224,7 +232,7 @@ constant: HEX_VAL | INT_CONST | FLOAT_CONST;
 vector_expression: OBRACE ternary_expression (',' ternary_expression)* CBRACE -> ^(VECTOR ternary_expression*);
 
 primary_expression:
-  call_expression | GENC_ID | vector_expression | constant | '('! ternary_expression ')'!;
+  call_expression | GENC_ID | constant | '('! ternary_expression ')'!;
 
 call_expression:
   GENC_ID '(' argument_list ')' -> ^(CALL GENC_ID argument_list);
@@ -253,7 +261,7 @@ postfix_operator:
   
 declaration: type GENC_ID -> ^(DECL type GENC_ID);
 
-declaration_expression: declaration (EQUALS^ ternary_expression)?;
+declaration_expression: declaration (EQUALS^ right_expression)?;
 
 unary_expression:
   postfix_expression

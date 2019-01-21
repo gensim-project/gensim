@@ -279,7 +279,7 @@ namespace gensim
 							str << "(" << stmt.GetType().GetCType() << ")(" << stmt.Constant.Int() << "ULL)";
 							break;
 						case genc::IRConstant::Type_Vector:
-							str << "archsim::Vector<" << stmt.GetType().GetElementType().GetCType() << ", " << stmt.Constant.GetVector().Width() << ">({";
+							str << "wutils::Vector<" << stmt.GetType().GetElementType().GetCType() << ", " << stmt.Constant.GetVector().Width() << ">({";
 							for(unsigned i = 0; i < stmt.Constant.GetVector().Width(); ++i) {
 								if(i) {
 									str << ", ";
@@ -1015,7 +1015,7 @@ namespace gensim
 			{
 				const SSAVectorShuffleStatement &stmt = (const SSAVectorShuffleStatement&)(Statement);
 
-				output << stmt.GetType().GetCType() << " " << stmt.GetName () << " = archsim::VectorShuffle(" <<
+				output << stmt.GetType().GetCType() << " " << stmt.GetName () << " = wutils::VectorShuffle(" <<
 				       Factory.GetOrCreate(stmt.LHS())->GetFixedValue() << ", " <<
 				       Factory.GetOrCreate(stmt.RHS())->GetFixedValue() << ", " <<
 				       Factory.GetOrCreate(stmt.Indices())->GetFixedValue() <<
