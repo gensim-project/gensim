@@ -631,6 +631,8 @@ IRBody *GenCContext::Parse_Body(pANTLR3_BASE_TREE node, IRScope &containing_scop
 
 IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &containing_scope)
 {
+	GASSERT(node != nullptr);
+
 	switch (node->getType(node)) {
 		case BODY: {
 			return Parse_Body(node, containing_scope, NULL);
@@ -760,22 +762,49 @@ IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &conta
 			return iter;
 		}
 		case FOR: {
-			pANTLR3_BASE_TREE initNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			pANTLR3_BASE_TREE checkNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
-			pANTLR3_BASE_TREE postNode = (pANTLR3_BASE_TREE) node->getChild(node, 2);
-			pANTLR3_BASE_TREE bodyNode = (pANTLR3_BASE_TREE) node->getChild(node, 3);
-
-			IRExpression *start = Parse_Expression(initNode, containing_scope);
-			IRExpression *check = Parse_Expression(checkNode, containing_scope);
-			IRExpression *post = Parse_Expression(postNode, containing_scope);
-
-			if(start == nullptr || check == nullptr || post == nullptr) {
-				return nullptr;
-			}
+			IRExpression *start = nullptr;
+			IRExpression *check = nullptr;
+			IRExpression *post = nullptr;
 
 			IRScope *scope = new IRScope(containing_scope, IRScope::SCOPE_LOOP);
+			for(int i = 0; i < node->getChildCount(node)-1; ++i) {
+				pANTLR3_BASE_TREE child = (pANTLR3_BASE_TREE)node->getChild(node, i);
+				switch(child->getType(child)) {
+					case FOR_PRE:
+						if(child->getChildCount(child) > 0) {
+							start = Parse_Expression((pANTLR3_BASE_TREE)child->getChild(child,0), *scope);
+						}
+						break;
+					case FOR_CHECK:
+						if(child->getChildCount(child) > 0) {
+							check = Parse_Expression((pANTLR3_BASE_TREE)child->getChild(child,0), *scope);
+						}
+						break;
+					case FOR_POST:
+						if(child->getChildCount(child) > 0) {
+							post = Parse_Expression((pANTLR3_BASE_TREE)child->getChild(child,0), *scope);
+						}
+						break;
+					default:
+						UNEXPECTED;
+				}
+			}
 
-			IRIterationStatement *iter = IRIterationStatement::CreateFor(*scope, *start, *check, *post, *Parse_Statement(bodyNode, containing_scope));
+			IRExpression *post_expression = post;
+			if(start == nullptr) {
+				start = new IRConstExpression(*scope, IRTypes::UInt8, IRConstant::Integer(0));
+			}
+			if(check == nullptr) {
+				check = new IRConstExpression(*scope, IRTypes::UInt8, IRConstant::Integer(0));
+			}
+			if(post == nullptr) {
+				post = new IRConstExpression(*scope, IRTypes::UInt8, IRConstant::Integer(0));
+			}
+
+			pANTLR3_BASE_TREE bodyNode = (pANTLR3_BASE_TREE)node->getChild(node, node->getChildCount(node)-1);
+			GASSERT(bodyNode != nullptr);
+
+			IRIterationStatement *iter = IRIterationStatement::CreateFor(*scope, *start, *check, *post_expression, *Parse_Statement(bodyNode, *scope));
 			iter->SetDiag(DiagNode(CurrFilename, node));
 			return iter;
 		}

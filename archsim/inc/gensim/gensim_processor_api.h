@@ -15,6 +15,10 @@ static inline uint32_t __ror32 (uint32_t x, uint32_t n)
 {
 	return (x<<n) | (x>>(32-n));
 }
+static inline uint32_t __ror64 (uint64_t x, uint32_t n)
+{
+	return (x<<n) | (x>>(64-n));
+}
 #endif
 
 #ifndef __BITMNP_FUNS

@@ -492,7 +492,7 @@ namespace gensim
 					IRType innertype = *this;
 					innertype.VectorWidth = 1;
 
-					out << "archsim::Vector<" << innertype.GetCType() << ", " << (uint32_t)VectorWidth << ">";
+					out << "wutils::Vector<" << innertype.GetCType() << ", " << (uint32_t)VectorWidth << ">";
 					return out.str();
 				}
 

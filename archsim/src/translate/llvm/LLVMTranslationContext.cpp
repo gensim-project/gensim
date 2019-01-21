@@ -313,8 +313,16 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 
 	Functions.TakeException = (llvm::Function*)Module->getOrInsertFunction("cpuTakeException", Types.vtype, Types.i8Ptr, Types.i32, Types.i32);
 
+	Functions.dev_read_device = (llvm::Function*)Module->getOrInsertFunction("devReadDevice", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i8Ptr);
+	Functions.dev_write_device = (llvm::Function*)Module->getOrInsertFunction("devWriteDevice", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i32);
+
 	Functions.cpuTraceInstruction = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInstruction", Types.vtype, Types.i8Ptr, Types.i64, Types.i32, Types.i32, Types.i32, Types.i32);
 	Functions.cpuTraceInsnEnd = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInsnEnd", Types.vtype, Types.i8Ptr);
+
+	Functions.cpuEnterUser = (llvm::Function*)Module->getOrInsertFunction("cpuEnterUserMode", Types.vtype, Types.i8Ptr);
+	Functions.cpuEnterKernel = (llvm::Function*)Module->getOrInsertFunction("cpuEnterKernelMode", Types.vtype, Types.i8Ptr);
+	Functions.cpuPendIRQ = (llvm::Function*)Module->getOrInsertFunction("cpuPendInterrupt", Types.vtype, Types.i8Ptr);
+	Functions.cpuPushInterrupt = (llvm::Function*)Module->getOrInsertFunction("cpuPushInterrupt", Types.vtype, Types.i8Ptr, Types.i32);
 
 	guest_reg_emitter_ = new GEPLLVMGuestRegisterAccessEmitter(*this);
 }
@@ -340,6 +348,10 @@ llvm::Value* LLVMTranslationContext::GetStateBlockPointer(llvm::IRBuilder<> &bui
 {
 	auto ptr = Values.state_block_ptr;
 	ptr = builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(Types.i64, thread_->GetStateBlock().GetBlockOffset(entry))});
+
+	// cast to appropriate pointer type
+	ptr = builder.CreatePointerCast(ptr, llvm::Type::getIntNPtrTy(LLVMCtx, thread_->GetStateBlock().GetDescriptor().GetBlockSizeInBytes(entry)*8));
+
 	return ptr;
 }
 

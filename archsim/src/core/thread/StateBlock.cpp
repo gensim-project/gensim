@@ -16,6 +16,7 @@ uint32_t StateBlockDescriptor::AddBlock(const std::string& name, size_t size_in_
 		throw std::logic_error("Duplicate state block entry name!");
 	}
 	block_offsets_[name] = total_size_;
+	block_sizes_in_bytes_[name] = size_in_bytes;
 	total_size_ += size_in_bytes;
 	return total_size_;
 }
@@ -24,6 +25,12 @@ size_t StateBlockDescriptor::GetBlockOffset(const std::string& name) const
 {
 	return block_offsets_.at(name);
 }
+
+size_t StateBlockDescriptor::GetBlockSizeInBytes(const std::string& name) const
+{
+	return block_sizes_in_bytes_.at(name);
+}
+
 
 uint32_t StateBlock::AddBlock(const std::string& name, size_t size_in_bytes)
 {

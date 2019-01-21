@@ -66,6 +66,8 @@ namespace archsim
 					llvm::Function *blkRead8, *blkRead16, *blkRead32, *blkRead64;
 					llvm::Function *cpuWrite8, *cpuWrite16, *cpuWrite32, *cpuWrite64;
 
+					llvm::Function *cpuEnterUser, *cpuEnterKernel, *cpuPendIRQ, *cpuPushInterrupt;
+
 					llvm::Function *cpuTraceInstruction;
 
 					llvm::Function *cpuTraceMemRead8, *cpuTraceMemRead16, *cpuTraceMemRead32, *cpuTraceMemRead64;
@@ -78,6 +80,9 @@ namespace archsim
 
 
 					llvm::Function *TakeException;
+
+					llvm::Function *dev_read_device;
+					llvm::Function *dev_write_device;
 
 				} Functions;
 
