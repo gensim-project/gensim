@@ -149,6 +149,8 @@ bool ArmLinuxUserEmulationModel::InstallKernelHelpers()
 	GetMemoryModel().Write32(0xffff0fe4_ga, 0xe12fff1e);
 	AddSymbol(0xffff0fe0_ga, 8, "__aeabi_get_tls", FunctionSymbol);
 
+	// 0xffff0ff0 [TLS pointer]
+
 	/* version */
 	GetMemoryModel().Write32(0xffff1000_ga, 4);
 
