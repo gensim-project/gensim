@@ -69,7 +69,7 @@ bool InterpEEGenerator::GenerateSource(util::cppformatstream &str) const
 	    "#include \"arch.h\"\n"
 	    "#include \"decode.h\"\n"
 	    "#include <module/Module.h>\n"
-	    "#include <util/Vector.h>\n"
+	    "#include <wutils/Vector.h>\n"
 	    "#include <translate/jit_funs.h>\n"
 	    "#include <core/execution/InterpreterExecutionEngine.h>\n"
 	    "#include <gensim/gensim_processor_api.h>\n"

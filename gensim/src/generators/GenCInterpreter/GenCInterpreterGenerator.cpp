@@ -107,7 +107,7 @@ namespace gensim
 
 
 
-				Manager.AddFunctionEntry(FunctionEntry(prototype_stream.str(), body_stream.str(), {}, {"cstdint", "core/thread/ThreadInstance.h","util/Vector.h"}, {GeneratePrototype(isa, *action, HelperPrototypeVariant::SpecialisationNoTracing), GeneratePrototype(isa, *action, HelperPrototypeVariant::SpecialisationWithTracing)},true));
+				Manager.AddFunctionEntry(FunctionEntry(prototype_stream.str(), body_stream.str(), {}, {"cstdint", "core/thread/ThreadInstance.h","wutils/Vector.h"}, {GeneratePrototype(isa, *action, HelperPrototypeVariant::SpecialisationNoTracing), GeneratePrototype(isa, *action, HelperPrototypeVariant::SpecialisationWithTracing)},true));
 			}
 
 			return true;
@@ -171,7 +171,7 @@ namespace gensim
 		bool GenCInterpreterGenerator::GenerateExtraProcessorIncludes(util::cppformatstream &str) const
 		{
 			str << "#include \"translate/jit_funs.h\"\n";
-			str << "#include \"util/Vector.h\"\n";
+			str << "#include <wutils/Vector.h>\n";
 			str << "#include <math.h>\n";
 			str << "#include <cfenv>\n";
 
@@ -241,7 +241,7 @@ namespace gensim
 			// First, generate non-tracing
 			const arch::ArchDescription::ISAListType isalist = Manager.GetArch().ISAs;
 
-			str << "#include \"util/Vector.h\"\n";
+			str << "#include <wutils/Vector.h>\n";
 
 			str << "#undef GENSIM_TRACE\n";
 			str << "#include \"gensim/gensim_processor_api.h\"\n";

@@ -39,7 +39,8 @@ namespace gensim
 			makefile << "UNAME := $(shell uname)\n"
 			         "LLVM_INCLUDE=" << GetProperty("llvm_path") << "\n"
 			         "ARCHSIM_INCLUDE=" << GetProperty("archsim_path") << "\n"
-			         "LIBTRACE_INCLUDE=" << GetProperty("libtrace_path") << "\n";
+			         "LIBTRACE_INCLUDE=" << GetProperty("libtrace_path") << "\n"
+			         "WUTILS_INCLUDE=" WUTILS_INCLUDE_DIR "\n";
 
 			std::string llvm_include = "";
 			if(GetProperty("llvm_path") != "") {
@@ -47,7 +48,7 @@ namespace gensim
 			}
 
 			makefile <<
-			         "CFLAGS= -std=c++11 -fPIC -I$(ARCHSIM_INCLUDE) " << llvm_include << " -I$(LIBTRACE_INCLUDE) -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -fno-rtti -fmax-errors=10";
+			         "CFLAGS= -std=c++11 -fPIC -I$(ARCHSIM_INCLUDE) -I$(WUTILS_INCLUDE) " << llvm_include << " -I$(LIBTRACE_INCLUDE) -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -fno-rtti -fmax-errors=10";
 			if (GetProperty("Debug") == "1") makefile << " -g ";
 			makefile << " -O" << GetProperty("Optimise") << " ";
 			if (GetProperty("Tune") == "1") makefile << " -mtune=native -march=native ";
