@@ -15,7 +15,7 @@
 #include <stdexcept>
 #include <type_traits>
 
-namespace archsim
+namespace wutils
 {
 
 	template <unsigned Size> struct VDT {
@@ -37,6 +37,11 @@ namespace archsim
 		using Type = __int128;
 	};
 
+	/**
+	 * A fixed-length set of values which can be added pairwise and manipulated
+	 * in various ways. Represents the Computer Architecture concept of a
+	 * vector, NOT analogous to a std::vector.
+	 */
 	template <typename ElementT, unsigned Width> class Vector
 	{
 	public:
@@ -189,8 +194,8 @@ namespace archsim
 }
 
 #define OPERATE(op) \
-template <typename ElementT, unsigned Width> archsim::Vector<ElementT, Width> operator op(const archsim::Vector<ElementT, Width> &v1, const archsim::Vector<ElementT, Width> &v2) { \
-	archsim::Vector<ElementT, Width> result; \
+template <typename ElementT, unsigned Width> wutils::Vector<ElementT, Width> operator op(const wutils::Vector<ElementT, Width> &v1, const wutils::Vector<ElementT, Width> &v2) { \
+	wutils::Vector<ElementT, Width> result; \
 	for(unsigned i = 0; i < Width; ++i) result[i] = v1[i] op v2[i]; \
 	return result; \
 }
@@ -207,8 +212,8 @@ OPERATE(^)
 #undef OPERATE
 
 #define OPERATE_SHIFT(op) \
-template<typename ElementT, typename ElementCount, unsigned Width> archsim::Vector<ElementT, Width> operator op(const archsim::Vector<ElementT, Width> &v1, const archsim::Vector<ElementCount, Width> &v2) { \
-archsim::Vector<ElementT, Width> result;\
+template<typename ElementT, typename ElementCount, unsigned Width> wutils::Vector<ElementT, Width> operator op(const wutils::Vector<ElementT, Width> &v1, const wutils::Vector<ElementCount, Width> &v2) { \
+wutils::Vector<ElementT, Width> result;\
 for(unsigned i = 0; i < Width; ++i) { result[i] = v1[i] op v2[i]; } \
 return result; \
 }
@@ -219,8 +224,8 @@ OPERATE_SHIFT(>>)
 #undef OPERATE_SHIFT
 
 #define OPERATE_COMPARE(op) \
-template <typename ElementT1, typename ElementT2, unsigned Width> archsim::Vector<bool, Width> operator op(const archsim::Vector<ElementT1, Width> &v1, const archsim::Vector<ElementT2, Width> &v2) { \
-	archsim::Vector<bool, Width> result; \
+template <typename ElementT1, typename ElementT2, unsigned Width> wutils::Vector<bool, Width> operator op(const wutils::Vector<ElementT1, Width> &v1, const wutils::Vector<ElementT2, Width> &v2) { \
+	wutils::Vector<bool, Width> result; \
 	for(unsigned i = 0; i < Width; ++i) { result[i] = v1[i] op v2[i]; } \
 	return result; \
 }
@@ -235,8 +240,8 @@ OPERATE_COMPARE(!=)
 #undef OPERATE_COMPARE
 
 #define OPERATE_UNARY(op) \
-template<typename ElementT, unsigned Width> archsim::Vector<ElementT, Width> operator op(const archsim::Vector<ElementT, Width> &v) { \
-archsim::Vector<ElementT, Width> result; \
+template<typename ElementT, unsigned Width> wutils::Vector<ElementT, Width> operator op(const wutils::Vector<ElementT, Width> &v) { \
+wutils::Vector<ElementT, Width> result; \
 for(unsigned i = 0; i < Width; ++i) { result[i] = op v[i]; } \
 return result; \
 }

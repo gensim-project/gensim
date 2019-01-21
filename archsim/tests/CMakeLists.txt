@@ -3,7 +3,7 @@ find_package(Threads REQUIRED)
 
 SET(TEST_SRCS 
 	blockjit/test-cmov.cpp blockjit/test-cmp-branch.cpp blockjit/test-cmp.cpp blockjit/test-compile.cpp
-	general/test_test.cpp general/test_vector.cpp
+	general/test_test.cpp 
 	llvm/transform/test-archsim-dse.cpp llvm/transform/test-analysis.cpp 
 )
 

@@ -234,7 +234,7 @@ bool ArchDescriptorGenerator::GenerateHeader(util::cppformatstream &str) const
 	str << "#include <core/arch/ArchDescriptor.h>\n";
 	str << "#include <core/thread/ThreadInstance.h>\n";
 	str << "#include <gensim/gensim_processor_api.h>\n";
-	str << "#include <util/Vector.h>\n";
+	str << "#include <wutils/Vector.h>\n";
 
 	str << "#include <util/int128.h>\n";
 	str << "using uint128_t = __uint128_t;";
