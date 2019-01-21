@@ -96,7 +96,7 @@ namespace archsim
 		virtual MemoryResult Write32(Address address, uint32_t data) = 0;
 		virtual MemoryResult Write64(Address address, uint64_t data) = 0;
 		virtual MemoryResult Write128(Address address, uint128_t data) = 0;
-		
+
 		virtual void Lock() = 0;
 		virtual void Unlock() = 0;
 	};

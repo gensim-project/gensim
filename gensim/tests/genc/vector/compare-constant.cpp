@@ -15,6 +15,8 @@ using namespace gensim::genc::ssa;
 
 TEST(GenC_Vector, CompareConstant)
 {
+	// TODO: Stronger typing of IRConstants, especially for use in ssa interpreter
+
 	// source code to test
 	const std::string sourcecode = R"||(
 helper void testfn()

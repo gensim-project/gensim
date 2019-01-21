@@ -279,12 +279,12 @@ namespace gensim
 							str << "(" << stmt.GetType().GetCType() << ")(" << stmt.Constant.Int() << "ULL)";
 							break;
 						case genc::IRConstant::Type_Vector:
-							str << "archsim::Vector<" << stmt.GetType().GetElementType().GetCType() << ", " << stmt.Constant.VSize() << ">({";
-							for(unsigned i = 0; i < stmt.Constant.VSize(); ++i) {
+							str << "archsim::Vector<" << stmt.GetType().GetElementType().GetCType() << ", " << stmt.Constant.GetVector().Width() << ">({";
+							for(unsigned i = 0; i < stmt.Constant.GetVector().Width(); ++i) {
 								if(i) {
 									str << ", ";
 								}
-								str << stmt.Constant.VGet(i).Int();
+								str << stmt.Constant.GetVector().GetElement(i).Int();
 							}
 							str << "})";
 							break;

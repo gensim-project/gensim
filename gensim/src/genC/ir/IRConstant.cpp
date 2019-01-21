@@ -35,13 +35,37 @@ IRConstant::IRConstant(const IRConstant& other) : type_(other.type_), integer_(o
 			struct_ = new IRStructMap(*other.struct_);
 			break;
 		case Type_Vector:
-			vector_ = new std::vector<IRConstant>(*other.vector_);
+			vector_ = new IRConstantVector(*other.vector_);
 			break;
 		default:
 			// nothing extra to do
 			break;
 	}
 }
+
+IRConstant::~IRConstant()
+{
+	if (Type() == Type_Vector) {
+		delete vector_;
+	}
+}
+
+IRConstant IRConstant::Vector(int width, const IRConstant& def)
+{
+	IRConstant v;
+	v.type_ = Type_Vector;
+	v.vector_ = new IRConstantVector(width, def);
+	return v;
+}
+
+IRConstant IRConstant::Vector(const IRConstantVector &vector)
+{
+	IRConstant v;
+	v.type_ = Type_Vector;
+	v.vector_ = new IRConstantVector(vector);
+	return v;
+}
+
 
 IRConstant IRConstant::GetDefault(const gensim::genc::IRType& type)
 {
@@ -99,7 +123,7 @@ IRConstant & IRConstant::operator=(const IRConstant& other)
 			struct_ = new IRStructMap(*other.struct_);
 			break;
 		case Type_Vector:
-			vector_ = new std::vector<IRConstant>(*other.vector_);
+			vector_ = new IRConstantVector(*other.vector_);
 			break;
 		default:
 			// nothing to do
@@ -108,28 +132,6 @@ IRConstant & IRConstant::operator=(const IRConstant& other)
 
 	return *this;
 }
-
-
-IRConstant IRConstant::VGet(int idx) const
-{
-	GASSERT(Type() == Type_Vector);
-	return vector_->at(idx);
-}
-
-void IRConstant::VPut(int idx, const IRConstant& val)
-{
-	GASSERT(Type() == Type_Vector);
-	GASSERT(vector_->front().Type() == val.Type());
-
-	vector_->at(idx) = val;
-}
-
-size_t IRConstant::VSize() const
-{
-	GASSERT(Type() == Type_Vector);
-	return vector_->size();
-}
-
 
 IRConstant IRConstant::ROL(const IRConstant& lhs, const IRConstant& rhs, int width_in_bits)
 {
@@ -163,7 +165,7 @@ IRConstant IRConstant::SSR(const IRConstant& lhs, const IRConstant& rhs)
 	return IRConstant::Integer((int64_t)lhs.Int() >> rhs.Int());
 }
 
-#define MAPVECTOR(lhs, rhs, op) [lhs, rhs](){IRConstant v = IRConstant::Vector(lhs.VSize(), lhs.VGet(0)); for(unsigned i = 0; i < lhs.VSize(); ++i) { v.VPut(i, lhs.VGet(i) op rhs.VGet(i)); } return v; }()
+#define MAPVECTOR(lhs, rhs, op) [lhs, rhs](){IRConstantVector v (lhs.GetVector()); for(unsigned i = 0; i < v.Width(); ++i) { v.SetElement(i, lhs.GetVector().GetElement(i) op rhs.GetVector().GetElement(i)); } return IRConstant::Vector(v); }()
 
 IRConstant operator+(const IRConstant &lhs, const IRConstant &rhs)
 {

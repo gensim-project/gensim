@@ -524,7 +524,7 @@ SSAStatement *IRUnaryExpression::EmitSSAForm(SSABuilder &bldr) const
 				IRType indices_type = IRType::Vector(IRTypes::UInt32, result_len);
 				IRConstant indices_constant = IRConstant::Vector(result_len, IRConstant::Integer(0));
 				for(int i = 0; i < result_len; ++i) {
-					indices_constant.VPut(i, IRConstant::Integer(start_constant + i));
+					indices_constant.GetVector().SetElement(i, IRConstant::Integer(start_constant + i));
 				}
 
 				SSAConstantStatement *indices = new SSAConstantStatement(&bldr.GetBlock(), indices_constant, indices_type);
@@ -777,7 +777,7 @@ SSAStatement *IRVectorExpression::EmitSSAForm(ssa::SSABuilder& bldr) const
 		IRType indices_type = IRType::Vector(IRTypes::UInt32, indices_width);
 
 		for(int i = 0; i < indices_width; ++i) {
-			indices_constant.VPut(i, IRConstant::Integer(can_shuffle.Indices.at(i)));
+			indices_constant.GetVector().SetElement(i, IRConstant::Integer(can_shuffle.Indices.at(i)));
 		}
 
 		SSAConstantStatement *indices_statement = new SSAConstantStatement(&bldr.GetBlock(), indices_constant, indices_type);
