@@ -256,15 +256,10 @@ namespace gensim
 			if((from.VectorWidth != 1) || (to.VectorWidth != 1)) {
 				GASSERT(value.Type() == IRConstant::Type_Vector);
 				GASSERT(from.VectorWidth == to.VectorWidth);
-				GASSERT(from.GetElementType() == to.GetElementType());
 
 				IRConstant newval = value;
-				if(from == to) {
-					for(unsigned i = 0; i < from.VectorWidth; ++i) {
-						newval.VPut(i, Cast(newval.VGet(i), from.GetElementType(), to.GetElementType()));
-					}
-				} else {
-					UNIMPLEMENTED;
+				for(unsigned i = 0; i < from.VectorWidth; ++i) {
+					newval.GetVector().SetElement(i, Cast(newval.GetVector().GetElement(i), from.GetElementType(), to.GetElementType()));
 				}
 
 				return newval;

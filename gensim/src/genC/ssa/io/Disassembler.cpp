@@ -356,11 +356,11 @@ public:
 				break;
 			case IRConstant::Type_Vector:
 				constant_string = "{";
-				for(int i = 0; i < constant.VSize(); ++i) {
+				for(int i = 0; i < constant.GetVector().Width(); ++i) {
 					if(i > 0) {
 						constant_string += ", ";
 					}
-					constant_string += FormatConstant(constant.VGet(i));
+					constant_string += FormatConstant(constant.GetVector().GetElement(i));
 				}
 				constant_string += "}";
 				break;

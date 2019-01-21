@@ -22,7 +22,7 @@ SSAVectorShuffleStatement* SSAVectorShuffleStatement::Concatenate(SSAStatement* 
 	IRType indices_type = IRType::Vector(IRTypes::UInt32, indices_width);
 	IRConstant indices_constant = IRConstant::Vector(indices_width, IRConstant::Integer(0));
 	for(int i = 0; i < indices_width; ++i) {
-		indices_constant.VPut(i, IRConstant::Integer(i));
+		indices_constant.GetVector().SetElement(i, IRConstant::Integer(i));
 	}
 
 	SSAConstantStatement *indices_stmt = new SSAConstantStatement(lhs->Parent, indices_constant, indices_type);

@@ -67,7 +67,7 @@ bool SSACastStatement::Resolve(DiagnosticContext &ctx)
 			success = false;
 		}
 	}
-	
+
 	Resolved = success;
 
 	return success;

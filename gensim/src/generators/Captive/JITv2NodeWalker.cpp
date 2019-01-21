@@ -413,7 +413,7 @@ namespace gensim
 							str << "(" << stmt.GetType().GetCType() << ")" << stmt.Constant.Int() << "ULL";
 							return str.str();
 						case IRConstant::Type_Vector:
-							str << stmt.Constant.VGet(0).Int() << "ULL";
+							str << stmt.Constant.GetVector().GetElement(0).Int() << "ULL";
 							return str.str();
 						default:
 							break;

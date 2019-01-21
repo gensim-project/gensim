@@ -91,11 +91,11 @@ namespace gensim
 					IRType vtype = type.GetElementType();
 					vtype.Signed = false;
 					str << "llvm::ConstantDataVector::get(ctx.LLVMCtx, std::vector< " << vtype.GetCType() << ">({";
-					for(int i = 0; i < constant.VSize(); ++i) {
+					for(int i = 0; i < constant.GetVector().Width(); ++i) {
 						if(i > 0) {
 							str << ", ";
 						}
-						str << GetConstantBits(constant.VGet(i));
+						str << GetConstantBits(constant.GetVector().GetElement(i));
 					}
 					str << "}))";
 					return str.str();
@@ -724,11 +724,11 @@ namespace gensim
 					if(Statement.GetType().VectorWidth > 1) {
 						std::stringstream str;
 						str << "{";
-						for(int i = 0; i < Statement.Constant.VSize(); ++i) {
+						for(int i = 0; i < Statement.Constant.GetVector().Width(); ++i) {
 							if(i > 0) {
 								str << ", ";
 							}
-							str << Statement.Constant.VGet(i).Int();
+							str << Statement.Constant.GetVector().GetElement(i).Int();
 						}
 						str << "}";
 						return str.str();

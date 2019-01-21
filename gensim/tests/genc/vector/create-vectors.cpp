@@ -236,6 +236,8 @@ helper void testfn()
 
 TEST(GenC_Vector, CreateVectorShuffle2)
 {
+	// TODO: check that a vector shuffle is actually  being emitted
+
 	// source code to test
 	const std::string sourcecode = R"||(
 helper void testfn()
@@ -248,6 +250,50 @@ helper void testfn()
 	write_register_bank(RB, 1, v1[1]);
 	write_register_bank(RB, 2, v1[2]);
 	write_register_bank(RB, 3, v1[3]);
+}
+    )||";
+	// parse code
+
+	gensim::DiagnosticSource root_source("GenSim");
+	gensim::DiagnosticContext root_context(root_source);
+
+	auto gencctx = gensim::genc::testing::TestContext::GetTestContext(false, root_context);
+	auto ctx = gensim::genc::testing::TestContext::CompileSource(gencctx, sourcecode);
+
+	ASSERT_NE(nullptr, ctx);
+
+	// actually perform test
+	ASSERT_EQ(true, ctx->HasAction("testfn"));
+	ASSERT_EQ(false, ctx->HasAction("notatestfn"));
+
+	auto action = ctx->GetAction("testfn");
+
+	auto arch = gensim::arch::testing::GetTestArch();
+
+	gensim::genc::ssa::testing::BasicInterpreter interpret(*arch);
+	bool exec_result = interpret.ExecuteAction((gensim::genc::ssa::SSAFormAction*)action, {});
+	ASSERT_EQ(true, exec_result);
+
+	ASSERT_EQ(interpret.GetRegisterState(0, 0).Int(), 0x12);
+	ASSERT_EQ(interpret.GetRegisterState(0, 1).Int(), 0x34);
+	ASSERT_EQ(interpret.GetRegisterState(0, 2).Int(), 0x56);
+	ASSERT_EQ(interpret.GetRegisterState(0, 3).Int(), 0x78);
+}
+
+TEST(GenC_Vector, CreateVectorConcatenate)
+{
+	// source code to test
+	const std::string sourcecode = R"||(
+helper void testfn()
+{
+	uint8[4] v0a = { 0x12, 0x34, 0x12, 0x34 };
+	uint8[4] v0b = { 0x56, 0x78, 0x56, 0x78 };
+	uint8[8] v1 = v0a :: v0b;
+	
+	write_register_bank(RB, 0, v1[0]);
+	write_register_bank(RB, 1, v1[1]);
+	write_register_bank(RB, 2, v1[4]);
+	write_register_bank(RB, 3, v1[5]);
 }
     )||";
 	// parse code
