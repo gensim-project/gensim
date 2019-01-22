@@ -58,6 +58,8 @@ bool JumpInfoGenerator::GenerateSource(util::cppformatstream &stream) const
 	stream << "info.IsJump = info.IsIndirect = info.IsConditional = false;";
 	stream << "const Decode *inst = static_cast<const Decode*>(instr);";
 
+	stream << "if(!instr->GetEndOfBlock()) { return; }";
+
 	stream << "switch(inst->Instr_Code) {";
 
 	for (std::list<isa::ISADescription *>::const_iterator II = arch.ISAs.begin(), IE = arch.ISAs.end(); II != IE; ++II) {

@@ -62,6 +62,8 @@ namespace gensim
 	class JumpInfo
 	{
 	public:
+		JumpInfo() : IsJump(false), IsIndirect(false), IsConditional(false), JumpTarget(0) {}
+
 		bool IsJump;
 		bool IsIndirect;
 		bool IsConditional;
