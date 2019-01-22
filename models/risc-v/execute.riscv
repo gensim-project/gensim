@@ -2,7 +2,7 @@
 Risc-V execution
 */
 
-helper uint32 read_gpr(uint32 gpr_idx)
+helper typename word_t read_gpr(uint32 gpr_idx)
 {
 	if(gpr_idx == 0) { 
 		return 0;
@@ -14,12 +14,12 @@ helper uint32 read_gpr(uint32 gpr_idx)
 // 32-Base Instructions
 execute(addi)
 {
-	sint32 imm = inst.imm;
+	typename sword_t imm = inst.imm;
 	imm <<= 20;
 	imm >>= 20;
 
 	
-	uint32 rs = read_gpr(inst.rs1);
+	typename word_t rs = read_gpr(inst.rs1);
 	//sint32 rs = read_gpr(inst.rs1);
 
 	rs += imm;
