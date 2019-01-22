@@ -95,9 +95,9 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 
 		while (!end_of_block && offset.Get() < profile::RegionArch::PageSize && (next_block_start == 0_ga || offset < next_block_start)) {
 //		while (!end_of_block && offset.Get() < profile::RegionArch::PageSize) {
+			Address insn_addr (region.GetPhysicalBaseAddress() + offset);
 			gensim::BaseDecode *decode = thread->GetArch().GetISA(block.second->GetISAMode()).GetNewDecode();
-
-			thread->GetArch().GetISA(block.second->GetISAMode()).DecodeInstr(Address(region.GetPhysicalBaseAddress() + offset), phys_interface, *decode);
+			thread->GetEmulationModel().GetNewDecodeContext(*thread)->DecodeSync(*phys_interface, insn_addr, block.second->GetISAMode(), decode);
 
 			if(decode->Instr_Code == (uint16_t)(-1)) {
 				LC_WARNING(LogTranslate) << "Invalid Instruction at " << std::hex << (uint32_t)(region.GetPhysicalBaseAddress().Get() + offset.Get()) <<  ", ir=" << decode->ir << ", isa mode=" << (uint32_t)block.second->GetISAMode() << " whilst building " << *twu;
