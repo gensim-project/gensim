@@ -375,12 +375,21 @@ void BaseLLVMTranslate::EmitAdcWithFlags(Builder &builder, archsim::translate::t
 	full_result = builder.CreateCall(callee, {builder.CreateExtractValue(partial_result, {0}), carry});
 	llvm::Value *V = builder.CreateOr(builder.CreateExtractValue(partial_result, {1}), builder.CreateExtractValue(full_result, {1}));
 	V = builder.CreateZExt(V, ctx.Types.i8);
-	V = builder.CreateZExt(V, ctx.Types.i8);
 
-	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C"), nullptr, C);
-	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V"), nullptr, V);
-	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N"), nullptr, N);
-	EmitRegisterWrite(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z"), nullptr, Z);
+	auto &c_reg = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("C");
+	auto &v_reg = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("V");
+	auto &n_reg = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("N");
+	auto &z_reg = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("Z");
+
+	EmitRegisterWrite(builder, ctx, c_reg, nullptr, C);
+	EmitRegisterWrite(builder, ctx, v_reg, nullptr, V);
+	EmitRegisterWrite(builder, ctx, n_reg, nullptr, N);
+	EmitRegisterWrite(builder, ctx, z_reg, nullptr, Z);
+
+	EmitTraceRegisterWrite(builder, ctx, c_reg.GetID(), C);
+	EmitTraceRegisterWrite(builder, ctx, v_reg.GetID(), V);
+	EmitTraceRegisterWrite(builder, ctx, n_reg.GetID(), N);
+	EmitTraceRegisterWrite(builder, ctx, z_reg.GetID(), Z);
 }
 
 void BaseLLVMTranslate::EmitSbcWithFlags(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value* lhs, llvm::Value* rhs, llvm::Value* carry)
