@@ -22,6 +22,7 @@ tokens
   DECL;
   CAST;
   BITCAST;
+  TYPEDEF;
 
   VCONCATENATE = '::';
 
@@ -39,7 +40,10 @@ tokens
   GENC_ATTR_NOINLINE = 'noinline';
   GENC_ATTR_GLOBAL = 'global';
   GENC_ATTR_EXPORT = 'export';
+  
+  GENC_BASICTYPE;
   GENC_STRUCT = 'struct';
+  GENC_TYPENAME = 'typename';
 
   PARAM;
   PARAMS;
@@ -115,15 +119,14 @@ UNICODE_ESC
 
 HEX_VAL	:	'0x' HEX_DIGIT+ 'U'? 'L'?;
 
-struct_type : GENC_STRUCT GENC_ID -> GENC_ID;
-base_type : (GENC_STRUCT! GENC_ID) | numeric_type;
-type : (base_type) type_annotation* -> ^(TYPE base_type type_annotation*);
-
-//base_type :
-//	struct_type | numeric_type;
-
-//struct_type :
-//	('struct') => 'struct' GENC_ID;
+base_type : 
+	GENC_STRUCT GENC_ID -> ^(GENC_STRUCT GENC_ID)
+ |  GENC_TYPENAME GENC_ID -> ^(GENC_TYPENAME GENC_ID)
+ |  numeric_type -> ^(GENC_BASICTYPE numeric_type);
+full_type_definition :
+	(base_type) type_annotation* -> ^(TYPE base_type type_annotation*);
+type :  
+	full_type_definition;
 
 numeric_type : 
   'void'
@@ -155,9 +158,13 @@ param_def:
 param_list : 
   (param_def (',' param_def)*)? -> ^(PARAMS param_def*);
   
-action_file : constant_definition* action_definition+ EOF -> ^(FILETOK action_definition* constant_definition*);
+action_file : definition+ EOF -> ^(FILETOK definition*);
+
+definition : constant_definition | typedef_definition | action_definition;
 
 constant_definition: 'const' declaration EQUALS constant ';' -> ^(CONSTANT declaration constant);
+
+typedef_definition: GENC_TYPENAME GENC_ID EQUALS type';' -> ^(TYPEDEF GENC_ID type);
 
 action_definition : helper_definition | execution_definition;
 

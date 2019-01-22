@@ -173,6 +173,7 @@ namespace gensim
 
 			OutputCollection Output;
 			std::map<std::string, std::pair<IRSymbol *, uint32_t> > ConstantTable;
+			std::map<std::string, IRType> type_map_;
 			std::vector<FileContents> file_list;
 
 			bool Valid;
@@ -189,6 +190,7 @@ namespace gensim
 
 			bool Parse_File(pANTLR3_BASE_TREE File);
 			bool Parse_Constant(pANTLR3_BASE_TREE Node);
+			bool Parse_Typename(pANTLR3_BASE_TREE Node);
 			bool Parse_Helper(pANTLR3_BASE_TREE Behaviour);
 			bool Parse_Behaviour(pANTLR3_BASE_TREE Action);
 			bool Parse_Execute(pANTLR3_BASE_TREE Execute);
