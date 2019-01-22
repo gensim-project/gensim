@@ -41,5 +41,7 @@ AC_ARCH(riscv)
 	ARCH_CTOR(riscv) {
 		ac_isa("riscv_isa.ac");
 		set_endian("little");
+		set_typename(word_t, uint32);
+		set_typename(sword_t, sint32);
 	};
 };
