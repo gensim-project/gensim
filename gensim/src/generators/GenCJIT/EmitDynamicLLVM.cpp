@@ -1007,17 +1007,12 @@ namespace gensim
 							break;
 
 						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32: {
-							auto Z = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("Z");
-							auto N = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("N");
-
 							output << "{"
 							       "llvm::Value *n = __irBuilder.CreateLShr(" << arg0->GetDynamicValue() << ", 31);"
 							       "llvm::Value *z = __irBuilder.CreateICmpEQ(" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i32, 0, false));"
-							       "UNIMPLEMENTED;"
+							       "EmitRegisterWrite(__irBuilder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry(\"Z\"), 0, z);"
+							       "EmitRegisterWrite(__irBuilder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry(\"N\"), 0, n);"
 							       "}";
-//							       "EmitRegisterWrite(ctx, " << (uint32_t)Z->GetIndex() << ", __irBuilder.CreateIntCast(z, " << Z->GetIRType().GetLLVMType() << ", false));"
-//							       "EmitRegisterWrite(ctx, " << (uint32_t)N->GetIndex() << ", __irBuilder.CreateIntCast(n, " << N->GetIRType().GetLLVMType() << ", false));"
-							"}";
 							break;
 						}
 
@@ -1374,25 +1369,27 @@ namespace gensim
 					if (Statement.RegNum()) RegnumExpr = Factory.GetOrCreate(Statement.RegNum());
 
 					std::string reg_name, index;
+					int size = 0;
 					if(Statement.IsBanked) {
 						auto &descriptor = Arch.GetRegFile().GetBankByIdx(Statement.Bank);
 
 						reg_name = "\"" + descriptor.ID + "\"";
 						index = RegnumExpr->GetDynamicValue();
+						size = descriptor.GetRegisterIRType().SizeInBytes();
 
 					} else {
 						auto &descriptor = Arch.GetRegFile().GetSlotByIdx(Statement.Bank);
 
 						reg_name = "\"" + descriptor.GetID() + "\"";
 						index = "nullptr";
+						size = descriptor.GetIRType().SizeInBytes();
 					}
 
 					if (!Statement.IsRead) {
-						IRType value_type;
 
 						if(Statement.IsBanked) {
 							output << "if(archsim::options::Trace) {";
-							output << "EmitTraceBankedRegisterWrite(__irBuilder, ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << value_type.SizeInBytes() << ", " << ValueExpr->GetDynamicValue() << ");";
+							output << "EmitTraceBankedRegisterWrite(__irBuilder, ctx, " << (uint32_t)Statement.Bank << ", " << RegnumExpr->GetDynamicValue() << ", " << size << ", " << ValueExpr->GetDynamicValue() << ");";
 							output << "}";
 						} else {
 							output << "EmitTraceRegisterWrite(__irBuilder, ctx, " << (uint32_t)Statement.Bank << ", " << ValueExpr->GetDynamicValue() << ");";

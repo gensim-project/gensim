@@ -151,7 +151,7 @@ llvm::Value* GEPLLVMGuestRegisterAccessEmitter::EmitRegisterRead(llvm::IRBuilder
 void GEPLLVMGuestRegisterAccessEmitter::EmitRegisterWrite(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index, llvm::Value* value)
 {
 	auto ptr = GetPointerToReg(builder, reg, index);
-	value = builder.CreateBitCast(value, ptr->getType()->getPointerElementType());
+	value = builder.CreateZExtOrTrunc(value, ptr->getType()->getPointerElementType());
 	auto store = builder.CreateStore(value, ptr);
 	store->setAlignment(1);
 }
