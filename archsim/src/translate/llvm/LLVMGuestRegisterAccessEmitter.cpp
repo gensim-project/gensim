@@ -151,7 +151,18 @@ llvm::Value* GEPLLVMGuestRegisterAccessEmitter::EmitRegisterRead(llvm::IRBuilder
 void GEPLLVMGuestRegisterAccessEmitter::EmitRegisterWrite(llvm::IRBuilder<>& builder, const archsim::RegisterFileEntryDescriptor& reg, llvm::Value* index, llvm::Value* value)
 {
 	auto ptr = GetPointerToReg(builder, reg, index);
-	value = builder.CreateZExtOrTrunc(value, ptr->getType()->getPointerElementType());
+	auto &ctx = builder.getContext();
+
+	// if value is FP, cast it to an appropriate integer type
+	if(value->getType() == llvm::Type::getFloatTy(ctx)) {
+		value = builder.CreateBitCast(value, llvm::Type::getInt32Ty(ctx));
+	} else if(value->getType() == llvm::Type::getDoubleTy(ctx)) {
+		value = builder.CreateBitCast(value, llvm::Type::getInt64Ty(ctx));
+	}
+
+	if(value->getType() != ptr->getType()->getPointerElementType()) {
+		value = builder.CreateZExtOrTrunc(value, ptr->getType()->getPointerElementType());
+	}
 	auto store = builder.CreateStore(value, ptr);
 	store->setAlignment(1);
 }
