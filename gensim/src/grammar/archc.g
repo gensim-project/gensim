@@ -97,6 +97,7 @@ tokens
     
     AC_UARCH = 'ac_uarch';
         
+    AC_TYPENAME = 'set_typename';
     AC_FEATURES = 'ac_features';
     AC_FEATURE_LEVEL = 'feature';
     AC_FEATURE_FLAG = 'flag';
@@ -226,7 +227,10 @@ arch_ctor
 	:	ARCH_CTOR OPAREN AC_ID CPAREN OBRACE (arch_ctor_line SEMICOLON)* CBRACE SEMICOLON -> ^(ARCH_CTOR AC_ID arch_ctor_line*);
 
 arch_ctor_line
-	:	ac_isa | ac_endianness | ac_uarch | ac_feature_set;
+	:	ac_isa | ac_endianness | ac_uarch | ac_feature_set | ac_typename;
+
+ac_typename
+	:   AC_TYPENAME OPAREN name=AC_ID COMMA type=AC_ID CPAREN -> ^(AC_TYPENAME $name $type);
 
 ac_feature_set
 	:	AC_SET_FEATURE OPAREN name=AC_ID COMMA level=AC_INT CPAREN -> ^(AC_SET_FEATURE $name $level);

@@ -98,6 +98,16 @@ namespace gensim
 
 			uint32_t GetMaxInstructionSize() const;
 
+			typedef std::map<std::string, std::string> TypenameMap;
+			TypenameMap &GetTypenames()
+			{
+				return type_names_;
+			}
+			const TypenameMap &GetTypenames() const
+			{
+				return type_names_;
+			}
+
 		private:
 			// disallow copy
 			ArchDescription(const ArchDescription &orig);
@@ -107,6 +117,8 @@ namespace gensim
 			ArchFeatureSet features_;
 
 			MemoryInterfacesDescription memory_interfaces_;
+
+			TypenameMap type_names_;
 		};
 	}  // namespace arch
 }  // namespace gensim
