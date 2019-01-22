@@ -889,7 +889,8 @@ namespace gensim
 							assert(arg0);
 							output << "{";
 							output << "llvm::Value *isa_mode_ptr = ctx.GetStateBlockPointer(__irBuilder, \"ModeID\");";
-							output << "__irBuilder.CreateStore(" << arg0->GetDynamicValue() << ", isa_mode_ptr);";
+							output << "llvm::Value *value = __irBuilder.CreateZExtOrTrunc(" << arg0->GetDynamicValue() << ", isa_mode_ptr->getType()->getPointerElementType());";
+							output << "__irBuilder.CreateStore(value, isa_mode_ptr);";
 							output << "}";
 
 							break;
