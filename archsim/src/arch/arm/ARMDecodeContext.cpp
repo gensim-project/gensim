@@ -8,7 +8,7 @@
 
 using namespace archsim::arch::arm;
 
-ARMDecodeContext::ARMDecodeContext(const archsim::ArchDescriptor &arch) : arch_(arch)
+ARMDecodeContext::ARMDecodeContext(const archsim::ArchDescriptor &arch) : arch_(arch), itstate_(0)
 {
 
 }

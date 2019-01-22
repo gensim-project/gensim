@@ -91,7 +91,7 @@ void EmitControlFlow_DirectPred(llvm::IRBuilder<> &builder, translate_llvm::LLVM
 	}
 
 	llvm::Value *pc = translate->EmitRegisterRead(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
-	auto branch_was_taken = builder.CreateICmpEQ(pc, llvm::ConstantInt::get(ctx.Types.i64, ji.JumpTarget.Get()));
+	auto branch_was_taken = builder.CreateICmpEQ(pc, llvm::ConstantInt::get(pc->getType(), ji.JumpTarget.Get()));
 	builder.CreateCondBr(branch_was_taken, taken_block, nontaken_block);
 }
 
@@ -109,7 +109,7 @@ void EmitControlFlow_Indirect(llvm::IRBuilder<> &builder, translate_llvm::LLVMTr
 }
 
 
-void EmitControlFlow(llvm::IRBuilder<> &builder, translate_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region)
+static void EmitControlFlow(llvm::IRBuilder<> &builder, translate_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region)
 {
 	// several options here:
 	// 1. an instruction which isn't a jump but happens to be at the end of a block. It either falls through to a block which exists (jump there) or falls off the page.
