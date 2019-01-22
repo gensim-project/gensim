@@ -278,6 +278,10 @@ GenCContext::GenCContext(const gensim::arch::ArchDescription &arch, const isa::I
 {
 	type_manager_ = std::shared_ptr<ssa::SSATypeManager>(new ssa::SSATypeManager());
 
+	for(auto name : arch.GetTypenames()) {
+		type_manager_->InstallNamedType(name.first, type_manager_->GetBasicTypeByName(name.second));
+	}
+
 	// build the instruction structure
 	BuildStructTypes();
 

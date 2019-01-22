@@ -313,6 +313,21 @@ bool ArchDescriptionParser::load_arch_ctor(pANTLR3_BASE_TREE ctorNode)
 				break;
 			}
 
+			case AC_TYPENAME: {
+				pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 0);
+				pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 1);
+
+				std::string name = (char*)nameNode->getText(nameNode)->chars;
+				std::string type = (char*)typeNode->getText(typeNode)->chars;
+
+				if(arch->GetTypenames().count(name)) {
+					diag_ctx.Error("Duplicate type " + name);
+					success = false;
+				} else {
+					arch->GetTypenames()[name] = type;
+				}
+			}
+
 			case SET_ENDIAN: {
 				break;
 			}
