@@ -334,6 +334,9 @@ bool GenCContext::Parse_File(pANTLR3_BASE_TREE File)
 			case CONSTANT:
 				success &= Parse_Constant(node);
 				break;
+			case TYPEDEF:
+				success &= Parse_Typename(node);
+				break;
 			case HELPER:
 				success &= Parse_Helper(node);
 				break;
@@ -430,6 +433,27 @@ bool GenCContext::Parse_Constant(pANTLR3_BASE_TREE Node)
 
 	return true;
 }
+
+bool GenCContext::Parse_Typename(pANTLR3_BASE_TREE Node)
+{
+	assert(Node->getType(Node) == TYPEDEF);
+	assert(Node->getChildCount(Node) == 2);
+
+	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)Node->getChild(Node, 0);
+	const std::string name = (char*)nameNode->getText(nameNode)->chars;
+
+	pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE)Node->getChild(Node, 1);
+	IRType target_type = Parse_Type(typeNode);
+
+	if(GetTypeManager()->HasNamedBasicType(name) || GetTypeManager()->HasStructType(name)) {
+		Diag().Error("Duplicate type name " + name + ".");
+		return false;
+	}
+	GetTypeManager()->InstallNamedType(name, target_type);
+
+	return true;
+}
+
 
 bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 {
@@ -537,48 +561,34 @@ IRType GenCContext::Parse_Type(pANTLR3_BASE_TREE node)
 	assert(node->getType(node) == TYPE);
 	assert(node->getChildCount(node) >= 1);
 
-	pANTLR3_BASE_TREE baseNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
+	pANTLR3_BASE_TREE classNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
+	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE) classNode->getChild(classNode, 0);
 
-	std::string baseType = (char *) baseNode->getText(baseNode)->chars;
+	IRType type = GetTypeManager()->GetVoidType();
+	std::string typeName = (char *) nameNode->getText(nameNode)->chars;
 
-	IRType type(IRTypes::Void);
-
-	if (baseType == "uint8") {
-		type = IRTypes::UInt8;
-	} else if (baseType == "sint8") {
-		type = IRTypes::Int8;
-	} else if (baseType == "uint16") {
-		type = IRTypes::UInt16;
-	} else if (baseType == "sint16") {
-		type = IRTypes::Int16;
-	} else if (baseType == "uint32") {
-		type = IRTypes::UInt32;
-	} else if (baseType == "sint32") {
-		type = IRTypes::Int32;
-	} else if (baseType == "uint64") {
-		type = IRTypes::UInt64;
-	} else if (baseType == "sint64") {
-		type = IRTypes::Int64;
-	} else if (baseType == "uint128") {
-		type = IRTypes::UInt128;
-	} else if (baseType == "sint128") {
-		type = IRTypes::Int128;
-	} else if (baseType == "float") {
-		type = IRTypes::Float;
-	} else if (baseType == "double") {
-		type = IRTypes::Double;
-	} else if (baseType == "longdouble") {
-		type = IRTypes::LongDouble;
-	} else if (baseType == "void") {
-		type = IRTypes::Void;
-	} else {
-		// look for a struct
-		if(GetTypeManager()->HasStructType(baseType)) {
-			type = GetTypeManager()->GetStructType(baseType);
-		} else {
-			Diag().Error("Unrecognized base type " + baseType, DiagNode(CurrFilename, node));
-			type = IRTypes::Void;
-		}
+	switch(classNode->getType(classNode)) {
+		case GENC_BASICTYPE:
+			if(GetTypeManager()->HasNamedBasicType(typeName)) {
+				type = GetTypeManager()->GetBasicTypeByName(typeName);
+			} else {
+				Diag().Error("Unknown basic type " + typeName, DiagNode(CurrFilename, nameNode));
+			}
+			break;
+		case GENC_TYPENAME:
+			if(GetTypeManager()->HasNamedBasicType(typeName)) {
+				type = GetTypeManager()->GetBasicTypeByName(typeName);
+			} else {
+				Diag().Error("Unknown typename " + typeName, DiagNode(CurrFilename, nameNode));
+			}
+			break;
+		case GENC_STRUCT:
+			if(GetTypeManager()->HasStructType(typeName)) {
+				type = GetTypeManager()->GetStructType(typeName);
+			} else {
+				Diag().Error("Unknown struct type " + typeName, DiagNode(CurrFilename, nameNode));
+			}
+			break;
 	}
 
 	for (uint32_t i = 1; i < node->getChildCount(node); ++i) {

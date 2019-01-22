@@ -428,7 +428,7 @@ namespace gensim
 			static IRIterationStatement *CreateDoWhile(IRScope &scope, IRExpression &Expr, IRStatement &Body);
 
 		private:
-			IRIterationStatement(IRScope &scope) : IRStatement(scope) {}
+			IRIterationStatement(IRScope &scope) : IRStatement(scope), For_Expr_Check(nullptr), For_Expr_Start(nullptr), Expr(nullptr), Body(nullptr) {}
 		};
 
 		class IRFlowStatement : public IRStatement
