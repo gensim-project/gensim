@@ -4,13 +4,6 @@ RISC-V
 
 AC_ISA(riscv) 
 {
-	ac_fetchsize 32;
-	
-	include("rv32-a.ac");
-	include("rv32-m.ac");
-	include("rv32-f.ac");
-	include("rv32-d.ac");
-
 	/* Instructions for processing data - ALU */
 
 	ac_format Type_I = "%imm:12 %rs1:5 %funct3:3 %rd:5 %opcode:7";
@@ -124,8 +117,8 @@ AC_ISA(riscv)
 
 	ISA_CTOR(riscv)
 	{
-		ac_behaviours("behaviours.riscv");
-		ac_execute("execute.riscv");
+		ac_behaviours("common/behaviours.riscv");
+		ac_execute("common/execute.riscv");
 
 // 32-Base Instructions
 

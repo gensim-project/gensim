@@ -1,19 +1,42 @@
 
 define_model(
-	model-riscv 
-	riscv
-	riscv.ac
+	model-riscv32
+	riscv32
+	riscv32/riscv32.ac
 
-	behaviours.riscv
-	execute.riscv
-	execute.rv32-a
-	execute.rv32-f
-	execute.rv32-d
-	execute.rv32-m
-	riscv.ac
-	riscv_isa.ac
-	rv32-a.ac
-	rv32-f.ac
-	rv32-d.ac
-	rv32-m.ac
+	riscv32/riscv32.ac
+	common/behaviours.riscv
+	common/execute.riscv
+	common/execute.rv32-a
+	common/execute.rv32-f
+	common/execute.rv32-d
+	common/execute.rv32-m
+	common/riscv_isa.ac
+	common/rv32-a.ac
+	common/rv32-f.ac
+	common/rv32-d.ac
+	common/rv32-m.ac
+)
+
+
+define_model(
+	model-riscv64
+	riscv64
+	riscv64/riscv64.ac
+
+	riscv64/riscv64.ac
+	riscv64/riscv64_isa.ac
+	riscv64/execute.rv64i
+	riscv64/rv64-i.ac
+	common/behaviours.riscv
+	common/execute.riscv
+	common/execute.rv32-a
+	common/execute.rv32-f
+	common/execute.rv32-d
+	common/execute.rv32-m
+	common/riscv_isa.ac
+	common/rv32-a.ac
+	common/rv32-f.ac
+	common/rv32-d.ac
+	common/rv32-m.ac
 )

@@ -16,7 +16,7 @@ AC_ISA(riscv)
 	
 	ISA_CTOR(riscv)
 	{
-		ac_execute("execute.rv32-m");
+		ac_execute("common/execute.rv32-m");
 	
 		mul.set_decoder(funct7=0x01, funct3=0x0, opcode=0x33);
 		mul.set_asm("mul %reg, %reg, %reg", rd, rs1, rs2);

@@ -4,22 +4,22 @@ function(build_model target-name arch-name arch-file gensim-options)
 
 	SET(model-files ${ARGN})
 
-	SET(DLL_PATH "${CMAKE_CURRENT_BINARY_DIR}/output/${arch-name}.dll")
+	SET(DLL_PATH "${CMAKE_CURRENT_BINARY_DIR}/output-${arch-name}/${arch-name}.dll")
 	SET(OUTPUT_DLL_PATH "${ARCHSIM_MODULE_DIRECTORY}/${arch-name}.dll")
 
 	SET(gensim-binary "$<TARGET_FILE:gensim>")
 	
 	SET(MODEL_${target-name}_ENABLED TRUE CACHE BOOL "Should the ${target-name} Model be enabled?")
-	SET(DLL_PATH "${CMAKE_CURRENT_BINARY_DIR}/output/${arch-name}.dll")
+	SET(DLL_PATH "${CMAKE_CURRENT_BINARY_DIR}/output-${arch-name}/${arch-name}.dll")
 	SET(OUTPUT_DLL_PATH "${ARCHSIM_MODULE_DIRECTORY}/${arch-name}.dll")
 
 	IF(MODEL_${target-name}_ENABLED)
 		MESSAGE(STATUS "Model ${target-name} Enabled")
 		
 		ADD_CUSTOM_COMMAND(
-			OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/output/Makefile"
+			OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/output-${arch-name}/Makefile"
 			COMMAND "sh" "-c" "mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/output"
-			COMMAND ${gensim-binary} -a ${CMAKE_CURRENT_SOURCE_DIR}/${arch-file} ${gensim-options} -t ${CMAKE_CURRENT_BINARY_DIR}/output/
+			COMMAND ${gensim-binary} -a ${CMAKE_CURRENT_SOURCE_DIR}/${arch-file} ${gensim-options} -t ${CMAKE_CURRENT_BINARY_DIR}/output-${arch-name}/
 			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 			DEPENDS gensim
 			DEPENDS trace
@@ -29,8 +29,8 @@ function(build_model target-name arch-name arch-file gensim-options)
 
 		ADD_CUSTOM_COMMAND(
 			OUTPUT ${DLL_PATH}
-			COMMAND "sh" "-c" "make -C ${CMAKE_CURRENT_BINARY_DIR}/output -j4"
-			DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/output/Makefile"
+			COMMAND "sh" "-c" "make -C ${CMAKE_CURRENT_BINARY_DIR}/output-${arch-name} -j4"
+			DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/output-${arch-name}/Makefile"
 			COMMENT "Compiling ${target-name}"
 		)
 

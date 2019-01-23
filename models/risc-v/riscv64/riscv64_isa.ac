@@ -1,0 +1,16 @@
+/*
+RISC-V
+*/
+
+AC_ISA(riscv) 
+{
+	ac_fetchsize 32;
+	
+	include("common/rv-core.ac");
+	include("riscv64/rv64-i.ac");
+	include("common/rv32-a.ac");
+	include("common/rv32-m.ac");
+	include("common/rv32-f.ac");
+	include("common/rv32-d.ac");
+
+};

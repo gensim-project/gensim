@@ -18,7 +18,7 @@ AC_ISA(riscv)
 
 	ISA_CTOR(riscv)
 	{
-		ac_execute("execute.rv32-a");
+		ac_execute("common/execute.rv32-a");
 	
 		lr_w.set_decoder(funct5=0x02, funct3=0x2, opcode=0x2f);
 		lr_w.set_asm("lr_w %imm, %imm, %reg, %reg", aq, rl, rd, rs1, rs2=0);
