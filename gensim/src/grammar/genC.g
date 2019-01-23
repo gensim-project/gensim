@@ -121,10 +121,10 @@ HEX_VAL	:	'0x' HEX_DIGIT+ 'U'? 'L'?;
 
 base_type : 
 	GENC_STRUCT GENC_ID -> ^(GENC_STRUCT GENC_ID)
- |  GENC_TYPENAME GENC_ID -> ^(GENC_TYPENAME GENC_ID)
- |  numeric_type -> ^(GENC_BASICTYPE numeric_type);
+ |  numeric_type -> ^(GENC_BASICTYPE numeric_type)
+ |  GENC_TYPENAME GENC_ID -> ^(GENC_TYPENAME GENC_ID);
 full_type_definition :
-	(base_type) type_annotation* -> ^(TYPE base_type type_annotation*);
+  base_type vector_annotation? reference_annotation? -> ^(TYPE base_type vector_annotation? reference_annotation?);
 type :  
 	full_type_definition;
 
@@ -145,9 +145,8 @@ numeric_type :
   | 'longdouble'
   ;
 
-type_annotation :
-   vector_annotation
-  |'&';
+reference_annotation :
+	'&';
 
 vector_annotation : 
 	'[' INT_CONST ']' -> ^(VECTOR INT_CONST);
@@ -224,7 +223,7 @@ expression:
 
 right_expression : 
 	vector_expression
-      | ternary_expression;
+  | ternary_expression;
 
 left_expression: GENC_ID | call_expression | left_index_expression;
 
@@ -261,7 +260,6 @@ index_expression
 postfix_operator:
     '[' index_expression ']' -> ^(IDX index_expression)
    |'.' GENC_ID -> ^(MEMBER GENC_ID)
-   |PTR GENC_ID -> ^(PTR GENC_ID)
    |'++'
    |'--'
    ;
