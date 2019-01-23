@@ -1,0 +1,67 @@
+AC_ISA(riscv64i)
+{
+	ac_format Type_64I = "%imm:12 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+	ac_format Type_64S = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %imm1:5 %opcode:7";
+	ac_format Type_64R = "%funct7:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+	ac_format Type_64SHIFT = "%imm11:6 %imm5:1 %imm4:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+
+	ac_instr<Type_64I> ld, addiw;
+	ac_instr<Type_64S> sd;
+	ac_instr<Type_64R> addw, sllw, srlw, subw, sraw;
+	
+	ac_instr<Type_64SHIFT> slliw, srliw, sraiw;
+	
+	ac_behaviour addiw;
+	ac_behaviour ld, sd;
+	ac_behaviour addw, sllw, srlw, subw, sraw;
+	ac_behaviour slliw, srliw, sraiw;
+	
+	ISA_CTOR(riscv64i)
+	{
+		ac_execute("riscv64/execute.rv64i");
+		
+		ld.set_decoder(funct3=0x3, opcode=0x3);
+		ld.set_asm("ld");
+		ld.set_behaviour(ld);
+		
+		sd.set_decoder(funct3=0x3, opcode=0x23);
+		sd.set_asm("sd");
+		sd.set_behaviour(sd);
+		
+		addw.set_decoder(funct7=0, funct3=0, opcode=0x3b);
+		addw.set_asm("addw");
+		addw.set_behaviour(addw);
+		
+		sllw.set_decoder(funct7=0, funct3=1, opcode=0x3b);
+		sllw.set_asm("sllw");
+		sllw.set_behaviour(sllw);
+		
+		srlw.set_decoder(funct7=0, funct3=5, opcode=0x3b);
+		srlw.set_asm("srlw");
+		srlw.set_behaviour(srlw);
+		
+		subw.set_decoder(funct7=0x20, funct3=0, opcode=0x3b);
+		subw.set_asm("subw");
+		subw.set_behaviour(subw);
+		
+		sraw.set_decoder(funct7=0x20, funct3=5, opcode=0x3b);
+		sraw.set_asm("sraw");
+		sraw.set_behaviour(sraw);
+		
+		addiw.set_decoder(funct3=0, opcode=0x1b);
+		addiw.set_asm("addiw");
+		addiw.set_behaviour(addiw);
+		
+		slliw.set_decoder(imm11=0, imm5=0, funct3=1, opcode=0x1b);
+		slliw.set_asm("slliw");
+		slliw.set_behaviour(slliw);
+		
+		srliw.set_decoder(imm11=0, imm5=0, funct3=5, opcode=0x1b);
+		srliw.set_asm("srliw");
+		srliw.set_behaviour(srliw);
+		
+		sraiw.set_decoder(imm11=0x10, imm5=0, funct3=5, opcode=0x1b);
+		sraiw.set_asm("sraiw");
+		sraiw.set_behaviour(sraiw);
+	};
+};

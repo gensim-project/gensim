@@ -1,0 +1,47 @@
+/*
+RISC-V
+*/
+AC_ARCH(riscv64)
+{
+
+	ac_mem Mem(8, 8, little, 1);
+
+	// General Purpose Registers
+	ac_regspace(256) {
+		// bank NAME (TYPE, OFFSET, COUNT, REG-STRIDE, # ELEMS, ELEM-SIZE, ELEM-STRIDE)
+	
+		bank GPR (uint64, 0, 32, 8, 1, 8, 8);
+		slot SP (uint64, 8, 16) SP; // TODO: find out the real offset of the stack pointer
+	}
+
+	ac_regspace(8) {
+		slot PC (uint64, 8, 0) PC;
+	}
+
+	ac_regspace(4) {
+		slot T (uint8, 1, 0) T;
+	}
+
+	ac_regspace(256) {
+		bank FP_D(double, 0, 32, 8, 1, 8, 8);
+		bank FP_S(float,  0, 32, 8, 1, 4, 4);
+	}
+
+	ac_regspace(6) {
+		slot FRM (uint8, 1, 0);
+		slot FLAG_NV (uint8, 1, 1);
+		slot FLAG_DZ (uint8, 1, 2);
+		slot FLAG_OF (uint8, 1, 3);
+		slot FLAG_UF (uint8, 1, 4);
+		slot FLAG_NX (uint8, 1, 5);
+	}
+
+	ac_wordsize 64;
+
+	ARCH_CTOR(riscv) {
+		ac_isa("riscv64/riscv64_isa.ac");
+		set_endian("little");
+		set_typename(word_t, uint64);
+		set_typename(sword_t, sint64);
+	};
+};

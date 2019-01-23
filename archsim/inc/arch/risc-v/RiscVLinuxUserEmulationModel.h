@@ -21,7 +21,7 @@ namespace archsim
 			class RiscVLinuxUserEmulationModel : public archsim::abi::LinuxUserEmulationModel
 			{
 			public:
-				RiscVLinuxUserEmulationModel();
+				RiscVLinuxUserEmulationModel(bool rv64);
 				~RiscVLinuxUserEmulationModel();
 
 				bool Initialise(System& system, uarch::uArch& uarch) override;

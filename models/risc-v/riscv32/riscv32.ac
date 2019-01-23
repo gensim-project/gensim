@@ -1,7 +1,7 @@
 /*
 RISC-V
 */
-AC_ARCH(riscv)
+AC_ARCH(riscv32)
 {
 
 	ac_mem Mem(4, 4, little, 1);
@@ -39,7 +39,7 @@ AC_ARCH(riscv)
 	ac_wordsize 32;
 
 	ARCH_CTOR(riscv) {
-		ac_isa("riscv_isa.ac");
+		ac_isa("riscv32/riscv32_isa.ac");
 		set_endian("little");
 		set_typename(word_t, uint32);
 		set_typename(sword_t, sint32);
