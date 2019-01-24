@@ -116,7 +116,7 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 		throw std::logic_error("First argument of mem intrinsic must be a constant memory interface ID");
 	}
 
-	auto mem_interface_id = call->GetScope().GetContainingAction().Context.GetConstant(mem_interface_read->Symbol->GetLocalName()).second;
+	auto mem_interface_id = call->GetScope().GetContainingAction().Context.GetConstant(mem_interface_read->Symbol->GetLocalName()).second.Int();
 
 	SSAStatement *addr = call->Args[1]->EmitSSAForm(bldr);
 	if (addr->GetType() != wordtype) {

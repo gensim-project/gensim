@@ -151,12 +151,8 @@ namespace gensim
 			const gensim::arch::ArchDescription &Arch;
 			const isa::ISADescription &ISA;
 
-			void InsertConstant(std::string name, IRType type, uint32_t value);
-
-			inline std::pair<IRSymbol *, uint32_t> GetConstant(std::string name) const
-			{
-				return ConstantTable.at(name);
-			}
+			void InsertConstant(std::string name, const IRType &type, IRConstant value);
+			std::pair<IRSymbol *, IRConstant> GetConstant(std::string name) const;
 
 			std::shared_ptr<ssa::SSATypeManager> GetTypeManager()
 			{
@@ -172,7 +168,7 @@ namespace gensim
 			DiagnosticContext &diag_ctx;
 
 			OutputCollection Output;
-			std::map<std::string, std::pair<IRSymbol *, uint32_t> > ConstantTable;
+			std::map<std::string, std::pair<IRSymbol *, IRConstant> > ConstantTable;
 			std::map<std::string, IRType> type_map_;
 			std::vector<FileContents> file_list;
 
