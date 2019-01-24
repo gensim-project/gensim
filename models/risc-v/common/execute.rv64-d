@@ -1,0 +1,11 @@
+execute(fmv_x_d)
+{
+	uint64 s1 = <uint64>(read_register_bank(FP_D, inst.rs1));
+	write_register_bank(GPR, inst.rd, s1);
+}
+
+execute(fmv_d_x)
+{
+	double s1 = <double>(read_gpr(inst.rs1));
+	write_register_bank(FP_D, inst.rd, s1);
+}

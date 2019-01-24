@@ -1635,3 +1635,4 @@ DEFINE_SYSCALL(riscv, 214, sys_brk, "brk(new_brk=%p)");
 DEFINE_SYSCALL(riscv, 215, sys_munmap, "munmap()");
 DEFINE_SYSCALL(riscv, 216, sys_mremap, "mremap()");
 DEFINE_SYSCALL(riscv, 222, sys_mmap, "mmap()");
+DEFINE_SYSCALL(riscv, 1024, sys_open, "open()");

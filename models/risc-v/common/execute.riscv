@@ -150,11 +150,11 @@ execute(srai)
 
 execute(lui)
 {
-	uint32 imm = inst.imm;
+	sint32 imm = inst.imm;
 
 	imm <<= 12;
 
-	write_register_bank(GPR, inst.rd, imm);
+	write_register_bank(GPR, inst.rd, (typename sword_t)imm);
 
 }
 
@@ -163,10 +163,12 @@ execute(auipc)
 	uint32 imm = inst.imm;
 
 	imm <<= 12;
+	
+	typename sword_t ximm = (sint32)imm;
 
 	typename word_t pc = read_pc();
 
-	pc += imm;
+	pc += ximm;
 
 	//write_register(PC, pc);
 
@@ -455,13 +457,14 @@ execute(lw)
 	imm >>= 20; 
 	
 	typename word_t rs1 = read_gpr(inst.rs1);
-	typename word_t addr = rs1 +  imm;
+	typename word_t addr = rs1 +  (typename sword_t)imm;
 
 	uint32 val;
         
 	mem_read_32(Mem, addr, val);
 
-	write_register_bank(GPR, inst.rd, val);
+	typename sword_t result = (sint32)val;
+	write_register_bank(GPR, inst.rd, result);
 
 }
 
@@ -474,18 +477,15 @@ execute(lh)
 	imm >>= 20;
 
 	typename word_t rs1 = read_gpr(inst.rs1);
-	typename word_t addr = rs1 + imm;
+	typename word_t addr = rs1 +  (typename sword_t)imm;
 
 	uint16 val;	
 
 	mem_read_16(Mem, addr, val);
 
-	typename sword_t sval = val;
+	typename sword_t xresult = (sint16)val;
 
-	sval <<= 16;
-	sval >>= 16;
-
-	write_register_bank(GPR, inst.rd, sval);
+	write_register_bank(GPR, inst.rd, xresult);
 
 }
 
@@ -497,7 +497,7 @@ execute(lhu)
 	imm >>= 20;
 
 	typename word_t rs1 = read_gpr(inst.rs1);
-	typename word_t addr = rs1 + imm;
+	typename word_t addr = rs1 +  (typename sword_t)imm;
 
 	uint16 valh;
 
@@ -524,10 +524,7 @@ execute(lb)
 
 	mem_read_8(Mem, addr, valb);
 
-	typename sword_t val = valb;
-
-	val <<= 24;
-	val >>= 24;
+	typename sword_t val = (sint8)valb;
 
 	write_register_bank(GPR, inst.rd, val); 
 

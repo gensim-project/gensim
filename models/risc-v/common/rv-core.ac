@@ -8,7 +8,7 @@ AC_ISA(riscv)
 
 	ac_format Type_I = "%imm:12 %rs1:5 %funct3:3 %rd:5 %opcode:7";
 
-	ac_format Type_I_shamt = "%imm:7 %shamt:5 %rs1:5 %funct3:3 %rd:5 %opcode:7"; 
+	ac_format Type_I_shamt = "%imm:6 %shamt:6 %rs1:5 %funct3:3 %rd:5 %opcode:7"; 
 
 	ac_format Type_R = "%funct7:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
 
@@ -253,7 +253,7 @@ AC_ISA(riscv)
 		srli.set_asm("srli %reg, %reg, %imm", rd, rs1, shamt);
 		srli.set_behaviour(srli);
 
-		srai.set_decoder(imm=0x20, funct3=0x5, opcode=0x13);
+		srai.set_decoder(imm=0x10, funct3=0x5, opcode=0x13);
 		srai.set_asm("srai %reg, %reg, %imm", rd, rs1, shamt);
 		srai.set_behaviour(srai);
 

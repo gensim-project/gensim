@@ -1,10 +1,10 @@
 
 execute(mul)
 {
-	sint32 rs1 = read_gpr(inst.rs1);
-	sint32 rs2 = read_gpr(inst.rs2);
+	typename sword_t rs1 = read_gpr(inst.rs1);
+	typename sword_t rs2 = read_gpr(inst.rs2);
 
-	sint32 val = rs1 * rs2;	
+	typename sword_t val = rs1 * rs2;	
 
 	write_register_bank(GPR, inst.rd, val);
 
@@ -12,12 +12,12 @@ execute(mul)
 
 execute(mulh)
 {
-	sint64 rs1 = read_gpr(inst.rs1);
-	sint64 rs2 = read_gpr(inst.rs2);
+	typename xsword_t rs1 = read_gpr(inst.rs1);
+	typename xsword_t rs2 = read_gpr(inst.rs2);
 
-	sint64 mul = rs1 * rs2;
+	typename xsword_t mul = rs1 * rs2;
 
-	sint32 val = mul >> 32;
+	typename sword_t val = mul >> WordSize;
 
 	write_register_bank(GPR, inst.rd, val);
 
@@ -25,24 +25,24 @@ execute(mulh)
 
 execute(mulhsu)
 {
-	sint64 rs1 = read_gpr(inst.rs1);
-	uint64 rs2 = read_gpr(inst.rs2);
+	typename xsword_t rs1 = read_gpr(inst.rs1);
+	typename xword_t rs2 = read_gpr(inst.rs2);
 
-	sint64 mul = rs1 * rs2;
+	typename xsword_t mul = rs1 * rs2;
 
-	sint32 val = mul >> 32;
+	typename sword_t val = mul >> WordSize;
 
 	write_register_bank(GPR, inst.rd, val);
 }
 
 execute(mulhu)
 {
-	uint64 rs1 = read_gpr(inst.rs1);
-	uint64 rs2 = read_gpr(inst.rs2);
+	typename xword_t rs1 = read_gpr(inst.rs1);
+	typename xword_t rs2 = read_gpr(inst.rs2);
 
-	uint64 mul = rs1 * rs2;
+	typename xword_t mul = rs1 * rs2;
 
-	uint32 val = mul >> 32;
+	typename word_t  val = mul >> WordSize;
 
 	write_register_bank(GPR, inst.rd, val);
 
@@ -50,17 +50,17 @@ execute(mulhu)
 
 execute(div)
 {
-	uint32 rs1 = read_gpr(inst.rs1);
-	uint32 rs2 = read_gpr(inst.rs2);
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
 
-	uint32 val;
+	typename word_t val;
 
 	if (rs2 == 0) {
 		val = -1;
 	} else if ((rs1 == 0x80000000) && (rs2 == 0xffffffff)) {
 		val = 0x80000000;
 	} else {
-		val = (sint32)rs1 / (sint32)rs2;
+		val = (typename sword_t)rs1 / (typename sword_t)rs2;
 	}
 
 	write_register_bank(GPR, inst.rd, val);
@@ -69,13 +69,16 @@ execute(div)
 
 execute(divu)
 {
-	uint32 rs1 = read_gpr(inst.rs1);
-	uint32 rs2 = read_gpr(inst.rs2);
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
 
-	uint32 val;
+	typename word_t val;
 
-	if (rs2 == 0) val = 0xffffffff;
-	else val = rs1 / rs2;
+	if (rs2 == 0) {
+		val = 0xffffffff;
+	} else {
+		val = rs1 / rs2;
+	}
 
 	write_register_bank(GPR, inst.rd, val);
 
@@ -83,15 +86,17 @@ execute(divu)
 
 execute(rem)
 {
-	sint32 rs1 = read_gpr(inst.rs1);
-	sint32 rs2 = read_gpr(inst.rs2);
+	typename sword_t rs1 = read_gpr(inst.rs1);
+	typename sword_t rs2 = read_gpr(inst.rs2);
 
-	sint32 val;
+	typename sword_t val;
 
-	if (rs2 == 0) val = rs1;
-	else if ((rs1 == (-2)^31) && (rs2 == -1)) val = 0;
-	else{
-		sint32 quotient = rs1/rs2;
+	if (rs2 == 0) {
+		val = rs1;
+	} else if ((rs1 == (-2)^31) && (rs2 == -1)) {
+		val = 0;
+	} else {
+		typename sword_t quotient = rs1/rs2;
 		val = rs1 - rs2 * quotient;
 	}
 
@@ -101,13 +106,16 @@ execute(rem)
 
 execute(remu)
 {
-	uint32 rs1 = read_gpr(inst.rs1);
-	uint32 rs2 = read_gpr(inst.rs2);
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t  rs2 = read_gpr(inst.rs2);
 
-	uint32 val;
+	typename word_t  val;
 
-	if (rs2 == 0) val = rs1;
-	else val = rs1 % rs2;
+	if (rs2 == 0) {
+		val = rs1;
+	} else {
+		val = rs1 % rs2;
+	}
 
 	write_register_bank(GPR, inst.rd, val);
 

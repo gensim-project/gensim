@@ -1,0 +1,18 @@
+AC_ISA(riscv) 
+{
+	ac_format Type_64MOP  = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+
+	ac_instr<Type_64MOP> mulw;
+
+	ac_behaviour mulw;
+
+	ISA_CTOR(riscv)
+	{
+		ac_execute("common/execute.rv64-m");
+
+		mulw.set_decoder(funct7=0, rm=0, opcode=0x3b);
+		mulw.set_asm("mulw");
+		mulw.set_behaviour(mulw);
+		
+	};
+};
