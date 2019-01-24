@@ -180,8 +180,33 @@ bool GenCContext::Parse()
 
 void GenCContext::LoadStandardConstants()
 {
-	InsertConstant("NAN", IRTypes::Double, __builtin_nanf(""));
+	InsertConstant("NAN", IRTypes::Double, IRConstant::Double(__builtin_nanf("")));
 	// ConstantTable["NAN"] = std::pair<IRSymbol*, double>(new IRSymbol("NAN", IRTypes::Double, Symbol_Constant, NULL), NAN);
+
+	// load constants from arch
+	for(auto &constant : Arch.GetConstants()) {
+		// parse type
+		if(!GetTypeManager()->HasNamedBasicType(constant.second.first)) {
+			Diag().Error("Unknown type " + constant.second.first);
+			continue;
+		}
+		IRType type = GetTypeManager()->GetBasicTypeByName(constant.second.first);
+
+		IRConstant c;
+		if(type.IsFloating()) {
+			if(type == IRTypes::Double) {
+				c = IRConstant::Double(strtod(constant.second.second.c_str(), nullptr));
+			} else if(type == IRTypes::Float) {
+				c = IRConstant::Float(strtod(constant.second.second.c_str(), nullptr));
+			} else {
+				UNEXPECTED;
+			}
+		} else {
+			c = IRConstant::Integer(strtol(constant.second.second.c_str(), nullptr, 0));
+		}
+
+		InsertConstant(constant.first, type, c);
+	}
 }
 
 void GenCContext::LoadRegisterNames()
@@ -189,19 +214,19 @@ void GenCContext::LoadRegisterNames()
 	// load register file names
 	int regbankid = 0;
 	for (const auto &bank : Arch.GetRegFile().GetBanks()) {
-		InsertConstant(bank->ID, IRTypes::UInt32, regbankid++);
+		InsertConstant(bank->ID, IRTypes::UInt32, IRConstant::Integer(regbankid++));
 	}
 
 	// now load individual registers
 	regbankid = 0;
 	for (const auto &slot : Arch.GetRegFile().GetSlots()) {
-		InsertConstant(slot->GetID(), IRTypes::UInt32, regbankid++);
+		InsertConstant(slot->GetID(), IRTypes::UInt32, IRConstant::Integer(regbankid++));
 	}
 
 	// also load memory interface names
 	regbankid = 0;
 	for(const auto &interface : Arch.GetMemoryInterfaces().GetInterfaces()) {
-		InsertConstant(interface.first, IRTypes::UInt32, interface.second.GetID());
+		InsertConstant(interface.first, IRTypes::UInt32, IRConstant::Integer(interface.second.GetID()));
 	}
 }
 
@@ -210,7 +235,7 @@ void GenCContext::LoadFeatureNames()
 	// load register file names
 	int regbankid = 0;
 	for (const auto &feature : Arch.GetFeatures()) {
-		InsertConstant(feature.GetName(), IRTypes::UInt32, feature.GetId());
+		InsertConstant(feature.GetName(), IRTypes::UInt32, IRConstant::Integer(feature.GetId()));
 	}
 }
 
@@ -321,11 +346,17 @@ gensim::isa::InstructionDescription *GenCContext::GetRegisteredInstructionFor(IR
 	return InstructionTable.at(exec_action->GetSignature().GetName());
 }
 
-void GenCContext::InsertConstant(std::string name, IRType type, uint32_t value)
+void GenCContext::InsertConstant(std::string name, const IRType &type, IRConstant value)
 {
 	IRSymbol *sym = GlobalScope.InsertSymbol(name, type, Symbol_Constant);
 	ConstantTable[name] = std::make_pair(sym, value);
 }
+
+std::pair<IRSymbol*, IRConstant> GenCContext::GetConstant(std::string name) const
+{
+	return ConstantTable.at(name);
+}
+
 
 bool GenCContext::Parse_File(pANTLR3_BASE_TREE File)
 {
@@ -433,7 +464,7 @@ bool GenCContext::Parse_Constant(pANTLR3_BASE_TREE Node)
 	std::string id = (char *) (idNode->getText(idNode)->chars);
 	uint32_t constant = Parse_ConstantInt(constantNode);
 
-	InsertConstant(id, type, constant);
+	InsertConstant(id, type, IRConstant::Integer(constant));
 
 	return true;
 }

@@ -545,9 +545,9 @@ SSAStatement *IRVariableExpression::EmitSSAForm(SSABuilder &bldr) const
 {
 	if (Symbol->SType == Symbol_Constant) {
 		// we have a global constant read, so emit a constant
-		std::pair<IRSymbol *, uint32_t> constantValue = GetScope().GetContainingAction().Context.GetConstant(name_);
+		std::pair<IRSymbol *, IRConstant> constantValue = GetScope().GetContainingAction().Context.GetConstant(name_);
 
-		SSAStatement *stmt = new SSAConstantStatement(&bldr.GetBlock(), IRConstant::Integer(constantValue.second), constantValue.first->Type);
+		SSAStatement *stmt = new SSAConstantStatement(&bldr.GetBlock(), constantValue.second, constantValue.first->Type);
 		stmt->SetDiag(Diag());
 
 		return stmt;
