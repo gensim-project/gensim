@@ -5,14 +5,14 @@ AC_ISA(riscv64i)
 	ac_format Type_64R = "%funct7:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
 	ac_format Type_64SHIFT = "%imm11:6 %imm5:1 %imm4:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
 
-	ac_instr<Type_64I> ld, addiw;
+	ac_instr<Type_64I> ld, lwu, addiw;
 	ac_instr<Type_64S> sd;
 	ac_instr<Type_64R> addw, sllw, srlw, subw, sraw;
 	
 	ac_instr<Type_64SHIFT> slliw, srliw, sraiw;
 	
 	ac_behaviour addiw;
-	ac_behaviour ld, sd;
+	ac_behaviour ld, lwu, sd;
 	ac_behaviour addw, sllw, srlw, subw, sraw;
 	ac_behaviour slliw, srliw, sraiw;
 	
@@ -23,6 +23,10 @@ AC_ISA(riscv64i)
 		ld.set_decoder(funct3=0x3, opcode=0x3);
 		ld.set_asm("ld");
 		ld.set_behaviour(ld);
+		
+		lwu.set_decoder(funct3=0x6, opcode=0x3);
+		lwu.set_asm("lwu");
+		lwu.set_behaviour(lwu);
 		
 		sd.set_decoder(funct3=0x3, opcode=0x23);
 		sd.set_asm("sd");

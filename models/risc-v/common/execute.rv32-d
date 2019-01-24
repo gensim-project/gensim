@@ -51,6 +51,28 @@ execute(fle_d)
 	write_register_bank(GPR, inst.rd, result);
 }
 
+execute(fcvt_d_l)
+{
+	// convert unsigned 32 bit to f64
+	sint64 data = read_gpr(inst.rs1);
+	double f = data;
+	
+	//TODO: rounding
+	
+	write_register_bank(FP_D, inst.rd, f);
+}
+
+execute(fcvt_d_lu)
+{
+	// convert unsigned 32 bit to f64
+	uint64 data = read_gpr(inst.rs1);
+	double f = data;
+	
+	//TODO: rounding
+	
+	write_register_bank(FP_D, inst.rd, f);
+}
+
 execute(fcvt_s_d)
 {
 	// convert f64 to f32

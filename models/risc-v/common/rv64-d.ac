@@ -1,0 +1,21 @@
+AC_ISA(riscv) 
+{
+	ac_format Type_FSD64_DATA  = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+	
+	ac_instr<Type_FSD_DATA> fmv_x_d, fmv_d_x;
+	
+	ac_behaviour fmv_x_d, fmv_d_x;
+			
+	ISA_CTOR(riscv)
+	{
+		ac_execute("common/execute.rv64-d");
+				
+		fmv_x_d.set_decoder(imm2=0x71, rs2=0, rm=0);
+		fmv_x_d.set_asm("fmv.x.d");
+		fmv_x_d.set_behaviour(fmv_x_d);
+		
+		fmv_d_x.set_decoder(imm2=0x79, rs2=0, rm=0);
+		fmv_d_x.set_asm("fmv.d.x");
+		fmv_d_x.set_behaviour(fmv_d_x);
+	};
+};

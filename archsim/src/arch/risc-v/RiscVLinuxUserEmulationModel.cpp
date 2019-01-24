@@ -57,6 +57,9 @@ void RiscVLinuxUserEmulationModel::Destroy()
 	LinuxUserEmulationModel::Destroy();
 }
 
+extern char riscv64_linux_vdso_start, riscv64_linux_vdso_end;
+extern uint32_t riscv64_linux_vdso_size;
+
 bool RiscVLinuxUserEmulationModel::PrepareBoot(System& system)
 {
 	if (!LinuxUserEmulationModel::PrepareBoot(system))
@@ -72,6 +75,15 @@ bool RiscVLinuxUserEmulationModel::PrepareBoot(System& system)
 	GetMemoryModel().Write32(0xffff0004_ga, 0xdeadbabe);
 	GetMemoryModel().Write32(0xffff0008_ga, 0xfeedc0de);
 	GetMemoryModel().Write32(0xffff000c_ga, 0xcafedead);
+
+	if(Is64BitBinary()) {
+		// map VDSO
+		ASSERT(riscv64_linux_vdso_size <= 4096);
+
+		Address vdso_region = 0x7fff00000000_ga;
+		GetMemoryModel().GetMappingManager()->MapRegion(vdso_region, 4096, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[VDSO]");
+		GetMemoryModel().Write(vdso_region, (uint8_t*)&riscv64_linux_vdso_start, riscv64_linux_vdso_size);
+	}
 
 	return true;
 }

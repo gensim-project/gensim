@@ -51,6 +51,22 @@ execute(fle_s)
 	write_register_bank(GPR, inst.rd, result);
 }
 
+execute(fcvt_s_l)
+{
+	sint64 data = read_gpr(inst.rs1);
+	float f = data;
+	
+	write_register_bank(FP_S, inst.rd, f);
+}
+
+execute(fcvt_s_lu)
+{
+	uint64 data = read_gpr(inst.rs1);
+	float f = data;
+	
+	write_register_bank(FP_S, inst.rd, f);
+}
+
 execute(fcvt_s_wu)
 {
 	// convert unsigned 32 bit to f32

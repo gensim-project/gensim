@@ -15,6 +15,22 @@ execute(sd)
 	mem_write_64(Mem, addr, read_gpr(inst.rs2));
 }
 
+execute(lwu)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20; 
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t addr = rs1 +  (typename sword_t)imm;
+
+	uint32 val;
+
+	mem_read_32(Mem, addr, val);
+
+	write_register_bank(GPR, inst.rd, val);
+}
+
 execute(ld)
 {
 	sint32 imm = inst.imm;
@@ -33,22 +49,46 @@ execute(ld)
 
 execute(addw)
 {
-	trap();
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+	
+	sint32 result = rs1 + rs2;
+	typename sword_t xresult = result;
+	
+	write_register_bank(GPR, inst.rd, xresult);
 }
 
 execute(sllw)
 {
-	trap();
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+	
+	sint32 result = rs1 << (rs2 & WordSize - 1);
+	typename sword_t xresult = result;
+	
+	write_register_bank(GPR, inst.rd, xresult);
 }
 
 execute(srlw)
 {
-	trap();
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+	
+	sint32 result = rs1 >> (rs2 & WordSize - 1);
+	typename sword_t xresult = result;
+	
+	write_register_bank(GPR, inst.rd, xresult);
 }
 
 execute(subw)
 {
-	trap();
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+	
+	sint32 result = rs1 - rs2;
+	typename sword_t xresult = result;
+	
+	write_register_bank(GPR, inst.rd, xresult);
 }
 
 execute(sraw)
@@ -58,17 +98,32 @@ execute(sraw)
 
 execute(slliw)
 {
-	trap();
+	uint32 rs1 = read_gpr(inst.rs1);
+	uint32 shamt = inst.imm4;
+	
+	sint32 result = rs1 << shamt;
+	
+	write_register_bank(GPR, inst.rd, (typename sword_t)result);
 }
 
 execute(srliw)
 {
-	trap();
+	uint32 rs1 = read_gpr(inst.rs1);
+	uint32 shamt = inst.imm4;
+	
+	sint32 result = rs1 >> shamt;
+	
+	write_register_bank(GPR, inst.rd, (typename sword_t)result);
 }
 
 execute(sraiw)
 {
-	trap();
+	sint32 rs1 = read_gpr(inst.rs1);
+	uint32 shamt = inst.imm4;
+	
+	sint32 result = rs1 >> shamt;
+	
+	write_register_bank(GPR, inst.rd, (typename sword_t)result);
 }
 
 execute(addiw)
@@ -79,6 +134,7 @@ execute(addiw)
 	
 	typename word_t rs1 = read_gpr(inst.rs1);
 	rs1 += (typename sword_t)imm;
+	rs1 = (typename sword_t)(sint32)rs1;
 	
 	write_register_bank(GPR, inst.rd, rs1);	
 }

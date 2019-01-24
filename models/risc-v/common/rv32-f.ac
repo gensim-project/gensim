@@ -8,7 +8,7 @@ AC_ISA(riscv)
 	
 	ac_instr<Type_FI> flw;
 	ac_instr<Type_FS> fsw;
-	ac_instr<Type_FS_DATA> fcvt_s_wu, fcvt_s_w, fcvt_w_s, fcvt_wu_s, fdiv_s, fmv_x_s, fmv_s_x, fadd_s, fsub_s, fmul_s, feq_s, flt_s, fle_s; 
+	ac_instr<Type_FS_DATA> fcvt_s_l, fcvt_s_lu, fcvt_s_wu, fcvt_s_w, fcvt_w_s, fcvt_wu_s, fdiv_s, fmv_x_s, fmv_s_x, fadd_s, fsub_s, fmul_s, feq_s, flt_s, fle_s; 
 	ac_instr<Type_FSFUSED> fmadd_s, fmsub_s;
 
 	ac_instr<Type_FCSR> frrm, frflags, fsflags;
@@ -20,7 +20,7 @@ AC_ISA(riscv)
 	
 	ac_behaviour fdiv_s, fadd_s, fsub_s, fmul_s;
 	
-	ac_behaviour fcvt_s_wu, fcvt_s_w, fcvt_w_s, fcvt_wu_s;
+	ac_behaviour fcvt_s_l, fcvt_s_lu, fcvt_s_wu, fcvt_s_w, fcvt_w_s, fcvt_wu_s;
 	
 	ac_behaviour fmv_x_s;
 	ac_behaviour fmv_s_x;
@@ -52,6 +52,14 @@ AC_ISA(riscv)
 		fle_s.set_decoder(imm2=0x50, opcode=0x53, funct3=0x0);
 		fle_s.set_asm("fle.s");
 		fle_s.set_behaviour(fle_s);
+		
+		fcvt_s_l.set_decoder(imm2=0x68, rs2=2, opcode=0x53);
+		fcvt_s_l.set_asm("fcvt.s.l");
+		fcvt_s_l.set_behaviour(fcvt_s_l);
+		
+		fcvt_s_lu.set_decoder(imm2=0x68, rs2=3, opcode=0x53);
+		fcvt_s_lu.set_asm("fcvt.s.lu");
+		fcvt_s_lu.set_behaviour(fcvt_s_lu);
 		
 		fcvt_s_wu.set_decoder(imm2=0x68, rs2=1, opcode=0x53);
 		fcvt_s_wu.set_asm("fcvt.s.wu");
@@ -109,8 +117,8 @@ AC_ISA(riscv)
 		fmadd_s.set_asm("fmadd.s");
 		fmadd_s.set_behaviour(fmadd_s);
 		
-		fmadd_s.set_decoder(opcode=0x47, fmt=0);
-		fmadd_s.set_asm("fmadd.s");
-		fmadd_s.set_behaviour(fmadd_s);
+		fmsub_s.set_decoder(opcode=0x47, fmt=0);
+		fmsub_s.set_asm("fmadd.s");
+		fmsub_s.set_behaviour(fmsub_s);
 	};
 };

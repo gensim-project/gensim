@@ -16,6 +16,7 @@ define_model(
 	common/rv32-f.ac
 	common/rv32-d.ac
 	common/rv32-m.ac
+	common/rv-core.ac
 )
 
 
@@ -31,12 +32,15 @@ define_model(
 	common/behaviours.riscv
 	common/execute.riscv
 	common/execute.rv32-a
+	common/execute.rv64-a
 	common/execute.rv32-f
 	common/execute.rv32-d
 	common/execute.rv32-m
 	common/riscv_isa.ac
+	common/rv64-a.ac
 	common/rv32-a.ac
 	common/rv32-f.ac
 	common/rv32-d.ac
 	common/rv32-m.ac
+	common/rv-core.ac
 )
