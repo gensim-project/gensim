@@ -43,5 +43,6 @@ AC_ARCH(riscv64)
 		set_endian("little");
 		set_typename(word_t, uint64);
 		set_typename(sword_t, sint64);
+		set_constant(WordSize, uint8, 64);
 	};
 };

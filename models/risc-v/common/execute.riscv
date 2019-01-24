@@ -259,7 +259,7 @@ execute(sll)
 	typename word_t rs1 = read_gpr(inst.rs1);
 	typename word_t rs2 = read_gpr(inst.rs2);
 
-	rs2 = rs2 & 0x0000001f;
+	rs2 = rs2 & (WordSize - 1);
 	rs1 <<= rs2;
 
 	write_register_bank(GPR, inst.rd, rs1);
@@ -270,7 +270,7 @@ execute(srl)
 	typename word_t rs1 = read_gpr(inst.rs1);
 	typename word_t rs2 = read_gpr(inst.rs2);
        
-	rs2 = rs2 & 0x0000001f;
+	rs2 = rs2 & (WordSize - 1);
 	rs1  >>= rs2;
 	
 	write_register_bank(GPR, inst.rd, rs1);
@@ -281,7 +281,7 @@ execute(sra)
 	typename sword_t rs1 = read_gpr(inst.rs1);
 	typename sword_t rs2 = read_gpr(inst.rs2);
 
-	rs2 = rs2 & 0x0000001f;
+	rs2 = rs2 & (WordSize - 1);
 	typename word_t val = rs1 >> rs2;
 
 	write_register_bank(GPR, inst.rd, val);
