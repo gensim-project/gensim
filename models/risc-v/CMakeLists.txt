@@ -34,15 +34,19 @@ define_model(
 	common/execute.rv32-a
 	common/execute.rv64-a
 	common/execute.rv32-f
+	common/execute.rv64-f
 	common/execute.rv32-d
 	common/execute.rv64-d
 	common/execute.rv32-m
+	common/execute.rv64-m
 	common/riscv_isa.ac
 	common/rv64-a.ac
 	common/rv32-a.ac
 	common/rv32-f.ac
+	common/rv64-f.ac
 	common/rv32-d.ac
 	common/rv64-d.ac
 	common/rv32-m.ac
+	common/rv64-m.ac
 	common/rv-core.ac
 )

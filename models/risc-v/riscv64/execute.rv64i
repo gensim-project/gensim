@@ -63,7 +63,7 @@ execute(sllw)
 	typename word_t rs1 = read_gpr(inst.rs1);
 	typename word_t rs2 = read_gpr(inst.rs2);
 	
-	sint32 result = rs1 << (rs2 & WordSize - 1);
+	sint32 result = rs1 << (rs2 & 0x1f);
 	typename sword_t xresult = result;
 	
 	write_register_bank(GPR, inst.rd, xresult);
@@ -74,7 +74,7 @@ execute(srlw)
 	typename word_t rs1 = read_gpr(inst.rs1);
 	typename word_t rs2 = read_gpr(inst.rs2);
 	
-	sint32 result = rs1 >> (rs2 & WordSize - 1);
+	sint32 result = rs1 >> (rs2 & 0x1f);
 	typename sword_t xresult = result;
 	
 	write_register_bank(GPR, inst.rd, xresult);
@@ -93,7 +93,13 @@ execute(subw)
 
 execute(sraw)
 {
-	trap();
+	sint32 rs1 = read_gpr(inst.rs1);
+	sint32 rs2 = read_gpr(inst.rs2);
+	
+	sint32 result = rs1 >> (rs2 & 0x1f);
+	typename sword_t xresult = result;
+	
+	write_register_bank(GPR, inst.rd, xresult);
 }
 
 execute(slliw)
