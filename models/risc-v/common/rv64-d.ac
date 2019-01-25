@@ -10,11 +10,11 @@ AC_ISA(riscv)
 	{
 		ac_execute("common/execute.rv64-d");
 				
-		fmv_x_d.set_decoder(imm2=0x71, rs2=0, rm=0);
+		fmv_x_d.set_decoder(imm2=0x71, rs2=0, rm=0, opcode=0x53);
 		fmv_x_d.set_asm("fmv.x.d");
 		fmv_x_d.set_behaviour(fmv_x_d);
 		
-		fmv_d_x.set_decoder(imm2=0x79, rs2=0, rm=0);
+		fmv_d_x.set_decoder(imm2=0x79, rs2=0, rm=0, opcode=0x53);
 		fmv_d_x.set_asm("fmv.d.x");
 		fmv_d_x.set_behaviour(fmv_d_x);
 	};
