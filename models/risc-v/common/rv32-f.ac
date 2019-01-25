@@ -10,7 +10,7 @@ AC_ISA(riscv)
 	ac_instr<Type_FI> flw;
 	ac_instr<Type_FS> fsw;
 	ac_instr<Type_FS_DATA> fcvt_s_wu, fcvt_s_w, fcvt_w_s, fcvt_wu_s, fdiv_s, fmv_x_s, fmv_s_x, fadd_s, fsub_s, fmul_s, feq_s, flt_s, fle_s; 
-	ac_instr<Type_FSFUSED> fmadd_s, fmsub_s, fsgnj_s;
+	ac_instr<Type_FSFUSED> fmadd_s, fmsub_s, fsgnj_s, fsgnjn_s, fsgnjx_s;
 
 	ac_instr<Type_FCSR> frrm, frflags, fsflags;
 
@@ -29,7 +29,7 @@ AC_ISA(riscv)
 	ac_behaviour frrm, frflags, fsflags;
 
 	ac_behaviour fmadd_s, fmsub_s;
-	ac_behaviour fsgnj_s;
+	ac_behaviour fsgnj_s, fsgnjn_s, fsgnjx_s;
 	
 	ISA_CTOR(riscv)
 	{
@@ -118,5 +118,13 @@ AC_ISA(riscv)
 		fsgnj_s.set_decoder(funct5=0x10, rm=0, opcode=0x53);
 		fsgnj_s.set_asm("fsgnj.s");
 		fsgnj_s.set_behaviour(fsgnj_s);
+		
+		fsgnjn_s.set_decoder(funct5=0x10, rm=1, opcode=0x53);
+		fsgnjn_s.set_asm("fsgnjn.s");
+		fsgnjn_s.set_behaviour(fsgnjn_s);
+		
+		fsgnjx_s.set_decoder(funct5=0x10, rm=2, opcode=0x53);
+		fsgnjx_s.set_asm("fsgnjx.s");
+		fsgnjx_s.set_behaviour(fsgnjx_s);
 	};
 };

@@ -210,3 +210,30 @@ execute(fsgnj_s)
 	
 	write_register_bank(FP_S, inst.rd, <float>(output));
 }
+
+execute(fsgnjn_s)
+{
+	sint32 s1 = <uint32>(read_register_bank(FP_S, inst.rs1));
+	sint32 s2 = <uint32>(read_register_bank(FP_S, inst.rs2));
+	
+	uint32 sign2 = s2 < 0;
+	
+	uint32 output_sign = ((uint32)(!sign2)) << 31;
+	uint32 output = (((uint32)s1) & 0x7fffffff) | output_sign;
+	
+	write_register_bank(FP_S, inst.rd, <float>(output));
+}
+
+execute(fsgnjx_s)
+{
+	sint32 s1 = <uint32>(read_register_bank(FP_S, inst.rs1));
+	sint32 s2 = <uint32>(read_register_bank(FP_S, inst.rs2));
+	
+	uint32 sign1 = s1 < 0;
+	uint32 sign2 = s2 < 0;
+	
+	uint32 output_sign = ((uint32)(sign1 ^ sign2)) << 31;
+	uint32 output = (((uint32)s1) & 0x7fffffff) | output_sign;
+	
+	write_register_bank(FP_S, inst.rd, <float>(output));
+}
