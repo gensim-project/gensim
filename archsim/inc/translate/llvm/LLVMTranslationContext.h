@@ -161,7 +161,8 @@ namespace archsim
 
 				enum ExitReasons {
 					EXIT_REASON_NEXTPAGE,
-					EXIT_REASON_NOBLOCK
+					EXIT_REASON_NOBLOCK,
+					EXIT_REASON_PAGECHANGE
 				};
 
 				using BlockMap = std::map<archsim::Address, llvm::BasicBlock*>;

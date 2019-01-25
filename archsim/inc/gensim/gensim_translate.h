@@ -15,6 +15,7 @@
 #include "gensim_decode.h"
 #include "gensim_processor_api.h"
 #include "util/Counter.h"
+#include "util/Histogram.h"
 #include "core/arch/RegisterFileDescriptor.h"
 
 #include <string>
@@ -114,6 +115,7 @@ namespace gensim
 		void EmitSbcWithFlags(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int bits, llvm::Value *lhs, llvm::Value *rhs, llvm::Value *carry);
 
 		void EmitIncrementCounter(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, archsim::util::Counter64 &counter, uint32_t value=1);
+		void EmitIncrementHistogram(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, archsim::util::Histogram &counter, uint64_t key, uint32_t value=1);
 	protected:
 		void QueueDynamicBlock(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, std::map<uint16_t, llvm::BasicBlock*> &dynamic_blocks, std::list<uint16_t> &dynamic_block_queue, uint16_t queued_block);
 

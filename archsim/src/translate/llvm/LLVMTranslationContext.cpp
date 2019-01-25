@@ -33,6 +33,7 @@ void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit
 	}
 
 	auto exit_block = GetExitBlock(EXIT_REASON_NOBLOCK);
+	auto exit_page_block = GetExitBlock(EXIT_REASON_PAGECHANGE);
 	auto exit_block_ptr = llvm::BlockAddress::get(GetFunction(), exit_block);
 
 	std::vector<llvm::Constant *> constants;
@@ -60,7 +61,7 @@ void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit
 	auto pc_check = builder.CreateOr(pc_check_less, pc_check_greater);
 
 	llvm::BasicBlock *on_page_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "jump_table_block", GetFunction());
-	builder.CreateCondBr(pc_check, exit_block, on_page_block);
+	builder.CreateCondBr(pc_check, exit_page_block, on_page_block);
 
 	builder.SetInsertPoint(on_page_block);
 
@@ -179,13 +180,19 @@ void LLVMRegionTranslationContext::BuildDispatchBlock(TranslationWorkUnit& work_
 
 llvm::BasicBlock* LLVMRegionTranslationContext::GetExitBlock(int exit_reason)
 {
-	if(exit_reason == EXIT_REASON_NEXTPAGE) {
+	if(exit_reason == EXIT_REASON_NEXTPAGE || exit_reason == EXIT_REASON_PAGECHANGE) {
 		return GetRegionChainBlock();
 	}
 
 	if(!exit_blocks_.count(exit_reason)) {
 		auto block = llvm::BasicBlock::Create(GetContext().LLVMCtx,"exit_block_" + std::to_string(exit_reason), GetFunction());
 		exit_blocks_[exit_reason] = block;
+
+		if(archsim::options::Verbose) {
+			llvm::IRBuilder<> builder(block);
+			GetTxlt()->EmitIncrementHistogram(builder, GetContext(), GetContext().GetThread()->GetMetrics().JITExitReasons, exit_reason, 1);
+		}
+
 		llvm::ReturnInst::Create(GetContext().LLVMCtx, llvm::ConstantInt::get(GetContext().Types.i32, exit_reason), block);
 	}
 
