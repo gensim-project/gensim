@@ -161,6 +161,33 @@ execute(fmadd_d)
 	write_register_bank(FP_D, inst.rd, (s1 * s2) + s3);
 }
 
+execute(fmsub_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	double s3 = read_register_bank(FP_D, inst.rs3);
+	
+	write_register_bank(FP_D, inst.rd, (s1 * s2) - s3);
+}
+
+execute(fnmadd_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	double s3 = read_register_bank(FP_D, inst.rs3);
+	
+	write_register_bank(FP_D, inst.rd, (-s1 * s2) + s3);
+}
+
+execute(fnmsub_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	double s3 = read_register_bank(FP_D, inst.rs3);
+	
+	write_register_bank(FP_D, inst.rd, (-s1 * s2) - s3);
+}
+
 execute(fsgnj_d)
 {
 	sint64 s1 = <uint64>(read_register_bank(FP_D, inst.rs1));
@@ -200,3 +227,4 @@ execute(fsgnjx_d)
 	
 	write_register_bank(FP_D, inst.rd, <double>(output));
 }
+

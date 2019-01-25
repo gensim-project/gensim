@@ -8,7 +8,7 @@ AC_ISA(riscv)
 	ac_instr<Type_FID> fld;
 	ac_instr<Type_FSD> fsd;
 	ac_instr<Type_FSD_DATA> feq_d, flt_d, fle_d, fcvt_d_wu, fcvt_d_s, fcvt_s_d, fcvt_w_d, fcvt_wu_d, fcvt_d_w, fadd_d, fdiv_d, fsqrt_d, fsgnj_d, fsgnjn_d, fsgnjx_d, fmul_d, fsub_d; 
-	ac_instr<Type_FSDFUSED> fmadd_d;
+	ac_instr<Type_FSDFUSED> fmadd_d, fmsub_d, fnmadd_d, fnmsub_d;
 
 	ac_behaviour fld;
 	ac_behaviour fsd;
@@ -25,7 +25,7 @@ AC_ISA(riscv)
 		
 	ac_behaviour fsgnj_d, fsgnjn_d, fsgnjx_d;
 		
-	ac_behaviour fmadd_d;
+	ac_behaviour fmadd_d, fmsub_d, fnmadd_d, fnmsub_d;
 		
 	ISA_CTOR(riscv)
 	{
@@ -110,5 +110,17 @@ AC_ISA(riscv)
 		fmadd_d.set_decoder(opcode=0x43, fmt=1);
 		fmadd_d.set_asm("fmadd.d");
 		fmadd_d.set_behaviour(fmadd_d);
+		
+		fmsub_d.set_decoder(opcode=0x47, fmt=1);
+		fmsub_d.set_asm("fmsub.d");
+		fmsub_d.set_behaviour(fmsub_d);
+		
+		fnmadd_d.set_decoder(opcode=0x4f, fmt=1);
+		fnmadd_d.set_asm("fmnadd.d");
+		fnmadd_d.set_behaviour(fnmadd_d);
+		
+		fnmsub_d.set_decoder(opcode=0x4b, fmt=1);
+		fnmsub_d.set_asm("fnmsub.d");
+		fnmsub_d.set_behaviour(fnmsub_d);
 	};
 };
