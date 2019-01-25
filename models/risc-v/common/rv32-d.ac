@@ -7,7 +7,7 @@ AC_ISA(riscv)
 	
 	ac_instr<Type_FID> fld;
 	ac_instr<Type_FSD> fsd;
-	ac_instr<Type_FSD_DATA> feq_d, flt_d, fle_d, fcvt_d_l, fcvt_d_lu, fcvt_d_wu, fcvt_d_s, fcvt_s_d, fcvt_w_d, fcvt_wu_d, fcvt_d_w, fadd_d, fdiv_d, fsqrt_d, fsgnj_d, fsgnjn_d, fsgnjx_d, fmul_d, fsub_d; 
+	ac_instr<Type_FSD_DATA> feq_d, flt_d, fle_d, fcvt_d_wu, fcvt_d_s, fcvt_s_d, fcvt_w_d, fcvt_wu_d, fcvt_d_w, fadd_d, fdiv_d, fsqrt_d, fsgnj_d, fsgnjn_d, fsgnjx_d, fmul_d, fsub_d; 
 	ac_instr<Type_FSDFUSED> fmadd_d;
 
 	ac_behaviour fld;
@@ -16,8 +16,6 @@ AC_ISA(riscv)
 	ac_behaviour feq_d, flt_d, fle_d;
 	ac_behaviour fadd_d, fsub_d, fdiv_d, fsqrt_d, fmul_d;
 
-	ac_behaviour fcvt_d_l;
-	ac_behaviour fcvt_d_lu;
 	ac_behaviour fcvt_d_wu;
 	ac_behaviour fcvt_d_s;
 	ac_behaviour fcvt_d_w;
@@ -40,14 +38,6 @@ AC_ISA(riscv)
 		fsd.set_decoder(funct3=0x3, opcode=0x27);
 		fsd.set_asm("fsd %reg, %reg, %imm, %imm", rs1, rs2, imm2, imm1);
 		fsd.set_behaviour(fsd);
-		
-		fcvt_d_l.set_decoder(imm2=0x69, rs2=2, opcode=0x53);
-		fcvt_d_l.set_asm("fcvt.d.l");
-		fcvt_d_l.set_behaviour(fcvt_d_l);
-		
-		fcvt_d_lu.set_decoder(imm2=0x69, rs2=3, opcode=0x53);
-		fcvt_d_lu.set_asm("fcvt.d.lu");
-		fcvt_d_lu.set_behaviour(fcvt_d_lu);
 		
 		fcvt_s_d.set_decoder(imm2=0x20, rs2=1, opcode=0x53);
 		fcvt_s_d.set_asm("fcvt.s.d");

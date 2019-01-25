@@ -13,6 +13,7 @@ AC_ISA(riscv)
 	include("common/rv32-m.ac");
 	include("common/rv64-m.ac");
 	include("common/rv32-f.ac");
+	include("common/rv64-f.ac");
 	include("common/rv32-d.ac");
 	include("common/rv64-d.ac");
 
