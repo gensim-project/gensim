@@ -539,5 +539,13 @@ void BaseLLVMTranslate::EmitIncrementCounter(Builder &builder, archsim::translat
 	val = builder.CreateAdd(val, llvm::ConstantInt::get(ctx.Types.i64, value));
 	builder.CreateStore(val, ptr);
 }
+void BaseLLVMTranslate::EmitIncrementHistogram(Builder &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, archsim::util::Histogram& histogram, uint64_t key, uint32_t value)
+{
+	llvm::Value *ptr = llvm::ConstantInt::get(ctx.Types.i64, (uint64_t)histogram.get_value_ptr_at_index(key));
+	ptr = builder.CreateIntToPtr(ptr, ctx.Types.i64Ptr);
+	llvm::Value *val = builder.CreateLoad(ptr);
+	val = builder.CreateAdd(val, llvm::ConstantInt::get(ctx.Types.i64, value));
+	builder.CreateStore(val, ptr);
+}
 
 #endif

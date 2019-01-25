@@ -68,6 +68,11 @@ void ThreadMetricPrinter::PrintStats(const ArchDescriptor &arch, const ThreadMet
 
 	str << "Successful chains: " << metrics.JITSuccessfulChains.get_value() << std::endl;
 	str << "Failed chains: " << metrics.JITFailedChains.get_value() << std::endl;
+
+	str << "JIT Exit reasons: " << std::endl;
+	hp.PrintHistogram(metrics.JITExitReasons, str, [](uint32_t i) {
+		return std::to_string(i);
+	});
 }
 
 void HistogramPrinter::PrintHistogram(const archsim::util::Histogram& hist, std::ostream& str, std::function<std::string(archsim::util::HistogramEntry::histogram_key_t) > key_formatter)

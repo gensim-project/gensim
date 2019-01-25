@@ -49,6 +49,7 @@ namespace archsim
 
 				archsim::util::Counter64 JITSuccessfulChains;
 				archsim::util::Counter64 JITFailedChains;
+				archsim::util::Histogram JITExitReasons;
 			};
 
 			class ThreadMetricPrinter
