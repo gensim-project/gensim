@@ -68,7 +68,7 @@ namespace archsim
 			};
 
 			typedef Address guest_addr_t;
-			typedef uint32_t guest_size_t;
+			typedef uint64_t guest_size_t;
 			typedef const void *host_const_addr_t;
 
 			class MemoryTranslationModel;
