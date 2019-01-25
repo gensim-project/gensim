@@ -1614,6 +1614,7 @@ DEFINE_SYSCALL(aarch64, 222, sys_mmap2, "brk()");
 
 DEFINE_SYSCALL(riscv, 17, sys_getcwd, "getcwd()");
 DEFINE_SYSCALL(riscv, 23, syscall_return_enosys, "_unknown_()");
+DEFINE_SYSCALL(riscv, 25, sys_fcntl64, "fcntl64()");
 DEFINE_SYSCALL(riscv, 29, sys_ioctl, "ioctl()");
 DEFINE_SYSCALL(riscv, 35, sys_unlinkat, "unlinkat()");
 DEFINE_SYSCALL(riscv, 49, sys_chdir, "chdir()");
