@@ -126,6 +126,7 @@ AC_ISA(riscv)
 	{
 		ac_behaviours("common/behaviours.riscv");
 		ac_execute("common/execute.riscv");
+		ac_execute("common/execute.system");
 
 // 32-Base Instructions
 

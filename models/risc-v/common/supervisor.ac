@@ -1,0 +1,18 @@
+AC_ISA(riscv)
+{
+	ac_format Type_Supervisor = "%funct7:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+
+	ac_instr<Type_Supervisor> sfence_vma;
+
+	ac_behaviour sfence_vma;
+
+	ISA_CTOR(riscv)
+	{
+		ac_execute("common/execute.supervisor");
+		
+		sfence_vma.set_decoder(funct7=0x09, funct3=0, rd=0, opcode=0x73);
+		sfence_vma.set_asm("sfence.vma");
+		sfence_vma.set_behaviour(sfence_vma);
+		
+	};
+};

@@ -27,7 +27,7 @@ using namespace archsim::abi;
 
 //RegisterComponent(EmulationModel, ElfSystemEmulationModel, "elf-system", "An emulation model for running ELF binaries in a bare metal context")
 
-ElfSystemEmulationModel::ElfSystemEmulationModel() : initial_sp(0)
+ElfSystemEmulationModel::ElfSystemEmulationModel() : initial_sp(0), SystemEmulationModel(false)
 {
 	heap_base = Address(0x20000000);
 	heap_limit = Address(0x30000000);
@@ -155,7 +155,7 @@ bool ElfSystemEmulationModel::InstallDevices()
 
 bool ElfSystemEmulationModel::InstallBootloader(std::string filename)
 {
-	loader::SystemElfBinaryLoader loader(*this, true);
+	loader::SystemElfBinaryLoader<archsim::abi::loader::ElfClass32> loader(*this, true);
 
 	LC_DEBUG1(LogElfSystemEmulationModel) << "Installing Bootloader from '"	<< filename << "'";
 

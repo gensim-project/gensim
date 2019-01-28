@@ -6,12 +6,15 @@ define_model(
 
 	riscv32/riscv32.ac
 	common/behaviours.riscv
+	common/execute.system
 	common/execute.riscv
+	common/execute.supervisor
 	common/execute.rv32-a
 	common/execute.rv32-f
 	common/execute.rv32-d
 	common/execute.rv32-m
 	common/riscv_isa.ac
+	common/supervisor.ac
 	common/rv32-a.ac
 	common/rv32-f.ac
 	common/rv32-d.ac
@@ -30,7 +33,9 @@ define_model(
 	riscv64/execute.rv64i
 	riscv64/rv64-i.ac
 	common/behaviours.riscv
+	common/execute.system
 	common/execute.riscv
+	common/execute.supervisor
 	common/execute.rv32-a
 	common/execute.rv64-a
 	common/execute.rv32-f
@@ -40,6 +45,7 @@ define_model(
 	common/execute.rv32-m
 	common/execute.rv64-m
 	common/riscv_isa.ac
+	common/supervisor.ac
 	common/rv64-a.ac
 	common/rv32-a.ac
 	common/rv32-f.ac

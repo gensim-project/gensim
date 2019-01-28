@@ -25,7 +25,7 @@ namespace archsim
 		class LinuxSystemEmulationModel : public SystemEmulationModel
 		{
 		public:
-			LinuxSystemEmulationModel();
+			LinuxSystemEmulationModel(bool is_64bit);
 			virtual ~LinuxSystemEmulationModel();
 
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
@@ -48,6 +48,7 @@ namespace archsim
 			}
 
 		private:
+			bool is_64bit_;
 			LinuxEmulationComponent rootfs;
 			LinuxEmulationComponent devicetree;
 			LinuxEmulationComponent atags;
