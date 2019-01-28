@@ -38,7 +38,7 @@ RegisterComponent(EmulationModel, ArmRealviewEmulationModel, "arm-realview", "AR
 UseLogContext(LogSystemEmulationModel);
 DeclareChildLogContext(LogArmSystemEmulationModel, LogSystemEmulationModel, "ARM");
 
-ArmRealviewEmulationModel::ArmRealviewEmulationModel() : entry_point(0)
+ArmRealviewEmulationModel::ArmRealviewEmulationModel() : LinuxSystemEmulationModel(false), entry_point(0)
 {
 
 }

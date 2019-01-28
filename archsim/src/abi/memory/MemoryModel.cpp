@@ -361,6 +361,10 @@ bool RegionBasedMemoryModel::DeleteVMA(guest_addr_t addr)
 
 GuestVMA *RegionBasedMemoryModel::LookupVMA(guest_addr_t addr)
 {
+	if(guest_vmas.empty()) {
+		return  nullptr;
+	}
+
 	GuestVMAMap::const_iterator iter = guest_vmas.upper_bound(addr);
 
 	iter--;

@@ -7,6 +7,7 @@
 #include "util/LogContext.h"
 
 #include <sys/mman.h>
+#include <cstring>
 
 #if ARCHSIM_SIMULATION_HOST_IS_x86_64
 #include <asm/prctl.h>
@@ -133,7 +134,7 @@ bool ContiguousMemoryModel::AllocateVMA(GuestVMA &vma)
 	LC_DEBUG1(LogContiguousMemory) << "Allocated " << host_addr << " for vma " << vma.base;
 
 	if (host_addr == MAP_FAILED) {
-		LC_DEBUG1(LogContiguousMemory) << " - Failed!";
+		LC_DEBUG1(LogContiguousMemory) << " - Failed! " << strerror(errno);
 		return false;
 	}
 

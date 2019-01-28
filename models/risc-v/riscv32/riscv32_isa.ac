@@ -7,6 +7,7 @@ AC_ISA(riscv)
 	ac_fetchsize 32;
 	
 	include("common/rv-core.ac");
+	include("common/supervisor.ac");
 	include("common/rv32-a.ac");
 	include("common/rv32-m.ac");
 	include("common/rv32-f.ac");

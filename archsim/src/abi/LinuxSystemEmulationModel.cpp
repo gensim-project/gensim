@@ -9,7 +9,7 @@ DeclareChildLogContext(LogLinuxSystemEmulationModel, LogSystemEmulationModel, "L
 
 using namespace archsim::abi;
 
-LinuxSystemEmulationModel::LinuxSystemEmulationModel()
+LinuxSystemEmulationModel::LinuxSystemEmulationModel(bool is64bit) : SystemEmulationModel(is64bit)
 {
 	rootfs.valid = false;
 	atags.valid = false;

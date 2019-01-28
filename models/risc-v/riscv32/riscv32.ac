@@ -36,6 +36,23 @@ AC_ARCH(riscv32)
 		slot FLAG_NX (uint8, 1, 5);
 	}
 
+
+		// CSRs
+	ac_regspace(80) {
+		slot MCAUSE(uint64, 8, 0);
+		slot MEPC(uint64, 8, 8);
+		slot MTVAL(uint64, 8, 16);
+		
+		slot SSTATUS(uint64, 8, 24);
+		slot SEDELEG(uint64, 8, 32);
+		slot SIDELEG(uint64, 8, 40);
+		slot SIE(uint64, 8, 48);
+		slot STVEC(uint64, 8, 56);
+		slot SCOUNTEREN(uint64, 8, 64);
+		
+		slot SATP(uint64, 8, 72);
+	}
+	
 	ac_wordsize 32;
 
 	ARCH_CTOR(riscv) {

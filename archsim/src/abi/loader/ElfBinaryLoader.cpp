@@ -214,15 +214,15 @@ template<typename elfclass> bool UserElfBinaryLoader<elfclass>::LoadSegment(type
 	return true;
 }
 
-bool SystemElfBinaryLoader::PrepareLoad()
+template<typename elfclass> bool SystemElfBinaryLoader<elfclass>::PrepareLoad()
 {
 	return true;
 }
 
-bool SystemElfBinaryLoader::LoadSegment(Elf32_Phdr* segment)
+template<typename elfclass> bool SystemElfBinaryLoader<elfclass>::LoadSegment(typename elfclass::PHeader* segment)
 {
-	Address target_address = segment->p_paddr + _load_bias;
+	Address target_address = segment->p_paddr + this->_load_bias;
 
 	LC_DEBUG1(LogElf) << "[ELF] Loading ELF Segment, target address = " << std::hex << target_address << " poffset " << segment->p_offset;
-	return _emulation_model.GetMemoryModel().Poke(target_address, (uint8_t *)((unsigned long)_elf_header + segment->p_offset), (size_t)segment->p_filesz) == 0;
+	return this->_emulation_model.GetMemoryModel().Poke(target_address, (uint8_t *)((unsigned long)this->_elf_header + segment->p_offset), (size_t)segment->p_filesz) == 0;
 }

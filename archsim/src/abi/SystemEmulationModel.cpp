@@ -35,7 +35,7 @@ using namespace archsim::core::thread;
 UseLogContext(LogEmulationModel);
 DeclareChildLogContext(LogSystemEmulationModel, LogEmulationModel, "System");
 
-SystemEmulationModel::SystemEmulationModel()
+SystemEmulationModel::SystemEmulationModel(bool is64bit) : is_64bit_(is64bit)
 {
 }
 
@@ -123,7 +123,11 @@ bool SystemEmulationModel::PrepareBoot(System &system)
 {
 	loader::BinaryLoader *loader;
 	if (archsim::options::TargetBinaryFormat == "elf") {
-		loader = new loader::SystemElfBinaryLoader(*this, archsim::options::TraceSymbols);
+		if(Is64Bit()) {
+			loader = new loader::SystemElfBinaryLoader<archsim::abi::loader::ElfClass64>(*this, archsim::options::TraceSymbols);
+		} else {
+			loader = new loader::SystemElfBinaryLoader<archsim::abi::loader::ElfClass32>(*this, archsim::options::TraceSymbols);
+		}
 	} else if (archsim::options::TargetBinaryFormat == "zimage") {
 		if (!archsim::options::ZImageSymbolMap.IsSpecified()) {
 			loader = new loader::ZImageBinaryLoader(*this, Address(64 * 1024));

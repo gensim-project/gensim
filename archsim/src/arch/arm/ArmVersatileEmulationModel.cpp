@@ -35,7 +35,7 @@ RegisterComponent(EmulationModel, ArmVersatileEmulationModel, "arm-versatile", "
 UseLogContext(LogSystemEmulationModel);
 DeclareChildLogContext(LogArmVerstaileEmulationModel, LogSystemEmulationModel, "Versatile");
 
-ArmVersatileEmulationModel::ArmVersatileEmulationModel() : entry_point(0)
+ArmVersatileEmulationModel::ArmVersatileEmulationModel() : LinuxSystemEmulationModel(false), entry_point(0)
 {
 
 }

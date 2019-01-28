@@ -37,7 +37,7 @@ namespace archsim
 			friend class SystemMemoryModel;
 
 		public:
-			SystemEmulationModel();
+			SystemEmulationModel(bool is_64bit);
 			virtual ~SystemEmulationModel();
 
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
@@ -57,6 +57,11 @@ namespace archsim
 				return base_device_manager;
 			}
 
+			bool Is64Bit() const
+			{
+				return is_64bit_;
+			}
+
 		protected:
 			archsim::core::thread::ThreadInstance *main_thread_;
 
@@ -72,6 +77,7 @@ namespace archsim
 			devices::DeviceManager base_device_manager;
 
 		private:
+			bool is_64bit_;
 			uint32_t rootfs_size;
 
 			bool InstallAtags(archsim::abi::memory::guest_addr_t base_address, std::string kernel_args);

@@ -1,0 +1,83 @@
+
+helper void riscv_reset() export
+{
+	// enter M mode
+	
+	// disable all interrupts
+	
+	// set mprv to 0 (?)
+	
+	// set mcause to 0
+	
+	// set PC to implementation defined reset vector (great!)
+	
+	return;
+}
+
+helper void riscv_take_exception() export
+{
+	return;
+}
+
+helper typename word_t read_csr(uint32 csr)
+{
+	typename word_t value = 0;
+	switch(csr)
+	{
+		case 0x100: // SSTATUS
+		{
+			return read_register(SSTATUS);
+		}
+		case 0x104: // SIE
+		{
+			return read_register(SIE);
+		}
+		case 0x105: // STVEC
+		{
+			return read_register(STVEC);
+		}
+		case 0x180: // SATP
+		{
+			return read_register(SATP);
+		}
+		default: {
+			// todo: write to CSR peripheral
+			trap();
+			break;
+		}
+	}
+	
+	return value;
+}
+
+helper void write_csr(uint32 csr, typename word_t value)
+{
+	switch(csr)
+	{
+		case 0x100: //SSTATUS
+		{
+			write_register(SSTATUS, value);
+			break;
+		}
+		case 0x104: // SIE
+		{
+			write_register(SIE, value);
+			break;
+		}
+		case 0x105: // STVEC
+		{
+			write_register(STVEC, value);
+			break;
+		}
+		case 0x180: // SATP
+		{
+			write_register(SATP, value);
+			break;
+		}
+		default:
+		{
+			trap();
+		}
+	}
+	return;
+}
