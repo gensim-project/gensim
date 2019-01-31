@@ -41,6 +41,10 @@ extern "C" {
 
 	uint8_t devReadDevice(archsim::core::thread::ThreadInstance *cpu, uint32_t device_id, uint32_t addr, uint32_t* data);
 
+	uint8_t devWriteDevice64(archsim::core::thread::ThreadInstance *cpu, uint32_t device_id, uint32_t addr, uint64_t data);
+
+	uint8_t devReadDevice64(archsim::core::thread::ThreadInstance *cpu, uint32_t device_id, uint32_t addr, uint64_t* data);
+
 	void sysVerify(gensim::Processor *cpu);
 
 	uint32_t cpuTakeException(archsim::core::thread::ThreadInstance *cpu, uint64_t category, uint64_t data);

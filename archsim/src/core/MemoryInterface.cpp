@@ -16,7 +16,7 @@ TranslationResult MMUTranslationProvider::Translate(Address virt_addr, Address& 
 	info.Fetch = is_fetch;
 	info.SideEffects = side_effects;
 	info.Write = is_write;
-	info.Kernel = thread_->GetExecutionRing() != 0;
+	info.Ring = thread_->GetExecutionRing();
 
 	auto result = mmu_->Translate(thread_, virt_addr, phys_addr, info);
 	switch(result) {

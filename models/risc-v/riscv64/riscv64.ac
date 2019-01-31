@@ -28,7 +28,7 @@ AC_ARCH(riscv64)
 		bank FP_S(float,  0, 32, 8, 1, 4, 4);
 	}
 
-	ac_regspace(6) {
+	ac_regspace(8) {
 		slot FRM (uint8, 1, 0);
 		slot FLAG_NV (uint8, 1, 1);
 		slot FLAG_DZ (uint8, 1, 2);
@@ -37,22 +37,28 @@ AC_ARCH(riscv64)
 		slot FLAG_NX (uint8, 1, 5);
 	}
 
-		// CSRs
-	ac_regspace(80) {
+	// CSRs
+	ac_regspace(104) {
 		slot MCAUSE(uint64, 8, 0);
 		slot MEPC(uint64, 8, 8);
 		slot MTVAL(uint64, 8, 16);
+		slot MTVEC(uint64, 8, 24);
+		slot MIDELEG(uint64, 8, 32);
+		slot MEDELEG(uint64, 8, 40);
 		
-		slot SSTATUS(uint64, 8, 24);
-		slot SEDELEG(uint64, 8, 32);
-		slot SIDELEG(uint64, 8, 40);
-		slot SIE(uint64, 8, 48);
-		slot STVEC(uint64, 8, 56);
-		slot SCOUNTEREN(uint64, 8, 64);
+		slot SSTATUS(uint64, 8, 48);
+		slot SEDELEG(uint64, 8, 56);
+		slot SIDELEG(uint64, 8, 64);
+		slot SIE(uint64, 8, 72);
+		slot STVEC(uint64, 8, 80);
+		slot SCOUNTEREN(uint64, 8, 88);
 		
-		slot SATP(uint64, 8, 72);
+		slot SATP(uint64, 8, 96);
 	}
 
+	ac_regspace(1) {
+		slot MACHMODE (uint8, 1, 0);
+	}
 
 	ac_wordsize 64;
 

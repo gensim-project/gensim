@@ -102,7 +102,7 @@ bool RiscVLinuxUserEmulationModel::InvokeSignal(int signum, uint32_t next_pc, Si
 	return false;
 }
 
-archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
+archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, uint64_t category, uint64_t data)
 {
 	if(category == 1024) {
 		GetSystem().GetPubSub().Publish(PubSubType::L1ICacheFlush, (void*)(uint64_t)0);

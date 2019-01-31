@@ -384,7 +384,7 @@ void ArmRealviewEmulationModel::HandleSemihostingCall()
 	}
 }
 
-ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
+ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, uint64_t category, uint64_t data)
 {
 	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu->GetPC() << " mode " << (uint32_t)cpu->GetModeID();
 

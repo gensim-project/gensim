@@ -622,7 +622,7 @@ private:
 		dacr >>= region_domain*2;
 		dacr &= 0x3;
 
-		bool kernel_mode = info.Kernel;
+		bool kernel_mode = info.Ring != 0;
 		bool is_write = info.Write;
 
 		switch(dacr) {
@@ -671,7 +671,7 @@ private:
 		dacr >>= region_domain*2;
 		dacr &= 0x3;
 
-		bool kernel_mode = info.Kernel;
+		bool kernel_mode = info.Ring != 0;
 		bool is_write = info.Write;
 
 		switch(dacr) {

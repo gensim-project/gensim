@@ -144,6 +144,16 @@ extern "C" {
 		return cpu->GetPeripherals().AttachedPeripherals.at(device_id)->Read32(addr, *data);
 	}
 
+	uint8_t devWriteDevice64(archsim::core::thread::ThreadInstance *cpu, uint32_t device_id, uint32_t addr, uint64_t data)
+	{
+		return cpu->GetPeripherals().AttachedPeripherals.at(device_id)->Write64(addr, data);
+	}
+
+	uint8_t devReadDevice64(archsim::core::thread::ThreadInstance *cpu, uint32_t device_id, uint32_t addr, uint64_t* data)
+	{
+		return cpu->GetPeripherals().AttachedPeripherals.at(device_id)->Read64(addr, *data);
+	}
+
 	void sysVerify(gensim::Processor *cpu)
 	{
 		UNIMPLEMENTED;

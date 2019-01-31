@@ -47,7 +47,7 @@ namespace archsim
 
 			bool PrepareBoot(System& system) override;
 
-			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data) override = 0;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, uint64_t category, uint64_t data) override = 0;
 
 
 			void PrintStatistics(std::ostream& stream) override;

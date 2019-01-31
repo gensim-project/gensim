@@ -416,6 +416,9 @@ namespace gensim
 					case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ")->Write32(" << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
 						break;
+					case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice64:
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ")->Write64(" << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
+						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
 						output << "UNIMPLEMENTED; //probedevice\n";
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << ";";
@@ -432,6 +435,9 @@ namespace gensim
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetModeID();";
+						break;
+					case SSAIntrinsicStatement::SSAIntrinsic_SetExecutionRing:
+						output << "thread->SetExecutionRing(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
 						output << "thread->SetExecutionRing(1);";

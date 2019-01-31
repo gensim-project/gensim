@@ -26,7 +26,7 @@ namespace archsim
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
 			void Destroy() override;
 
-			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *thread, uint32_t category, uint32_t data) override;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *thread, uint64_t category, uint64_t data) override;
 
 		protected:
 

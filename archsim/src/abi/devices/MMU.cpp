@@ -72,8 +72,9 @@ namespace archsim
 				stream << "[";
 				if(info.Fetch) stream << "I";
 				else stream << "D";
-				if(info.Kernel) stream << "K";
-				else stream << "U";
+
+				stream << info.Ring;
+
 				if(info.Write) stream << "W";
 				else stream << "R";
 

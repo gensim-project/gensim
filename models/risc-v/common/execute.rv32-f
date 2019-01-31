@@ -158,13 +158,28 @@ helper void write_fflags(uint8 flags)
 
 helper uint8 read_fcsr()
 {
-	trap();
-	return 0;
+	uint8 fcsr = 0;
+	fcsr |= read_register(FRM) << 5;
+	
+	fcsr |= read_register(FLAG_NV) << 4;
+	fcsr |= read_register(FLAG_DZ) << 3;
+	fcsr |= read_register(FLAG_OF) << 2;
+	fcsr |= read_register(FLAG_UF) << 1;
+	fcsr |= read_register(FLAG_NX) << 0;
+	
+	return fcsr;
 }
 
 helper void write_fcsr(uint8 flags)
 {
-	trap();
+	write_register(FRM, (flags >> 5) & 0x7);
+	
+	write_register(FLAG_NV, (flags >> 4) & 0x1);
+	write_register(FLAG_DZ, (flags >> 3) & 0x1);
+	write_register(FLAG_OF, (flags >> 2) & 0x1);
+	write_register(FLAG_UF, (flags >> 1) & 0x1);
+	write_register(FLAG_NX, (flags >> 0) & 0x1);
+	
 	return;
 }
 

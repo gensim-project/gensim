@@ -321,7 +321,9 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 	Functions.TakeException = (llvm::Function*)Module->getOrInsertFunction("cpuTakeException", Types.vtype, Types.i8Ptr, Types.i32, Types.i32);
 
 	Functions.dev_read_device = (llvm::Function*)Module->getOrInsertFunction("devReadDevice", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i8Ptr);
+	Functions.dev_read_device = (llvm::Function*)Module->getOrInsertFunction("devReadDevice64", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i8Ptr);
 	Functions.dev_write_device = (llvm::Function*)Module->getOrInsertFunction("devWriteDevice", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i32);
+	Functions.dev_write_device = (llvm::Function*)Module->getOrInsertFunction("devWriteDevice64", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i64);
 
 	Functions.cpuTraceInstruction = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInstruction", Types.vtype, Types.i8Ptr, Types.i64, Types.i32, Types.i32, Types.i32, Types.i32);
 	Functions.cpuTraceInsnEnd = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInsnEnd", Types.vtype, Types.i8Ptr);

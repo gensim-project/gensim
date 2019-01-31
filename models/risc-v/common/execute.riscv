@@ -620,11 +620,19 @@ execute(fencei)
 ////////////swap csr and rs1//////////////////////////////
 execute(csrrw)
 {
-	typename word_t csr = read_csr(inst.csr);
-	typename word_t reg = read_gpr(inst.rd);
+	typename word_t csr = 0;
 	
-	write_register_bank(GPR, inst.rd, csr);
+	if(inst.rd != 0) {
+		csr = read_csr(inst.csr);
+	}
+	
+	typename word_t reg = read_gpr(inst.rs1);
 	write_csr(inst.csr, reg);
+	
+	if(inst.rd != 0) {
+		write_register_bank(GPR, inst.rd, csr);
+	}
+	
 }
 
 execute(csrrs)
@@ -650,20 +658,19 @@ execute(csrrc)
 }
 
 execute(csrrwi)
-{/*
-	uint32 rd = read_gpr(inst.rd);
-
-	if (rd != 0){
-		uint32 csr = read_gpr(inst.csr); //Already zero-extended?
-
-        	write_register_bank(GPR, inst.rd, csr);
+{
+	typename word_t csr = 0;
+	
+	if(inst.rd != 0) {
+		csr = read_csr(inst.csr);
 	}
-
-        uint32 imm = inst.imm;
-
-        write_register_bank(GPR, inst.csr, imm);
-*/
-	trap();
+	
+	typename word_t reg = inst.rs1;
+	write_csr(inst.csr, reg);
+	
+	if(inst.rd != 0) {
+		write_register_bank(GPR, inst.rd, csr);
+	}
 }
 
 execute(csrrsi)

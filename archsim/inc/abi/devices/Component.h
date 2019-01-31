@@ -20,6 +20,14 @@
 
 namespace archsim
 {
+	namespace core
+	{
+		namespace thread
+		{
+			class ThreadInstance;
+		}
+	}
+
 	namespace abi
 	{
 
@@ -50,7 +58,8 @@ namespace archsim
 				ComponentParameter_Unknown,
 				ComponentParameter_String,
 				ComponentParameter_U64,
-				ComponentParameter_Component
+				ComponentParameter_Component,
+				ComponentParameter_Thread
 			};
 
 			class ComponentParameterDescriptor
@@ -132,6 +141,7 @@ namespace archsim
 				void *GetParameterPointer(const std::string &parameter) const;
 			};
 
+			template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, archsim::core::thread::ThreadInstance* value);
 			template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, Component* value);
 			template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, uint64_t value);
 
@@ -215,6 +225,7 @@ namespace archsim
 #define COMPONENT_PARAMETER_ENTRY_HDR(name, component_type, real_type) real_type *Get##name();
 #define COMPONENT_PARAMETER_ENTRY_SRC(clazz, name, component_type, real_type) real_type *clazz::Get##name() { static_assert(std::is_base_of<Component, real_type>::value, "Component parameters must be derived from Component"); return dynamic_cast<real_type*>(GetParameter<Component*>(#name)); }
 
+#define COMPONENT_PARAMETER_THREAD(name) archsim::core::thread::ThreadInstance *Get##name() { return (GetParameter<archsim::core::thread::ThreadInstance*>(#name)); }
 #define COMPONENT_PARAMETER_U64(name) uint64_t Get##name() { return (uint64_t)GetParameter<uint64_t>(#name); }
 
 			class CoreComponent : public Component

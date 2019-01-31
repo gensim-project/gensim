@@ -34,6 +34,7 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 		case SSAIntrinsic_GetCpuMode:
 		case SSAIntrinsic_ProbeDevice:
 		case SSAIntrinsic_WriteDevice:
+		case SSAIntrinsic_WriteDevice64:
 		case SSAIntrinsic_FloatIsQnan:
 		case SSAIntrinsic_FloatIsSnan:
 		case SSAIntrinsic_DoubleIsQnan:
