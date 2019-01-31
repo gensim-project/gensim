@@ -390,7 +390,7 @@ Address UserEmulationModel::GetInitialBreak()
 	return _initial_program_break;
 }
 
-ExceptionAction UserEmulationModel::HandleException(archsim::core::thread::ThreadInstance *thread, unsigned int category, unsigned int data)
+ExceptionAction UserEmulationModel::HandleException(archsim::core::thread::ThreadInstance *thread, uint64_t category, uint64_t data)
 {
 	LC_WARNING(LogEmulationModelUser) << "Unhandled exception " << category << ", " << data;
 	return AbortSimulation;

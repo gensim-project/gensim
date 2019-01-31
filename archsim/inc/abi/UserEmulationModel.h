@@ -86,7 +86,7 @@ namespace archsim
 			bool AssertSignal(int signum, SignalData* data) override;
 			virtual bool InvokeSignal(int signum, uint32_t next_pc, SignalData* data) override;
 
-			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, unsigned int category, unsigned int data) override;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, uint64_t category, uint64_t data) override;
 			void PrintStatistics(std::ostream& stream) override;
 
 			bool Is64BitBinary() const

@@ -501,7 +501,7 @@ uint32_t CacheBasedSystemMemoryModel::PerformTranslation(Address virt_addr, Addr
 			return 0;
 		}
 
-		if(info.Kernel) {
+		if(info.Ring) {
 			if(TryGetReadKernelCacheEntry(virt_addr, entry)) {
 				out_phys_addr = (entry->GetPhysAddr() & 0xfffff000) | (virt_addr & 0xfff);
 				return 0;

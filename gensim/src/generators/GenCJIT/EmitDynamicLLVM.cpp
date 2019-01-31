@@ -768,9 +768,20 @@ namespace gensim
 					output << "llvm::Value *" << Statement.GetName() << " = 0;";
 					output << "{";
 
-					output << "UNIMPLEMENTED;";
+					std::string callee;
+					switch(stmt->Target()->GetType().SizeInBytes()) {
+						case 4:
+							callee = "dev_read_device";
+							break;
+						case 8:
+							callee = "dev_read_device64";
+							break;
+						default:
+							UNIMPLEMENTED;
+					}
+
 					output << "llvm::Value *ptr = __irBuilder.CreateAlloca(ctx.Types.i32);";
-					output << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.dev_read_device, {ctx.GetThreadPtr(__irBuilder), " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", ptr}, \"dev_read_result\");";
+					output << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions." << callee << ", {ctx.GetThreadPtr(__irBuilder), " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", ptr}, \"dev_read_result\");";
 					output << "ctx.StoreRegister(__irBuilder, __idx_" << stmt->Target()->GetName() << ", __irBuilder.CreateLoad(ptr));";
 					output << "}";
 
@@ -917,6 +928,12 @@ namespace gensim
 							output << " = __irBuilder.CreateCall(ctx.Functions.dev_write_device, {ctx.GetThreadPtr(__irBuilder), ";
 							output << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << "}, \"dev_write_result\");";
 							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice64:
+							assert(arg0 && arg1 && arg2);
+							output << "llvm::Value *" << Statement.GetName();
+							output << " = __irBuilder.CreateCall(ctx.Functions.dev_write_device64, {ctx.GetThreadPtr(__irBuilder), ";
+							output << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << "}, \"dev_write_result\");";
+							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpuPushInterrupt, {ctx.GetThreadPtr(__irBuilder), " << GetLLVMValue(IRTypes::UInt32, "0") << "});";
 							break;
@@ -931,6 +948,9 @@ namespace gensim
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpu_halt, ctx.GetThreadPtr(__irBuilder));";
+							break;
+						case SSAIntrinsicStatement::SSAIntrinsic_SetExecutionRing:
+							output << "__irBuilder.CreateCall(ctx.Functions.cpuSetRing, {ctx.GetThreadPtr(__irBuilder), " << arg0->GetDynamicValue() << "});";
 							break;
 						case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpuEnterKernel, ctx.GetThreadPtr(__irBuilder));";
@@ -1115,6 +1135,7 @@ namespace gensim
 						case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
 						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
 						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
+						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice64:
 
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatIsSnan:
 						case SSAIntrinsicStatement::SSAIntrinsic_FloatIsQnan:

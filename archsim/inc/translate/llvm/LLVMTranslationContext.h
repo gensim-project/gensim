@@ -81,8 +81,8 @@ namespace archsim
 
 					llvm::Function *TakeException;
 
-					llvm::Function *dev_read_device;
-					llvm::Function *dev_write_device;
+					llvm::Function *dev_read_device, *dev_read_device64;
+					llvm::Function *dev_write_device, *dev_write_device64;
 
 				} Functions;
 

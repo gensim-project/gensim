@@ -587,7 +587,7 @@ namespace archsim
 					dacr >>= region_domain*2;
 					dacr &= 0x3;
 
-					bool kernel_mode = info.Kernel;
+					bool kernel_mode = info.Ring != 0;
 					bool is_write = info.Write;
 
 					LC_DEBUG3(LogArmMMUAccessv6) << "Translate Section DACR: " << dacr;
@@ -634,7 +634,7 @@ namespace archsim
 					dacr >>= region_domain*2;
 					dacr &= 0x3;
 
-					bool kernel_mode = info.Kernel;
+					bool kernel_mode = info.Ring != 0;
 					bool is_write = info.Write;
 					bool is_fetch = info.Fetch;
 
@@ -691,15 +691,15 @@ namespace archsim
 							//			else if(cocoprocessor->get_cp1_S()) return kernel_mode && !is_write;
 							return false;
 						case 1:
-							return info.Kernel;
+							return info.Ring;
 						case 2:
-							return info.Kernel || (!info.Write);
+							return info.Ring || (!info.Write);
 						case 3:
 							return true;
 						case 4:
 							return false;
 						case 5:
-							return info.Kernel && !info.Write;
+							return info.Ring && !info.Write;
 						case 6:
 							return !info.Write;
 						case 7:
@@ -720,15 +720,15 @@ namespace archsim
 							//			else if(cocoprocessor->get_cp1_S()) return kernel_mode && !is_write;
 							return false;
 						case 1:
-							return info.Kernel;
+							return info.Ring;
 						case 2:
-							return info.Kernel || (!info.Write);
+							return info.Ring || (!info.Write);
 						case 3:
 							return true;
 						case 4:
 							return false;
 						case 5:
-							return info.Kernel && !info.Write;
+							return info.Ring && !info.Write;
 						case 6:
 							return !info.Write;
 						case 7:

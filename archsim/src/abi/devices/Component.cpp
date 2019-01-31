@@ -49,6 +49,9 @@ ComponentDescriptorInstance::ComponentDescriptorInstance(const ComponentDescript
 			case ComponentParameter_Component:
 				parameter_value_ptrs_[i.second.GetIndex()] = new Component*();
 				break;
+			case ComponentParameter_Thread:
+				parameter_value_ptrs_[i.second.GetIndex()] = new archsim::core::thread::ThreadInstance*();
+				break;
 			default:
 				abort();
 		}
@@ -68,6 +71,9 @@ ComponentDescriptorInstance::~ComponentDescriptorInstance()
 			case ComponentParameter_Component:
 				delete (Component**)parameter_value_ptrs_.at(i.second.GetIndex());
 				break;
+			case ComponentParameter_Thread:
+				delete (archsim::core::thread::ThreadInstance**)parameter_value_ptrs_.at(i.second.GetIndex());
+				break;
 			default:
 				abort();
 		}
@@ -86,6 +92,16 @@ template<> void ComponentDescriptorInstance::SetParameter(const std::string& par
 	assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_Component);
 	void *ptr = GetParameterPointer(parameter);
 	Component **cptr = (Component**)ptr;
+
+	*cptr = value;
+}
+
+template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, archsim::core::thread::ThreadInstance* value)
+{
+	assert(GetDescriptor().HasParameter(parameter));
+	assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_Thread);
+	void *ptr = GetParameterPointer(parameter);
+	archsim::core::thread::ThreadInstance **cptr = (archsim::core::thread::ThreadInstance**)ptr;
 
 	*cptr = value;
 }
@@ -115,6 +131,15 @@ namespace archsim
 				void *ptr = GetParameterPointer(parameter);
 
 				return *(Component **)ptr;
+			}
+
+			template<> archsim::core::thread::ThreadInstance *ComponentDescriptorInstance::GetParameter(const std::string &parameter) const
+			{
+				assert(GetDescriptor().HasParameter(parameter));
+				assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_Thread);
+				void *ptr = GetParameterPointer(parameter);
+
+				return *(archsim::core::thread::ThreadInstance **)ptr;
 			}
 
 			template<> uint64_t ComponentDescriptorInstance::GetParameter(const std::string &parameter) const

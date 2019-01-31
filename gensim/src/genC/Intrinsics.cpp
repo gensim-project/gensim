@@ -147,6 +147,56 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 	}
 }
 
+static ssa::SSAStatement *EmitReadDevice(const IRCallExpression *call, ssa::SSABuilder &bldr, const IRType &datatype)
+{
+	SSAStatement *dev_id = call->Args[0]->EmitSSAForm(bldr);
+	SSAStatement *addr = call->Args[1]->EmitSSAForm(bldr);
+	if (addr->GetType() != IRTypes::UInt32) {
+		const auto& dn = addr->GetDiag();
+		addr = new SSACastStatement(&bldr.GetBlock(), IRTypes::UInt32, addr);
+		addr->SetDiag(dn);
+	}
+
+	IRVariableExpression *data = dynamic_cast<IRVariableExpression*>(call->Args[2]);
+	if (data == nullptr) throw std::logic_error("Value argument to device read intrinsic was not an IRVariableExpression");
+
+	SSASymbol *target = bldr.GetSymbol(data->Symbol);
+	SSADeviceReadStatement *stmt = new SSADeviceReadStatement(&bldr.GetBlock(), dev_id, addr, target);
+	stmt->SetDiag(call->Diag());
+
+	return stmt;
+}
+
+static ssa::SSAStatement *EmitWriteDevice(const IRCallExpression *call, ssa::SSABuilder &bldr, const IRType &datatype)
+{
+	SSAStatement *dev_id = call->Args[0]->EmitSSAForm(bldr);
+	SSAStatement *addr = call->Args[1]->EmitSSAForm(bldr);
+	SSAStatement *data = call->Args[2]->EmitSSAForm(bldr);
+
+	if (addr->GetType() != IRTypes::UInt32) {
+		const auto& dn = addr->GetDiag();
+		addr = new SSACastStatement(&bldr.GetBlock(), IRTypes::UInt32, addr);
+		addr->SetDiag(dn);
+	}
+
+	if (data->GetType() != datatype) {
+		const auto& dn = data->GetDiag();
+		data = new SSACastStatement(&bldr.GetBlock(), datatype, data);
+		data->SetDiag(dn);
+	}
+
+	auto intrinsic = SSAIntrinsicStatement::SSAIntrinsic_WriteDevice;
+	if(datatype == IRTypes::UInt64) {
+		intrinsic = SSAIntrinsicStatement::SSAIntrinsic_WriteDevice64;
+	}
+	SSAIntrinsicStatement *stmt = new SSAIntrinsicStatement(&bldr.GetBlock(), intrinsic);
+	stmt->AddArg(dev_id);
+	stmt->AddArg(addr);
+	stmt->AddArg(data);
+
+	return stmt;
+}
+
 static ssa::SSAStatement *DeviceIntrinsicEmitter(const IRIntrinsicAction *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr, const IRType &wordtype)
 {
 	SSAStatement *dev_id = call->Args[0]->EmitSSAForm(bldr);
@@ -163,43 +213,13 @@ static ssa::SSAStatement *DeviceIntrinsicEmitter(const IRIntrinsicAction *intrin
 
 		return stmt;
 	} else if (call->TargetName == "read_device") {
-		SSAStatement *addr = call->Args[1]->EmitSSAForm(bldr);
-		if (addr->GetType() != IRTypes::UInt32) {
-			const auto& dn = addr->GetDiag();
-			addr = new SSACastStatement(&bldr.GetBlock(), IRTypes::UInt32, addr);
-			addr->SetDiag(dn);
-		}
-
-		IRVariableExpression *data = dynamic_cast<IRVariableExpression*>(call->Args[2]);
-		if (data == nullptr) throw std::logic_error("Value argument to device read intrinsic was not an IRVariableExpression");
-
-		SSASymbol *target = bldr.GetSymbol(data->Symbol);
-		SSADeviceReadStatement *stmt = new SSADeviceReadStatement(&bldr.GetBlock(), dev_id, addr, target);
-		stmt->SetDiag(call->Diag());
-
-		return stmt;
+		return EmitReadDevice(call, bldr, IRTypes::UInt32);
+	} else if (call->TargetName == "read_device64") {
+		return EmitReadDevice(call, bldr, IRTypes::UInt64);
 	} else if (call->TargetName == "write_device") {
-		SSAStatement *addr = call->Args[1]->EmitSSAForm(bldr);
-		SSAStatement *data = call->Args[2]->EmitSSAForm(bldr);
-
-		if (addr->GetType() != IRTypes::UInt32) {
-			const auto& dn = addr->GetDiag();
-			addr = new SSACastStatement(&bldr.GetBlock(), IRTypes::UInt32, addr);
-			addr->SetDiag(dn);
-		}
-
-		if (data->GetType() != wordtype) {
-			const auto& dn = data->GetDiag();
-			data = new SSACastStatement(&bldr.GetBlock(), wordtype, data);
-			data->SetDiag(dn);
-		}
-
-		SSAIntrinsicStatement *stmt = new SSAIntrinsicStatement(&bldr.GetBlock(), SSAIntrinsicStatement::SSAIntrinsic_WriteDevice);
-		stmt->AddArg(dev_id);
-		stmt->AddArg(addr);
-		stmt->AddArg(data);
-
-		return stmt;
+		return EmitWriteDevice(call, bldr, IRTypes::UInt32);
+	} else if (call->TargetName == "write_device64") {
+		return EmitWriteDevice(call, bldr, IRTypes::UInt64);
 	} else {
 		throw std::logic_error("Unsupported device intrinsic: " + call->TargetName);
 	}
@@ -284,6 +304,8 @@ void GenCContext::LoadIntrinsics()
 	AddIntrinsic("probe_device", IRTypes::UInt8, {IRParam("device", IRTypes::UInt32)}, DeviceIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 	AddIntrinsic("read_device", IRTypes::UInt8, {IRParam("device", IRTypes::UInt32), IRParam("addr", IRTypes::UInt32), IRParam("data", IRType::Ref(wordtype))}, DeviceIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 	AddIntrinsic("write_device", IRTypes::UInt8, {IRParam("device", IRTypes::UInt32), IRParam("addr", IRTypes::UInt32), IRParam("data", wordtype)}, DeviceIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
+	AddIntrinsic("read_device64", IRTypes::UInt8, {IRParam("device", IRTypes::UInt32), IRParam("addr", IRTypes::UInt32), IRParam("data", IRType::Ref(IRTypes::UInt64))}, DeviceIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
+	AddIntrinsic("write_device64", IRTypes::UInt8, {IRParam("device", IRTypes::UInt32), IRParam("addr", IRTypes::UInt32), IRParam("data", IRTypes::UInt64)}, DeviceIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 
 	// Trap Intrinsic: TODO make this a control-flow statement
 	AddIntrinsic("trap", IRTypes::Void, {}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
@@ -295,8 +317,11 @@ void GenCContext::LoadIntrinsics()
 	AddIntrinsic("pend_interrupt", IRTypes::Void, {}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_PendIRQ);
 
 	AddIntrinsic("trigger_irq", IRTypes::Void, {}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_TriggerIRQ);
+
+	// Todo: Deprecate enter_kernel_mode and enter_user_mode
 	AddIntrinsic("enter_kernel_mode", IRTypes::Void, {}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode);
 	AddIntrinsic("enter_user_mode", IRTypes::Void, {}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode);
+	AddIntrinsic("__builtin_set_execution_ring", IRTypes::Void, {IRParam("ring", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_SetExecutionRing);
 	AddIntrinsic("take_exception", IRTypes::Void, {IRParam("category", IRTypes::UInt32), IRParam("data", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_TakeException);
 	AddIntrinsic("set_cpu_mode", IRTypes::Void, {IRParam("mode", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode);
 	AddIntrinsic("get_cpu_mode", IRTypes::UInt8, {}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode);

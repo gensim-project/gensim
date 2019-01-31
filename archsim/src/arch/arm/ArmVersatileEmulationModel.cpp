@@ -343,7 +343,7 @@ void ArmVersatileEmulationModel::HandleSemihostingCall()
 	}
 }
 
-ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
+ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, uint64_t category, uint64_t data)
 {
 	UNIMPLEMENTED;
 //

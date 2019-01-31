@@ -21,11 +21,13 @@ ENUM_ENTRY(GetCpuMode)
 ENUM_ENTRY(Trap)
 ENUM_ENTRY(TakeException)
 
+ENUM_ENTRY(SetExecutionRing)
 ENUM_ENTRY(EnterUserMode)
 ENUM_ENTRY(EnterKernelMode)
 
 ENUM_ENTRY(ProbeDevice)
 ENUM_ENTRY(WriteDevice)
+ENUM_ENTRY(WriteDevice64)
 
 ENUM_ENTRY(SetFeature)
 ENUM_ENTRY(GetFeature)

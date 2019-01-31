@@ -1,21 +1,127 @@
 
+helper void riscv_set_machmode(uint8 machmode)
+{
+	write_register(MACHMODE, machmode);
+	__builtin_set_execution_ring(machmode);
+	return;
+}
+
 helper void riscv_reset() export
 {
 	// enter M mode
+	riscv_set_machmode(3);
 	
 	// disable all interrupts
 	
 	// set mprv to 0 (?)
 	
 	// set mcause to 0
+	write_register(MCAUSE, 0);
 	
 	// set PC to implementation defined reset vector (great!)
 	
 	return;
 }
 
-helper void riscv_take_exception() export
+helper typename word_t riscv_trap_machine_edelegate_mask() {
+	// disallow delegation of any exceptions
+	return 0;
+}
+
+helper typename word_t riscv_trap_machine_idelegate_mask() {
+	// disallow delegation of any interrupts
+	return 0;
+}
+
+helper typename word_t riscv_trap_supervisor_edelegate_mask() {
+	// disallow delegation of any exceptions
+	return 0;
+}
+
+helper typename word_t riscv_trap_supervisor_idelegate_mask() {
+	// disallow delegation of any interrupts
+	return 0;
+}
+
+helper void riscv_trap_user(typename sword_t cause, typename word_t tval) noinline
 {
+	// can a user mode trap be delegated to U mode?
+	if(0) {
+	
+	} else {
+		riscv_trap_supervisor(cause, tval);
+	}
+	
+	return;
+}
+
+helper void riscv_trap_supervisor(typename sword_t cause, typename word_t tval) noinline export
+{
+	// can a supervisor mode trap be delegated to S mode?
+	if(0) {
+	
+	} else {
+		riscv_trap_machine(cause, tval);
+	}
+	
+	return;
+}
+
+helper void riscv_trap_machine(typename sword_t cause, typename word_t tval) noinline export
+{
+	// cannot delegate a trap which happens in machine mode, so handle it
+	// immediately
+	
+	uint8 is_interrupt = cause < 0;
+	typename word_t bare_cause = (cause << 1) >> 1;
+	
+	// update MEPC
+	write_register(MEPC, read_pc());
+	
+	// update mcause and mtval
+	write_register(MCAUSE, cause);
+	write_register(MTVAL, tval);
+	
+	// jump to exception handler
+	typename word_t vector_base = read_register(MTVEC);
+	typename word_t vector = vector_base & ~0x3;
+	if(vector_base & 3) {
+		if(is_interrupt) {
+			vector += 4 * bare_cause;
+		}
+	}
+	write_register(PC, vector);
+	
+	// switch to ring 3
+	__builtin_set_execution_ring(3);
+	
+	// configure interrupts
+	// todo
+	
+	return;
+}
+
+helper void riscv_take_exception(typename sword_t cause, typename word_t tval) export
+{
+	switch(read_register(MACHMODE)) {
+		case 0: {
+			riscv_trap_user(cause, tval);
+			break;
+		}
+		case 1: {
+			riscv_trap_supervisor(cause, tval);
+			break;
+		}
+		case 2: {
+			trap();
+			break;
+		}
+		case 3: {
+			riscv_trap_machine(cause, tval);
+			break;
+		}
+	}
+	
 	return;
 }
 
@@ -24,6 +130,10 @@ helper typename word_t read_csr(uint32 csr)
 	typename word_t value = 0;
 	switch(csr)
 	{
+		case 0x3: // FCSR
+		{
+			return read_fcsr();
+		}
 		case 0x100: // SSTATUS
 		{
 			return read_register(SSTATUS);
@@ -36,13 +146,19 @@ helper typename word_t read_csr(uint32 csr)
 		{
 			return read_register(STVEC);
 		}
-		case 0x180: // SATP
+		
+		case 0x302: // MEDELEG
 		{
-			return read_register(SATP);
+			return read_register(MEDELEG);
 		}
+		
+		case 0x303: // MEDELEG
+		{
+			return read_register(MIDELEG);
+		}
+		
 		default: {
-			// todo: write to CSR peripheral
-			trap();
+			read_device64(0, csr, value);
 			break;
 		}
 	}
@@ -54,6 +170,12 @@ helper void write_csr(uint32 csr, typename word_t value)
 {
 	switch(csr)
 	{
+		case 0x3: // FCSR
+		{
+			write_fcsr(value);
+			break;
+		}
+	
 		case 0x100: //SSTATUS
 		{
 			write_register(SSTATUS, value);
@@ -69,14 +191,22 @@ helper void write_csr(uint32 csr, typename word_t value)
 			write_register(STVEC, value);
 			break;
 		}
-		case 0x180: // SATP
+		
+		case 0x302: //MEDELEG
 		{
-			write_register(SATP, value);
+			write_register(MEDELEG, value);
 			break;
 		}
+		case 0x303: //MIDELEG
+		{
+			write_register(MIDELEG, value);
+			break;
+		}
+		
 		default:
 		{
-			trap();
+			write_device64(0, csr, value);
+			break;
 		}
 	}
 	return;

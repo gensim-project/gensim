@@ -11,16 +11,20 @@ namespace archsim
 		namespace riscv
 		{
 
-			class RiscVSystemEmulationModel : public archsim::abi::LinuxSystemEmulationModel
+			class RiscVSifiveFU540EmulationModel : public archsim::abi::LinuxSystemEmulationModel
 			{
 			public:
-				RiscVSystemEmulationModel(int xlen);
+				RiscVSifiveFU540EmulationModel(int xlen);
 
 				gensim::DecodeContext* GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu) override;
 
 				bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
 
-				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, uint32_t category, uint32_t data) override;
+				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, uint64_t category, uint64_t data) override;
+				archsim::abi::ExceptionAction HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address) override;
+				void HandleInterrupt(archsim::core::thread::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq) override;
+
+
 				bool InstallDevices() override;
 				void DestroyDevices() override;
 

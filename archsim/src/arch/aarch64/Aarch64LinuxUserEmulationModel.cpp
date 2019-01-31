@@ -50,7 +50,7 @@ namespace archsim
 				{
 					UNIMPLEMENTED;
 				}
-				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance* thread, unsigned int category, unsigned int data) override
+				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance* thread, uint64_t category, uint64_t data) override
 				{
 					if(category == 3) {
 						// emulate system call

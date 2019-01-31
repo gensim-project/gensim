@@ -168,7 +168,7 @@ bool ArmLinuxUserEmulationModel::InstallKernelHelpers()
 	return true;
 }
 
-archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsim::core::thread::ThreadInstance* thread, unsigned int category, unsigned int data)
+archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsim::core::thread::ThreadInstance* thread, uint64_t category, uint64_t data)
 {
 	if (category == 3) {
 		auto bank = thread->GetRegisterFileInterface().GetEntry<uint32_t>("RB");
