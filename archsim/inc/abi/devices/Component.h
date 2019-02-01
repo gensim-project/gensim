@@ -250,8 +250,8 @@ namespace archsim
 					return size;
 				}
 
-				virtual bool Read(uint32_t offset, uint8_t size, uint32_t& data) = 0;
-				virtual bool Write(uint32_t offset, uint8_t size, uint32_t data) = 0;
+				virtual bool Read(uint32_t offset, uint8_t size, uint64_t& data) = 0;
+				virtual bool Write(uint32_t offset, uint8_t size, uint64_t data) = 0;
 
 			protected:
 				Address base_address;
@@ -332,8 +332,8 @@ namespace archsim
 				RegisterBackedMemoryComponent(EmulationModel& parent_model, Address base_address, uint32_t size, std::string name);
 				virtual ~RegisterBackedMemoryComponent();
 
-				bool Read(uint32_t offset, uint8_t size, uint32_t& data) override;
-				bool Write(uint32_t offset, uint8_t size, uint32_t data) override;
+				bool Read(uint32_t offset, uint8_t size, uint64_t& data) override;
+				bool Write(uint32_t offset, uint8_t size, uint64_t data) override;
 
 				inline std::string GetName() const
 				{

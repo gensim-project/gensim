@@ -42,7 +42,7 @@ WSBlockDevice::~WSBlockDevice()
 }
 
 
-bool WSBlockDevice::Read(uint32_t offset, uint8_t size, uint32_t& data)
+bool WSBlockDevice::Read(uint32_t offset, uint8_t size, uint64_t& data)
 {
 	offset &= 0xfff;
 	switch(offset) {
@@ -65,7 +65,7 @@ bool WSBlockDevice::Read(uint32_t offset, uint8_t size, uint32_t& data)
 	return true;
 }
 
-bool WSBlockDevice::Write(uint32_t offset, uint8_t size, uint32_t data)
+bool WSBlockDevice::Write(uint32_t offset, uint8_t size, uint64_t data)
 {
 	offset &= 0xfff;
 	switch(offset) {

@@ -223,7 +223,7 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 			abi::devices::MemoryComponent* device = entry->GetDevice();
 			LC_DEBUG2(LogSystemMemoryModel) << "Memory read from device at VA " << std::hex << virt_addr << " PA base " << std::hex << entry->GetDevice()->GetBaseAddress();
 			virt_addr &= device->GetSize()-1;
-			uint32_t zdata;
+			uint64_t zdata;
 			if(device->Read(virt_addr.Get(), size, zdata)) {
 				switch(size) {
 					case 1:

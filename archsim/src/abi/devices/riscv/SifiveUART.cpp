@@ -46,7 +46,7 @@ AsyncSerial *SifiveUART::GetSerial()
 }
 
 
-bool SifiveUART::Read(uint32_t offset, uint8_t size, uint32_t& data)
+bool SifiveUART::Read(uint32_t offset, uint8_t size, uint64_t& data)
 {
 	offset &= 0xff;
 
@@ -74,7 +74,7 @@ bool SifiveUART::Read(uint32_t offset, uint8_t size, uint32_t& data)
 	return true;
 }
 
-bool SifiveUART::Write(uint32_t offset, uint8_t size, uint32_t data)
+bool SifiveUART::Write(uint32_t offset, uint8_t size, uint64_t data)
 {
 	offset &= 0xff;
 

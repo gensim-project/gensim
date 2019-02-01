@@ -41,7 +41,7 @@ namespace archsim
 				return true;
 			}
 
-			bool PL080::Read(uint32_t offset, uint8_t size, uint32_t& data)
+			bool PL080::Read(uint32_t offset, uint8_t size, uint64_t& data)
 			{
 				uint32_t reg = (offset & 0xffff);
 				switch(reg) {
@@ -78,7 +78,7 @@ namespace archsim
 				return false;
 			}
 
-			bool PL080::Write(uint32_t offset, uint8_t size, uint32_t data)
+			bool PL080::Write(uint32_t offset, uint8_t size, uint64_t data)
 			{
 				uint32_t reg = (offset & 0xffff);
 				switch(reg) {

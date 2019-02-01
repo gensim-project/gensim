@@ -24,7 +24,7 @@ bool SifiveCLINT::Initialise()
 	return true;
 }
 
-bool SifiveCLINT::Read(uint32_t offset, uint8_t size, uint32_t& data)
+bool SifiveCLINT::Read(uint32_t offset, uint8_t size, uint64_t& data)
 {
 	switch(offset) {
 		case 0x0: // MSIP0
@@ -45,7 +45,7 @@ bool SifiveCLINT::Read(uint32_t offset, uint8_t size, uint32_t& data)
 	return true;
 }
 
-bool SifiveCLINT::Write(uint32_t offset, uint8_t size, uint32_t data)
+bool SifiveCLINT::Write(uint32_t offset, uint8_t size, uint64_t data)
 {
 	switch(offset) {
 		case 0x0: // MSIP0

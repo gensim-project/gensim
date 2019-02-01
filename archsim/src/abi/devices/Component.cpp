@@ -209,7 +209,7 @@ RegisterBackedMemoryComponent::~RegisterBackedMemoryComponent()
 }
 
 
-bool RegisterBackedMemoryComponent::Read(uint32_t offset, uint8_t size, uint32_t& data)
+bool RegisterBackedMemoryComponent::Read(uint32_t offset, uint8_t size, uint64_t& data)
 {
 	MemoryRegister *rg = GetRegister(offset);
 	if (!rg) {
@@ -223,7 +223,7 @@ bool RegisterBackedMemoryComponent::Read(uint32_t offset, uint8_t size, uint32_t
 	return true;
 }
 
-bool RegisterBackedMemoryComponent::Write(uint32_t offset, uint8_t size, uint32_t data)
+bool RegisterBackedMemoryComponent::Write(uint32_t offset, uint8_t size, uint64_t data)
 {
 	MemoryRegister *rg = GetRegister(offset);
 	if (!rg) {

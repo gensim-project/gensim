@@ -66,7 +66,7 @@ void PL011::EnqueueChar(char c)
 	RaiseRxIRQ();
 }
 
-bool PL011::Read(uint32_t offset, uint8_t size, uint32_t& data)
+bool PL011::Read(uint32_t offset, uint8_t size, uint64_t& data)
 {
 	uint32_t reg = (offset & 0xfff);
 	switch(reg) {
@@ -146,7 +146,7 @@ bool PL011::Read(uint32_t offset, uint8_t size, uint32_t& data)
 	return true;
 }
 
-bool PL011::Write(uint32_t offset, uint8_t size, uint32_t data)
+bool PL011::Write(uint32_t offset, uint8_t size, uint64_t data)
 {
 	uint32_t reg = (offset & 0xfff);
 	switch(reg) {

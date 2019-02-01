@@ -1,5 +1,9 @@
+helper typename word_t riscv_get_machmode()
+{
+	return read_register(MACHMODE);
+}
 
-helper void riscv_set_machmode(uint8 machmode)
+helper void riscv_set_machmode(uint8 machmode) export
 {
 	write_register(MACHMODE, machmode);
 	__builtin_set_execution_ring(machmode);
@@ -16,9 +20,59 @@ helper void riscv_reset() export
 	// set mprv to 0 (?)
 	
 	// set mcause to 0
-	write_register(MCAUSE, 0);
+	riscv_csr_set_mcause(0);
 	
 	// set PC to implementation defined reset vector (great!)
+	
+	return;
+}
+
+helper void riscv_mret() noinline
+{
+	// determine which mode to return to
+	uint64 mstatus = riscv_csr_get_mstatus();
+	uint8 mpp = riscv_mstatus_get_mpp(mstatus);
+	
+	// set MIE to MPIE
+	mstatus = riscv_mstatus_set_mie(mstatus, riscv_mstatus_get_mpie(mstatus));
+	// set mpie to 1
+	mstatus = riscv_mstatus_set_mpie(mstatus, 1);
+	// set mpp to U
+	mstatus = riscv_mstatus_set_mpp(mstatus, 0);
+	
+	// write back mstatus
+	riscv_csr_set_mstatus(mstatus);
+	
+	// enter previous machmode
+	riscv_set_machmode(mpp);
+	
+	// set PC to mepc
+	write_register(PC, riscv_csr_get_mepc());
+	
+	return;
+}
+
+helper void riscv_sret() noinline
+{
+	// determine which mode to return to
+	uint64 sstatus = riscv_csr_get_sstatus();
+	uint8 spp = riscv_mstatus_get_spp(sstatus);
+	
+	// set SIE to SPIE
+	sstatus = riscv_mstatus_set_sie(sstatus, riscv_mstatus_get_spie(sstatus));
+	// set spie to 1
+	sstatus = riscv_mstatus_set_spie(sstatus, 1);
+	// set spp to U
+	sstatus = riscv_mstatus_set_spp(sstatus, 0);
+	
+	// write back mstatus
+	riscv_csr_set_sstatus(sstatus);
+	
+	// enter previous machmode
+	riscv_set_machmode(spp);
+	
+	// set PC to mepc
+	write_register(PC, riscv_csr_get_sepc());
 	
 	return;
 }
@@ -57,10 +111,40 @@ helper void riscv_trap_user(typename sword_t cause, typename word_t tval) noinli
 
 helper void riscv_trap_supervisor(typename sword_t cause, typename word_t tval) noinline export
 {
-	// can a supervisor mode trap be delegated to S mode?
-	if(0) {
-	
+	// read medeleg to determine if this exception can be delegated
+	// todo: what if this is an interrupt?
+	typename word_t medeleg = riscv_csr_get_medeleg();
+	if(medeleg & (1 << cause)) {
+		// delegate this trap to S mode
+		uint8 is_interrupt = cause < 0;
+		typename word_t bare_cause = (cause << 1) >> 1;
+		
+		// update SEPC
+		riscv_csr_set_sepc(read_pc());
+		
+		// update mcause and mtval
+		riscv_csr_set_scause(cause);
+		riscv_csr_set_stval(tval);
+		
+		// jump to exception handler
+		typename word_t vector_base = riscv_csr_get_stvec();
+		typename word_t vector = vector_base & ~0x3;
+		if(vector_base & 3) {
+			if(is_interrupt) {
+				vector += 4 * bare_cause;
+			}
+		}
+		write_register(PC, vector);
+		
+		// switch to ring 1
+		riscv_set_machmode(1);
+		
+		// configure interrupts
+		// todo
+		
+		return;
 	} else {
+		// trap to machine mode
 		riscv_trap_machine(cause, tval);
 	}
 	
@@ -76,14 +160,19 @@ helper void riscv_trap_machine(typename sword_t cause, typename word_t tval) noi
 	typename word_t bare_cause = (cause << 1) >> 1;
 	
 	// update MEPC
-	write_register(MEPC, read_pc());
+	riscv_csr_set_mepc(read_pc());
 	
 	// update mcause and mtval
-	write_register(MCAUSE, cause);
-	write_register(MTVAL, tval);
+	riscv_csr_set_mcause(cause);
+	riscv_csr_set_mtval(tval);
+	
+	// update MPP
+	typename word_t mstatus = riscv_csr_get_mstatus();
+	mstatus = riscv_mstatus_set_mpp(mstatus, riscv_get_machmode());
+	riscv_csr_set_mstatus(mstatus);
 	
 	// jump to exception handler
-	typename word_t vector_base = read_register(MTVEC);
+	typename word_t vector_base = riscv_csr_get_mtvec();
 	typename word_t vector = vector_base & ~0x3;
 	if(vector_base & 3) {
 		if(is_interrupt) {
@@ -93,7 +182,7 @@ helper void riscv_trap_machine(typename sword_t cause, typename word_t tval) noi
 	write_register(PC, vector);
 	
 	// switch to ring 3
-	__builtin_set_execution_ring(3);
+	riscv_set_machmode(3);
 	
 	// configure interrupts
 	// todo
@@ -134,28 +223,6 @@ helper typename word_t read_csr(uint32 csr)
 		{
 			return read_fcsr();
 		}
-		case 0x100: // SSTATUS
-		{
-			return read_register(SSTATUS);
-		}
-		case 0x104: // SIE
-		{
-			return read_register(SIE);
-		}
-		case 0x105: // STVEC
-		{
-			return read_register(STVEC);
-		}
-		
-		case 0x302: // MEDELEG
-		{
-			return read_register(MEDELEG);
-		}
-		
-		case 0x303: // MEDELEG
-		{
-			return read_register(MIDELEG);
-		}
 		
 		default: {
 			read_device64(0, csr, value);
@@ -176,33 +243,6 @@ helper void write_csr(uint32 csr, typename word_t value)
 			break;
 		}
 	
-		case 0x100: //SSTATUS
-		{
-			write_register(SSTATUS, value);
-			break;
-		}
-		case 0x104: // SIE
-		{
-			write_register(SIE, value);
-			break;
-		}
-		case 0x105: // STVEC
-		{
-			write_register(STVEC, value);
-			break;
-		}
-		
-		case 0x302: //MEDELEG
-		{
-			write_register(MEDELEG, value);
-			break;
-		}
-		case 0x303: //MIDELEG
-		{
-			write_register(MIDELEG, value);
-			break;
-		}
-		
 		default:
 		{
 			write_device64(0, csr, value);

@@ -50,7 +50,7 @@ AC_ISA(riscv)
 
 	ac_instr<Type_S> sb,sh,sw;
 
-	ac_instr<Type_R> add,sub,sll,slt,sltu,xor,srl,sra,or,and;
+	ac_instr<Type_R> add,sub,sll,slt,sltu,xor,srl,sra,or,and, uret, sret, mret;
 
 	ac_instr<Type_FENCE> fence,fencei;
 
@@ -119,6 +119,7 @@ AC_ISA(riscv)
 	ac_behaviour csrrwi;
 	ac_behaviour csrrsi;
 	ac_behaviour csrrci;
+	ac_behvaiour mret, sret, uret;
 
 /*** End of ac_behaviour declarations***/
 

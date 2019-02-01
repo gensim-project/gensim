@@ -28,8 +28,8 @@ namespace archsim
 					virtual ~SifivePLIC();
 
 					bool Initialise() override;
-					bool Read(uint32_t offset, uint8_t size, uint32_t& data) override;
-					bool Write(uint32_t offset, uint8_t size, uint32_t data) override;
+					bool Read(uint32_t offset, uint8_t size, uint64_t& data) override;
+					bool Write(uint32_t offset, uint8_t size, uint64_t data) override;
 
 					bool AssertLine(uint32_t line) override;
 					bool RescindLine(uint32_t line) override;
@@ -40,6 +40,7 @@ namespace archsim
 					COMPONENT_PARAMETER_THREAD(Hart0);
 
 					std::vector<uint32_t> interrupt_priorities_;
+					uint32_t hart0_m_priority_thresholds_;
 				};
 			}
 		}

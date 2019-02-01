@@ -159,14 +159,20 @@ MMU::TranslateResult RiscVMMU::Translate(archsim::core::thread::ThreadInstance* 
 	auto pageinfo = std::get<1>(pteinfo);
 
 	if(pageinfo.Present) {
+		LC_DEBUG1(LogRiscVMMU) << "Page Present";
+
 		// check permissions!
-		phys_addr = pageinfo.phys_addr.PageBase() | virt_addr.PageOffset();
+		phys_addr = pageinfo.phys_addr.PageBase() | (virt_addr & ~pageinfo.mask);
 
 		// check dirty/access bits (should this be done in hardware? configurable?)
 	} else {
 		// page not present
+		LC_DEBUG1(LogRiscVMMU) << "Page NOT Present";
+
 		// TODO: difference between access fault and page fault
 		if(info.SideEffects) {
+			LC_DEBUG1(LogRiscVMMU) << "Triggering exception";
+
 			uint32_t cause = 0;
 			if(info.Fetch) {
 				cause = 12;
@@ -206,6 +212,8 @@ RiscVMMU::PTEInfo RiscVMMU::GetInfoLevel(Address virt_addr, Address table, int l
 
 	if(pte.GetR() || pte.GetX()) {
 		// leaf entry, we're done.
+		LC_DEBUG1(LogRiscVMMU) << "PTE is leaf, ppn is " << pte.GetPPN();
+
 		PageInfo pi;
 		pi.Present = true;
 		pi.KernelCanRead = pte.GetR();
@@ -215,6 +223,27 @@ RiscVMMU::PTEInfo RiscVMMU::GetInfoLevel(Address virt_addr, Address table, int l
 			pi.UserCanRead = pi.KernelCanRead;
 			pi.UserCanWrite = pi.KernelCanWrite;
 			pi.UserCanExecute = pi.KernelCanExecute;
+		}
+		pi.phys_addr = Address(pte.GetPPN() << 12);
+
+		switch(GetMode()) {
+			case Sv39:
+				switch(level) {
+					case 0:
+						pi.mask = ~0xfff;
+						break;
+					case 1:
+						pi.mask = ~0x1fffff;
+						break;
+					case 2:
+						pi.mask = ~0x3fffffff;
+						break;
+					default:
+						UNEXPECTED;
+				}
+				break;
+			default:
+				UNIMPLEMENTED;
 		}
 
 		return {pte_address, pi};

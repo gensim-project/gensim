@@ -38,8 +38,8 @@ namespace archsim
 				GICCPUInterface(EmulationModel &emu_model, Address address);
 				~GICCPUInterface();
 
-				bool Read(uint32_t offset, uint8_t size, uint32_t& data) override;
-				bool Write(uint32_t offset, uint8_t size, uint32_t data) override;
+				bool Read(uint32_t offset, uint8_t size, uint64_t& data) override;
+				bool Write(uint32_t offset, uint8_t size, uint64_t data) override;
 
 				bool enabled() const
 				{
@@ -69,8 +69,8 @@ namespace archsim
 				GICDistributorInterface(EmulationModel& emu_model, Address address);
 				~GICDistributorInterface();
 
-				bool Read(uint32_t offset, uint8_t size, uint32_t& data) override;
-				bool Write(uint32_t offset, uint8_t size, uint32_t data) override;
+				bool Read(uint32_t offset, uint8_t size, uint64_t& data) override;
+				bool Write(uint32_t offset, uint8_t size, uint64_t data) override;
 				int GetComponentID()
 				{
 					return 0;
