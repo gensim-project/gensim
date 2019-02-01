@@ -12,27 +12,12 @@
 #include "util/ComponentManager.h"
 #include "system.h"
 
-UseLogContext(LogEmulationModel);
-DeclareChildLogContext(LogEmulationModelRiscVSystem, LogEmulationModel, "RISCV-System");
-
 using namespace archsim::abi;
 using namespace archsim::arch::riscv;
 
-class RVSystemEmulationModel32 : public RiscVSifiveFU540EmulationModel
-{
-public:
-	RVSystemEmulationModel32() : RiscVSifiveFU540EmulationModel(32) {}
-};
+UseLogContext(LogEmulationModelRiscVSystem)
 
-class RVSystemEmulationModel64 : public RiscVSifiveFU540EmulationModel
-{
-public:
-	RVSystemEmulationModel64() : RiscVSifiveFU540EmulationModel(64) {}
-};
-
-
-
-RiscVSifiveFU540EmulationModel::RiscVSifiveFU540EmulationModel(int xlen) : LinuxSystemEmulationModel(xlen==64)
+RiscVSifiveFU540EmulationModel::RiscVSifiveFU540EmulationModel() : LinuxSystemEmulationModel(1)
 {
 
 }
@@ -168,4 +153,4 @@ bool RiscVSifiveFU540EmulationModel::PrepareCore(archsim::core::thread::ThreadIn
 	return true;
 }
 
-RegisterComponent(archsim::abi::EmulationModel, RVSystemEmulationModel64, "riscv64-sifive", "SiFive FU540-C000");
+RegisterComponent(archsim::abi::EmulationModel, RiscVSifiveFU540EmulationModel, "riscv64-sifive-fu540", "SiFive FU540-C000");

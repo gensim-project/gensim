@@ -94,6 +94,7 @@ void ThreadInstance::SetExecutionRing(uint32_t new_ring)
 {
 	GetStateBlock().SetEntry<uint32_t>("RingID", new_ring);
 	GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::PrivilegeLevelChange, this);
+	LC_DEBUG1(LogCPU) << "Now executing in ring " << new_ring;
 }
 
 MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface_name)

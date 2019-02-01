@@ -41,7 +41,7 @@ bool SP804::Initialise()
 	return true;
 }
 
-bool SP804::Read(uint32_t offset, uint8_t size, uint32_t& data)
+bool SP804::Read(uint32_t offset, uint8_t size, uint64_t& data)
 {
 	LC_DEBUG1(LogSP804) << "["<< std::hex  << base_address << "] Read "<< offset << " = ...";
 
@@ -57,7 +57,7 @@ bool SP804::Read(uint32_t offset, uint8_t size, uint32_t& data)
 	}
 }
 
-bool SP804::Write(uint32_t offset, uint8_t size, uint32_t data)
+bool SP804::Write(uint32_t offset, uint8_t size, uint64_t data)
 {
 //	fprintf(stderr, "SP804 Write offset: %x, size: %x, data: %x\n", offset, size, data);
 	LC_DEBUG1(LogSP804) << "["<< std::hex  << base_address << "] Write "<< offset << " = " << data;
@@ -108,7 +108,7 @@ SP804::InternalTimer::InternalTimer() :
 	control_reg.value = 0x20;
 }
 
-bool SP804::InternalTimer::ReadRegister(uint32_t offset, uint32_t& data)
+bool SP804::InternalTimer::ReadRegister(uint32_t offset, uint64_t& data)
 {
 //	fprintf(stderr, "SP804 Internal Timer Read Register\n");
 	switch (offset) {

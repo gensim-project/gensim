@@ -38,21 +38,7 @@ AC_ARCH(riscv64)
 	}
 
 	// CSRs
-	ac_regspace(104) {
-		slot MCAUSE(uint64, 8, 0);
-		slot MEPC(uint64, 8, 8);
-		slot MTVAL(uint64, 8, 16);
-		slot MTVEC(uint64, 8, 24);
-		slot MIDELEG(uint64, 8, 32);
-		slot MEDELEG(uint64, 8, 40);
-		
-		slot SSTATUS(uint64, 8, 48);
-		slot SEDELEG(uint64, 8, 56);
-		slot SIDELEG(uint64, 8, 64);
-		slot SIE(uint64, 8, 72);
-		slot STVEC(uint64, 8, 80);
-		slot SCOUNTEREN(uint64, 8, 88);
-		
+	ac_regspace(104) {	
 		slot SATP(uint64, 8, 96);
 	}
 

@@ -674,42 +674,47 @@ execute(csrrwi)
 }
 
 execute(csrrsi)
-{/*
-	uint32 csr = read_gpr(inst.csr);
-
-        write_register_bank(GPR, inst.rd, csr);
-
-        uint32 imm = inst.imm;
-
-        if (imm != 0) csr |= imm;
-
-        write_register_bank(GPR, inst.csr, csr);
-*/
-	trap();
+{
+	if(inst.rs1) {
+		typename word_t csr = read_csr(inst.csr);
+		write_register_bank(GPR, inst.rd, csr);
+		
+		csr |= inst.rs1;
+		write_csr(inst.csr, csr);
+	}
 }
 
 execute(csrrci)
-{/*
-	uint32 csr = read_gpr(inst.csr);
-
-        write_register_bank(GPR, inst.rd, csr);
-
-        uint32 imm = inst.imm;
-
-        if (imm != 0) csr = csr & ~imm;
-
-        write_register_bank(GPR, inst.csr, csr);
-
-*/
-	trap();
+{
+	if(inst.rs1) {
+		typename word_t csr = read_csr(inst.csr);
+		write_register_bank(GPR, inst.rd, csr);
+		
+		csr &= ~inst.rs1;
+		write_csr(inst.csr, csr);
+	}
 }
 
+execute(mret)
+{
+	riscv_mret();
+}
+
+execute(sret)
+{
+	riscv_sret();
+}
+
+execute(uret)
+{
+	trap();
+}
 
 //////////////////////Enveironment Instructions./////////////////////////////////
 execute(ecall)
 {
-	take_exception(0,0);
-	write_register(PC, read_pc() + 4);
+	// exception type changes depending on mode
+	take_exception(8 + read_register(MACHMODE), 0);
 }
 
 execute(ebreak)

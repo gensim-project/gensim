@@ -3,7 +3,9 @@ archsim_add_sources(
 	RiscVLinuxUserEmulationModel.cpp
 	RiscVComplianceEmulationModel.cpp
 	RiscVSifiveFU540EmulationModel.cpp
+	RiscVSifiveFreedomEEmulationModel.cpp
 	RiscVSystemCoprocessor.cpp
+	RiscVSystemEmulationModel.cpp
 	RiscVMMU.cpp
 )
 

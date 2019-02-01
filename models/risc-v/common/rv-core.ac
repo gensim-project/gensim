@@ -43,7 +43,7 @@ AC_ISA(riscv)
 
 	ac_instr<Type_S> sb,sh,sw;
 
-	ac_instr<Type_R> add,sub,sll,slt,sltu,xor,srl,sra,or,and;
+	ac_instr<Type_R> add,sub,sll,slt,sltu,xor,srl,sra,or,and, uret, sret, mret;
 
 	ac_instr<Type_FENCE> fence,fencei;
 
@@ -112,6 +112,7 @@ AC_ISA(riscv)
 	ac_behaviour csrrwi;
 	ac_behaviour csrrsi;
 	ac_behaviour csrrci;
+	ac_behaviour uret, sret, mret;
 
 /*** End of ac_behaviour declarations***/
 
@@ -120,6 +121,7 @@ AC_ISA(riscv)
 		ac_behaviours("common/behaviours.riscv");
 		ac_execute("common/execute.riscv");
 		ac_execute("common/execute.system");
+		ac_execute("common/execute.csr");
 
 // 32-Base Instructions
 
@@ -343,5 +345,22 @@ AC_ISA(riscv)
 		csrrci.set_asm("csrrci %reg, %reg, %exp", csr, rd, imm);
 		csrrci.set_behaviour(csrrci); 
 
+		mret.set_decoder(funct7=0x18, rd=0, rs1=0, rs2=0x2, funct3=0, opcode=0x73);
+		mret.set_asm("mret");
+		mret.set_behaviour(mret);
+		mret.set_end_of_block();
+		mret.set_variable_jump();
+		
+		sret.set_decoder(funct7=0x08, rd=0, rs1=0, rs2=0x2, funct3=0, opcode=0x73);
+		sret.set_asm("sret");
+		sret.set_behaviour(sret);
+		sret.set_end_of_block();
+		sret.set_variable_jump();
+		
+		uret.set_decoder(funct7=0x00, rd=0, rs1=0, rs2=0x2, funct3=0, opcode=0x73);
+		uret.set_asm("uret");
+		uret.set_behaviour(uret);
+		uret.set_end_of_block();
+		uret.set_variable_jump();
 	};
 };

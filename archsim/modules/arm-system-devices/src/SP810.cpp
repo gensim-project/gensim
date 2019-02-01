@@ -42,7 +42,7 @@ namespace archsim
 				return true;
 			}
 
-			bool SP810::Read(uint32_t offset, uint8_t size, uint32_t& data)
+			bool SP810::Read(uint32_t offset, uint8_t size, uint64_t& data)
 			{
 //	fprintf(stderr, "SP810 Read\n");
 				uint32_t reg = offset & 0xfff;
@@ -151,7 +151,7 @@ namespace archsim
 
 			}
 
-			bool SP810::Write(uint32_t offset, uint8_t size, uint32_t data)
+			bool SP810::Write(uint32_t offset, uint8_t size, uint64_t data)
 			{
 //	fprintf(stderr, "SP810 Write\n");
 				uint32_t reg = offset & 0xfff;

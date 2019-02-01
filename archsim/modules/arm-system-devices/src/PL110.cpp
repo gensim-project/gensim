@@ -30,7 +30,7 @@ bool PL110::Initialise()
 	return true;
 }
 
-bool PL110::Read(uint32_t offset, uint8_t size, uint32_t &data)
+bool PL110::Read(uint32_t offset, uint8_t size, uint64_t &data)
 {
 	offset &= 0xfff;
 	LC_DEBUG2(LogPL110) << "Reading from register " << std::hex << offset;
@@ -118,7 +118,7 @@ bool PL110::Read(uint32_t offset, uint8_t size, uint32_t &data)
 	return true;
 }
 
-bool PL110::Write(uint32_t offset, uint8_t size, uint32_t data)
+bool PL110::Write(uint32_t offset, uint8_t size, uint64_t data)
 {
 	offset &= 0xfff;
 	LC_DEBUG2(LogPL110) << "Writing to register " << std::hex << offset;

@@ -1,15 +1,26 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
+#include "abi/devices/generic/timing/TickSource.h"
 #include "arch/risc-v/RiscVSystemCoprocessor.h"
 #include "core/thread/ThreadInstance.h"
 #include "util/LogContext.h"
+#include "system.h"
 
 DeclareLogContext(LogRiscVSystem, "RV-System");
 using namespace archsim::arch::riscv;
 
 RiscVSystemCoprocessor::RiscVSystemCoprocessor(archsim::core::thread::ThreadInstance* hart, RiscVMMU* mmu) : hart_(hart), mmu_(mmu)
 {
+	MEDELEG = 0;
+	MIDELEG = 0;
 
+	STVEC = 0;
+	SCOUNTEREN = 0;
+	SEPC = 0;
+	SCAUSE = 0;
+	STVAL = 0;
+
+	WriteMSTATUS(0);
 }
 
 bool RiscVSystemCoprocessor::Initialise()
@@ -21,8 +32,40 @@ bool RiscVSystemCoprocessor::Read64(uint32_t address, uint64_t& data)
 {
 	LC_DEBUG1(LogRiscVSystem) << "CSR Read 0x" << std::hex << address << "...";
 	switch(address) {
+		case 0x100:
+			data = STATUS.ReadSSTATUS();
+			break;
+
+		case 0x104:
+			data = SIE;
+			break;
+
+		case 0x105:
+			data = STVEC;
+			break;
+
 		case 0x106:
 			data = SCOUNTEREN;
+			break;
+
+		case 0x140:
+			data = SSCRATCH;
+			break;
+
+		case 0x141:
+			data = SEPC;
+			break;
+
+		case 0x142:
+			data = SCAUSE;
+			break;
+
+		case 0x143:
+			data = STVAL;
+			break;
+
+		case 0x144:
+			data = SIP;
 			break;
 
 		case 0x180: //SATP
@@ -63,10 +106,12 @@ bool RiscVSystemCoprocessor::Read64(uint32_t address, uint64_t& data)
 		}
 
 		case 0x302: // MEDELEG
-			UNEXPECTED; // handled in model
+			data = MEDELEG;
+			break;
 
 		case 0x303: // MIDELEG
-			UNEXPECTED; // handled in model
+			data = MIDELEG;
+			break;
 
 		case 0x304:
 			data = MIE;
@@ -84,6 +129,22 @@ bool RiscVSystemCoprocessor::Read64(uint32_t address, uint64_t& data)
 			data = MSCRATCH;
 			break;
 
+		case 0x341:
+			data = MEPC;
+			break;
+
+		case 0x342:
+			data = MCAUSE;
+			break;
+
+		case 0x343:
+			data = MTVAL;
+			break;
+
+		case 0x344:
+			data = MIP;
+			return true;
+
 		case 0x3a0: // PMPCFG
 		case 0x3a1:
 		case 0x3a2:
@@ -110,11 +171,17 @@ bool RiscVSystemCoprocessor::Read64(uint32_t address, uint64_t& data)
 			data = 0; // RAZ (...?)
 			return true;
 
+		case 0xc01:
+			// cycle timer
+			data = hart_->GetEmulationModel().GetSystem().GetTickSource()->GetCounter();
+			break;
+
 		case 0xf14: // Hardware Thread ID
 			data = 0;
 			break;
 
 		default:
+			LC_DEBUG1(LogRiscVSystem) << "Unimplemented CSR read: " << std::hex << address;
 			UNIMPLEMENTED;
 	}
 	LC_DEBUG1(LogRiscVSystem) << "CSR Read 0x" << std::hex << address << " -> 0x" << std::hex << data;
@@ -125,50 +192,100 @@ bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 {
 	LC_DEBUG1(LogRiscVSystem) << "CSR Write 0x" << std::hex << address << " <- 0x" << std::hex << data;
 	switch(address) {
+		case 0x100:
+			STATUS.WriteSSTATUS(data);
+			break;
+
+		case 0x104:
+			SIE = data;
+			break;
+
+		case 0x105:
+			STVEC = data;
+			break;
+
 		case 0x106:
 			SCOUNTEREN = data;
-			return true;
+			break;
+
+		case 0x140:
+			SSCRATCH = data;
+			break;
+
+		case 0x141:
+			SEPC = data;
+			break;
+
+		case 0x142:
+			SCAUSE = data;
+			break;
+
+		case 0x143:
+			STVAL = data;
+			break;
+
+		case 0x144:
+			SIP = data;
+			break;
 
 		case 0x180: //SATP
 			mmu_->SetSATP(data);
-			return true;
+			break;
 
 		case 0x300: // MSTATUS
 			WriteMSTATUS(data);
-			return true;
+			break;
 
 		case 0x301: // MISA
 			// ignore writes
-			return true;
+			break;
 
 		case 0x302: // MEDELEG
-			UNEXPECTED; // handled in model
+			MEDELEG = data;
+			break;
 
 		case 0x303: // MIDELEG
-			UNEXPECTED; // handled in model
+			MIDELEG = data;
+			break;
 
 		case 0x304:
 			MIE = data;
-			return true;
+			break;
 
 		case 0x305:
 			MTVEC = data;
-			return true;
+			break;
 
 		case 0x306:
 			MCOUNTEREN = data;
-			return true;
+			break;
 
 		case 0x340:
 			MSCRATCH = data;
-			return true;
+			break;
+
+		case 0x341:
+			MEPC = data;
+			break;
+
+		case 0x342:
+			MCAUSE = data;
+			break;
+
+		case 0x343:
+			MTVAL = data;
+			break;
+
+		case 0x344:
+			MIP = data;
+			break;
 
 		case 0x3a0: // PMPCFG
 		case 0x3a1:
 		case 0x3a2:
 		case 0x3a3:
 			// ignore (...?)
-			return true;
+			break;
 
 		case 0x3b0: // PMPADDR
 		case 0x3b1:
@@ -187,15 +304,22 @@ bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 		case 0x3be:
 		case 0x3bf:
 			// ignore (...?)
-			return true;
+			break;
+
+		case 0xc01:
+			// todo: read only
+			break;
 
 		case 0xf14: // Hardware Thread ID
 			// Writes ignored
-			return true;
+			break;
 
 		default:
+			LC_DEBUG1(LogRiscVSystem) << "Unimplemented CSR write: " << std::hex << address;
 			UNIMPLEMENTED;
 	}
+
+	return true;
 }
 
 void RiscVSystemCoprocessor::MachinePendInterrupt(uint64_t mask)
@@ -300,6 +424,39 @@ void RiscVSystemCoprocessor::STATUS_t::WriteMSTATUS(uint64_t data)
 	SPIE = BITSEL(data, 5);
 	UPIE = BITSEL(data, 4);
 	MIE = BITSEL(data, 3);
+	SIE = BITSEL(data, 1);
+	UIE = BITSEL(data, 0);
+}
+
+uint64_t RiscVSystemCoprocessor::STATUS_t::ReadSSTATUS()
+{
+	uint64_t data = 0;
+	data |= (uint64_t)SD << 63;
+	data |= (uint64_t)UXL << 32;
+	data |= (uint64_t)MXR << 19;
+	data |= (uint64_t)SUM << 18;
+	data |= (uint64_t)XS << 15;
+	data |= (uint64_t)FS << 13;
+	data |= (uint64_t)SPP << 8;
+	data |= (uint64_t)SPIE << 5;
+	data |= (uint64_t)UPIE << 4;
+	data |= (uint64_t)SIE << 1;
+	data |= (uint64_t)UIE << 0;
+
+	return data;
+}
+
+void RiscVSystemCoprocessor::STATUS_t::WriteSSTATUS(uint64_t data)
+{
+	SD = UNSIGNED_BITS_64(data, 63,62);
+	UXL = UNSIGNED_BITS_64(data, 32, 31);
+	MXR = BITSEL(data, 19);
+	SUM = BITSEL(data, 18);
+	XS = UNSIGNED_BITS_64(data, 16,15);
+	FS = UNSIGNED_BITS_64(data, 14,13);
+	SPP = BITSEL(data, 8);
+	SPIE = BITSEL(data, 5);
+	UPIE = BITSEL(data, 4);
 	SIE = BITSEL(data, 1);
 	UIE = BITSEL(data, 0);
 }

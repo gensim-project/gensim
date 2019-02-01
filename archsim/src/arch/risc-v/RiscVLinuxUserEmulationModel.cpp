@@ -85,6 +85,8 @@ bool RiscVLinuxUserEmulationModel::PrepareBoot(System& system)
 		GetMemoryModel().Write(vdso_region, (uint8_t*)&riscv64_linux_vdso_start, riscv64_linux_vdso_size);
 	}
 
+	GetMainThread()->GetArch().GetISA("riscv").GetBehaviours().GetBehaviour("riscv_set_machmode").Invoke(GetMainThread(), {3});
+
 	return true;
 }
 
@@ -109,7 +111,7 @@ archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(arch
 		return archsim::abi::ResumeNext;
 	}
 
-	if(category == 0) {
+	if(category == 11) {
 		archsim::abi::SyscallResponse response;
 		response.action = ResumeNext;
 
@@ -161,6 +163,9 @@ archsim::abi::ExceptionAction RiscVLinuxUserEmulationModel::HandleException(arch
 			cpu->SendMessage(archsim::core::thread::ThreadMessage::Halt);
 			return AbortSimulation;
 		}
+
+		// increment PC
+		cpu->SetPC(cpu->GetPC()+4);
 
 		return response.action;
 	}

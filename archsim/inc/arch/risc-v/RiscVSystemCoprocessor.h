@@ -54,6 +54,9 @@ namespace archsim
 			private:
 				uint64_t MTVEC;
 				uint64_t MSCRATCH;
+				uint64_t MEPC;
+				uint64_t MCAUSE;
+				uint64_t MTVAL;
 
 				uint64_t MIE;
 				uint64_t MIP;
@@ -63,6 +66,14 @@ namespace archsim
 
 				uint64_t SIDELEG;
 				uint64_t SEDELEG;
+				uint64_t SIE;
+				uint64_t STVEC;
+
+				uint64_t SSCRATCH;
+				uint64_t SEPC;
+				uint64_t SCAUSE;
+				uint64_t STVAL;
+				uint64_t SIP;
 
 				uint64_t MCOUNTEREN;
 				uint64_t SCOUNTEREN;
@@ -90,6 +101,9 @@ namespace archsim
 
 					uint64_t ReadMSTATUS();
 					void WriteMSTATUS(uint64_t data);
+
+					uint64_t ReadSSTATUS();
+					void WriteSSTATUS(uint64_t data);
 				};
 				STATUS_t STATUS;
 
