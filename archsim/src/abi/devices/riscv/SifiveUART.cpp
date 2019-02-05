@@ -64,9 +64,13 @@ bool SifiveUART::Read(uint32_t offset, uint8_t size, uint64_t& data)
 			data = rxctrl_;
 			break;
 		case 0x10: // ie
+			data = ie_;
+			break;
 		case 0x14: // ip
-		case 0x18: // div
 			UNIMPLEMENTED;
+		case 0x18: // div
+			data = div_;
+			break;
 		default:
 			UNEXPECTED;
 	}
@@ -91,9 +95,13 @@ bool SifiveUART::Write(uint32_t offset, uint8_t size, uint64_t data)
 			rxctrl_ = data;
 			break;
 		case 0x10: // ie
+			ie_ = data;
+			break;
 		case 0x14: // ip
-		case 0x18: // div
 			UNIMPLEMENTED;
+		case 0x18: // div
+			div_ = data;
+			break;
 		default:
 			UNEXPECTED;
 	}

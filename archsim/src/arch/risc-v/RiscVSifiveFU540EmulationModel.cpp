@@ -17,14 +17,9 @@ using namespace archsim::arch::riscv;
 
 UseLogContext(LogEmulationModelRiscVSystem)
 
-RiscVSifiveFU540EmulationModel::RiscVSifiveFU540EmulationModel() : LinuxSystemEmulationModel(1)
+RiscVSifiveFU540EmulationModel::RiscVSifiveFU540EmulationModel() : RiscVSystemEmulationModel(64)
 {
 
-}
-
-gensim::DecodeContext* RiscVSifiveFU540EmulationModel::GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu)
-{
-	return new archsim::arch::riscv::RiscVDecodeContext(cpu.GetArch());
 }
 
 bool RiscVSifiveFU540EmulationModel::Initialise(System& system, archsim::uarch::uArch& uarch)
@@ -60,28 +55,6 @@ void RiscVSifiveFU540EmulationModel::DestroyDevices()
 
 }
 
-ExceptionAction RiscVSifiveFU540EmulationModel::HandleException(archsim::core::thread::ThreadInstance* cpu, uint64_t category, uint64_t data)
-{
-	// trigger exception in CPU
-	cpu->GetArch().GetISA("riscv").GetBehaviours().GetBehaviour("riscv_take_exception").Invoke(cpu, {category, data});
-	return ExceptionAction::AbortInstruction;
-}
-
-ExceptionAction RiscVSifiveFU540EmulationModel::HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
-{
-	// Exception set up by MMU
-	return ExceptionAction::AbortInstruction;
-}
-
-void RiscVSifiveFU540EmulationModel::HandleInterrupt(archsim::core::thread::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq)
-{
-	LC_DEBUG1(LogEmulationModelRiscVSystem) << "Interrupt taken at PC " << thread->GetPC();
-
-	// trigger interrupt on CPU
-	uint64_t ecause = 0x8000000000000000ULL | (irq->Line());
-	HandleException(thread, ecause, 0);
-}
-
 
 bool RiscVSifiveFU540EmulationModel::InstallDevices()
 {
@@ -109,6 +82,7 @@ bool RiscVSifiveFU540EmulationModel::InstallPlatformDevices()
 	// CLINT
 	auto clint = new archsim::abi::devices::riscv::SifiveCLINT(*this, Address(0x2000000));
 	clint->SetParameter("Hart0", main_thread_);
+	clint->Initialise();
 	RegisterMemoryComponent(*clint);
 
 	// PLIC
@@ -116,9 +90,13 @@ bool RiscVSifiveFU540EmulationModel::InstallPlatformDevices()
 	plic->SetParameter("Hart0", main_thread_);
 	RegisterMemoryComponent(*plic);
 
-	auto uart = new archsim::abi::devices::riscv::SifiveUART(*this, Address(0x10010000));
-	uart->SetParameter("SerialPort", new archsim::abi::devices::ConsoleOutputSerialPort());
-	RegisterMemoryComponent(*uart);
+	auto uart0 = new archsim::abi::devices::riscv::SifiveUART(*this, Address(0x10010000));
+	uart0->SetParameter("SerialPort", new archsim::abi::devices::ConsoleOutputSerialPort());
+	RegisterMemoryComponent(*uart0);
+
+	auto uart1 = new archsim::abi::devices::riscv::SifiveUART(*this, Address(0x10011000));
+	uart1->SetParameter("SerialPort", new archsim::abi::devices::ConsoleOutputSerialPort());
+	RegisterMemoryComponent(*uart1);
 
 	return true;
 }

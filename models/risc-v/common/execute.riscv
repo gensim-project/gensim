@@ -665,7 +665,7 @@ execute(csrrwi)
 		csr = read_csr(inst.csr);
 	}
 	
-	typename word_t reg = inst.rs1;
+	typename word_t reg = inst.imm;
 	write_csr(inst.csr, reg);
 	
 	if(inst.rd != 0) {
@@ -675,22 +675,22 @@ execute(csrrwi)
 
 execute(csrrsi)
 {
-	if(inst.rs1) {
+	if(inst.imm) {
 		typename word_t csr = read_csr(inst.csr);
 		write_register_bank(GPR, inst.rd, csr);
 		
-		csr |= inst.rs1;
+		csr |= inst.imm;
 		write_csr(inst.csr, csr);
 	}
 }
 
 execute(csrrci)
 {
-	if(inst.rs1) {
+	if(inst.imm) {
 		typename word_t csr = read_csr(inst.csr);
 		write_register_bank(GPR, inst.rd, csr);
 		
-		csr &= ~inst.rs1;
+		csr &= ~inst.imm;
 		write_csr(inst.csr, csr);
 	}
 }

@@ -43,12 +43,17 @@ namespace archsim
 				virtual bool Write64(uint32_t address, uint64_t data);
 
 				void MachinePendInterrupt(uint64_t mask);
+				void MachineUnpendInterrupt(uint64_t mask);
 
 				void CheckForInterrupts();
 
 				void WriteMSTATUS(uint64_t data);
 				uint64_t ReadMSTATUS();
 
+				bool GetMTIE() const
+				{
+					return (MIE >> 7) & 1;
+				}
 
 
 			private:

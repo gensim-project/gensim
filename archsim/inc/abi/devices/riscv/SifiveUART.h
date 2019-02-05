@@ -35,7 +35,7 @@ namespace archsim
 					bool EnqueueChar(char c);
 
 				private:
-					uint32_t txctrl_, rxctrl_;
+					uint32_t txctrl_, rxctrl_, ie_, div_;
 
 					COMPONENT_PARAMETER_ENTRY(IRQLine, IRQLine, IRQLine);
 					COMPONENT_PARAMETER_ENTRY(SerialPort, SerialPort, SerialPort);

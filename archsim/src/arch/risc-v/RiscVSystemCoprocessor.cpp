@@ -1,6 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "abi/devices/generic/timing/TickSource.h"
+#include "abi/devices/IRQController.h"
 #include "arch/risc-v/RiscVSystemCoprocessor.h"
 #include "core/thread/ThreadInstance.h"
 #include "util/LogContext.h"
@@ -19,6 +20,9 @@ RiscVSystemCoprocessor::RiscVSystemCoprocessor(archsim::core::thread::ThreadInst
 	SEPC = 0;
 	SCAUSE = 0;
 	STVAL = 0;
+
+	MIP = 0;
+	MIE = 0;
 
 	WriteMSTATUS(0);
 }
@@ -172,8 +176,9 @@ bool RiscVSystemCoprocessor::Read64(uint32_t address, uint64_t& data)
 			return true;
 
 		case 0xc01:
-			// cycle timer
-			data = hart_->GetEmulationModel().GetSystem().GetTickSource()->GetCounter();
+			// real time
+			data = hart_->GetEmulationModel().GetSystem().GetTickSource()->GetCounter() * 1000;
+			LC_DEBUG1(LogRiscVSystem) << "Reading TIME register at PC " << hart_->GetPC() << " -> " << data;
 			break;
 
 		case 0xf14: // Hardware Thread ID
@@ -329,6 +334,23 @@ void RiscVSystemCoprocessor::MachinePendInterrupt(uint64_t mask)
 	CheckForInterrupts();
 }
 
+void RiscVSystemCoprocessor::MachineUnpendInterrupt(uint64_t mask)
+{
+	MIP &= ~mask;
+
+	CheckForInterrupts();
+}
+
+static int get_pending_interrupt(uint64_t bits)
+{
+	for(int i = 0; i < 32; ++i) {
+		if(bits & (1 << i)) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 void RiscVSystemCoprocessor::CheckForInterrupts()
 {
 	uint8_t priv_mode = hart_->GetExecutionRing();
@@ -336,12 +358,19 @@ void RiscVSystemCoprocessor::CheckForInterrupts()
 	// M mode interrupts enabled if privilege < M, or if priv == M and MIE
 	if(priv_mode < 3 || (priv_mode == 3 && STATUS.MIE)) {
 		// M mode interrupts are enabled, check for a machine mode interrupt
+		auto machmode_interrupts_pending = MIP & MIE & ~MIDELEG;
 
 		// a machine mode interrupt is pending if MIE & MIP & ~MIDELEG
 		// i.e., an interrupt is enabled, and pending, and the interrupt is not delegated
-		if(MIE & MIP & ~MIDELEG) {
-			// figure out which interrupt should be taken and service it in M mode
-			UNIMPLEMENTED;
+		if(machmode_interrupts_pending) {
+			// assert all pending interrupts, deassert all nonpending interrupts
+			for(int i = 0; i < 32; ++i) {
+				if(machmode_interrupts_pending & (1 << i)) {
+					hart_->GetIRQLine(i)->Assert();
+				} else {
+					hart_->GetIRQLine(i)->Rescind();
+				}
+			}
 
 			// done.
 			return;
