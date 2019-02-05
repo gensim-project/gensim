@@ -85,6 +85,13 @@ helper typename word_t riscv_csr_get_medeleg()
 	return data;
 }
 
+helper typename word_t riscv_csr_get_mideleg()
+{
+	uint64 data;
+	read_device64(0, 0x303, data);
+	return data;
+}
+
 helper typename word_t riscv_csr_get_mtvec()
 {
 	uint64 data;

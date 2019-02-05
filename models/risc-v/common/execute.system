@@ -29,6 +29,12 @@ helper void riscv_reset() export
 
 helper void riscv_mret() noinline
 {
+	// make sure we have permission to mret (must be in machmode == 3)
+	if(riscv_get_machmode() != 3) {
+		// we should illegal instruction, but for now just trap
+		trap();
+	}
+
 	// determine which mode to return to
 	uint64 mstatus = riscv_csr_get_mstatus();
 	uint8 mpp = riscv_mstatus_get_mpp(mstatus);
@@ -54,6 +60,12 @@ helper void riscv_mret() noinline
 
 helper void riscv_sret() noinline
 {
+	// make sure we have permission to sret (must be in machmode >= 1)
+	if(riscv_get_machmode() == 0) {
+		// we should illegal instruction, but for now just trap
+		trap();
+	}
+
 	// determine which mode to return to
 	uint64 sstatus = riscv_csr_get_sstatus();
 	uint8 spp = riscv_mstatus_get_spp(sstatus);
@@ -113,8 +125,14 @@ helper void riscv_trap_supervisor(typename sword_t cause, typename word_t tval) 
 {
 	// read medeleg to determine if this exception can be delegated
 	// todo: what if this is an interrupt?
-	typename word_t medeleg = riscv_csr_get_medeleg();
-	if(medeleg & (1 << cause)) {
+	typename word_t mdelegation;
+	if(cause < 0) {
+		mdelegation = riscv_csr_get_mideleg();
+	} else {
+		mdelegation = riscv_csr_get_medeleg();
+	}
+	
+	if(mdelegation & (1 << cause)) {
 		// delegate this trap to S mode
 		uint8 is_interrupt = cause < 0;
 		typename word_t bare_cause = (cause << 1) >> 1;

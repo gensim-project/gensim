@@ -122,6 +122,9 @@ uint32_t BaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *data, in
 				case 4:
 					*((uint32_t *)data) = device_data;
 					break;
+				case 8:
+					*((uint64_t *)data) = device_data;
+					break;
 				default:
 					assert(false && "Invalid device read size");
 			}

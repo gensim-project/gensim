@@ -39,6 +39,8 @@ bool RiscVSystemEmulationModel::PrepareCore(archsim::core::thread::ThreadInstanc
 
 ExceptionAction RiscVSystemEmulationModel::HandleException(archsim::core::thread::ThreadInstance* cpu, uint64_t category, uint64_t data)
 {
+	LC_DEBUG1(LogEmulationModelRiscVSystem) << "Exception " << category << " " << data << " taken at PC " << cpu->GetPC();
+
 	// trigger exception in CPU
 	cpu->GetArch().GetISA("riscv").GetBehaviours().GetBehaviour("riscv_take_exception").Invoke(cpu, {category, data});
 	return ExceptionAction::AbortInstruction;

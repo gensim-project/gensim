@@ -84,6 +84,7 @@ public:
 		// CLINT
 		auto clint = new archsim::abi::devices::riscv::SifiveCLINT(*this, Address(0x2000000));
 		clint->SetParameter("Hart0", main_thread_);
+		clint->Initialise();
 		RegisterMemoryComponent(*clint);
 
 		// PLIC
