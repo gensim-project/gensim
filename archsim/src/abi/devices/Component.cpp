@@ -116,6 +116,16 @@ template<> void ComponentDescriptorInstance::SetParameter(const std::string& par
 	*cptr = value;
 }
 
+template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, std::string value)
+{
+	assert(GetDescriptor().HasParameter(parameter));
+	assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_String);
+	void *ptr = GetParameterPointer(parameter);
+	std::string *cptr = (std::string*)ptr;
+
+	*cptr = value;
+}
+
 // Fix for gcc <7
 namespace archsim
 {
@@ -148,6 +158,14 @@ namespace archsim
 				assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_U64);
 				void *ptr = GetParameterPointer(parameter);
 				return *(uint64_t*)ptr;
+			}
+
+			template<> std::string ComponentDescriptorInstance::GetParameter(const std::string &parameter) const
+			{
+				assert(GetDescriptor().HasParameter(parameter));
+				assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_String);
+				void *ptr = GetParameterPointer(parameter);
+				return *(std::string*)ptr;
 			}
 
 		}
@@ -188,7 +206,7 @@ template<> void Component::SetParameter(const std::string &parameter, archsim::a
 }
 #undef CASTTOCOMPONENT
 
-MemoryComponent::MemoryComponent(EmulationModel &model, Address _base_address, uint32_t _size) : base_address(_base_address), size(_size), parent_model(model)
+MemoryComponent::MemoryComponent(EmulationModel &model, Address _base_address, uint32_t _size) : base_address_(_base_address), size_(_size), parent_model_(model)
 {
 
 }

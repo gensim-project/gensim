@@ -193,6 +193,10 @@ public:
 	{
 		return _block_devices.at(name);
 	}
+	inline bool HasBlockDevice(const std::string &name)
+	{
+		return _block_devices.count(name);
+	}
 
 	inline archsim::module::ModuleManager &GetModuleManager()
 	{

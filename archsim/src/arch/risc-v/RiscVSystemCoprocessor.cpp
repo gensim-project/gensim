@@ -12,17 +12,31 @@ using namespace archsim::arch::riscv;
 
 RiscVSystemCoprocessor::RiscVSystemCoprocessor(archsim::core::thread::ThreadInstance* hart, RiscVMMU* mmu) : hart_(hart), mmu_(mmu)
 {
-	MEDELEG = 0;
-	MIDELEG = 0;
+	MTVEC = 0;
+	MSCRATCH = 0;
+	MEPC = 0;
+	MCAUSE = 0;
+	MTVAL = 0;
 
+	MIE = 0;
+	MIP = 0;
+
+	MIDELEG = 0;
+	MEDELEG = 0;
+
+	SIDELEG = 0;
+	SEDELEG = 0;
+	SIE = 0;
 	STVEC = 0;
-	SCOUNTEREN = 0;
+
+	SSCRATCH = 0;
 	SEPC = 0;
 	SCAUSE = 0;
 	STVAL = 0;
+	SIP = 0;
 
-	MIP = 0;
-	MIE = 0;
+	MCOUNTEREN = 0;
+	SCOUNTEREN = 0;
 
 	WriteMSTATUS(0);
 }
