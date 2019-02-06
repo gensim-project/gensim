@@ -87,10 +87,10 @@ uint32_t PL050::ReadRegister(MemoryRegister& reg)
 
 		return stat;
 	} else if (reg == KMIDATA) {
-		LC_DEBUG1(LogPL050) << std::hex << base_address << "Reading data register: Pending=" << GetPS2()->DataPending() << ", Last=" << last;
+		LC_DEBUG1(LogPL050) << std::hex << GetBaseAddress() << "Reading data register: Pending=" << GetPS2()->DataPending() << ", Last=" << last;
 		if (GetPS2()->DataPending()) {
 			last = GetPS2()->Read();
-			LC_DEBUG1(LogPL050) << std::hex << base_address << "Reading data register: New Data=" << last;
+			LC_DEBUG1(LogPL050) << std::hex << GetBaseAddress() << "Reading data register: New Data=" << last;
 		}
 		return last;
 	} else if (reg == KMIIR) {

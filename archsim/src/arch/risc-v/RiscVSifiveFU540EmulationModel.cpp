@@ -8,6 +8,7 @@
 #include "abi/devices/riscv/SifiveCLINT.h"
 #include "abi/devices/riscv/SifivePLIC.h"
 #include "abi/devices/riscv/SifiveUART.h"
+#include "abi/devices/virtio/VirtIOBlock.h"
 #include "module/ModuleManager.h"
 #include "util/ComponentManager.h"
 #include "system.h"
@@ -33,6 +34,7 @@ bool RiscVSifiveFU540EmulationModel::Initialise(System& system, archsim::uarch::
 	}
 
 	GetMemoryModel().GetMappingManager()->MapRegion(Address(0x10000), 0x8000, archsim::abi::memory::RegFlagReadWriteExecute, "ROM");
+	GetMemoryModel().GetMappingManager()->MapRegion(Address(0x10000000), 0x1000, archsim::abi::memory::RegFlagReadWriteExecute, "PRCI");
 	GetMemoryModel().GetMappingManager()->MapRegion(Address(0x80000000), 512 * 1024 * 1024, archsim::abi::memory::RegFlagReadWriteExecute, "DRAM");
 
 	// load device tree
@@ -88,6 +90,7 @@ bool RiscVSifiveFU540EmulationModel::InstallPlatformDevices()
 	// PLIC
 	auto plic = new archsim::abi::devices::riscv::SifivePLIC(*this, Address(0x0c000000));
 	plic->SetParameter("Hart0", main_thread_);
+	plic->SetParameter("HartConfig", std::string("MS"));
 	RegisterMemoryComponent(*plic);
 
 	auto uart0 = new archsim::abi::devices::riscv::SifiveUART(*this, Address(0x10010000));
@@ -97,6 +100,12 @@ bool RiscVSifiveFU540EmulationModel::InstallPlatformDevices()
 	auto uart1 = new archsim::abi::devices::riscv::SifiveUART(*this, Address(0x10011000));
 	uart1->SetParameter("SerialPort", new archsim::abi::devices::ConsoleOutputSerialPort());
 	RegisterMemoryComponent(*uart1);
+
+	// VirtIO Block device
+	if(GetSystem().HasBlockDevice("vda")) {
+		devices::virtio::VirtIOBlock *vbda = new devices::virtio::VirtIOBlock(*this, *plic->RegisterSource(35), Address(0x2000000000), "virtio-block-a", *GetSystem().GetBlockDevice("vda"));
+		RegisterMemoryComponent(*vbda);
+	}
 
 	return true;
 }

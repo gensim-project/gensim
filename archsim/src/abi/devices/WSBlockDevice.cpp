@@ -100,7 +100,7 @@ bool WSBlockDevice::HandleOp(uint32_t op_idx)
 bool WSBlockDevice::HandleRFH()
 {
 	host_addr_t buffer;
-	parent_model.GetMemoryModel().LockRegion(GetBaseAddress()+0x1000, bopcount * bdev.GetBlockSize(), buffer);
+	GetParentModel().GetMemoryModel().LockRegion(GetBaseAddress()+0x1000, bopcount * bdev.GetBlockSize(), buffer);
 	bdev.ReadBlocks(bindex, bopcount, (uint8_t*)buffer);
 	return true;
 }
@@ -108,7 +108,7 @@ bool WSBlockDevice::HandleRFH()
 bool WSBlockDevice::HandleWTH()
 {
 	host_addr_t buffer;
-	parent_model.GetMemoryModel().LockRegion(GetBaseAddress()+0x1000, bopcount * bdev.GetBlockSize(), buffer);
+	GetParentModel().GetMemoryModel().LockRegion(GetBaseAddress()+0x1000, bopcount * bdev.GetBlockSize(), buffer);
 	bdev.WriteBlocks(bindex, bopcount, (uint8_t*)buffer);
 	return true;
 }

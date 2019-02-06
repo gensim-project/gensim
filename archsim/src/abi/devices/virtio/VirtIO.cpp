@@ -152,7 +152,7 @@ void VirtIO::WriteRegister(MemoryRegister& reg, uint32_t value)
 			VirtQueue *cq = GetCurrentQueue();
 
 			host_addr_t queue_host_addr;
-			if (!parent_model.GetMemoryModel().LockRegion(Address(queue_phys_addr), 0x2000, queue_host_addr))
+			if (!GetParentModel().GetMemoryModel().LockRegion(Address(queue_phys_addr), 0x2000, queue_host_addr))
 				assert(false);
 
 			cq->SetBaseAddress(queue_phys_addr, queue_host_addr);
@@ -203,7 +203,7 @@ void VirtIO::ProcessQueue(VirtQueue *queue)
 		do {
 			LC_DEBUG1(LogVirtIO) << "[" << GetName() << "] Processing descriptor " << descr->flags << std::hex << " " << descr->paddr << " " << descr->len;
 			host_addr_t descr_host_addr;
-			if (!parent_model.GetMemoryModel().LockRegion(Address(descr->paddr), descr->len, descr_host_addr))
+			if (!GetParentModel().GetMemoryModel().LockRegion(Address(descr->paddr), descr->len, descr_host_addr))
 				assert(false);
 
 			if (descr->flags & 2) {

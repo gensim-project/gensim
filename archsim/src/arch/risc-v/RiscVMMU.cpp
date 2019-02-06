@@ -181,7 +181,7 @@ MMU::TranslateResult RiscVMMU::Translate(archsim::core::thread::ThreadInstance* 
 			} else {
 				cause = 13;
 			}
-			cpu->GetEmulationModel().HandleException(cpu, cause, 0);
+			cpu->GetEmulationModel().HandleException(cpu, cause, virt_addr.Get());
 			return MMU::TXLN_FAULT_PAGE;
 		}
 	}
