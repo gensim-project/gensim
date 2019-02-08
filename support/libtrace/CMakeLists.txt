@@ -16,6 +16,7 @@ SET_TARGET_PROPERTIES(trace
 		CXX_STANDARD_REQUIRED YES
 		POSITION_INDEPENDENT_CODE ON
 )
+standard_flags(trace)
 
 function(add_trace_tool tool-name)
 	ADD_EXECUTABLE(${tool-name} ${ARGN})
