@@ -56,7 +56,7 @@ DefineLongFlag(SuppressTracing, "suppress-tracing");
 
 DefineLongFlag(InstructionTick, "instruction-tick");
 
-DefineLongRequiredArgument(uint32_t, TickScale, "tick-scale");
+DefineLongRequiredArgument(float, TickScale, "tick-scale");
 
 DefineLongRequiredArgument(std::string, JitInterruptScheme, "icp");
 DefineLongRequiredArgument(std::string, JitEngine, "engine");
