@@ -16,11 +16,14 @@ using namespace libtrace;
 
 std::ostream &operator<<(std::ostream &str, const libtrace::RecordReader::DataReader &reader)
 {
-	str << "0x";
+	auto flags = str.flags();
+
+	str << std::setw(0) << "0x";
 	for(int32_t i = reader.GetExtensionCount()-1; i >= 0; --i) {
 		str << std::hex << std::setw(8) << std::setfill('0') << reader.GetExtension(i);
 	}
 	str << std::hex << std::setw(8) << std::setfill('0') << reader.AsU32();
 
+	str.flags(flags);
 	return str;
 }
