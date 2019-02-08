@@ -61,7 +61,7 @@ bool SifiveCLINT::Write(uint32_t offset, uint8_t size, uint64_t data)
 {
 	switch(offset) {
 		case 0x0: // MSIP0
-			SetMIP(GetHart(0), data & 1);
+			SetMSIP(GetHart(0), data & 1);
 			break;
 		case 0x4: // MSIP1
 		case 0x8: // MSIP2
@@ -100,10 +100,13 @@ archsim::arch::riscv::RiscVSystemCoprocessor* SifiveCLINT::GetCoprocessor(int i)
 }
 
 
-void SifiveCLINT::SetMIP(archsim::core::thread::ThreadInstance* thread, bool P)
+void SifiveCLINT::SetMSIP(archsim::core::thread::ThreadInstance* thread, bool P)
 {
 	auto peripheral = thread->GetPeripherals().GetDevice(0);
 	auto coproc = (archsim::arch::riscv::RiscVSystemCoprocessor *)peripheral;
+
+	LC_DEBUG1(LogRiscVCLINT) << "Setting MSIP for thread " << 0 << " to " << P;
+
 	if(P) {
 		coproc->MachinePendInterrupt(1 << 3);
 	} else {

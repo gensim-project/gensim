@@ -108,6 +108,9 @@ bool System::Initialise()
 void System::Destroy()
 {
 	LC_DEBUG1(LogSystem) << "Destroying system";
+	if(GetTickSource()) {
+		GetTickSource()->Stop();
+	}
 
 	if(GetECM().GetTraceSink()) {
 		GetECM().GetTraceSink()->Flush();

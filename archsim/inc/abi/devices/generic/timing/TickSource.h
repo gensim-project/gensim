@@ -14,6 +14,7 @@
 #include "util/PubSubSync.h"
 
 #include <cstdint>
+#include <mutex>
 #include <unordered_set>
 
 namespace archsim
@@ -35,6 +36,9 @@ namespace archsim
 					void AddConsumer(TickConsumer &consumer);
 					void RemoveConsumer(TickConsumer &consumer);
 
+					void Start();
+					void Stop();
+
 					inline uint64_t GetCounter()
 					{
 						return tick_count_;
@@ -46,8 +50,10 @@ namespace archsim
 					uint64_t tick_count_;
 					float microticks_;
 					float microtick_scale_;
+					bool running_;
 
 				private:
+					std::mutex consumers_lock_;
 					std::unordered_set<TickConsumer*> consumers;
 				};
 

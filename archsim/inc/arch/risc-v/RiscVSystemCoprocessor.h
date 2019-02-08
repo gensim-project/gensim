@@ -13,6 +13,8 @@
 #include "arch/risc-v/RiscVMMU.h"
 #include "abi/devices/Device.h"
 
+#include <mutex>
+
 namespace archsim
 {
 	namespace arch
@@ -114,6 +116,7 @@ namespace archsim
 
 				archsim::core::thread::ThreadInstance *hart_;
 				RiscVMMU *mmu_;
+				std::recursive_mutex lock_;
 			};
 		}
 	}

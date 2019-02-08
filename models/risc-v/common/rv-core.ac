@@ -43,7 +43,7 @@ AC_ISA(riscv)
 
 	ac_instr<Type_S> sb,sh,sw;
 
-	ac_instr<Type_R> add,sub,sll,slt,sltu,xor,srl,sra,or,and, uret, sret, mret;
+	ac_instr<Type_R> add,sub,sll,slt,sltu,xor,srl,sra,or,and, uret, sret, mret, wfi;
 
 	ac_instr<Type_FENCE> fence,fencei;
 
@@ -112,7 +112,7 @@ AC_ISA(riscv)
 	ac_behaviour csrrwi;
 	ac_behaviour csrrsi;
 	ac_behaviour csrrci;
-	ac_behaviour uret, sret, mret;
+	ac_behaviour uret, sret, mret, wfi;
 
 /*** End of ac_behaviour declarations***/
 
@@ -362,5 +362,8 @@ AC_ISA(riscv)
 		uret.set_behaviour(uret);
 		uret.set_end_of_block();
 		uret.set_variable_jump();
+		
+		wfi.set_decoder(funct7 = 0x08, rs2 = 0x5, rd=0, rs1=0, funct3=0, opcode=0x73);
+		wfi.set_behaviour(wfi);
 	};
 };

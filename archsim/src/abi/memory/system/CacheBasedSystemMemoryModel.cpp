@@ -180,13 +180,8 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 {
 	bool unaligned = false;
 	if(UNLIKELY(archsim::options::MemoryCheckAlignment)) {
-		switch(size) {
-			case 2:
-				if(virt_addr.Get() & 0x1) unaligned = true;
-				break;
-			case 4:
-				if(virt_addr.Get() & 0x3) unaligned = true;
-				break;
+		if(virt_addr.Get() & (size-1)) {
+			unaligned = true;
 		}
 	}
 	if(unaligned) {
@@ -235,6 +230,9 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 					case 4:
 						*(uint32_t*)data = zdata;
 						break;
+					case 8:
+						*(uint64_t*)data = zdata;
+						break;
 					default:
 						assert(false);
 				}
@@ -255,6 +253,9 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 			break;
 		case 4:
 			*(uint32_t*)data = *(uint32_t*)(page_base + va.GetPageOffset());
+			break;
+		case 8:
+			*(uint64_t*)data = *(uint64_t*)(page_base + va.GetPageOffset());
 			break;
 		default:
 			assert(false);
@@ -301,6 +302,9 @@ uint32_t CacheBasedSystemMemoryModel::Fetch(guest_addr_t virt_addr, uint8_t *dat
 			case 4:
 				if(virt_addr.Get() & 0x3) unaligned = true;
 				break;
+			case 8:
+				if(virt_addr.Get() & 0x7) unaligned = true;
+				break;
 		}
 	}
 	if(unaligned) {
@@ -331,6 +335,9 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 				break;
 			case 4:
 				if(virt_addr.Get() & 0x3) unaligned = true;
+				break;
+			case 8:
+				if(virt_addr.Get() & 0x7) unaligned = true;
 				break;
 		}
 	}
@@ -383,6 +390,9 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 				case 4:
 					device->Write(virt_addr.Get(), size, *(uint32_t*)data);
 					break;
+				case 8:
+					device->Write(virt_addr.Get(), size, *(uint64_t*)data);
+					break;
 				default:
 					assert(false);
 			}
@@ -404,6 +414,9 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 			break;
 		case 4:
 			*(uint32_t*)(page_base + va.GetPageOffset()) = *(uint32_t*)data;
+			break;
+		case 8:
+			*(uint64_t*)(page_base + va.GetPageOffset()) = *(uint64_t*)data;
 			break;
 		default:
 			assert(false);

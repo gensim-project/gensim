@@ -710,6 +710,11 @@ execute(uret)
 	trap();
 }
 
+execute(wfi)
+{
+	// nothing for now
+}
+
 //////////////////////Enveironment Instructions./////////////////////////////////
 execute(ecall)
 {

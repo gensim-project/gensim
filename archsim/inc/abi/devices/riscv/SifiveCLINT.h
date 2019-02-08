@@ -65,7 +65,7 @@ namespace archsim
 					archsim::arch::riscv::RiscVSystemCoprocessor *GetCoprocessor(int i);
 				private:
 
-					void SetMIP(archsim::core::thread::ThreadInstance *thread, bool P);
+					void SetMSIP(archsim::core::thread::ThreadInstance *thread, bool P);
 
 					COMPONENT_PARAMETER_THREAD(Hart0);
 
