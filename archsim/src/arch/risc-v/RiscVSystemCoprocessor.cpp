@@ -212,7 +212,9 @@ bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 	LC_DEBUG1(LogRiscVSystem) << "CSR Write 0x" << std::hex << address << " <- 0x" << std::hex << data;
 	switch(address) {
 		case 0x100:
+			LC_DEBUG1(LogRiscVSystem) << "Writing SSTATUS=" << Address(data);
 			STATUS.WriteSSTATUS(data);
+			CheckForInterrupts();
 			break;
 
 		case 0x104:
@@ -253,6 +255,7 @@ bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 
 		case 0x300: // MSTATUS
 			WriteMSTATUS(data);
+			CheckForInterrupts();
 			break;
 
 		case 0x301: // MISA
@@ -268,6 +271,7 @@ bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 			break;
 
 		case 0x304:
+			LC_DEBUG1(LogRiscVSystem) << "MIE set to " << Address(data);
 			MIE = data;
 			break;
 
@@ -296,6 +300,7 @@ bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 			break;
 
 		case 0x344:
+			LC_DEBUG1(LogRiscVSystem) << "MIP set to " << Address(data);
 			MIP = data;
 			break;
 
@@ -343,6 +348,7 @@ bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 
 void RiscVSystemCoprocessor::MachinePendInterrupt(uint64_t mask)
 {
+	std::lock_guard<std::recursive_mutex> lock(lock_);
 	MIP |= mask;
 
 	CheckForInterrupts();
@@ -350,6 +356,7 @@ void RiscVSystemCoprocessor::MachinePendInterrupt(uint64_t mask)
 
 void RiscVSystemCoprocessor::MachineUnpendInterrupt(uint64_t mask)
 {
+	std::lock_guard<std::recursive_mutex> lock(lock_);
 	MIP &= ~mask;
 
 	CheckForInterrupts();
@@ -367,6 +374,8 @@ static int get_pending_interrupt(uint64_t bits)
 
 void RiscVSystemCoprocessor::CheckForInterrupts()
 {
+	std::lock_guard<std::recursive_mutex> lock(lock_);
+
 	uint8_t priv_mode = hart_->GetExecutionRing();
 	// check for M mode interrupts
 	// M mode interrupts enabled if privilege < M, or if priv == M and MIE
@@ -374,21 +383,24 @@ void RiscVSystemCoprocessor::CheckForInterrupts()
 		// M mode interrupts are enabled, check for a machine mode interrupt
 		auto machmode_interrupts_pending = MIP & MIE & ~MIDELEG;
 
+		if(machmode_interrupts_pending) {
+			LC_DEBUG1(LogRiscVSystem) << "Some interrupts are pending: " << Address(machmode_interrupts_pending);
+		}
+
 		// a machine mode interrupt is pending if MIE & MIP & ~MIDELEG
 		// i.e., an interrupt is enabled, and pending, and the interrupt is not delegated
-		if(machmode_interrupts_pending) {
-			// assert all pending interrupts, deassert all nonpending interrupts
-			for(int i = 0; i < 32; ++i) {
-				if(machmode_interrupts_pending & (1 << i)) {
-					hart_->GetIRQLine(i)->Assert();
-				} else {
-					hart_->GetIRQLine(i)->Rescind();
-				}
+		// assert all pending interrupts, deassert all nonpending interrupts
+		for(int i = 0; i < 32; ++i) {
+			if(machmode_interrupts_pending & (1 << i)) {
+				hart_->GetIRQLine(i)->Assert();
+			} else {
+				hart_->GetIRQLine(i)->Rescind();
 			}
-
-			// done.
-			return;
 		}
+
+		// done.
+		return;
+
 	}
 
 	// check for S mode interrupts
@@ -506,11 +518,15 @@ void RiscVSystemCoprocessor::STATUS_t::WriteSSTATUS(uint64_t data)
 
 uint64_t RiscVSystemCoprocessor::ReadMSTATUS()
 {
+	std::lock_guard<std::recursive_mutex> lock(lock_);
 	return STATUS.ReadMSTATUS();
 }
 
 void RiscVSystemCoprocessor::WriteMSTATUS(uint64_t data)
 {
+	LC_DEBUG1(LogRiscVSystem) << "MSTATUS set to " << Address(data);
+
+	std::lock_guard<std::recursive_mutex> lock(lock_);
 	STATUS.WriteMSTATUS(data);
 }
 

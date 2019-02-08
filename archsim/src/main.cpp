@@ -88,6 +88,8 @@ static int run_simple_simulation(archsim::Session& session)
 	// Store a pointer to the system object, and start the simulation.
 	signals_register(simsys);
 
+	simsys->GetTickSource()->Start();
+
 	simsys->RunSimulation();
 	int rc = simsys->exit_code;
 
@@ -95,6 +97,7 @@ static int run_simple_simulation(archsim::Session& session)
 		simsys->PrintStatistics(std::cout);
 	}
 
+	simsys->GetTickSource()->Stop();
 	// Destroy System after simulation to clean up resources
 	simsys->Destroy();
 

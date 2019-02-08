@@ -83,30 +83,10 @@ helper void riscv_sret() noinline
 	// enter previous machmode
 	riscv_set_machmode(spp);
 	
-	// set PC to mepc
+	// set PC to sepc
 	write_register(PC, riscv_csr_get_sepc());
 	
 	return;
-}
-
-helper typename word_t riscv_trap_machine_edelegate_mask() {
-	// disallow delegation of any exceptions
-	return 0;
-}
-
-helper typename word_t riscv_trap_machine_idelegate_mask() {
-	// disallow delegation of any interrupts
-	return 0;
-}
-
-helper typename word_t riscv_trap_supervisor_edelegate_mask() {
-	// disallow delegation of any exceptions
-	return 0;
-}
-
-helper typename word_t riscv_trap_supervisor_idelegate_mask() {
-	// disallow delegation of any interrupts
-	return 0;
 }
 
 helper void riscv_trap_user(typename sword_t cause, typename word_t tval) noinline
@@ -123,19 +103,19 @@ helper void riscv_trap_user(typename sword_t cause, typename word_t tval) noinli
 
 helper void riscv_trap_supervisor(typename sword_t cause, typename word_t tval) noinline export
 {
-	// read medeleg to determine if this exception can be delegated
-	// todo: what if this is an interrupt?
+	// read mdeleg to determine if this exception can be delegated
 	typename word_t mdelegation;
-	if(cause < 0) {
+	uint8 is_interrupt = cause < 0;
+	typename word_t bare_cause = (cause << 1) >> 1;
+	
+	if(is_interrupt) {
 		mdelegation = riscv_csr_get_mideleg();
 	} else {
 		mdelegation = riscv_csr_get_medeleg();
 	}
 	
-	if(mdelegation & (1 << cause)) {
+	if(mdelegation & (1 << bare_cause)) {
 		// delegate this trap to S mode
-		uint8 is_interrupt = cause < 0;
-		typename word_t bare_cause = (cause << 1) >> 1;
 		
 		// update SEPC
 		riscv_csr_set_sepc(read_pc());
@@ -154,11 +134,22 @@ helper void riscv_trap_supervisor(typename sword_t cause, typename word_t tval) 
 		}
 		write_register(PC, vector);
 		
+		// update SPP
+		typename word_t mstatus = riscv_csr_get_mstatus();
+		mstatus = riscv_mstatus_set_spp(mstatus, riscv_get_machmode());
+		
+		
 		// switch to ring 1
 		riscv_set_machmode(1);
 		
 		// configure interrupts
-		// todo
+		// stack mie onto mpie
+		mstatus = riscv_mstatus_set_spie(mstatus, riscv_mstatus_get_sie(mstatus));
+		mstatus = riscv_mstatus_set_sie(mstatus, 0);
+		
+		// write back modified mstatus
+		riscv_csr_set_mstatus(mstatus);
+		
 		
 		return;
 	} else {
@@ -187,7 +178,7 @@ helper void riscv_trap_machine(typename sword_t cause, typename word_t tval) noi
 	// update MPP
 	typename word_t mstatus = riscv_csr_get_mstatus();
 	mstatus = riscv_mstatus_set_mpp(mstatus, riscv_get_machmode());
-	riscv_csr_set_mstatus(mstatus);
+	
 	
 	// jump to exception handler
 	typename word_t vector_base = riscv_csr_get_mtvec();
@@ -203,7 +194,12 @@ helper void riscv_trap_machine(typename sword_t cause, typename word_t tval) noi
 	riscv_set_machmode(3);
 	
 	// configure interrupts
-	// todo
+	// stack mie onto mpie
+	mstatus = riscv_mstatus_set_mpie(mstatus, riscv_mstatus_get_mie(mstatus));
+	mstatus = riscv_mstatus_set_mie(mstatus, 0);
+	
+	// write back modified mstatus
+	riscv_csr_set_mstatus(mstatus);
 	
 	return;
 }

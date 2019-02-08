@@ -73,6 +73,7 @@ bool RiscVSifiveFU540EmulationModel::InstallCoreDevices()
 
 	main_thread_->GetPeripherals().AttachDevice("coprocessor", 0);
 
+	main_thread_->GetPeripherals().InitialiseDevices();
 
 	return true;
 }

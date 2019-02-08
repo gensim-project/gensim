@@ -4,6 +4,7 @@
 #include "abi/memory/MemoryModel.h"
 #include "core/thread/ThreadInstance.h"
 #include "util/LogContext.h"
+#include "system.h"
 
 using namespace archsim;
 using namespace archsim::arch::riscv;
@@ -124,6 +125,8 @@ void RiscVMMU::SetSATP(uint64_t new_satp)
 		default:
 			UNEXPECTED;
 	}
+
+	Manager->GetEmulationModel()->GetSystem().GetPubSub().Publish(PubSubType::DTlbFullFlush, nullptr);
 }
 
 
@@ -159,15 +162,13 @@ MMU::TranslateResult RiscVMMU::Translate(archsim::core::thread::ThreadInstance* 
 	auto pageinfo = std::get<1>(pteinfo);
 
 	if(pageinfo.Present) {
-		LC_DEBUG1(LogRiscVMMU) << "Page Present";
-
 		// check permissions!
 		phys_addr = pageinfo.phys_addr.PageBase() | (virt_addr & ~pageinfo.mask);
 
 		// check dirty/access bits (should this be done in hardware? configurable?)
 	} else {
 		// page not present
-		LC_DEBUG1(LogRiscVMMU) << "Page NOT Present";
+		LC_DEBUG1(LogRiscVMMU) << "Page not present, VA=" << virt_addr << ", info=" << info;
 
 		// TODO: difference between access fault and page fault
 		if(info.SideEffects) {
@@ -252,6 +253,8 @@ RiscVMMU::PTEInfo RiscVMMU::GetInfoLevel(Address virt_addr, Address table, int l
 
 		if(level < 0) {
 			// TODO: raise a page fault exception
+			UNIMPLEMENTED;
+
 			PageInfo pi;
 			pi.Present = false;
 			return {pte_address, pi};

@@ -41,9 +41,20 @@ ExceptionAction RiscVSystemEmulationModel::HandleException(archsim::core::thread
 {
 	LC_DEBUG1(LogEmulationModelRiscVSystem) << "Exception " << category << " " << data << " taken at PC " << cpu->GetPC();
 
-	// trigger exception in CPU
-	cpu->GetArch().GetISA("riscv").GetBehaviours().GetBehaviour("riscv_take_exception").Invoke(cpu, {category, data});
-	return ExceptionAction::AbortInstruction;
+	// possibly handle special internal exceptions
+	switch(category) {
+		case 1024: { // fence.i
+			cpu->GetPubsub().Publish(PubSubType::FlushTranslations, nullptr);
+			return ExceptionAction::ResumeNext;
+		}
+		default: {
+			// trigger exception in CPU
+			cpu->GetArch().GetISA("riscv").GetBehaviours().GetBehaviour("riscv_take_exception").Invoke(cpu, {category, data});
+			return ExceptionAction::AbortInstruction;
+		}
+	}
+
+
 }
 
 ExceptionAction RiscVSystemEmulationModel::HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)

@@ -81,7 +81,11 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 	pc_ptr_ = GetRegisterFileInterface().GetTaggedSlotPointer<void*>("PC");
 	pc_is_64bit_ = GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC").GetEntrySize() == 8;
 
-	message_waiting_ = false;
+	{
+		std::lock_guard<std::mutex> lock(message_lock_);
+		message_waiting_ = false;
+	}
+
 	trace_source_ = nullptr;
 }
 
