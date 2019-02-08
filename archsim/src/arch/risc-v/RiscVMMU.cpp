@@ -161,15 +161,37 @@ MMU::TranslateResult RiscVMMU::Translate(archsim::core::thread::ThreadInstance* 
 	auto pteinfo = GetInfoLevel(virt_addr, Address(pt_base), GetPTLevels(GetMode())-1);
 	auto pageinfo = std::get<1>(pteinfo);
 
+	bool throw_fault = false;
+	uint32_t fault_type = 0;
+
 	if(pageinfo.Present) {
+		// load PTE and check A/D bits
+		uint64_t pte;
+		GetPhysMem()->Read64(std::get<0>(pteinfo), pte);
+
+		uint8_t A = (pte >> 6) & 1;
+		uint8_t D = (pte >> 7) & 1;
+
+		if(!A) {
+			// throw page fault
+			LC_DEBUG1(LogRiscVMMU) << "Page A clear, VA=" << virt_addr << ", info=" << info;
+			throw_fault = 1;
+		} else if(info.Write && !D) {
+			LC_DEBUG1(LogRiscVMMU) << "Page D clear, VA=" << virt_addr << ", info=" << info;
+			// throw page fault
+			throw_fault = 1;
+		}
+
 		// check permissions!
 		phys_addr = pageinfo.phys_addr.PageBase() | (virt_addr & ~pageinfo.mask);
 
 		// check dirty/access bits (should this be done in hardware? configurable?)
 	} else {
-		// page not present
 		LC_DEBUG1(LogRiscVMMU) << "Page not present, VA=" << virt_addr << ", info=" << info;
+		throw_fault = 1;
+	}
 
+	if(throw_fault) {
 		// TODO: difference between access fault and page fault
 		if(info.SideEffects) {
 			LC_DEBUG1(LogRiscVMMU) << "Triggering exception";
