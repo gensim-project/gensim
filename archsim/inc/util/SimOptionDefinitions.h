@@ -66,7 +66,7 @@ DefineFlag(System, LazyMemoryModelInvalidation, "Uses lazy invalidation for the 
 DefineFlag(System, MemoryCheckAlignment, "Enforce strict alignment on memory accesses", true);
 DefineFlag(System, EnablePerfMap, "Enable Perf-compatible JIT map", false);
 
-DefineIntSetting(System, TickScale, "Scale timer tick length to be x times longer", 1);
+DefineFloatSetting(System, TickScale, "Scale timer tick length to be x times longer", 1);
 
 DefineSetting(System, Mode, "Selects the simulation mode to use", "interp");
 DefineFlag(System, CacheModel, "Enables CPU cache modelling", false);

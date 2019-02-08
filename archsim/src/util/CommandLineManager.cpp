@@ -51,6 +51,12 @@ namespace archsim
 			option.SetValue(str);
 		}
 
+		template<>
+		void SimOptionArgumentDescriptor<float>::Marshal(std::string str)
+		{
+			option.SetValue(strtod(str.c_str(), nullptr));
+		}
+
 		template <>
 		void SimOptionArgumentDescriptor<uint32_t>::Marshal(std::string str)
 		{
