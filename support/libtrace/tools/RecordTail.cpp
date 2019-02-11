@@ -14,6 +14,11 @@ int main(int argc, char **argv)
 {
 	FILE *f;
 
+	if(argc < 3) {
+		printf("Usage: %s [file] [instructions to skip]\n", argv[0]);
+		return 1;
+	}
+
 	if(!strcmp(argv[1], "-")) f = stdin;
 	else f = fopen(argv[1], "r");
 
