@@ -56,6 +56,10 @@ AC_ARCH(riscv32)
 		slot SATP(uint64, 8, 96);
 	}
 
+	ac_regspace(4) {
+		slot LLSC_MONITOR(uint32, 4, 0);
+	}
+
 	ac_regspace(1) {
 		slot MACHMODE (uint8, 1, 0);
 	}

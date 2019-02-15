@@ -1,14 +1,50 @@
+helper typename word_t read_csr(uint32 csr)
+{
+	typename word_t value = 0;
+	switch(csr)
+	{
+		case 0x3: // FCSR
+		{
+			return read_fcsr();
+		}
+		
+		default: {
+			read_device64(0, csr, value);
+			break;
+		}
+	}
+	
+	return value;
+}
+
+helper void write_csr(uint32 csr, typename word_t value)
+{
+	switch(csr)
+	{
+		case 0x3: // FCSR
+		{
+			write_fcsr(value);
+			break;
+		}
+	
+		default:
+		{
+			write_device64(0, csr, value);
+			break;
+		}
+	}
+	return;
+}
+
 /*** MSTATUS ***/
 helper typename word_t riscv_csr_get_mstatus()
 {
-	uint64 data;
-	read_device64(0, 0x300, data);
-	return data;
+	return read_csr(0x300);
 }
 
 helper void riscv_csr_set_mstatus(typename word_t data)
 {
-	write_device64(0, 0x300, data);
+	write_csr(0x300, data);
 	return;
 }
 
@@ -50,10 +86,10 @@ helper typename word_t riscv_mstatus_get_spp(typename word_t mstatus)
 	return (mstatus >> 8) & 1;
 }
 
-helper typename word_t riscv_mstatus_set_spp(typename word_t mstatus, uint8 mpie)
+helper typename word_t riscv_mstatus_set_spp(typename word_t mstatus, uint8 spp)
 {
-	mpie &= 1;
-	return (mstatus & ~(1 << 8)) | (mpie << 8);
+	spp &= 1;
+	return (mstatus & ~(1 << 8)) | (spp << 8);
 }
 
 helper typename word_t riscv_mstatus_get_mie(typename word_t mstatus)
@@ -164,14 +200,12 @@ helper void riscv_csr_set_mip(typename word_t data)
 
 helper typename word_t riscv_csr_get_sstatus()
 {
-	uint64 data;
-	read_device64(0, 0x100, data);
-	return data;
+	return read_csr(0x100);
 }
 
 helper void riscv_csr_set_sstatus(typename word_t data)
 {
-	write_device64(0, 0x100, data);
+	write_csr(0x100, data);
 	return;
 }
 

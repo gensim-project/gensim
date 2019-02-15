@@ -5,6 +5,7 @@ define_model(
 	riscv32/riscv32.ac
 
 	riscv32/riscv32.ac
+	riscv32/riscv32_isa.ac
 	common/behaviours.riscv
 	common/execute.system
 	common/execute.riscv

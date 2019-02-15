@@ -1,5 +1,6 @@
 
 execute(sfence_vma)
 {
-
+	// indicate tlb flush to system model
+	take_exception(1025, 0);
 }
