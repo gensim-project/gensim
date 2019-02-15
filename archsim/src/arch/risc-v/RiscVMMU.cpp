@@ -107,7 +107,9 @@ void RiscVMMU::SetSATP(uint64_t new_satp)
 	uint64_t new_mode = new_satp >> 60;
 
 	page_table_ppn_ = new_pt_ppn;
-	asid_ = new_asid;
+
+	// do not implement asid
+	asid_ = 0;
 
 	switch(new_mode) {
 		case 0:
@@ -148,6 +150,19 @@ MMU::TranslateResult RiscVMMU::Translate(archsim::core::thread::ThreadInstance* 
 {
 	auto satp = GetSATP();
 
+	// read mstatus
+	uint64_t mstatus;
+	Manager->GetDevice(0)->Read64(0x300, mstatus);
+	bool SUM = (mstatus >> 18)  & 1;
+	bool MPRV = (mstatus >> 17)  & 1;
+
+	// if we're in machine mode, look up mprv and adjust access ring
+	if(info.Ring == 3 && !info.Fetch) {
+		if(MPRV) {
+			info.Ring = (mstatus >> 11) & 3;
+		}
+	}
+
 	// No translation in NoTxln mode, or in Machine mode
 	if(GetMode() == NoTxln || info.Ring == 3) {
 		phys_addr = virt_addr;
@@ -183,6 +198,58 @@ MMU::TranslateResult RiscVMMU::Translate(archsim::core::thread::ThreadInstance* 
 		}
 
 		// check permissions!
+		if(info.Ring == 0) {
+			if(info.Fetch && !pageinfo.UserCanExecute) {
+				LC_DEBUG1(LogRiscVMMU) << "User fetch, but user cannot execute this page";
+				throw_fault = 1;
+			}
+			if(!info.Write && !pageinfo.UserCanRead) {
+				LC_DEBUG1(LogRiscVMMU) << "User read, but user cannot read this page";
+				throw_fault = 1;
+			}
+			if(info.Write && !pageinfo.UserCanWrite) {
+				LC_DEBUG1(LogRiscVMMU) << "User write, but user cannot write this page";
+				throw_fault = 1;
+			}
+		} else if(info.Ring == 1) {
+			if(info.Fetch) {
+				if(pageinfo.KernelCanExecute) {
+					// ok
+				} else {
+					if(SUM && pageinfo.UserCanExecute) {
+						// ok
+					} else {
+						LC_DEBUG1(LogRiscVMMU) << "Kernel fetch, but kernel cannot execute this page and !SUM";
+						throw_fault = 1;
+					}
+				}
+			}
+			if(!info.Write) {
+				if(pageinfo.KernelCanRead) {
+					// ok
+				} else {
+					if(SUM && pageinfo.UserCanRead) {
+						// ok
+					} else {
+						LC_DEBUG1(LogRiscVMMU) << "Kernel read, but kernel cannot read this page and !SUM";
+						throw_fault = 1;
+					}
+				}
+			}
+			if(info.Write) {
+				if(pageinfo.KernelCanWrite) {
+					// ok
+				} else {
+					if(SUM && pageinfo.UserCanWrite) {
+						// ok
+					} else {
+						LC_DEBUG1(LogRiscVMMU) << "Kernel write, but kernel cannot write this page and !SUM";
+						throw_fault = 1;
+					}
+				}
+			}
+		}
+
 		phys_addr = pageinfo.phys_addr.PageBase() | (virt_addr & ~pageinfo.mask);
 
 		// check dirty/access bits (should this be done in hardware? configurable?)
@@ -239,13 +306,15 @@ RiscVMMU::PTEInfo RiscVMMU::GetInfoLevel(Address virt_addr, Address table, int l
 
 		PageInfo pi;
 		pi.Present = true;
-		pi.KernelCanRead = pte.GetR();
-		pi.KernelCanWrite = pte.GetW();
-		pi.KernelCanExecute = pte.GetX();
+
 		if(pte.GetU()) {
-			pi.UserCanRead = pi.KernelCanRead;
-			pi.UserCanWrite = pi.KernelCanWrite;
-			pi.UserCanExecute = pi.KernelCanExecute;
+			pi.UserCanRead = pte.GetR();
+			pi.UserCanWrite = pte.GetW();
+			pi.UserCanExecute = pte.GetX();
+		} else {
+			pi.KernelCanRead = pte.GetR();
+			pi.KernelCanWrite = pte.GetW();
+			pi.KernelCanExecute = pte.GetX();
 		}
 		pi.phys_addr = Address(pte.GetPPN() << 12);
 

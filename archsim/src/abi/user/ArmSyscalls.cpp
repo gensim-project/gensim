@@ -1493,6 +1493,11 @@ static int sys_chdir(archsim::core::thread::ThreadInstance *cpu, unsigned long f
 	return 0;
 }
 
+static int sys_nop()
+{
+	return 0;
+}
+
 DEFINE_SYSCALL(arm, __NR_arm_exit, sys_exit, "exit()");
 DEFINE_SYSCALL(arm, __NR_arm_exit_group, sys_exit, "exit_group()");
 
@@ -1624,7 +1629,7 @@ DEFINE_SYSCALL(riscv, 61, sys_getdents64, "getdents64()");
 DEFINE_SYSCALL(riscv, 62, sys_lseek, "lseek()");
 DEFINE_SYSCALL(riscv, 63, sys_read, "read()");
 DEFINE_SYSCALL(riscv, 64, sys_write, "write(fd=%d, addr=%p, len=%d)");
-DEFINE_SYSCALL(riscv, 66, sys_writev<struct riscv32_iovec>, "writev");
+DEFINE_SYSCALL(riscv, 66, sys_writev<struct x86_iovec>, "writev");
 DEFINE_SYSCALL(riscv, 78, syscall_return_enosys, "readlinkat(dirfd=%d, pathname=%p, buf=%p, bufsiz=%u)");
 DEFINE_SYSCALL(riscv, 79, sys_newfstatat<riscv32_stat>, "fstatat()");
 DEFINE_SYSCALL(riscv, 80, sys_fstat<riscv32_stat>, "fstat()");
@@ -1636,4 +1641,5 @@ DEFINE_SYSCALL(riscv, 214, sys_brk, "brk(new_brk=%p)");
 DEFINE_SYSCALL(riscv, 215, sys_munmap, "munmap()");
 DEFINE_SYSCALL(riscv, 216, sys_mremap, "mremap()");
 DEFINE_SYSCALL(riscv, 222, sys_mmap, "mmap()");
+DEFINE_SYSCALL(riscv, 226, sys_nop, "sys_setxattr()");
 DEFINE_SYSCALL(riscv, 1024, sys_open, "open()");

@@ -11,7 +11,9 @@
 #define RISCVSYSTEMCOPROCESSOR_H
 
 #include "arch/risc-v/RiscVMMU.h"
+#include "abi/devices/IRQController.h"
 #include "abi/devices/Device.h"
+#include "util/PubSubSync.h"
 
 #include <mutex>
 
@@ -49,12 +51,27 @@ namespace archsim
 
 				void CheckForInterrupts();
 
+				// Return the
+				struct PendingInterrupt {
+					int ID, Priv;
+				};
+				PendingInterrupt GetPendingInterrupt();
+
+				// Are interrupts enabled for this ring?
+				bool CanTakeInterrupt(uint8_t ring, uint32_t irq);
+
 				void WriteMSTATUS(uint64_t data);
+				void WriteSSTATUS(uint64_t data);
 				uint64_t ReadMSTATUS();
+
+				uint64_t ReadMIP();
+				void WriteMIP(uint64_t newmip);
+				uint64_t ReadSIP();
+				void WriteSIP(uint64_t newsip);
 
 				bool GetMTIE() const
 				{
-					return (MIE >> 7) & 1;
+					return IE.MTIE;
 				}
 
 
@@ -65,27 +82,25 @@ namespace archsim
 				uint64_t MCAUSE;
 				uint64_t MTVAL;
 
-				uint64_t MIE;
-				uint64_t MIP;
-
 				uint64_t MIDELEG;
 				uint64_t MEDELEG;
 
 				uint64_t SIDELEG;
 				uint64_t SEDELEG;
-				uint64_t SIE;
 				uint64_t STVEC;
 
 				uint64_t SSCRATCH;
 				uint64_t SEPC;
 				uint64_t SCAUSE;
 				uint64_t STVAL;
-				uint64_t SIP;
 
 				uint64_t MCOUNTEREN;
 				uint64_t SCOUNTEREN;
 
-				struct STATUS_t {
+				class STATUS_t
+				{
+				public:
+					STATUS_t(archsim::util::PubSubContext &pubsub);
 					bool SD;
 					uint8_t SXL;
 					uint8_t UXL;
@@ -111,8 +126,63 @@ namespace archsim
 
 					uint64_t ReadSSTATUS();
 					void WriteSSTATUS(uint64_t data);
+
+				private:
+					archsim::util::PubSubContext &pubsub_;
 				};
 				STATUS_t STATUS;
+
+				struct IP_t {
+
+					bool MEIP;
+					bool SEIP;
+					bool UEIP;
+					bool MTIP;
+					bool STIP;
+					bool UTIP;
+					bool MSIP;
+					bool SSIP;
+					bool USIP;
+
+					uint64_t ReadMIP();
+					void WriteMIP(uint64_t data);
+					uint64_t ReadSIP();
+					void WriteSIP(uint64_t data);
+
+					void PendMask(uint64_t mask);
+					void ClearMask(uint64_t mask);
+
+					void Reset();
+				};
+				IP_t IP;
+
+				struct IE_t {
+					bool MEIE;
+					bool SEIE;
+					bool UEIE;
+
+					bool MTIE;
+					bool STIE;
+					bool UTIE;
+
+					bool MSIE;
+					bool SSIE;
+					bool USIE;
+
+					uint64_t ReadMIE();
+					void WriteMIE(uint64_t data);
+
+					uint64_t ReadSIE();
+					void WriteSIE(uint64_t data);
+
+					void Reset();
+				};
+				IE_t IE;
+
+				// Vector of interrupts which are enabled and pending
+				// effectively calculated as MIP & MIE
+				// If this is ever non-zero, an interrupt should be asserted
+				uint32_t true_pending_interrupts_;
 
 				archsim::core::thread::ThreadInstance *hart_;
 				RiscVMMU *mmu_;

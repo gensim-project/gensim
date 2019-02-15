@@ -38,10 +38,10 @@ namespace archsim
 			KeyT tags[way_count];
 			T ways[way_count];
 
-			void purge()
+			void purge(std::function<void(T&)> purge_way)
 			{
 				for (int i = 0; i < way_count; ++i) {
-					ways[i] = T();
+					purge_way(ways[i]);
 					tags[i] = KeyT(1);
 				}
 			}
@@ -53,8 +53,12 @@ namespace archsim
 		public:
 			using this_t = Cache<KeyT, T, size, collect_stats>;
 			using entry_t = CacheEntry<KeyT, T>;
+			using entry_purge_t = std::function<void(T&)>;
 
-			Cache() : hit_count(0), access_count(0), lru(0), mask(size-1), dirty(true)
+			Cache(entry_purge_t on_purge = [](T& t)
+			{
+				t = T();
+			}) : hit_count(0), access_count(0), lru(0), mask(size-1), dirty(true), on_purge_(on_purge)
 			{
 				construct();
 			}
@@ -79,7 +83,7 @@ namespace archsim
 			void purge()
 			{
 				for(auto &i : cache) {
-					i.purge();
+					i.purge(on_purge_);
 				}
 
 				pages_dirty.reset();
@@ -201,6 +205,8 @@ namespace archsim
 			Cache(const this_t &other) = delete;
 
 			CacheEntry<KeyT, T> cache[size];
+
+			entry_purge_t on_purge_;
 
 			uint64_t hit_count;
 			uint64_t access_count;

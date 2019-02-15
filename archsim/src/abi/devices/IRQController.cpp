@@ -10,6 +10,8 @@
 #include "abi/devices/IRQController.h"
 #include "core/thread/ThreadInstance.h"
 
+DeclareLogContext(LogIRQ, "IRQ");
+
 namespace archsim
 {
 	namespace abi
@@ -80,10 +82,13 @@ namespace archsim
 
 			void CPUIRQLine::Assert()
 			{
+				if(IsAsserted() && !IsAcknowledged()) {
+					LC_WARNING(LogIRQ) << "An IRQ is pending, but has been reasserted (IRQ possibly stuck?)";
+				}
+
 				if(!IsAsserted()) {
 					SetAsserted();
 					CPU->TakeIRQ();
-//		source->IRQ_Asserted(this);
 				}
 			}
 
@@ -93,7 +98,6 @@ namespace archsim
 					CPU->RescindIRQ();
 					ClearAsserted();
 					Acknowledged = false;
-//		source->IRQ_Rescinded(this);
 				}
 			}
 

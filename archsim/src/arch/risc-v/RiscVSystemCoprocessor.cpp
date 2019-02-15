@@ -10,30 +10,30 @@
 DeclareLogContext(LogRiscVSystem, "RV-System");
 using namespace archsim::arch::riscv;
 
-RiscVSystemCoprocessor::RiscVSystemCoprocessor(archsim::core::thread::ThreadInstance* hart, RiscVMMU* mmu) : hart_(hart), mmu_(mmu)
+RiscVSystemCoprocessor::RiscVSystemCoprocessor(archsim::core::thread::ThreadInstance* hart, RiscVMMU* mmu) : hart_(hart), mmu_(mmu), STATUS(hart->GetEmulationModel().GetSystem().GetPubSub())
 {
+	true_pending_interrupts_ = 0;
+
 	MTVEC = 0;
 	MSCRATCH = 0;
 	MEPC = 0;
 	MCAUSE = 0;
 	MTVAL = 0;
 
-	MIE = 0;
-	MIP = 0;
+	IE.Reset();
+	IP.Reset();
 
 	MIDELEG = 0;
 	MEDELEG = 0;
 
 	SIDELEG = 0;
 	SEDELEG = 0;
-	SIE = 0;
 	STVEC = 0;
 
 	SSCRATCH = 0;
 	SEPC = 0;
 	SCAUSE = 0;
 	STVAL = 0;
-	SIP = 0;
 
 	MCOUNTEREN = 0;
 	SCOUNTEREN = 0;
@@ -48,14 +48,14 @@ bool RiscVSystemCoprocessor::Initialise()
 
 bool RiscVSystemCoprocessor::Read64(uint32_t address, uint64_t& data)
 {
-	LC_DEBUG1(LogRiscVSystem) << "CSR Read 0x" << std::hex << address << "...";
+	LC_DEBUG2(LogRiscVSystem) << "CSR Read 0x" << std::hex << address << "...";
 	switch(address) {
 		case 0x100:
 			data = STATUS.ReadSSTATUS();
 			break;
 
 		case 0x104:
-			data = SIE;
+			data = IE.ReadSIE();
 			break;
 
 		case 0x105:
@@ -83,7 +83,7 @@ bool RiscVSystemCoprocessor::Read64(uint32_t address, uint64_t& data)
 			break;
 
 		case 0x144:
-			data = SIP;
+			data = ReadSIP();
 			break;
 
 		case 0x180: //SATP
@@ -132,7 +132,7 @@ bool RiscVSystemCoprocessor::Read64(uint32_t address, uint64_t& data)
 			break;
 
 		case 0x304:
-			data = MIE;
+			data = IE.ReadMIE();
 			break;
 
 		case 0x305:
@@ -160,7 +160,7 @@ bool RiscVSystemCoprocessor::Read64(uint32_t address, uint64_t& data)
 			break;
 
 		case 0x344:
-			data = MIP;
+			data = ReadMIP();
 			return true;
 
 		case 0x3a0: // PMPCFG
@@ -203,22 +203,24 @@ bool RiscVSystemCoprocessor::Read64(uint32_t address, uint64_t& data)
 			LC_DEBUG1(LogRiscVSystem) << "Unimplemented CSR read: " << std::hex << address;
 			UNIMPLEMENTED;
 	}
-	LC_DEBUG1(LogRiscVSystem) << "CSR Read 0x" << std::hex << address << " -> 0x" << std::hex << data;
+	LC_DEBUG2(LogRiscVSystem) << "CSR Read 0x" << std::hex << address << " -> 0x" << std::hex << data;
 	return true;
 }
 
 bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 {
-	LC_DEBUG1(LogRiscVSystem) << "CSR Write 0x" << std::hex << address << " <- 0x" << std::hex << data;
+	LC_DEBUG1(LogRiscVSystem) << "CSR Write 0x" << std::hex << address << " <- 0x" << std::hex << data << " at PC " << Address(hart_->GetPC());
 	switch(address) {
 		case 0x100:
 			LC_DEBUG1(LogRiscVSystem) << "Writing SSTATUS=" << Address(data);
-			STATUS.WriteSSTATUS(data);
-			CheckForInterrupts();
+			WriteSSTATUS(data);
+
 			break;
 
 		case 0x104:
-			SIE = data;
+			LC_DEBUG1(LogRiscVSystem) << "Writing SIE=" << Address(data);
+			IE.WriteSIE(data);
+			CheckForInterrupts();
 			break;
 
 		case 0x105:
@@ -246,11 +248,14 @@ bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 			break;
 
 		case 0x144:
-			SIP = data;
+			WriteSIP(data);
 			break;
 
 		case 0x180: //SATP
 			mmu_->SetSATP(data);
+			// flush tlb
+			Manager->GetEmulationModel()->GetSystem().GetPubSub().Publish(PubSubType::ITlbFullFlush, nullptr);
+			Manager->GetEmulationModel()->GetSystem().GetPubSub().Publish(PubSubType::DTlbFullFlush, nullptr);
 			break;
 
 		case 0x300: // MSTATUS
@@ -272,7 +277,8 @@ bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 
 		case 0x304:
 			LC_DEBUG1(LogRiscVSystem) << "MIE set to " << Address(data);
-			MIE = data;
+			IE.WriteMIE(data);
+			CheckForInterrupts();
 			break;
 
 		case 0x305:
@@ -300,8 +306,7 @@ bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 			break;
 
 		case 0x344:
-			LC_DEBUG1(LogRiscVSystem) << "MIP set to " << Address(data);
-			MIP = data;
+			WriteMIP(data);
 			break;
 
 		case 0x3a0: // PMPCFG
@@ -349,7 +354,7 @@ bool RiscVSystemCoprocessor::Write64(uint32_t address, uint64_t data)
 void RiscVSystemCoprocessor::MachinePendInterrupt(uint64_t mask)
 {
 	std::lock_guard<std::recursive_mutex> lock(lock_);
-	MIP |= mask;
+	IP.PendMask(mask);
 
 	CheckForInterrupts();
 }
@@ -357,7 +362,7 @@ void RiscVSystemCoprocessor::MachinePendInterrupt(uint64_t mask)
 void RiscVSystemCoprocessor::MachineUnpendInterrupt(uint64_t mask)
 {
 	std::lock_guard<std::recursive_mutex> lock(lock_);
-	MIP &= ~mask;
+	IP.ClearMask(mask);
 
 	CheckForInterrupts();
 }
@@ -372,8 +377,9 @@ static int get_pending_interrupt(uint64_t bits)
 	return -1;
 }
 
-void RiscVSystemCoprocessor::CheckForInterrupts()
+RiscVSystemCoprocessor::PendingInterrupt RiscVSystemCoprocessor::GetPendingInterrupt()
 {
+	PendingInterrupt pi = {-1, -1};
 	std::lock_guard<std::recursive_mutex> lock(lock_);
 
 	uint8_t priv_mode = hart_->GetExecutionRing();
@@ -381,39 +387,40 @@ void RiscVSystemCoprocessor::CheckForInterrupts()
 	// M mode interrupts enabled if privilege < M, or if priv == M and MIE
 	if(priv_mode < 3 || (priv_mode == 3 && STATUS.MIE)) {
 		// M mode interrupts are enabled, check for a machine mode interrupt
-		auto machmode_interrupts_pending = MIP & MIE & ~MIDELEG;
+		auto machmode_interrupts_pending = ReadMIP() & IE.ReadMIE() & ~MIDELEG;
 
 		if(machmode_interrupts_pending) {
-			LC_DEBUG1(LogRiscVSystem) << "Some interrupts are pending: " << Address(machmode_interrupts_pending);
+			LC_DEBUG1(LogRiscVSystem) << "Some machmode interrupts are pending: " << Address(machmode_interrupts_pending);
+
+			// a machine mode interrupt is pending if MIE & MIP & ~MIDELEG
+			// i.e., an interrupt is enabled, and pending, and the interrupt is not delegated
+			pi.Priv = 3;
+			pi.ID = get_pending_interrupt(machmode_interrupts_pending);
+
+			LC_DEBUG1(LogRiscVSystem) << "Machmode interrupt " << pi.ID << " pending";
+
+			// done.
+			return pi;
 		}
-
-		// a machine mode interrupt is pending if MIE & MIP & ~MIDELEG
-		// i.e., an interrupt is enabled, and pending, and the interrupt is not delegated
-		// assert all pending interrupts, deassert all nonpending interrupts
-		for(int i = 0; i < 32; ++i) {
-			if(machmode_interrupts_pending & (1 << i)) {
-				hart_->GetIRQLine(i)->Assert();
-			} else {
-				hart_->GetIRQLine(i)->Rescind();
-			}
-		}
-
-		// done.
-		return;
-
 	}
 
 	// check for S mode interrupts
 	// S mode interrupts enabled if privilege < S, or if priv == S and SIE
-	if(priv_mode < 2 || (priv_mode == 2 && STATUS.SIE)) {
+	if(priv_mode < 1 || (priv_mode == 1 && STATUS.SIE)) {
 		// a supervisor mode interrupt is pending if MIE & MIP & MIDELEG & ~SIDELEG
 		// i.e., if an interrupt is enabled, and pending, and delegated to S mode, and not delegated to U mode
-		if(MIE & MIP & MIDELEG & ~SIDELEG) {
-			// figure out which interrupt should be taken and service it in S mode
-			UNIMPLEMENTED;
+		auto supmode_interrupts_pending = ReadSIP() & IE.ReadSIE() & MIDELEG & ~SIDELEG;
 
-			// done
-			return;
+		if(supmode_interrupts_pending) {
+			LC_DEBUG1(LogRiscVSystem) << "Some supmode interrupts are pending: " << Address(supmode_interrupts_pending);
+
+			pi.Priv = 1;
+			pi.ID = get_pending_interrupt(supmode_interrupts_pending);
+
+			LC_DEBUG1(LogRiscVSystem) << "Supmode interrupt " << pi.ID << " pending";
+
+			// done.
+			return pi;
 		}
 	}
 
@@ -422,17 +429,90 @@ void RiscVSystemCoprocessor::CheckForInterrupts()
 	if(priv_mode == 0 && STATUS.UIE) {
 		// a supervisor mode interrupt is pending if MIE & MIP & MIDELEG & ~SIDELEG
 		// i.e., if an interrupt is enabled, and pending, and delegated to S mode, and not delegated to U mode
-		if(MIE & MIP & MIDELEG & SIDELEG) {
+		if(IE.ReadMIE() & ReadMIP() & MIDELEG & SIDELEG) {
 			// figure out which interrupt should be taken and service it in S mode
 			UNIMPLEMENTED;
 
 			// done
-			return;
+			return pi;
 		}
 	}
 
 	// no interrupts are pending
+	return pi;
 }
+
+
+void RiscVSystemCoprocessor::CheckForInterrupts()
+{
+	uint64_t current_pending_interrupts = IP.ReadMIP() & IE.ReadMIE();
+	if(current_pending_interrupts != true_pending_interrupts_) {
+		LC_DEBUG1(LogRiscVSystem) << "An interrupt should be asserted or rescinded";
+		// an interrupt has been brought high or low since we were last here
+		for(int i = 0; i < 32; ++i) {
+			bool current_pending = (current_pending_interrupts >> i) & 1;
+			bool true_pending = (true_pending_interrupts_ >> i) & 1;
+
+			if(current_pending && !true_pending) {
+				// interrupt not asserted but should be
+				LC_DEBUG1(LogRiscVSystem) << "Asserting IRQ " << i;
+				hart_->GetIRQLine(i)->Assert();
+			}
+			if(!current_pending && true_pending) {
+				// interrupt is asserted but shouldn't be
+				LC_DEBUG1(LogRiscVSystem) << "Rescinding IRQ " << i;
+				hart_->GetIRQLine(i)->Rescind();
+			}
+		}
+
+		// finally, update true_pending_interrupts
+		true_pending_interrupts_ = current_pending_interrupts;
+	}
+
+	hart_->PendIRQ();
+}
+
+bool RiscVSystemCoprocessor::CanTakeInterrupt(uint8_t ring, uint32_t irq)
+{
+	// We are currently executing in ring (ring), and (irq) is pending. Should
+	// we take a trap?
+	// We should take a trap if:
+	// - the IRQ is not delegated, and M mode irqs are enabled (machmode < M, or MIE)
+	// - the IRQ is delegated to S, and S mode irqs are enabled (machmode < S, or SIE)
+
+	if((ring < 3 || (ring == 3 && STATUS.MIE)) && (~MIDELEG & (1 << irq))) {
+		return true;
+	}
+	if((ring < 1 || (ring == 1 && STATUS.SIE)) && (MIDELEG & (1 << irq))) {
+		return true;
+	}
+
+	return false;
+}
+
+RiscVSystemCoprocessor::STATUS_t::STATUS_t(archsim::util::PubSubContext& pubsub) : pubsub_(pubsub)
+{
+	SD = 0;
+	SXL = 0;
+	UXL = 0;
+	TSR = 0;
+	TW = 0;
+	TVM = 0;
+	MXR = 0;
+	SUM = 0;
+	MPRV = 0;
+	XS = 0;
+	FS = 0;
+	MPP = 0;
+	SPP = 0;
+	MPIE = 0;
+	SPIE = 0;
+	UPIE = 0;
+	MIE = 0;
+	SIE = 0;
+	UIE = 0;
+}
+
 
 uint64_t RiscVSystemCoprocessor::STATUS_t::ReadMSTATUS()
 {
@@ -462,6 +542,8 @@ uint64_t RiscVSystemCoprocessor::STATUS_t::ReadMSTATUS()
 
 void RiscVSystemCoprocessor::STATUS_t::WriteMSTATUS(uint64_t data)
 {
+	bool should_flush_tlb = false;
+
 	SD = UNSIGNED_BITS_64(data, 63,62);
 	SXL = UNSIGNED_BITS_64(data, 34, 33);
 	UXL = UNSIGNED_BITS_64(data, 32, 31);
@@ -469,8 +551,19 @@ void RiscVSystemCoprocessor::STATUS_t::WriteMSTATUS(uint64_t data)
 	TW = BITSEL(data, 21);
 	TVM = BITSEL(data, 20);
 	MXR = BITSEL(data, 19);
-	SUM = BITSEL(data, 18);
-	MPRV = BITSEL(data, 17);
+
+	bool new_SUM = BITSEL(data, 18);
+	if(SUM != new_SUM) {
+		should_flush_tlb = true;
+	}
+
+	SUM = new_SUM;
+
+	bool new_MPRV = BITSEL(data, 17);
+	if(new_MPRV != MPRV) {
+		should_flush_tlb = true;
+	}
+	MPRV = new_MPRV;
 	XS = UNSIGNED_BITS_64(data, 16,15);
 	FS = UNSIGNED_BITS_64(data, 14,13);
 	MPP = UNSIGNED_BITS_64(data, 12,11);
@@ -481,6 +574,11 @@ void RiscVSystemCoprocessor::STATUS_t::WriteMSTATUS(uint64_t data)
 	MIE = BITSEL(data, 3);
 	SIE = BITSEL(data, 1);
 	UIE = BITSEL(data, 0);
+
+	if(should_flush_tlb) {
+		pubsub_.Publish(PubSubType::ITlbFullFlush, nullptr);
+		pubsub_.Publish(PubSubType::DTlbFullFlush, nullptr);
+	}
 }
 
 uint64_t RiscVSystemCoprocessor::STATUS_t::ReadSSTATUS()
@@ -503,10 +601,17 @@ uint64_t RiscVSystemCoprocessor::STATUS_t::ReadSSTATUS()
 
 void RiscVSystemCoprocessor::STATUS_t::WriteSSTATUS(uint64_t data)
 {
+	bool should_flush_tlb = false;
+
 	SD = UNSIGNED_BITS_64(data, 63,62);
 	UXL = UNSIGNED_BITS_64(data, 32, 31);
 	MXR = BITSEL(data, 19);
-	SUM = BITSEL(data, 18);
+
+	bool new_SUM = BITSEL(data, 18);
+	if(new_SUM != SUM) {
+		should_flush_tlb = true;
+	}
+	SUM = new_SUM;
 	XS = UNSIGNED_BITS_64(data, 16,15);
 	FS = UNSIGNED_BITS_64(data, 14,13);
 	SPP = BITSEL(data, 8);
@@ -514,6 +619,11 @@ void RiscVSystemCoprocessor::STATUS_t::WriteSSTATUS(uint64_t data)
 	UPIE = BITSEL(data, 4);
 	SIE = BITSEL(data, 1);
 	UIE = BITSEL(data, 0);
+
+	if(should_flush_tlb) {
+		pubsub_.Publish(PubSubType::ITlbFullFlush, nullptr);
+		pubsub_.Publish(PubSubType::DTlbFullFlush, nullptr);
+	}
 }
 
 uint64_t RiscVSystemCoprocessor::ReadMSTATUS()
@@ -528,6 +638,204 @@ void RiscVSystemCoprocessor::WriteMSTATUS(uint64_t data)
 
 	std::lock_guard<std::recursive_mutex> lock(lock_);
 	STATUS.WriteMSTATUS(data);
+
+	CheckForInterrupts();
+}
+
+void RiscVSystemCoprocessor::WriteSSTATUS(uint64_t data)
+{
+	LC_DEBUG1(LogRiscVSystem) << "SSTATUS set to " << Address(data);
+
+	std::lock_guard<std::recursive_mutex> lock(lock_);
+	STATUS.WriteSSTATUS(data);
+
+	CheckForInterrupts();
+}
+
+
+uint64_t RiscVSystemCoprocessor::ReadMIP()
+{
+	return IP.ReadMIP();
+}
+
+uint64_t RiscVSystemCoprocessor::IP_t::ReadMIP()
+{
+	uint64_t data = 0;
+	data |= MEIP << 11;
+	data |= SEIP << 9;
+	data |= UEIP << 8;
+	data |= MTIP << 7;
+	data |= STIP << 5;
+	data |= UTIP << 4;
+	data |= MSIP << 3;
+	data |= SSIP << 1;
+	data |= USIP << 0;
+
+	return data;
+}
+
+void RiscVSystemCoprocessor::WriteMIP(uint64_t newmip)
+{
+	IP.WriteMIP(newmip);
+	CheckForInterrupts();
+}
+
+void RiscVSystemCoprocessor::IP_t::WriteMIP(uint64_t data)
+{
+	SEIP = BITSEL(data, 9);
+	UEIP = BITSEL(data, 8);
+	STIP = BITSEL(data, 5);
+	UTIP = BITSEL(data, 4);
+	SSIP = BITSEL(data, 1);
+	USIP = BITSEL(data, 0);
+}
+
+uint64_t RiscVSystemCoprocessor::IP_t::ReadSIP()
+{
+	uint64_t data = 0;
+	data |= SEIP << 9;
+	data |= UEIP << 8;
+	data |= STIP << 5;
+	data |= UTIP << 4;
+	data |= SSIP << 1;
+	data |= USIP << 0;
+
+	return data;
+}
+
+void RiscVSystemCoprocessor::IP_t::WriteSIP(uint64_t data)
+{
+	UEIP = BITSEL(data, 8);
+	SSIP = BITSEL(data, 1);
+	USIP = BITSEL(data, 0);
+}
+
+void RiscVSystemCoprocessor::IP_t::PendMask(uint64_t data)
+{
+	MEIP |= BITSEL(data, 11);
+	SEIP |= BITSEL(data, 9);
+	UEIP |= BITSEL(data, 8);
+	MTIP |= BITSEL(data, 7);
+	STIP |= BITSEL(data, 5);
+	UTIP |= BITSEL(data, 4);
+	MSIP |= BITSEL(data, 3);
+	SSIP |= BITSEL(data, 1);
+	USIP |= BITSEL(data, 0);
+}
+
+void RiscVSystemCoprocessor::IP_t::ClearMask(uint64_t data)
+{
+	data = ~data;
+
+	MEIP &= BITSEL(data, 11);
+	SEIP &= BITSEL(data, 9);
+	UEIP &= BITSEL(data, 8);
+	MTIP &= BITSEL(data, 7);
+	STIP &= BITSEL(data, 5);
+	UTIP &= BITSEL(data, 4);
+	MSIP &= BITSEL(data, 3);
+	SSIP &= BITSEL(data, 1);
+	USIP &= BITSEL(data, 0);
+}
+
+void RiscVSystemCoprocessor::IP_t::Reset()
+{
+	MEIP = 0;
+	SEIP = 0;
+	UEIP = 0;
+	MTIP = 0;
+	STIP = 0;
+	UTIP = 0;
+	MSIP = 0;
+	SSIP = 0;
+	USIP = 0;
+}
+
+
+uint64_t RiscVSystemCoprocessor::ReadSIP()
+{
+	return IP.ReadSIP();
+}
+
+void RiscVSystemCoprocessor::WriteSIP(uint64_t newsip)
+{
+	IP.WriteSIP(newsip);
+	CheckForInterrupts();
+}
+
+uint64_t RiscVSystemCoprocessor::IE_t::ReadMIE()
+{
+	uint64_t data = 0;
+
+	data |= MEIE << 11;
+	data |= SEIE << 9;
+	data |= UEIE << 8;
+
+	data |= MTIE << 7;
+	data |= STIE << 5;
+	data |= UTIE << 4;
+
+	data |= MSIE << 3;
+	data |= SSIE << 1;
+	data |= USIE << 0;
+
+	return data;
+}
+
+uint64_t RiscVSystemCoprocessor::IE_t::ReadSIE()
+{
+	uint64_t data = 0;
+
+	data |= SEIE << 9;
+	data |= UEIE << 8;
+
+	data |= STIE << 5;
+	data |= UTIE << 4;
+
+	data |= SSIE << 1;
+	data |= USIE << 0;
+
+	return data;
+}
+
+void RiscVSystemCoprocessor::IE_t::WriteMIE(uint64_t data)
+{
+	MEIE = BITSEL(data, 11);
+	SEIE = BITSEL(data, 9);
+	UEIE = BITSEL(data, 8);
+
+	MTIE = BITSEL(data, 7);
+	STIE = BITSEL(data, 5);
+	UTIE = BITSEL(data, 4);
+
+	MSIE = BITSEL(data, 3);
+	SSIE = BITSEL(data, 1);
+	USIE = BITSEL(data, 0);
+}
+
+void RiscVSystemCoprocessor::IE_t::WriteSIE(uint64_t data)
+{
+	SEIE = BITSEL(data, 9);
+	UEIE = BITSEL(data, 8);
+
+	STIE = BITSEL(data, 5);
+	UTIE = BITSEL(data, 4);
+
+	SSIE = BITSEL(data, 1);
+	USIE = BITSEL(data, 0);
+}
+
+void RiscVSystemCoprocessor::IE_t::Reset()
+{
+	MEIE = false;
+	SEIE = false;
+	UEIE = false;
+	MSIE = false;
+	SSIE = false;
+	USIE = false;
+	MTIE = false;
+	STIE = false;
+	UTIE = false;
 }
 
 

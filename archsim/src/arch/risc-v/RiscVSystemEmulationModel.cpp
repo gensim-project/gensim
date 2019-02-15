@@ -2,6 +2,7 @@
 
 #include "abi/devices/IRQController.h"
 #include "arch/risc-v/RiscVSystemEmulationModel.h"
+#include "arch/risc-v/RiscVSystemCoprocessor.h"
 #include "arch/risc-v/RiscVDecodeContext.h"
 #include "core/thread/ThreadInstance.h"
 #include "util/LogContext.h"
@@ -45,6 +46,14 @@ ExceptionAction RiscVSystemEmulationModel::HandleException(archsim::core::thread
 	switch(category) {
 		case 1024: { // fence.i
 			cpu->GetPubsub().Publish(PubSubType::FlushTranslations, nullptr);
+			cpu->GetPubsub().Publish(PubSubType::ITlbFullFlush, nullptr);
+			cpu->GetPubsub().Publish(PubSubType::DTlbFullFlush, nullptr);
+			return ExceptionAction::ResumeNext;
+		}
+		case 1025: { // fence.vma
+			cpu->GetPubsub().Publish(PubSubType::FlushTranslations, nullptr);
+			cpu->GetPubsub().Publish(PubSubType::ITlbFullFlush, nullptr);
+			cpu->GetPubsub().Publish(PubSubType::DTlbFullFlush, nullptr);
 			return ExceptionAction::ResumeNext;
 		}
 		default: {
@@ -65,10 +74,16 @@ ExceptionAction RiscVSystemEmulationModel::HandleMemoryFault(archsim::core::thre
 
 void RiscVSystemEmulationModel::HandleInterrupt(archsim::core::thread::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq)
 {
-	LC_DEBUG1(LogEmulationModelRiscVSystem) << "Interrupt taken at PC " << thread->GetPC();
+	// Need to check to see if an interrupt is valid
+	LC_DEBUG1(LogEmulationModelRiscVSystem) << "Attempting to service an IRQ";
+	RiscVSystemCoprocessor *coproc = (RiscVSystemCoprocessor *)thread->GetPeripherals().GetDevice(0);
 
-	// trigger interrupt on CPU
-	uint64_t ecause = 0x8000000000000000ULL | (irq->Line());
-	HandleException(thread, ecause, 0);
+	if(coproc->CanTakeInterrupt(thread->GetExecutionRing(), irq->Line())) {
+		LC_DEBUG1(LogEmulationModelRiscVSystem) << "Interrupt taken at PC " << thread->GetPC();
+
+		// trigger interrupt on CPU
+		uint64_t ecause = 0x8000000000000000ULL | (irq->Line());
+		HandleException(thread, ecause, 0);
+	}
 }
 

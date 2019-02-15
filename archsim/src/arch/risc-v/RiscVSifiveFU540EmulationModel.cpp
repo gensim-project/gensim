@@ -92,21 +92,28 @@ bool RiscVSifiveFU540EmulationModel::InstallPlatformDevices()
 	auto plic = new archsim::abi::devices::riscv::SifivePLIC(*this, Address(0x0c000000));
 	plic->SetParameter("Hart0", main_thread_);
 	plic->SetParameter("HartConfig", std::string("MS"));
+	plic->Initialise();
 	RegisterMemoryComponent(*plic);
 
+
 	auto uart0 = new archsim::abi::devices::riscv::SifiveUART(*this, Address(0x10010000));
-	uart0->SetParameter("SerialPort", new archsim::abi::devices::ConsoleOutputSerialPort());
+	uart0->SetParameter("SerialPort", new archsim::abi::devices::ConsoleSerialPort());
+	uart0->SetParameter("IRQLine", plic->RegisterSource(4));
 	RegisterMemoryComponent(*uart0);
 
 	auto uart1 = new archsim::abi::devices::riscv::SifiveUART(*this, Address(0x10011000));
 	uart1->SetParameter("SerialPort", new archsim::abi::devices::ConsoleOutputSerialPort());
+	uart1->SetParameter("IRQLine", plic->RegisterSource(5));
 	RegisterMemoryComponent(*uart1);
 
 	// VirtIO Block device
 	if(GetSystem().HasBlockDevice("vda")) {
-		devices::virtio::VirtIOBlock *vbda = new devices::virtio::VirtIOBlock(*this, *plic->RegisterSource(35), Address(0x2000000000), "virtio-block-a", *GetSystem().GetBlockDevice("vda"));
+		devices::virtio::VirtIOBlock *vbda = new devices::virtio::VirtIOBlock(*this, *plic->RegisterSource(50), Address(0x20000000), "virtio-block-a", *GetSystem().GetBlockDevice("vda"));
 		RegisterMemoryComponent(*vbda);
 	}
+
+	uart0->Initialise();
+	uart1->Initialise();
 
 	return true;
 }
