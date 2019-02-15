@@ -609,7 +609,6 @@ execute(sb)
 execute(fence)
 {
 
-
 }
 
 execute(fencei)

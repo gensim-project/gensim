@@ -5,7 +5,10 @@ execute(fld)
 	imm >>= 20;
 
 	uint64 data;
-	typename word_t addr = imm + read_gpr(inst.rs1);
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t addr = rs1 +  (typename sword_t)imm;
+	
 	mem_read_64(Mem, addr, data);
 	write_register_bank(FP_D, inst.rd, <double>(data));
 }
@@ -17,7 +20,9 @@ execute(fsd)
 	sint32 imm = (imm2 << 5) | imm1;
 	imm = (imm << 20) >> 20;
 
-	typename word_t addr = imm + read_gpr(inst.rs1);
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t addr = rs1 +  (typename sword_t)imm;
+	
 	mem_write_64(Mem, addr, <uint64>(read_register_bank(FP_D, inst.rs2)));
 }
 
