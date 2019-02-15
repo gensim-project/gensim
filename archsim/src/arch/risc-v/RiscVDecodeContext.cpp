@@ -10,6 +10,7 @@ using namespace archsim::arch::riscv;
 uint32_t RiscVDecodeContext::DecodeSync(archsim::MemoryInterface &interface, Address address, uint32_t mode, gensim::BaseDecode *&target)
 {
 	target = arch_.GetISA(mode).GetNewDecode();
+
 	return arch_.GetISA(mode).DecodeInstr(address, &interface, *target);
 }
 

@@ -34,7 +34,15 @@ void FlushCallback(PubSubType::PubSubType, void *ctx, const void *data)
 	d->Flush();
 }
 
-CachedDecodeContext::CachedDecodeContext(archsim::util::PubSubContext& pubsub, DecodeContext* underlying_ctx, std::function<gensim::BaseDecode*() > new_decode_fn) : underlying_ctx_(underlying_ctx), new_decode_fn_(new_decode_fn), pubsub_(pubsub)
+void purge_decode(gensim::BaseDecode*& d)
+{
+	if(d != nullptr) {
+		d->Release();
+		d = nullptr;
+	}
+}
+
+CachedDecodeContext::CachedDecodeContext(archsim::util::PubSubContext& pubsub, DecodeContext* underlying_ctx, std::function<gensim::BaseDecode*() > new_decode_fn) : underlying_ctx_(underlying_ctx), new_decode_fn_(new_decode_fn), pubsub_(pubsub), decode_cache_(purge_decode)
 {
 	pubsub_.Subscribe(PubSubType::FlushTranslations, FlushCallback, this);
 	pubsub_.Subscribe(PubSubType::FlushAllTranslations, FlushCallback, this);

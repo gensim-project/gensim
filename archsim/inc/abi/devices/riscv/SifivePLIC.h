@@ -36,30 +36,45 @@ namespace archsim
 
 				private:
 					archsim::core::thread::ThreadInstance *GetHart(int i);
+					int GetHartCount() const
+					{
+						return 1;    // todo: support multiple harts
+					}
+
+					void UpdateIRQ();
 
 					COMPONENT_PARAMETER_THREAD(Hart0);
 					COMPONENT_PARAMETER_STRING(HartConfig);
 
 					std::vector<uint32_t> interrupt_priorities_;
+					std::vector<uint32_t> interrupt_pending_;
+					std::vector<uint32_t> interrupt_claimed_;
 
-					class hart_config
+					class hart_context
 					{
 					public:
-						hart_config() : priority_threshold_m(0), priority_threshold_s(0)
+						hart_context(uint32_t hart, char context) : hart(hart), context(context), threshold(0), busy(0)
 						{
-							enable_m.resize(2);
-							enable_s.resize(2);
+							enable.resize(2);
 						}
 
-						uint32_t priority_threshold_m;
-						uint32_t priority_threshold_s;
+						uint32_t hart;
+						char context;
 
-						uint32_t threshold_m, threshold_s;
+						uint32_t threshold;
+						std::vector<uint32_t> enable;
 
-						std::vector<uint32_t> enable_m, enable_s;
+						bool busy;
 					};
 
-					std::vector<hart_config> hart_config_;
+					std::vector<hart_context> hart_config_;
+
+					uint32_t ClaimInterrupt(hart_context &context);
+					void CompleteInterrupt(uint32_t irq);
+
+					void ClearPendingInterrupt(uint32_t index);
+					void RaiseEIPOnHart(uint32_t hart, char context);
+					void SetupContexts(const std::string &config);
 
 					bool ReadPriority(uint32_t offset, uint64_t &data);
 					bool ReadEnable(uint32_t offset, uint64_t &data);

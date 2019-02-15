@@ -14,6 +14,8 @@
 #include "abi/devices/IRQController.h"
 #include "abi/devices/SerialPort.h"
 
+#include <queue>
+
 namespace archsim
 {
 	namespace abi
@@ -35,13 +37,18 @@ namespace archsim
 					bool EnqueueChar(char c);
 
 				private:
-					uint32_t txctrl_, rxctrl_, ie_, div_;
+					uint32_t txctrl_, rxctrl_, ie_, div_, ip_;
+
+					void UpdateIRQ();
+					uint32_t ReadRXFifo();
 
 					COMPONENT_PARAMETER_ENTRY(IRQLine, IRQLine, IRQLine);
 					COMPONENT_PARAMETER_ENTRY(SerialPort, SerialPort, SerialPort);
 
 					archsim::abi::devices::AsyncSerial *GetSerial();
 					archsim::abi::devices::AsyncSerial *serial_;
+
+					std::queue<char> rx_fifo_;
 				};
 			}
 		}

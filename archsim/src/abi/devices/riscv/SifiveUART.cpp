@@ -4,6 +4,8 @@
 
 using namespace archsim::abi::devices::riscv;
 
+DeclareLogContext(LogSifiveUART, "SifiveUART");
+
 using namespace archsim::abi::devices;
 static ComponentDescriptor SifiveUARTDescriptor ("SifiveUART", {{"IRQLine", ComponentParameter_Component}, {"SerialPort", ComponentParameter_Component}});
 
@@ -16,7 +18,7 @@ static void console_callback(AsyncSerial *serial, void *ctx)
 }
 
 
-SifiveUART::SifiveUART(EmulationModel& parent, Address base_address) : MemoryComponent(parent, base_address, 0x1000), Component(SifiveUARTDescriptor), serial_(nullptr)
+SifiveUART::SifiveUART(EmulationModel& parent, Address base_address) : MemoryComponent(parent, base_address, 0x1000), Component(SifiveUARTDescriptor), serial_(nullptr), ie_(0)
 {
 
 }
@@ -28,12 +30,20 @@ SifiveUART::~SifiveUART()
 
 bool SifiveUART::Initialise()
 {
+	ie_ = 0;
+	rxctrl_ = 0;
+	txctrl_ = 0;
+	ip_ = 0;
+	div_ = 0;
 	return true;
 }
 
 bool SifiveUART::EnqueueChar(char c)
 {
-	UNIMPLEMENTED;
+	rx_fifo_.push(c);
+	UpdateIRQ();
+
+	return true;
 }
 
 AsyncSerial *SifiveUART::GetSerial()
@@ -55,7 +65,8 @@ bool SifiveUART::Read(uint32_t offset, uint8_t size, uint64_t& data)
 			data = 0;
 			break;
 		case 0x04: // rxdata
-			data = 0x80000000;
+			data = ReadRXFifo();
+			UpdateIRQ();
 			break;
 		case 0x08: // txctrl
 			data = txctrl_;
@@ -67,7 +78,8 @@ bool SifiveUART::Read(uint32_t offset, uint8_t size, uint64_t& data)
 			data = ie_;
 			break;
 		case 0x14: // ip
-			UNIMPLEMENTED;
+			data = ip_;
+			break;
 		case 0x18: // div
 			data = div_;
 			break;
@@ -89,12 +101,15 @@ bool SifiveUART::Write(uint32_t offset, uint8_t size, uint64_t data)
 		case 0x04: // rxdata
 			break;
 		case 0x08: // txctrl
+			LC_DEBUG1(LogSifiveUART) << "TXCTRL set to " << Address(data);
 			txctrl_ = data;
 			break;
 		case 0x0c: // rxctrl
+			LC_DEBUG1(LogSifiveUART) << "RXCTRL set to " << Address(data);
 			rxctrl_ = data;
 			break;
 		case 0x10: // ie
+			LC_DEBUG1(LogSifiveUART) << "IE set to " << Address(data);
 			ie_ = data;
 			break;
 		case 0x14: // ip
@@ -106,5 +121,59 @@ bool SifiveUART::Write(uint32_t offset, uint8_t size, uint64_t data)
 			UNEXPECTED;
 	}
 
+	UpdateIRQ();
 	return true;
+}
+
+void SifiveUART::UpdateIRQ()
+{
+	uint32_t old_ip = ip_;
+	ip_ = 0;
+
+	// if txwm interrupt is enabled, then pend it
+	uint32_t txcnt = (txctrl_ >> 16) & 3;
+	if(txcnt > 0) {
+		// pend txwm interrupt
+		ip_ |= (1 << 0);
+	}
+
+	// rxwm: todo
+	uint32_t rxcnt = (rxctrl_ >> 16) & 3;
+	if(rxcnt < rx_fifo_.size()) {
+		// pend txwm interrupt
+		ip_ |= (1 << 1);
+	}
+
+	if(ip_ != old_ip) {
+		LC_DEBUG1(LogSifiveUART) << "IP set to " << Address(ip_);
+	}
+
+	if(ip_ & ie_) {
+		if(!GetIRQLine()->IsAsserted()) {
+			LC_DEBUG1(LogSifiveUART) << "Pending IRQ!";
+			GetIRQLine()->Assert();
+		}
+	} else {
+		if(GetIRQLine()->IsAsserted()) {
+			LC_DEBUG1(LogSifiveUART) << "Rescinding IRQ.";
+			GetIRQLine()->Rescind();
+		}
+	}
+}
+
+uint32_t SifiveUART::ReadRXFifo()
+{
+	uint32_t data = 0;
+	if(!rx_fifo_.empty()) {
+		data = rx_fifo_.front();
+		rx_fifo_.pop();
+	} else {
+		data = 0x80000000;
+	}
+
+	LC_DEBUG1(LogSifiveUART) << "Read " << Address(data) << " out of read buffer";
+
+	UpdateIRQ();
+
+	return data;
 }
