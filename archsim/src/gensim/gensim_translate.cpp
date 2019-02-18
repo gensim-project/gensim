@@ -21,8 +21,8 @@ bool BaseLLVMTranslate::EmitRegisterWrite(Builder& builder, archsim::translate::
 }
 
 //#define FAST_READS
-#define FASTER_READS
-#define FASTER_WRITES
+//#define FASTER_READS
+//#define FASTER_WRITES
 //#define FAST_WRITES
 
 llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value* address)
@@ -258,7 +258,7 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 			UNIMPLEMENTED;
 	}
 
-	builder.CreateCall(fn_ptr, {GetThreadPtr(ctx), llvm::ConstantInt::get(ctx.Types.i32, interface), address, value});
+	builder.CreateCall(fn_ptr, {GetThreadPtr(builder, ctx), llvm::ConstantInt::get(ctx.Types.i32, interface), address, value});
 
 #ifdef FAST_WRITES
 	builder.CreateBr(continue_block);
@@ -268,7 +268,7 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 #endif
 	if(archsim::options::Trace) {
 		if(trace_fn_ptr != nullptr) {
-			builder.CreateCall(trace_fn_ptr, {ctx.GetThreadPtr(builder), address, value});
+			builder.CreateCall(trace_fn_ptr, {GetThreadPtr(builder, ctx), address, value});
 		}
 	}
 }

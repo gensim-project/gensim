@@ -198,8 +198,58 @@ namespace gensim
 				GenerateDispatch();
 				GenerateTranslators();
 
+				GenerateShunts();
+
 				return true;
 			}
+
+			bool GenerateShunts() const
+			{
+				// Generate shunts for each noninline action. These shunts will
+				// then be called from LLVM translated code.
+				for(auto &isa : Manager.GetArch().ISAs) {
+					for(auto &action_it : isa->GetSSAContext().Actions()) {
+						auto action = action_it.second;
+						if(action->GetPrototype().HasAttribute(gensim::genc::ActionAttribute::NoInline)) {
+							GenerateShunt(isa->ISAName, (gensim::genc::ssa::SSAFormAction*)action);
+						}
+					}
+				}
+
+				return true;
+			}
+
+			bool GenerateShunt(const std::string &isaname, gensim::genc::ssa::SSAFormAction *action) const
+			{
+				std::ostringstream str;
+
+				str << action->GetType().GetCType() << " txln_shunt_" << action->GetPrototype().GetIRSignature().GetName() << "(void *state";
+				for(auto &param : action->ParamSymbols) {
+					str << ", " << param->GetType().GetCType() << " " << param->GetName();
+				}
+				str << ")";
+
+				std::string prototype = str.str();
+
+				str << "{";
+				str << "auto *thread = *(archsim::core::thread::ThreadInstance**)state;";
+				if(action->GetPrototype().ReturnType() != gensim::genc::IRTypes::Void) {
+					str << " return ";
+				}
+				str << "helper_" << isaname << "_" << action->GetPrototype().GetIRSignature().GetName() << "<false>(thread";
+
+				for(auto &param : action->ParamSymbols) {
+					str << ", " << param->GetName();
+				}
+
+				str << ");";
+				str << "}";
+
+				Manager.AddFunctionEntry(FunctionEntry(prototype, str.str(), {}, {}, {}, true));
+
+				return true;
+			}
+
 			std::string GetFunction() const override
 			{
 				return "";

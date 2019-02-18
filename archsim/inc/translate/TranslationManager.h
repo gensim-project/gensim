@@ -168,10 +168,43 @@ namespace archsim
 			bool _needs_leave;
 			profile::RegionTable regions;
 
-			struct {
+			struct RegionCacheEntry {
+				RegionCacheEntry()
+				{
+					Invalidate();
+				}
+				void Invalidate()
+				{
+					tag = 1;
+					data = nullptr;
+				}
+
 				archsim::Address::underlying_t tag;
 				profile::Region* data;
-			} region_cache_[1024];
+			};
+
+			struct RegionCache {
+			public:
+				RegionCache()
+				{
+					Invalidate();
+				}
+				void Invalidate()
+				{
+					for(auto &i : entries_) {
+						i.Invalidate();
+					}
+				}
+
+				RegionCacheEntry &GetEntry(Address addr)
+				{
+					return entries_.at(addr.GetPageIndex() % entries_.size());
+				}
+			private:
+				std::array<RegionCacheEntry, 1024> entries_;
+			};
+
+			RegionCache region_cache_;
 
 			wutils::vset<profile::Region*> touched_regions_;
 //			std::unordered_set<profile::Region*> touched_regions_;

@@ -56,12 +56,14 @@ void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit
 	llvm::Value *pc = GetContext().LoadGuestRegister(builder, GetContext().GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
 
 	// need to make sure we're still on the right page
-	auto pc_check_less = builder.CreateICmpULT(pc, llvm::ConstantInt::get(pc->getType(), work_unit.GetRegion().GetPhysicalBaseAddress().Get()));
-	auto pc_check_greater = builder.CreateICmpUGE(pc, llvm::ConstantInt::get(pc->getType(), work_unit.GetRegion().GetPhysicalBaseAddress().Get() + 4096));
-	auto pc_check = builder.CreateOr(pc_check_less, pc_check_greater);
-
 	llvm::BasicBlock *on_page_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "jump_table_block", GetFunction());
-	builder.CreateCondBr(pc_check, exit_page_block, on_page_block);
+
+	// get PC page index
+	auto pc_page_index = builder.CreateUDiv(pc, llvm::ConstantInt::get(pc->getType(), Address::PageSize));
+	auto virt_page_switch = builder.CreateSwitch(pc_page_index, exit_page_block);
+	for(auto virt_image : work_unit.GetRegion().virtual_images) {
+		virt_page_switch->addCase((llvm::ConstantInt*)llvm::ConstantInt::get(pc->getType(), virt_image.GetPageIndex()), on_page_block);
+	}
 
 	builder.SetInsertPoint(on_page_block);
 
@@ -149,6 +151,8 @@ llvm::BasicBlock *LLVMRegionTranslationContext::GetRegionChainBlock()
 		fn_ptr = builder.CreateLoad(fn_ptr);
 
 		auto result = builder.CreateCall(fn_ptr, {GetContext().GetRegStatePtr(), GetContext().GetStateBlockPointer()});
+		result->setTailCall(true);
+		result->setTailCallKind(llvm::CallInst::TCK_MustTail);
 		builder.CreateRet(result);
 
 		builder.SetInsertPoint(nomatch_block);
@@ -236,6 +240,7 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 	Types.i8Ptr  = llvm::IntegerType::getInt8PtrTy(ctx, 0);
 	Types.i16 = llvm::IntegerType::getInt16Ty(ctx);
 	Types.i32 = llvm::IntegerType::getInt32Ty(ctx);
+	Types.i32Ptr = llvm::IntegerType::getInt32PtrTy(ctx);
 	Types.i64 = llvm::IntegerType::getInt64Ty(ctx);
 	Types.i64Ptr = llvm::IntegerType::getInt64PtrTy(ctx);
 	Types.i128 = llvm::IntegerType::getInt128Ty(ctx);
@@ -320,10 +325,10 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 
 	Functions.TakeException = (llvm::Function*)Module->getOrInsertFunction("cpuTakeException", Types.vtype, Types.i8Ptr, Types.i32, Types.i32);
 
-	Functions.dev_read_device = (llvm::Function*)Module->getOrInsertFunction("devReadDevice", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i8Ptr);
-	Functions.dev_read_device = (llvm::Function*)Module->getOrInsertFunction("devReadDevice64", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i8Ptr);
-	Functions.dev_write_device = (llvm::Function*)Module->getOrInsertFunction("devWriteDevice", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i32);
-	Functions.dev_write_device = (llvm::Function*)Module->getOrInsertFunction("devWriteDevice64", Types.vtype, Types.i8Ptr, Types.i32, Types.i32, Types.i64);
+	Functions.dev_read_device = (llvm::Function*)Module->getOrInsertFunction("devReadDevice", Types.i8, Types.i8Ptr, Types.i32, Types.i32, Types.i32Ptr);
+	Functions.dev_read_device64 = (llvm::Function*)Module->getOrInsertFunction("devReadDevice64", Types.i8, Types.i8Ptr, Types.i32, Types.i32, Types.i64Ptr);
+	Functions.dev_write_device = (llvm::Function*)Module->getOrInsertFunction("devWriteDevice", Types.i8, Types.i8Ptr, Types.i32, Types.i32, Types.i32);
+	Functions.dev_write_device64 = (llvm::Function*)Module->getOrInsertFunction("devWriteDevice64", Types.i8, Types.i8Ptr, Types.i32, Types.i32, Types.i64);
 
 	Functions.cpuTraceInstruction = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInstruction", Types.vtype, Types.i8Ptr, Types.i64, Types.i32, Types.i32, Types.i32, Types.i32);
 	Functions.cpuTraceInsnEnd = (llvm::Function*)Module->getOrInsertFunction("cpuTraceInsnEnd", Types.vtype, Types.i8Ptr);

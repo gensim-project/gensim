@@ -38,6 +38,14 @@ namespace archsim
 			KeyT tags[way_count];
 			T ways[way_count];
 
+			CacheEntry()
+			{
+				for (int i = 0; i < way_count; ++i) {
+					ways[i] = T();
+					tags[i] = KeyT(1);
+				}
+			}
+
 			void purge(std::function<void(T&)> purge_way)
 			{
 				for (int i = 0; i < way_count; ++i) {

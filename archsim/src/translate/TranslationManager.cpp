@@ -71,8 +71,11 @@ static void InvalidateCallback(PubSubType::PubSubType type, void *ctx, const voi
 		case PubSubType::L1ICacheFlush:
 			txln_mgr->Invalidate();
 			break;
-		case PubSubType::FlushTranslations:
+		case PubSubType::FlushAllTranslations:
 			txln_mgr->Invalidate();
+			break;
+		case PubSubType::FlushTranslations:
+			txln_mgr->InvalidateRegionTxlnCache();
 			break;
 		default:
 			assert(false);
@@ -92,7 +95,7 @@ TranslationManager::TranslationManager(util::PubSubContext &psCtx) : _needs_leav
 	subscriber.Subscribe(PubSubType::ITlbEntryFlush, InvalidateCallback, this);
 	subscriber.Subscribe(PubSubType::ITlbFullFlush, InvalidateCallback, this);
 	subscriber.Subscribe(PubSubType::RegionInvalidatePhysical, InvalidateCallback, this);
-	subscriber.Subscribe(PubSubType::FlushTranslations, InvalidateCallback, this);
+	subscriber.Subscribe(PubSubType::FlushAllTranslations, InvalidateCallback, this);
 //	subscriber.Subscribe(PubSubType::L1ICacheFlush, InvalidateCallback, this);
 }
 
@@ -134,7 +137,7 @@ void TranslationManager::Destroy()
 
 Region& TranslationManager::GetRegion(Address phys_addr)
 {
-	auto &cache_entry = region_cache_[phys_addr.GetPageIndex() % 1024];
+	auto &cache_entry = region_cache_.GetEntry(phys_addr);
 	if(cache_entry.tag != phys_addr.GetPageIndex()) {
 		GetCodeRegions().MarkRegionAsCode(PhysicalAddress(phys_addr.GetPageBase()));
 		auto &region = regions.Get(*this, phys_addr.PageBase());
@@ -249,7 +252,8 @@ void TranslationManager::Invalidate()
 	dirty_code_pages.clear();
 	regions.Clear();
 
-
+	// invalidate cache
+	region_cache_.Invalidate();
 }
 
 void TranslationManager::InvalidateRegion(Address phys_addr)

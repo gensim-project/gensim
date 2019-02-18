@@ -472,12 +472,12 @@ namespace archsim
 				{
 					std::unique_lock<std::mutex> lock(message_lock_);
 					message_queue_.push(message);
-					message_waiting_ = true;
+					*(uint32_t*)(((char*)GetStateBlock().GetData()) + message_waiting_offset_) = true;
 				}
 
 				bool HasMessage() const
 				{
-					return message_waiting_;
+					return *(uint32_t*)(((char*)GetStateBlock().GetData()) + message_waiting_offset_);
 				}
 				ThreadMessage GetNextMessage()
 				{
@@ -485,7 +485,7 @@ namespace archsim
 					auto message = message_queue_.front();
 					message_queue_.pop();
 
-					message_waiting_ = !message_queue_.empty();
+					*(uint32_t*)(((char*)GetStateBlock().GetData()) + message_waiting_offset_) = !message_queue_.empty();
 
 					return message;
 				}
@@ -521,13 +521,13 @@ namespace archsim
 
 				uint32_t mode_offset_;
 				uint32_t ring_offset_;
+				uint32_t message_waiting_offset_;
 
 				void *pc_ptr_;
 				bool pc_is_64bit_;
 
 				std::mutex message_lock_;
 				std::queue<ThreadMessage> message_queue_;
-				bool message_waiting_;
 				std::atomic<uint32_t> pending_irqs_;
 
 				StateBlock state_block_;
