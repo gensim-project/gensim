@@ -67,19 +67,27 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 			Address virt_pc = thread->GetPC();
 			Address phys_pc(0);
 
+			LC_DEBUG3(LogRegionJIT) << "Looking for region for V" << virt_pc;
+
 			auto txln = thread->GetFetchMI().PerformTranslation(virt_pc, phys_pc, false, true, false);
 			auto &region = ctx->TxlnMgr.GetRegion(phys_pc);
 			ctx->CurrentRegion = &region;
 
-			LC_DEBUG3(LogRegionJIT) << "Looking for region " << region.GetPhysicalBaseAddress();
+			LC_DEBUG3(LogRegionJIT) << "Looking for region P" << region.GetPhysicalBaseAddress();
 
 			if(region.HasTranslations()) {
 				LC_DEBUG3(LogRegionJIT) << "Region " << region.GetPhysicalBaseAddress() << " has translations";
-				if(region.txln != nullptr && region.txln->ContainsBlock(virt_pc.PageOffset())) {
+
+				LC_DEBUG3(LogRegionJIT) << "Region " << region.GetPhysicalBaseAddress() << " has virtual images:";
+				for(auto i : region.virtual_images) {
+					LC_DEBUG3(LogRegionJIT) << Address(i);
+				}
+
+				if(region.txln != nullptr && region.virtual_images.count(virt_pc.PageBase()) && region.txln->ContainsBlock(virt_pc.PageOffset())) {
 					LC_DEBUG3(LogRegionJIT) << "Translation found for current block";
 					captive::shared::block_txln_fn fn;
 					region.txln->Install(&fn);
-					ctx->PageCache.InsertEntry(phys_pc.PageBase(), fn);
+					ctx->PageCache.InsertEntry(virt_pc.PageBase(), fn);
 
 					if(archsim::options::Verbose) {
 						thread->GetMetrics().JITTime.Start();
@@ -126,10 +134,15 @@ ExecutionResult LLVMRegionJITExecutionEngine::EpochInterpret(LLVMRegionJITExecut
 
 
 		auto virt_pc = thread->GetPC();
-		if(region == nullptr || virt_pc.PageBase() != region->GetPhysicalBaseAddress()) {
+		if(region == nullptr || !region->virtual_images.count(virt_pc)) {
+			if(region != nullptr) {
+				region->Release();
+			}
+
 			Address phys_pc;
 			thread->GetFetchMI().PerformTranslation(virt_pc, phys_pc, false, true, false);
 			region = &ctx->TxlnMgr.GetRegion(phys_pc);
+			region->Acquire();
 		}
 		if(region->txln != nullptr && region->txln->ContainsBlock(virt_pc.PageOffset())) {
 			return ExecutionResult::Continue;

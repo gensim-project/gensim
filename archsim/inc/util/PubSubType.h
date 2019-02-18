@@ -36,7 +36,13 @@ DeclarePubType(FunctionCall)
 DeclarePubType(FunctionReturnFrom)
 
 DeclarePubType(RegionTranslationStatsIRCount)
+
+// Perform garbage collection on dead/invalid translations. Should be called if
+// code is known to be modified (i.e. after a write to code and then a cache
+// flush/fence)
 DeclarePubType(FlushTranslations)
+
+// Delete all existing translations
 DeclarePubType(FlushAllTranslations)
 DeclarePubType(FeatureChange)
 

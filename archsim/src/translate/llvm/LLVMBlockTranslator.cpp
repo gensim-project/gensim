@@ -12,17 +12,20 @@ LLVMBlockTranslator::LLVMBlockTranslator(LLVMTranslationContext &ctx, gensim::Ba
 
 }
 
-void TranslateInstructionPredicated(llvm::IRBuilder<> &builder, LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address insn_pc, llvm::Function *fn)
+void TranslateInstructionPredicated(llvm::IRBuilder<> &builder, LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, archsim::core::thread::ThreadInstance *thread, const gensim::BaseDecode *decode, archsim::Address phys_insn_pc, llvm::Function *fn)
 {
+	auto virt_insn_addr = translate->EmitRegisterRead(builder, ctx, thread->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
+	auto virt_next_pc = builder.CreateAdd(virt_insn_addr, llvm::ConstantInt::get(virt_insn_addr->getType(), decode->Instr_Length));
+
 	if(archsim::options::Trace) {
-		builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(builder), llvm::ConstantInt::get(ctx.Types.i64, insn_pc.Get()), llvm::ConstantInt::get(ctx.Types.i32, decode->ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
+		builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(builder), virt_insn_addr, llvm::ConstantInt::get(ctx.Types.i32, decode->ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
 	}
 
 	gensim::JumpInfo ji;
 	auto jip = thread->GetArch().GetISA(decode->isa_mode).GetNewJumpInfo();
-	jip->GetJumpInfo(decode, insn_pc, ji);
+	jip->GetJumpInfo(decode, phys_insn_pc, ji);
 
-	llvm::Value *predicate_passed = translate->EmitPredicateCheck(builder, ctx, thread, decode, insn_pc, fn);
+	llvm::Value *predicate_passed = translate->EmitPredicateCheck(builder, ctx, thread, decode, phys_insn_pc, fn);
 	predicate_passed = builder.CreateICmpNE(predicate_passed, llvm::ConstantInt::get(predicate_passed->getType(), 0));
 
 	llvm::BasicBlock *passed_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", fn);
@@ -34,7 +37,7 @@ void TranslateInstructionPredicated(llvm::IRBuilder<> &builder, LLVMTranslationC
 		failed_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", fn);
 		llvm::IRBuilder<> failed_builder(failed_block);
 
-		ctx.StoreGuestRegister(failed_builder, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr, llvm::ConstantInt::get(ctx.Types.i64, insn_pc.Get() + decode->Instr_Length));
+		ctx.StoreGuestRegister(failed_builder, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr, virt_next_pc);
 		failed_builder.CreateBr(continue_block);
 
 	}
@@ -42,7 +45,7 @@ void TranslateInstructionPredicated(llvm::IRBuilder<> &builder, LLVMTranslationC
 	builder.CreateCondBr(predicate_passed, passed_block, failed_block);
 
 	builder.SetInsertPoint(passed_block);
-	translate->TranslateInstruction(builder, ctx, thread, decode, insn_pc, fn);
+	translate->TranslateInstruction(builder, ctx, thread, decode, phys_insn_pc, fn);
 	builder.CreateBr(continue_block);
 
 	builder.SetInsertPoint(continue_block);
@@ -54,7 +57,7 @@ void TranslateInstructionPredicated(llvm::IRBuilder<> &builder, LLVMTranslationC
 	}
 
 	if(!ji.IsJump) {
-		ctx.StoreGuestRegister(builder, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr, llvm::ConstantInt::get(ctx.Types.i64, insn_pc.Get() + decode->Instr_Length));
+		ctx.StoreGuestRegister(builder, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr, virt_next_pc);
 	}
 
 	delete jip;
@@ -79,8 +82,9 @@ llvm::BasicBlock *LLVMBlockTranslator::TranslateBlock(Address block_base, Transl
 		if(insn->GetDecode().GetIsPredicated()) {
 			TranslateInstructionPredicated(builder, ctx_, txlt_, ctx_.GetThread(), &insn->GetDecode(), insn_pc, target_fn_);
 		} else {
+			auto virt_insn_addr = txlt_->EmitRegisterRead(builder, ctx_, ctx_.GetThread()->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
 			if(archsim::options::Trace) {
-				builder.CreateCall(ctx_.Functions.cpuTraceInstruction, {ctx_.GetThreadPtr(builder), llvm::ConstantInt::get(ctx_.Types.i64, insn_pc.Get()), llvm::ConstantInt::get(ctx_.Types.i32, insn->GetDecode().ir), llvm::ConstantInt::get(ctx_.Types.i32, 0), llvm::ConstantInt::get(ctx_.Types.i32, 0), llvm::ConstantInt::get(ctx_.Types.i32, 1)});
+				builder.CreateCall(ctx_.Functions.cpuTraceInstruction, {ctx_.GetThreadPtr(builder), virt_insn_addr, llvm::ConstantInt::get(ctx_.Types.i32, insn->GetDecode().ir), llvm::ConstantInt::get(ctx_.Types.i32, 0), llvm::ConstantInt::get(ctx_.Types.i32, 0), llvm::ConstantInt::get(ctx_.Types.i32, 1)});
 			}
 
 			txlt_->TranslateInstruction(builder, ctx_, ctx_.GetThread(), &insn->GetDecode(), insn_pc, target_fn_);
@@ -105,7 +109,8 @@ llvm::BasicBlock *LLVMBlockTranslator::TranslateBlock(Address block_base, Transl
 						UNEXPECTED;
 				}
 
-				ctx_.StoreGuestRegister(builder, descriptor, nullptr, llvm::ConstantInt::get(type, (insn_pc + insn->GetDecode().Instr_Length).Get()));
+				auto next_pc = builder.CreateAdd(virt_insn_addr, llvm::ConstantInt::get(virt_insn_addr->getType(), insn->GetDecode().Instr_Length));
+				ctx_.StoreGuestRegister(builder, descriptor, nullptr, next_pc);
 			}
 
 		}

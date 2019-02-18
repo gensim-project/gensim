@@ -769,18 +769,21 @@ namespace gensim
 					output << "{";
 
 					std::string callee;
+					std::string val_type;
 					switch(stmt->Target()->GetType().SizeInBytes()) {
 						case 4:
 							callee = "dev_read_device";
+							val_type = "ctx.Types.i32";
 							break;
 						case 8:
 							callee = "dev_read_device64";
+							val_type = "ctx.Types.i64";
 							break;
 						default:
 							UNIMPLEMENTED;
 					}
 
-					output << "llvm::Value *ptr = __irBuilder.CreateAlloca(ctx.Types.i32);";
+					output << "llvm::Value *ptr = __irBuilder.CreateAlloca(" << val_type << ");";
 					output << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions." << callee << ", {ctx.GetThreadPtr(__irBuilder), " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", ptr}, \"dev_read_result\");";
 					output << "ctx.StoreRegister(__irBuilder, __idx_" << stmt->Target()->GetName() << ", __irBuilder.CreateLoad(ptr));";
 					output << "}";
@@ -1640,7 +1643,6 @@ namespace gensim
 				{
 					const SSACallStatement &Statement = static_cast<const SSACallStatement&>(this->Statement);
 
-
 					if(Statement.HasValue()) output << "::llvm::Value *" << Statement.GetName() << ";";
 					output << "{";
 					//first, figure out the type of the function we're calling (+1 because of CPU context - thiscall)
@@ -1661,7 +1663,8 @@ namespace gensim
 					output << "llvm::FunctionType *callee_type = llvm::FunctionType::get(" << return_type << ", llvm::ArrayRef<llvm::Type*>(params, " << num_params << "), false);";
 
 					//get the function pointer to cast
-					output << "llvm::Value *llvm_fn_ptr = module->getOrInsertFunction(\"txln_shunt_" << Statement.Target()->GetPrototype().GetIRSignature().GetName() << "\", callee_type);";
+					output << "void *naked_ptr = (void*)txln_shunt_" << Statement.Target()->GetPrototype().GetIRSignature().GetName() << ";";
+					output << "llvm::Value *llvm_fn_ptr = __irBuilder.CreateIntToPtr(llvm::ConstantInt::get(ctx.Types.i64, (intptr_t)naked_ptr), callee_type->getPointerTo());";
 
 					//build the args list
 					output << "llvm::Value *args[] { ctx.GetThreadPtr(__irBuilder) ";

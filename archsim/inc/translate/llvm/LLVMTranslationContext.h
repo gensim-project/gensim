@@ -22,6 +22,15 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
 
+static void txln_shunt_flush_itlb_entry(void *v, uint64_t addr)
+{
+	UNIMPLEMENTED;
+}
+static void txln_shunt_flush_dtlb_entry(void *v, uint64_t addr)
+{
+	UNIMPLEMENTED;
+}
+
 namespace archsim
 {
 	namespace translate
@@ -38,7 +47,7 @@ namespace archsim
 					llvm::Type *vtype;
 					llvm::IntegerType *i1, *i8, *i16, *i32, *i64, *i128;
 					llvm::Type *f32, *f64;
-					llvm::Type *i8Ptr, *i64Ptr;
+					llvm::Type *i8Ptr, *i32Ptr, *i64Ptr;
 				} Types;
 
 				struct {
@@ -162,7 +171,8 @@ namespace archsim
 				enum ExitReasons {
 					EXIT_REASON_NEXTPAGE,
 					EXIT_REASON_NOBLOCK,
-					EXIT_REASON_PAGECHANGE
+					EXIT_REASON_PAGECHANGE,
+					EXIT_REASON_MESSAGE
 				};
 
 				using BlockMap = std::map<archsim::Address, llvm::BasicBlock*>;

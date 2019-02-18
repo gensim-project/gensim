@@ -32,7 +32,7 @@ namespace archsim
 
 			bool Full()
 			{
-				return (data_ptr + sizeof(T)) > ((uint8_t*)data + sizeof(data));
+				return (data_ptr + sizeof(T)) >= ((uint8_t*)data + sizeof(data));
 			}
 
 			template<typename... args> T* Construct(args&&... A)
@@ -55,7 +55,9 @@ namespace archsim
 			Zone() : chunk(0) {}
 			~Zone()
 			{
-				for(auto c : chunks) delete c;
+				for(auto c : chunks) {
+					delete c;
+				}
 			}
 
 			template<typename... args> T* Construct(args&&... A)

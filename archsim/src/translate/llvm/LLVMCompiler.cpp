@@ -144,6 +144,11 @@ void LLVMCompiler::initJitSymbols()
 	jit_symbols_["cpuTraceInstruction"] = (void*)cpuTraceInstruction;
 	jit_symbols_["cpuTraceInsnEnd"] = (void*)cpuTraceInsnEnd;
 
+	jit_symbols_["devWriteDevice"] = (void*)devWriteDevice;
+	jit_symbols_["devWriteDevice64"] = (void*)devWriteDevice64;
+	jit_symbols_["devReadDevice"] = (void*)devReadDevice;
+	jit_symbols_["devReadDevice64"] = (void*)devReadDevice64;
+
 	jit_symbols_["__umodti3"] = (void*)uremi128;
 	jit_symbols_["__udivti3"] = (void*)udivi128;
 	jit_symbols_["__modti3"] = (void*)remi128;

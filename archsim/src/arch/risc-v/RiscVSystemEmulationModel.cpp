@@ -45,7 +45,6 @@ ExceptionAction RiscVSystemEmulationModel::HandleException(archsim::core::thread
 	// possibly handle special internal exceptions
 	switch(category) {
 		case 1024: { // fence.i
-			cpu->GetPubsub().Publish(PubSubType::FlushTranslations, nullptr);
 			cpu->GetPubsub().Publish(PubSubType::ITlbFullFlush, nullptr);
 			cpu->GetPubsub().Publish(PubSubType::DTlbFullFlush, nullptr);
 			return ExceptionAction::ResumeNext;
