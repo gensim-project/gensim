@@ -2,6 +2,11 @@
 Risc-V execution
 */
 
+helper typename word_t get_pc()
+{
+	return read_register(PC);
+}
+
 helper typename word_t read_gpr(uint32 gpr_idx)
 {
 	if(gpr_idx == 0) { 
@@ -166,7 +171,7 @@ execute(auipc)
 	
 	typename sword_t ximm = (sint32)imm;
 
-	typename word_t pc = read_pc();
+	typename word_t pc = get_pc();
 
 	pc += ximm;
 
@@ -302,11 +307,11 @@ execute(jal)
 	imm <<= 12;
 	imm >>= 12;
 
-	typename word_t addr = read_pc()+4;
+	typename word_t addr = get_pc()+4;
 
 	write_register_bank(GPR, inst.rd, addr);
 
-	typename word_t pc = read_pc();
+	typename word_t pc = get_pc();
 	pc += (typename sword_t)(imm * 2);
 	write_register(PC, pc);
 
@@ -315,7 +320,7 @@ execute(jal)
 
 execute(jalr)
 {
-	typename word_t link_address = read_pc() + 4;
+	typename word_t link_address = get_pc() + 4;
 
 	sint32 imm = inst.imm;
 
@@ -356,7 +361,7 @@ execute(beq)
 	typename word_t rs1 = read_gpr(inst.rs1);
 	typename word_t rs2 = read_gpr(inst.rs2);
 	
-	typename word_t pc = read_pc();
+	typename word_t pc = get_pc();
 
 	typename word_t addr = pc + imm * 2 ;
 
@@ -373,7 +378,7 @@ execute(bne)
 	typename word_t rs1 = read_gpr(inst.rs1);
 	typename word_t rs2 = read_gpr(inst.rs2);
 	
-	typename word_t pc = read_pc();
+	typename word_t pc = get_pc();
 	
 	typename word_t addr = pc + imm * 2;
 	
@@ -391,7 +396,7 @@ execute(blt)
 	typename sword_t rs1 = read_gpr(inst.rs1);
 	typename sword_t rs2 = read_gpr(inst.rs2);
 	
-	typename word_t pc = read_pc();
+	typename word_t pc = get_pc();
 	typename word_t addr = pc + imm * 2;
 
 
@@ -408,7 +413,7 @@ execute(bltu)
 	typename word_t rs1 = read_gpr(inst.rs1);
 	typename word_t rs2 = read_gpr(inst.rs2);
 
-	typename word_t pc = read_pc();
+	typename word_t pc = get_pc();
 	typename word_t addr = pc + imm * 2;
 
 	pc = (rs1 < rs2) ? addr : (pc + 4);
@@ -424,7 +429,7 @@ execute(bge)
 	typename sword_t rs1 = read_gpr(inst.rs1);
 	typename sword_t rs2 = read_gpr(inst.rs2);
 	
-	typename word_t pc = read_pc();
+	typename word_t pc = get_pc();
 	typename word_t addr = pc + imm * 2;
 
 	pc = (rs1 >= rs2) ? addr : (pc + 4);
@@ -440,7 +445,7 @@ execute(bgeu)
 	typename word_t rs1 = read_gpr(inst.rs1);
 	typename word_t rs2 = read_gpr(inst.rs2);
 	
-	typename word_t pc = read_pc();
+	typename word_t pc = get_pc();
 	typename word_t addr = pc + imm * 2;
 
 	pc = (rs1 >= rs2) ? addr : (pc + 4);

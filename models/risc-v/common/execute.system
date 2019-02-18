@@ -123,7 +123,7 @@ helper void riscv_trap_supervisor(typename sword_t cause, typename word_t tval) 
 		// delegate this trap to S mode
 		
 		// update SEPC
-		riscv_csr_set_sepc(read_pc());
+		riscv_csr_set_sepc(get_pc());
 		
 		// update mcause and mtval
 		riscv_csr_set_scause(cause);
@@ -172,7 +172,7 @@ helper void riscv_trap_machine(typename sword_t cause, typename word_t tval) noi
 	typename word_t bare_cause = (cause << 1) >> 1;
 	
 	// update MEPC
-	riscv_csr_set_mepc(read_pc());
+	riscv_csr_set_mepc(get_pc());
 	
 	// update mcause and mtval
 	riscv_csr_set_mcause(cause);
