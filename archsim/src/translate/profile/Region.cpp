@@ -18,7 +18,7 @@ Region::Region(TranslationManager& mgr, Address phys_base_addr)
 	:	mgr(mgr),
 	  phys_base_addr(phys_base_addr),
 	  current_generation(0),
-	  total_interp_count(0),
+	  total_interp_count_(0),
 	  max_generation(0),
 	  status(NotInTranslation),
 	  invalid_(false),
@@ -84,7 +84,7 @@ void Region::InvalidateHeat()
 	for(auto block : blocks) {
 		block.second->ClearInterpCount();
 	}
-	total_interp_count = 0;
+	total_interp_count_ = 0;
 	max_block_interp_count_ = 0;
 }
 
@@ -95,7 +95,7 @@ bool Region::HasTranslations() const
 
 void Region::TraceBlock(archsim::core::thread::ThreadInstance *thread, Address virt_addr)
 {
-	total_interp_count++;
+	total_interp_count_++;
 
 	if (GetStatus() == InTranslation)
 		return;

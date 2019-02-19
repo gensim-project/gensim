@@ -122,13 +122,6 @@ namespace archsim
 					return phys_base_addr;
 				}
 
-				inline uint32_t TotalBlockHeat() const
-				{
-					uint32_t total = 0;
-
-					return total_interp_count;
-				}
-
 				inline bool IsHot(uint32_t hotspot_threshold) const
 				{
 					return max_block_interp_count_ >= hotspot_threshold;
@@ -142,6 +135,11 @@ namespace archsim
 				void dump();
 				void dump_dot();
 
+				uint64_t GetTotalInterpCount() const
+				{
+					return total_interp_count_;
+				}
+
 			public:
 				size_t GetApproximateMemoryUsage() const;
 
@@ -150,9 +148,6 @@ namespace archsim
 				/*
 				 * Map of page offsets to block interpretation counts
 				 */
-				uint64_t max_block_interp_count_;
-				uint64_t total_interp_count;
-
 				typedef std::map<Address, Block*> block_map_t;
 
 				/**
@@ -168,6 +163,9 @@ namespace archsim
 				Translation *txln;
 
 			private:
+				uint64_t max_block_interp_count_;
+				uint64_t total_interp_count_;
+
 				TranslationManager& mgr;
 
 				Address phys_base_addr;

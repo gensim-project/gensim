@@ -21,7 +21,7 @@ using namespace archsim::translate::interrupts;
 TranslationWorkUnit::TranslationWorkUnit(archsim::core::thread::ThreadInstance *thread, profile::Region& region, uint32_t generation, uint32_t weight) : thread(thread), region(region), generation(generation), weight(weight), emit_trace_calls(thread->GetTraceSource() != nullptr)
 {
 	region.Acquire();
-	dispatch_heat_ = region.total_interp_count;
+	dispatch_heat_ = region.GetTotalInterpCount();
 }
 
 TranslationWorkUnit::~TranslationWorkUnit()
@@ -33,7 +33,7 @@ TranslationWorkUnit::~TranslationWorkUnit()
 
 uint32_t TranslationWorkUnit::GetWeight() const
 {
-	return GetRegion().total_interp_count - dispatch_heat_;
+	return GetRegion().GetTotalInterpCount() - dispatch_heat_;
 }
 
 
