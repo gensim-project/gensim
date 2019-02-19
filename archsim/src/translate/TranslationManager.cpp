@@ -197,7 +197,10 @@ bool archsim::translate::TranslationManager::ProfileRegion(archsim::core::thread
 		mprotect(addr, 4096, PROT_READ);
 #endif
 
-		assert(region->IsValid());
+		// Region has been invalidated so bail out
+		if(!region->IsValid()) {
+			return false;
+		}
 
 		if (!TranslateRegion(thread, *region, weight)) {
 			region->SetStatus(Region::NotInTranslation);

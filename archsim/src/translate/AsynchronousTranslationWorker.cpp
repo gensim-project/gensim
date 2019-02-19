@@ -162,30 +162,33 @@ void AsynchronousTranslationWorker::Translate(TranslationWorkUnit& unit)
 		unit.DumpGraph();
 	}
 
-	if (archsim::options::Verbose) {
-		units.inc();
-		blocks.inc(unit.GetBlockCount());
-	}
-
-	LC_DEBUG2(LogTranslate) << "[" << (uint32_t)id << "] Translating: " << unit;
-
-	translate_llvm::LLVMWorkUnitTranslator txltr(translate_, *llvm_ctx_.getContext());
-	auto txlt_result = txltr.TranslateWorkUnit(unit);
-
-	// compile
-	auto txln = CompileModule(unit, txlt_result.first, txlt_result.second);
-
-	if (!txln) {
-		LC_ERROR(LogTranslate) << "[" << (uint32_t)id << "] Translation Failed: " << unit;
-	} else {
-		LC_DEBUG2(LogTranslate) << "[" << (uint32_t)id << "] Translation Succeeded: " << unit;
+	if(unit.GetRegion().IsValid()) {
 
 		if (archsim::options::Verbose) {
-			txlns.inc();
+			units.inc();
+			blocks.inc(unit.GetBlockCount());
 		}
 
-		if (!mgr.MarkTranslationAsComplete(unit.GetRegion(), *txln)) {
-			delete txln;
+		LC_DEBUG2(LogTranslate) << "[" << (uint32_t)id << "] Translating: " << unit;
+
+		translate_llvm::LLVMWorkUnitTranslator txltr(translate_, *llvm_ctx_.getContext());
+		auto txlt_result = txltr.TranslateWorkUnit(unit);
+
+		// compile
+		auto txln = CompileModule(unit, txlt_result.first, txlt_result.second);
+
+		if (!txln) {
+			LC_ERROR(LogTranslate) << "[" << (uint32_t)id << "] Translation Failed: " << unit;
+		} else {
+			LC_DEBUG2(LogTranslate) << "[" << (uint32_t)id << "] Translation Succeeded: " << unit;
+
+			if (archsim::options::Verbose) {
+				txlns.inc();
+			}
+
+			if (!mgr.MarkTranslationAsComplete(unit.GetRegion(), *txln)) {
+				delete txln;
+			}
 		}
 	}
 }
