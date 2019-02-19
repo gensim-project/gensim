@@ -92,7 +92,8 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 					if(archsim::options::Verbose) {
 						thread->GetMetrics().JITTime.Start();
 					}
-					region.txln->Execute(thread);
+					auto exit_reason = region.txln->Execute(thread);
+					LC_DEBUG2(LogRegionJIT) << "Left JIT for reason " << exit_reason;
 					if(archsim::options::Verbose) {
 						thread->GetMetrics().JITTime.Stop();
 					}
@@ -143,9 +144,6 @@ ExecutionResult LLVMRegionJITExecutionEngine::EpochInterpret(LLVMRegionJITExecut
 			thread->GetFetchMI().PerformTranslation(virt_pc, phys_pc, false, true, false);
 			region = &ctx->TxlnMgr.GetRegion(phys_pc);
 			region->Acquire();
-		}
-		if(region->txln != nullptr && region->txln->ContainsBlock(virt_pc.PageOffset())) {
-			return ExecutionResult::Continue;
 		}
 
 		region->TraceBlock(thread, virt_pc);
