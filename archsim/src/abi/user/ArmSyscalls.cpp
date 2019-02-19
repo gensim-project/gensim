@@ -249,9 +249,23 @@ static unsigned long sys_openat(archsim::core::thread::ThreadInstance* cpu, int 
 static unsigned long sys_close(archsim::core::thread::ThreadInstance* cpu, unsigned int fd)
 {
 	LC_DEBUG1(LogSyscalls) << "Closing Guest FD=" << fd << ", Host FD=" << translate_fd(cpu, fd);
-	if (cpu->GetEmulationModel().GetSystem().CloseFD(fd))
-		return -errno;
-	return 0;
+
+	int result = 0;
+
+	switch(fd) {
+		case 0:
+		case 1:
+		case 2:
+			LC_DEBUG1(LogSyscalls) << "Pretending to close FD " << fd;
+			result = 0;
+			break;
+		default:
+			if (cpu->GetEmulationModel().GetSystem().CloseFD(fd)) {
+				result = -errno;
+			}
+	}
+
+	return result;
 }
 
 template<typename guest_iovec> static unsigned long sys_writev(archsim::core::thread::ThreadInstance* cpu, unsigned int fd, unsigned long iov_addr, int cnt)
