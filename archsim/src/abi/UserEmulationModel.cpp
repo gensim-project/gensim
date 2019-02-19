@@ -27,7 +27,6 @@ UserEmulationModel::~UserEmulationModel() { }
 
 void UserEmulationModel::PrintStatistics(std::ostream& stream)
 {
-//	cpu->PrintStatistics(stream);
 
 }
 
