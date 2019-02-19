@@ -182,7 +182,7 @@ bool archsim::translate::TranslationManager::ProfileRegion(archsim::core::thread
 	if (region->IsHot(curr_hotspot_threshold)) {
 		region_txln_count[region->GetPhysicalBaseAddress().Get()]++;
 
-		uint32_t weight = (region->TotalBlockHeat()) / region_txln_count[region->GetPhysicalBaseAddress().Get()];
+		uint32_t weight = (region->GetTotalInterpCount()) / region_txln_count[region->GetPhysicalBaseAddress().Get()];
 
 		region->SetStatus(Region::InTranslation);
 
