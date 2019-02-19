@@ -133,7 +133,10 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 		}
 	}
 
-	ics.ApplyInterruptChecks(twu->blocks);
+	// TODO: fix this for multiple ISAs
+	auto jump_info = thread->GetArch().GetISA(0).GetNewJumpInfo();
+	ics.ApplyInterruptChecks(*jump_info, twu->blocks);
+	delete jump_info;
 
 //#define COUNT_STATIC_CHECKS
 #ifdef COUNT_STATIC_CHECKS

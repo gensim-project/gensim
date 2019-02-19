@@ -6,6 +6,7 @@
  *
  * Created on 05 August 2014, 14:27
  */
+#include "gensim/gensim_translate.h"
 #include "translate/interrupts/InterruptCheckingScheme.h"
 #include "translate/TranslationWorkUnit.h"
 #include "util/ComponentManager.h"
@@ -27,7 +28,7 @@ InterruptCheckingScheme::~InterruptCheckingScheme()
 
 }
 
-bool NoneInterruptCheckingScheme::ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks)
+bool NoneInterruptCheckingScheme::ApplyInterruptChecks(gensim::BaseJumpInfoProvider& jump_info, std::map<Address, TranslationBlockUnit *>& blocks)
 {
 	for (auto block : blocks) {
 		block.second->SetInterruptCheck(false);
@@ -36,7 +37,7 @@ bool NoneInterruptCheckingScheme::ApplyInterruptChecks(std::map<Address, Transla
 	return true;
 }
 
-bool FullInterruptCheckingScheme::ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks)
+bool FullInterruptCheckingScheme::ApplyInterruptChecks(gensim::BaseJumpInfoProvider& jump_info, std::map<Address, TranslationBlockUnit *>& blocks)
 {
 	for (auto block : blocks) {
 		block.second->SetInterruptCheck(true);
@@ -45,10 +46,8 @@ bool FullInterruptCheckingScheme::ApplyInterruptChecks(std::map<Address, Transla
 	return true;
 }
 
-bool BackwardsBranchCheckingScheme::ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks)
+bool BackwardsBranchCheckingScheme::ApplyInterruptChecks(gensim::BaseJumpInfoProvider& jump_info, std::map<Address, TranslationBlockUnit *>& blocks)
 {
-	UNIMPLEMENTED;
-	/*
 	for (auto block : blocks) {
 		if (block.second->HasSuccessors()) {
 			for (auto succ : block.second->GetSuccessors()) {
@@ -60,20 +59,28 @@ bool BackwardsBranchCheckingScheme::ApplyInterruptChecks(std::map<Address, Trans
 		}
 
 		bool direct, indirect;
-		int32_t direct_offset, fallthrough_offset;
-		block.second->GetCtrlFlowInfo(direct, indirect, direct_offset, fallthrough_offset);
-		if(direct && direct_offset <= 0) block.second->SetInterruptCheck(true);
+		gensim::JumpInfo ji;
 
+		Address start_address = block.second->GetOffset() + block.second->GetLastInstruction().GetOffset();
+		jump_info.GetJumpInfo(&block.second->GetLastInstruction().GetDecode(), start_address, ji);
+
+		// This handles a few situations:
+		// 1. This is a direct jump, to somewhere on the same page, before this instruction: ji.JumpTarget <= start_address, so set interrupt check
+		// 2. This is a direct jump, to somewhere on the same page, after this instruction: ji.JumpTarget > start_address, do not set interrupt check
+		// 3. This is a direct jump, to somewhere on a different page, before this instruction: ji.JumpTarget has underflowed, so ji.JumpTarget > start_address, do not set interrupt check.
+		//    This is fine anyway, since if we're jumping off the page, we'll soon perform a message check somewhere else.
+		if(ji.IsJump && ji.JumpTarget <= start_address) {
+			block.second->SetInterruptCheck(true);
+		}
 	}
 
 	return true;
-	*/
 }
 
 class TarjanInterruptScheme : public InterruptCheckingScheme
 {
 public:
-	bool ApplyInterruptChecks(std::map<Address, TranslationBlockUnit *>& blocks) override
+	bool ApplyInterruptChecks(gensim::BaseJumpInfoProvider& jump_info, std::map<Address, TranslationBlockUnit *>& blocks) override
 	{
 		TarjanContext ctx;
 
