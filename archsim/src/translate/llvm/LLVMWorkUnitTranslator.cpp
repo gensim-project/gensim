@@ -101,24 +101,21 @@ void EmitControlFlow_DirectPred(llvm::IRBuilder<> &builder, translate_llvm::LLVM
 		}
 	}
 
-
 	auto branch_was_taken = builder.CreateICmpEQ(pc, taken_pc);
 	builder.CreateCondBr(branch_was_taken, taken_block, nontaken_block);
 }
 
 void EmitControlFlow_Indirect(llvm::IRBuilder<> &builder, translate_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, llvm::Value *virt_page_base, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region, gensim::JumpInfo &ji)
 {
-	// for now, go straight back to dispatch block. If we knew if the jump
-	// landed on the same page as it started, we could be a bit smarter.
-
-	// 1. check to see if the indirect jump lands on the same page
+	// 1. check to see if the indirect jump lands on the same page (is the current page the same as the initial page)
 	llvm::Value *pc = translate->EmitRegisterRead(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
 	auto new_page_base = builder.CreateAnd(pc, ~archsim::Address::PageMask);
 	auto same_page = builder.CreateICmpEQ(virt_page_base, new_page_base);
 
 	llvm::BasicBlock *same_page_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", region.GetFunction());
-	builder.CreateCondBr(same_page, same_page_block, region.GetDispatchBlock());
+	builder.CreateCondBr(same_page, same_page_block, region.GetExitBlock(LLVMRegionTranslationContext::EXIT_REASON_PAGECHANGE));
 
+	// we've landed on the same page: jump to the indirect target, falling through to dispatch block
 	builder.SetInsertPoint(same_page_block);
 	auto pc_offset = builder.CreateAnd(pc, archsim::Address::PageMask);
 	auto indirect_switch = builder.CreateSwitch(pc_offset, region.GetExitBlock(translate_llvm::LLVMRegionTranslationContext::EXIT_REASON_NOBLOCK));
