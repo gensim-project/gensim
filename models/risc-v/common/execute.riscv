@@ -298,24 +298,13 @@ execute(sra)
 //////////////////////////////////////////////////////////
 execute(jal)
 {
-	uint32 imm4 = inst.imm4;
-	uint32 imm3 = inst.imm3;
-	uint32 imm2 = inst.imm2;
-	uint32 imm1 = inst.imm1;
-
-	sint32 imm = (imm4<<19) | (imm3 << 11) | (imm2 << 10) | imm1;
-	imm <<= 12;
-	imm >>= 12;
-
 	typename word_t addr = get_pc()+4;
 
 	write_register_bank(GPR, inst.rd, addr);
 
 	typename word_t pc = get_pc();
-	pc += (typename sword_t)(imm * 2);
+	pc += (typename sword_t)(inst.j_offset);
 	write_register(PC, pc);
-
-	
 }
 
 execute(jalr)
