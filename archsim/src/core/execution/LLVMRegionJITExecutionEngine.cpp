@@ -70,37 +70,41 @@ ExecutionResult LLVMRegionJITExecutionEngine::Execute(ExecutionEngineThreadConte
 			LC_DEBUG3(LogRegionJIT) << "Looking for region for V" << virt_pc;
 
 			auto txln = thread->GetFetchMI().PerformTranslation(virt_pc, phys_pc, false, true, false);
-			auto &region = ctx->TxlnMgr.GetRegion(phys_pc);
-			ctx->CurrentRegion = &region;
+			if(txln == TranslationResult::OK) {
+				auto &region = ctx->TxlnMgr.GetRegion(phys_pc);
+				ctx->CurrentRegion = &region;
 
-			LC_DEBUG3(LogRegionJIT) << "Looking for region P" << region.GetPhysicalBaseAddress();
+				LC_DEBUG3(LogRegionJIT) << "Looking for region P" << region.GetPhysicalBaseAddress();
 
-			if(region.HasTranslations()) {
-				LC_DEBUG3(LogRegionJIT) << "Region " << region.GetPhysicalBaseAddress() << " has translations";
+				if(region.HasTranslations()) {
+					LC_DEBUG3(LogRegionJIT) << "Region " << region.GetPhysicalBaseAddress() << " has translations";
 
-				LC_DEBUG3(LogRegionJIT) << "Region " << region.GetPhysicalBaseAddress() << " has virtual images:";
-				for(auto i : region.virtual_images) {
-					LC_DEBUG3(LogRegionJIT) << Address(i);
-				}
-
-				if(region.txln != nullptr && region.virtual_images.count(virt_pc.PageBase()) && region.txln->ContainsBlock(virt_pc.PageOffset())) {
-					LC_DEBUG3(LogRegionJIT) << "Translation found for current block";
-					captive::shared::block_txln_fn fn;
-					region.txln->Install(&fn);
-					ctx->PageCache.InsertEntry(virt_pc.PageBase(), fn);
-
-					if(archsim::options::Verbose) {
-						thread->GetMetrics().JITTime.Start();
+					LC_DEBUG3(LogRegionJIT) << "Region " << region.GetPhysicalBaseAddress() << " has virtual images:";
+					for(auto i : region.virtual_images) {
+						LC_DEBUG3(LogRegionJIT) << Address(i);
 					}
-					auto exit_reason = region.txln->Execute(thread);
-					LC_DEBUG2(LogRegionJIT) << "Left JIT for reason " << exit_reason;
-					if(archsim::options::Verbose) {
-						thread->GetMetrics().JITTime.Stop();
+
+					if(region.txln != nullptr && region.virtual_images.count(virt_pc.PageBase()) && region.txln->ContainsBlock(virt_pc.PageOffset())) {
+						LC_DEBUG3(LogRegionJIT) << "Translation found for current block";
+						captive::shared::block_txln_fn fn;
+						region.txln->Install(&fn);
+						ctx->PageCache.InsertEntry(virt_pc.PageBase(), fn);
+
+						if(archsim::options::Verbose) {
+							thread->GetMetrics().JITTime.Start();
+						}
+						auto exit_reason = region.txln->Execute(thread);
+						LC_DEBUG2(LogRegionJIT) << "Left JIT for reason " << exit_reason;
+						if(archsim::options::Verbose) {
+							thread->GetMetrics().JITTime.Stop();
+						}
+						continue;
+					} else {
+						LC_DEBUG3(LogRegionJIT) << "Translation NOT found for current block";
 					}
-					continue;
-				} else {
-					LC_DEBUG3(LogRegionJIT) << "Translation NOT found for current block";
 				}
+			} else {
+				LC_DEBUG1(LogRegionJIT) << "Fetch virtual translation failed";
 			}
 
 			if(archsim::options::Verbose) {
@@ -141,7 +145,13 @@ ExecutionResult LLVMRegionJITExecutionEngine::EpochInterpret(LLVMRegionJITExecut
 			}
 
 			Address phys_pc;
-			thread->GetFetchMI().PerformTranslation(virt_pc, phys_pc, false, true, false);
+			auto txln_result = thread->GetFetchMI().PerformTranslation(virt_pc, phys_pc, false, true, false);
+			if(txln_result != TranslationResult::OK) {
+				// step a block without tracing to trigger a fetch fault
+				interpreter_->StepBlock(ctx);
+				continue;
+			}
+
 			region = &ctx->TxlnMgr.GetRegion(phys_pc);
 			region->Acquire();
 		}
