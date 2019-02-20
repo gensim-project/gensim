@@ -213,12 +213,15 @@ std::pair<llvm::Module *, llvm::Function *> LLVMWorkUnitTranslator::TranslateWor
 		// insert an interrupt check if necessary
 		if(block.second->IsInterruptCheck()) {
 			// load has message
-			auto has_message = ctx.GetStateBlockPointer(builder, "MessageWaiting");
-			has_message = builder.CreateLoad(has_message);
-			has_message = builder.CreateICmpNE(has_message, llvm::ConstantInt::get(has_message->getType(), 0));
+			auto has_message_ptr = ctx.GetStateBlockPointer(builder, "MessageWaiting");
+
+			llvm::LoadInst *has_message = builder.CreateLoad(has_message_ptr);
+			has_message->setVolatile(true);
+
+			auto has_message_cmp = builder.CreateICmpNE(has_message, llvm::ConstantInt::get(has_message->getType(), 0));
 
 			llvm::BasicBlock *continue_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "", fn);
-			builder.CreateCondBr(has_message, region_ctx.GetExitBlock(LLVMRegionTranslationContext::EXIT_REASON_MESSAGE), continue_block);
+			builder.CreateCondBr(has_message_cmp, region_ctx.GetExitBlock(LLVMRegionTranslationContext::EXIT_REASON_MESSAGE), continue_block);
 
 			builder.SetInsertPoint(continue_block);
 		}
