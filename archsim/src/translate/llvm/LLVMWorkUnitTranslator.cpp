@@ -51,29 +51,33 @@ LLVMWorkUnitTranslator::LLVMWorkUnitTranslator(gensim::BaseLLVMTranslate *txlt, 
 }
 
 
-void EmitControlFlow_FallOffPage(llvm::IRBuilder<> &builder, LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, LLVMRegionTranslationContext &region)
+static void EmitControlFlow_FallOffPage(llvm::IRBuilder<> &builder, LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, LLVMRegionTranslationContext &region)
 {
 	builder.CreateBr(region.GetExitBlock(LLVMRegionTranslationContext::EXIT_REASON_NEXTPAGE));
 }
 
-void EmitControlFlow_DirectNonPred(llvm::IRBuilder<> &builder, LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region, gensim::JumpInfo &ji)
+static void EmitControlFlow_DirectNonPred(llvm::IRBuilder<> &builder, LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region, gensim::JumpInfo &ji)
 {
-	llvm::BasicBlock *taken_block = region.GetDispatchBlock();
+	llvm::BasicBlock *taken_block = nullptr;
 
 	// Even though we're talking about physical addresses here, this still works
 	// when virtual memory is in effect since we're only checking that the jump
 	// hasn't left the page (which depends only on the offset, not the page)
-	if(ji.JumpTarget >= unit.GetRegion().GetPhysicalBaseAddress() && ji.JumpTarget < unit.GetRegion().GetPhysicalBaseAddress() + 4096) {
+	if(ji.JumpTarget.PageBase() == unit.GetRegion().GetPhysicalBaseAddress()) {
 		// jump target is on page
 		if(region.GetBlockMap().count(ji.JumpTarget.PageOffset())) {
 			taken_block = region.GetBlockMap().at(ji.JumpTarget.PageOffset());
+		} else {
+			taken_block = region.GetExitBlock(LLVMRegionTranslationContext::EXIT_REASON_NOBLOCK);
 		}
+	} else {
+		taken_block = region.GetExitBlock(LLVMRegionTranslationContext::EXIT_REASON_PAGECHANGE);
 	}
 
 	builder.CreateBr(taken_block);
 }
 
-void EmitControlFlow_DirectPred(llvm::IRBuilder<> &builder, translate_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region, gensim::JumpInfo &ji)
+static void EmitControlFlow_DirectPred(llvm::IRBuilder<> &builder, translate_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region, gensim::JumpInfo &ji)
 {
 	llvm::BasicBlock *taken_block = region.GetDispatchBlock();
 	llvm::BasicBlock *nontaken_block = region.GetDispatchBlock();
@@ -105,7 +109,7 @@ void EmitControlFlow_DirectPred(llvm::IRBuilder<> &builder, translate_llvm::LLVM
 	builder.CreateCondBr(branch_was_taken, taken_block, nontaken_block);
 }
 
-void EmitControlFlow_Indirect(llvm::IRBuilder<> &builder, translate_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, llvm::Value *virt_page_base, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region, gensim::JumpInfo &ji)
+static void EmitControlFlow_Indirect(llvm::IRBuilder<> &builder, translate_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, llvm::Value *virt_page_base, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region, gensim::JumpInfo &ji)
 {
 	// 1. check to see if the indirect jump lands on the same page (is the current page the same as the initial page)
 	llvm::Value *pc = translate->EmitRegisterRead(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
@@ -142,25 +146,29 @@ static void EmitControlFlow(llvm::IRBuilder<> &builder, translate_llvm::LLVMTran
 	auto jip = unit.GetThread()->GetArch().GetISA(decode->isa_mode).GetNewJumpInfo();
 	jip->GetJumpInfo(decode, insn_pc, ji);
 
-	if(!ji.IsJump) {
-		// situation 1
-		if(next_offset.Get() >= archsim::Address::PageSize || region.GetBlockMap().count(next_offset) == 0) {
-			EmitControlFlow_FallOffPage(builder, ctx, translate, region);
-		} else {
-			builder.CreateBr(region.GetBlockMap().at(next_offset));
-		}
+	if(archsim::options::JitDisableBranchOpt) {
+		EmitControlFlow_Indirect(builder, ctx, translate, unit, virt_page_base, block, ctrlflow, region, ji);
 	} else {
-		if(!ji.IsIndirect) {
-			if(!ji.IsConditional) {
-				// situation 2
-				EmitControlFlow_DirectNonPred(builder, ctx, translate, unit, block, ctrlflow, region, ji);
+		if(!ji.IsJump) {
+			// situation 1
+			if(next_offset.Get() >= archsim::Address::PageSize || region.GetBlockMap().count(next_offset) == 0) {
+				EmitControlFlow_FallOffPage(builder, ctx, translate, region);
 			} else {
-				// situation 3
-				EmitControlFlow_DirectPred(builder, ctx, translate, unit, block, ctrlflow, region, ji);
+				builder.CreateBr(region.GetBlockMap().at(next_offset));
 			}
 		} else {
-			// situation 4
-			EmitControlFlow_Indirect(builder, ctx, translate, unit, virt_page_base, block, ctrlflow, region, ji);
+			if(!ji.IsIndirect) {
+				if(!ji.IsConditional) {
+					// situation 2
+					EmitControlFlow_DirectNonPred(builder, ctx, translate, unit, block, ctrlflow, region, ji);
+				} else {
+					// situation 3
+					EmitControlFlow_DirectPred(builder, ctx, translate, unit, block, ctrlflow, region, ji);
+				}
+			} else {
+				// situation 4
+				EmitControlFlow_Indirect(builder, ctx, translate, unit, virt_page_base, block, ctrlflow, region, ji);
+			}
 		}
 	}
 
