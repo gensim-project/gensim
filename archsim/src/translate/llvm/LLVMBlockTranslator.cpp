@@ -79,6 +79,10 @@ llvm::BasicBlock *LLVMBlockTranslator::TranslateBlock(Address block_base, Transl
 	for(auto insn : block.GetInstructions()) {
 		auto insn_pc = block_base + insn->GetOffset();
 
+		if(archsim::options::InstructionTick) {
+			builder.CreateCall(ctx_.Functions.InstructionTick, {ctx_.GetThreadPtr(builder)});
+		}
+
 		if(insn->GetDecode().GetIsPredicated()) {
 			TranslateInstructionPredicated(builder, ctx_, txlt_, ctx_.GetThread(), &insn->GetDecode(), insn_pc, target_fn_);
 		} else {
