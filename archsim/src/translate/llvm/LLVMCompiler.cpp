@@ -154,6 +154,8 @@ void LLVMCompiler::initJitSymbols()
 	jit_symbols_["__modti3"] = (void*)remi128;
 	jit_symbols_["__divti3"] = (void*)divi128;
 
+	jit_symbols_["cpuInstructionTick"] = (void*)cpuInstructionTick;
+
 	// todo: change these to actual bitcode
 	jit_symbols_["txln_shunt___builtin_f32_is_snan"] = (void*)shunt_builtin_f32_is_snan;
 	jit_symbols_["txln_shunt___builtin_f32_is_qnan"] = (void*)shunt_builtin_f32_is_qnan;

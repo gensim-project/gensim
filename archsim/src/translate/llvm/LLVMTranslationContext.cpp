@@ -55,18 +55,6 @@ void LLVMRegionTranslationContext::BuildJumpTable(TranslationWorkUnit& work_unit
 
 	llvm::Value *pc = GetContext().LoadGuestRegister(builder, GetContext().GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
 
-	// need to make sure we're still on the right page
-	llvm::BasicBlock *on_page_block = llvm::BasicBlock::Create(ctx.LLVMCtx, "jump_table_block", GetFunction());
-
-	// get PC page index
-	auto pc_page_index = builder.CreateUDiv(pc, llvm::ConstantInt::get(pc->getType(), Address::PageSize));
-	auto virt_page_switch = builder.CreateSwitch(pc_page_index, exit_page_block);
-	for(auto virt_image : work_unit.GetRegion().virtual_images) {
-		virt_page_switch->addCase((llvm::ConstantInt*)llvm::ConstantInt::get(pc->getType(), virt_image.GetPageIndex()), on_page_block);
-	}
-
-	builder.SetInsertPoint(on_page_block);
-
 	auto pc_offset = builder.CreateAnd(pc, archsim::Address::PageMask);
 	auto target = builder.CreateInBoundsGEP(gv, {llvm::ConstantInt::get(ctx.Types.i64, 0), pc_offset});
 	if(llvm::isa<llvm::GetElementPtrInst>(target)) {
@@ -337,6 +325,8 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 	Functions.cpuEnterKernel = (llvm::Function*)Module->getOrInsertFunction("cpuEnterKernelMode", Types.vtype, Types.i8Ptr);
 	Functions.cpuPendIRQ = (llvm::Function*)Module->getOrInsertFunction("cpuPendInterrupt", Types.vtype, Types.i8Ptr);
 	Functions.cpuPushInterrupt = (llvm::Function*)Module->getOrInsertFunction("cpuPushInterrupt", Types.vtype, Types.i8Ptr, Types.i32);
+
+	Functions.InstructionTick = (llvm::Function*)Module->getOrInsertFunction("cpuInstructionTick", Types.vtype, Types.i8Ptr);
 
 	guest_reg_emitter_ = new GEPLLVMGuestRegisterAccessEmitter(*this);
 }
