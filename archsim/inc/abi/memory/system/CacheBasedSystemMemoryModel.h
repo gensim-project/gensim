@@ -27,6 +27,8 @@
 #endif
 #endif
 
+static char parking_page[4096];
+
 namespace gensim
 {
 	class Processor;
@@ -111,6 +113,7 @@ namespace archsim
 				inline void Invalidate()
 				{
 					virt_tag = Address(kInvalidTag);
+					data = (void*)parking_page;
 				}
 
 				void Dump()
