@@ -240,7 +240,7 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 		}
 	}
 
-	uint8_t *page_base = (uint8_t*)entry->GetMemory() + entry->GetTag().Get();
+	uint8_t *page_base = (uint8_t*)entry->GetMemory();
 	switch(size) {
 		case 1:
 			*data = *(page_base + va.GetPageOffset());
@@ -363,7 +363,7 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 		GetCodeRegions().InvalidateRegion(PhysicalAddress(entry->GetPhysAddr().Get()));
 	}
 
-	uint8_t *page_base = (uint8_t*)entry->GetMemory() + entry->GetTag().Get();
+	uint8_t *page_base = (uint8_t*)entry->GetMemory();
 	switch(size) {
 		case 1:
 			*(page_base + va.GetPageOffset()) = *data;
@@ -500,7 +500,7 @@ uint32_t CacheBasedSystemMemoryModel::UpdateCacheEntry(guest_addr_t addr, SMMCac
 		if(!GetPhysMem()->LockRegion(phys_page_base, archsim::translate::profile::RegionArch::PageSize, host_page_addr)) {
 			return 1;
 		}
-		*entry = SMMCacheEntry(virt_page_base, phys_page_base, (void*)((uint64_t)host_page_addr - virt_page_base.Get()), 0);
+		*entry = SMMCacheEntry(virt_page_base, phys_page_base, (void*)((uint64_t)host_page_addr), 0);
 	}
 
 	return 0;

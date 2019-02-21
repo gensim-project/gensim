@@ -14,6 +14,7 @@
 #include "gensim/gensim_translate.h"
 #include "translate/TranslationWorkUnit.h"
 #include "translate/llvm/LLVMGuestRegisterAccessEmitter.h"
+#include "translate/llvm/LLVMMemoryAccessEmitter.h"
 
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
@@ -145,12 +146,18 @@ namespace archsim
 				{
 					guest_reg_emitter_->Finalize();
 				}
+
+				LLVMMemoryAccessEmitter &GetMemoryEmitter()
+				{
+					return *memory_access_emitter_;
+				}
 			private:
 				std::map<llvm::Type*, llvm::Value *> trace_slots_;
 
 				archsim::core::thread::ThreadInstance *thread_;
 
-				LLVMGuestRegisterAccessEmitter *guest_reg_emitter_;
+				std::unique_ptr<LLVMGuestRegisterAccessEmitter> guest_reg_emitter_;
+				std::unique_ptr<LLVMMemoryAccessEmitter> memory_access_emitter_;
 
 				llvm::Function *function_;
 
