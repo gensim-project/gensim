@@ -61,7 +61,8 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archs
 #else
 
 #ifdef FAST_READS
-	llvm::Value *cache_ptr = builder.CreateLoad(ctx.GetStateBlockPointer(builder, "mem_cache_0_3_read"), ctx.Types.i64Ptr);
+	llvm::LoadInst *cache_ptr = builder.CreateLoad(ctx.GetStateBlockPointer(builder, "mem_cache_0_3_read"), ctx.Types.i64Ptr);
+	cache_ptr->setVolatile(false);
 	llvm::Value *page_index = builder.CreateLShr(address, 12);
 
 	if(archsim::options::Verbose) {
@@ -187,7 +188,9 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 	}
 #else
 #ifdef FAST_WRITES
-	llvm::Value *cache_ptr = builder.CreateLoad(ctx.GetStateBlockPointer(builder, "mem_cache_0_3_write"), ctx.Types.i64Ptr);
+	llvm::LoadInst *cache_ptr = builder.CreateLoad(ctx.GetStateBlockPointer(builder, "mem_cache_0_3_write"), ctx.Types.i64Ptr);
+	cache_ptr->setVolatile(false);
+
 	llvm::Value *page_index = builder.CreateLShr(address, 12);
 
 	if(archsim::options::Verbose) {
