@@ -20,10 +20,10 @@ bool BaseLLVMTranslate::EmitRegisterWrite(Builder& builder, archsim::translate::
 	return true;
 }
 
-//#define FAST_READS
+#define FAST_READS
 //#define FASTER_READS
 //#define FASTER_WRITES
-//#define FAST_WRITES
+#define FAST_WRITES
 
 llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archsim::translate::translate_llvm::LLVMTranslationContext& ctx, int interface, int size_in_bytes, llvm::Value* address)
 {
@@ -61,16 +61,16 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archs
 #else
 
 #ifdef FAST_READS
-	llvm::Value *cache_ptr = builder.CreatePtrToInt(ctx.GetStateBlockPointer("memory_cache_" + std::to_string(interface)), ctx.Types.i64);
+	llvm::Value *cache_ptr = builder.CreateLoad(ctx.GetStateBlockPointer(builder, "mem_cache_0_3_read"), ctx.Types.i64Ptr);
 	llvm::Value *page_index = builder.CreateLShr(address, 12);
 
 	if(archsim::options::Verbose) {
-		EmitIncrementCounter(ctx, ctx.GetThread()->GetMetrics().Reads);
+		EmitIncrementCounter(builder, ctx, ctx.GetThread()->GetMetrics().Reads);
 	}
 
 	// TODO: get rid of these magic numbers (number of entries in cache, and cache entry size)
 	llvm::Value *cache_entry = builder.CreateURem(page_index, llvm::ConstantInt::get(ctx.Types.i64, 1024));
-	cache_entry = builder.CreateMul(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 16));
+	cache_entry = builder.CreateMul(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 32));
 	cache_entry = builder.CreateAdd(cache_ptr, cache_entry);
 
 	llvm::Value *tag = builder.CreateIntToPtr(cache_entry, ctx.Types.i64Ptr);
@@ -90,16 +90,15 @@ llvm::Value* BaseLLVMTranslate::EmitMemoryRead(llvm::IRBuilder<> &builder, archs
 
 	builder.SetInsertPoint(match_block);
 
-	llvm::Value *page_offset = builder.CreateAnd(address, archsim::Address::PageMask);
-	llvm::Value *ptr = builder.CreateAdd(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 8));
+	llvm::Value *ptr = builder.CreateAdd(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 16));
 	ptr = builder.CreateIntToPtr(ptr, ctx.Types.i64Ptr);
 	ptr = builder.CreateLoad(ptr);
-	ptr = builder.CreateAdd(ptr, page_offset);
+	ptr = builder.CreateAdd(ptr, address);
 	ptr = builder.CreateIntToPtr(ptr, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8));
 	llvm::Value *match_value = builder.CreateLoad(ptr);
 
 	if(archsim::options::Verbose) {
-		EmitIncrementCounter(ctx, ctx.GetThread()->GetMetrics().ReadHits);
+		EmitIncrementCounter(builder, ctx, ctx.GetThread()->GetMetrics().ReadHits);
 	}
 
 	builder.CreateBr(continue_block);
@@ -188,16 +187,16 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 	}
 #else
 #ifdef FAST_WRITES
-	llvm::Value *cache_ptr = builder.CreatePtrToInt(ctx.GetStateBlockPointer("memory_cache_" + std::to_string(interface)), ctx.Types.i64);
+	llvm::Value *cache_ptr = builder.CreateLoad(ctx.GetStateBlockPointer(builder, "mem_cache_0_3_write"), ctx.Types.i64Ptr);
 	llvm::Value *page_index = builder.CreateLShr(address, 12);
 
 	if(archsim::options::Verbose) {
-		EmitIncrementCounter(ctx, ctx.GetThread()->GetMetrics().Writes);
+		EmitIncrementCounter(builder, ctx, ctx.GetThread()->GetMetrics().Writes);
 	}
 
 	// TODO: get rid of these magic numbers (number of entries in cache, and cache entry size)
 	llvm::Value *cache_entry = builder.CreateURem(page_index, llvm::ConstantInt::get(ctx.Types.i64, 1024));
-	cache_entry = builder.CreateMul(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 16));
+	cache_entry = builder.CreateMul(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 32));
 	cache_entry = builder.CreateAdd(cache_ptr, cache_entry);
 
 	llvm::Value *tag = builder.CreateIntToPtr(cache_entry, ctx.Types.i64Ptr);
@@ -217,16 +216,15 @@ void BaseLLVMTranslate::EmitMemoryWrite(llvm::IRBuilder<> &builder, archsim::tra
 
 	builder.SetInsertPoint(match_block);
 
-	llvm::Value *page_offset = builder.CreateAnd(address, archsim::Address::PageMask);
-	llvm::Value *ptr = builder.CreateAdd(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 8));
+	llvm::Value *ptr = builder.CreateAdd(cache_entry, llvm::ConstantInt::get(ctx.Types.i64, 16));
 	ptr = builder.CreateIntToPtr(ptr, ctx.Types.i64Ptr);
 	ptr = builder.CreateLoad(ptr);
-	ptr = builder.CreateAdd(ptr, page_offset);
+	ptr = builder.CreateAdd(ptr, address);
 	ptr = builder.CreateIntToPtr(ptr, llvm::IntegerType::getIntNPtrTy(ctx.LLVMCtx, size_in_bytes*8));
 	builder.CreateStore(value, ptr);
 
 	if(archsim::options::Verbose) {
-		EmitIncrementCounter(ctx, ctx.GetThread()->GetMetrics().WriteHits);
+		EmitIncrementCounter(builder, ctx, ctx.GetThread()->GetMetrics().WriteHits);
 	}
 
 	builder.CreateBr(continue_block);
