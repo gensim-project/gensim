@@ -350,11 +350,16 @@ llvm::Function* LLVMTranslationContext::GetFunction()
 
 llvm::Value* LLVMTranslationContext::GetStateBlockPointer(llvm::IRBuilder<> &builder, const std::string& entry)
 {
+	llvm::IRBuilder<> local_builder (builder);
+
+	auto entry_block = &builder.GetInsertBlock()->getParent()->getEntryBlock();
+	local_builder.SetInsertPoint(entry_block, entry_block->begin());
+
 	auto ptr = Values.state_block_ptr;
-	ptr = builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(Types.i64, thread_->GetStateBlock().GetBlockOffset(entry))});
+	ptr = local_builder.CreateInBoundsGEP(ptr, {llvm::ConstantInt::get(Types.i64, thread_->GetStateBlock().GetBlockOffset(entry))});
 
 	// cast to appropriate pointer type
-	ptr = builder.CreatePointerCast(ptr, llvm::Type::getIntNPtrTy(LLVMCtx, thread_->GetStateBlock().GetDescriptor().GetBlockSizeInBytes(entry)*8));
+	ptr = local_builder.CreatePointerCast(ptr, llvm::Type::getIntNPtrTy(LLVMCtx, thread_->GetStateBlock().GetDescriptor().GetBlockSizeInBytes(entry)*8));
 
 	return ptr;
 }
