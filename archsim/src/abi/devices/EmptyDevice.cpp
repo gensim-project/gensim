@@ -4,7 +4,13 @@
 
 using namespace archsim::abi::devices;
 
-EmptyDevice::EmptyDevice(EmulationModel &parent, Address base_address, uint64_t size) : MemoryComponent(parent, base_address, size)
+static ComponentDescriptor EmptyDeviceDescriptor ("EmptyDevice", {});
+EmptyDevice::EmptyDevice(EmulationModel &parent, Address base_address, uint64_t size) : MemoryComponent(parent, base_address, size), Component(EmptyDeviceDescriptor)
+{
+
+}
+
+EmptyDevice::~EmptyDevice()
 {
 
 }
