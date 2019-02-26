@@ -1,6 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include "abi/devices/SerialPort.h"
+#include "abi/devices/EmptyDevice.h"
 #include "arch/risc-v/RiscVDecodeContext.h"
 #include "arch/risc-v/RiscVMMU.h"
 #include "arch/risc-v/RiscVSystemCoprocessor.h"
@@ -105,6 +106,25 @@ bool RiscVSifiveFU540EmulationModel::InstallPlatformDevices()
 	uart1->SetParameter("SerialPort", new archsim::abi::devices::ConsoleOutputSerialPort());
 	uart1->SetParameter("IRQLine", plic->RegisterSource(5));
 	RegisterMemoryComponent(*uart1);
+
+	auto gpio = new archsim::abi::devices::EmptyDevice(*this, Address(0x10060000), 0x1000);
+	RegisterMemoryComponent(*gpio);
+
+	auto spi0 = new archsim::abi::devices::EmptyDevice(*this, Address(0x10040000), 0x1000);
+	RegisterMemoryComponent(*spi0);
+	auto spi1 = new archsim::abi::devices::EmptyDevice(*this, Address(0x10041000), 0x1000);
+	RegisterMemoryComponent(*spi1);
+	auto spi2 = new archsim::abi::devices::EmptyDevice(*this, Address(0x10050000), 0x1000);
+	RegisterMemoryComponent(*spi2);
+	auto ethernet = new archsim::abi::devices::EmptyDevice(*this, Address(0x10090000), 0x2000);
+	RegisterMemoryComponent(*ethernet);
+	auto i2c = new archsim::abi::devices::EmptyDevice(*this, Address(0x10030000), 0x1000);
+	RegisterMemoryComponent(*i2c);
+
+	auto pwm0 = new archsim::abi::devices::EmptyDevice(*this, Address(0x10020000), 0x1000);
+	RegisterMemoryComponent(*pwm0);
+	auto pwm1 = new archsim::abi::devices::EmptyDevice(*this, Address(0x10021000), 0x1000);
+	RegisterMemoryComponent(*pwm1);
 
 	// VirtIO Block device
 	if(GetSystem().HasBlockDevice("vda")) {
