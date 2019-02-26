@@ -26,7 +26,8 @@ execute(sc_d)
 
 execute(amoswapd)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	typename word_t addr = read_gpr(inst.rs1);
 	uint64 val;
 	mem_read_64(Mem, addr, val);
@@ -35,11 +36,14 @@ execute(amoswapd)
 	write_register_bank(GPR, inst.rd, val);
 	
 	mem_write_64(Mem, addr, rs2);
+	
+	mem_unlock(Mem);
 }
 
 execute(amoaddd)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	uint64 addr = read_gpr(inst.rs1);
 	uint64 val;
 	mem_read_64(Mem, addr, val);
@@ -48,11 +52,14 @@ execute(amoaddd)
 	write_register_bank(GPR, inst.rd, val);
 	
 	mem_write_64(Mem, addr, rs2 + val);
+	
+	mem_unlock(Mem);
 }
 
 execute(amoandd)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	uint64 addr = read_gpr(inst.rs1);
 	uint64 val;
 	mem_read_64(Mem, addr, val);
@@ -61,11 +68,14 @@ execute(amoandd)
 	write_register_bank(GPR, inst.rd, val);
 	
 	mem_write_64(Mem, addr, rs2 & val);
+	
+	mem_unlock(Mem);
 }
 
 execute(amoord)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	uint64 addr = read_gpr(inst.rs1);
 	uint64 val;
 	mem_read_64(Mem, addr, val);
@@ -74,6 +84,8 @@ execute(amoord)
 	write_register_bank(GPR, inst.rd, val);
 	
 	mem_write_64(Mem, addr, rs2 | val);
+	
+	mem_unlock(Mem);
 }
 
 execute(amoxord)
@@ -88,7 +100,8 @@ execute(amomaxd)
 
 execute(amomaxud)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	uint64 addr = read_gpr(inst.rs1);
 	uint64 val;
 	mem_read_64(Mem, addr, val);
@@ -101,6 +114,8 @@ execute(amomaxud)
 	}
 	
 	mem_write_64(Mem, addr, val);
+	
+	mem_unlock(Mem);
 }
 
 execute(amomind)

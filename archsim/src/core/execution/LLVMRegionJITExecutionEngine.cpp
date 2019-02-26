@@ -22,6 +22,12 @@ LLVMRegionJITExecutionEngineContext::LLVMRegionJITExecutionEngineContext(archsim
 	thread->GetStateBlock().SetEntry("page_cache", &PageCache.Cache[0]);
 }
 
+LLVMRegionJITExecutionEngineContext::~LLVMRegionJITExecutionEngineContext()
+{
+	TxlnMgr.Destroy();
+}
+
+
 
 LLVMRegionJITExecutionEngine::LLVMRegionJITExecutionEngine(interpret::Interpreter* interp, gensim::BaseLLVMTranslate* translate) : interpreter_(interp), translator_(translate)
 {

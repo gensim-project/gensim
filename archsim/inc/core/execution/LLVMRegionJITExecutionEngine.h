@@ -75,6 +75,7 @@ namespace archsim
 			{
 			public:
 				LLVMRegionJITExecutionEngineContext(archsim::core::execution::ExecutionEngine *engine, archsim::core::thread::ThreadInstance *thread);
+				~LLVMRegionJITExecutionEngineContext();
 
 				translate::AsynchronousTranslationManager TxlnMgr;
 				LLVMRegionJITCache PageCache;

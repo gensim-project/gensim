@@ -201,11 +201,11 @@ namespace archsim
 
 		void Lock() override
 		{
-			UNIMPLEMENTED;
+			// do nothing
 		}
 		void Unlock() override
 		{
-			UNIMPLEMENTED;
+			// do nothing
 		}
 
 	private:

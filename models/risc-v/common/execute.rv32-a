@@ -28,7 +28,8 @@ execute(sc_w)
 
 execute(amoswap_w)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	typename word_t addr = read_gpr(inst.rs1);
 	uint32 val;
 	mem_read_32(Mem, addr, val);
@@ -37,11 +38,14 @@ execute(amoswap_w)
 	write_register_bank(GPR, inst.rd, val);
 	
 	mem_write_32(Mem, addr, rs2);
+	
+	mem_unlock(Mem);
 }
 
 execute(amoadd_w)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+
 	typename word_t addr = read_gpr(inst.rs1);
 	uint32 val;
 	mem_read_32(Mem, addr, val);
@@ -50,11 +54,14 @@ execute(amoadd_w)
 	write_register_bank(GPR, inst.rd, val);
 	
 	mem_write_32(Mem, addr, rs2 + val);
+	
+	mem_unlock(Mem);
 }
 
 execute(amoxor_w)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	typename word_t addr = read_gpr(inst.rs1);
 	uint32 val;
 	mem_read_32(Mem, addr, val);
@@ -63,11 +70,14 @@ execute(amoxor_w)
 	write_register_bank(GPR, inst.rd, val);
 	
 	mem_write_32(Mem, addr, rs2 ^ val);
+	
+	mem_unlock(Mem);
 }
 
 execute(amoand_w)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	typename word_t addr = read_gpr(inst.rs1);
 	uint32 val;
 	mem_read_32(Mem, addr, val);
@@ -76,11 +86,14 @@ execute(amoand_w)
 	write_register_bank(GPR, inst.rd, val);
 	
 	mem_write_32(Mem, addr, rs2 & val);
+	
+	mem_unlock(Mem);
 }
 
 execute(amoor_w)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);	
+	
 	typename word_t addr = read_gpr(inst.rs1);
 	uint32 val;
 	mem_read_32(Mem, addr, val);
@@ -89,11 +102,14 @@ execute(amoor_w)
 	write_register_bank(GPR, inst.rd, val);
 	
 	mem_write_32(Mem, addr, rs2 | val);
+	
+	mem_unlock(Mem);
 }
 
 execute(amomin_w)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	typename word_t addr = read_gpr(inst.rs1);
 	uint32 val;
 	mem_read_32(Mem, addr, val);
@@ -106,11 +122,14 @@ execute(amomin_w)
 	}
 	
 	mem_write_32(Mem, addr, val);
+	
+	mem_unlock(Mem);
 }
 
 execute(amominu_w)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	typename word_t addr = read_gpr(inst.rs1);
 	uint32 val;
 	mem_read_32(Mem, addr, val);
@@ -123,11 +142,14 @@ execute(amominu_w)
 	}
 	
 	mem_write_32(Mem, addr, val);
+	
+	mem_unlock(Mem);
 }
 
 execute(amomax_w)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	typename word_t addr = read_gpr(inst.rs1);
 	uint32 val;
 	mem_read_32(Mem, addr, val);
@@ -140,11 +162,14 @@ execute(amomax_w)
 	}
 	
 	mem_write_32(Mem, addr, val);
+	
+	mem_unlock(Mem);
 }
 
 execute(amomaxu_w)
 {
-	// todo: this, but atomic
+	mem_lock(Mem);
+	
 	typename word_t addr = read_gpr(inst.rs1);
 	uint32 val;
 	mem_read_32(Mem, addr, val);
@@ -157,4 +182,6 @@ execute(amomaxu_w)
 	}
 	
 	mem_write_32(Mem, addr, val);
+	
+	mem_unlock(Mem);
 }

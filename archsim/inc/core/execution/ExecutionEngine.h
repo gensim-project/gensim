@@ -48,7 +48,7 @@ namespace archsim
 			{
 			public:
 				ExecutionEngineThreadContext(ExecutionEngine *engine, thread::ThreadInstance *thread);
-				~ExecutionEngineThreadContext();
+				virtual ~ExecutionEngineThreadContext();
 
 				std::thread &GetWorker()
 				{

@@ -6,6 +6,7 @@
 #include "arch/risc-v/RiscVDecodeContext.h"
 #include "core/thread/ThreadInstance.h"
 #include "util/LogContext.h"
+#include "core/MemoryInterface.h"
 
 UseLogContext(LogEmulationModel);
 DeclareChildLogContext(LogEmulationModelRiscVSystem, LogEmulationModel, "RISCV-System");
@@ -67,6 +68,9 @@ ExceptionAction RiscVSystemEmulationModel::HandleException(archsim::core::thread
 
 ExceptionAction RiscVSystemEmulationModel::HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
 {
+	// make sure we release the lock on the memory interface if we've taken it
+	interface.Unlock();
+
 	// Exception set up by MMU
 	return ExceptionAction::AbortInstruction;
 }
