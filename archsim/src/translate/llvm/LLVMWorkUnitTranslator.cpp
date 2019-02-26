@@ -200,8 +200,6 @@ std::pair<llvm::Module *, llvm::Function *> LLVMWorkUnitTranslator::TranslateWor
 //	translate->InitialiseIsaMode(unit.GetThread());
 //	translate->SetDecodeContext(unit.GetThread()->GetEmulationModel().GetNewDecodeContext(*unit.GetThread()));
 
-	auto ji = unit.GetThread()->GetArch().GetISA(0).GetNewJumpInfo();
-
 	translate_llvm::LLVMTranslationContext ctx(module->getContext(), fn, unit.GetThread());
 
 	llvm::IRBuilder<> entry_builder (entry_block);

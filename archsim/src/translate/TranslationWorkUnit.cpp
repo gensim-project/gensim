@@ -76,9 +76,11 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	host_addr_t guest_page_data;
 //	thread->GetEmulationModel().GetMemoryModel().LockRegion(region.GetPhysicalBaseAddress(), profile::RegionArch::PageSize, guest_page_data);
 
-	auto phys_device = new archsim::LegacyMemoryInterface(thread->GetEmulationModel().GetMemoryModel());
-	auto phys_interface = new archsim::MemoryInterface(thread->GetArch().GetMemoryInterfaceDescriptor().GetFetchInterface());
-	phys_interface->Connect(*phys_device);
+	archsim::LegacyMemoryInterface phys_device(thread->GetEmulationModel().GetMemoryModel());
+	archsim::MemoryInterface phys_interface(thread->GetArch().GetMemoryInterfaceDescriptor().GetFetchInterface());
+	phys_interface.Connect(phys_device);
+
+	auto decode_context = thread->GetEmulationModel().GetNewDecodeContext(*thread);
 
 	for (auto block : region.blocks) {
 		auto next_block_it = ++region.blocks.lower_bound(block.first);
@@ -97,7 +99,7 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 //		while (!end_of_block && offset.Get() < profile::RegionArch::PageSize) {
 			Address insn_addr (region.GetPhysicalBaseAddress() + offset);
 			gensim::BaseDecode *decode = thread->GetArch().GetISA(block.second->GetISAMode()).GetNewDecode();
-			thread->GetEmulationModel().GetNewDecodeContext(*thread)->DecodeSync(*phys_interface, insn_addr, block.second->GetISAMode(), decode);
+			decode_context->DecodeSync(phys_interface, insn_addr, block.second->GetISAMode(), decode);
 
 			if(decode->Instr_Code == (uint16_t)(-1)) {
 				LC_WARNING(LogTranslate) << "Invalid Instruction at " << std::hex << (uint32_t)(region.GetPhysicalBaseAddress().Get() + offset.Get()) <<  ", ir=" << decode->ir << ", isa mode=" << (uint32_t)block.second->GetISAMode() << " whilst building " << *twu;
@@ -106,6 +108,7 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 				return NULL;
 			}
 
+			// tbu takes ownership of decode
 			tbu->AddInstruction(decode, offset - tbu->GetOffset());
 
 			offset += decode->Instr_Length;
@@ -117,8 +120,6 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 			tbu->SetSpanning(true);
 		}
 	}
-
-//	cpu.GetEmulationModel().GetMemoryModel().UnlockRegion(region.GetPhysicalBaseAddress(), profile::RegionArch::PageSize, guest_page_data);
 
 	for (auto block : region.blocks) {
 		if (!twu->ContainsBlock(block.second->GetOffset()))
@@ -136,19 +137,11 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	// TODO: fix this for multiple ISAs
 	auto jump_info = thread->GetArch().GetISA(0).GetNewJumpInfo();
 	ics.ApplyInterruptChecks(*jump_info, twu->blocks);
-	delete jump_info;
-
-//#define COUNT_STATIC_CHECKS
-#ifdef COUNT_STATIC_CHECKS
-	int checks = 0;
-	for (auto block : twu->blocks) {
-		if (block.second->IsInterruptCheck()) checks++;
-	}
-	fprintf(stderr, "placed: %d\n", checks);
-#endif
 
 	region.IncrementGeneration();
 
+	delete jump_info;
+	delete decode_context;
 	return twu;
 }
 

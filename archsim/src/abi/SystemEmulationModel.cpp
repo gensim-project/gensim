@@ -61,11 +61,11 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	}
 	auto arch = archentry->Get();
 
-	auto engine = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
-	if(engine == nullptr) {
+	execution_engine_ = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
+	if(execution_engine_ == nullptr) {
 		return false;
 	}
-	GetSystem().GetECM().AddEngine(engine);
+	GetSystem().GetECM().AddEngine(execution_engine_);
 	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 
 	// Create a system memory model for this CPU
@@ -94,7 +94,7 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		}
 	}
 
-	engine->AttachThread(main_thread_);
+	execution_engine_->AttachThread(main_thread_);
 
 
 	// Update the memory model with the necessary object references
@@ -115,6 +115,10 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 void SystemEmulationModel::Destroy()
 {
 	DestroyDevices();
+
+	// detach thread
+	execution_engine_->Halt();
+	execution_engine_->DetachThread(main_thread_);
 }
 
 void SystemEmulationModel::HaltCores()

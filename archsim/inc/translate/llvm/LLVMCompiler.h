@@ -58,7 +58,6 @@ namespace archsim
 
 				using SymbolResolver = std::function<llvm::JITSymbol(std::string)>;
 
-				std::shared_ptr<archsim::translate::translate_llvm::LLVMMemoryManager> memory_manager_;
 				std::unique_ptr<llvm::TargetMachine> target_machine_;
 				llvm::orc::ExecutionSession session_;
 				LinkLayer linker_;

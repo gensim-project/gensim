@@ -54,10 +54,9 @@ static llvm::TargetMachine *GetNativeMachine()
 
 LLVMCompiler::LLVMCompiler(llvm::orc::ThreadSafeContext &ctx) :
 	target_machine_(GetNativeMachine()),
-	memory_manager_(new archsim::translate::translate_llvm::LLVMMemoryManager(code_pool, code_pool)),
 	linker_(session_, [this]()
 {
-	return std::unique_ptr<llvm::RuntimeDyld::MemoryManager>(memory_manager_.get());
+	return std::unique_ptr<llvm::RuntimeDyld::MemoryManager>(new archsim::translate::translate_llvm::LLVMMemoryManager(code_pool, code_pool));
 }),
 ctx_(ctx)
 {
@@ -218,6 +217,7 @@ LLVMTranslation * LLVMCompiler::GetTranslation(LLVMCompiledModuleHandle& handle,
 		}
 	}
 
+	/*
 	if(archsim::options::Debug) {
 		std::stringstream filename_str;
 		filename_str << "code_" << std::hex << twu.GetRegion().GetPhysicalBaseAddress();
@@ -228,7 +228,7 @@ LLVMTranslation * LLVMCompiler::GetTranslation(LLVMCompiledModuleHandle& handle,
 	if(archsim::options::EnablePerfMap) {
 		WritePerfMap(twu.GetRegion().GetPhysicalBaseAddress(), (void*)address,  memory_manager_->getAllocatedCodeSize((void*)address));
 	}
-
+	 */
 	return txln;
 }
 

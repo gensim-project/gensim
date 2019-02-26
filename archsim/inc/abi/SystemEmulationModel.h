@@ -10,6 +10,7 @@
 #ifndef SYSTEMEMULATIONMODEL_H
 #define	SYSTEMEMULATIONMODEL_H
 
+#include "core/execution/ExecutionEngine.h"
 #include "abi/EmulationModel.h"
 #include "abi/devices/DeviceManager.h"
 
@@ -79,6 +80,7 @@ namespace archsim
 		private:
 			bool is_64bit_;
 			uint32_t rootfs_size;
+			archsim::core::execution::ExecutionEngine *execution_engine_;
 
 			bool InstallAtags(archsim::abi::memory::guest_addr_t base_address, std::string kernel_args);
 			bool InstallStartupCode(unsigned int entry_point, archsim::abi::memory::guest_addr_t atags_loc, uint32_t device_id);
