@@ -1,6 +1,7 @@
 archsim_add_sources(
 	Component.cpp 
 	Device.cpp 
+	EmptyDevice.cpp 
 	PeripheralManager.cpp 
 	IRQController.cpp 
 	MMU.cpp 
