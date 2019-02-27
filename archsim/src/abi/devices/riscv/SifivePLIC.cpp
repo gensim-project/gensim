@@ -11,7 +11,7 @@ DeclareChildLogContext(LogPLIC, LogDevice, "PLIC");
 using namespace archsim::abi::devices::riscv;
 
 using namespace archsim::abi::devices;
-static ComponentDescriptor SifivePLICDescriptor ("SifivePLIC", {{"Hart0", ComponentParameter_Thread}, {"HartConfig", ComponentParameter_String}});
+static ComponentDescriptor SifivePLICDescriptor ("SifivePLIC", {{"Hart0", ComponentParameter_Thread}, {"Hart1", ComponentParameter_Thread}, {"HartConfig", ComponentParameter_String}});
 SifivePLIC::SifivePLIC(EmulationModel& parent, Address base_address) : MemoryComponent(parent, base_address, 0x4000000), IRQController(54), Component(SifivePLICDescriptor)
 {
 	interrupt_priorities_.resize(GetNumLines());
@@ -201,10 +201,6 @@ bool SifivePLIC::WriteEnable(uint32_t offset, uint64_t data)
 	// figure out which hart and mode we're talking about
 	auto mode_info = GetModeInfo(GetHartConfig(), offset / PLIC_ENABLE_MODE_STRIDE);
 
-	if(mode_info.hart != 0) {
-		UNIMPLEMENTED;
-	}
-
 	auto &config = hart_config_.at(mode_info.index);
 	int index = (offset & 7) / 4;
 
@@ -245,8 +241,14 @@ bool SifivePLIC::WriteThreshold(uint32_t offset, uint64_t data)
 
 archsim::core::thread::ThreadInstance* SifivePLIC::GetHart(int i)
 {
-	ASSERT(i == 0);
-	return GetHart0();
+	switch(i) {
+		case 0:
+			return GetHart0();
+		case 1:
+			return GetHart1();
+		default:
+			UNEXPECTED;
+	}
 }
 
 bool SifivePLIC::AssertLine(uint32_t line)

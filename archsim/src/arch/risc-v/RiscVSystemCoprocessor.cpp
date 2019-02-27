@@ -12,6 +12,7 @@ using namespace archsim::arch::riscv;
 
 RiscVSystemCoprocessor::RiscVSystemCoprocessor(archsim::core::thread::ThreadInstance* hart, RiscVMMU* mmu) : hart_(hart), mmu_(mmu), STATUS(hart->GetEmulationModel().GetSystem().GetPubSub())
 {
+	BitLockGuard guard(lock_);
 	true_pending_interrupts_ = 0;
 
 	MTVEC = 0;
@@ -196,7 +197,7 @@ bool RiscVSystemCoprocessor::Read64(uint32_t address, uint64_t& data)
 			break;
 
 		case 0xf14: // Hardware Thread ID
-			data = 0;
+			data = hart_->GetThreadID();
 			break;
 
 		default:
@@ -628,7 +629,7 @@ void RiscVSystemCoprocessor::STATUS_t::WriteSSTATUS(uint64_t data)
 
 uint64_t RiscVSystemCoprocessor::ReadMSTATUS()
 {
-	std::lock_guard<std::recursive_mutex> lock(lock_);
+	BitLockGuard guard(lock_);
 	return STATUS.ReadMSTATUS();
 }
 
@@ -636,7 +637,7 @@ void RiscVSystemCoprocessor::WriteMSTATUS(uint64_t data)
 {
 	LC_DEBUG1(LogRiscVSystem) << "MSTATUS set to " << Address(data);
 
-	std::lock_guard<std::recursive_mutex> lock(lock_);
+	BitLockGuard guard(lock_);
 	STATUS.WriteMSTATUS(data);
 
 	CheckForInterrupts();
@@ -646,7 +647,7 @@ void RiscVSystemCoprocessor::WriteSSTATUS(uint64_t data)
 {
 	LC_DEBUG1(LogRiscVSystem) << "SSTATUS set to " << Address(data);
 
-	std::lock_guard<std::recursive_mutex> lock(lock_);
+	BitLockGuard guard(lock_);
 	STATUS.WriteSSTATUS(data);
 
 	CheckForInterrupts();
@@ -655,6 +656,7 @@ void RiscVSystemCoprocessor::WriteSSTATUS(uint64_t data)
 
 uint64_t RiscVSystemCoprocessor::ReadMIP()
 {
+	BitLockGuard guard(lock_);
 	return IP.ReadMIP();
 }
 
@@ -676,6 +678,7 @@ uint64_t RiscVSystemCoprocessor::IP_t::ReadMIP()
 
 void RiscVSystemCoprocessor::WriteMIP(uint64_t newmip)
 {
+	BitLockGuard guard(lock_);
 	IP.WriteMIP(newmip);
 	CheckForInterrupts();
 }
@@ -754,11 +757,13 @@ void RiscVSystemCoprocessor::IP_t::Reset()
 
 uint64_t RiscVSystemCoprocessor::ReadSIP()
 {
+	BitLockGuard guard(lock_);
 	return IP.ReadSIP();
 }
 
 void RiscVSystemCoprocessor::WriteSIP(uint64_t newsip)
 {
+	BitLockGuard guard(lock_);
 	IP.WriteSIP(newsip);
 	CheckForInterrupts();
 }

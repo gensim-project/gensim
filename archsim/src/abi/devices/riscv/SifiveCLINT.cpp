@@ -9,7 +9,7 @@ using namespace archsim::abi::devices::riscv;
 DeclareLogContext(LogRiscVCLINT, "RISCV-CLINT");
 
 using namespace archsim::abi::devices;
-static ComponentDescriptor SifiveCLINTDescriptor ("SifiveCLINT", {{"Hart0", ComponentParameter_Thread}});
+static ComponentDescriptor SifiveCLINTDescriptor ("SifiveCLINT", {{"Hart0", ComponentParameter_Thread}, {"Hart1", ComponentParameter_Thread}});
 SifiveCLINT::SifiveCLINT(EmulationModel& parent, Address base_address) : MemoryComponent(parent, base_address, 0x10000), Component(SifiveCLINTDescriptor)
 {
 	tick_source_ = parent.GetSystem().GetTickSource();
@@ -22,7 +22,7 @@ SifiveCLINT::~SifiveCLINT()
 
 bool SifiveCLINT::Initialise()
 {
-	timers_ = { new CLINTTimer(GetHart(0), this) };
+	timers_ = { new CLINTTimer(GetHart(0), this), new CLINTTimer(GetHart(1), this) };
 
 	for(auto i : timers_) {
 		tick_source_->AddConsumer(*i);
@@ -45,6 +45,9 @@ bool SifiveCLINT::Read(uint32_t offset, uint8_t size, uint64_t& data)
 		case 0x4000:
 			data = GetHartTimer(0)->GetCmp();
 			break;
+		case 0x4008:
+			data = GetHartTimer(1)->GetCmp();
+			break;
 
 		case 0xbff8:
 			data = GetTimer();
@@ -64,6 +67,8 @@ bool SifiveCLINT::Write(uint32_t offset, uint8_t size, uint64_t data)
 			SetMSIP(GetHart(0), data & 1);
 			break;
 		case 0x4: // MSIP1
+			SetMSIP(GetHart(1), data & 1);
+			break;
 		case 0x8: // MSIP2
 		case 0xC: // MSIP3
 		case 0x10: // MSIP4
@@ -72,7 +77,10 @@ bool SifiveCLINT::Write(uint32_t offset, uint8_t size, uint64_t data)
 		case 0x4000:
 			LC_DEBUG1(LogRiscVCLINT) << "Wrote MTIMECMP0 <= " << std::hex << data;
 			GetHartTimer(0)->SetCmp(data);
-
+			break;
+		case 0x4008:
+			LC_DEBUG1(LogRiscVCLINT) << "Wrote MTIMECMP1 <= " << std::hex << data;
+			GetHartTimer(1)->SetCmp(data);
 			break;
 		default:
 			UNIMPLEMENTED;
@@ -89,14 +97,19 @@ CLINTTimer* SifiveCLINT::GetHartTimer(int i)
 
 archsim::core::thread::ThreadInstance* SifiveCLINT::GetHart(int i)
 {
-	ASSERT(i == 0);
-	return GetHart0();
+	switch(i) {
+		case 0:
+			return GetHart0();
+		case 1:
+			return GetHart1();
+		default:
+			UNEXPECTED;
+	}
 }
 
 archsim::arch::riscv::RiscVSystemCoprocessor* SifiveCLINT::GetCoprocessor(int i)
 {
-	ASSERT(i == 0);
-	return static_cast<archsim::arch::riscv::RiscVSystemCoprocessor*>(GetHart0()->GetPeripherals().GetDevice(0));
+	return static_cast<archsim::arch::riscv::RiscVSystemCoprocessor*>(GetHart(i)->GetPeripherals().GetDevice(0));
 }
 
 
@@ -140,13 +153,13 @@ void CLINTTimer::CheckTick()
 {
 	if(clint_->GetTimer() > cmp_) {
 		// pend interrupt if it is enabled
-		if(clint_->GetCoprocessor(0)->GetMTIE()) {
-			clint_->GetCoprocessor(0)->MachinePendInterrupt(1 << 7);
+		if(clint_->GetCoprocessor(hart_->GetThreadID())->GetMTIE()) {
+			clint_->GetCoprocessor(hart_->GetThreadID())->MachinePendInterrupt(1 << 7);
 		}
 
 	} else {
 		// unpend interrupt
-		clint_->GetCoprocessor(0)->MachineUnpendInterrupt(1 << 7);
+		clint_->GetCoprocessor(hart_->GetThreadID())->MachineUnpendInterrupt(1 << 7);
 	}
 }
 

@@ -717,7 +717,8 @@ execute(ecall)
 
 execute(ebreak)
 {
-	trap();
+	// exception type changes depending on mode
+	take_exception(3, 0);
 }
 
 

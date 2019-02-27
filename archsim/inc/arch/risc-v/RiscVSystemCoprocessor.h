@@ -33,6 +33,8 @@ namespace archsim
 			public:
 				RiscVSystemCoprocessor(archsim::core::thread::ThreadInstance *hart, RiscVMMU *mmu);
 
+				using BitLockGuard = std::lock_guard<std::recursive_mutex>;
+
 				virtual bool Initialise();
 
 				bool Read8(uint32_t address, uint8_t& data) override;
