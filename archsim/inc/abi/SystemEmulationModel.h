@@ -13,6 +13,7 @@
 #include "core/execution/ExecutionEngine.h"
 #include "abi/EmulationModel.h"
 #include "abi/devices/DeviceManager.h"
+#include "loader/BinaryLoader.h"
 
 namespace archsim
 {
@@ -63,17 +64,23 @@ namespace archsim
 				return is_64bit_;
 			}
 
+			archsim::core::thread::ThreadInstance &GetThread(int thread_id)
+			{
+				return *threads_.at(thread_id);
+			}
+
 		protected:
-			archsim::core::thread::ThreadInstance *main_thread_;
+			std::vector<archsim::core::thread::ThreadInstance*> threads_;
 
-			virtual bool InstallDevices() = 0;
-			virtual void DestroyDevices() = 0;
+			bool InstantiateThreads(int num_threads);
 
-			virtual bool InstallPlatform(loader::BinaryLoader& loader) = 0;
+			virtual bool CreateCoreDevices(archsim::core::thread::ThreadInstance *thread) = 0;
+			virtual bool CreateMemoryDevices() = 0;
+
+			virtual bool PreparePlatform(archsim::abi::loader::BinaryLoader &loader) = 0;
 			virtual bool PrepareCore(archsim::core::thread::ThreadInstance& core) = 0;
 
 			bool RegisterMemoryComponent(abi::devices::MemoryComponent& component);
-			void RegisterCoreComponent(abi::devices::CoreComponent& component);
 
 			devices::DeviceManager base_device_manager;
 

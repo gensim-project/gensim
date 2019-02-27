@@ -66,64 +66,86 @@ bool SystemEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 	}
 	GetSystem().GetECM().AddEngine(execution_engine_);
-	main_thread_ = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 
-	// Create a system memory model for this CPU
-	SystemMemoryModel *smm = NULL;
-	if(!GetComponentInstance(archsim::options::SystemMemoryModel, smm, &GetMemoryModel(), &system.GetPubSub())) {
-		LC_ERROR(LogSystemEmulationModel) << "Unable to acquire system memory model";
-		LC_ERROR(LogSystemEmulationModel) << GetRegisteredComponents(smm, &GetMemoryModel(), &system.GetPubSub());
+	return true;
+}
+
+bool SystemEmulationModel::InstantiateThreads(int num_threads)
+{
+	auto module = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName);
+	auto archentry = module->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
+
+	if(archentry == nullptr) {
 		return false;
 	}
+	auto arch = archentry->Get();
 
-	// Install Devices
-	if (!InstallDevices()) {
-		return false;
-	}
+	for(int i = 0; i < num_threads; ++i) {
+		auto thread = new ThreadInstance(GetSystem().GetPubSub(), *arch, *this, i);
 
-	// Obtain the MMU
-	devices::MMU *mmu = (devices::MMU*)main_thread_->GetPeripherals().GetDeviceByName("mmu");
-
-	for(auto i : main_thread_->GetMemoryInterfaces()) {
-		if(i == &main_thread_->GetFetchMI()) {
-			i->Connect(*new archsim::LegacyFetchMemoryInterface(*smm));
-			i->ConnectTranslationProvider(*new archsim::MMUTranslationProvider(mmu, main_thread_));
-		} else {
-			i->Connect(*new archsim::LegacyMemoryInterface(*smm));
-			i->ConnectTranslationProvider(*new archsim::MMUTranslationProvider(mmu, main_thread_));
+		// Create a system memory model for this CPU
+		SystemMemoryModel *smm = NULL;
+		if(!GetComponentInstance(archsim::options::SystemMemoryModel, smm, &GetMemoryModel(), &GetSystem().GetPubSub())) {
+			LC_ERROR(LogSystemEmulationModel) << "Unable to acquire system memory model";
+			LC_ERROR(LogSystemEmulationModel) << GetRegisteredComponents(smm, &GetMemoryModel(), &GetSystem().GetPubSub());
+			return false;
 		}
-	}
 
-	execution_engine_->AttachThread(main_thread_);
+		// Install Devices
+		if (!CreateCoreDevices(thread)) {
+			return false;
+		}
+
+		// Obtain the MMU
+		devices::MMU *mmu = (devices::MMU*)thread->GetPeripherals().GetDeviceByName("mmu");
+
+		for(auto i : thread->GetMemoryInterfaces()) {
+			if(i == &thread->GetFetchMI()) {
+				i->Connect(*new archsim::LegacyFetchMemoryInterface(*smm));
+				i->ConnectTranslationProvider(*new archsim::MMUTranslationProvider(mmu, thread));
+			} else {
+				i->Connect(*new archsim::LegacyMemoryInterface(*smm));
+				i->ConnectTranslationProvider(*new archsim::MMUTranslationProvider(mmu, thread));
+			}
+		}
+
+		execution_engine_->AttachThread(thread);
 
 
-	// Update the memory model with the necessary object references
-	smm->SetMMU(mmu);
-	smm->SetCPU(main_thread_);
-	smm->SetDeviceManager(&base_device_manager);
+		// Update the memory model with the necessary object references
+		smm->SetMMU(mmu);
+		smm->SetCPU(thread);
+		smm->SetDeviceManager(&base_device_manager);
 
-	mmu->SetPhysMem(&GetMemoryModel());
+		mmu->SetPhysMem(&GetMemoryModel());
 
-	// Initialise the memory model
-	if (!smm->Initialise()) {
-		return false;
+		// Initialise the memory model
+		if (!smm->Initialise()) {
+			return false;
+		}
+
+		threads_.push_back(thread);
 	}
 
 	return true;
 }
 
+
 void SystemEmulationModel::Destroy()
 {
-	DestroyDevices();
-
 	// detach thread
 	execution_engine_->Halt();
-	execution_engine_->DetachThread(main_thread_);
+
+	for(auto thread : threads_) {
+		execution_engine_->DetachThread(thread);
+	}
 }
 
 void SystemEmulationModel::HaltCores()
 {
-	main_thread_->SendMessage(archsim::core::thread::ThreadMessage::Halt);
+	for(auto thread : threads_) {
+		thread->SendMessage(archsim::core::thread::ThreadMessage::Halt);
+	}
 }
 
 bool SystemEmulationModel::PrepareBoot(System &system)
@@ -154,7 +176,7 @@ bool SystemEmulationModel::PrepareBoot(System &system)
 	}
 
 	// Run platform-specific initialisation
-	if (!InstallPlatform(*loader)) {
+	if (!PreparePlatform(*loader)) {
 		LC_ERROR(LogSystemEmulationModel) << "Unable to install platform";
 		return false;
 	}
@@ -162,9 +184,11 @@ bool SystemEmulationModel::PrepareBoot(System &system)
 	delete loader;
 
 	// Run platform-specific CPU boot code
-	if (!PrepareCore(*main_thread_)) {
-		LC_ERROR(LogSystemEmulationModel) << "Unable to prepare CPU for booting";
-		return false;
+	for(auto thread : threads_) {
+		if(!PrepareCore(*thread)) {
+			LC_ERROR(LogSystemEmulationModel) << "Unable to prepare CPU for booting";
+			return false;
+		}
 	}
 //
 //	// Take a reset exception.
@@ -179,7 +203,3 @@ bool SystemEmulationModel::RegisterMemoryComponent(abi::devices::MemoryComponent
 	return base_device_manager.InstallDevice(component.GetBaseAddress(), component.GetSize(), component);
 }
 
-void SystemEmulationModel::RegisterCoreComponent(abi::devices::CoreComponent& component)
-{
-
-}

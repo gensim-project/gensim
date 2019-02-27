@@ -36,9 +36,10 @@ namespace archsim
 
 
 			protected:
-				bool InstallDevices() override;
-				void DestroyDevices() override;
-				bool InstallPlatform(abi::loader::BinaryLoader& loader) override;
+				bool CreateMemoryDevices() override;
+				bool CreateCoreDevices(archsim::core::thread::ThreadInstance* thread) override;
+
+				bool PreparePlatform(abi::loader::BinaryLoader& loader) override;
 
 				bool PrepareCore(archsim::core::thread::ThreadInstance& core) override;
 

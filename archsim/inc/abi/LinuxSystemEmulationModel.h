@@ -32,7 +32,7 @@ namespace archsim
 			void Destroy() override;
 
 		protected:
-			bool InstallPlatform(loader::BinaryLoader& loader) override;
+			bool PreparePlatform(archsim::abi::loader::BinaryLoader& loader) override;
 
 			inline const LinuxEmulationComponent& GetRootFSComponent() const
 			{

@@ -18,10 +18,10 @@ namespace archsim
 
 				bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
 
-				bool InstallDevices() override;
-				void DestroyDevices() override;
+				bool CreateCoreDevices(archsim::core::thread::ThreadInstance* thread) override;
+				bool CreateMemoryDevices() override;
 
-				bool InstallPlatform(archsim::abi::loader::BinaryLoader& loader) override;
+				bool PreparePlatform(archsim::abi::loader::BinaryLoader& loader) override;
 				bool PrepareCore(archsim::core::thread::ThreadInstance& core) override;
 
 			private:
