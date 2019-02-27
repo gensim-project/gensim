@@ -5,7 +5,7 @@ archsim_add_sources(
 	UserEmulationModel.cpp 
 	LinuxUserEmulationModel.cpp 
 	LinuxSystemEmulationModel.cpp 
-	ElfSystemEmulationModel.cpp
+#	ElfSystemEmulationModel.cpp
 )
 
 ADD_SUBDIRECTORY(devices)

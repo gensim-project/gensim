@@ -23,7 +23,7 @@
 #include "util/LogContext.h"
 #include "util/CounterTimer.h"
 
-#include "arch/arm/ArmSystemEmulationModel.h"
+#include "abi/devices/generic/block/FileBackedBlockDevice.h"
 #include "abi/devices/generic/block/MemoryCOWBlockDevice.h"
 
 #include "abi/devices/generic/timing/TickSource.h"

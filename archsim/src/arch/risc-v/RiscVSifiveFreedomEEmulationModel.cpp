@@ -57,39 +57,33 @@ public:
 
 	}
 
-
-
-	bool InstallDevices()
-	{
-		return InstallCoreDevices() && InstallPlatformDevices();
-	}
-
-	bool InstallCoreDevices()
+	bool CreateCoreDevices(archsim::core::thread::ThreadInstance* thread) override
 	{
 		auto mmu = new archsim::arch::riscv::RiscVMMU();
-		auto coprocessor = new archsim::arch::riscv::RiscVSystemCoprocessor(main_thread_, mmu);
+		auto coprocessor = new archsim::arch::riscv::RiscVSystemCoprocessor(thread, mmu);
 
-		main_thread_->GetPeripherals().RegisterDevice("mmu", mmu);
-		main_thread_->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
+		thread->GetPeripherals().RegisterDevice("mmu", mmu);
+		thread->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
 
-		main_thread_->GetPeripherals().AttachDevice("coprocessor", 0);
+		thread->GetPeripherals().AttachDevice("coprocessor", 0);
 
 		return true;
 	}
 
-	bool InstallPlatformDevices()
+	bool CreateMemoryDevices() override
 	{
 		using namespace archsim::module;
+		auto hart0 = &GetThread(0);
 
 		// CLINT
 		auto clint = new archsim::abi::devices::riscv::SifiveCLINT(*this, Address(0x2000000));
-		clint->SetParameter("Hart0", main_thread_);
+		clint->SetParameter("Hart0", hart0);
 		clint->Initialise();
 		RegisterMemoryComponent(*clint);
 
 		// PLIC
 		auto plic = new archsim::abi::devices::riscv::SifivePLIC(*this, Address(0x0c000000));
-		plic->SetParameter("Hart0", main_thread_);
+		plic->SetParameter("Hart0", hart0);
 		RegisterMemoryComponent(*plic);
 
 		auto uart0 = new archsim::abi::devices::riscv::SifiveUART(*this, Address(0x10013000));

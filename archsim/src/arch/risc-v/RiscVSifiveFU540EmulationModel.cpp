@@ -49,49 +49,43 @@ bool RiscVSifiveFU540EmulationModel::Initialise(System& system, archsim::uarch::
 		GetMemoryModel().Write(Address(0x10000), (uint8_t*)data.data(), size);
 	}
 
+	InstantiateThreads(1);
+
+	CreateMemoryDevices();
+
 	return true;
 }
 
-
-void RiscVSifiveFU540EmulationModel::DestroyDevices()
-{
-
-}
-
-
-bool RiscVSifiveFU540EmulationModel::InstallDevices()
-{
-	return InstallCoreDevices() && InstallPlatformDevices();
-}
-
-bool RiscVSifiveFU540EmulationModel::InstallCoreDevices()
+bool RiscVSifiveFU540EmulationModel::CreateCoreDevices(archsim::core::thread::ThreadInstance* thread)
 {
 	auto mmu = new archsim::arch::riscv::RiscVMMU();
-	auto coprocessor = new archsim::arch::riscv::RiscVSystemCoprocessor(main_thread_, mmu);
+	auto coprocessor = new archsim::arch::riscv::RiscVSystemCoprocessor(thread, mmu);
 
-	main_thread_->GetPeripherals().RegisterDevice("mmu", mmu);
-	main_thread_->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
+	thread->GetPeripherals().RegisterDevice("mmu", mmu);
+	thread->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
 
-	main_thread_->GetPeripherals().AttachDevice("coprocessor", 0);
+	thread->GetPeripherals().AttachDevice("coprocessor", 0);
 
-	main_thread_->GetPeripherals().InitialiseDevices();
+	thread->GetPeripherals().InitialiseDevices();
 
 	return true;
 }
 
-bool RiscVSifiveFU540EmulationModel::InstallPlatformDevices()
+bool RiscVSifiveFU540EmulationModel::CreateMemoryDevices()
 {
 	using namespace archsim::module;
 
+	auto hart0 = &GetThread(0);
+
 	// CLINT
 	auto clint = new archsim::abi::devices::riscv::SifiveCLINT(*this, Address(0x2000000));
-	clint->SetParameter("Hart0", main_thread_);
+	clint->SetParameter("Hart0", hart0);
 	clint->Initialise();
 	RegisterMemoryComponent(*clint);
 
 	// PLIC
 	auto plic = new archsim::abi::devices::riscv::SifivePLIC(*this, Address(0x0c000000));
-	plic->SetParameter("Hart0", main_thread_);
+	plic->SetParameter("Hart0", hart0);
 	plic->SetParameter("HartConfig", std::string("MS"));
 	plic->Initialise();
 	RegisterMemoryComponent(*plic);
@@ -138,7 +132,7 @@ bool RiscVSifiveFU540EmulationModel::InstallPlatformDevices()
 	return true;
 }
 
-bool RiscVSifiveFU540EmulationModel::InstallPlatform(loader::BinaryLoader& loader)
+bool RiscVSifiveFU540EmulationModel::PreparePlatform(loader::BinaryLoader& loader)
 {
 //	if (!LinuxSystemEmulationModel::InstallPlatform(loader))
 //		return false;

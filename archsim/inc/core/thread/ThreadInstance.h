@@ -154,7 +154,7 @@ namespace archsim
 			public:
 				using memory_interface_collection_t = std::vector<MemoryInterface*>;
 
-				ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor &arch, archsim::abi::EmulationModel &emu_model);
+				ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor &arch, archsim::abi::EmulationModel &emu_model, int thread_id = 0);
 
 				// Functions to do with accessing the larger substructures within the thread
 				const ArchDescriptor &GetArch() const
@@ -194,6 +194,11 @@ namespace archsim
 				archsim::abi::EmulationModel &GetEmulationModel()
 				{
 					return emu_model_;
+				}
+
+				int GetThreadID() const
+				{
+					return thread_id_;
 				}
 
 				// Functions to do with execution modes
@@ -518,6 +523,8 @@ namespace archsim
 				ProcessorFeatureInterface features_;
 				util::PubSubscriber pubsub_;
 				archsim::core::thread::ThreadMetrics *metrics_;
+
+				int thread_id_;
 
 				uint32_t mode_offset_;
 				uint32_t ring_offset_;

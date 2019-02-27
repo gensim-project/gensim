@@ -33,17 +33,15 @@ namespace archsim
 
 
 			protected:
-				bool InstallDevices() override;
-				void DestroyDevices() override;
-				bool InstallPlatform(abi::loader::BinaryLoader& loader) override;
+				bool CreateCoreDevices(archsim::core::thread::ThreadInstance* thread) override;
+				bool CreateMemoryDevices() override;
+				bool PreparePlatform(abi::loader::BinaryLoader& loader) override;
 
 				bool PrepareCore(archsim::core::thread::ThreadInstance& core) override;
 
 			private:
 				Address entry_point;
 
-				bool InstallPeripheralDevices();
-				bool InstallPlatformDevices();
 				bool InstallBootloader(archsim::abi::loader::BinaryLoader& loader);
 
 				bool HackyMMIORegisterDevice(abi::devices::MemoryComponent& device);

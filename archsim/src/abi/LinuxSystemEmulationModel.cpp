@@ -31,7 +31,7 @@ void LinuxSystemEmulationModel::Destroy()
 	SystemEmulationModel::Destroy();
 }
 
-bool LinuxSystemEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
+bool LinuxSystemEmulationModel::PreparePlatform(archsim::abi::loader::BinaryLoader& loader)
 {
 	if (archsim::options::RootFS.IsSpecified()) {
 		// Load the root filesystem

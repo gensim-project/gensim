@@ -42,7 +42,7 @@ void FPState::Apply()
 }
 
 
-ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
+ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model, int thread_id) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this), thread_id_(thread_id)
 {
 	// Need to fill in structures based on arch descriptor info
 
