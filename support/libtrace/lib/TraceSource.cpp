@@ -47,9 +47,15 @@ TraceSource::~TraceSource()
 	assert(is_terminated_);
 }
 
+void TraceSource::SetSink(TraceSink* sink)
+{
+	sink_ = sink;
+	id_ = sink->Open();
+}
+
 void TraceSource::EmitPackets()
 {
-	sink_->SinkPackets(packet_buffer_, packet_buffer_pos_);
+	sink_->SinkPackets(id_, packet_buffer_, packet_buffer_pos_);
 	packet_buffer_pos_ = packet_buffer_;
 }
 

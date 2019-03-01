@@ -14,6 +14,11 @@ ENUM_ENTRY(BSwap64)
 
 ENUM_ENTRY(MemLock)
 ENUM_ENTRY(MemUnlock)
+ENUM_ENTRY(MemMonitorAcquire)
+ENUM_ENTRY(MemMonitorWrite8)
+ENUM_ENTRY(MemMonitorWrite16)
+ENUM_ENTRY(MemMonitorWrite32)
+ENUM_ENTRY(MemMonitorWrite64)
 
 ENUM_ENTRY(SetCpuMode)
 ENUM_ENTRY(GetCpuMode)

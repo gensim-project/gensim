@@ -67,7 +67,7 @@ namespace archsim
 
 			/*
 			 * Set a callback to be invoked whenever a message is buffered.
-			 * This callback will be invoked without this object's lock begin
+			 * This callback will be invoked without this object's lock being
 			 * held.
 			 */
 			void SetEventBufferedCallback(const EventBufferedCallback &callback);

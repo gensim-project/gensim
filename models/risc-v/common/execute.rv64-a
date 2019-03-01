@@ -3,12 +3,11 @@ execute(lr_d)
 {
 	typename word_t addr = read_gpr(inst.rs1);
 	uint64 val;
+	
+	mem_monitor_acquire(Mem, addr);
 	mem_read_64(Mem, addr, val);
 
 	write_register_bank(GPR, inst.rd, val);
-
-	// write monitor address
-	write_register(LLSC_MONITOR, addr);
 }
 
 execute(sc_d)
@@ -16,8 +15,7 @@ execute(sc_d)
 	typename word_t rs2 = read_gpr(inst.rs2);
 	typename word_t addr = read_gpr(inst.rs1);	
 	
-	if(addr == read_register(LLSC_MONITOR)) {
-		mem_write_64(Mem, addr, rs2);
+	if(mem_monitor_write_64(Mem, addr, rs2)) {
 		write_register_bank(GPR, inst.rd, 0);
 	} else {
 		write_register_bank(GPR, inst.rd, 1);
