@@ -300,6 +300,12 @@ void GenCContext::LoadIntrinsics()
 	AddIntrinsic("mem_lock", IRTypes::Void, {IRParam("interface", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemLock);
 	AddIntrinsic("mem_unlock", IRTypes::Void, {IRParam("interface", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemUnlock);
 
+	AddIntrinsic("mem_monitor_acquire", IRTypes::Void, {IRParam("interface", IRTypes::UInt32), IRParam("address", wordtype)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemMonitorAcquire);
+	AddIntrinsic("mem_monitor_write_8", IRTypes::UInt8, {IRParam("interface", IRTypes::UInt32), IRParam("address", wordtype), IRParam("value", IRTypes::UInt8)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite8);
+	AddIntrinsic("mem_monitor_write_16", IRTypes::UInt8, {IRParam("interface", IRTypes::UInt32), IRParam("address", wordtype), IRParam("value", IRTypes::UInt16)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite16);
+	AddIntrinsic("mem_monitor_write_32", IRTypes::UInt8, {IRParam("interface", IRTypes::UInt32), IRParam("address", wordtype), IRParam("value", IRTypes::UInt32)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite32);
+	AddIntrinsic("mem_monitor_write_64", IRTypes::UInt8, {IRParam("interface", IRTypes::UInt32), IRParam("address", wordtype), IRParam("value", IRTypes::UInt64)}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite64);
+
 	// Device Intrinsics: TODO specialise this
 	AddIntrinsic("probe_device", IRTypes::UInt8, {IRParam("device", IRTypes::UInt32)}, DeviceIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);
 	AddIntrinsic("read_device", IRTypes::UInt8, {IRParam("device", IRTypes::UInt32), IRParam("addr", IRTypes::UInt32), IRParam("data", IRType::Ref(wordtype))}, DeviceIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_Trap);

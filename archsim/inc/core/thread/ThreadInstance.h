@@ -30,6 +30,8 @@
 
 #define CreateThreadExecutionSafepoint(thread) do { setjmp(thread->Safepoint); } while(0)
 
+UseLogContext(LogCPU);
+
 namespace archsim
 {
 	class MemoryInterface;

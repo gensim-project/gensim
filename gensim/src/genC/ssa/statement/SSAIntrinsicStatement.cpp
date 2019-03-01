@@ -92,6 +92,12 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 		case SSAIntrinsic_FMA64:
 			return IRTypes::Double;
 
+		case SSAIntrinsic_MemMonitorWrite8:
+		case SSAIntrinsic_MemMonitorWrite16:
+		case SSAIntrinsic_MemMonitorWrite32:
+		case SSAIntrinsic_MemMonitorWrite64:
+			return IRTypes::UInt8;
+
 		default:
 			return IRTypes::Void;
 	}

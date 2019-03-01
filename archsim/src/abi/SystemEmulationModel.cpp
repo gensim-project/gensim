@@ -35,7 +35,7 @@ using namespace archsim::core::thread;
 UseLogContext(LogEmulationModel);
 DeclareChildLogContext(LogSystemEmulationModel, LogEmulationModel, "System");
 
-SystemEmulationModel::SystemEmulationModel(bool is64bit) : is_64bit_(is64bit)
+SystemEmulationModel::SystemEmulationModel(bool is64bit) : is_64bit_(is64bit), monitor_(std::make_shared<archsim::core::BaseMemoryMonitor>())
 {
 }
 
@@ -107,6 +107,8 @@ bool SystemEmulationModel::InstantiateThreads(int num_threads)
 				i->Connect(*new archsim::LegacyMemoryInterface(*smm));
 				i->ConnectTranslationProvider(*new archsim::MMUTranslationProvider(mmu, thread));
 			}
+
+			i->SetMonitor(monitor_);
 		}
 
 		execution_engine_->AttachThread(thread);

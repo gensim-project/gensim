@@ -613,7 +613,8 @@ namespace gensim
 						auto interface_id = stmt.Args(0);
 						output << "{";
 						output << "auto &interface = thread->GetMemoryInterface(" << Factory.GetOrCreate(interface_id)->GetFixedValue() << ");";
-						output << "interface.Lock();";
+						output << "interface.GetMonitor()->Lock();";
+						output << "LC_DEBUG1(LogCPU) << \"Thread \" << thread->GetThreadID() << \" locked interface " << Factory.GetOrCreate(interface_id)->GetFixedValue() << "\";";
 						output << "}";
 						break;
 					}
@@ -621,10 +622,63 @@ namespace gensim
 						auto interface_id = stmt.Args(0);
 						output << "{";
 						output << "auto &interface = thread->GetMemoryInterface(" << Factory.GetOrCreate(interface_id)->GetFixedValue() << ");";
-						output << "interface.Unlock();";
+						output << "LC_DEBUG1(LogCPU) << \"Thread \" << thread->GetThreadID() << \" unlocking interface " << Factory.GetOrCreate(interface_id)->GetFixedValue() << "\";";
+						output << "interface.GetMonitor()->Unlock();";
+
 						output << "}";
 						break;
 					}
+
+					case SSAIntrinsicStatement::SSAIntrinsic_MemMonitorAcquire: {
+						auto interface_id = stmt.Args(0);
+						auto address_arg = stmt.Args(1);
+						output << "{";
+						output << "auto &interface = thread->GetMemoryInterface(" << Factory.GetOrCreate(interface_id)->GetFixedValue() << ");";
+						output << "auto addr = archsim::Address(" << Factory.GetOrCreate(address_arg)->GetFixedValue() << ");";
+						output << "interface.GetMonitor()->AcquireMonitor(thread, addr);";
+						output << "}";
+						break;
+					}
+
+					case SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite8:
+					case SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite16:
+					case SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite32:
+					case SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite64: {
+						auto interface_id = stmt.Args(0);
+						auto address_arg = stmt.Args(1);
+						auto value_arg = stmt.Args(2);
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = 0;";
+						output << "{";
+						output << "auto &interface = thread->GetMemoryInterface(" << Factory.GetOrCreate(interface_id)->GetFixedValue() << ");";
+						output << "auto addr = archsim::Address(" << Factory.GetOrCreate(address_arg)->GetFixedValue() << ");";
+						output << "auto value = " << Factory.GetOrCreate(value_arg)->GetFixedValue() << ";";
+						output << "if(interface.GetMonitor()->LockMonitor(thread, addr)) {";
+						output << stmt.GetName() << " = 1;";
+						switch(stmt.Type) {
+							case SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite8:
+								output << "interface.Write8(addr, value);";
+								break;
+							case SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite16:
+								output << "interface.Write16(addr, value);";
+								break;
+							case SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite32:
+								output << "interface.Write32(addr, value);";
+								break;
+							case SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite64:
+								output << "interface.Write64(addr, value);";
+								break;
+							default:
+								UNEXPECTED;
+						}
+
+						output << "interface.GetMonitor()->Notify(thread, addr);";
+						output << "interface.GetMonitor()->UnlockMonitor(thread, addr);";
+
+						output << "}";
+						output << "}";
+						break;
+					}
+
 					default:
 						throw std::logic_error("Unrecognised intrinsic: " + std::to_string(stmt.Type));
 				}

@@ -89,6 +89,7 @@ static mode_info GetModeInfo(const std::string &str, uint32_t index)
 
 bool SifivePLIC::Read(uint32_t offset, uint8_t size, uint64_t& data)
 {
+	std::lock_guard<std::mutex> guard(lock_);
 //	ASSERT(size == 8 && (offset & 7 == 0));
 //	ASSERT(size == 4);
 
@@ -162,6 +163,7 @@ bool SifivePLIC::ReadThreshold(uint32_t offset, uint64_t& data)
 
 bool SifivePLIC::Write(uint32_t offset, uint8_t size, uint64_t data)
 {
+	std::lock_guard<std::mutex> guard(lock_);
 //	ASSERT(size == 8 && (offset & 7 == 0));
 //	ASSERT(size == 4);
 

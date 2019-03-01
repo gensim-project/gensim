@@ -69,6 +69,7 @@ namespace archsim
 					};
 
 					std::vector<hart_context> hart_config_;
+					std::mutex lock_;
 
 					uint32_t ClaimInterrupt(hart_context &context);
 					void CompleteInterrupt(uint32_t irq);

@@ -222,10 +222,7 @@ namespace libtrace
 			return aggressive_flushing_;
 		}
 
-		void SetSink(TraceSink *sink)
-		{
-			sink_ = sink;
-		}
+		void SetSink(TraceSink *sink);
 
 		void Flush();
 
@@ -233,6 +230,7 @@ namespace libtrace
 		uint32_t IO_Packet_Count;
 		uint32_t Tracing_Packet_Count;
 		bool packet_open_;
+		int id_;
 
 	private:
 		TraceRecord *getNextPacket()
@@ -478,10 +476,10 @@ namespace libtrace
 
 		auto *extension = (DataExtensionRecord*)getNextPacket();
 		*extension = DataExtensionRecord(MemReadData, Data >> 32);
-		
+
 		extension = (DataExtensionRecord*)getNextPacket();
 		*extension = DataExtensionRecord(MemReadData, Data >> 64);
-		
+
 		extension = (DataExtensionRecord*)getNextPacket();
 		*extension = DataExtensionRecord(MemReadData, Data >> 96);
 	}

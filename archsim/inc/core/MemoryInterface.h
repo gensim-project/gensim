@@ -12,6 +12,7 @@
 #define MEMORYINTERFACE_H
 
 #include "core/arch/ArchDescriptor.h"
+#include "core/MemoryMonitor.h"
 #include "abi/Address.h"
 #include "abi/memory/MemoryModel.h"
 #include "abi/devices/MMU.h"
@@ -296,10 +297,20 @@ namespace archsim
 			device_->Unlock();
 		}
 
+		std::shared_ptr<archsim::core::MemoryMonitor> GetMonitor()
+		{
+			return monitor_;
+		}
+		void SetMonitor(std::shared_ptr<archsim::core::MemoryMonitor> new_monitor)
+		{
+			monitor_ = new_monitor;
+		}
+
 	private:
 		const MemoryInterfaceDescriptor &descriptor_;
 		MemoryTranslationProvider *provider_;
 		MemoryDevice *device_;
+		std::shared_ptr<archsim::core::MemoryMonitor> monitor_;
 	};
 
 }

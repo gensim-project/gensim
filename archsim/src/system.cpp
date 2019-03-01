@@ -61,12 +61,8 @@ bool System::Initialise()
 			if(!archsim::options::TraceFile.IsSpecified()) {
 				UNIMPLEMENTED;
 			}
-			FILE *f = fopen(archsim::options::TraceFile.GetValue().c_str(), "w");
-			if(f == nullptr) {
-				UNIMPLEMENTED;
-			}
 
-			sink = new libtrace::BinaryFileTraceSink(f);
+			sink = new libtrace::BinaryFileTraceSink(archsim::options::TraceFile.GetValue());
 
 		} else {
 			UNIMPLEMENTED;

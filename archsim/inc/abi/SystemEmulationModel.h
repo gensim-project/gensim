@@ -11,9 +11,12 @@
 #define	SYSTEMEMULATIONMODEL_H
 
 #include "core/execution/ExecutionEngine.h"
+#include "core/MemoryMonitor.h"
 #include "abi/EmulationModel.h"
 #include "abi/devices/DeviceManager.h"
 #include "loader/BinaryLoader.h"
+
+#include <memory>
 
 namespace archsim
 {
@@ -88,6 +91,7 @@ namespace archsim
 			bool is_64bit_;
 			uint32_t rootfs_size;
 			archsim::core::execution::ExecutionEngine *execution_engine_;
+			std::shared_ptr<archsim::core::MemoryMonitor> monitor_;
 
 			bool InstallAtags(archsim::abi::memory::guest_addr_t base_address, std::string kernel_args);
 			bool InstallStartupCode(unsigned int entry_point, archsim::abi::memory::guest_addr_t atags_loc, uint32_t device_id);
