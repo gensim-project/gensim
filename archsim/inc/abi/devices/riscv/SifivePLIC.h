@@ -38,13 +38,12 @@ namespace archsim
 					archsim::core::thread::ThreadInstance *GetHart(int i);
 					int GetHartCount() const
 					{
-						return 2;    // todo: support multiple harts
+						return GetHarts().size();
 					}
 
 					void UpdateIRQ();
 
-					COMPONENT_PARAMETER_THREAD(Hart0);
-					COMPONENT_PARAMETER_THREAD(Hart1);
+					COMPONENT_PARAMETER_THREAD_LIST(Harts);
 					COMPONENT_PARAMETER_STRING(HartConfig);
 
 					std::vector<uint32_t> interrupt_priorities_;

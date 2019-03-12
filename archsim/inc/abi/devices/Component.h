@@ -65,7 +65,12 @@ namespace archsim
 			class ComponentParameterDescriptor
 			{
 			public:
-				ComponentParameterDescriptor(ComponentParameterType type);
+				ComponentParameterDescriptor(ComponentParameterType type, bool is_collection = false);
+
+				static ComponentParameterDescriptor Container(ComponentParameterType type)
+				{
+					return ComponentParameterDescriptor(type, true);
+				}
 
 				ComponentParameterType GetType() const
 				{
@@ -79,8 +84,14 @@ namespace archsim
 				{
 					index_ = index;
 				}
+
+				bool IsCollection() const
+				{
+					return is_collection_;
+				}
 			private:
 				ComponentParameterType type_;
+				bool is_collection_;
 				uint32_t index_;
 			};
 
@@ -133,7 +144,28 @@ namespace archsim
 					return GetDescriptor().GetName();
 				}
 				template<typename T> T GetParameter(const std::string &parameter) const;
+				template<typename T> std::vector<T> GetListParameter(const std::string &parameter) const
+				{
+					void *ptr = GetParameterPointer(parameter);
+					std::vector<T> *&vptr = *(std::vector<T>**)ptr;
+					if(vptr == nullptr) {
+						return {};
+					}
+
+					return *vptr;
+				}
 				template<typename T> void SetParameter(const std::string &parameter, T value);
+				template<typename T> void SetListParameter(const std::string &parameter, const std::vector<T> &value)
+				{
+					void *ptr = GetParameterPointer(parameter);
+					std::vector<T> *&vptr = *(std::vector<T>**)ptr;
+					if(vptr == nullptr) {
+						vptr = new std::vector<T>();
+					}
+
+					vptr->clear();
+					vptr->insert(vptr->begin(), value.begin(), value.end());
+				}
 			private:
 				const ComponentDescriptor &descriptor_;
 				std::vector<void*> parameter_value_ptrs_;
@@ -171,9 +203,17 @@ namespace archsim
 				{
 					return GetDescriptor().GetParameter<T>(parameter);
 				}
+				template<typename T> std::vector<T> GetListParameter(const std::string &parameter) const
+				{
+					return GetDescriptor().GetListParameter<T>(parameter);
+				}
 				template<typename T> void SetParameter(const std::string &parameter, T value)
 				{
 					GetDescriptor().SetParameter(parameter, value);
+				}
+				template<typename T> void SetListParameter(const std::string &parameter, const std::vector<T> &value)
+				{
+					GetDescriptor().SetListParameter(parameter, value);
 				}
 
 				virtual bool Initialise() = 0;
@@ -228,6 +268,7 @@ namespace archsim
 
 #define COMPONENT_PARAMETER_STRING(name) std::string Get##name() { return (GetParameter<std::string>(#name)); }
 #define COMPONENT_PARAMETER_THREAD(name) archsim::core::thread::ThreadInstance *Get##name() { return (GetParameter<archsim::core::thread::ThreadInstance*>(#name)); }
+#define COMPONENT_PARAMETER_THREAD_LIST(name) std::vector<archsim::core::thread::ThreadInstance*> Get##name() const { return (GetListParameter<archsim::core::thread::ThreadInstance*>(#name)); }
 #define COMPONENT_PARAMETER_U64(name) uint64_t Get##name() { return (uint64_t)GetParameter<uint64_t>(#name); }
 
 			class CoreComponent : public Component

@@ -14,7 +14,7 @@ DeclareChildLogContext(LogEmulationModelRiscVSystem, LogEmulationModel, "RISCV-S
 using namespace archsim::abi;
 using namespace archsim::arch::riscv;
 
-RiscVSystemEmulationModel::RiscVSystemEmulationModel(int xlen) : archsim::abi::LinuxSystemEmulationModel(xlen == 64)
+RiscVSystemEmulationModel::RiscVSystemEmulationModel(int xlen) : archsim::abi::LinuxSystemEmulationModel(xlen == 64), riscv_handle_exception_(nullptr)
 {
 
 }
@@ -58,7 +58,10 @@ ExceptionAction RiscVSystemEmulationModel::HandleException(archsim::core::thread
 		}
 		default: {
 			// trigger exception in CPU
-			cpu->GetArch().GetISA("riscv").GetBehaviours().GetBehaviour("riscv_take_exception").Invoke(cpu, {category, data});
+			if(riscv_handle_exception_ == nullptr) {
+				riscv_handle_exception_ = &cpu->GetArch().GetISA("riscv").GetBehaviours().GetBehaviour("riscv_take_exception");
+			}
+			riscv_handle_exception_->Invoke(cpu, {category, data});
 			return ExceptionAction::AbortInstruction;
 		}
 	}
