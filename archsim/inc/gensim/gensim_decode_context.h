@@ -14,6 +14,8 @@
 #include "util/Cache.h"
 #include "util/PubSubSync.h"
 
+#include <mutex>
+
 namespace captive
 {
 	namespace shared
@@ -73,6 +75,8 @@ namespace gensim
 		std::function<gensim::BaseDecode*()> new_decode_fn_;
 		DecodeContext *underlying_ctx_;
 		archsim::util::PubSubContext &pubsub_;
+
+		std::mutex lock_;
 	};
 
 	// This class is used to emit operations which should happen unconditionally

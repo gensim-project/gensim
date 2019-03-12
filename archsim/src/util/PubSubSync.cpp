@@ -70,6 +70,8 @@ PubSubInstance::PubSubInstance(PubSubType::PubSubType type) : type(type), publis
 
 PubSubscription *PubSubInstance::Subscribe(PubSubCallback callback, void *context)
 {
+	std::lock_guard<std::mutex> lock(lock_);
+
 	PubSubscription *subscription = new PubSubscription(type, callback, context);
 	subscriptions.push_back(subscription);
 	return subscription;
@@ -77,6 +79,8 @@ PubSubscription *PubSubInstance::Subscribe(PubSubCallback callback, void *contex
 
 void PubSubInstance::Publish(const void *data)
 {
+	std::lock_guard<std::mutex> lock(lock_);
+
 	publish_count++;
 	if(publishing) {
 		LC_ERROR(LogPubSub) << "Recursive publication detected!";
@@ -89,6 +93,8 @@ void PubSubInstance::Publish(const void *data)
 
 void PubSubInstance::Unsubscribe(const PubSubscription *sub)
 {
+	std::lock_guard<std::mutex> lock(lock_);
+
 	for(auto i = subscriptions.begin(); i != subscriptions.end(); ++i) {
 		if(*i == sub)  {
 			subscriptions.erase(i);
