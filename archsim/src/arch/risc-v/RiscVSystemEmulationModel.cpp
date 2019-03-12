@@ -72,7 +72,9 @@ ExceptionAction RiscVSystemEmulationModel::HandleException(archsim::core::thread
 ExceptionAction RiscVSystemEmulationModel::HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
 {
 	// make sure we release the lock on the memory interface if we've taken it
-	interface.Unlock();
+	for(auto interface : thread.GetMemoryInterfaces()) {
+		interface->GetMonitor()->Unlock(&thread);
+	}
 
 	// Exception set up by MMU
 	return ExceptionAction::AbortInstruction;

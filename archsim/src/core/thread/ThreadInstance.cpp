@@ -147,6 +147,7 @@ void RegisterFileInterface::SetTaggedSlot(const std::string &tag, Address target
 
 archsim::abi::ExceptionAction ThreadInstance::TakeException(uint64_t category, uint64_t data)
 {
+	LC_DEBUG1(LogCPU) << "Thread " << GetThreadID() << ": Took exception " << Address(category) << ":" << Address(data);
 	auto result = emu_model_.HandleException(this, category, data);
 	if(result != archsim::abi::ExceptionAction::ResumeNext) {
 		ReturnToSafepoint();

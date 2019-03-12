@@ -75,7 +75,7 @@ namespace archsim
 			}
 
 
-			CPUIRQLine::CPUIRQLine(archsim::core::thread::ThreadInstance *_cpu) : CPU(_cpu), Acknowledged(false)
+			CPUIRQLine::CPUIRQLine(archsim::core::thread::ThreadInstance *_cpu) : CPU(_cpu), state_(State::Idle)
 			{
 
 			}
@@ -86,18 +86,30 @@ namespace archsim
 					LC_WARNING(LogIRQ) << "An IRQ is pending, but has been reasserted (IRQ possibly stuck?)";
 				}
 
-				if(!IsAsserted()) {
-					SetAsserted();
-					CPU->TakeIRQ();
+				SetAsserted();
+
+				switch(state_) {
+					case State::Idle:
+					case State::Acknowledged:
+						state_ = State::Raised;
+						LC_DEBUG1(LogIRQ) << "IRQ " << this << " asserted";
+						CPU->TakeIRQ();
+						break;
 				}
 			}
 
 			void CPUIRQLine::Rescind()
 			{
-				if(IsAsserted()) {
-					CPU->RescindIRQ();
-					ClearAsserted();
-					Acknowledged = false;
+				ClearAsserted();
+
+				switch(state_) {
+					case State::Raised:
+						state_ = State::Rescinded;
+						CPU->RescindIRQ();
+						break;
+					case State::Acknowledged:
+						state_ = State::Idle;
+						break;
 				}
 			}
 

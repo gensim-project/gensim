@@ -613,8 +613,8 @@ namespace gensim
 						auto interface_id = stmt.Args(0);
 						output << "{";
 						output << "auto &interface = thread->GetMemoryInterface(" << Factory.GetOrCreate(interface_id)->GetFixedValue() << ");";
-						output << "interface.GetMonitor()->Lock();";
-						output << "LC_DEBUG1(LogCPU) << \"Thread \" << thread->GetThreadID() << \" locked interface " << Factory.GetOrCreate(interface_id)->GetFixedValue() << "\";";
+						output << "LC_DEBUG1(LogCPU) << \"Thread \" << thread->GetThreadID() << \" locking interface " << Factory.GetOrCreate(interface_id)->GetFixedValue() << "\";";
+						output << "interface.GetMonitor()->Lock(thread);";
 						output << "}";
 						break;
 					}
@@ -623,8 +623,7 @@ namespace gensim
 						output << "{";
 						output << "auto &interface = thread->GetMemoryInterface(" << Factory.GetOrCreate(interface_id)->GetFixedValue() << ");";
 						output << "LC_DEBUG1(LogCPU) << \"Thread \" << thread->GetThreadID() << \" unlocking interface " << Factory.GetOrCreate(interface_id)->GetFixedValue() << "\";";
-						output << "interface.GetMonitor()->Unlock();";
-
+						output << "interface.GetMonitor()->Unlock(thread);";
 						output << "}";
 						break;
 					}
@@ -654,6 +653,7 @@ namespace gensim
 						output << "auto value = " << Factory.GetOrCreate(value_arg)->GetFixedValue() << ";";
 						output << "if(interface.GetMonitor()->LockMonitor(thread, addr)) {";
 						output << stmt.GetName() << " = 1;";
+						output << "archsim::MemoryResult mem_result = ";
 						switch(stmt.Type) {
 							case SSAIntrinsicStatement::SSAIntrinsic_MemMonitorWrite8:
 								output << "interface.Write8(addr, value);";
@@ -673,6 +673,10 @@ namespace gensim
 
 						output << "interface.GetMonitor()->Notify(thread, addr);";
 						output << "interface.GetMonitor()->UnlockMonitor(thread, addr);";
+
+						output << "if(mem_result != archsim::MemoryResult::OK) {";
+						output << "  thread->TakeMemoryException(interface, addr);";
+						output << "}";
 
 						output << "}";
 						output << "}";

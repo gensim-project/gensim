@@ -49,7 +49,7 @@ bool RiscVSifiveFU540EmulationModel::Initialise(System& system, archsim::uarch::
 		GetMemoryModel().Write(Address(0x10000), (uint8_t*)data.data(), size);
 	}
 
-	InstantiateThreads(1);
+	InstantiateThreads(2);
 
 	CreateMemoryDevices();
 
