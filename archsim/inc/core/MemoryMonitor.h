@@ -32,8 +32,8 @@ namespace archsim
 			// Notify the monitor that a write has been performed by the given thread to the given address
 			virtual void Notify(archsim::core::thread::ThreadInstance *thread, Address addr) = 0;
 
-			virtual void Lock() = 0;
-			virtual void Unlock() = 0;
+			virtual void Lock(archsim::core::thread::ThreadInstance *thread) = 0;
+			virtual void Unlock(archsim::core::thread::ThreadInstance *thread) = 0;
 		};
 
 		class BaseMemoryMonitor : public MemoryMonitor
@@ -44,19 +44,15 @@ namespace archsim
 			virtual void UnlockMonitor(archsim::core::thread::ThreadInstance *thread, Address addr);
 			virtual void Notify(archsim::core::thread::ThreadInstance *thread, Address addr);
 
-			virtual void Lock()
-			{
-				lock_.lock();
-			}
-			virtual void Unlock()
-			{
-				lock_.unlock();
-			}
+			virtual void Lock(archsim::core::thread::ThreadInstance *thread);
+			virtual void Unlock(archsim::core::thread::ThreadInstance *thread);
 
 		private:
 			// Map of thread ID to monitored address
 			std::map<int, Address> monitors_;
-			std::recursive_mutex lock_;
+
+			std::mutex lock_;
+			archsim::core::thread::ThreadInstance *locked_thread_;
 		};
 
 	}
