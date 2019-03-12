@@ -48,9 +48,10 @@ CachedDecodeContext::CachedDecodeContext(archsim::util::PubSubContext& pubsub, D
 	pubsub_.Subscribe(PubSubType::FlushAllTranslations, FlushCallback, this);
 }
 
-
 uint32_t CachedDecodeContext::DecodeSync(archsim::MemoryInterface& mem_interface, archsim::Address address, uint32_t mode, BaseDecode*& target)
 {
+	std::lock_guard<std::mutex> lock(lock_);
+
 	gensim::BaseDecode **cache_ptr;
 	auto result = decode_cache_.try_cache_fetch(address, cache_ptr);
 
@@ -90,6 +91,7 @@ void CachedDecodeContext::WriteBackState(archsim::core::thread::ThreadInstance* 
 
 void CachedDecodeContext::Flush()
 {
+	std::lock_guard<std::mutex> lock(lock_);
 	decode_cache_.purge();
 }
 
