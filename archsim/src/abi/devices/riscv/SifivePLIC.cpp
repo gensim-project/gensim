@@ -11,7 +11,7 @@ DeclareChildLogContext(LogPLIC, LogDevice, "PLIC");
 using namespace archsim::abi::devices::riscv;
 
 using namespace archsim::abi::devices;
-static ComponentDescriptor SifivePLICDescriptor ("SifivePLIC", {{"Hart0", ComponentParameter_Thread}, {"Hart1", ComponentParameter_Thread}, {"HartConfig", ComponentParameter_String}});
+static ComponentDescriptor SifivePLICDescriptor ("SifivePLIC", {{"Harts", ComponentParameterDescriptor::Container(ComponentParameter_Thread)}, {"HartConfig", ComponentParameter_String}});
 SifivePLIC::SifivePLIC(EmulationModel& parent, Address base_address) : MemoryComponent(parent, base_address, 0x4000000), IRQController(54), Component(SifivePLICDescriptor)
 {
 	interrupt_priorities_.resize(GetNumLines());
@@ -243,14 +243,12 @@ bool SifivePLIC::WriteThreshold(uint32_t offset, uint64_t data)
 
 archsim::core::thread::ThreadInstance* SifivePLIC::GetHart(int i)
 {
-	switch(i) {
-		case 0:
-			return GetHart0();
-		case 1:
-			return GetHart1();
-		default:
-			UNEXPECTED;
+	auto harts = GetHarts();
+	if(i >= harts.size()) {
+		throw std::out_of_range("Hart index out of range");
 	}
+
+	return harts.at(i);
 }
 
 bool SifivePLIC::AssertLine(uint32_t line)

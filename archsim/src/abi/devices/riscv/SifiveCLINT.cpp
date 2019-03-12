@@ -9,7 +9,7 @@ using namespace archsim::abi::devices::riscv;
 DeclareLogContext(LogRiscVCLINT, "RISCV-CLINT");
 
 using namespace archsim::abi::devices;
-static ComponentDescriptor SifiveCLINTDescriptor ("SifiveCLINT", {{"Hart0", ComponentParameter_Thread}, {"Hart1", ComponentParameter_Thread}});
+static ComponentDescriptor SifiveCLINTDescriptor ("SifiveCLINT", {{"Hart0", ComponentParameter_Thread}, {"Harts", ComponentParameterDescriptor::Container(ComponentParameter_Thread)}});
 SifiveCLINT::SifiveCLINT(EmulationModel& parent, Address base_address) : MemoryComponent(parent, base_address, 0x10000), Component(SifiveCLINTDescriptor)
 {
 	tick_source_ = parent.GetSystem().GetTickSource();
@@ -22,7 +22,11 @@ SifiveCLINT::~SifiveCLINT()
 
 bool SifiveCLINT::Initialise()
 {
-	timers_ = { new CLINTTimer(GetHart(0), this), new CLINTTimer(GetHart(1), this) };
+	auto harts = GetHarts();
+
+	for(auto hart : harts) {
+		timers_.push_back(new CLINTTimer(hart, this));
+	}
 
 	for(auto i : timers_) {
 		tick_source_->AddConsumer(*i);
@@ -97,14 +101,12 @@ CLINTTimer* SifiveCLINT::GetHartTimer(int i)
 
 archsim::core::thread::ThreadInstance* SifiveCLINT::GetHart(int i)
 {
-	switch(i) {
-		case 0:
-			return GetHart0();
-		case 1:
-			return GetHart1();
-		default:
-			UNEXPECTED;
+	auto harts = GetHarts();
+	if(i >= harts.size()) {
+		throw std::out_of_range("Hart index out of range");
 	}
+
+	return harts.at(i);
 }
 
 archsim::arch::riscv::RiscVSystemCoprocessor* SifiveCLINT::GetCoprocessor(int i)

@@ -67,6 +67,11 @@ namespace archsim
 				return is_64bit_;
 			}
 
+			int GetNumThreads() const
+			{
+				return threads_.size();
+			}
+
 			archsim::core::thread::ThreadInstance &GetThread(int thread_id)
 			{
 				return *threads_.at(thread_id);

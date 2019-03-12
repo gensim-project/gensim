@@ -30,7 +30,7 @@ void ComponentDescriptor::CheckParameterIndices()
 }
 
 
-ComponentParameterDescriptor::ComponentParameterDescriptor(ComponentParameterType type) : type_(type), index_(0)
+ComponentParameterDescriptor::ComponentParameterDescriptor(ComponentParameterType type, bool is_collection) : type_(type), index_(0), is_collection_(false)
 {
 
 }

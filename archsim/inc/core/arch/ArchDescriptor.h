@@ -114,7 +114,7 @@ namespace archsim
 			return name_;
 		}
 
-		InvocationResult Invoke(archsim::core::thread::ThreadInstance *thread, const std::vector<uint64_t> args) const
+		InvocationResult Invoke(archsim::core::thread::ThreadInstance *thread, const std::vector<uint64_t> &args) const
 		{
 			return function_(InvocationContext(thread, args));
 		}

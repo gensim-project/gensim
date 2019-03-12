@@ -33,6 +33,9 @@ namespace archsim
 				void HandleInterrupt(archsim::core::thread::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq) override;
 
 				bool PrepareCore(archsim::core::thread::ThreadInstance& core) override;
+
+			private:
+				const archsim::BehaviourDescriptor *riscv_handle_exception_;
 			};
 		}
 	}

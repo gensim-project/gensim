@@ -49,7 +49,7 @@ bool RiscVSifiveFU540EmulationModel::Initialise(System& system, archsim::uarch::
 		GetMemoryModel().Write(Address(0x10000), (uint8_t*)data.data(), size);
 	}
 
-	InstantiateThreads(2);
+	InstantiateThreads(1);
 
 	CreateMemoryDevices();
 
@@ -75,21 +75,26 @@ bool RiscVSifiveFU540EmulationModel::CreateMemoryDevices()
 {
 	using namespace archsim::module;
 
-	auto hart0 = &GetThread(0);
-	auto hart1 = &GetThread(1);
+	std::vector<archsim::core::thread::ThreadInstance*> harts;
+	for(int i = 0; i < GetNumThreads(); ++i) {
+		harts.push_back(&GetThread(i));
+	}
+
+	std::string plic_config = "MS";
+	for(int i = 1; i < GetNumThreads(); ++i) {
+		plic_config += ",MS";
+	}
 
 	// CLINT
 	auto clint = new archsim::abi::devices::riscv::SifiveCLINT(*this, Address(0x2000000));
-	clint->SetParameter("Hart0", hart0);
-	clint->SetParameter("Hart1", hart1);
+	clint->SetListParameter("Harts", harts);
 	clint->Initialise();
 	RegisterMemoryComponent(*clint);
 
 	// PLIC
 	auto plic = new archsim::abi::devices::riscv::SifivePLIC(*this, Address(0x0c000000));
-	plic->SetParameter("Hart0", hart0);
-	plic->SetParameter("Hart1", hart1);
-	plic->SetParameter("HartConfig", std::string("MS,MS"));
+	plic->SetListParameter("Harts", harts);
+	plic->SetParameter("HartConfig", plic_config);
 	plic->Initialise();
 	RegisterMemoryComponent(*plic);
 

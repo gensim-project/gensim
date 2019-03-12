@@ -67,8 +67,7 @@ namespace archsim
 
 					void SetMSIP(archsim::core::thread::ThreadInstance *thread, bool P);
 
-					COMPONENT_PARAMETER_THREAD(Hart0);
-					COMPONENT_PARAMETER_THREAD(Hart1);
+					COMPONENT_PARAMETER_THREAD_LIST(Harts);
 
 					archsim::abi::devices::timing::TickSource *tick_source_;
 
