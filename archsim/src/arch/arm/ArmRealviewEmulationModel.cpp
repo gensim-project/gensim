@@ -56,6 +56,8 @@ bool ArmRealviewEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	if (GetMemoryModel().GetMappingManager())
 		GetMemoryModel().GetMappingManager()->MapAll((archsim::abi::memory::RegionFlags)7);
 
+	InstantiateThreads(1);
+
 	return true;
 }
 
