@@ -65,6 +65,7 @@ public:
 
 	bool operator==(const Memory &other)
 	{
+		return storage_ == other.storage_;
 		for(auto me : storage_) {
 			for(auto them : other.storage_) {
 				if(me.first == them.first) {
@@ -77,6 +78,11 @@ public:
 		return true;
 	}
 
+	uint64_t Size() const
+	{
+		return storage_.size();
+	}
+
 private:
 	std::vector<std::pair<uint64_t, uint8_t>> storage_;
 
@@ -86,6 +92,8 @@ void UpdateMemoryMap(Memory &mem, libtrace::TraceRecordPacket &addr_record, libt
 {
 	assert(addr_record.GetExtensions().size() <= 1);
 	assert(data_record.GetExtensions().size() <= 1);
+	assert(addr_record.GetRecord().GetType() == libtrace::MemWriteAddr);
+	assert(data_record.GetRecord().GetType() == libtrace::MemWriteData);
 
 	uint64_t full_addr = MWA(addr_record.GetRecord()).GetAddress();
 	if(addr_record.GetExtensions().size() == 1) {
@@ -93,7 +101,7 @@ void UpdateMemoryMap(Memory &mem, libtrace::TraceRecordPacket &addr_record, libt
 	}
 
 	auto mwd = MWD(data_record.GetRecord());
-	uint64_t full_data = MWD(addr_record.GetRecord()).GetData();
+	uint64_t full_data = MWD(data_record.GetRecord()).GetData();
 	if(data_record.GetExtensions().size() == 1) {
 		full_data |= ((uint64_t)data_record.GetExtensions().at(0).GetData32()) << 32;
 	}
