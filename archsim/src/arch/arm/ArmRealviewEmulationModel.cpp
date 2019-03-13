@@ -58,6 +58,8 @@ bool ArmRealviewEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 
 	InstantiateThreads(1);
 
+	CreateMemoryDevices();
+
 	return true;
 }
 
