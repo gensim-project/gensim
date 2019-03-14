@@ -82,7 +82,7 @@ function(define_model target-name arch-name arch-file)
 		SET(MODEL_OPT "3")
 	ENDIF()
 
-	SET(gensim-options -s module,arch,decode,disasm,ee_interp,jumpinfo,function,makefile -o decode.GenerateDotGraph=1,makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.llvm_path=${LLVM_INCLUDE_DIRS},makefile.Optimise=${MODEL_OPT},makefile.Debug=1)
+	SET(gensim-options -s module,arch,decode,disasm,ee_interp,ee_blockjit,jumpinfo,function,makefile -o decode.GenerateDotGraph=1,makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.llvm_path=${LLVM_INCLUDE_DIRS},makefile.Optimise=${MODEL_OPT},makefile.Debug=1)
 
 	build_model(${target-name} ${arch-name} ${arch-file} "${gensim-options}" ${ARGN})
 	

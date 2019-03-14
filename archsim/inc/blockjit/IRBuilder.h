@@ -124,6 +124,7 @@ namespace captive
 			INSN1(fctrl_get_flush, FCTRL_GET_FLUSH_DENORMAL);
 			INSN3(fcmp_eq, FCMP_EQ);
 			INSN3(fcmp_lt, FCMP_LT);
+			INSN3(fcmp_lte, FCMP_LTE);
 			INSN3(fcmp_gt, FCMP_GT);
 			INSN2(fcvt_single_to_double, FCVT_S_TO_D);
 			INSN2(fcvt_double_to_single, FCVT_D_TO_S);
