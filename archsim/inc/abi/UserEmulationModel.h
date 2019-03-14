@@ -15,6 +15,7 @@
 #include "abi/user/SyscallHandler.h"
 #include "core/execution/ExecutionEngine.h"
 #include "core/thread/ThreadInstance.h"
+#include "core/MemoryMonitor.h"
 #include "abi/loader/BinaryLoader.h"
 
 namespace archsim
@@ -108,6 +109,9 @@ namespace archsim
 			Address _initial_stack_pointer;
 			Address _initial_program_break;
 			Address _program_break;
+
+			std::shared_ptr<archsim::core::MemoryMonitor> monitor_;
+
 			unsigned int _stack_size;
 
 			AuxVectorEntries auxvs_;
