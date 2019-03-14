@@ -194,7 +194,7 @@ namespace gensim
 
 			uint64_t Parse_ConstantInt(pANTLR3_BASE_TREE node);
 
-			IRType Parse_Type(pANTLR3_BASE_TREE node);
+			bool Parse_Type(pANTLR3_BASE_TREE node, IRType &type);
 
 			IRBody *Parse_Body(pANTLR3_BASE_TREE Body, IRScope &containing_scope, IRScope *override_scope = NULL);
 			IRStatement *Parse_Statement(pANTLR3_BASE_TREE node, IRScope &containing_scope);
