@@ -46,6 +46,8 @@ namespace gensim
 					typedef std::unordered_map<SSAStatement*, std::pair<uint64_t, IRConstant>> statement_values_t; // timestamped statements so that phi statements can figure out which value to use
 					typedef std::unordered_map<SSASymbol*, IRConstant> symbol_values_t;
 
+					VMActionState() : next_block_(nullptr), interpret_result_(Interpret_Error) {}
+
 					statement_values_t &Statements()
 					{
 						return statements_;

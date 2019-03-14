@@ -16,12 +16,14 @@
 #include <queue>
 #include <sstream>
 #include <string>
+#include <memory>
 
 #include <antlr3.h>
 
 #include "genC/ir/IRType.h"
 #include "genC/ir/IRSignature.h"
 #include "genC/ssa/statement/SSAIntrinsicStatement.h"
+#include "genC/ssa/SSATypeManager.h"
 #include "DiagnosticContext.h"
 #include "ir/IRAction.h"
 
@@ -129,18 +131,6 @@ namespace gensim
 			IntrinsicEmitterFn GetIntrinsicEmitter(const std::string& name) const;
 			IRHelperAction *GetHelper(const std::string& name) const;
 
-			inline bool HasStructType(std::string StructName)
-			{
-				return StructTypeTable.find(StructName) != StructTypeTable.end();
-			}
-
-			inline const IRStructType &GetStructType(std::string StructName) const
-			{
-				const IRType &type = StructTypeTable.at(StructName);
-				assert(type.DataType == IRType::Struct && type.BaseType.StructType != NULL);
-				return *type.BaseType.StructType;
-			}
-
 			bool Resolve();
 			void LoadIntrinsics();
 			void LoadExternalFunctions();
@@ -161,11 +151,12 @@ namespace gensim
 			const gensim::arch::ArchDescription &Arch;
 			const isa::ISADescription &ISA;
 
-			void InsertConstant(std::string name, IRType type, uint32_t value);
+			void InsertConstant(std::string name, const IRType &type, IRConstant value);
+			std::pair<IRSymbol *, IRConstant> GetConstant(std::string name) const;
 
-			inline std::pair<IRSymbol *, uint32_t> GetConstant(std::string name) const
+			std::shared_ptr<ssa::SSATypeManager> GetTypeManager()
 			{
-				return ConstantTable.at(name);
+				return type_manager_;
 			}
 
 			DiagnosticContext &Diag()
@@ -177,7 +168,8 @@ namespace gensim
 			DiagnosticContext &diag_ctx;
 
 			OutputCollection Output;
-			std::map<std::string, std::pair<IRSymbol *, uint32_t> > ConstantTable;
+			std::map<std::string, std::pair<IRSymbol *, IRConstant> > ConstantTable;
+			std::map<std::string, IRType> type_map_;
 			std::vector<FileContents> file_list;
 
 			bool Valid;
@@ -188,25 +180,27 @@ namespace gensim
 			std::map<std::string, IRExternalAction *> ExternalTable;
 			std::map<std::string, isa::InstructionDescription*> InstructionTable;
 
-			std::map<std::string, IRType> StructTypeTable;
+			std::shared_ptr<ssa::SSATypeManager> type_manager_;
 
 			GenCContext(pANTLR3_BASE_TREE file, std::ostringstream &error_stream, gensim::arch::ArchDescription &arch);
 
 			bool Parse_File(pANTLR3_BASE_TREE File);
 			bool Parse_Constant(pANTLR3_BASE_TREE Node);
+			bool Parse_Typename(pANTLR3_BASE_TREE Node);
 			bool Parse_Helper(pANTLR3_BASE_TREE Behaviour);
 			bool Parse_Behaviour(pANTLR3_BASE_TREE Action);
 			bool Parse_Execute(pANTLR3_BASE_TREE Execute);
+			bool Parse_Vector(pANTLR3_BASE_TREE Execute);
 
 			uint64_t Parse_ConstantInt(pANTLR3_BASE_TREE node);
 
-			IRType Parse_Type(pANTLR3_BASE_TREE node);
+			bool Parse_Type(pANTLR3_BASE_TREE node, IRType &type);
 
 			IRBody *Parse_Body(pANTLR3_BASE_TREE Body, IRScope &containing_scope, IRScope *override_scope = NULL);
 			IRStatement *Parse_Statement(pANTLR3_BASE_TREE node, IRScope &containing_scope);
 			IRExpression *Parse_Expression(pANTLR3_BASE_TREE node, IRScope &containing_scope);
 
-			void Build_Inst_Struct();
+			void BuildStructTypes();
 
 			void AddIntrinsic(const std::string& name, const IRType& retty, const IRSignature::param_type_list_t& ptl, IntrinsicEmitterFn emitter, ssa::SSAIntrinsicStatement::IntrinsicType);
 			void AddExternalFunction(const std::string& name, const IRType& retty, const IRSignature::param_type_list_t& ptl);

@@ -742,14 +742,14 @@ AC_ISA(arm)
 		b.set_behaviour(b);
 		b.set_end_of_block();
 //		b.set_variable_jump();
-		b.set_fixed_jump(imm32, RELATIVE, 0);
+		b.set_fixed_predicated_jump(imm32, RELATIVE, 0);
 		
 		bl.set_decoder(op=0x05, h=1);
 		bl.set_asm("bl%[cond] %reladdr", cond, imm32);
 		bl.set_behaviour(bl);
 		bl.set_end_of_block();
 //		bl.set_variable_jump();
-		bl.set_fixed_jump(imm32, RELATIVE, 0);
+		bl.set_fixed_predicated_jump(imm32, RELATIVE, 0);
 
 		/**************************************/
 		/*        MBXLBLX Instructions        */

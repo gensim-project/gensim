@@ -40,7 +40,10 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "shr",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "sar",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "ror",		.format = "IBXXXX", .has_side_effects = false },
+	{ .mnemonic = "rol",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "clz",		.format = "IOXXXX", .has_side_effects = false },
+	{ .mnemonic = "popcnt",		.format = "IOXXXX", .has_side_effects = false },
+	{ .mnemonic = "bswap",		.format = "IOXXXX", .has_side_effects = false },
 
 	{ .mnemonic = "and",		.format = "IBXXXX", .has_side_effects = false },
 	{ .mnemonic = "or",			.format = "IBXXXX", .has_side_effects = false },
@@ -81,6 +84,7 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "flush dtlb",	.format = "IXXXXX", .has_side_effects = true },
 
 	{ .mnemonic = "adc flags",	.format = "IIIXXX", .has_side_effects = true },
+	{ .mnemonic = "sbc flags",	.format = "IIIXXX", .has_side_effects = true },
 	{ .mnemonic = "zn flags",	.format = "IXXXXX", .has_side_effects = true },
 
 	{ .mnemonic = "barrier",	.format = "NXXXXX", .has_side_effects = true },
@@ -97,6 +101,7 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "fadd",		.format = "IIOXXX", .has_side_effects = false },
 	{ .mnemonic = "fsub",		.format = "IIOXXX", .has_side_effects = false },
 	{ .mnemonic = "fsqrt",		.format = "IOXXXX", .has_side_effects = false },
+	{ .mnemonic = "fabs",		.format = "IOXXXX", .has_side_effects = false },
 
 	{ .mnemonic = "fcmp_lt",	.format = "IIOXXX", .has_side_effects = false },
 	{ .mnemonic = "fcmp_lte",	.format = "IIOXXX", .has_side_effects = false },
@@ -126,6 +131,15 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "vsubf",	.format = "NIIOXX", .has_side_effects = false },
 	{ .mnemonic = "vmuli",	.format = "NIIOXX", .has_side_effects = false },
 	{ .mnemonic = "vmulf",	.format = "NIIOXX", .has_side_effects = false },
+	{ .mnemonic = "vori",	.format = "NIIOXX", .has_side_effects = false },
+	{ .mnemonic = "vandi",	.format = "NIIOXX", .has_side_effects = false },
+	{ .mnemonic = "vxori",	.format = "NIIOXX", .has_side_effects = false },
+
+	{ .mnemonic = "vcmpeqi",	.format = "NIIOXX", .has_side_effects = false },
+	{ .mnemonic = "vcmpgti",	.format = "NIIOXX", .has_side_effects = false },
+	{ .mnemonic = "vcmpgtei",	.format = "NIIOXX", .has_side_effects = false },
+
+	{ .mnemonic = "vcmpltf",	.format = "NIIOXX", .has_side_effects = false },
 
 };
 

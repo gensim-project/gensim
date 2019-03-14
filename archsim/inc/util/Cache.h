@@ -32,25 +32,44 @@ namespace archsim
 			CACHE_INVALID
 		} CacheHitType;
 
-		template <class T, int way_count = 2>
+		template <typename KeyT, class T, int way_count = 2>
 		struct CacheEntry {
 		public:
-			uint32_t tags[way_count];
+			KeyT tags[way_count];
 			T ways[way_count];
 
-			void purge()
+			CacheEntry()
 			{
 				for (int i = 0; i < way_count; ++i) {
-					tags[i] = 1;
+					ways[i] = T();
+					tags[i] = KeyT(1);
+				}
+			}
+
+			void purge(std::function<void(T&)> purge_way)
+			{
+				for (int i = 0; i < way_count; ++i) {
+					purge_way(ways[i]);
+					tags[i] = KeyT(1);
 				}
 			}
 		};
 
-		template <class T, int size = 8192, bool collect_stats = false>
+		template <typename KeyT, class T, int size = 8192, bool collect_stats = false>
 		class Cache
 		{
 		public:
-			Cache() : hit_count(0), access_count(0), lru(0), mask(size-1), dirty(true) {};
+			using this_t = Cache<KeyT, T, size, collect_stats>;
+			using entry_t = CacheEntry<KeyT, T>;
+			using entry_purge_t = std::function<void(T&)>;
+
+			Cache(entry_purge_t on_purge = [](T& t)
+			{
+				t = T();
+			}) : hit_count(0), access_count(0), lru(0), mask(size-1), dirty(true), on_purge_(on_purge)
+			{
+				construct();
+			}
 
 			uint64_t get_access_count()
 			{
@@ -71,28 +90,35 @@ namespace archsim
 			}
 			void purge()
 			{
-				if(!dirty) return;
-				for(uint32_t i = 0; i < kCachePageCount; ++i) {
-					if(pages_dirty.test(i)) {
-						uint32_t page_start = i * kCachePageSize;
-						uint32_t page_end = (i+1) * kCachePageSize;
-						for(uint32_t entry = page_start; entry != page_end; ++entry) {
-							cache[entry].purge();
-						}
-					}
+				for(auto &i : cache) {
+					i.purge(on_purge_);
 				}
 
 				pages_dirty.reset();
 				dirty = false;
+//
+//				if(!dirty) return;
+//				for(uint32_t i = 0; i < kCachePageCount; ++i) {
+//					if(pages_dirty.test(i)) {
+//						uint32_t page_start = i * kCachePageSize;
+//						uint32_t page_end = (i+1) * kCachePageSize;
+//						for(uint32_t entry = page_start; entry != page_end; ++entry) {
+//							cache[entry].purge();
+//						}
+//					}
+//				}
+//
+//				pages_dirty.reset();
+//				dirty = false;
 			}
 
 			// A function to attempt a cache fetch and simultaneously update the cache
-			inline CacheHitType try_cache_fetch(const uint32_t _addr, T *&out)
+			inline CacheHitType try_cache_fetch(const KeyT _addr, T *&out)
 			{
-				uint32_t idx = (_addr) & mask;
+				size_t idx = std::hash<KeyT>()(_addr) & mask;
 				if (collect_stats) access_count++;
 
-				CacheEntry<T> &entry = cache[idx];
+				entry_t &entry = cache[idx];
 
 				if (entry.tags[0] == _addr) {
 					out = &entry.ways[0];
@@ -119,14 +145,14 @@ namespace archsim
 				return CACHE_MISS;
 			}
 
-			inline CacheHitType is_cache_hit(uint32_t _addr)
+			inline CacheHitType is_cache_hit(KeyT _addr)
 			{
 				CacheHitType hit_type = CACHE_MISS;
-				uint32_t idx = (_addr) & mask;
+				KeyT idx = (_addr) & mask;
 
 				if (collect_stats) ++access_count;
 
-				CacheEntry<T> &entry = cache[idx];
+				entry_t &entry = cache[idx];
 
 				if (entry.tags[0] == _addr) {
 					__builtin_prefetch(&entry.ways[0]);
@@ -142,13 +168,13 @@ namespace archsim
 				return hit_type;
 			}
 
-			inline T *fetch_location(uint32_t _addr, CacheHitType hit_type)
+			inline T *fetch_location(KeyT _addr, CacheHitType hit_type)
 			{
-				uint32_t idx = (_addr) & mask;
+				KeyT idx = (_addr) & mask;
 
 				dirty = true;
 
-				CacheEntry<T> &entry = cache[idx];
+				entry_t &entry = cache[idx];
 
 				switch (hit_type) {
 					case CACHE_HIT_WAY_0: {
@@ -164,7 +190,7 @@ namespace archsim
 						// prefetch this since we'll be writing to it soon
 						__builtin_prefetch(&entry.ways[victim]);
 
-						entry.lru = 1 - lru;
+						lru = 1 - lru;
 						entry.tags[victim] = _addr;
 						return &entry.ways[victim];
 					}
@@ -175,23 +201,25 @@ namespace archsim
 				}
 			}
 
-			inline void invalidate_location(uint32_t _addr)
+			inline void invalidate_location(KeyT _addr)
 			{
-				uint32_t idx = (_addr) & mask;
+				KeyT idx = (_addr) & mask;
 
-				CacheEntry<T> entry = cache[idx];
+				entry_t entry = cache[idx];
 				entry.purge();
 			}
 
 		private:
-			DISALLOW_COPY_AND_ASSIGN(Cache);
+			Cache(const this_t &other) = delete;
 
-			CacheEntry<T> cache[size];
+			CacheEntry<KeyT, T> cache[size];
+
+			entry_purge_t on_purge_;
 
 			uint64_t hit_count;
 			uint64_t access_count;
 
-			uint32_t mask;
+			size_t mask;
 
 			uint8_t lru;
 			bool dirty;

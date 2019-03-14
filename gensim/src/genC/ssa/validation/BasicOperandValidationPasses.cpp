@@ -69,6 +69,7 @@ public:
 			case 2:
 			case 4:
 			case 8:
+			case 16:
 				break;
 			default:
 				Fail("Unsupported memory write width", stmt.GetDiag());
@@ -88,6 +89,7 @@ public:
 			case 2:
 			case 4:
 			case 8:
+			case 16:
 				break;
 			default:
 				Fail("Unsupported memory write width", stmt.GetDiag());

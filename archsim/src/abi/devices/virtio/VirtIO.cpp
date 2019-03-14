@@ -13,6 +13,7 @@ UseLogContext(LogDevice);
 DeclareChildLogContext(LogVirtIO, LogDevice, "VirtIO");
 
 using namespace archsim::abi::devices::virtio;
+using archsim::Address;
 
 #define VIRTIO_CHAR_SHIFT(c, s) (((uint32_t)((uint8_t)c)) << (s))
 #define VIRTIO_MAGIC (VIRTIO_CHAR_SHIFT('v', 0) | VIRTIO_CHAR_SHIFT('i', 8) | VIRTIO_CHAR_SHIFT('r', 16) | VIRTIO_CHAR_SHIFT('t', 24))
@@ -84,7 +85,7 @@ VirtIO::~VirtIO()
 	}
 }
 
-bool VirtIO::Read(uint32_t offset, uint8_t size, uint32_t& data)
+bool VirtIO::Read(uint32_t offset, uint8_t size, uint64_t& data)
 {
 	LC_DEBUG3(LogVirtIO) << "[" << GetName() << "] Register Read offset=" << std::hex << offset << ", size=" << std::dec << (uint32_t)size;
 	if (offset >= 0x100 && offset <= (0x100 + GetConfigAreaSize())) {
@@ -114,13 +115,13 @@ uint32_t VirtIO::ReadRegister(MemoryRegister& reg)
 	if (reg == InterruptStatus) {
 		return irq.IsAsserted() ? 1 : 0;
 	} else if (reg == QueueNumMax) {
-		if (GetCurrentQueue()->GetPhysAddr() == 0) {
+		if (GetCurrentQueue()->GetPhysAddr().Get() == 0) {
 			return 0x400;
 		} else {
 			return 0;
 		}
 	} else if (reg == QueuePFN) {
-		return GetCurrentQueue()->GetPhysAddr() >> guest_page_shift;
+		return GetCurrentQueue()->GetPhysAddr().Get() >> guest_page_shift;
 	}
 
 	return RegisterBackedMemoryComponent::ReadRegister(reg);
@@ -146,12 +147,12 @@ void VirtIO::WriteRegister(MemoryRegister& reg, uint32_t value)
 
 			ResetDevice();
 		} else {
-			phys_addr_t queue_phys_addr = value << guest_page_shift;
+			Address queue_phys_addr = Address(value << guest_page_shift);
 
 			VirtQueue *cq = GetCurrentQueue();
 
 			host_addr_t queue_host_addr;
-			if (!parent_model.GetMemoryModel().LockRegion(queue_phys_addr, 0x2000, queue_host_addr))
+			if (!GetParentModel().GetMemoryModel().LockRegion(Address(queue_phys_addr), 0x2000, queue_host_addr))
 				assert(false);
 
 			cq->SetBaseAddress(queue_phys_addr, queue_host_addr);
@@ -202,7 +203,7 @@ void VirtIO::ProcessQueue(VirtQueue *queue)
 		do {
 			LC_DEBUG1(LogVirtIO) << "[" << GetName() << "] Processing descriptor " << descr->flags << std::hex << " " << descr->paddr << " " << descr->len;
 			host_addr_t descr_host_addr;
-			if (!parent_model.GetMemoryModel().LockRegion((abi::memory::guest_addr_t)descr->paddr, descr->len, descr_host_addr))
+			if (!GetParentModel().GetMemoryModel().LockRegion(Address(descr->paddr), descr->len, descr_host_addr))
 				assert(false);
 
 			if (descr->flags & 2) {

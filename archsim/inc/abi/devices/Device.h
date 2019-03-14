@@ -37,7 +37,6 @@ namespace archsim
 				virtual ~Device();
 
 				virtual bool Initialise() = 0;
-				virtual bool Configure(gensim::Processor *core, std::map<std::string, std::string>& settings);
 
 				virtual bool Read8(uint32_t address, uint8_t &data);
 				virtual bool Write8(uint32_t address, uint8_t data);

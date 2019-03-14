@@ -36,14 +36,14 @@ namespace archsim
 
 				bool HandleEvent(archsim::core::thread::ThreadInstance* cpu, archsim::abi::memory::MemoryModel::MemoryEventType type, Address addr, uint8_t size) override;
 				void PrintGlobalCacheStatistics(std::ostream& stream);
-				bool IsHit(CacheAccessType accessType, phys_addr_t phys_addr, virt_addr_t virt_addr, uint8_t size) override;
+				bool IsHit(CacheAccessType accessType, Address phys_addr, Address virt_addr, uint8_t size) override;
 
 				archsim::abi::memory::MemoryEventHandlerTranslator& GetTranslator() override
 				{
 #if CONFIG_LLVM
 					return translator;
 #else
-					assert(false);
+					UNIMPLEMENTED;
 #endif
 				}
 

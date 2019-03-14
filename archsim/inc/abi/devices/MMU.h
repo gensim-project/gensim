@@ -27,10 +27,12 @@ namespace archsim
 		{
 
 			struct AccessInfo {
-				uint8_t Write:1, Kernel:1, Fetch:1, SideEffects:1;
+				uint32_t Ring;
+				uint8_t Write:1, Fetch:1, SideEffects:1;
+
 
 				AccessInfo() {}
-				AccessInfo(bool K, bool W, bool F, bool SE=0) : Write(W), Kernel(K), Fetch(F), SideEffects(SE) {}
+				AccessInfo(uint32_t Ring, bool W, bool F, bool SE=0) : Write(W), Ring(Ring), Fetch(F), SideEffects(SE) {}
 				friend std::ostream &operator <<(std::ostream &stream, const struct archsim::abi::devices::AccessInfo &info);
 			};
 
@@ -43,15 +45,17 @@ namespace archsim
 			public:
 				PageInfo();
 
-				uint32_t phys_addr;
-				uint32_t mask;
+				Address phys_addr;
+				Address::underlying_t mask;
 
 				bool Present:1;
 
 				bool UserCanRead:1;
 				bool UserCanWrite:1;
+				bool UserCanExecute:1;
 				bool KernelCanRead:1;
 				bool KernelCanWrite:1;
+				bool KernelCanExecute:1;
 			};
 
 			class MMU : public Device
@@ -76,15 +80,15 @@ namespace archsim
 
 				virtual ~MMU();
 
-				virtual TranslateResult Translate(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr, uint32_t &phys_addr, const struct AccessInfo info) = 0;
-				virtual TranslateResult TranslateRegion(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr, uint32_t size, uint32_t &phys_addr, const struct AccessInfo info);
+				virtual TranslateResult Translate(archsim::core::thread::ThreadInstance *cpu, Address virt_addr, Address &phys_addr, const struct AccessInfo info) = 0;
+				virtual TranslateResult TranslateRegion(archsim::core::thread::ThreadInstance *cpu, Address virt_addr, uint32_t size, Address &phys_addr, const struct AccessInfo info);
 
-				virtual const PageInfo GetInfo(uint32_t virt_addr) = 0;
+				virtual const PageInfo GetInfo(Address virt_addr) = 0;
 
 				virtual void FlushCaches();
-				virtual void Evict(virt_addr_t virt_addr);
+				virtual void Evict(Address virt_addr);
 
-				uint32_t TranslateUnsafe(archsim::core::thread::ThreadInstance *cpu, uint32_t virt_addr);
+				Address TranslateUnsafe(archsim::core::thread::ThreadInstance *cpu, Address virt_addr);
 
 				void set_enabled(bool enabled);
 				inline bool is_enabled() const

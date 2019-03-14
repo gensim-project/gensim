@@ -21,6 +21,7 @@ using namespace archsim::translate::interrupts;
 TranslationWorkUnit::TranslationWorkUnit(archsim::core::thread::ThreadInstance *thread, profile::Region& region, uint32_t generation, uint32_t weight) : thread(thread), region(region), generation(generation), weight(weight), emit_trace_calls(thread->GetTraceSource() != nullptr)
 {
 	region.Acquire();
+	dispatch_heat_ = region.GetTotalInterpCount();
 }
 
 TranslationWorkUnit::~TranslationWorkUnit()
@@ -29,6 +30,12 @@ TranslationWorkUnit::~TranslationWorkUnit()
 
 	region.Release();
 }
+
+uint32_t TranslationWorkUnit::GetWeight() const
+{
+	return GetRegion().GetTotalInterpCount() - dispatch_heat_;
+}
+
 
 void TranslationWorkUnit::DumpGraph()
 {
@@ -39,7 +46,7 @@ void TranslationWorkUnit::DumpGraph()
 	fprintf(f, "digraph a {\n");
 
 	for (auto block : blocks) {
-		fprintf(f, "B_%08x [color=%s,shape=Mrecord]\n", block.first, block.second->IsEntryBlock() ? "red" : "black");
+		fprintf(f, "B_%08x [color=%s,shape=Mrecord,label=\"B_%08x (%llu)\"]\n", block.first, block.second->IsEntryBlock() ? "red" : "black", block.first.Get(), block.second->GetInterpCount());
 
 		if (block.second->IsInterruptCheck())
 			fprintf(f, "B_%08x [fillcolor=yellow,style=filled]\n", block.second->GetOffset());
@@ -55,7 +62,7 @@ void TranslationWorkUnit::DumpGraph()
 
 TranslationBlockUnit *TranslationWorkUnit::AddBlock(profile::Block& block, bool entry)
 {
-	auto tbu = new TranslationBlockUnit(*this, block.GetOffset(), block.GetISAMode(), entry);
+	auto tbu = new TranslationBlockUnit(block.GetOffset(), block.GetISAMode(), entry, block.GetInterpCount());
 	blocks[block.GetOffset()] = tbu;
 	return tbu;
 }
@@ -69,32 +76,40 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 	host_addr_t guest_page_data;
 //	thread->GetEmulationModel().GetMemoryModel().LockRegion(region.GetPhysicalBaseAddress(), profile::RegionArch::PageSize, guest_page_data);
 
-	auto phys_device = new archsim::LegacyMemoryInterface(thread->GetEmulationModel().GetMemoryModel());
-	auto phys_interface = new archsim::MemoryInterface(thread->GetArch().GetMemoryInterfaceDescriptor().GetFetchInterface());
-	phys_interface->Connect(*phys_device);
+	archsim::LegacyMemoryInterface phys_device(thread->GetEmulationModel().GetMemoryModel());
+	archsim::MemoryInterface phys_interface(thread->GetArch().GetMemoryInterfaceDescriptor().GetFetchInterface());
+	phys_interface.Connect(phys_device);
+
+	auto decode_context = thread->GetEmulationModel().GetNewDecodeContext(*thread);
 
 	for (auto block : region.blocks) {
+		auto next_block_it = ++region.blocks.lower_bound(block.first);
+		Address next_block_start;
+		if(next_block_it != region.blocks.end()) {
+			next_block_start = next_block_it->second->GetOffset();
+		}
+
 		auto tbu = twu->AddBlock(*block.second, block.second->IsRootBlock());
 
 		bool end_of_block = false;
-		addr_t offset = tbu->GetOffset();
+		Address offset = tbu->GetOffset();
 		uint32_t insn_count = 0;
 
-		auto decode_ctx = twu->GetThread()->GetEmulationModel().GetNewDecodeContext(*twu->GetThread());
-
-		while (!end_of_block && offset < profile::RegionArch::PageSize) {
+		while (!end_of_block && offset.Get() < profile::RegionArch::PageSize && (next_block_start == 0_ga || offset < next_block_start)) {
+//		while (!end_of_block && offset.Get() < profile::RegionArch::PageSize) {
+			Address insn_addr (region.GetPhysicalBaseAddress() + offset);
 			gensim::BaseDecode *decode = thread->GetArch().GetISA(block.second->GetISAMode()).GetNewDecode();
-
-			thread->GetArch().GetISA(block.second->GetISAMode()).DecodeInstr(Address(region.GetPhysicalBaseAddress() + offset), phys_interface, *decode);
+			decode_context->DecodeSync(phys_interface, insn_addr, block.second->GetISAMode(), decode);
 
 			if(decode->Instr_Code == (uint16_t)(-1)) {
-				LC_WARNING(LogTranslate) << "Invalid Instruction at " << std::hex << (uint32_t)(region.GetPhysicalBaseAddress() + offset) <<  ", ir=" << decode->ir << ", isa mode=" << (uint32_t)block.second->GetISAMode() << " whilst building " << *twu;
+				LC_WARNING(LogTranslate) << "Invalid Instruction at " << std::hex << (uint32_t)(region.GetPhysicalBaseAddress().Get() + offset.Get()) <<  ", ir=" << decode->ir << ", isa mode=" << (uint32_t)block.second->GetISAMode() << " whilst building " << *twu;
 				delete decode;
 				delete twu;
 				return NULL;
 			}
 
-			tbu->AddInstruction(decode, offset);
+			// tbu takes ownership of decode
+			tbu->AddInstruction(decode, offset - tbu->GetOffset());
 
 			offset += decode->Instr_Length;
 			end_of_block = decode->GetEndOfBlock();
@@ -105,8 +120,6 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 			tbu->SetSpanning(true);
 		}
 	}
-
-//	cpu.GetEmulationModel().GetMemoryModel().UnlockRegion(region.GetPhysicalBaseAddress(), profile::RegionArch::PageSize, guest_page_data);
 
 	for (auto block : region.blocks) {
 		if (!twu->ContainsBlock(block.second->GetOffset()))
@@ -121,59 +134,45 @@ TranslationWorkUnit *TranslationWorkUnit::Build(archsim::core::thread::ThreadIns
 		}
 	}
 
-	ics.ApplyInterruptChecks(twu->blocks);
-
-//#define COUNT_STATIC_CHECKS
-#ifdef COUNT_STATIC_CHECKS
-	int checks = 0;
-	for (auto block : twu->blocks) {
-		if (block.second->IsInterruptCheck()) checks++;
-	}
-	fprintf(stderr, "placed: %d\n", checks);
-#endif
+	// TODO: fix this for multiple ISAs
+	auto jump_info = thread->GetArch().GetISA(0).GetNewJumpInfo();
+	ics.ApplyInterruptChecks(*jump_info, twu->blocks);
 
 	region.IncrementGeneration();
 
+	delete jump_info;
+	delete decode_context;
 	return twu;
 }
 
-TranslationBlockUnit::TranslationBlockUnit(TranslationWorkUnit& twu, addr_t offset, uint8_t isa_mode, bool entry)
-	: twu(twu),
-	  offset(offset),
-	  isa_mode(isa_mode),
-	  entry(entry),
-	  interrupt_check(false),
-	  spanning(false)
+TranslationBlockUnit::TranslationBlockUnit(Address offset, uint8_t isa_mode, bool entry, uint64_t interp_count)
+	:
+	offset(offset),
+	isa_mode(isa_mode),
+	entry(entry),
+	interrupt_check(false),
+	spanning(false),
+	interp_count_(interp_count)
 {
 
 }
 
 TranslationBlockUnit::~TranslationBlockUnit()
 {
-
+	for(auto i : instructions) {
+		delete i;
+	}
 }
 
-TranslationInstructionUnit *TranslationBlockUnit::AddInstruction(gensim::BaseDecode* decode, addr_t offset)
+TranslationInstructionUnit *TranslationBlockUnit::AddInstruction(gensim::BaseDecode* decode, Address offset)
 {
 	assert(decode);
-	auto tiu = twu.GetInstructionZone().Construct(decode, offset);
+	auto tiu = new TranslationInstructionUnit(decode, offset);
 	instructions.push_back(tiu);
 	return tiu;
 }
 
-void TranslationBlockUnit::GetCtrlFlowInfo(bool &direct_jump, bool &indirect_jump, int32_t &direct_offset, int32_t &fallthrough_offset) const
-{
-	uint32_t direct_target;
-
-	auto jumpinfo = twu.GetThread()->GetArch().GetISA(twu.GetThread()->GetModeID()).GetNewJumpInfo();
-	jumpinfo->GetJumpInfo(&GetLastInstruction().GetDecode(), 0, indirect_jump, direct_jump, direct_target);
-	delete jumpinfo;
-
-	direct_offset = (int32_t)direct_target;
-	fallthrough_offset = GetLastInstruction().GetOffset() + GetLastInstruction().GetDecode().Instr_Length;
-}
-
-TranslationInstructionUnit::TranslationInstructionUnit(gensim::BaseDecode* decode, addr_t offset) : decode(decode), offset(offset)
+TranslationInstructionUnit::TranslationInstructionUnit(gensim::BaseDecode* decode, Address offset) : decode(decode), offset(offset)
 {
 
 }

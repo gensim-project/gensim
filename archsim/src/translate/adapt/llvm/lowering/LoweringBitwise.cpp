@@ -5,6 +5,22 @@
 
 using namespace archsim::translate::adapt;
 
+bool BlockJITBSWAPLowering::Lower(const captive::shared::IRInstruction*& insn)
+{
+	auto value = insn->operands[0];
+	auto dest = insn->operands[1];
+
+	auto param_type = llvm::Type::getIntNTy(GetContext().GetLLVMContext(), value.size * 8);
+	std::string function_name = "llvm.bswap.i" + std::to_string(value.size*8);
+	auto function = GetContext().GetModule()->getOrInsertFunction(function_name, param_type, param_type);
+
+	auto output_value = GetBuilder().CreateCall(function, {GetValueFor(value)});
+	SetValueFor(dest, output_value);
+
+	insn++;
+	return true;
+}
+
 bool BlockJITCLZLowering::Lower(const captive::shared::IRInstruction*& insn)
 {
 	auto lhs = insn->operands[0];
@@ -14,7 +30,7 @@ bool BlockJITCLZLowering::Lower(const captive::shared::IRInstruction*& insn)
 
 	auto i1_type = llvm::Type::getIntNTy(GetContext().GetLLVMContext(), 1);
 	auto param_type = llvm::Type::getIntNTy(GetContext().GetLLVMContext(), lhs.size*8);
-	std::string function_name = "llvm.ctlz." + std::to_string(lhs.size * 8);
+	std::string function_name = "llvm.ctlz.i" + std::to_string(lhs.size * 8);
 
 	auto is_zero_undef = llvm::ConstantInt::get(i1_type, 0, false);
 	auto function = GetContext().GetModule()->getOrInsertFunction(function_name, param_type, param_type, i1_type);
@@ -95,8 +111,9 @@ bool BlockJITSHLLowering::Lower(const captive::shared::IRInstruction*& insn)
 bool BlockJITSHRLowering::Lower(const captive::shared::IRInstruction*& insn)
 {
 	auto lhs = GetValueFor(insn->operands[1]);
-	auto rhs = GetValueFor(insn->operands[0]);
+	llvm::Value* rhs = GetValueFor(insn->operands[0]);
 
+	rhs = GetBuilder().CreateZExtOrTrunc(rhs, lhs->getType());
 	auto max_shift = ::llvm::ConstantInt::get(lhs->getType(), insn->operands[0].size*8, false);
 	auto comparison = GetBuilder().CreateICmpUGE(rhs, max_shift);
 	auto shift = GetBuilder().CreateLShr(lhs, rhs);

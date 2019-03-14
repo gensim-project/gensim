@@ -55,11 +55,12 @@ namespace archsim
 
 				enum RegionStatus {
 					NotInTranslation,
+					QueuedForTranslation,
 					InTranslation,
 				};
 
 				Region(const Region&) = delete;
-				Region(TranslationManager& mgr, phys_addr_t phys_base_addr);
+				Region(TranslationManager& mgr, Address phys_base_addr);
 				virtual ~Region();
 
 				/**
@@ -92,13 +93,9 @@ namespace archsim
 
 				void Invalidate();
 
-				void EraseBlock(virt_addr_t virt_addr);
+				void EraseBlock(Address virt_addr);
 
-				inline void InvalidateHeat()
-				{
-					for(auto &heat : block_interp_count) heat.second = 0;
-					total_interp_count = 0;
-				}
+				void InvalidateHeat();
 
 				inline void IncrementGeneration()
 				{
@@ -120,27 +117,14 @@ namespace archsim
 					current_generation = generation;
 				}
 
-				inline phys_addr_t GetPhysicalBaseAddress() const
+				inline Address GetPhysicalBaseAddress() const
 				{
 					return phys_base_addr;
 				}
 
-				inline uint32_t TotalBlockHeat() const
-				{
-					uint32_t total = 0;
-
-					return total_interp_count;
-				}
-
 				inline bool IsHot(uint32_t hotspot_threshold) const
 				{
-					for (auto bi : block_interp_count) {
-						if (bi.second > hotspot_threshold) {
-							return true;
-						}
-					}
-
-					return false;
+					return max_block_interp_count_ >= hotspot_threshold;
 				}
 
 				inline bool IsValid() const
@@ -151,18 +135,20 @@ namespace archsim
 				void dump();
 				void dump_dot();
 
+				uint64_t GetTotalInterpCount() const
+				{
+					return total_interp_count_;
+				}
+
 			public:
 				size_t GetApproximateMemoryUsage() const;
 
-				std::unordered_set<virt_addr_t> virtual_images;
+				std::unordered_set<Address> virtual_images;
 
 				/*
 				 * Map of page offsets to block interpretation counts
 				 */
-				std::map<virt_addr_t, uint32_t> block_interp_count;
-				uint64_t total_interp_count;
-
-				typedef std::unordered_map<addr_off_t, Block*> block_map_t;
+				typedef std::map<Address, Block*> block_map_t;
 
 				/**
 				 * Map of page offsets to blocks
@@ -177,9 +163,12 @@ namespace archsim
 				Translation *txln;
 
 			private:
+				uint64_t max_block_interp_count_;
+				uint64_t total_interp_count_;
+
 				TranslationManager& mgr;
 
-				phys_addr_t phys_base_addr;
+				Address phys_base_addr;
 
 				uint32_t max_generation;
 				uint32_t current_generation;

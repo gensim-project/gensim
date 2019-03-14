@@ -1,0 +1,12 @@
+execute(test_insn)
+{
+	typename word_t addr = read_register_bank(RB, inst.rs1);
+	uint32 val;
+	
+	mem_monitor_acquire(Mem, addr);
+	mem_read_32(Mem, addr, val);
+
+	typename sword_t xval = (sint32)val;
+
+	write_register_bank(RB, inst.rd, xval);
+}

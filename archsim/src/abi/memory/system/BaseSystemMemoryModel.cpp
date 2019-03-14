@@ -51,7 +51,7 @@ bool BaseSystemMemoryModel::ResolveGuestAddress(host_const_addr_t, guest_addr_t&
 	return false;
 }
 
-uint32_t BaseSystemMemoryModel::PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
+uint32_t BaseSystemMemoryModel::PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
 {
 	return GetMMU()->Translate(GetThread(), virt_addr, out_phys_addr, info);
 }
@@ -71,10 +71,10 @@ uint32_t BaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *data, in
 	if(UNLIKELY(archsim::options::MemoryCheckAlignment)) {
 		switch(size) {
 			case 2:
-				if(virt_addr & 0x1) unaligned = true;
+				if(virt_addr.Get() & 0x1) unaligned = true;
 				break;
 			case 4:
-				if(virt_addr & 0x3) unaligned = true;
+				if(virt_addr.Get() & 0x3) unaligned = true;
 				break;
 		}
 	}
@@ -90,7 +90,7 @@ uint32_t BaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *data, in
 		}
 	}
 
-	phys_addr_t phys_addr;
+	Address phys_addr;
 	uint32_t fault = GetMMU()->Translate(GetThread(), virt_addr, phys_addr, MMUACCESSINFO2(use_perms ? GetThread()->GetExecutionRing() : false, false, is_fetch, side_effects));
 
 	LC_DEBUG4(LogSystemMemoryModel) << "DoRead Fault: " << fault;
@@ -101,14 +101,14 @@ uint32_t BaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *data, in
 		devices::MemoryComponent *dev;
 		GetDeviceManager()->LookupDevice(phys_addr, dev);
 
-		uint32_t device_data;
+		uint64_t device_data;
 		uint32_t mask = dev->GetSize()-1;
 
 		LC_DEBUG2(LogSystemMemoryModel) << "Performing device read from address V" << std::hex << virt_addr << "(P" << phys_addr << ")";
 		LC_DEBUG2(LogSystemMemoryModel) << "Hit device " << std::hex << (uint64_t)dev << " at address: " << std::hex << dev->GetBaseAddress();
 
-		uint32_t device_addr = virt_addr & mask;
-		if (!dev->Read(device_addr, size, device_data)) { //*(uint32_t*)(data)))
+		Address device_addr = virt_addr & mask;
+		if (!dev->Read(device_addr.Get(), size, device_data)) { //*(uint32_t*)(data)))
 			LC_DEBUG2(LogSystemMemoryModel) << "Read failed!";
 			memset(data, 0, size);
 		} else {
@@ -121,6 +121,9 @@ uint32_t BaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *data, in
 					break;
 				case 4:
 					*((uint32_t *)data) = device_data;
+					break;
+				case 8:
+					*((uint64_t *)data) = device_data;
 					break;
 				default:
 					assert(false && "Invalid device read size");
@@ -149,10 +152,10 @@ uint32_t BaseSystemMemoryModel::DoWrite(guest_addr_t virt_addr, uint8_t *data, i
 	if(UNLIKELY(archsim::options::MemoryCheckAlignment)) {
 		switch(size) {
 			case 2:
-				if(virt_addr & 0x1) unaligned = true;
+				if(virt_addr.Get() & 0x1) unaligned = true;
 				break;
 			case 4:
-				if(virt_addr & 0x3) unaligned = true;
+				if(virt_addr.Get() & 0x3) unaligned = true;
 				break;
 		}
 	}
@@ -168,7 +171,7 @@ uint32_t BaseSystemMemoryModel::DoWrite(guest_addr_t virt_addr, uint8_t *data, i
 		}
 	}
 
-	phys_addr_t phys_addr;
+	Address phys_addr;
 	uint32_t fault = GetMMU()->Translate(GetThread(), virt_addr, phys_addr, MMUACCESSINFO2(use_perms ? GetThread()->GetExecutionRing() : false, true, 0, side_effects));
 
 	LC_DEBUG4(LogSystemMemoryModel) << "DoWrite Fault: " << fault;
@@ -186,25 +189,31 @@ uint32_t BaseSystemMemoryModel::DoWrite(guest_addr_t virt_addr, uint8_t *data, i
 		uint32_t device_data = 0;
 		uint32_t mask = dev->GetSize()-1;
 
-		virt_addr &= mask;
+		virt_addr = virt_addr & mask;
 
 		switch(size) {
 			case 1: {
 				LC_DEBUG2(LogSystemMemoryModel) << "Writing data " << std::hex << (uint32_t)*data;
 				device_data = *(data);
-				dev->Write(virt_addr, 1, *data);
+				dev->Write(virt_addr.Get(), 1, *data);
 				break;
 			}
 			case 2: {
 				LC_DEBUG2(LogSystemMemoryModel) << "Writing data " << std::hex << *(uint16_t*)data;
 				device_data = *(uint16_t*)(data);
-				dev->Write(virt_addr, 2, *(uint16_t*)data);
+				dev->Write(virt_addr.Get(), 2, *(uint16_t*)data);
 				break;
 			}
 			case 4: {
 				LC_DEBUG2(LogSystemMemoryModel) << "Writing data " << std::hex << *(uint32_t*)data;
 				device_data = *(uint32_t*)(data);
-				dev->Write(virt_addr, 4, *(uint32_t*)data);
+				dev->Write(virt_addr.Get(), 4, *(uint32_t*)data);
+				break;
+			}
+			case 8: {
+				LC_DEBUG2(LogSystemMemoryModel) << "Writing data " << std::hex << *(uint64_t*)data;
+				device_data = *(uint64_t*)(data);
+				dev->Write(virt_addr.Get(), 8, *(uint64_t*)data);
 				break;
 			}
 			default:
@@ -228,8 +237,8 @@ uint32_t BaseSystemMemoryModel::DoWrite(guest_addr_t virt_addr, uint8_t *data, i
 				break;
 		}
 
-		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr))) {
-			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr));
+		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr.Get()))) {
+			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr.Get()));
 		}
 
 		return 0;

@@ -3,8 +3,26 @@
 #include "core/execution/InterpreterExecutionEngine.h"
 #include "core/thread/ThreadInstance.h"
 #include "core/execution/ExecutionEngineFactory.h"
+#include "system.h"
 
 using namespace archsim::core::execution;
+
+InterpreterExecutionEngineThreadContext::InterpreterExecutionEngineThreadContext(ExecutionEngine* engine, thread::ThreadInstance* thread) : ExecutionEngineThreadContext(engine, thread)
+{
+	auto &isa = thread->GetArch().GetISA(0);
+	decode_ctx_ = thread->GetEmulationModel().GetNewDecodeContext(*thread);
+	if(!archsim::options::AggressiveCodeInvalidation) {
+		decode_ctx_ = new gensim::CachedDecodeContext(thread->GetEmulationModel().GetSystem().GetPubSub(), decode_ctx_, [&isa]() {
+			return isa.GetNewDecode();
+		});
+	}
+}
+
+InterpreterExecutionEngineThreadContext::~InterpreterExecutionEngineThreadContext()
+{
+
+}
+
 
 InterpreterExecutionEngine::InterpreterExecutionEngine(archsim::interpret::Interpreter* interpreter) : interpreter_(interpreter)
 {
@@ -13,6 +31,9 @@ InterpreterExecutionEngine::InterpreterExecutionEngine(archsim::interpret::Inter
 
 ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext* thread_ctx)
 {
+	archsim::util::CounterTimerContext self_timer(thread_ctx->GetThread()->GetMetrics().SelfRuntime);
+
+	InterpreterExecutionEngineThreadContext *ieetc = (InterpreterExecutionEngineThreadContext*)thread_ctx;
 	auto thread = thread_ctx->GetThread();
 
 	CreateThreadExecutionSafepoint(thread);
@@ -20,9 +41,20 @@ ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext
 		thread->GetTraceSource()->Trace_End_Insn();
 	}
 
-	while(thread_ctx->GetState() == ExecutionState::Running) {
-		if(thread->HasMessage()) {
-			auto result = thread->HandleMessage();
+	try {
+		while(thread_ctx->GetState() == ExecutionState::Running) {
+			if(thread->HasMessage()) {
+				auto result = thread->HandleMessage();
+				switch(result) {
+					case ExecutionResult::Continue:
+					case ExecutionResult::Exception:
+						break;
+					default:
+						return result;
+				}
+			}
+
+			auto result = interpreter_->StepBlock(ieetc);
 			switch(result) {
 				case ExecutionResult::Continue:
 				case ExecutionResult::Exception:
@@ -31,14 +63,14 @@ ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext
 					return result;
 			}
 		}
+	} catch(std::exception &e) {
+		LC_ERROR(LogInterpreter) << "Exception caught in interpreter: " << e.what();
 
-		auto result = interpreter_->StepBlock(thread);
-		switch(result) {
-			case ExecutionResult::Continue:
-			case ExecutionResult::Exception:
-				break;
-			default:
-				return result;
+		if(thread->GetTraceSource()) {
+			if(thread->GetTraceSource()->IsPacketOpen()) {
+				thread->GetTraceSource()->Trace_End_Insn();
+			}
+			thread->GetTraceSource()->Flush();
 		}
 	}
 
@@ -47,7 +79,7 @@ ExecutionResult InterpreterExecutionEngine::Execute(ExecutionEngineThreadContext
 
 ExecutionEngineThreadContext* InterpreterExecutionEngine::GetNewContext(thread::ThreadInstance* thread)
 {
-	return new ExecutionEngineThreadContext(this, thread);
+	return new InterpreterExecutionEngineThreadContext(this, thread);
 }
 
 ExecutionEngine* InterpreterExecutionEngine::Factory(const archsim::module::ModuleInfo* module, const std::string& cpu_prefix)

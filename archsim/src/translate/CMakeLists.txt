@@ -13,6 +13,7 @@ ADD_SUBDIRECTORY(interrupts)
 
 IF(ARCHSIM_ENABLE_LLVM)
 	archsim_add_sources(
+		SynchronousTranslationManager.cpp
 		AsynchronousTranslationManager.cpp
 		AsynchronousTranslationWorker.cpp
 	)

@@ -10,8 +10,13 @@
 #ifndef SYSTEMEMULATIONMODEL_H
 #define	SYSTEMEMULATIONMODEL_H
 
+#include "core/execution/ExecutionEngine.h"
+#include "core/MemoryMonitor.h"
 #include "abi/EmulationModel.h"
 #include "abi/devices/DeviceManager.h"
+#include "loader/BinaryLoader.h"
+
+#include <memory>
 
 namespace archsim
 {
@@ -37,7 +42,7 @@ namespace archsim
 			friend class SystemMemoryModel;
 
 		public:
-			SystemEmulationModel();
+			SystemEmulationModel(bool is_64bit);
 			virtual ~SystemEmulationModel();
 
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
@@ -47,7 +52,7 @@ namespace archsim
 
 			bool PrepareBoot(System& system) override;
 
-			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data) override = 0;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, uint64_t category, uint64_t data) override = 0;
 
 
 			void PrintStatistics(std::ostream& stream) override;
@@ -57,22 +62,41 @@ namespace archsim
 				return base_device_manager;
 			}
 
+			bool Is64Bit() const
+			{
+				return is_64bit_;
+			}
+
+			int GetNumThreads() const
+			{
+				return threads_.size();
+			}
+
+			archsim::core::thread::ThreadInstance &GetThread(int thread_id)
+			{
+				return *threads_.at(thread_id);
+			}
+
 		protected:
-			archsim::core::thread::ThreadInstance *main_thread_;
+			std::vector<archsim::core::thread::ThreadInstance*> threads_;
 
-			virtual bool InstallDevices() = 0;
-			virtual void DestroyDevices() = 0;
+			bool InstantiateThreads(int num_threads);
 
-			virtual bool InstallPlatform(loader::BinaryLoader& loader) = 0;
+			virtual bool CreateCoreDevices(archsim::core::thread::ThreadInstance *thread) = 0;
+			virtual bool CreateMemoryDevices() = 0;
+
+			virtual bool PreparePlatform(archsim::abi::loader::BinaryLoader &loader) = 0;
 			virtual bool PrepareCore(archsim::core::thread::ThreadInstance& core) = 0;
 
 			bool RegisterMemoryComponent(abi::devices::MemoryComponent& component);
-			void RegisterCoreComponent(abi::devices::CoreComponent& component);
 
 			devices::DeviceManager base_device_manager;
 
 		private:
+			bool is_64bit_;
 			uint32_t rootfs_size;
+			archsim::core::execution::ExecutionEngine *execution_engine_;
+			std::shared_ptr<archsim::core::MemoryMonitor> monitor_;
 
 			bool InstallAtags(archsim::abi::memory::guest_addr_t base_address, std::string kernel_args);
 			bool InstallStartupCode(unsigned int entry_point, archsim::abi::memory::guest_addr_t atags_loc, uint32_t device_id);

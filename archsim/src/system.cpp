@@ -61,12 +61,8 @@ bool System::Initialise()
 			if(!archsim::options::TraceFile.IsSpecified()) {
 				UNIMPLEMENTED;
 			}
-			FILE *f = fopen(archsim::options::TraceFile.GetValue().c_str(), "w");
-			if(f == nullptr) {
-				UNIMPLEMENTED;
-			}
 
-			sink = new libtrace::BinaryFileTraceSink(f);
+			sink = new libtrace::BinaryFileTraceSink(archsim::options::TraceFile.GetValue());
 
 		} else {
 			UNIMPLEMENTED;
@@ -108,6 +104,9 @@ bool System::Initialise()
 void System::Destroy()
 {
 	LC_DEBUG1(LogSystem) << "Destroying system";
+	if(GetTickSource()) {
+		GetTickSource()->Stop();
+	}
 
 	if(GetECM().GetTraceSink()) {
 		GetECM().GetTraceSink()->Flush();

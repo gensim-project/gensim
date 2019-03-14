@@ -200,11 +200,11 @@ namespace gensim
 		const IRType IRTypes::Block = IRType::_Block();
 		const IRType IRTypes::Function = IRType::_Function();
 
-		IRType IRType::CreateStruct(const IRStructType &Type)
+		IRType IRType::CreateStruct(const IRStructType* const Type)
 		{
 			IRType g;
 			g.DataType = Struct;
-			g.BaseType.StructType = &Type;
+			g.BaseType.StructType = Type;
 			return g;
 		}
 
@@ -256,15 +256,10 @@ namespace gensim
 			if((from.VectorWidth != 1) || (to.VectorWidth != 1)) {
 				GASSERT(value.Type() == IRConstant::Type_Vector);
 				GASSERT(from.VectorWidth == to.VectorWidth);
-				GASSERT(from.GetElementType() == to.GetElementType());
 
 				IRConstant newval = value;
-				if(from == to) {
-					for(unsigned i = 0; i < from.VectorWidth; ++i) {
-						newval.VPut(i, Cast(newval.VGet(i), from.GetElementType(), to.GetElementType()));
-					}
-				} else {
-					UNIMPLEMENTED;
+				for(unsigned i = 0; i < from.VectorWidth; ++i) {
+					newval.GetVector().SetElement(i, Cast(newval.GetVector().GetElement(i), from.GetElementType(), to.GetElementType()));
 				}
 
 				return newval;
@@ -318,12 +313,12 @@ namespace gensim
 			IRConstant result = value;
 
 			if(from.Signed && to.Signed) {
-				if (from.Size() == 16 || to.Signed == 16) {
+				if (from.SizeInBytes() == 16 || to.SizeInBytes() == 16) {
 					throw std::logic_error("Sign extension to/from 128-bit integer not supported");
 				}
 
 				// sign extend from value to 64 bits
-				switch(from.Size()) {
+				switch(from.SizeInBytes()) {
 					case 1:
 						result = IRConstant::Integer((int64_t)(int8_t)value.Int());
 						break;
@@ -341,7 +336,7 @@ namespace gensim
 				}
 			}
 
-			if(to.BaseType.PlainOldDataType == IRPlainOldDataType::INT64) {
+			if(to.BaseType.PlainOldDataType == IRPlainOldDataType::INT64 || to.BaseType.PlainOldDataType == IRPlainOldDataType::INT128) {
 				uint64_t result;
 				switch(value.Type()) {
 					case IRConstant::Type_Integer:
@@ -359,7 +354,7 @@ namespace gensim
 				return IRConstant::Integer(result);
 			}
 
-			uint64_t mask = (1ULL << (to.Size()*8))-1;
+			uint64_t mask = (((uint64_t)1) << (to.SizeInBytes()*8))-1;
 			cast_value = result.Int() & mask;
 
 			return IRConstant::Integer(cast_value);
@@ -435,6 +430,7 @@ namespace gensim
 				if (LHS.VectorWidth > 1) {
 					// The vector width must be the same, or the RHS must be scalar.
 					if (LHS.VectorWidth == RHS.VectorWidth || RHS.VectorWidth == 1) {
+						// return a vector of uint8s of the same length
 						return LHS;
 					} else {
 						throw std::logic_error("comparison of vectors with different width");
@@ -444,7 +440,7 @@ namespace gensim
 				}
 			}
 		}
-		uint32_t IRType::Size() const
+		uint32_t IRType::SizeInBytes() const
 		{
 			assert(VectorWidth != 0);
 			return VectorWidth * ElementSize();
@@ -482,7 +478,7 @@ namespace gensim
 				const IRStructType &t = *BaseType.StructType;
 				uint32_t size = 0;
 				for (std::vector<IRStructType::IRStructMember>::const_iterator ci = t.Members.begin(); ci != t.Members.end(); ++ci) {
-					size += ci->Type.Size();
+					size += ci->Type.SizeInBytes();
 				}
 				return size;
 			}
@@ -496,7 +492,7 @@ namespace gensim
 					IRType innertype = *this;
 					innertype.VectorWidth = 1;
 
-					out << "Vector<" << innertype.GetCType() << ", " << (uint32_t)VectorWidth << ">";
+					out << "wutils::Vector<" << innertype.GetCType() << ", " << (uint32_t)VectorWidth << ">";
 					return out.str();
 				}
 
@@ -541,10 +537,10 @@ namespace gensim
 					}
 				}
 			}
-			// we treat structs as pointers to structs. since we are just doing pointer arithmetic we
-			// don't care what type it actually is, so return a char pointer
-			else
-				return "uint8*";
+
+			else {
+				return "uint8_t*";
+			}
 
 			if (Reference) out << "&";
 			return out.str();
@@ -559,25 +555,28 @@ namespace gensim
 					assert(false && "Attempting to lower a void value for some reason");
 					return "???";
 				case IRPlainOldDataType::INT1:
-					llvm_type = "txln_ctx.types.i1";
+					llvm_type = "ctx.Types.i1";
 					break;
 				case IRPlainOldDataType::INT8:
-					llvm_type = "txln_ctx.types.i8";
+					llvm_type = "ctx.Types.i8";
 					break;
 				case IRPlainOldDataType::INT16:
-					llvm_type = "txln_ctx.types.i16";
+					llvm_type = "ctx.Types.i16";
 					break;
 				case IRPlainOldDataType::INT32:
-					llvm_type = "txln_ctx.types.i32";
+					llvm_type = "ctx.Types.i32";
 					break;
 				case IRPlainOldDataType::INT64:
-					llvm_type = "txln_ctx.types.i64";
+					llvm_type = "ctx.Types.i64";
+					break;
+				case IRPlainOldDataType::INT128:
+					llvm_type = "ctx.Types.i128";
 					break;
 				case IRPlainOldDataType::FLOAT:
-					llvm_type = "txln_ctx.types.f32";
+					llvm_type = "ctx.Types.f32";
 					break;
 				case IRPlainOldDataType::DOUBLE:
-					llvm_type = "txln_ctx.types.f64";
+					llvm_type = "ctx.Types.f64";
 					break;
 				default:
 					assert(false && "Unrecognized type");
@@ -597,7 +596,7 @@ namespace gensim
 		std::string IRType::GetUnifiedType() const
 		{
 			if (IsStruct()) {
-				return "u64";
+				return this->BaseType.StructType->Name;
 			} else if (VectorWidth == 1) {
 				if (IsFloating()) {
 					if (BaseType.PlainOldDataType == IRPlainOldDataType::FLOAT)
@@ -608,7 +607,7 @@ namespace gensim
 						return "f80";
 				} else {
 					if (Signed) {
-						switch (Size()) {
+						switch (SizeInBytes()) {
 							case 1:
 								return "s8";
 							case 2:
@@ -621,7 +620,7 @@ namespace gensim
 								return "s128";
 						}
 					} else {
-						switch (Size()) {
+						switch (SizeInBytes()) {
 							case 1:
 								return "u8";
 							case 2:
@@ -656,7 +655,7 @@ namespace gensim
 			assert(DataType == PlainOldData);
 			assert(!IsFloating());
 
-			return 1 << (8*Size()) - 1;
+			return 1 << ((8*SizeInBytes()) - 1);
 		}
 
 		IRType IRType::GetElementType() const
@@ -684,7 +683,7 @@ namespace gensim
 			uint32_t offset = 0;
 			for (std::vector<IRStructMember>::const_iterator ci = Members.begin(); ci != Members.end(); ++ci) {
 				if (ci->Name == member) return offset;
-				offset += ci->Type.Size();
+				offset += ci->Type.SizeInBytes();
 			}
 			assert(false && "Could not find struct member");
 			return 0;

@@ -1,0 +1,47 @@
+execute(fmv_x_d)
+{
+	uint64 s1 = <uint64>(read_register_bank(FP_D, inst.rs1));
+	write_register_bank(GPR, inst.rd, s1);
+}
+
+execute(fmv_d_x)
+{
+	double s1 = <double>(read_gpr(inst.rs1));
+	write_register_bank(FP_D, inst.rd, s1);
+}
+
+execute(fcvt_l_d)
+{
+	// convert double to uint64
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	sint64 result = s1;
+	
+	write_register_bank(GPR, inst.rd, result);
+}
+
+execute(fcvt_d_l)
+{
+	// convert uint64 to double
+	sint64 s1 = read_gpr(inst.rs1);
+	double result = s1;
+	
+	write_register_bank(FP_D, inst.rd, result);
+}
+
+execute(fcvt_lu_d)
+{
+	// convert double to uint64
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	uint64 result = s1;
+	
+	write_register_bank(GPR, inst.rd, result);
+}
+
+execute(fcvt_d_lu)
+{
+	// convert uint64 to double
+	uint64 s1 = read_gpr(inst.rs1);
+	double result = s1;
+	
+	write_register_bank(FP_D, inst.rd, result);
+}

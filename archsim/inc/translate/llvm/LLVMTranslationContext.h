@@ -2,361 +2,239 @@
 
 /*
  * File:   LLVMTranslationContext.h
- * Author: s0457958
+ * Author: harry
  *
- * Created on 16 July 2014, 16:15
+ * Created on 28 August 2018, 16:33
  */
 
 #ifndef LLVMTRANSLATIONCONTEXT_H
-#define	LLVMTRANSLATIONCONTEXT_H
+#define LLVMTRANSLATIONCONTEXT_H
 
-#include "define.h"
+#include "core/thread/ThreadInstance.h"
+#include "gensim/gensim_translate.h"
+#include "translate/TranslationWorkUnit.h"
+#include "translate/llvm/LLVMGuestRegisterAccessEmitter.h"
+#include "translate/llvm/LLVMMemoryAccessEmitter.h"
 
-#include "translate/TranslationContext.h"
-#include "translate/llvm/LLVMAliasAnalysis.h"
-#include "translate/llvm/LLVMOptimiser.h"
-
-#include "util/PubSubSync.h"
-
-#include "util/Histogram.h"
-#include "util/Counter.h"
-#include "util/PagePool.h"
-
-#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Instruction.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/DerivedTypes.h>
 
-#include <set>
-
-namespace llvm
+static void txln_shunt_flush_itlb_entry(void *v, uint64_t addr)
 {
-	class Function;
-	class ExecutionEngine;
+	UNIMPLEMENTED;
 }
-
-namespace gensim
+static void txln_shunt_flush_dtlb_entry(void *v, uint64_t addr)
 {
-	class BaseDecode;
-	class BaseLLVMTranslate;
+	UNIMPLEMENTED;
 }
 
 namespace archsim
 {
-	namespace util
-	{
-		class Counter64;
-	}
 	namespace translate
 	{
 		namespace translate_llvm
 		{
 
-			class LLVMTranslationContext;
-			class LLVMRegionTranslationContext : public RegionTranslationContext<LLVMTranslationContext>
+			class LLVMTranslationContext
 			{
 			public:
-				enum LeaveReasons {
-					Normal = 0,
-					RequireInterpret = 1,
-					UnableToChain = 2,
-					InterruptActionAbort = 3,
-					ExceptionExit = 4,
-					NoIndirectTarget = 5,
-					NoBlockAvailable = 6,
+				LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Function *fn, archsim::core::thread::ThreadInstance *thread);
+
+				struct {
+					llvm::Type *vtype;
+					llvm::IntegerType *i1, *i8, *i16, *i32, *i64, *i128;
+					llvm::Type *f32, *f64;
+					llvm::Type *i8Ptr, *i32Ptr, *i64Ptr;
+				} Types;
+
+				struct {
+					llvm::Function *jit_trap;
+					llvm::Function *double_sqrt;
+					llvm::Function *float_sqrt;
+
+					llvm::Function *clz_i32;
+					llvm::Function *ctz_i32;
+					llvm::Function *clz_i64;
+					llvm::Function *ctz_i64;
+					llvm::Function *ctpop_i32;
+					llvm::Function *bswap_i32;
+					llvm::Function *bswap_i64;
+
+					llvm::Function *uadd_with_overflow_8, *uadd_with_overflow_16, *uadd_with_overflow_32, *uadd_with_overflow_64;
+					llvm::Function *usub_with_overflow_8, *usub_with_overflow_16, *usub_with_overflow_32, *usub_with_overflow_64;
+
+					llvm::Function *sadd_with_overflow_8, *sadd_with_overflow_16, *sadd_with_overflow_32, *sadd_with_overflow_64;
+					llvm::Function *ssub_with_overflow_8, *ssub_with_overflow_16, *ssub_with_overflow_32, *ssub_with_overflow_64;
+
+					llvm::Function *assume;
+					llvm::Function *debug_trap;
+
+					llvm::Function *blkRead8, *blkRead16, *blkRead32, *blkRead64;
+					llvm::Function *cpuWrite8, *cpuWrite16, *cpuWrite32, *cpuWrite64;
+
+					llvm::Function *cpuEnterUser, *cpuEnterKernel, *cpuPendIRQ, *cpuPushInterrupt;
+
+					llvm::Function *cpuTraceInstruction;
+
+					llvm::Function *cpuTraceMemRead8, *cpuTraceMemRead16, *cpuTraceMemRead32, *cpuTraceMemRead64;
+					llvm::Function *cpuTraceMemWrite8, *cpuTraceMemWrite16, *cpuTraceMemWrite32, *cpuTraceMemWrite64;
+
+					llvm::Function *cpuTraceBankedRegisterWrite, *cpuTraceRegisterWrite;
+					llvm::Function *cpuTraceBankedRegisterRead, *cpuTraceRegisterRead;
+
+					llvm::Function *cpuTraceInsnEnd;
+
+
+					llvm::Function *TakeException;
+
+					llvm::Function *dev_read_device, *dev_read_device64;
+					llvm::Function *dev_write_device, *dev_write_device64;
+
+					llvm::Function *InstructionTick;
+
+				} Functions;
+
+				struct {
+					llvm::Value *state_block_ptr;
+					llvm::Value *reg_file_ptr;
+
+					llvm::Value *contiguous_mem_base;
+
+				} Values;
+
+				archsim::core::thread::ThreadInstance *GetThread()
+				{
+					return thread_;
+				}
+				llvm::Value *GetThreadPtr(llvm::IRBuilder<> &builder);
+				llvm::Value *GetRegStatePtr();
+				llvm::Function *GetFunction();
+				llvm::Value *GetStateBlockPointer(llvm::IRBuilder<> &builder, const std::string &entry);
+				llvm::Value *GetStateBlockPointer();
+				llvm::LLVMContext &LLVMCtx;
+
+				llvm::Value *GetTraceStackSlot(llvm::Type *type);
+
+				llvm::Value *AllocateRegister(llvm::Type *type, int name);
+				void FreeRegister(llvm::Type *t, llvm::Value *v, int name);
+
+				llvm::Value *LoadGuestRegister(llvm::IRBuilder<> &builder, const archsim::RegisterFileEntryDescriptor &reg, llvm::Value *index);
+				void StoreGuestRegister(llvm::IRBuilder<> &builder, const archsim::RegisterFileEntryDescriptor &reg, llvm::Value *index, llvm::Value *value);
+
+				llvm::Value *LoadRegister(llvm::IRBuilder<> &builder, int name);
+				void StoreRegister(llvm::IRBuilder<> &builder, int name, llvm::Value *value);
+
+				void ResetRegisters();
+
+				llvm::Module *Module;
+
+				const archsim::ArchDescriptor &GetArch()
+				{
+					return thread_->GetArch();
+				}
+
+				llvm::Value *GetRegPtr(llvm::IRBuilder<> &builder, int offset, llvm::Type *type);
+				llvm::Value *GetRegPtr(llvm::IRBuilder<> &builder, llvm::Value *offset, llvm::Type *type);
+
+				void ResetLiveRegisters(llvm::IRBuilder<> &builder);
+
+				void Finalize()
+				{
+					guest_reg_emitter_->Finalize();
+				}
+
+				LLVMMemoryAccessEmitter &GetMemoryEmitter()
+				{
+					return *memory_access_emitter_;
+				}
+			private:
+				std::map<llvm::Type*, llvm::Value *> trace_slots_;
+
+				archsim::core::thread::ThreadInstance *thread_;
+
+				std::unique_ptr<LLVMGuestRegisterAccessEmitter> guest_reg_emitter_;
+				std::unique_ptr<LLVMMemoryAccessEmitter> memory_access_emitter_;
+
+				llvm::Function *function_;
+
+				std::unordered_map<llvm::Type *, std::list<llvm::Value*>> free_registers_;
+				std::unordered_map<llvm::Type *, std::list<llvm::Value*>> allocated_registers_;
+				std::unordered_map<int, llvm::Value*> live_register_values_;
+				std::unordered_map<int, llvm::Value*> live_register_pointers_;
+
+				std::map<std::pair<uint32_t, llvm::Type*>, llvm::Value*> guest_reg_ptrs_;
+
+				llvm::BasicBlock *prev_reg_block_;
+				std::map<std::pair<uint32_t, llvm::Type*>, llvm::Value*> guest_reg_values_;
+				std::map<std::pair<uint32_t, llvm::Type*>, llvm::StoreInst*> guest_reg_stores_;
+			};
+
+			class LLVMRegionTranslationContext
+			{
+			public:
+
+				enum ExitReasons {
+					EXIT_REASON_NEXTPAGE,
+					EXIT_REASON_NOBLOCK,
+					EXIT_REASON_PAGECHANGE,
+					EXIT_REASON_MESSAGE
 				};
 
-				LLVMRegionTranslationContext(LLVMTranslationContext& parent, ::llvm::IRBuilder<>& builder);
+				using BlockMap = std::map<archsim::Address, llvm::BasicBlock*>;
 
-				::llvm::IRBuilder<>& builder;
-				::llvm::Function *region_fn;
-				::llvm::BasicBlock *entry_block;
-				::llvm::BasicBlock *dispatch_block;
-				::llvm::BasicBlock *chain_block;
-				::llvm::BasicBlock *interrupt_handler_block;
+				LLVMRegionTranslationContext(LLVMTranslationContext &ctx, llvm::Function *fn, translate::TranslationWorkUnit &work_unit, llvm::BasicBlock *entry_block, gensim::BaseLLVMTranslate *txlt);
 
-				struct {
-					::llvm::Value *cpu_ctx_val;
-					::llvm::Argument *state_val;
-					::llvm::Value *reg_state_val;
-					::llvm::Value *region_txln_cache_ptr_val;
-
-					::llvm::Value *mem_read_temp_8;
-					::llvm::Value *mem_read_temp_16;
-					::llvm::Value *mem_read_temp_32;
-
-					::llvm::Value *virt_page_base;
-					::llvm::Value *virt_page_idx;
-
-					std::vector<std::vector< ::llvm::Value*> > banked_register_pointer_matrix;
-					std::vector< ::llvm::Value*> register_pointer_array;
-				} values;
-
-				::llvm::GlobalVariable *jump_table;
-				::llvm::Constant *jump_table_entries[2048];
-
-				::llvm::BasicBlock *CreateBlock(std::string name);
-				void EmitCounterUpdate(::llvm::IRBuilder<> &builder, archsim::util::Counter64& counter, int64_t increment);
-				void EmitCounterPointerUpdate(::llvm::Value *ptr, int64_t increment);
-				void EmitHistogramUpdate(archsim::util::Histogram& histogram, uint32_t idx, int64_t increment);
-				void EmitHistogramUpdate(archsim::util::Histogram& histogram, ::llvm::Value* idx, int64_t increment);
-
-				void EmitPublishEvent(PubSubType::PubSubType type, std::vector<::llvm::Value*> data);
-
-				void EmitLeaveInstruction(LeaveReasons reason, ::llvm::Value *pc_offset, ::llvm::Value *condition = NULL, ::llvm::BasicBlock *cont_block = NULL, bool invert = false);
-				void EmitLeaveInstruction(LeaveReasons reason, addr_t pc_offset, ::llvm::Value *condition = NULL, ::llvm::BasicBlock *cont_block = NULL, bool invert = false);
-				void EmitLeaveInstructionTrace(LeaveReasons reason, ::llvm::Value *pc_offset, ::llvm::Value *condition = NULL, ::llvm::BasicBlock *cont_block = NULL, bool invert = false);
-
-				void EmitTakeException(addr_t pc_offset, ::llvm::Value *arg0, ::llvm::Value *arg1);
-				void EmitTakeException(::llvm::Value *pc_offset, ::llvm::Value *arg0, ::llvm::Value *arg1);
-
-				void EmitLeave(LeaveReasons reason, ::llvm::Value *condition = NULL, ::llvm::BasicBlock *cont_block = NULL, bool invert = false);
-
-				void EmitStackMap(uint64_t id);
-
-				::llvm::Value *CreateMaterialise(::llvm::Value *offset);
-				::llvm::Value *CreateMaterialise(uint32_t offset);
-
-				::llvm::BasicBlock* GetExitBlock(LeaveReasons reason);
-				::llvm::BasicBlock* GetInstructionExitBlock(LeaveReasons reason);
-
-				::llvm::Value *GetSlot(std::string name, ::llvm::Type *type);
-
-				// Register slots
-				// Banked registers have index < bank index, register index >
-				// Register slots have index < -1, slot index >
-				std::map<std::pair<int32_t, uint32_t>, ::llvm::Value*> RegSlots;
-			private:
-				std::map<std::string, ::llvm::Value*> Slots;
-
-				std::map<LeaveReasons, ::llvm::BasicBlock *> exit_blocks;
-				std::map<LeaveReasons, ::llvm::BasicBlock *> exit_instruction_blocks;
-				std::map<LeaveReasons, ::llvm::PHINode *> exit_instruction_phis;
-
-				bool CreateExitBlock(LLVMRegionTranslationContext::LeaveReasons reason);
-				bool CreateInstructionExitBlock(LLVMRegionTranslationContext::LeaveReasons reason);
-
-				/*::llvm::Value *CreateReadPC();
-				void CreateWritePC(::llvm::Value *new_pc);*/
-			};
-
-			class LLVMTranslationContext : public TranslationContext
-			{
-			public:
-				LLVMTranslationContext(TranslationManager& tmgr, TranslationWorkUnit& twu, ::llvm::LLVMContext& llvm_ctx, LLVMOptimiser &opt, archsim::util::PagePool &code_pool);
-				~LLVMTranslationContext();
-
-				archsim::util::PagePool &code_pool;
-
-				gensim::BaseLLVMTranslate *gensim_translate;
-
-				::llvm::LLVMContext& llvm_ctx;
-				::llvm::Module *llvm_module;
-				LLVMOptimiser &optimiser;
-
-				struct {
-					::llvm::Function *cpu_read_pc;
-					::llvm::Function *cpu_write_pc;
-
-					::llvm::Function *cpu_translate;
-					::llvm::Function *cpu_handle_pending_action;
-					::llvm::Function *cpu_return_to_safepoint;
-
-					::llvm::Function *cpu_read_8;
-					::llvm::Function *cpu_read_16;
-					::llvm::Function *cpu_read_32;
-					::llvm::Function *cpu_write_8;
-					::llvm::Function *cpu_write_16;
-					::llvm::Function *cpu_write_32;
-
-					::llvm::Function *cpu_read_8_user;
-					::llvm::Function *cpu_read_32_user;
-					::llvm::Function *cpu_write_8_user;
-					::llvm::Function *cpu_write_32_user;
-
-					::llvm::Function *mem_read_8;
-					::llvm::Function *mem_read_16;
-					::llvm::Function *mem_read_32;
-
-					::llvm::Function *mem_write_8;
-					::llvm::Function *mem_write_16;
-					::llvm::Function *mem_write_32;
-
-					::llvm::Function *cpu_take_exception;
-					::llvm::Function *cpu_push_interrupt;
-					::llvm::Function *cpu_pop_interrupt;
-					::llvm::Function *cpu_pend_irq;
-					::llvm::Function *cpu_exec_mode;
-
-					::llvm::Function *cpu_enter_kernel;
-					::llvm::Function *cpu_enter_user;
-
-					::llvm::Function *cpu_halt;
-
-					::llvm::Function *dev_probe_device;
-					::llvm::Function *dev_read_device;
-					::llvm::Function *dev_write_device;
-
-					::llvm::Function *debug0;
-					::llvm::Function *debug1;
-					::llvm::Function *debug2;
-					::llvm::Function *debug_cpu;
-					::llvm::Function *jit_trap;
-					::llvm::Function *jit_trap_if;
-					::llvm::Function *jit_assert;
-
-					::llvm::Function *jit_checksum_page;
-					::llvm::Function *jit_check_checksum;
-
-					::llvm::Function *trace_start_insn;
-					::llvm::Function *trace_end_insn;
-
-					::llvm::Function *trace_reg_write;
-					::llvm::Function *trace_reg_bank_write;
-					::llvm::Function *trace_reg_read;
-					::llvm::Function *trace_reg_bank_read;
-
-					::llvm::Function *trace_mem_read_8;
-					::llvm::Function *trace_mem_read_16;
-					::llvm::Function *trace_mem_read_32;
-					::llvm::Function *trace_mem_write_8;
-					::llvm::Function *trace_mem_write_16;
-					::llvm::Function *trace_mem_write_32;
-
-					::llvm::Function *smart_return;
-
-					::llvm::Function *sys_verify;
-					::llvm::Function *sys_publish_insn;
-					::llvm::Function *sys_publish_block;
-
-					::llvm::Function *tm_flush;
-					::llvm::Function *tm_flush_itlb;
-					::llvm::Function *tm_flush_dtlb;
-					::llvm::Function *tm_flush_itlb_entry;
-					::llvm::Function *tm_flush_dtlb_entry;
-
-					::llvm::Function *double_sqrt;
-					::llvm::Function *float_sqrt;
-					::llvm::Function *double_abs;
-					::llvm::Function *float_abs;
-
-					::llvm::Function *genc_adc_flags;
-				} jit_functions;
-
-				struct {
-					::llvm::Function *stack_map;
-				} intrinsics;
-
-				struct {
-					::llvm::Type *vtype;
-
-					::llvm::Type *i1;
-					::llvm::Type *i8;
-					::llvm::Type *i16;
-					::llvm::Type *i32;
-					::llvm::Type *i64;
-
-					::llvm::Type *pi1;
-					::llvm::Type *pi8;
-					::llvm::Type *pi16;
-					::llvm::Type *pi32;
-					::llvm::Type *pi64;
-
-					::llvm::Type *f32;
-					::llvm::Type *f64;
-
-					::llvm::Type *state;
-					::llvm::Type *state_ptr;
-
-					::llvm::Type *reg_state;
-					::llvm::Type *reg_state_ptr;
-
-					::llvm::Type *cpu_ctx;
-
-					::llvm::Type *cache_entry;
-					::llvm::Type *cache_entry_ptr;
-				} types;
-
-				bool Translate(Translation*& translation, TranslationTimers& timers);
-
-				inline ::llvm::BasicBlock *GetLLVMBlock(virt_addr_t virt_addr)
+				BlockMap &GetBlockMap()
 				{
-					return llvm_block_map[virt_addr];
+					return block_map_;
+				}
+				llvm::BasicBlock *GetExitBlock(int exit_reason);
+
+				llvm::BasicBlock *GetEntryBlock()
+				{
+					return entry_block_;
+				}
+				llvm::BasicBlock *GetDispatchBlock()
+				{
+					return dispatch_block_;
+				}
+				llvm::Function *GetFunction()
+				{
+					return function_;
+				}
+				LLVMTranslationContext &GetContext()
+				{
+					return ctx_;
+				}
+				gensim::BaseLLVMTranslate *GetTxlt()
+				{
+					return txlt_;
 				}
 
-				inline void AddIndirectTarget(TranslationBlockUnit& block)
-				{
-					indirect_targets.insert(&block);
-				}
-
-				void AddAliasAnalysisNode(::llvm::Instruction *insn, AliasAnalysisTag tag);
-				void AddAliasAnalysisToRegSlotAccess(::llvm::Value *ptr, uint32_t slot_offset, uint32_t slot_size);
-				void AddAliasAnalysisToRegBankAccess(::llvm::Value *ptr, ::llvm::Value *regnum, uint32_t bank_offset, uint32_t bank_stride, uint32_t bank_elements);
-
-				::llvm::Value *GetConstantInt8(uint8_t v);
-				::llvm::Value *GetConstantInt16(uint16_t v);
-				::llvm::Value *GetConstantInt32(uint32_t v);
-				::llvm::Value *GetConstantInt64(uint64_t v);
-
 			private:
-				bool CreateLLVMFunction(LLVMRegionTranslationContext& rtc);
-				bool CreateDefaultBlocks(LLVMRegionTranslationContext& rtc);
+				LLVMTranslationContext &ctx_;
 
-				bool BuildEntryBlock(LLVMRegionTranslationContext& rtc, uint32_t constant_page_base);
-				bool BuildChainBlock(LLVMRegionTranslationContext& rtc);
-				bool BuildInterruptHandlerBlock(LLVMRegionTranslationContext& rtc);
-				bool PopulateBlockMap(LLVMRegionTranslationContext& rtc);
+				llvm::BasicBlock *entry_block_, *dispatch_block_, *region_chain_block_;
+				llvm::Function *function_;
 
-				::llvm::Function *GetMemReadFunction(uint32_t width);
-				::llvm::Function *GetMemWriteFunction(uint32_t width);
+				std::map<int, llvm::BasicBlock*> exit_blocks_;
+				BlockMap block_map_;
 
-				bool Compile(::llvm::Function *fn, Translation*& translation, TranslationTimers& timers);
-				bool Optimise(::llvm::ExecutionEngine *engine, ::llvm::Function *region_fn, TranslationTimers& timers);
+				gensim::BaseLLVMTranslate *txlt_;
 
-				void DumpFunctionGraph(::llvm::Function *fn, std::string filename);
+				void BuildDispatchBlock(TranslationWorkUnit &work_unit);
+				void BuildSwitchStatement(TranslationWorkUnit &work_unit);
+				void BuildJumpTable(TranslationWorkUnit &work_unit);
 
-				std::map<uint32_t, ::llvm::BasicBlock *> llvm_block_map;
-				std::set<TranslationBlockUnit *> indirect_targets;
-
-				void Initialise();
-
-				void SaveTranslation();
-				bool LoadTranslation(Translation*& translation);
-
-				bool CreateDispatcher(LLVMRegionTranslationContext& rtc, ::llvm::BasicBlock *dispatcher_block);
-			};
-
-			class LLVMBlockTranslationContext : public BlockTranslationContext<LLVMRegionTranslationContext>
-			{
-			public:
-				LLVMBlockTranslationContext(LLVMRegionTranslationContext& parent, TranslationBlockUnit& tbu, ::llvm::BasicBlock *llvm_block);
-				bool Translate();
-
-				::llvm::BasicBlock *llvm_block;
-
-			private:
-				bool EmitInterruptCheck();
-				bool EmitDirectJump(virt_addr_t jump_target, virt_addr_t fallthrough_target, bool predicated);
-				bool EmitIndirectJump(virt_addr_t jump_target, virt_addr_t fallthrough_target, bool predicated);
-				bool EmitSpanningControlFlow(TranslationInstructionUnit& last_insn);
-			};
-
-			class LLVMInstructionTranslationContext : public InstructionTranslationContext<LLVMBlockTranslationContext>
-			{
-			public:
-				LLVMInstructionTranslationContext(LLVMBlockTranslationContext& parent, TranslationInstructionUnit& tiu);
-				bool Translate();
-
-				void AddAliasAnalysisNode(::llvm::Instruction *insn, AliasAnalysisTag tag);
-
-			private:
-				bool TranslatePredicated();
-				bool TranslateNonPredicated();
+				llvm::BasicBlock *GetRegionChainBlock();
 			};
 		}
 	}
 }
 
-#endif	/* LLVMTRANSLATIONCONTEXT_H */
+#endif /* LLVMTRANSLATIONCONTEXT_H */
 

@@ -3,7 +3,7 @@ grammar genC;
 options
 {
 	language = C;
-	k = 3;
+	k = 2;
   backtrack=false;
   memoize=false;
 	output = AST;
@@ -21,6 +21,13 @@ tokens
   BODY;
   DECL;
   CAST;
+  BITCAST;
+  TYPEDEF;
+
+  VCONCATENATE = '::';
+
+  OBRACE = '{';
+  CBRACE = '}';
 
   GENC_ATTR_FIXED='fixed';  
   GENC_ATTR_SOMETIMES_FIXED='sometimes_fixed';
@@ -33,6 +40,10 @@ tokens
   GENC_ATTR_NOINLINE = 'noinline';
   GENC_ATTR_GLOBAL = 'global';
   GENC_ATTR_EXPORT = 'export';
+  
+  GENC_BASICTYPE;
+  GENC_STRUCT = 'struct';
+  GENC_TYPENAME = 'typename';
 
   PARAM;
   PARAMS;
@@ -48,6 +59,9 @@ tokens
   WHILE;
   DO;
   FOR;
+  FOR_PRE;
+  FOR_CHECK;
+  FOR_POST;
   
   IF;
   SWITCH;
@@ -105,13 +119,14 @@ UNICODE_ESC
 
 HEX_VAL	:	'0x' HEX_DIGIT+ 'U'? 'L'?;
 
-type : (numeric_type) type_annotation* -> ^(TYPE numeric_type type_annotation*);
-
-//base_type :
-//	struct_type | numeric_type;
-
-//struct_type :
-//	('struct') => 'struct' GENC_ID;
+base_type : 
+	GENC_STRUCT GENC_ID -> ^(GENC_STRUCT GENC_ID)
+ |  numeric_type -> ^(GENC_BASICTYPE numeric_type)
+ |  GENC_TYPENAME GENC_ID -> ^(GENC_TYPENAME GENC_ID);
+full_type_definition :
+  base_type vector_annotation? reference_annotation? -> ^(TYPE base_type vector_annotation? reference_annotation?);
+type :  
+	full_type_definition;
 
 numeric_type : 
   'void'
@@ -128,12 +143,10 @@ numeric_type :
   | 'float'
   | 'double'
   | 'longdouble'
-  | 'Instruction'
   ;
 
-type_annotation :
-   vector_annotation
-  |'&';
+reference_annotation :
+	'&';
 
 vector_annotation : 
 	'[' INT_CONST ']' -> ^(VECTOR INT_CONST);
@@ -144,9 +157,13 @@ param_def:
 param_list : 
   (param_def (',' param_def)*)? -> ^(PARAMS param_def*);
   
-action_file : constant_definition* action_definition+ EOF -> ^(FILETOK action_definition* constant_definition*);
+action_file : definition+ EOF -> ^(FILETOK definition*);
+
+definition : ((GENC_TYPENAME) => (typedef_definition)) | constant_definition | action_definition;
 
 constant_definition: 'const' declaration EQUALS constant ';' -> ^(CONSTANT declaration constant);
+
+typedef_definition: GENC_TYPENAME GENC_ID EQUALS type';' -> ^(TYPEDEF GENC_ID type);
 
 action_definition : helper_definition | execution_definition;
 
@@ -162,7 +179,7 @@ system_definition : 'system' '(' GENC_ID ')' body -> ^(SYSTEM GENC_ID body);
 
 //Statements
 
-body : '{' statement* '}' -> ^(BODY statement*);
+body : OBRACE statement* CBRACE -> ^(BODY statement*);
 
 statement : expression_statement | selection_statement | iteration_statement | flow_statement | body;
 
@@ -178,39 +195,50 @@ flow_statement :
   |('continue' ';' -> ^(CONTINUE))
   |('raise' ';' -> ^(RAISE))
   |('return' ';' -> ^(RETURN))
-  |('return' expression ';' -> ^(RETURN expression))
+  |('return' ternary_expression ';' -> ^(RETURN ternary_expression))
   ;
 
 iteration_statement : 
-   ('while' '(' expression ')' statement -> ^(WHILE expression statement))
+   ('while' '(' ternary_expression ')' statement -> ^(WHILE ternary_expression statement))
   |('do' statement 'while' '(' expression ')' -> ^(DO statement expression))
-  |('for' '(' pre=expression ';' check=expression ';' post=expression? ')' statement -> ^(FOR $pre $check $post statement))
+  |('for' '(' pre=expression? ';' check=ternary_expression ';' post=expression? ')' statement -> ^(FOR ^(FOR_PRE $pre) ^(FOR_CHECK $check) ^(FOR_POST $post) statement))
   ;
 
 selection_statement : 
 	if_statement | switch_statement;
 
 if_statement
-	:	 'if' '(' expression ')' statement (options { greedy=true; }: 'else' statement)? -> ^(IF expression statement statement?);
+	:	 'if' '(' ternary_expression ')' statement (options { greedy=true; }: 'else' statement)? -> ^(IF ternary_expression statement statement?);
 	 
 switch_statement
-	:	  'switch' '(' expression ')' body -> ^(SWITCH expression body);
+	:	  'switch' '(' ternary_expression ')' body -> ^(SWITCH ternary_expression body);
 
 
 // Expressions
 
 expression: 
    declaration_expression
- | ternary_expression (assignment_operator^ ternary_expression)?;
+ | ((left_expression assignment_operator) => left_expression assignment_operator^ right_expression)
+ | ternary_expression;
+
+right_expression : 
+	vector_expression
+  | ternary_expression;
+
+left_expression: GENC_ID | call_expression | left_index_expression;
+
+left_index_expression : GENC_ID '[' ternary_expression ']' -> ^(POSTFIX GENC_ID ^(IDX ^(IDX_ELEM ternary_expression)));
 
 constant_expr: log_or_expression; 
 
-argument_list: (expression (','! expression )*)?;
+argument_list: (ternary_expression (','! ternary_expression )*)?;
 
 constant: HEX_VAL | INT_CONST | FLOAT_CONST;
 
+vector_expression: OBRACE ternary_expression (',' ternary_expression)* CBRACE -> ^(VECTOR ternary_expression*);
+
 primary_expression:
-  call_expression | GENC_ID | constant | '('! expression ')'!;
+  call_expression | GENC_ID | constant | '('! ternary_expression ')'!;
 
 call_expression:
   GENC_ID '(' argument_list ')' -> ^(CALL GENC_ID argument_list);
@@ -226,20 +254,19 @@ postfix_expression:
     | primary_expression;
 
 index_expression
-	: expression -> ^(IDX_ELEM expression)
+	: ternary_expression -> ^(IDX_ELEM ternary_expression)
 	| F=constant ':' T=constant -> ^(IDX_BITS $F $T);
 
 postfix_operator:
     '[' index_expression ']' -> ^(IDX index_expression)
    |'.' GENC_ID -> ^(MEMBER GENC_ID)
-   |PTR GENC_ID -> ^(PTR GENC_ID)
    |'++'
    |'--'
    ;
   
 declaration: type GENC_ID -> ^(DECL type GENC_ID);
 
-declaration_expression: declaration (EQUALS^ ternary_expression)?;
+declaration_expression: declaration (EQUALS^ right_expression)?;
 
 unary_expression:
   postfix_expression
@@ -291,9 +318,16 @@ add_expression:
    mult_expression (('+'^ | '-'^) mult_expression)*;
 
 mult_expression:
-   cast_expression (('*'^|'/'^|'%'^) cast_expression)*;
+   concat_expression (('*'^|'/'^|'%'^) concat_expression)*;
+
+concat_expression:
+	cast_expression (VCONCATENATE^ cast_expression)*;
 
 cast_expression:
   ('(' type ')') => '('type')' cast_expression -> ^(CAST type cast_expression)
+  | bitcast_expression;
+
+bitcast_expression:
+  ('<' type '>') => '<'type'>' cast_expression -> ^(BITCAST type cast_expression)
   | unary_expression;
 

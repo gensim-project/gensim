@@ -1,0 +1,11 @@
+execute(test_insn)
+{
+	uint32 rs2 = read_register_bank(RB, inst.rs2);
+	typename word_t addr = read_register_bank(RB, inst.rs1);	
+	
+	if(mem_monitor_write_32(Mem, addr, rs2)) {
+		write_register_bank(RB, inst.rd, 0);
+	} else {
+		write_register_bank(RB, inst.rd, 1);
+	}
+}

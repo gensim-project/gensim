@@ -36,6 +36,20 @@ namespace archsim
 				archsim::util::Histogram PCHistogram;
 				archsim::util::Histogram OpcodeHistogram;
 				archsim::util::Histogram InstructionIRHistogram;
+
+				archsim::util::Counter64 ReadHits;
+				archsim::util::Counter64 Reads;
+				archsim::util::Counter64 WriteHits;
+				archsim::util::Counter64 Writes;
+
+				archsim::util::Counter64 JITInstructionCount;
+				archsim::util::CounterTimer JITTime;
+
+				archsim::util::CounterTimer InterpretTime;
+
+				archsim::util::Counter64 JITSuccessfulChains;
+				archsim::util::Counter64 JITFailedChains;
+				archsim::util::Histogram JITExitReasons;
 			};
 
 			class ThreadMetricPrinter

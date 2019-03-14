@@ -164,9 +164,14 @@ public:
 	}
 
 	//TODO: move this into user mode emulation model
+	inline bool HasFD(int guest_fd)
+	{
+		return fds.count(guest_fd);
+	}
+
 	inline int GetFD(int guest_fd)
 	{
-		return fds[guest_fd];
+		return fds.at(guest_fd);
 	}
 	inline int OpenFD(int host_fd)
 	{
@@ -187,6 +192,10 @@ public:
 	inline archsim::abi::devices::generic::block::BlockDevice* GetBlockDevice(std::string name)
 	{
 		return _block_devices.at(name);
+	}
+	inline bool HasBlockDevice(const std::string &name)
+	{
+		return _block_devices.count(name);
 	}
 
 	inline archsim::module::ModuleManager &GetModuleManager()

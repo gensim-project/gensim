@@ -1,0 +1,39 @@
+AC_ISA(riscv) 
+{
+	ac_format Type_FSD64_DATA  = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+	
+	ac_instr<Type_FSD_DATA> fmv_x_d, fmv_d_x, fcvt_l_d, fcvt_d_l, fcvt_lu_d, fcvt_d_lu;
+	
+	ac_behaviour fmv_x_d, fmv_d_x;
+	ac_behaviour fcvt_l_d, fcvt_d_l;
+	ac_behaviour fcvt_lu_d, fcvt_d_lu;
+			
+	ISA_CTOR(riscv)
+	{
+		ac_execute("common/execute.rv64-d");
+				
+		fmv_x_d.set_decoder(imm2=0x71, rs2=0, rm=0, opcode=0x53);
+		fmv_x_d.set_asm("fmv.x.d");
+		fmv_x_d.set_behaviour(fmv_x_d);
+		
+		fmv_d_x.set_decoder(imm2=0x79, rs2=0, rm=0, opcode=0x53);
+		fmv_d_x.set_asm("fmv.d.x");
+		fmv_d_x.set_behaviour(fmv_d_x);
+		
+		fcvt_l_d.set_decoder(imm2=0x61, rs2=0x2, opcode=0x53);
+		fcvt_l_d.set_asm("fcvt.l.d");
+		fcvt_l_d.set_behaviour(fcvt_l_d);
+		
+		fcvt_d_l.set_decoder(imm2=0x69, rs2=0x2, opcode=0x53);
+		fcvt_d_l.set_asm("fcvt.d.l");
+		fcvt_d_l.set_behaviour(fcvt_d_l);
+		
+		fcvt_lu_d.set_decoder(imm2=0x61, rs2=0x3, opcode=0x53);
+		fcvt_lu_d.set_asm("fcvt.lu.d");
+		fcvt_lu_d.set_behaviour(fcvt_lu_d);
+		
+		fcvt_d_lu.set_decoder(imm2=0x69, rs2=0x3, opcode=0x53);
+		fcvt_d_lu.set_asm("fcvt.d.lu");
+		fcvt_d_lu.set_behaviour(fcvt_d_lu);
+	};
+};

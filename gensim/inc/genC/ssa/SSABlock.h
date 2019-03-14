@@ -106,6 +106,7 @@ namespace gensim
 				const SSAVariableWriteStatement *GetLastWriteTo(const SSASymbol *symbol) const;
 
 				uint32_t GetID() const;
+				void ClearID();
 
 				std::string GetName() const override;
 
@@ -161,6 +162,9 @@ namespace gensim
 			private:
 				StatementList Statements;
 				SSAType _type;
+
+				mutable uint32_t id_;
+				mutable bool id_up_to_date_;
 
 				SSABlock() = delete;
 			};

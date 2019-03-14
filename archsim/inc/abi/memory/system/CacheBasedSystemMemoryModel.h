@@ -27,6 +27,8 @@
 #endif
 #endif
 
+static char parking_page[4096];
+
 namespace gensim
 {
 	class Processor;
@@ -49,7 +51,7 @@ namespace archsim
 			class SMMCacheEntry
 			{
 			public:
-				static const guest_addr_t kInvalidTag = 0xffffffff;
+				static const guest_addr_t::underlying_t kInvalidTag = 0xffffffffffffffff;
 
 				static const uint32_t kIsDevice = 1;
 				static const uint32_t kPrivRead = 2;
@@ -58,16 +60,16 @@ namespace archsim
 
 				typedef uint8_t flag_t;
 
-				SMMCacheEntry(guest_addr_t tag, phys_addr_t phys_addr, void* data,flag_t flags);
+				SMMCacheEntry(guest_addr_t tag, Address phys_addr, void* data,flag_t flags);
 				SMMCacheEntry();
 
 				bool IsValid() const
 				{
-					return virt_tag != kInvalidTag;
+					return virt_tag.Get() != kInvalidTag;
 				}
 				bool IsPageFor(guest_addr_t addr) const
 				{
-					return archsim::translate::profile::RegionArch::PageBaseOf(addr) == virt_tag;
+					return addr.PageBase() == virt_tag;
 				}
 
 				// Returns true if data points to a device instance
@@ -101,42 +103,45 @@ namespace archsim
 
 				guest_addr_t GetTag() const
 				{
-					return virt_tag;
+					return Address(virt_tag);
 				}
-				phys_addr_t GetPhysAddr() const
+				Address GetPhysAddr() const
 				{
 					return phys_addr & kPhysAddrMask;
 				}
 
 				inline void Invalidate()
 				{
-					virt_tag = kInvalidTag;
+					virt_tag = Address(kInvalidTag);
+					data = (void*)parking_page;
 				}
 
 				void Dump()
 				{
 					if(IsDevice())
-						fprintf(stderr, "SMM Entry %08x (%01x) => %08x (Device %p)\n", GetTag(), GetFlags(), GetPhysAddr(), GetDevice());
+						fprintf(stderr, "SMM Entry %08lx (%01x) => %08lx (Device %p)\n", GetTag().Get(), GetFlags(), GetPhysAddr().Get(), GetDevice());
 					else
-						fprintf(stderr, "SMM Entry %08x (%01x) => %08x (Memory %p)\n", GetTag(), GetFlags(), GetPhysAddr(), GetMemory());
+						fprintf(stderr, "SMM Entry %08lx (%01x) => %08lx (Memory %p)\n", GetTag().Get(), GetFlags(), GetPhysAddr().Get(), GetMemory());
 				}
 
-				static const phys_addr_t kPhysAddrMask = ~0xf;
-				static const phys_addr_t kFlagsMask = 0xf;
+				static const Address::underlying_t kPhysAddrMask = ~0xf;
+				static const Address::underlying_t kFlagsMask = 0xf;
 			private:
 
 
 				inline flag_t GetFlags() const
 				{
-					return phys_addr & kFlagsMask;
+					return phys_addr.Get() & kFlagsMask;
 				}
 
-				virt_addr_t virt_tag;
-				phys_addr_t phys_addr;
+				Address virt_tag;
+				Address phys_addr;
 				void* data;
+
+				char padding[8];
 			} __attribute__((packed));
 
-			static_assert(sizeof(SMMCacheEntry) == 16, "SMM Cache must be 16 bytes!");
+			static_assert(sizeof(SMMCacheEntry) == 32, "SMM Cache must be 32 bytes!");
 
 			class SMMCache
 			{
@@ -191,7 +196,7 @@ namespace archsim
 				SMMCacheEntry &GetEntryFor(guest_addr_t addr)
 				{
 					dirty = true;
-					uint32_t entry_idx = archsim::translate::profile::RegionArch::PageIndexOf(addr) % kCacheSize;
+					uint32_t entry_idx = addr.GetPageIndex() % kCacheSize;
 					_dirty_pages.set(entry_idx >> kCachePageBits);
 					return _cache[entry_idx];
 				}
@@ -213,7 +218,7 @@ namespace archsim
 				void Destroy() override;
 
 				void FlushCaches() override;
-				void EvictCacheEntry(virt_addr_t virt_addr) override;
+				void EvictCacheEntry(Address virt_addr) override;
 
 				void Dump()
 				{
@@ -237,38 +242,18 @@ namespace archsim
 
 				bool ResolveGuestAddress(host_const_addr_t host_addr, guest_addr_t &guest_addr) override;
 
-				uint32_t PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info) override;
+				uint32_t PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info) override;
 
 			private:
 
-				uint32_t DoRead(guest_addr_t virt_addr, uint8_t *data, int size, bool use_perms);
+				uint32_t DoRead(guest_addr_t virt_addr, uint8_t *data, int size, bool use_perms, bool isFetch);
 
-				inline bool TryGetReadUserCacheEntry(guest_addr_t addr, SMMCacheEntry *&entry)
-				{
-					return _read_user_cache.TryGetEntry(addr, entry);
-				}
-				inline bool TryGetReadKernelCacheEntry(guest_addr_t addr, SMMCacheEntry *&entry)
-				{
-					return _read_kernel_cache.TryGetEntry(addr, entry);
-				}
-				inline bool TryGetWriteUserCacheEntry(guest_addr_t addr, SMMCacheEntry *&entry)
-				{
-					return _write_user_cache.TryGetEntry(addr, entry);
-				}
-				inline bool TryGetWriteKernelCacheEntry(guest_addr_t addr, SMMCacheEntry *&entry)
-				{
-					return _write_kernel_cache.TryGetEntry(addr, entry);
-				}
+				uint32_t UpdateCacheEntry(guest_addr_t addr, SMMCacheEntry *entry, bool isWrite, bool isFetch, bool allow_side_effects);
 
-				uint32_t UpdateCacheEntry(guest_addr_t addr, SMMCacheEntry *entry, bool isWrite, bool allow_side_effects);
+				SMMCache &GetCache(int interface, int mode, bool write_cache);
 
-				SMMCache _read_user_cache;
-				SMMCache _write_user_cache;
-				SMMCache _read_kernel_cache;
-				SMMCache _write_kernel_cache;
-
-				archsim::PhysicalAddress _prev_fetch_page_phys;
-				archsim::VirtualAddress _prev_fetch_page_virt;
+				// map of (interface, mode) to (read,write) SMM cache poiners
+				std::map<std::pair<int, int>, std::pair<SMMCache*, SMMCache*>> caches_;
 
 				SystemMemoryTranslationModel *translation_model;
 				archsim::util::PubSubscriber *subscriber;
