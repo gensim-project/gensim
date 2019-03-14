@@ -34,6 +34,11 @@ namespace archsim
 				{
 					return code_size;
 				}
+				inline uint64_t getAllocatedCodeSize(void *v) const
+				{
+					return region_sizes_.at(v);
+				}
+
 				inline uint64_t getAllocatedDataSize() const
 				{
 					return data_size;
@@ -47,6 +52,8 @@ namespace archsim
 				util::PagePool &code_pool, &data_pool;
 				std::vector<util::PageReference *> code_pages;
 				std::vector<util::PageReference *> data_pages;
+
+				std::map<void *, size_t> region_sizes_;
 
 				uint64_t code_size, data_size;
 			};

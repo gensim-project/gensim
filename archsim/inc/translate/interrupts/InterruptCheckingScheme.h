@@ -11,7 +11,13 @@
 #define	INTERRUPTCHECKINGSCHEME_H
 
 #include "define.h"
+#include "abi/Address.h"
 #include <map>
+
+namespace gensim
+{
+	class BaseJumpInfoProvider;
+}
 
 namespace archsim
 {
@@ -25,25 +31,25 @@ namespace archsim
 			{
 			public:
 				virtual ~InterruptCheckingScheme();
-				virtual bool ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks) = 0;
+				virtual bool ApplyInterruptChecks(gensim::BaseJumpInfoProvider& jump_info, std::map<Address, TranslationBlockUnit *>& blocks) = 0;
 			};
 
 			class NoneInterruptCheckingScheme : public InterruptCheckingScheme
 			{
 			public:
-				bool ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks);
+				bool ApplyInterruptChecks(gensim::BaseJumpInfoProvider& jump_info, std::map<Address, TranslationBlockUnit *>& blocks);
 			};
 
 			class FullInterruptCheckingScheme : public InterruptCheckingScheme
 			{
 			public:
-				bool ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks);
+				bool ApplyInterruptChecks(gensim::BaseJumpInfoProvider& jump_info, std::map<Address, TranslationBlockUnit *>& blocks);
 			};
 
 			class BackwardsBranchCheckingScheme : public InterruptCheckingScheme
 			{
 			public:
-				bool ApplyInterruptChecks(std::map<addr_t, TranslationBlockUnit *>& blocks);
+				bool ApplyInterruptChecks(gensim::BaseJumpInfoProvider& jump_info, std::map<Address, TranslationBlockUnit *>& blocks);
 			};
 		}
 	}

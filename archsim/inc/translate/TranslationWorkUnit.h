@@ -45,7 +45,7 @@ namespace archsim
 		{
 		public:
 			TranslationInstructionUnit(const TranslationInstructionUnit &) = delete;
-			TranslationInstructionUnit(gensim::BaseDecode* decode, addr_t offset);
+			TranslationInstructionUnit(gensim::BaseDecode* decode, Address offset);
 			~TranslationInstructionUnit();
 
 			inline const gensim::BaseDecode& GetDecode() const
@@ -53,14 +53,14 @@ namespace archsim
 				return *decode;
 			}
 
-			inline addr_t GetOffset() const
+			inline Address GetOffset() const
 			{
 				return offset;
 			}
 
 		private:
 			gensim::BaseDecode* decode;
-			addr_t offset;
+			Address offset;
 		};
 
 		class TranslationWorkUnit;
@@ -68,12 +68,12 @@ namespace archsim
 		{
 		public:
 			TranslationBlockUnit(const TranslationBlockUnit&) = delete;
-			TranslationBlockUnit(TranslationWorkUnit& twu, addr_t offset, uint8_t isa_mode, bool entry_block);
+			TranslationBlockUnit(Address offset, uint8_t isa_mode, bool entry_block, uint64_t interp_count);
 			~TranslationBlockUnit();
 
-			TranslationInstructionUnit *AddInstruction(gensim::BaseDecode* decode, addr_t offset);
+			TranslationInstructionUnit *AddInstruction(gensim::BaseDecode* decode, Address offset);
 
-			inline addr_t GetOffset() const
+			inline Address GetOffset() const
 			{
 				return offset;
 			}
@@ -143,12 +143,15 @@ namespace archsim
 				return spanning;
 			}
 
-			void GetCtrlFlowInfo(bool &direct_jump, bool &indirect_jump, int32_t &direct_offset, int32_t &fallthrough_offset) const;
+			uint64_t GetInterpCount() const
+			{
+				return interp_count_;
+			}
 
 		private:
-			TranslationWorkUnit& twu;
 
-			addr_t offset;
+			Address offset;
+			uint64_t interp_count_;
 			uint8_t isa_mode;
 			bool entry;
 			bool interrupt_check;
@@ -174,10 +177,7 @@ namespace archsim
 				return emit_trace_calls;
 			}
 
-			inline uint32_t GetWeight() const
-			{
-				return weight;
-			}
+			uint32_t GetWeight() const;
 
 			inline uint32_t GetGeneration() const
 			{
@@ -194,14 +194,14 @@ namespace archsim
 				return thread;
 			}
 
-			inline const std::map<addr_t, TranslationBlockUnit *>& GetBlocks() const
+			inline const std::map<Address, TranslationBlockUnit *>& GetBlocks() const
 			{
 				return blocks;
 			}
 
 			TranslationBlockUnit *AddBlock(profile::Block& block, bool entry);
 
-			inline bool ContainsBlock(addr_t block_offset) const
+			inline bool ContainsBlock(Address block_offset) const
 			{
 				return blocks.count(block_offset);
 			}
@@ -219,9 +219,10 @@ namespace archsim
 				return instruction_zone;
 			}
 
-			std::set<virt_addr_t> potential_virtual_bases;
+			std::set<Address> potential_virtual_bases;
 
 		private:
+			uint64_t dispatch_heat_;
 			archsim::core::thread::ThreadInstance *thread;
 			profile::Region& region;
 			uint32_t generation;
@@ -231,7 +232,7 @@ namespace archsim
 			/**
 			 * Contains a mapping from page offsets to translation block units.
 			 */
-			std::map<addr_t, TranslationBlockUnit *> blocks;
+			std::map<Address, TranslationBlockUnit *> blocks;
 
 			instruction_zone_t instruction_zone;
 		};

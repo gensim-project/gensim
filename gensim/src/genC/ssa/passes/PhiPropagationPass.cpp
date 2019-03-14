@@ -37,7 +37,7 @@ public:
 	bool Run(SSAFormAction& action) const  override
 	{
 		bool changed = false;
-		for(auto block : action.Blocks) {
+		for(auto block : action.GetBlocks()) {
 			for(auto stmt : block->GetStatements()) {
 				if(SSAPhiStatement *phi = dynamic_cast<SSAPhiStatement*>(stmt)) {
 					if(phi->Get().size() == 1 && dynamic_cast<SSAPhiStatement*>(phi->Get().front())) {

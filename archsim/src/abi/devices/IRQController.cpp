@@ -10,6 +10,8 @@
 #include "abi/devices/IRQController.h"
 #include "core/thread/ThreadInstance.h"
 
+DeclareLogContext(LogIRQ, "IRQ");
+
 namespace archsim
 {
 	namespace abi
@@ -73,27 +75,41 @@ namespace archsim
 			}
 
 
-			CPUIRQLine::CPUIRQLine(archsim::core::thread::ThreadInstance *_cpu) : CPU(_cpu), Acknowledged(false)
+			CPUIRQLine::CPUIRQLine(archsim::core::thread::ThreadInstance *_cpu) : CPU(_cpu), state_(State::Idle)
 			{
 
 			}
 
 			void CPUIRQLine::Assert()
 			{
-				if(!IsAsserted()) {
-					SetAsserted();
-					CPU->TakeIRQ();
-//		source->IRQ_Asserted(this);
+				if(IsAsserted() && !IsAcknowledged()) {
+					LC_WARNING(LogIRQ) << "An IRQ is pending, but has been reasserted (IRQ possibly stuck?)";
+				}
+
+				SetAsserted();
+
+				switch(state_) {
+					case State::Idle:
+					case State::Acknowledged:
+						state_ = State::Raised;
+						LC_DEBUG1(LogIRQ) << "IRQ " << this << " asserted";
+						CPU->TakeIRQ();
+						break;
 				}
 			}
 
 			void CPUIRQLine::Rescind()
 			{
-				if(IsAsserted()) {
-					CPU->RescindIRQ();
-					ClearAsserted();
-					Acknowledged = false;
-//		source->IRQ_Rescinded(this);
+				ClearAsserted();
+
+				switch(state_) {
+					case State::Raised:
+						state_ = State::Rescinded;
+						CPU->RescindIRQ();
+						break;
+					case State::Acknowledged:
+						state_ = State::Idle;
+						break;
 				}
 			}
 

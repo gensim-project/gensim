@@ -33,7 +33,7 @@ bool IRRegisterSlotReadExpression::Resolve(GenCContext &Context)
 
 	IRVariableExpression *c;
 	if((c = dynamic_cast<IRVariableExpression*>(Args[0])) && (c->Symbol->SType == Symbol_Constant)) {
-		slot_id = Context.GetConstant(c->Symbol->GetLocalName()).second;
+		slot_id = Context.GetConstant(c->Symbol->GetLocalName()).second.Int();
 	} else {
 		Context.Diag().Error("Register slot reads must have a constant slot", Diag());
 		success = false;
@@ -93,7 +93,7 @@ bool IRRegisterSlotWriteExpression::Resolve(GenCContext &Context)
 
 	IRVariableExpression *c;
 	if((c = dynamic_cast<IRVariableExpression*>(Args[0])) && (c->Symbol->SType == Symbol_Constant)) {
-		slot_id = Context.GetConstant(c->Symbol->GetLocalName()).second;
+		slot_id = Context.GetConstant(c->Symbol->GetLocalName()).second.Int();
 	} else {
 		Context.Diag().Error("Register slot writes must have a constant slot", Diag());
 		success = false;
@@ -166,7 +166,7 @@ bool IRRegisterBankReadExpression::Resolve(GenCContext &Context)
 
 	IRVariableExpression *c;
 	if((c = dynamic_cast<IRVariableExpression*>(Args[0])) && (c->Symbol->SType == Symbol_Constant)) {
-		bank_idx = Context.GetConstant(c->Symbol->GetLocalName()).second;
+		bank_idx = Context.GetConstant(c->Symbol->GetLocalName()).second.Int();
 	} else {
 		Context.Diag().Error("Register bank reads must have a constant slot", Diag());
 		success = false;
@@ -175,9 +175,9 @@ bool IRRegisterBankReadExpression::Resolve(GenCContext &Context)
 	const arch::RegBankViewDescriptor*rbv = &GetScope().GetContainingAction().Context.Arch.GetRegFile().GetBankByIdx(bank_idx);
 
 	IRConstExpression *idx;
-	if((idx = dynamic_cast<IRConstExpression*>(Args[1])) && (idx->Value.Int() >= rbv->GetRegisterCount())) {
+	if((idx = dynamic_cast<IRConstExpression*>(Args[1])) && (idx->GetValue().Int() >= rbv->GetRegisterCount())) {
 		std::ostringstream str;
-		str << "Read of register index " << idx->Value.Int() << " exceeds register count of bank view "<< rbv->ID;
+		str << "Read of register index " << idx->GetValue().Int() << " exceeds register count of bank view "<< rbv->ID;
 		Context.Diag().Error(str.str(), Diag());
 		success = false;
 	}
@@ -244,7 +244,7 @@ bool IRRegisterBankWriteExpression::Resolve(GenCContext &Context)
 
 	IRVariableExpression *c;
 	if((c = dynamic_cast<IRVariableExpression*>(Args[0])) && (c->Symbol->SType == Symbol_Constant)) {
-		bank_idx = Context.GetConstant(c->Symbol->GetLocalName()).second;
+		bank_idx = Context.GetConstant(c->Symbol->GetLocalName()).second.Int();
 	} else {
 		Context.Diag().Error("Register bank writes must have a constant slot", Diag());
 		success = false;
@@ -253,9 +253,9 @@ bool IRRegisterBankWriteExpression::Resolve(GenCContext &Context)
 	const arch::RegBankViewDescriptor*rbv = &GetScope().GetContainingAction().Context.Arch.GetRegFile().GetBankByIdx(bank_idx);
 
 	IRConstExpression *idx;
-	if((idx = dynamic_cast<IRConstExpression*>(Args[1])) && (idx->Value.Int() >= rbv->GetRegisterCount())) {
+	if((idx = dynamic_cast<IRConstExpression*>(Args[1])) && (idx->GetValue().Int() >= rbv->GetRegisterCount())) {
 		std::ostringstream str;
-		str << "Read of register index " << idx->Value.Int() << " exceeds register count of bank view "<< rbv->ID;
+		str << "Read of register index " << idx->GetValue().Int() << " exceeds register count of bank view "<< rbv->ID;
 		Context.Diag().Error(str.str(), Diag());
 		success = false;
 	}

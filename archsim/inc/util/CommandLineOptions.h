@@ -41,10 +41,12 @@ DefineLongFlag(CacheModel, "cache-model");
 
 DefineFlag(ArmOabi, 'b', "oabi");
 
+DefineLongRequiredArgument(uint32_t, StackFaffle, "stack-faffle");
 DefineRequiredArgument(std::string, TargetBinary, 'e', "target");
 DefineLongRequiredArgument(std::string, ZImageSymbolMap, "symbol-map");
 
 DefineFlag(Trace, 't', "trace");
+DefineLongRequiredArgument(uint64_t, TraceSkip, "trace-skip");
 DefineFlag(SimpleTrace, 'T', "simple-trace");
 DefineLongFlag(TraceSymbols, "trace-symbols");
 DefineRequiredArgument(std::string, TraceMode, 'M', "trace-mode");
@@ -54,11 +56,12 @@ DefineLongFlag(SuppressTracing, "suppress-tracing");
 
 DefineLongFlag(InstructionTick, "instruction-tick");
 
-DefineLongRequiredArgument(uint32_t, TickScale, "tick-scale");
+DefineLongRequiredArgument(float, TickScale, "tick-scale");
 
 DefineLongRequiredArgument(std::string, JitInterruptScheme, "icp");
 DefineLongRequiredArgument(std::string, JitEngine, "engine");
 DefineLongRequiredArgument(uint32_t, JitThreads, "fast-num-threads");
+DefineLongRequiredArgument(std::string, JitOptString, "jit-opts");
 DefineLongRequiredArgument(std::string, Mode, "mode");
 DefineLongFlag(JitDisableAA, "no-aa");
 DefineLongFlag(JitDebugAA, "debug-aa");

@@ -19,13 +19,13 @@ namespace archsim
 		class LinuxUserEmulationModel : public UserEmulationModel
 		{
 		public:
-			LinuxUserEmulationModel(const user::arch_descriptor_t &arch);
+			LinuxUserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary, const AuxVectorEntries &auxvs);
 			virtual ~LinuxUserEmulationModel();
 
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
 			void Destroy() override;
 
-			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, unsigned int category, unsigned int data) override = 0;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* cpu, uint64_t category, uint64_t data) override = 0;
 		};
 	}
 }

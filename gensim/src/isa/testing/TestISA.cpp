@@ -23,6 +23,9 @@ ISADescription *gensim::isa::testing::GetTestISA(bool include_instruction)
 
 	isa->AddFormat(ifd);
 
+	isa->UserStructTypes.push_back(StructDescription("Operand", {{"Foo", "uint8"}}));
+	isa->UserFields.push_back(FieldDescription("operand", "Operand"));
+
 	if(include_instruction) {
 		InstructionDescription *id = new InstructionDescription("test_insn", *isa, ifd);
 		id->BehaviourName = "test_instruction";

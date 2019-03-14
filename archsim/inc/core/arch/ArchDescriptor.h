@@ -30,7 +30,7 @@ namespace gensim
 	class DecodeContext;
 	class BaseDecode;
 	class BaseDisasm;
-	class BaseJumpInfo;
+	class BaseJumpInfoProvider;
 }
 
 namespace archsim
@@ -114,7 +114,7 @@ namespace archsim
 			return name_;
 		}
 
-		InvocationResult Invoke(archsim::core::thread::ThreadInstance *thread, const std::vector<uint64_t> args) const
+		InvocationResult Invoke(archsim::core::thread::ThreadInstance *thread, const std::vector<uint64_t> &args) const
 		{
 			return function_(InvocationContext(thread, args));
 		}
@@ -138,12 +138,12 @@ namespace archsim
 
 	using DecodeFunction = std::function<uint32_t(archsim::Address addr, archsim::MemoryInterface *, gensim::BaseDecode&)>;
 	using NewDecoderFunction = std::function<gensim::BaseDecode*()>;
-	using NewJumpInfoFunction = std::function<gensim::BaseJumpInfo*()>;
+	using NewJumpInfoFunction = std::function<gensim::BaseJumpInfoProvider*()>;
 	using NewDTCFunction = std::function<gensim::DecodeTranslateContext*()>;
 
 	/**
 	 * Class which encapsulates ISA specific portions of the architecture,
-	 * including instruction decoding and behaviour invocation.
+	 * including instruction decoding and behaviour invocation.gensim
 	 */
 	class ISADescriptor
 	{
@@ -164,7 +164,7 @@ namespace archsim
 		{
 			return disasm_;
 		}
-		gensim::BaseJumpInfo *GetNewJumpInfo() const
+		gensim::BaseJumpInfoProvider *GetNewJumpInfo() const
 		{
 			return new_jump_info_();
 		}

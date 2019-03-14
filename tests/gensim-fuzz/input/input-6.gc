@@ -1,0 +1,98 @@
+
+helper uint64 advsimd_unpack_i64(uint8 imm8_)
+{
+	uint64 imm8 = imm8_;
+	uint64 a = (imm8 >> 7) & 1;
+	uint64 b = (imm8 >> 6) & 1;
+	uint64 c = (imm8 >> 5) & 1;
+	uint64 d = (imm8 >> 4) & 1;
+	uint64 e = (imm8 >> 3) & 1;
+	uint64 f = (imm8 >> 2) & 1;
+	uint64 g = (imm8 >> 1) & 1;
+	uint64 h = (imm8) & 1;
+	
+	if(a) a = 0xff;
+	if(b) b = 0xff;
+	if(c) c = 0xff;
+	if(d) d = 0xff;
+	if(e) e = 0xff;
+	if(f) f = 0xff;
+	if(g) g = 0xff;
+	if(h) h = 0xff;
+	
+	return (a << 56) | (b << 48) | (c << 40) | (d << 32) | (e << 24) | (f << 16) | (g << 8) | h;
+}
+
+helper uint64 advsimd_unpack_f32(uint8 imm8_)
+{
+	uint64 val = imm8_;
+	
+	uint32 sign = (val >> 7) & 1;
+	uint32 top = !((val >> 6) & 1);
+	
+	uint32 rep;
+	if(top) rep = 0;
+	else rep = 0x1f;
+	
+	uint32 rem = val & 0x3f;
+	
+	uint32 v = (sign << 31) | (top << 30) | (rep << 25) | (rem << 19);
+	
+	return (((uint64)v) << 32) | ((uint64)v);
+}
+
+helper uint64 advsimd_unpack(uint8 op, uint8 cmode, uint8 imm8_)
+{
+	uint64 rval = 0;
+	uint64 imm8 = imm8_;
+	
+	uint8 cmode_1 = cmode >> 1;
+	
+	switch(cmode_1) 
+	{
+		case 0: {
+			return imm8 | (imm8 << 32);
+		}
+		case 1: {
+			return (imm8 << 8) | (imm8 << 40);
+		}
+		case 2: {
+			return (imm8 << 16) | (imm8 << 48);
+		}
+		case 3: {
+			return (imm8 << 24) | (imm8 << 56);
+		}
+		case 4: {
+			return (imm8) | (imm8 << 16) | (imm8 << 32) | (imm8 << 48);
+		}
+		case 5: {
+			return (imm8 << 8) | (imm8 << 24) | (imm8 << 40) | (imm8 << 56);
+		}
+	}
+	
+	switch(cmode) {
+		case 12: {
+			return (imm8 << 8) |  (imm8 << 40) | (0xff000000ffUL);
+		}
+		case 13: {
+			return (imm8 << 16) |  (imm8 << 48) | (0xffff0000ffffUL);
+		}
+		case 14: {
+			if(!op) {
+				return (imm8) | (imm8 << 8) | (imm8 << 16) | (imm8 << 24) | (imm8 << 32) | (imm8 << 40) | (imm8 << 48) | (imm8 << 56);
+			} else {
+				return advsimd_unpack_i64(imm8_);
+			}
+		}
+		case 15: {
+			return advsimd_unpack_f32(imm8_);
+		}
+	}
+	
+	return 0;
+}
+
+execute(test_insn)
+{
+
+}

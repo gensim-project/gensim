@@ -167,6 +167,14 @@ void HierarchicalSSAStatementVisitor::VisitVectorInsertElementStatement(SSAVecto
 	stmt.Value()->Accept(*this);
 }
 
+void HierarchicalSSAStatementVisitor::VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt)
+{
+	stmt.LHS()->Accept(*this);
+	stmt.RHS()->Accept(*this);
+	stmt.Indices()->Accept(*this);
+}
+
+
 void EmptySSAStatementVisitor::VisitBinaryArithmeticStatement(SSABinaryArithmeticStatement& stmt)
 {
 
@@ -302,3 +310,7 @@ void EmptySSAStatementVisitor::VisitVectorInsertElementStatement(SSAVectorInsert
 
 }
 
+void EmptySSAStatementVisitor::VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt)
+{
+
+}

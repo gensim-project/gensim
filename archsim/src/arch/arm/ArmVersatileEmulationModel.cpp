@@ -35,7 +35,7 @@ RegisterComponent(EmulationModel, ArmVersatileEmulationModel, "arm-versatile", "
 UseLogContext(LogSystemEmulationModel);
 DeclareChildLogContext(LogArmVerstaileEmulationModel, LogSystemEmulationModel, "Versatile");
 
-ArmVersatileEmulationModel::ArmVersatileEmulationModel() : entry_point(0)
+ArmVersatileEmulationModel::ArmVersatileEmulationModel() : LinuxSystemEmulationModel(false), entry_point(0)
 {
 
 }
@@ -64,14 +64,14 @@ void ArmVersatileEmulationModel::Destroy()
 bool ArmVersatileEmulationModel::InstallBootloader(archsim::abi::loader::BinaryLoader& loader)
 {
 	entry_point = loader.GetEntryPoint();
-	GetMemoryModel().Write(0, (uint8_t *)&bootloader_start, bootloader_size);
+	GetMemoryModel().Write(0_ga, (uint8_t *)&bootloader_start, bootloader_size);
 
 	return true;
 }
 
-bool ArmVersatileEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
+bool ArmVersatileEmulationModel::PreparePlatform(loader::BinaryLoader& loader)
 {
-	if (!LinuxSystemEmulationModel::InstallPlatform(loader))
+	if (!LinuxSystemEmulationModel::PreparePlatform(loader))
 		return false;
 
 	return InstallBootloader(loader);
@@ -97,7 +97,7 @@ bool ArmVersatileEmulationModel::PrepareCore(archsim::core::thread::ThreadInstan
 	}
 
 	// IP = Entry Point
-	regs[12] = entry_point;
+	regs[12] = entry_point.Get();
 
 	return true;
 }
@@ -117,7 +117,7 @@ bool ArmVersatileEmulationModel::AddGenericPrimecellDevice(Address base_addr, ui
 	return true;
 }
 
-bool ArmVersatileEmulationModel::InstallPlatformDevices()
+bool ArmVersatileEmulationModel::CreateMemoryDevices()
 {
 	using module::ModuleDeviceEntry;
 
@@ -139,14 +139,14 @@ bool ArmVersatileEmulationModel::InstallPlatformDevices()
 
 	//SP810 System controller - registered at multiple places in the device space
 	auto sysctl = adm->GetEntry<ModuleDeviceEntry>("SP810")->Get(*this, Address(0x10000000));
-	base_device_manager.InstallDevice((0x101e0000), (guest_size_t)0x1000, *sysctl);
-	base_device_manager.InstallDevice((0xf11e0000), (guest_size_t)0x1000, *sysctl);
+	base_device_manager.InstallDevice((0x101e0000_ga), (guest_size_t)0x1000, *sysctl);
+	base_device_manager.InstallDevice((0xf11e0000_ga), (guest_size_t)0x1000, *sysctl);
 	if(!HackyMMIORegisterDevice(*sysctl)) return false;
 
 	auto pl190 = adm->GetEntry<ModuleDeviceEntry>("PL190")->Get(*this, Address(0x1014000));
 	auto irq_controller = dynamic_cast<IRQController*>(pl190->GetParameter<Component*>("IRQController"));
-	pl190->SetParameter("IRQLine", main_thread_->GetIRQLine(0));
-	pl190->SetParameter("FIQLine", main_thread_->GetIRQLine(1));
+	pl190->SetParameter("IRQLine", GetThread(0).GetIRQLine(0));
+	pl190->SetParameter("FIQLine", GetThread(0).GetIRQLine(1));
 	pl190->Initialise();
 
 	if(!HackyMMIORegisterDevice(*pl190)) return false;
@@ -271,45 +271,30 @@ bool ArmVersatileEmulationModel::InstallPlatformDevices()
 	return true;
 }
 
-bool ArmVersatileEmulationModel::InstallPeripheralDevices()
+bool ArmVersatileEmulationModel::CreateCoreDevices(archsim::core::thread::ThreadInstance* thread)
 {
 	LC_INFO(LogArmVerstaileEmulationModel) << "[ARM-SYSTEM] Installing peripheral devices";
 
 	archsim::abi::devices::Device *coprocessor;
 	if(!GetComponentInstance("arm926coprocessor", coprocessor)) return false;
-	main_thread_->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
-	main_thread_->GetPeripherals().AttachDevice("coprocessor", 15);
+	thread->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
+	thread->GetPeripherals().AttachDevice("coprocessor", 15);
 
 	if(!GetComponentInstance("armdebug", coprocessor)) return false;
-	main_thread_->GetPeripherals().RegisterDevice("armdebug", coprocessor);
-	main_thread_->GetPeripherals().AttachDevice("armdebug", 14);
+	thread->GetPeripherals().RegisterDevice("armdebug", coprocessor);
+	thread->GetPeripherals().AttachDevice("armdebug", 14);
 
 	archsim::abi::devices::Device *mmu;
 	if(!GetComponentInstance("ARM926EJSMMU", mmu)) return false;
-	main_thread_->GetPeripherals().RegisterDevice("mmu", mmu);
+	thread->GetPeripherals().RegisterDevice("mmu", mmu);
 
 	devices::SimulatorCacheControlCoprocessor *sccc = new devices::SimulatorCacheControlCoprocessor();
-	main_thread_->GetPeripherals().RegisterDevice("sccc", sccc);
-	main_thread_->GetPeripherals().AttachDevice("sccc", 13);
+	thread->GetPeripherals().RegisterDevice("sccc", sccc);
+	thread->GetPeripherals().AttachDevice("sccc", 13);
 
-	main_thread_->GetPeripherals().InitialiseDevices();
+	thread->GetPeripherals().InitialiseDevices();
 
 	return true;
-}
-
-bool ArmVersatileEmulationModel::InstallDevices()
-{
-	return InstallPeripheralDevices() && InstallPlatformDevices();
-}
-
-void ArmVersatileEmulationModel::DestroyDevices()
-{
-//	archsim::abi::devices::ArmCoprocessor *coproc = (archsim::abi::devices::ArmCoprocessor *)cpu->peripherals.GetDeviceByName("coprocessor");
-//	fprintf(stderr, "Reads:\n");
-//	coproc->dump_reads();
-//
-//	fprintf(stderr, "Writes:\n");
-//	coproc->dump_writes();
 }
 
 void ArmVersatileEmulationModel::HandleSemihostingCall()
@@ -322,14 +307,14 @@ void ArmVersatileEmulationModel::HandleSemihostingCall()
 		case 3:
 			uint8_t c;
 			//cpu->translation_provider->Translate(cpu, regs[1], phys_addr, 0);
-			GetMemoryModel().Read8(phys_addr, c);
+			GetMemoryModel().Read8(Address(phys_addr), c);
 			printf("\x1b[31m%c\x1b[0m", c);
 			fflush(stdout);
 			break;
 		case 4:
 			char buffer[256];
 			//cpu->translation_provider->Translate(cpu, regs[1], phys_addr, 0);
-			GetMemoryModel().ReadString(phys_addr, buffer, sizeof(buffer));
+			GetMemoryModel().ReadString(Address(phys_addr), buffer, sizeof(buffer));
 			printf("\x1b[31m%s\x1b[0m", buffer);
 			fflush(stdout);
 			break;
@@ -343,7 +328,7 @@ void ArmVersatileEmulationModel::HandleSemihostingCall()
 	}
 }
 
-ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
+ExceptionAction ArmVersatileEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, uint64_t category, uint64_t data)
 {
 	UNIMPLEMENTED;
 //

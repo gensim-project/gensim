@@ -10,6 +10,8 @@
 #ifndef TRANSLATIONMANAGER_H
 #define	TRANSLATIONMANAGER_H
 
+#include <wutils/vset.h>
+
 #include "define.h"
 
 #include "profile/RegionTable.h"
@@ -74,6 +76,7 @@ namespace archsim
 		class TranslationEngine;
 		class TranslationWorkUnit;
 		class Translation;
+
 		class TranslationManager
 		{
 		public:
@@ -85,9 +88,9 @@ namespace archsim
 
 			virtual bool TranslateRegion(archsim::core::thread::ThreadInstance *thread, profile::Region& rgn, uint32_t weight);
 
-			inline bool RegionIsDirty(phys_addr_t region_addr)
+			inline bool RegionIsDirty(Address region_addr)
 			{
-				return dirty_code_pages.count(archsim::translate::profile::RegionArch::PageBaseOf(region_addr));
+				return dirty_code_pages.count(region_addr.GetPageBase());
 			}
 
 			/**
@@ -95,6 +98,7 @@ namespace archsim
 			 * Returns true if regions were dispatched for translation
 			 */
 			bool Profile(archsim::core::thread::ThreadInstance *thread);
+			bool ProfileRegion(archsim::core::thread::ThreadInstance *thread, profile::Region *region);
 
 			void RegisterTranslationForGC(Translation& txln);
 			void RunGC();
@@ -108,22 +112,22 @@ namespace archsim
 				_needs_leave = 0;
 			}
 
-			virtual void UpdateThreshold();
+			virtual bool UpdateThreshold();
 
 			/**
 			 * Completely reset the translation manager
 			 */
 			void Invalidate();
 
-			void InvalidateRegion(phys_addr_t phys_addr);
+			void InvalidateRegion(Address phys_addr);
 
 			util::Counter64 txln_cache_invalidations;
 			void InvalidateRegionTxlnCache();
-			void InvalidateRegionTxlnCacheEntry(virt_addr_t virt_addr);
+			void InvalidateRegionTxlnCacheEntry(Address virt_addr);
 
-			profile::Region& GetRegion(phys_addr_t phys_addr);
+			profile::Region& GetRegion(Address phys_addr);
 
-			bool TryGetRegion(phys_addr_t phys_addr, profile::Region*& region);
+			bool TryGetRegion(Address phys_addr, profile::Region*& region);
 
 			void TraceBlock(archsim::core::thread::ThreadInstance *thread, profile::Block& block);
 
@@ -138,7 +142,7 @@ namespace archsim
 				return txln_cache->GetPtr();
 			}
 
-			inline void **GetRegionTxlnCacheEntry(virt_addr_t virt_addr)
+			inline void **GetRegionTxlnCacheEntry(Address virt_addr)
 			{
 				if(!txln_cache) return NULL;
 				return txln_cache->GetEntry(virt_addr);
@@ -159,9 +163,51 @@ namespace archsim
 			{
 				this->manager = &manager;
 			}
+
 		private:
 			bool _needs_leave;
 			profile::RegionTable regions;
+
+			struct RegionCacheEntry {
+				RegionCacheEntry()
+				{
+					Invalidate();
+				}
+				void Invalidate()
+				{
+					tag = 1;
+					data = nullptr;
+				}
+
+				archsim::Address::underlying_t tag;
+				profile::Region* data;
+			};
+
+			struct RegionCache {
+			public:
+				RegionCache()
+				{
+					Invalidate();
+				}
+				void Invalidate()
+				{
+					for(auto &i : entries_) {
+						i.Invalidate();
+					}
+				}
+
+				RegionCacheEntry &GetEntry(Address addr)
+				{
+					return entries_.at(addr.GetPageIndex() % entries_.size());
+				}
+			private:
+				std::array<RegionCacheEntry, 1024> entries_;
+			};
+
+			RegionCache region_cache_;
+
+			wutils::vset<profile::Region*> touched_regions_;
+//			std::unordered_set<profile::Region*> touched_regions_;
 
 			// ProfileManager keeps track of which pages are code and notifies when pages are invalidated
 			profile::CodeRegionTracker *manager;
@@ -190,7 +236,6 @@ namespace archsim
 			bool RegisterTranslation(profile::Region& unit, Translation& txln);
 
 		protected:
-			TranslationEngine *engine;
 			interrupts::InterruptCheckingScheme *ics;
 
 			uint32_t curr_hotspot_threshold;

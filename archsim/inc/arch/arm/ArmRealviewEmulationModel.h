@@ -28,7 +28,7 @@ namespace archsim
 				bool Initialise(System& system, uarch::uArch& uarch) override;
 				void Destroy() override;
 
-				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data) override;
+				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance *cpu, uint64_t category, uint64_t data) override;
 				void HandleInterrupt(archsim::core::thread::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine* irq) override;
 				archsim::abi::ExceptionAction HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address) override;
 
@@ -36,14 +36,15 @@ namespace archsim
 
 
 			protected:
-				bool InstallDevices() override;
-				void DestroyDevices() override;
-				bool InstallPlatform(abi::loader::BinaryLoader& loader) override;
+				bool CreateMemoryDevices() override;
+				bool CreateCoreDevices(archsim::core::thread::ThreadInstance* thread) override;
+
+				bool PreparePlatform(abi::loader::BinaryLoader& loader) override;
 
 				bool PrepareCore(archsim::core::thread::ThreadInstance& core) override;
 
 			private:
-				uint32_t entry_point;
+				Address entry_point;
 
 				bool InstallPeripheralDevices();
 				bool InstallPlatformDevices();

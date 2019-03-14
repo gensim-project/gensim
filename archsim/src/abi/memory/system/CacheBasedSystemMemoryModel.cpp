@@ -23,6 +23,7 @@
 UseLogContext(LogSystemMemoryModel);
 
 
+using archsim::Address;
 using namespace archsim::abi::memory;
 using namespace archsim::translate::profile;
 
@@ -31,7 +32,7 @@ RegisterComponent(SystemMemoryModel, CacheBasedSystemMemoryModel, "cache", "Cach
 #define SIGSEGV_INVALIDATE 0
 
 SMMCacheEntry::SMMCacheEntry() : virt_tag(kInvalidTag), data(NULL), phys_addr(0) {}
-SMMCacheEntry::SMMCacheEntry(guest_addr_t tag, phys_addr_t phys_addr, void *data, flag_t flags) : virt_tag(tag), phys_addr(phys_addr | (flags & kFlagsMask)), data(data) {}
+SMMCacheEntry::SMMCacheEntry(guest_addr_t tag, Address phys_addr, void *data, flag_t flags) : virt_tag(tag), phys_addr(phys_addr | (flags & kFlagsMask)), data(data) {}
 
 SMMCache::SMMCache() : pointertaken(false), dirty(true)
 {
@@ -87,10 +88,10 @@ void SMMCache::Flush()
 
 void SMMCache::Evict(guest_addr_t addr)
 {
-	_cache[archsim::translate::profile::RegionArch::PageIndexOf(addr) % kCacheSize].Invalidate();
+	_cache[addr.GetPageIndex() % kCacheSize].Invalidate();
 }
 
-CacheBasedSystemMemoryModel::CacheBasedSystemMemoryModel(MemoryModel *phys_mem, util::PubSubContext *pubsub) : SystemMemoryModel(phys_mem, pubsub), translation_model(NULL), _prev_fetch_page_phys(1), _prev_fetch_page_virt(1)
+CacheBasedSystemMemoryModel::CacheBasedSystemMemoryModel(MemoryModel *phys_mem, util::PubSubContext *pubsub) : SystemMemoryModel(phys_mem, pubsub), translation_model(NULL)
 {
 
 }
@@ -106,7 +107,7 @@ static void FlushCallback(PubSubType::PubSubType type, void *ctx, const void *da
 	switch(type) {
 		case PubSubType::ITlbEntryFlush:
 		case PubSubType::DTlbEntryFlush:
-			cmm->EvictCacheEntry((uint32_t)(uint64_t)data);
+			cmm->EvictCacheEntry(Address((uint64_t)data));
 			break;
 		case PubSubType::RegionDispatchedForTranslationPhysical:
 		case PubSubType::ITlbFullFlush:
@@ -134,9 +135,6 @@ bool CacheBasedSystemMemoryModel::Initialise()
 	subscriber->Subscribe(PubSubType::DTlbFullFlush, FlushCallback, this);
 	subscriber->Subscribe(PubSubType::PrivilegeLevelChange, FlushCallback, this);
 
-	GetThread()->GetStateBlock().AddBlock("smm_read_cache", sizeof(void*));
-	GetThread()->GetStateBlock().AddBlock("smm_write_cache", sizeof(void*));
-
 	InstallCaches();
 	FlushCaches();
 	return true;
@@ -149,21 +147,28 @@ void CacheBasedSystemMemoryModel::Destroy()
 
 void CacheBasedSystemMemoryModel::FlushCaches()
 {
-	_read_user_cache.Flush();
-	_write_user_cache.Flush();
-	_read_kernel_cache.Flush();
-	_write_kernel_cache.Flush();
-
-	_prev_fetch_page_phys = PhysicalAddress(1);
-	_prev_fetch_page_virt = VirtualAddress(1);
+	for(auto p : caches_) {
+		auto &caches = p.second;
+		if(caches.first != nullptr) {
+			caches.first->Flush();
+		}
+		if(caches.second != nullptr) {
+			caches.second->Flush();
+		}
+	}
 }
 
-void CacheBasedSystemMemoryModel::EvictCacheEntry(virt_addr_t virt_addr)
+void CacheBasedSystemMemoryModel::EvictCacheEntry(Address virt_addr)
 {
-	_read_user_cache.Evict(virt_addr);
-	_write_user_cache.Evict(virt_addr);
-	_read_kernel_cache.Evict(virt_addr);
-	_write_kernel_cache.Evict(virt_addr);
+	for(auto p : caches_) {
+		auto &caches = p.second;
+		if(caches.first != nullptr) {
+			caches.first->Evict(virt_addr);
+		}
+		if(caches.second != nullptr) {
+			caches.second->Evict(virt_addr);
+		}
+	}
 }
 
 MemoryTranslationModel &CacheBasedSystemMemoryModel::GetTranslationModel()
@@ -175,45 +180,33 @@ MemoryTranslationModel &CacheBasedSystemMemoryModel::GetTranslationModel()
 #endif
 }
 
-uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *data, int size, bool use_perms)
+uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *data, int size, bool use_perms, bool isFetch)
 {
 	bool unaligned = false;
 	if(UNLIKELY(archsim::options::MemoryCheckAlignment)) {
-		switch(size) {
-			case 2:
-				if(virt_addr & 0x1) unaligned = true;
-				break;
-			case 4:
-				if(virt_addr & 0x3) unaligned = true;
-				break;
+		if(virt_addr.Get() & (size-1)) {
+			unaligned = true;
 		}
 	}
 	if(unaligned) {
 		for(int i = 0; i < size; ++i) {
-			uint32_t rval = DoRead(virt_addr+i, data+i, 1, use_perms);
+			uint32_t rval = DoRead(virt_addr+i, data+i, 1, use_perms, isFetch);
 			if(rval) return rval;
 		}
 		return 0;
 	}
 
-	archsim::VirtualAddress va (virt_addr);
+	archsim::VirtualAddress va (virt_addr.Get());
 
 	SMMCacheEntry *entry;
 	bool hit = true;
 
-	if(GetThread()->GetExecutionRing()) {
-		if(!TryGetReadKernelCacheEntry(virt_addr, entry)) {
-			hit = false;
-		}
-	} else {
-		if(!TryGetReadUserCacheEntry(virt_addr, entry)) {
-			hit = false;
-		}
-	}
+	auto &cache = GetCache(0, 3, false);
+	hit = cache.TryGetEntry(virt_addr, entry);
 
 	uint32_t rc = 0;
 	if(UNLIKELY(!hit)) {
-		if((rc = UpdateCacheEntry(virt_addr, entry, false, true))) {
+		if((rc = UpdateCacheEntry(virt_addr, entry, false, isFetch, true))) {
 			return rc;
 		}
 
@@ -222,8 +215,8 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 			abi::devices::MemoryComponent* device = entry->GetDevice();
 			LC_DEBUG2(LogSystemMemoryModel) << "Memory read from device at VA " << std::hex << virt_addr << " PA base " << std::hex << entry->GetDevice()->GetBaseAddress();
 			virt_addr &= device->GetSize()-1;
-			uint32_t zdata;
-			if(device->Read(virt_addr, size, zdata)) {
+			uint64_t zdata;
+			if(device->Read(virt_addr.Get(), size, zdata)) {
 				switch(size) {
 					case 1:
 						*data = zdata;
@@ -233,6 +226,9 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 						break;
 					case 4:
 						*(uint32_t*)data = zdata;
+						break;
+					case 8:
+						*(uint64_t*)data = zdata;
 						break;
 					default:
 						assert(false);
@@ -244,7 +240,7 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 		}
 	}
 
-	uint8_t *page_base = (uint8_t*)entry->GetMemory() + entry->GetTag();
+	uint8_t *page_base = (uint8_t*)entry->GetMemory();
 	switch(size) {
 		case 1:
 			*data = *(page_base + va.GetPageOffset());
@@ -255,6 +251,9 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 		case 4:
 			*(uint32_t*)data = *(uint32_t*)(page_base + va.GetPageOffset());
 			break;
+		case 8:
+			*(uint64_t*)data = *(uint64_t*)(page_base + va.GetPageOffset());
+			break;
 		default:
 			assert(false);
 	}
@@ -264,12 +263,20 @@ uint32_t CacheBasedSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *da
 
 void CacheBasedSystemMemoryModel::InstallCaches()
 {
-	if(GetThread()->GetExecutionRing()) {
-		GetThread()->GetStateBlock().SetEntry<void*>("smm_read_cache", _read_kernel_cache.GetCachePtr());
-		GetThread()->GetStateBlock().SetEntry<void*>("smm_write_cache", _write_kernel_cache.GetCachePtr());
-	} else {
-		GetThread()->GetStateBlock().SetEntry<void*>("smm_read_cache", _read_user_cache.GetCachePtr());
-		GetThread()->GetStateBlock().SetEntry<void*>("smm_write_cache", _write_user_cache.GetCachePtr());
+	auto &stateblock = GetThread()->GetStateBlock();
+	for(auto &mode : caches_) {
+		std::string read_name = "mem_cache_" + std::to_string(mode.first.first) + "_" + std::to_string(mode.first.second) + "_read";
+		std::string write_name = "mem_cache_" + std::to_string(mode.first.first) + "_" + std::to_string(mode.first.second) + "_write";
+
+		if(!stateblock.GetDescriptor().HasEntry(read_name)) {
+			stateblock.AddBlock(read_name, 8);
+		}
+		if(!stateblock.GetDescriptor().HasEntry(write_name)) {
+			stateblock.AddBlock(write_name, 8);
+		}
+		GetThread()->GetStateBlock().SetEntry<void*>(read_name, GetCache(mode.first.first, mode.first.second, 0).GetCachePtr());
+		GetThread()->GetStateBlock().SetEntry<void*>(write_name,GetCache(mode.first.first, mode.first.second, 1).GetCachePtr());
+
 	}
 }
 
@@ -278,46 +285,12 @@ uint32_t CacheBasedSystemMemoryModel::Read(guest_addr_t virt_addr, uint8_t *data
 #ifdef CONFIG_MEMORY_EVENTS
 	RaiseEvent(MemoryModel::MemEventRead, virt_addr, size);
 #endif
-	return DoRead(virt_addr, data, size, true);
+	return DoRead(virt_addr, data, size, true, false);
 }
 
 uint32_t CacheBasedSystemMemoryModel::Fetch(guest_addr_t virt_addr, uint8_t *data, int size)
 {
-	VirtualAddress vaddr (virt_addr);
-	if(vaddr.PageBase() == _prev_fetch_page_virt) {
-		return GetPhysMem()->Fetch(_prev_fetch_page_phys.GetPageBase() + vaddr.GetPageOffset(), data, size);
-	}
-
-#ifdef CONFIG_MEMORY_EVENTS
-	RaiseEvent(MemoryModel::MemEventFetch, virt_addr, size);
-#endif
-	bool unaligned = false;
-	if(UNLIKELY(archsim::options::MemoryCheckAlignment)) {
-		switch(size) {
-			case 2:
-				if(virt_addr & 0x1) unaligned = true;
-				break;
-			case 4:
-				if(virt_addr & 0x3) unaligned = true;
-				break;
-		}
-	}
-	if(unaligned) {
-		for(int i = 0; i < size; ++i) {
-			uint32_t rval = Fetch(virt_addr+i, data+i, 1);
-			if(rval) return rval;
-		}
-		return 0;
-	}
-
-	uint32_t pa;
-	uint32_t ecause = (uint32_t)GetMMU()->Translate(GetThread(), virt_addr, pa, MMUACCESSINFO_SE(GetThread()->GetExecutionRing(),0,1));
-	if(ecause) return ecause;
-
-	_prev_fetch_page_virt = vaddr.PageBase();
-	_prev_fetch_page_phys = PhysicalAddress(pa).PageBase();
-
-	return GetPhysMem()->Fetch(pa, data, size);
+	return DoRead(virt_addr, data, size, true, true);
 }
 
 uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *data, int size)
@@ -326,10 +299,13 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 	if(UNLIKELY(archsim::options::MemoryCheckAlignment)) {
 		switch(size) {
 			case 2:
-				if(virt_addr & 0x1) unaligned = true;
+				if(virt_addr.Get() & 0x1) unaligned = true;
 				break;
 			case 4:
-				if(virt_addr & 0x3) unaligned = true;
+				if(virt_addr.Get() & 0x3) unaligned = true;
+				break;
+			case 8:
+				if(virt_addr.Get() & 0x7) unaligned = true;
 				break;
 		}
 	}
@@ -345,26 +321,17 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 	RaiseEvent(MemoryModel::MemEventWrite, virt_addr, size);
 #endif
 
-
-	archsim::VirtualAddress va (virt_addr);
+	archsim::VirtualAddress va (virt_addr.Get());
 
 	SMMCacheEntry *entry;
 	bool hit = true;
-
-	if(GetThread()->GetExecutionRing()) {
-		if(!TryGetWriteKernelCacheEntry(virt_addr, entry)) {
-			hit = false;
-		}
-	} else {
-		if(!TryGetWriteUserCacheEntry(virt_addr, entry)) {
-			hit = false;
-		}
-	}
+	auto &cache = GetCache(0, 3, true);
+	hit = cache.TryGetEntry(virt_addr, entry);
 
 	// If we missed in the cache, try and fill in the cache entry
 	uint32_t rc = 0;
 	if(UNLIKELY(!hit)) {
-		if((rc = UpdateCacheEntry(virt_addr, entry, true, true))) {
+		if((rc = UpdateCacheEntry(virt_addr, entry, true, false, true))) {
 			return rc;
 		}
 
@@ -374,13 +341,16 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 			virt_addr &= device->GetSize()-1;
 			switch(size) {
 				case 1:
-					device->Write(virt_addr, size, *data);
+					device->Write(virt_addr.Get(), size, *data);
 					break;
 				case 2:
-					device->Write(virt_addr, size, *(uint16_t*)data);
+					device->Write(virt_addr.Get(), size, *(uint16_t*)data);
 					break;
 				case 4:
-					device->Write(virt_addr, size, *(uint32_t*)data);
+					device->Write(virt_addr.Get(), size, *(uint32_t*)data);
+					break;
+				case 8:
+					device->Write(virt_addr.Get(), size, *(uint64_t*)data);
 					break;
 				default:
 					assert(false);
@@ -389,11 +359,11 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 		}
 	}
 
-	if (GetCodeRegions().IsRegionCode(PhysicalAddress(entry->GetPhysAddr()))) {
-		GetCodeRegions().InvalidateRegion(PhysicalAddress(entry->GetPhysAddr()));
+	if (GetCodeRegions().IsRegionCode(PhysicalAddress(entry->GetPhysAddr().Get()))) {
+		GetCodeRegions().InvalidateRegion(PhysicalAddress(entry->GetPhysAddr().Get()));
 	}
 
-	uint8_t *page_base = (uint8_t*)entry->GetMemory() + entry->GetTag();
+	uint8_t *page_base = (uint8_t*)entry->GetMemory();
 	switch(size) {
 		case 1:
 			*(page_base + va.GetPageOffset()) = *data;
@@ -403,6 +373,9 @@ uint32_t CacheBasedSystemMemoryModel::Write(guest_addr_t virt_addr, uint8_t *dat
 			break;
 		case 4:
 			*(uint32_t*)(page_base + va.GetPageOffset()) = *(uint32_t*)data;
+			break;
+		case 8:
+			*(uint64_t*)(page_base + va.GetPageOffset()) = *(uint64_t*)data;
 			break;
 		default:
 			assert(false);
@@ -431,8 +404,8 @@ uint32_t CacheBasedSystemMemoryModel::Poke(guest_addr_t virt_addr, uint8_t *data
 	if (UNLIKELY(rc)) {
 		return rc;
 	} else {
-		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr))) {
-			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr));
+		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr.Get()))) {
+			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr.Get()));
 		}
 
 		return GetPhysMem()->Poke(phys_addr, data, size);
@@ -464,8 +437,8 @@ uint32_t CacheBasedSystemMemoryModel::Write8User(guest_addr_t guest_addr, uint8_
 
 	if(UNLIKELY(rc)) return rc;
 	else {
-		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr))) {
-			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr));
+		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr.Get()))) {
+			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr.Get()));
 		}
 		return GetPhysMem()->Write8(phys_addr, data);
 	}
@@ -478,8 +451,8 @@ uint32_t CacheBasedSystemMemoryModel::Write32User(guest_addr_t guest_addr, uint3
 
 	if(UNLIKELY(rc)) return rc;
 	else {
-		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr))) {
-			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr));
+		if (GetCodeRegions().IsRegionCode(PhysicalAddress(phys_addr.Get()))) {
+			GetCodeRegions().InvalidateRegion(PhysicalAddress(phys_addr.Get()));
 		}
 		return GetPhysMem()->Write32(phys_addr, data);
 	}
@@ -490,53 +463,63 @@ bool CacheBasedSystemMemoryModel::ResolveGuestAddress(host_const_addr_t host_add
 	return false;
 }
 
-uint32_t CacheBasedSystemMemoryModel::PerformTranslation(virt_addr_t virt_addr, phys_addr_t &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
+uint32_t CacheBasedSystemMemoryModel::PerformTranslation(Address virt_addr, Address &out_phys_addr, const struct archsim::abi::devices::AccessInfo &info)
 {
 	SMMCacheEntry *entry;
-
-	if(!info.Write) {
-		if(TryGetReadUserCacheEntry(virt_addr, entry)) {
-			out_phys_addr = (entry->GetPhysAddr() & 0xfffff000) | (virt_addr & 0xfff);
-			return 0;
-		}
-
-		if(info.Kernel) {
-			if(TryGetReadKernelCacheEntry(virt_addr, entry)) {
-				out_phys_addr = (entry->GetPhysAddr() & 0xfffff000) | (virt_addr & 0xfff);
-				return 0;
-			}
-		}
+	auto &cache = GetCache(0, info.Ring, info.Write);
+	if(cache.TryGetEntry(virt_addr, entry)) {
+		out_phys_addr = (entry->GetPhysAddr() & ~archsim::Address::PageMask) | (virt_addr & archsim::Address::PageMask);
+		return 0;
 	}
+
 	uint32_t rc = (uint32_t)GetMMU()->Translate(GetThread(), virt_addr, out_phys_addr, info);
 	return rc;
 }
 
-uint32_t CacheBasedSystemMemoryModel::UpdateCacheEntry(guest_addr_t addr, SMMCacheEntry *entry, bool isWrite, bool allow_side_effects)
+uint32_t CacheBasedSystemMemoryModel::UpdateCacheEntry(guest_addr_t addr, SMMCacheEntry *entry, bool isWrite, bool isFetch, bool allow_side_effects)
 {
-	phys_addr_t phys_addr;
-	uint32_t rc = (uint32_t)GetMMU()->Translate(GetThread(), addr, phys_addr, MMUACCESSINFO2(GetThread()->GetExecutionRing(), isWrite,0, allow_side_effects));
+	Address phys_addr;
+	uint32_t rc = (uint32_t)GetMMU()->Translate(GetThread(), addr, phys_addr, MMUACCESSINFO2(GetThread()->GetExecutionRing(), isWrite,isFetch, allow_side_effects));
 	if(rc) {
 		entry->Invalidate();
 		return rc;
 	}
 
-	guest_addr_t virt_page_base = archsim::translate::profile::RegionArch::PageBaseOf(addr);
+	guest_addr_t virt_page_base = addr.PageBase();
 
 	if(GetDeviceManager()->HasDevice(phys_addr)) {
 		abi::devices::MemoryComponent *device = NULL;
 		GetDeviceManager()->LookupDevice(phys_addr, device);
 		assert(device != NULL);
 
-		*entry = SMMCacheEntry(SMMCacheEntry::kInvalidTag, 0, device, SMMCacheEntry::kIsDevice);
+		*entry = SMMCacheEntry(Address(SMMCacheEntry::kInvalidTag), Address(0), device, SMMCacheEntry::kIsDevice);
 		return 0;
 	} else {
 		host_addr_t host_page_addr;
-		guest_addr_t phys_page_base = archsim::translate::profile::RegionArch::PageBaseOf(phys_addr);
+		guest_addr_t phys_page_base = phys_addr.PageBase();
 		if(!GetPhysMem()->LockRegion(phys_page_base, archsim::translate::profile::RegionArch::PageSize, host_page_addr)) {
 			return 1;
 		}
-		*entry = SMMCacheEntry(virt_page_base, phys_page_base, (void*)((uint64_t)host_page_addr - virt_page_base), 0);
+		*entry = SMMCacheEntry(virt_page_base, phys_page_base, (void*)((uint64_t)host_page_addr), 0);
 	}
 
 	return 0;
+}
+
+SMMCache &CacheBasedSystemMemoryModel::GetCache(int interface, int mode, bool write_cache)
+{
+	auto &p = caches_[ {interface, mode}];
+	if(write_cache) {
+		if(p.second == nullptr) {
+			p.second = new SMMCache();
+			InstallCaches();
+		}
+		return *p.second;
+	} else {
+		if(p.first == nullptr) {
+			p.first = new SMMCache();
+			InstallCaches();
+		}
+		return *p.first;
+	}
 }

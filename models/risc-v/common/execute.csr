@@ -1,0 +1,274 @@
+helper typename word_t read_csr(uint32 csr)
+{
+	typename word_t value = 0;
+	switch(csr)
+	{
+		case 0x3: // FCSR
+		{
+			return read_fcsr();
+		}
+		
+		default: {
+			read_device64(0, csr, value);
+			break;
+		}
+	}
+	
+	return value;
+}
+
+helper void write_csr(uint32 csr, typename word_t value)
+{
+	switch(csr)
+	{
+		case 0x3: // FCSR
+		{
+			write_fcsr(value);
+			break;
+		}
+	
+		default:
+		{
+			write_device64(0, csr, value);
+			break;
+		}
+	}
+	return;
+}
+
+/*** MSTATUS ***/
+helper typename word_t riscv_csr_get_mstatus()
+{
+	return read_csr(0x300);
+}
+
+helper void riscv_csr_set_mstatus(typename word_t data)
+{
+	write_csr(0x300, data);
+	return;
+}
+
+helper typename word_t riscv_mstatus_get_mpie(typename word_t mstatus)
+{
+	return (mstatus >> 7) & 1;
+}
+
+helper typename word_t riscv_mstatus_set_mpie(typename word_t mstatus, uint8 mpie)
+{
+	mpie &= 1;
+	return (mstatus & ~(1 << 7)) | (mpie << 7);
+}
+
+helper typename word_t riscv_mstatus_get_spie(typename word_t mstatus)
+{
+	return (mstatus >> 5) & 1;
+}
+
+helper typename word_t riscv_mstatus_set_spie(typename word_t mstatus, uint8 mpie)
+{
+	mpie &= 1;
+	return (mstatus & ~(1 << 5)) | (mpie << 5);
+}
+
+helper typename word_t riscv_mstatus_get_sie(typename word_t mstatus)
+{
+	return (mstatus >> 1) & 1;
+}
+
+helper typename word_t riscv_mstatus_set_sie(typename word_t mstatus, uint8 mpie)
+{
+	mpie &= 1;
+	return (mstatus & ~(1 << 1)) | (mpie << 1);
+}
+
+helper typename word_t riscv_mstatus_get_spp(typename word_t mstatus)
+{
+	return (mstatus >> 8) & 1;
+}
+
+helper typename word_t riscv_mstatus_set_spp(typename word_t mstatus, uint8 spp)
+{
+	spp &= 1;
+	return (mstatus & ~(1 << 8)) | (spp << 8);
+}
+
+helper typename word_t riscv_mstatus_get_mie(typename word_t mstatus)
+{
+	return (mstatus >> 3) & 1;
+}
+
+helper typename word_t riscv_mstatus_set_mie(typename word_t mstatus, uint8 mie)
+{
+	mie &= 1;
+	return (mstatus & ~(1 << 3)) | (mie << 3);
+}
+
+helper typename word_t riscv_mstatus_get_mpp(typename word_t mstatus)
+{
+	return (mstatus >> 11) & 3;
+}
+
+helper typename word_t riscv_mstatus_set_mpp(typename word_t mstatus, uint8 mpp)
+{
+	mpp &= 3;
+	return (mstatus & ~(3 << 11)) | (mpp << 11);
+}
+
+helper typename word_t riscv_csr_get_medeleg()
+{
+	uint64 data;
+	read_device64(0, 0x302, data);
+	return data;
+}
+
+helper typename word_t riscv_csr_get_mideleg()
+{
+	uint64 data;
+	read_device64(0, 0x303, data);
+	return data;
+}
+
+helper typename word_t riscv_csr_get_mtvec()
+{
+	uint64 data;
+	read_device64(0, 0x305, data);
+	return data;
+}
+
+helper void riscv_csr_set_mtvec(typename word_t data)
+{
+	write_device64(0, 0x305, data);
+	return;
+}
+
+helper typename word_t riscv_csr_get_mepc()
+{
+	uint64 data;
+	read_device64(0, 0x341, data);
+	return data;
+}
+
+helper void riscv_csr_set_mepc(typename word_t data)
+{
+	write_device64(0, 0x341, data);
+	return;
+}
+
+helper typename word_t riscv_csr_get_mcause()
+{
+	uint64 data;
+	read_device64(0, 0x342, data);
+	return data;
+}
+
+helper void riscv_csr_set_mcause(typename word_t data)
+{
+	write_device64(0, 0x342, data);
+	return;
+}
+
+helper typename word_t riscv_csr_get_mtval()
+{
+	uint64 data;
+	read_device64(0, 0x343, data);
+	return data;
+}
+
+helper void riscv_csr_set_mtval(typename word_t data)
+{
+	write_device64(0, 0x343, data);
+	return;
+}
+
+helper typename word_t riscv_csr_get_mip()
+{
+	uint64 data;
+	read_device64(0, 0x344, data);
+	return data;
+}
+
+helper void riscv_csr_set_mip(typename word_t data)
+{
+	write_device64(0, 0x344, data);
+	return;
+}
+
+
+/***********************************************************************
+***** SUPERVISOR MODE CSRS
+***********************************************************************/
+
+helper typename word_t riscv_csr_get_sstatus()
+{
+	return read_csr(0x100);
+}
+
+helper void riscv_csr_set_sstatus(typename word_t data)
+{
+	write_csr(0x100, data);
+	return;
+}
+
+helper typename word_t riscv_csr_get_stvec()
+{
+	uint64 data;
+	read_device64(0, 0x105, data);
+	return data;
+}
+
+helper void riscv_csr_set_stvec(typename word_t data)
+{
+	write_device64(0, 0x105, data);
+	return;
+}
+helper typename word_t riscv_csr_get_sepc()
+{
+	uint64 data;
+	read_device64(0, 0x141, data);
+	return data;
+}
+
+helper void riscv_csr_set_sepc(typename word_t data)
+{
+	write_device64(0, 0x141, data);
+	return;
+}
+
+helper typename word_t riscv_csr_get_scause()
+{
+	uint64 data;
+	read_device64(0, 0x142, data);
+	return data;
+}
+
+helper void riscv_csr_set_scause(typename word_t data)
+{
+	write_device64(0, 0x142, data);
+	return;
+}
+
+helper typename word_t riscv_csr_get_stval()
+{
+	uint64 data;
+	read_device64(0, 0x143, data);
+	return data;
+}
+
+helper void riscv_csr_set_stval(typename word_t data)
+{
+	write_device64(0, 0x143, data);
+	return;
+}
+
+helper typename word_t riscv_csr_get_sip()
+{
+	uint64 data;
+	read_device64(0, 0x144, data);
+	return data;
+}
+
+helper void riscv_csr_set_sip(typename word_t data)
+{
+	write_device64(0, 0x144, data);
+	return;
+}

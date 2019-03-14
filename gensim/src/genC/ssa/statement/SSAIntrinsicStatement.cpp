@@ -34,6 +34,7 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 		case SSAIntrinsic_GetCpuMode:
 		case SSAIntrinsic_ProbeDevice:
 		case SSAIntrinsic_WriteDevice:
+		case SSAIntrinsic_WriteDevice64:
 		case SSAIntrinsic_FloatIsQnan:
 		case SSAIntrinsic_FloatIsSnan:
 		case SSAIntrinsic_DoubleIsQnan:
@@ -47,6 +48,13 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 		case SSAIntrinsic_DoubleSqrt:
 		case SSAIntrinsic_DoubleAbs:
 			return IRTypes::Double;
+
+		case SSAIntrinsic_Adc8WithFlags:
+		case SSAIntrinsic_Sbc8WithFlags:
+			return IRTypes::UInt8;
+		case SSAIntrinsic_Adc16WithFlags:
+		case SSAIntrinsic_Sbc16WithFlags:
+			return IRTypes::UInt16;
 
 		case SSAIntrinsic_Adc:
 		case SSAIntrinsic_Sbc:
@@ -66,8 +74,10 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 			return IRTypes::UInt64;
 
 		case SSAIntrinsic_Clz32:
+		case SSAIntrinsic_Ctz32:
 			return IRTypes::UInt32;
 		case SSAIntrinsic_Clz64:
+		case SSAIntrinsic_Ctz64:
 			return IRTypes::UInt64;
 
 		case SSAIntrinsic_UMULL:
@@ -81,6 +91,12 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 
 		case SSAIntrinsic_FMA64:
 			return IRTypes::Double;
+
+		case SSAIntrinsic_MemMonitorWrite8:
+		case SSAIntrinsic_MemMonitorWrite16:
+		case SSAIntrinsic_MemMonitorWrite32:
+		case SSAIntrinsic_MemMonitorWrite64:
+			return IRTypes::UInt8;
 
 		default:
 			return IRTypes::Void;

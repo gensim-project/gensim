@@ -1,0 +1,235 @@
+execute(fld)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+
+	uint64 data;
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t addr = rs1 +  (typename sword_t)imm;
+	
+	mem_read_64(Mem, addr, data);
+	write_register_bank(FP_D, inst.rd, <double>(data));
+}
+
+execute(fsd)
+{
+	uint32 imm2 = inst.imm2;
+	uint32 imm1 = inst.imm1;
+	sint32 imm = (imm2 << 5) | imm1;
+	imm = (imm << 20) >> 20;
+
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t addr = rs1 +  (typename sword_t)imm;
+	
+	mem_write_64(Mem, addr, <uint64>(read_register_bank(FP_D, inst.rs2)));
+}
+
+execute(feq_d)
+{
+	uint64 s1 = <uint64>(read_register_bank(FP_D, inst.rs1));
+	uint64 s2 = <uint64>(read_register_bank(FP_D, inst.rs2));
+	
+	uint8 result = s1 == s2;
+	
+	write_register_bank(GPR, inst.rd, result);
+}
+
+execute(flt_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	
+	uint8 result = s1 < s2;
+	
+	write_register_bank(GPR, inst.rd, result);
+}
+
+execute(fle_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	
+	uint8 result = s1 <= s2;
+	
+	write_register_bank(GPR, inst.rd, result);
+}
+
+execute(fcvt_s_d)
+{
+	// convert f64 to f32
+	double data = read_register_bank(FP_D, inst.rs1);
+	float f = data;
+	
+	//TODO: rounding
+	
+	write_register_bank(FP_S, inst.rd, f);
+}
+
+execute(fcvt_d_s)
+{
+	// convert f32 to f64
+	float data = read_register_bank(FP_S, inst.rs1);
+	double f = data;
+	
+	//TODO: rounding
+	
+	write_register_bank(FP_D, inst.rd, f);
+}
+
+execute(fcvt_d_wu)
+{
+	// convert unsigned 32 bit to f64
+	uint32 data = read_gpr(inst.rs1);
+	double f = data;
+	
+	//TODO: rounding
+	
+	write_register_bank(FP_D, inst.rd, f);
+}
+
+execute(fcvt_d_w)
+{
+	// convert unsigned 32 bit to f64
+	sint32 data = read_gpr(inst.rs1);
+	double f = data;
+	
+	//TODO: rounding
+	
+	write_register_bank(FP_D, inst.rd, f);
+}
+
+execute(fcvt_w_d)
+{
+	// convert f64 to uint32
+	double data = read_register_bank(FP_D, inst.rs1);
+	uint32 f = data;
+	
+	write_register_bank(GPR, inst.rd, f);
+}
+
+execute(fcvt_wu_d)
+{
+	// convert f64 to uint32
+	double data = read_register_bank(FP_D, inst.rs1);
+	sint64 f = data;
+	
+	write_register_bank(GPR, inst.rd, f);
+}
+
+execute(fdiv_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	
+	write_register_bank(FP_D, inst.rd, s1 / s2);
+}
+
+execute(fadd_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	
+	write_register_bank(FP_D, inst.rd, s1 + s2);
+}
+
+execute(fsub_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	
+	write_register_bank(FP_D, inst.rd, s1 - s2);
+}
+
+execute(fmul_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	
+	write_register_bank(FP_D, inst.rd, s1 * s2);
+}
+
+execute(fsqrt_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	
+	write_register_bank(FP_D, inst.rd, double_sqrt(s1));
+}
+
+execute(fmadd_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	double s3 = read_register_bank(FP_D, inst.rs3);
+	
+	write_register_bank(FP_D, inst.rd, (s1 * s2) + s3);
+}
+
+execute(fmsub_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	double s3 = read_register_bank(FP_D, inst.rs3);
+	
+	write_register_bank(FP_D, inst.rd, (s1 * s2) - s3);
+}
+
+execute(fnmadd_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	double s3 = read_register_bank(FP_D, inst.rs3);
+	
+	write_register_bank(FP_D, inst.rd, (-s1 * s2) + s3);
+}
+
+execute(fnmsub_d)
+{
+	double s1 = read_register_bank(FP_D, inst.rs1);
+	double s2 = read_register_bank(FP_D, inst.rs2);
+	double s3 = read_register_bank(FP_D, inst.rs3);
+	
+	write_register_bank(FP_D, inst.rd, (-s1 * s2) - s3);
+}
+
+execute(fsgnj_d)
+{
+	sint64 s1 = <uint64>(read_register_bank(FP_D, inst.rs1));
+	sint64 s2 = <uint64>(read_register_bank(FP_D, inst.rs2));
+	
+	uint64 sign2 = s2 < 0;
+	
+	uint64 output_sign = (sign2) << 63;
+	uint64 output = (((uint64)s1) & 0x7fffffffffffffff) | output_sign;
+	
+	write_register_bank(FP_D, inst.rd, <double>(output));
+}
+
+execute(fsgnjn_d)
+{
+	sint64 s1 = <uint64>(read_register_bank(FP_D, inst.rs1));
+	sint64 s2 = <uint64>(read_register_bank(FP_D, inst.rs2));
+	
+	uint64 sign2 = s2 < 0;
+	
+	uint64 output_sign = ((uint64)(!sign2)) << 63;
+	uint64 output = (((uint64)s1) & 0x7fffffffffffffff) | output_sign;
+	
+	write_register_bank(FP_D, inst.rd, <double>(output));
+}
+
+execute(fsgnjx_d)
+{
+	sint64 s1 = <uint64>(read_register_bank(FP_D, inst.rs1));
+	sint64 s2 = <uint64>(read_register_bank(FP_D, inst.rs2));
+	
+	uint64 sign1 = s1 < 0;
+	uint64 sign2 = s2 < 0;
+	
+	uint64 output_sign = (sign1 ^ sign2) << 63;
+	uint64 output = (((uint64)s1) & 0x7fffffffffffffff) | output_sign;
+	
+	write_register_bank(FP_D, inst.rd, <double>(output));
+}
+

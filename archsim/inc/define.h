@@ -28,6 +28,7 @@
 
 #define UNIMPLEMENTED do { throw std::logic_error("Not implemented " __FILE__ ":" + std::to_string(__LINE__)); } while(0)
 #define ASSERT(x) do { if(!(x)) { throw std::logic_error("Assertion failed: " #x ", " __FILE__ ":" + std::to_string(__LINE__)); } } while(0)
+#define UNEXPECTED do {throw std::logic_error("Unexpected: " __FILE__", " + std::to_string(__LINE__)); } while(0)
 
 // Prompts for gcc's block placement algorithms
 #define LIKELY(x) __builtin_expect((x), 1)
@@ -54,14 +55,9 @@
 	TypeName(const TypeName&) = delete; \
 	void operator=(const TypeName&) = delete
 
-/*
- * Type-safe memory addressing
- */
-typedef void *host_addr_t;
-typedef uint32_t addr_t;
-typedef addr_t addr_off_t;
-typedef addr_t virt_addr_t;
-typedef addr_t phys_addr_t;
+using host_addr_t = void*;
+using uint128_t = __uint128_t;
+using int128_t = __int128_t;
 
 #include "cmake-config.h"
 

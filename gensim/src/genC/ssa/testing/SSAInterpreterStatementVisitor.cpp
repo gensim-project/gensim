@@ -52,11 +52,6 @@ void SSAInterpreterStatementVisitor::VisitReturnStatement(SSAReturnStatement& st
 
 void SSAInterpreterStatementVisitor::VisitCastStatement(SSACastStatement& stmt)
 {
-	// fetch the value of the original expression
-	if(stmt.GetType().VectorWidth != 1) {
-		UNIMPLEMENTED;
-	}
-
 	IRConstant base_value = _vmstate.GetStatementValue(stmt.Expr());
 
 	IRConstant value = IRType::Cast(base_value, stmt.Expr()->GetType(), stmt.GetType());
@@ -182,7 +177,7 @@ void SSAInterpreterStatementVisitor::VisitBinaryArithmeticStatement(SSABinaryAri
 			break;
 
 		case RotateLeft:
-			switch(stmt.GetType().Size()) {
+			switch(stmt.GetType().SizeInBytes()) {
 				case 4:
 					result = IRConstant::ROL(lhs, rhs, 32);
 					break;
@@ -193,7 +188,7 @@ void SSAInterpreterStatementVisitor::VisitBinaryArithmeticStatement(SSABinaryAri
 					UNIMPLEMENTED;
 			}
 		case RotateRight:
-			switch(stmt.GetType().Size()) {
+			switch(stmt.GetType().SizeInBytes()) {
 				case 4:
 					result = IRConstant::ROR(lhs, rhs, 32);
 					break;
@@ -244,7 +239,7 @@ gensim::genc::IRConstant ReadElement(gensim::genc::ssa::testing::RegisterFileSta
 		double data_d;
 	};
 
-	rfile.Read(offset, type.Size(), (uint8_t*)&data_i);
+	rfile.Read(offset, type.SizeInBytes(), (uint8_t*)&data_i);
 
 	switch(type.BaseType.PlainOldDataType) {
 		case IRPlainOldDataType::FLOAT:
@@ -298,8 +293,8 @@ void SSAInterpreterStatementVisitor::VisitRegisterStatement(SSARegisterStatement
 			if(value_type.VectorWidth > 1) {
 				IRConstant vector = IRConstant::Vector(value_type.VectorWidth, GetDefault(value_type.GetElementType()));
 				for(unsigned i = 0; i < value_type.VectorWidth; ++i) {
-					vector.VPut(i, ReadElement(_machine_state.RegisterFile(), data_offset, value_type.GetElementType()));
-					data_offset += value_type.Size();
+					vector.GetVector().SetElement(i, ReadElement(_machine_state.RegisterFile(), data_offset, value_type.GetElementType()));
+					data_offset += value_type.SizeInBytes();
 				}
 				_vmstate.SetStatementValue(&stmt, vector);
 			} else {
@@ -315,7 +310,7 @@ void SSAInterpreterStatementVisitor::VisitRegisterStatement(SSARegisterStatement
 		try {
 			if(stmt.Value()->GetType().VectorWidth > 1) {
 				for(unsigned i = 0; i < stmt.Value()->GetType().VectorWidth; ++i) {
-					uint64_t data = _vmstate.GetStatementValue(stmt.Value()).VGet(i).POD();
+					uint64_t data = _vmstate.GetStatementValue(stmt.Value()).GetVector().GetElement(i).POD();
 					_machine_state.RegisterFile().Write(data_offset, data_size, (uint8_t*)&data);
 					data_offset += data_stride;
 				}
@@ -529,7 +524,8 @@ void SSAInterpreterStatementVisitor::VisitPhiStatement(SSAPhiStatement& stmt)
 
 void SSAInterpreterStatementVisitor::VisitReadStructMemberStatement(SSAReadStructMemberStatement& stmt)
 {
-	_vmstate.SetStatementValue(&stmt, _machine_state.Instruction().GetField(stmt.MemberName));
+	UNIMPLEMENTED; // TODO: Fix this
+//	_vmstate.SetStatementValue(&stmt, _machine_state.Instruction().GetField(stmt.MemberName));
 	_vmstate.SetResult(Interpret_Normal);
 }
 
@@ -585,7 +581,8 @@ void SSAInterpreterStatementVisitor::VisitVectorExtractElementStatement(SSAVecto
 {
 	auto base = _vmstate.GetStatementValue(stmt.Base());
 	auto index = _vmstate.GetStatementValue(stmt.Index());
-	auto value = base.VGet(index.Int() % base.VSize());
+	auto value = base.GetVector().GetElement(index.Int() % base.GetVector().Width());
+	value = IRType::Cast(value, stmt.Base()->GetType().GetElementType(), stmt.Base()->GetType().GetElementType());
 	_vmstate.SetStatementValue(&stmt, value);
 	_vmstate.SetResult(InterpretResult::Interpret_Normal);
 }
@@ -593,11 +590,37 @@ void SSAInterpreterStatementVisitor::VisitVectorExtractElementStatement(SSAVecto
 void SSAInterpreterStatementVisitor::VisitVectorInsertElementStatement(SSAVectorInsertElementStatement& stmt)
 {
 	IRConstant vector = _vmstate.GetStatementValue(stmt.Base());
-	vector.VPut(_vmstate.GetStatementValue(stmt.Index()).Int() % vector.VSize(), _vmstate.GetStatementValue(stmt.Value()));
+
+	IRConstant value = _vmstate.GetStatementValue(stmt.Value());
+	value = IRType::Cast(value, stmt.Base()->GetType().GetElementType(), stmt.Base()->GetType().GetElementType());
+
+	vector.GetVector().SetElement(_vmstate.GetStatementValue(stmt.Index()).Int() % vector.GetVector().Width(), value);
 	_vmstate.SetStatementValue(&stmt, vector);
 
 	_vmstate.SetResult(InterpretResult::Interpret_Normal);
 }
+
+void SSAInterpreterStatementVisitor::VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt)
+{
+	IRConstantVector v0 = _vmstate.GetStatementValue(stmt.LHS()).GetVector();
+	IRConstantVector v1 = _vmstate.GetStatementValue(stmt.RHS()).GetVector();
+	IRConstantVector indices = _vmstate.GetStatementValue(stmt.Indices()).GetVector();
+
+	IRConstantVector output(indices.Width(), v0.GetElement(0));
+	for(int i = 0; i < output.Width(); ++i) {
+		int index = indices.GetElement(i).Int();
+
+		if(index < v0.Width()) {
+			output.SetElement(i, v0.GetElement(index));
+		} else {
+			index -= v0.Width();
+			output.SetElement(i, v1.GetElement(index));
+		}
+	}
+	_vmstate.SetStatementValue(&stmt, IRConstant::Vector(output));
+	_vmstate.SetResult(InterpretResult::Interpret_Normal);
+}
+
 
 void SSAInterpreterStatementVisitor::VisitBitDepositStatement(SSABitDepositStatement& stmt)
 {

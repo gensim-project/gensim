@@ -52,7 +52,7 @@ public:
 			new SSAReturnStatement(epilogue, nullptr);
 		}
 
-		for(auto block : action.Blocks) {
+		for(auto block : action.GetBlocks()) {
 			if(block == epilogue) {
 				continue;
 			}

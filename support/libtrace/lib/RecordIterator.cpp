@@ -6,7 +6,9 @@ using namespace libtrace;
 
 TraceRecord RecordIterator::operator*()
 {
-	Record r = buffer_->Get(_idx);
+	Record r;
+	bool success = buffer_->Get(_idx, r);
+	assert(success);
 	auto i = *(TraceRecord*)&r;
 	return i;
 }

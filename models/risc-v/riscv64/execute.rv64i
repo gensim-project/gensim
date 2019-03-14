@@ -1,0 +1,146 @@
+
+execute(sd)
+{
+	uint32 imm2 = inst.imm2;
+	uint32 imm1 = inst.imm1;
+	sint32 imm = (imm2 << 5) | imm1;
+
+	imm <<= 20;
+	imm >>= 20;
+
+	typename word_t rs1 = read_gpr(inst.rs1);
+	
+	typename word_t addr = rs1 + (typename sword_t)imm;
+
+	mem_write_64(Mem, addr, read_gpr(inst.rs2));
+}
+
+execute(lwu)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20; 
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t addr = rs1 +  (typename sword_t)imm;
+
+	uint32 val;
+
+	mem_read_32(Mem, addr, val);
+
+	write_register_bank(GPR, inst.rd, val);
+}
+
+execute(ld)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20; 
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t addr = rs1 +  (typename sword_t)imm;
+
+	uint64 val;
+        
+	mem_read_64(Mem, addr, val);
+
+	write_register_bank(GPR, inst.rd, val);
+}
+
+execute(addw)
+{
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+	
+	sint32 result = rs1 + rs2;
+	typename sword_t xresult = result;
+	
+	write_register_bank(GPR, inst.rd, xresult);
+}
+
+execute(sllw)
+{
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+	
+	sint32 result = rs1 << (rs2 & 0x1f);
+	typename sword_t xresult = result;
+	
+	write_register_bank(GPR, inst.rd, xresult);
+}
+
+execute(srlw)
+{
+	uint32 rs1 = read_gpr(inst.rs1);
+	uint32 rs2 = read_gpr(inst.rs2);
+	
+	uint32 result = rs1 >> (rs2 & 0x1f);
+	typename word_t xresult = result;
+	
+	write_register_bank(GPR, inst.rd, (typename sword_t)(sint32)xresult);
+}
+
+execute(subw)
+{
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+	
+	sint32 result = rs1 - rs2;
+	typename sword_t xresult = result;
+	
+	write_register_bank(GPR, inst.rd, xresult);
+}
+
+execute(sraw)
+{
+	sint32 rs1 = read_gpr(inst.rs1);
+	sint32 rs2 = read_gpr(inst.rs2);
+	
+	sint32 result = rs1 >> (rs2 & 0x1f);
+	typename sword_t xresult = result;
+	
+	write_register_bank(GPR, inst.rd, xresult);
+}
+
+execute(slliw)
+{
+	uint32 rs1 = read_gpr(inst.rs1);
+	uint32 shamt = inst.imm4;
+	
+	sint32 result = rs1 << shamt;
+	
+	write_register_bank(GPR, inst.rd, (typename sword_t)result);
+}
+
+execute(srliw)
+{
+	uint32 rs1 = read_gpr(inst.rs1);
+	uint32 shamt = inst.imm4;
+	
+	sint32 result = rs1 >> shamt;
+	
+	write_register_bank(GPR, inst.rd, (typename sword_t)result);
+}
+
+execute(sraiw)
+{
+	sint32 rs1 = read_gpr(inst.rs1);
+	uint32 shamt = inst.imm4;
+	
+	sint32 result = rs1 >> shamt;
+	
+	write_register_bank(GPR, inst.rd, (typename sword_t)result);
+}
+
+execute(addiw)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+	rs1 += (typename sword_t)imm;
+	rs1 = (typename sword_t)(sint32)rs1;
+	
+	write_register_bank(GPR, inst.rd, rs1);	
+}

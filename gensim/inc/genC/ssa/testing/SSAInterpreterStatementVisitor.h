@@ -60,6 +60,7 @@ namespace gensim
 					void VisitVariableWriteStatement(SSAVariableWriteStatement& stmt) override;
 					void VisitVectorExtractElementStatement(SSAVectorExtractElementStatement& stmt) override;
 					void VisitVectorInsertElementStatement(SSAVectorInsertElementStatement& stmt) override;
+					void VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt) override;
 
 
 				private:

@@ -25,14 +25,14 @@ namespace archsim
 		class LinuxSystemEmulationModel : public SystemEmulationModel
 		{
 		public:
-			LinuxSystemEmulationModel();
+			LinuxSystemEmulationModel(bool is_64bit);
 			virtual ~LinuxSystemEmulationModel();
 
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
 			void Destroy() override;
 
 		protected:
-			bool InstallPlatform(loader::BinaryLoader& loader) override;
+			bool PreparePlatform(archsim::abi::loader::BinaryLoader& loader) override;
 
 			inline const LinuxEmulationComponent& GetRootFSComponent() const
 			{
@@ -48,13 +48,14 @@ namespace archsim
 			}
 
 		private:
+			bool is_64bit_;
 			LinuxEmulationComponent rootfs;
 			LinuxEmulationComponent devicetree;
 			LinuxEmulationComponent atags;
 
-			bool InstallDeviceTree(std::string filename, uint32_t addr);
-			bool InstallATAGS(std::string kernel_args, uint32_t addr);
-			bool InstallRootFS(std::string filename, uint32_t addr);
+			bool InstallDeviceTree(std::string filename, Address addr);
+			bool InstallATAGS(std::string kernel_args, Address addr);
+			bool InstallRootFS(std::string filename, Address addr);
 
 
 		};

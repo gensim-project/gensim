@@ -71,7 +71,7 @@ SSAStatement *generate_const(SSABlock *block, SSABlockGenerator *gen)
 
 
 	uint64_t the_value = gen->Random();
-	the_value &= (1ULL << (8*the_type.Size()))-1;
+	the_value &= (1ULL << (8*the_type.SizeInBytes()))-1;
 
 	return new SSAConstantStatement(block, gensim::genc::IRConstant::Integer(the_value), the_type);
 }

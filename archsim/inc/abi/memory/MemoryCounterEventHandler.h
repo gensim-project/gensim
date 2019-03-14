@@ -57,7 +57,7 @@ namespace archsim
 #if CONFIG_LLVM
 					return translator;
 #else
-					assert(false);
+					UNIMPLEMENTED;
 #endif
 				}
 

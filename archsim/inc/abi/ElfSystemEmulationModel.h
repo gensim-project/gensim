@@ -26,7 +26,7 @@ namespace archsim
 			bool Initialise(System& system, archsim::uarch::uArch& uarch) override;
 			void Destroy() override;
 
-			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *thread, uint32_t category, uint32_t data) override;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance *thread, uint64_t category, uint64_t data) override;
 
 		protected:
 
@@ -43,10 +43,10 @@ namespace archsim
 			bool InstallKernelHelpers();
 			bool PrepareStack();
 
-			uint32_t binary_entrypoint;
-			uint32_t initial_sp;
+			Address binary_entrypoint;
+			Address initial_sp;
 
-			uint32_t heap_base, heap_limit, stack_base, stack_limit;
+			Address heap_base, heap_limit, stack_base, stack_limit;
 		};
 	}
 }

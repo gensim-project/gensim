@@ -22,8 +22,8 @@ public:
 	WSBlockDevice(archsim::abi::EmulationModel& model, archsim::Address base_addr, archsim::abi::devices::generic::block::BlockDevice& bdev);
 	~WSBlockDevice();
 
-	bool Read(uint32_t offset, uint8_t size, uint32_t& data) override;
-	bool Write(uint32_t offset, uint8_t size, uint32_t data) override;
+	bool Read(uint32_t offset, uint8_t size, uint64_t& data) override;
+	bool Write(uint32_t offset, uint8_t size, uint64_t data) override;
 
 private:
 	bool HandleOp(uint32_t op_idx);

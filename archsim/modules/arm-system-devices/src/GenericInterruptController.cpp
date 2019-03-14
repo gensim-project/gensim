@@ -43,7 +43,7 @@ namespace archsim
 				return true;
 			}
 
-			bool GICDistributorInterface::Read(uint32_t off, uint8_t len, uint32_t& data)
+			bool GICDistributorInterface::Read(uint32_t off, uint8_t len, uint64_t& data)
 			{
 				LC_DEBUG2(LogGIC) << "Distributor read: offset " << off;
 				switch (off) {
@@ -151,7 +151,7 @@ namespace archsim
 
 			/* GIC Distributor Interface*/
 
-			bool GICDistributorInterface::Write(uint32_t off, uint8_t len, uint32_t data)
+			bool GICDistributorInterface::Write(uint32_t off, uint8_t len, uint64_t data)
 			{
 				LC_DEBUG2(LogGIC) << "Distributor write offset " << std::hex << (uint32_t)off << ", data: " << std::hex << data;
 
@@ -260,7 +260,7 @@ namespace archsim
 				return true;
 			}
 
-			bool GICCPUInterface::Read(uint32_t off, uint8_t len, uint32_t& data)
+			bool GICCPUInterface::Read(uint32_t off, uint8_t len, uint64_t& data)
 			{
 				LC_DEBUG2(LogGIC) << "CPU Interface read " << std::hex << off;
 				switch (off) {
@@ -295,7 +295,7 @@ namespace archsim
 				return true;
 			}
 
-			bool GICCPUInterface::Write(uint32_t off, uint8_t len, uint32_t data)
+			bool GICCPUInterface::Write(uint32_t off, uint8_t len, uint64_t data)
 			{
 				LC_DEBUG2(LogGIC) << "CPU Interface write " << std::hex << off << ", data " << data;
 				switch (off) {

@@ -1,0 +1,29 @@
+AC_ISA(x86)
+{
+	ac_format FORMAT_DUMMY_X87 = "%dummy:32";
+	
+	ac_instr<FORMAT_DUMMY_X87> fild, fnstcw, fld, fst, fstp, fsubp;
+	
+	ac_behaviour fild, fnstcw, fld, fst, fstp, fsubp;
+	
+	ISA_CTOR(x86) {
+		fld.set_decoder();
+		fld.set_behaviour(fld);
+	
+		fild.set_decoder();
+		fild.set_behaviour(fild);
+	
+		fnstcw.set_decoder();
+		fnstcw.set_behaviour(fnstcw);
+		
+		fst.set_decoder();
+		fst.set_behaviour(fst);
+		
+		fstp.set_decoder();
+		fstp.set_behaviour(fstp);
+	
+		fsubp.set_decoder();
+		fsubp.set_behaviour(fsubp);
+	
+	};
+};

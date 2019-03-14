@@ -36,7 +36,7 @@ namespace archsim
 
 					bool Initialise() override;
 
-					bool Read(uint32_t offset, uint8_t size, uint32_t& data) override;
+					bool Read(uint32_t offset, uint8_t size, uint64_t& data) override;
 
 					uint32_t ReadRegister(MemoryRegister& reg) override;
 					void WriteRegister(MemoryRegister& reg, uint32_t value) override;
@@ -44,7 +44,7 @@ namespace archsim
 					generic::GPIO *AttachGPIO(unsigned int idx);
 
 				private:
-					bool HandleDataRead(uint32_t offset, uint8_t size, uint32_t& data);
+					bool HandleDataRead(uint32_t offset, uint8_t size, uint64_t& data);
 
 					COMPONENT_PARAMETER_ENTRY(IRQLine, IRQLine, IRQLine);
 

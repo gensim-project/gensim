@@ -87,7 +87,7 @@ namespace archsim
 					VirtIO(EmulationModel& parent_model, IRQLine& irq, Address base_address, uint32_t size, std::string name, uint32_t version, uint32_t device_id, uint8_t nr_queues);
 					virtual ~VirtIO();
 
-					bool Read(uint32_t offset, uint8_t size, uint32_t& data) override;
+					bool Read(uint32_t offset, uint8_t size, uint64_t& data) override;
 
 					uint32_t ReadRegister(MemoryRegister& reg) override;
 					void WriteRegister(MemoryRegister& reg, uint32_t value) override;

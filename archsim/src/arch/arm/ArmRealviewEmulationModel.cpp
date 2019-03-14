@@ -38,7 +38,7 @@ RegisterComponent(EmulationModel, ArmRealviewEmulationModel, "arm-realview", "AR
 UseLogContext(LogSystemEmulationModel);
 DeclareChildLogContext(LogArmSystemEmulationModel, LogSystemEmulationModel, "ARM");
 
-ArmRealviewEmulationModel::ArmRealviewEmulationModel() : entry_point(0)
+ArmRealviewEmulationModel::ArmRealviewEmulationModel() : LinuxSystemEmulationModel(false), entry_point(0)
 {
 
 }
@@ -56,6 +56,10 @@ bool ArmRealviewEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 	if (GetMemoryModel().GetMappingManager())
 		GetMemoryModel().GetMappingManager()->MapAll((archsim::abi::memory::RegionFlags)7);
 
+	InstantiateThreads(1);
+
+	CreateMemoryDevices();
+
 	return true;
 }
 
@@ -67,14 +71,14 @@ void ArmRealviewEmulationModel::Destroy()
 bool ArmRealviewEmulationModel::InstallBootloader(archsim::abi::loader::BinaryLoader& loader)
 {
 	entry_point = loader.GetEntryPoint();
-	GetMemoryModel().Write(0, (uint8_t *)&bootloader_start, bootloader_size);
+	GetMemoryModel().Write(0_ga, (uint8_t *)&bootloader_start, bootloader_size);
 
 	return true;
 }
 
-bool ArmRealviewEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
+bool ArmRealviewEmulationModel::PreparePlatform(loader::BinaryLoader& loader)
 {
-	if (!LinuxSystemEmulationModel::InstallPlatform(loader))
+	if (!LinuxSystemEmulationModel::PreparePlatform(loader))
 		return false;
 
 	return InstallBootloader(loader);
@@ -103,7 +107,7 @@ bool ArmRealviewEmulationModel::PrepareCore(archsim::core::thread::ThreadInstanc
 	}
 
 	// IP = Entry Point
-	regs[12] = entry_point;
+	regs[12] = entry_point.Get();
 
 	return true;
 }
@@ -123,7 +127,7 @@ bool ArmRealviewEmulationModel::AddGenericPrimecellDevice(Address base_addr, uin
 	return true;
 }
 
-bool ArmRealviewEmulationModel::InstallPlatformDevices()
+bool ArmRealviewEmulationModel::CreateMemoryDevices()
 {
 	LC_INFO(LogArmSystemEmulationModel) << "Installing platform devices";
 
@@ -151,7 +155,7 @@ bool ArmRealviewEmulationModel::InstallPlatformDevices()
 	auto gic = adm->GetEntry<ModuleComponentEntry>("GIC.GIC")->Get(*this);
 	gic_distributor->SetParameter("Owner", gic);
 	gic_cpuinterface->SetParameter("Owner", gic);
-	gic_cpuinterface->SetParameter("IRQLine", (archsim::abi::devices::Component*)main_thread_->GetIRQLine(1));
+	gic_cpuinterface->SetParameter("IRQLine", (archsim::abi::devices::Component*)GetThread(0).GetIRQLine(1));
 	auto irq_controller = dynamic_cast<archsim::abi::devices::IRQController*>(gic);
 
 	gic->SetParameter("CpuInterface", gic_cpuinterface);
@@ -306,51 +310,36 @@ bool ArmRealviewEmulationModel::InstallPlatformDevices()
 		mali->SetParameter("GPUID", (uint64_t)0x60000000);
 		mali->SetParameter("PubSubContext", (archsim::abi::devices::Component*)(&GetSystem().GetPubSub()));
 		mali->SetParameter("PhysicalMemoryModel", (archsim::abi::devices::Component*)&GetMemoryModel());
-		mali->SetParameter("PeripheralManager", (archsim::abi::devices::Component*)(&(main_thread_->GetPeripherals())));
+		mali->SetParameter("PeripheralManager", (archsim::abi::devices::Component*)(&(GetThread(0).GetPeripherals())));
 		mali->Initialise();
 	}
 	return true;
 }
 
-bool ArmRealviewEmulationModel::InstallPeripheralDevices()
+bool ArmRealviewEmulationModel::CreateCoreDevices(archsim::core::thread::ThreadInstance* thread)
 {
 	LC_INFO(LogArmSystemEmulationModel) << "[ARM-SYSTEM] Installing peripheral devices";
 
 	archsim::abi::devices::Device *coprocessor;
 	if(!GetComponentInstance("armcoprocessor", coprocessor)) return false;
-	main_thread_->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
-	main_thread_->GetPeripherals().AttachDevice("coprocessor", 15);
+	thread->GetPeripherals().RegisterDevice("coprocessor", coprocessor);
+	thread->GetPeripherals().AttachDevice("coprocessor", 15);
 
 	if(!GetComponentInstance("armdebug", coprocessor)) return false;
-	main_thread_->GetPeripherals().RegisterDevice("armdebug", coprocessor);
-	main_thread_->GetPeripherals().AttachDevice("armdebug", 14);
+	thread->GetPeripherals().RegisterDevice("armdebug", coprocessor);
+	thread->GetPeripherals().AttachDevice("armdebug", 14);
 
 	archsim::abi::devices::Device *mmu;
 	if(!GetComponentInstance("ARMv6MMU", mmu)) return false;
-	main_thread_->GetPeripherals().RegisterDevice("mmu", mmu);
+	thread->GetPeripherals().RegisterDevice("mmu", mmu);
 
 	devices::SimulatorCacheControlCoprocessor *sccc = new devices::SimulatorCacheControlCoprocessor();
-	main_thread_->GetPeripherals().RegisterDevice("sccc", sccc);
-	main_thread_->GetPeripherals().AttachDevice("sccc", 13);
+	thread->GetPeripherals().RegisterDevice("sccc", sccc);
+	thread->GetPeripherals().AttachDevice("sccc", 13);
 
-	main_thread_->GetPeripherals().InitialiseDevices();
+	thread->GetPeripherals().InitialiseDevices();
 
 	return true;
-}
-
-bool ArmRealviewEmulationModel::InstallDevices()
-{
-	return InstallPeripheralDevices() && InstallPlatformDevices();
-}
-
-void ArmRealviewEmulationModel::DestroyDevices()
-{
-//	archsim::abi::devices::ArmCoprocessor *coproc = (archsim::abi::devices::ArmCoprocessor *)cpu->peripherals.GetDeviceByName("coprocessor");
-//	fprintf(stderr, "Reads:\n");
-//	coproc->dump_reads();
-//
-//	fprintf(stderr, "Writes:\n");
-//	coproc->dump_writes();
 }
 
 void ArmRealviewEmulationModel::HandleSemihostingCall()
@@ -363,14 +352,14 @@ void ArmRealviewEmulationModel::HandleSemihostingCall()
 		case 3:
 			uint8_t c;
 			//cpu->translation_provider->Translate(cpu, regs[1], phys_addr, 0);
-			GetMemoryModel().Read8(phys_addr, c);
+			GetMemoryModel().Read8(Address(phys_addr), c);
 			printf("\x1b[31m%c\x1b[0m", c);
 			fflush(stdout);
 			break;
 		case 4:
 			char buffer[256];
 			//cpu->translation_provider->Translate(cpu, regs[1], phys_addr, 0);
-			GetMemoryModel().ReadString(phys_addr, buffer, sizeof(buffer));
+			GetMemoryModel().ReadString(Address(phys_addr), buffer, sizeof(buffer));
 			printf("\x1b[31m%s\x1b[0m", buffer);
 			fflush(stdout);
 			break;
@@ -384,7 +373,7 @@ void ArmRealviewEmulationModel::HandleSemihostingCall()
 	}
 }
 
-ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, unsigned int category, unsigned int data)
+ExceptionAction ArmRealviewEmulationModel::HandleException(archsim::core::thread::ThreadInstance *cpu, uint64_t category, uint64_t data)
 {
 	LC_DEBUG4(LogSystemEmulationModel) << "Handle Exception category: " << category << " data 0x" << std::hex << data << " PC " << cpu->GetPC() << " mode " << (uint32_t)cpu->GetModeID();
 

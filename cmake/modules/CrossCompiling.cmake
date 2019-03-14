@@ -67,13 +67,14 @@ function(cross_compile_try_prefix arch outvar)
 
 		cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnueabi-")
 		cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnueabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnu-")
 		cross_compile_try_arch_prefix("${arch}" "${arch}-none-eabi-")
 		cross_compile_try_arch_prefix("${arch}" "${arch}-redhat-linux-")		
 		
 		IF(CC_PREFIX_${arch}_valid)
 			MESSAGE(STATUS " - Got cross compiler ${CC_PREFIX_${arch}}")
 		ELSE()
-			MESSAGE(STATUS " - No valid cross compiler")
+			MESSAGE(SEND_ERROR " - No valid cross compiler for architecture \"${arch}\"")
 		ENDIF()
 		
 		SET(${outvar} ${CC_PREFIX_${arch}} PARENT_SCOPE)

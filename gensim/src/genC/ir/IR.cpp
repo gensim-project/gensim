@@ -13,6 +13,10 @@ namespace gensim
 {
 	namespace genc
 	{
+		IRVectorExpression::~IRVectorExpression()
+		{
+
+		}
 
 /////////////////////////////////////////////////////////////
 // Constructors
@@ -52,6 +56,17 @@ namespace gensim
 /////////////////////////////////////////////////////////////
 // Resolve Pass
 /////////////////////////////////////////////////////////////
+		bool IRVectorExpression::Resolve(GenCContext& Context)
+		{
+			bool success = true;
+			for(auto i : elements_) {
+				success &= i->Resolve(Context);
+			}
+
+			Resolved = success;
+			return success;
+		}
+
 
 		bool IRSelectionStatement::Resolve(GenCContext &Context)
 		{
@@ -104,8 +119,21 @@ namespace gensim
 			}
 
 			if(paramType.Reference) {
-				// parameter must be a variable expression
-				if(dynamic_cast<IRVariableExpression*>(givenParameter) == nullptr) {
+				// parameter must be a variable expression or a read struct member
+				bool ok_parameter = false;
+
+				if(dynamic_cast<IRVariableExpression*>(givenParameter) != nullptr) {
+					ok_parameter = true;
+				}
+
+				if(dynamic_cast<IRUnaryExpression*>(givenParameter) != nullptr) {
+					IRUnaryExpression *exp = (IRUnaryExpression*)givenParameter;
+					if(exp->Type == IRUnaryOperator::Member) {
+						ok_parameter = true;
+					}
+				}
+
+				if(!ok_parameter) {
 					std::string errstring = Format("In call to %s, parameter %u: Reference parameter must be a simple variable expression", TargetName.c_str(), idx, paramType.PrettyPrint().c_str(), givenType.PrettyPrint().c_str());
 					Context.Diag().Error(errstring, Diag());
 					success = false;
@@ -126,13 +154,6 @@ namespace gensim
 				success = false;
 			}
 
-			// Cannot pass structs
-			if(givenType.IsStruct()) {
-				std::string errstring = Format("In call to %s, parameter %u: Cannot pass struct to helper", TargetName.c_str(), idx);
-				Context.Diag().Error(errstring, Diag());
-				success = false;
-			}
-
 			// If the user gives a parameter which is an integer, but a float is expected, give an error
 			if(!givenType.IsFloating() && paramType.IsFloating()) {
 				std::string errstring = Format("In call to %s, parameter %u: An integer parameter was given but a floating point value was expected", TargetName.c_str(), idx);
@@ -142,7 +163,7 @@ namespace gensim
 
 			// If the user gives a parameter which is a constant and is too large to fit within the parameter, signal an error
 			if(IRConstExpression * constant = dynamic_cast<IRConstExpression*>(givenParameter)) {
-				if(constant->Value.Int() > paramType.GetMaxValue()) {
+				if(constant->GetValue().Int() > paramType.GetMaxValue()) {
 					std::string errstring = Format("In call to %s, parameter %u: Constant value is to large to fit in parameter type %s", TargetName.c_str(), idx, givenType.PrettyPrint().c_str());
 					Context.Diag().Error(errstring, Diag());
 
@@ -154,12 +175,12 @@ namespace gensim
 			if(IRExpression *variable = dynamic_cast<IRExpression*>(givenParameter)) {
 				IRType::PromoteResult res = givenType.AutoPromote(paramType);
 				if(res == IRType::PROMOTE_TRUNCATE) {
-					std::string errstring = Format("In call to %s, parameter %u: Value of type %s is to large to fit in parameter type %s", TargetName.c_str(), idx, givenType.PrettyPrint().c_str(), paramType.PrettyPrint().c_str());
-					Context.Diag().Warning(errstring, Diag());
+//					std::string errstring = Format("In call to %s, parameter %u: Value of type %s is to large to fit in parameter type %s", TargetName.c_str(), idx, givenType.PrettyPrint().c_str(), paramType.PrettyPrint().c_str());
+//					Context.Diag().Warning(errstring, Diag());
 				}
 				if(res == IRType::PROMOTE_SIGN_CHANGE) {
-					std::string errstring = Format("In call to %s, parameter %u: Parameter sign changed", TargetName.c_str(), idx, givenType.PrettyPrint().c_str(), paramType.PrettyPrint().c_str());
-					Context.Diag().Warning(errstring, Diag());
+//					std::string errstring = Format("In call to %s, parameter %u: Parameter sign changed", TargetName.c_str(), idx, givenType.PrettyPrint().c_str(), paramType.PrettyPrint().c_str());
+//					Context.Diag().Warning(errstring, Diag());
 				}
 			}
 
@@ -309,7 +330,7 @@ namespace gensim
 					case Index:
 						if(!Arg->Resolve(Context)) return false;
 						break;
-					case BitSequence:
+					case Sequence:
 						if(!Arg->Resolve(Context)) return false;
 						if(!Arg2->Resolve(Context)) return false;
 						break;
@@ -394,15 +415,17 @@ namespace gensim
 		bool IRIterationStatement::Resolve(GenCContext &Context)
 		{
 			bool success = true;
-			switch (Type) {
-				case ITERATE_FOR:
-					success &= For_Expr_Start->Resolve(Context) && For_Expr_Check->Resolve(Context) && Expr->Resolve(Context);
-					break;
-				case ITERATE_WHILE:
-				case ITERATE_DO_WHILE:
-					success &= Expr->Resolve(Context);
-					break;
+
+			if(For_Expr_Start != nullptr) {
+				success &= For_Expr_Start->Resolve(Context);
 			}
+			if(For_Expr_Check != nullptr) {
+				success &= For_Expr_Check->Resolve(Context);
+			}
+			if(Expr != nullptr) {
+				success &= Expr->Resolve(Context);
+			}
+
 			success &= Body->Resolve(Context);
 			Resolved = success;
 			return success;
@@ -530,6 +553,12 @@ namespace gensim
 // Type Evaluation
 /////////////////////////////////////////////////////////////
 
+		const IRType IRVectorExpression::EvaluateType()
+		{
+			GASSERT(!elements_.empty());
+			return elements_.at(0)->EvaluateType();
+		}
+
 		const IRType IRCallExpression::EvaluateType()
 		{
 			return Target->GetSignature().GetType();
@@ -586,7 +615,7 @@ namespace gensim
 					type.VectorWidth = 1;
 					return type;
 				}
-				case BitSequence:	{
+				case Sequence:	{
 					IRType type = BaseExpression->EvaluateType();
 					type.VectorWidth = 1;
 					return type;

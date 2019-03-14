@@ -127,6 +127,8 @@ namespace archsim
 #define DefineSetting(_cat, _n, _d, _v)		DefineOption(_cat, std::string, _n, _d, _v)
 #define DefineListSetting(_cat, _n, _d, _v)	DefineOption(_cat, std::list<std::string> *, _n, _d, _v)
 #define DefineIntSetting(_cat, _n, _d, _v)	DefineOption(_cat, uint32_t, _n, _d, _v)
+#define DefineFloatSetting(_cat, _n, _d, _v)	DefineOption(_cat, float, _n, _d, _v)
+#define DefineInt64Setting(_cat, _n, _d, _v)	DefineOption(_cat, uint64_t, _n, _d, _v)
 #define DefineFlag(_cat, _n, _d, _v)		DefineOption(_cat, bool, _n, _d, _v)
 
 #define __MAY_INCLUDE_SD

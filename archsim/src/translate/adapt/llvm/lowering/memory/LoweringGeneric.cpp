@@ -24,11 +24,21 @@ bool BlockJITLDMEMGenericLowering::Lower(const captive::shared::IRInstruction*& 
 			target_fn = GetContext().GetValues().blkRead32Ptr;
 			break;
 		case 8:
+			target_fn = GetContext().GetValues().blkRead64Ptr;
+			break;
 		default:
 			UNIMPLEMENTED;
 	}
 
-	auto address_value = GetBuilder().CreateAdd(GetValueFor(offset), GetValueFor(disp));
+	auto offset_value = GetBuilder().CreateZExtOrTrunc(GetValueFor(offset), GetContext().GetLLVMType(8));
+	auto disp_value = GetBuilder().CreateZExtOrTrunc(GetValueFor(disp), GetContext().GetLLVMType(8));
+
+	llvm::Value *address_value = nullptr;
+	if(disp.value != 0) {
+		address_value = GetBuilder().CreateAdd(offset_value, disp_value);
+	} else {
+		address_value = offset_value;
+	}
 	auto interface_value = GetValueFor(interface);
 
 	auto data = GetBuilder().CreateCall(target_fn, { GetContext().GetThreadPtrPtr(), address_value, interface_value });
@@ -58,11 +68,16 @@ bool BlockJITSTMEMGenericLowering::Lower(const captive::shared::IRInstruction*& 
 			target_fn = GetContext().GetValues().blkWrite32Ptr;
 			break;
 		case 8:
+			target_fn = GetContext().GetValues().blkWrite64Ptr;
+			break;
 		default:
 			UNIMPLEMENTED;
 	}
 
-	auto address_value = GetBuilder().CreateAdd(GetValueFor(offset), GetValueFor(disp));
+	auto offset_value = GetBuilder().CreateZExtOrTrunc(GetValueFor(offset), GetContext().GetLLVMType(8));
+	auto disp_value = GetBuilder().CreateZExtOrTrunc(GetValueFor(disp), GetContext().GetLLVMType(8));
+
+	auto address_value = GetBuilder().CreateAdd(offset_value, disp_value);
 	auto interface_value = GetValueFor(interface);
 	auto value_value = GetValueFor(value);
 

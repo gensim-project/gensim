@@ -12,6 +12,7 @@
 #define MEMORYINTERFACE_H
 
 #include "core/arch/ArchDescriptor.h"
+#include "core/MemoryMonitor.h"
 #include "abi/Address.h"
 #include "abi/memory/MemoryModel.h"
 #include "abi/devices/MMU.h"
@@ -83,19 +84,22 @@ namespace archsim
 	class MemoryDevice
 	{
 	public:
+		virtual ~MemoryDevice();
 
 		virtual MemoryResult Read8(Address address, uint8_t &data) = 0;
 		virtual MemoryResult Read16(Address address, uint16_t &data) = 0;
 		virtual MemoryResult Read32(Address address, uint32_t &data) = 0;
 		virtual MemoryResult Read64(Address address, uint64_t &data) = 0;
+		virtual MemoryResult Read128(Address address, uint128_t &data) = 0;
 
 		virtual MemoryResult Write8(Address address, uint8_t data) = 0;
+		virtual MemoryResult Write16(Address address, uint16_t data) = 0;
 		virtual MemoryResult Write32(Address address, uint32_t data) = 0;
 		virtual MemoryResult Write64(Address address, uint64_t data) = 0;
-		virtual MemoryResult Write16(Address address, uint16_t data) = 0;
+		virtual MemoryResult Write128(Address address, uint128_t data) = 0;
 
-	private:
-
+		virtual void Lock() = 0;
+		virtual void Unlock() = 0;
 	};
 
 	class LegacyMemoryInterface : public MemoryDevice
@@ -107,13 +111,77 @@ namespace archsim
 		MemoryResult Read16(Address address, uint16_t& data) override;
 		MemoryResult Read32(Address address, uint32_t& data) override;
 		MemoryResult Read64(Address address, uint64_t& data) override;
+		MemoryResult Read128(Address address, uint128_t& data) override;
 		MemoryResult Write8(Address address, uint8_t data) override;
 		MemoryResult Write16(Address address, uint16_t data) override;
 		MemoryResult Write32(Address address, uint32_t data) override;
 		MemoryResult Write64(Address address, uint64_t data) override;
+		MemoryResult Write128(Address address, uint128_t data) override;
+
+		void Lock() override
+		{
+			mem_model_.Lock();
+		}
+		void Unlock() override
+		{
+			mem_model_.Unlock();
+		}
 
 	private:
 		archsim::abi::memory::MemoryModel &mem_model_;
+	};
+
+	class CachedLegacyMemoryInterface : public MemoryDevice
+	{
+	public:
+		struct CacheEntry {
+			Address tag;
+			void *data;
+		} __attribute__((packed));
+
+		struct Cache {
+			static const uint32_t kCacheSize = 1024;
+
+			CacheEntry cache[kCacheSize];
+		};
+
+		CachedLegacyMemoryInterface(int index, archsim::abi::memory::MemoryModel &mem_model, archsim::core::thread::ThreadInstance *thread);
+
+		MemoryResult Read8(Address address, uint8_t& data) override;
+		MemoryResult Read16(Address address, uint16_t& data) override;
+		MemoryResult Read32(Address address, uint32_t& data) override;
+		MemoryResult Read64(Address address, uint64_t& data) override;
+		MemoryResult Read128(Address address, uint128_t& data) override;
+		MemoryResult Write8(Address address, uint8_t data) override;
+		MemoryResult Write16(Address address, uint16_t data) override;
+		MemoryResult Write32(Address address, uint32_t data) override;
+		MemoryResult Write64(Address address, uint64_t data) override;
+		MemoryResult Write128(Address address, uint128_t data) override;
+
+		void Lock() override
+		{
+			mem_model_.Lock();
+		}
+		void Unlock() override
+		{
+			mem_model_.Unlock();
+		}
+
+		void Invalidate();
+
+		MemoryResult Read(Address addr, char *data, size_t len);
+		MemoryResult Write(Address addr, const char *data, size_t len);
+
+	private:
+		void *GetPtr(Address addr);
+		void LoadEntryFor(struct CacheEntry *entry, Address addr);
+
+		Cache *GetCache();
+
+		archsim::abi::memory::MemoryModel &mem_model_;
+		archsim::core::thread::ThreadInstance *thread_;
+		uint64_t cache_offset_;
+		std::mutex cache_lock_;
 	};
 
 	class LegacyFetchMemoryInterface : public MemoryDevice
@@ -125,10 +193,21 @@ namespace archsim
 		MemoryResult Read16(Address address, uint16_t& data) override;
 		MemoryResult Read32(Address address, uint32_t& data) override;
 		MemoryResult Read64(Address address, uint64_t& data) override;
+		MemoryResult Read128(Address address, uint128_t& data) override;
 		MemoryResult Write8(Address address, uint8_t data) override;
 		MemoryResult Write16(Address address, uint16_t data) override;
 		MemoryResult Write32(Address address, uint32_t data) override;
 		MemoryResult Write64(Address address, uint64_t data) override;
+		MemoryResult Write128(Address address, uint128_t data) override;
+
+		void Lock() override
+		{
+			// do nothing
+		}
+		void Unlock() override
+		{
+			// do nothing
+		}
 
 	private:
 		archsim::abi::memory::MemoryModel &mem_model_;
@@ -163,6 +242,10 @@ namespace archsim
 		{
 			return device_->Read64(address, data);
 		}
+		MemoryResult Read128(Address address, uint128_t &data)
+		{
+			return device_->Read128(address, data);
+		}
 
 		MemoryResult Write8 (Address address, uint8_t data)
 		{
@@ -179,6 +262,10 @@ namespace archsim
 		MemoryResult Write64(Address address, uint64_t data)
 		{
 			return device_->Write64(address, data);
+		}
+		MemoryResult Write128(Address address, uint128_t data)
+		{
+			return device_->Write128(address, data);
 		}
 
 		MemoryResult ReadString(Address address,  char *data, size_t max_size);
@@ -201,10 +288,29 @@ namespace archsim
 			provider_ = &provider;
 		}
 
+		void Lock()
+		{
+			device_->Lock();
+		}
+		void Unlock()
+		{
+			device_->Unlock();
+		}
+
+		std::shared_ptr<archsim::core::MemoryMonitor> GetMonitor()
+		{
+			return monitor_;
+		}
+		void SetMonitor(std::shared_ptr<archsim::core::MemoryMonitor> new_monitor)
+		{
+			monitor_ = new_monitor;
+		}
+
 	private:
 		const MemoryInterfaceDescriptor &descriptor_;
 		MemoryTranslationProvider *provider_;
 		MemoryDevice *device_;
+		std::shared_ptr<archsim::core::MemoryMonitor> monitor_;
 	};
 
 }

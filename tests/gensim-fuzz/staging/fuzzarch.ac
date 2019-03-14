@@ -1,0 +1,18 @@
+AC_ISA(fuzzarch)
+{
+	ac_fetchsize 32;
+
+	ac_format TEST = "%test:12 %rd:4 %rs1:4 %rs2:4 %imm:8";
+	
+	ac_instr<TEST> test_insn;
+	
+	ac_behaviour test_insn;
+	
+	ISA_CTOR(fuzzarch) 
+	{
+		ac_execute("./staging/execute.fuzz");
+		
+		test_insn.set_decoder();
+		test_insn.set_behaviour(test_insn);
+	};
+};
