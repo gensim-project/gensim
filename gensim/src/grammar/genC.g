@@ -3,7 +3,7 @@ grammar genC;
 options
 {
 	language = C;
-	k = 3;
+	k = 2;
   backtrack=false;
   memoize=false;
 	output = AST;
@@ -159,7 +159,7 @@ param_list :
   
 action_file : definition+ EOF -> ^(FILETOK definition*);
 
-definition : constant_definition | typedef_definition | action_definition;
+definition : ((GENC_TYPENAME) => (typedef_definition)) | constant_definition | action_definition;
 
 constant_definition: 'const' declaration EQUALS constant ';' -> ^(CONSTANT declaration constant);
 

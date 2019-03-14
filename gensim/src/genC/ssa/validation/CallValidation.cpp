@@ -33,6 +33,7 @@ public:
 					Fail("Parameter " + std::to_string(i+1) + ": Expected a reference", stmt.GetDiag());
 				}
 			} else {
+				Assert(!arg_type.IsStruct(), "Parameter " + std::to_string(i+1) + ": Structs cannot be passed by value", stmt.GetDiag());
 				Assert(arg->GetType() == arg_type, "Parameter " + std::to_string(i+1) + ": Value of incorrect type passed as parameter", stmt.GetDiag());
 				Assert(((SSAStatement*)arg)->Parent == stmt.Parent, "Parameter " + std::to_string(i+1) + ": Parameter value must be in same block as call", stmt.GetDiag());
 			}

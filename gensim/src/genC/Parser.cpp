@@ -452,6 +452,7 @@ bool GenCContext::Parse_Constant(pANTLR3_BASE_TREE Node)
 {
 	assert(Node->getType(Node) == CONSTANT);
 	assert(Node->getChildCount(Node) == 2);
+	bool success = true;
 
 	pANTLR3_BASE_TREE declarationNode = (pANTLR3_BASE_TREE) Node->getChild(Node, 0);
 	pANTLR3_BASE_TREE constantNode = (pANTLR3_BASE_TREE) Node->getChild(Node, 1);
@@ -459,26 +460,29 @@ bool GenCContext::Parse_Constant(pANTLR3_BASE_TREE Node)
 	pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) declarationNode->getChild(declarationNode, 0);
 	pANTLR3_BASE_TREE idNode = (pANTLR3_BASE_TREE) declarationNode->getChild(declarationNode, 1);
 
-	IRType type = Parse_Type(typeNode);
+	IRType type;
+	success &= Parse_Type(typeNode, type);
 	type.Const = true;
 	std::string id = (char *) (idNode->getText(idNode)->chars);
 	uint32_t constant = Parse_ConstantInt(constantNode);
 
 	InsertConstant(id, type, IRConstant::Integer(constant));
 
-	return true;
+	return success;
 }
 
 bool GenCContext::Parse_Typename(pANTLR3_BASE_TREE Node)
 {
 	assert(Node->getType(Node) == TYPEDEF);
 	assert(Node->getChildCount(Node) == 2);
+	bool success = true;
 
 	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)Node->getChild(Node, 0);
 	const std::string name = (char*)nameNode->getText(nameNode)->chars;
 
 	pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE)Node->getChild(Node, 1);
-	IRType target_type = Parse_Type(typeNode);
+	IRType target_type;
+	success &= Parse_Type(typeNode, target_type);
 
 	if(GetTypeManager()->HasNamedBasicType(name) || GetTypeManager()->HasStructType(name)) {
 		Diag().Error("Duplicate type name " + name + ".");
@@ -486,7 +490,7 @@ bool GenCContext::Parse_Typename(pANTLR3_BASE_TREE Node)
 	}
 	GetTypeManager()->InstallNamedType(name, target_type);
 
-	return true;
+	return success;
 }
 
 
@@ -522,7 +526,15 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 
 		std::string paramName = (char *) paramNameNode->getText(paramNameNode)->chars;
 
-		IRType paramType = Parse_Type(paramTypeNode);
+		IRType paramType;
+		if(!Parse_Type(paramTypeNode, paramType)) {
+			return false;
+		}
+
+		if(!paramType.Reference && paramType.IsStruct()) {
+			diag_ctx.Error("Helper function " + helpername + ", Parameter " + std::to_string(i+1) + ": cannot pass structs by value.");
+			return false;
+		}
 
 		param_list.push_back(IRParam(paramName, paramType));
 	}
@@ -565,7 +577,10 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 		}
 	}
 
-	IRType return_type = Parse_Type(typeNode);
+	IRType return_type;
+	if(!Parse_Type(typeNode, return_type)) {
+		return false;
+	}
 	if(return_type.Reference) {
 		Diag().Error("Cannot return a reference from a helper function");
 		return false;
@@ -591,7 +606,7 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 	return true;
 }
 
-IRType GenCContext::Parse_Type(pANTLR3_BASE_TREE node)
+bool GenCContext::Parse_Type(pANTLR3_BASE_TREE node, IRType &out_type)
 {
 	assert(node->getType(node) == TYPE);
 	assert(node->getChildCount(node) >= 1);
@@ -599,29 +614,33 @@ IRType GenCContext::Parse_Type(pANTLR3_BASE_TREE node)
 	pANTLR3_BASE_TREE classNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
 	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE) classNode->getChild(classNode, 0);
 
-	IRType type = GetTypeManager()->GetVoidType();
+	bool success = true;
+	out_type = GetTypeManager()->GetVoidType();
 	std::string typeName = (char *) nameNode->getText(nameNode)->chars;
 
 	switch(classNode->getType(classNode)) {
 		case GENC_BASICTYPE:
 			if(GetTypeManager()->HasNamedBasicType(typeName)) {
-				type = GetTypeManager()->GetBasicTypeByName(typeName);
+				out_type = GetTypeManager()->GetBasicTypeByName(typeName);
 			} else {
 				Diag().Error("Unknown basic type " + typeName, DiagNode(CurrFilename, nameNode));
+				success = false;
 			}
 			break;
 		case GENC_TYPENAME:
 			if(GetTypeManager()->HasNamedBasicType(typeName)) {
-				type = GetTypeManager()->GetBasicTypeByName(typeName);
+				out_type = GetTypeManager()->GetBasicTypeByName(typeName);
 			} else {
 				Diag().Error("Unknown typename " + typeName, DiagNode(CurrFilename, nameNode));
+				success = false;
 			}
 			break;
 		case GENC_STRUCT:
 			if(GetTypeManager()->HasStructType(typeName)) {
-				type = GetTypeManager()->GetStructType(typeName);
+				out_type = GetTypeManager()->GetStructType(typeName);
 			} else {
 				Diag().Error("Unknown struct type " + typeName, DiagNode(CurrFilename, nameNode));
+				success = false;
 			}
 			break;
 	}
@@ -631,16 +650,17 @@ IRType GenCContext::Parse_Type(pANTLR3_BASE_TREE node)
 
 		std::string annotation = (char *) annotationNode->getText(annotationNode)->chars;
 		if (annotation == "&") {
-			type.Reference = true;
+			out_type.Reference = true;
 		} else if (annotationNode->getType(annotationNode) == VECTOR) {
 			pANTLR3_BASE_TREE widthNode = (pANTLR3_BASE_TREE) annotationNode->getChild(annotationNode, 0);
-			type.VectorWidth = strtol((char*) widthNode->getText(widthNode)->chars, NULL, 10);
+			out_type.VectorWidth = strtol((char*) widthNode->getText(widthNode)->chars, NULL, 10);
 		} else {
 			Diag().Error("Unrecognized type annotation " + annotation, DiagNode(CurrFilename, node));
+			success = false;
 		}
 	}
 
-	return type;
+	return success;
 }
 
 IRBody *GenCContext::Parse_Body(pANTLR3_BASE_TREE node, IRScope &containing_scope, IRScope *override_scope)
@@ -1067,7 +1087,11 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 			pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
 			pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
 
-			IRType type = Parse_Type(typeNode);
+			IRType type;
+			if(!Parse_Type(typeNode, type)) {
+				return nullptr;
+			}
+
 			std::string name = (char *) nameNode->getText(nameNode)->chars;
 
 			IRDefineExpression *expr = new IRDefineExpression(containing_scope, type, name);
@@ -1136,7 +1160,10 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 				return nullptr;
 			}
 
-			IRType target_type = Parse_Type(typeNode);
+			IRType target_type;
+			if(!Parse_Type(typeNode, target_type)) {
+				return nullptr;
+			}
 
 			IRCastExpression *gce = new IRCastExpression(containing_scope, target_type, IRCastExpression::Bitcast);
 			gce->SetDiag(DiagNode(CurrFilename, node));
@@ -1163,7 +1190,11 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 				return nullptr;
 			}
 
-			IRCastExpression *gce = new IRCastExpression(containing_scope, Parse_Type(typeNode));
+			IRType cast_type;
+			if(!Parse_Type(typeNode, cast_type)) {
+				return nullptr;
+			}
+			IRCastExpression *gce = new IRCastExpression(containing_scope, cast_type);
 			gce->SetDiag(DiagNode(CurrFilename, node));
 			gce->Expr = innerExpr;
 
