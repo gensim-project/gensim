@@ -24,8 +24,6 @@ tokens
   BITCAST;
   TYPEDEF;
 
-  VCONCATENATE = '::';
-
   OBRACE = '{';
   CBRACE = '}';
 
@@ -77,8 +75,6 @@ tokens
   
   PREFIX;
   POSTFIX;
-  
-  EQUALS='=';
   
   VECTOR;
   
@@ -161,9 +157,9 @@ action_file : definition+ EOF -> ^(FILETOK definition*);
 
 definition : ((GENC_TYPENAME) => (typedef_definition)) | constant_definition | action_definition;
 
-constant_definition: 'const' declaration EQUALS constant ';' -> ^(CONSTANT declaration constant);
+constant_definition: 'const' declaration '=' constant ';' -> ^(CONSTANT declaration constant);
 
-typedef_definition: GENC_TYPENAME GENC_ID EQUALS type';' -> ^(TYPEDEF GENC_ID type);
+typedef_definition: GENC_TYPENAME GENC_ID '=' type';' -> ^(TYPEDEF GENC_ID type);
 
 action_definition : helper_definition | execution_definition;
 
@@ -266,7 +262,7 @@ postfix_operator:
   
 declaration: type GENC_ID -> ^(DECL type GENC_ID);
 
-declaration_expression: declaration (EQUALS^ right_expression)?;
+declaration_expression: declaration ('='^ right_expression)?;
 
 unary_expression:
   postfix_expression
@@ -275,7 +271,7 @@ unary_expression:
   | unary_operator cast_expression -> ^(PREFIX unary_operator cast_expression);
  
 assignment_operator:
-  EQUALS
+  '='
   |'+='
   |'-='
   |'&='
@@ -321,7 +317,7 @@ mult_expression:
    concat_expression (('*'^|'/'^|'%'^) concat_expression)*;
 
 concat_expression:
-	cast_expression (VCONCATENATE^ cast_expression)*;
+	cast_expression ('::'^ cast_expression)*;
 
 cast_expression:
   ('(' type ')') => '('type')' cast_expression -> ^(CAST type cast_expression)
