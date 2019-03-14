@@ -1,0 +1,77 @@
+action void test_insn (
+    struct Instruction sym_1_3_parameter_inst
+  )[
+    uint32 sym_20_0_val
+    uint32 sym_5_0_rs1
+    uint32 sym_9_0_rs2
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1_3_parameter_inst rs1;
+    s_b_0_1 = bankregread 0 s_b_0_0;
+    s_b_0_2: write sym_5_0_rs1 s_b_0_1;
+    s_b_0_3 = struct sym_1_3_parameter_inst rs2;
+    s_b_0_4 = bankregread 0 s_b_0_3;
+    s_b_0_5: write sym_9_0_rs2 s_b_0_4;
+    s_b_0_6 = read sym_9_0_rs2;
+    s_b_0_7 = constant sint32 0;
+    s_b_0_8 = cast zextend  uint32 s_b_0_7;
+    s_b_0_9 = binary == s_b_0_6 s_b_0_8;
+    s_b_0_10: if s_b_0_9 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = constant sint64 18446744073709551615;
+    s_b_1_1 = cast truncate  uint32 s_b_1_0;
+    s_b_1_2: write sym_20_0_val s_b_1_1;
+    s_b_1_3: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0 = struct sym_1_3_parameter_inst rd;
+    s_b_2_1 = read sym_20_0_val;
+    s_b_2_2: bankregwrite 0 s_b_2_0 s_b_2_1;
+    s_b_2_3: return;
+  }
+  block b_3 {
+    s_b_3_0 = read sym_5_0_rs1;
+    s_b_3_1 = constant sint64 2147483648;
+    s_b_3_2 = cast zextend  uint64 s_b_3_0;
+    s_b_3_3 = cast zextend  uint64 s_b_3_1;
+    s_b_3_4 = binary == s_b_3_2 s_b_3_3;
+    s_b_3_5 = read sym_9_0_rs2;
+    s_b_3_6 = constant sint64 4294967295;
+    s_b_3_7 = cast zextend  uint64 s_b_3_5;
+    s_b_3_8 = cast zextend  uint64 s_b_3_6;
+    s_b_3_9 = binary == s_b_3_7 s_b_3_8;
+    s_b_3_10 = constant uint8 0;
+    s_b_3_11 = binary != s_b_3_4 s_b_3_10;
+    s_b_3_12 = binary != s_b_3_9 s_b_3_10;
+    s_b_3_13 = binary & s_b_3_11 s_b_3_12;
+    s_b_3_14: if s_b_3_13 b_4 b_6;
+  }
+  block b_4 {
+    s_b_4_0 = constant sint64 2147483648;
+    s_b_4_1 = cast truncate  uint32 s_b_4_0;
+    s_b_4_2: write sym_20_0_val s_b_4_1;
+    s_b_4_3: jump b_5;
+  }
+  block b_5 {
+    s_b_5_0: jump b_2;
+  }
+  block b_6 {
+    s_b_6_0 = read sym_5_0_rs1;
+    s_b_6_1 = cast zextend  sint32 s_b_6_0;
+    s_b_6_2 = read sym_9_0_rs2;
+    s_b_6_3 = cast zextend  sint32 s_b_6_2;
+    s_b_6_4 = binary / s_b_6_1 s_b_6_3;
+    s_b_6_5 = cast zextend  uint32 s_b_6_4;
+    s_b_6_6: write sym_20_0_val s_b_6_5;
+    s_b_6_7: jump b_5;
+  }
+}

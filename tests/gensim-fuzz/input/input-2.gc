@@ -1,0 +1,5 @@
+execute(test_insn)
+{
+	double s1 = <double>((uint64)read_register_bank(RB, inst.rs1));
+	write_register_bank(RB, inst.rd, s1);
+}
