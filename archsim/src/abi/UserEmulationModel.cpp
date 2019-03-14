@@ -21,7 +21,10 @@ DeclareChildLogContext(LogEmulationModelUser, LogEmulationModel, "User");
 using namespace archsim::abi;
 using archsim::Address;
 
-UserEmulationModel::UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary, const AuxVectorEntries &auxvs) : syscall_handler_(user::SyscallHandlerProvider::Singleton().Get(arch)), is_64bit_(is_64bit_binary), auxvs_(auxvs) { }
+UserEmulationModel::UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary, const AuxVectorEntries &auxvs) : syscall_handler_(user::SyscallHandlerProvider::Singleton().Get(arch)), is_64bit_(is_64bit_binary), auxvs_(auxvs)
+{
+	monitor_ = std::make_shared<archsim::core::BaseMemoryMonitor>();
+}
 
 UserEmulationModel::~UserEmulationModel() { }
 
@@ -77,6 +80,7 @@ archsim::core::thread::ThreadInstance* UserEmulationModel::CreateThread(archsim:
 	for(auto i : thread->GetMemoryInterfaces()) {
 		i->Connect(*new archsim::CachedLegacyMemoryInterface(idx, GetMemoryModel(), thread));
 		i->ConnectTranslationProvider(*new archsim::IdentityTranslationProvider());
+		i->SetMonitor(monitor_);
 		idx++;
 	}
 
