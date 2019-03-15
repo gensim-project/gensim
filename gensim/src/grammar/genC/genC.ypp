@@ -1,0 +1,273 @@
+%{
+
+#include <stdint.h>
+#define YYERROR_VERBOSE 1
+
+#include "flexbison_harness.h"
+
+#include "genC.tabs.h"
+#include "genC.l.h"
+
+static inline void yyerror(void *yyscanner, astnode<GenCNodeType> *root, const char *s) { fprintf(stderr, "%s\n", s); }
+
+%}
+
+%define api.pure full
+%lex-param {void *yyscanner}
+%parse-param {void *yyscanner} { astnode<GenCNodeType> * root }
+
+%union {
+    uint64_t ival;
+    char *sval;
+    astnode<GenCNodeType> *ast_node;
+}
+
+// AST Node Tokens
+%token SEMICOLON
+%token FILETOK HELPER BEHAVIOUR EXECUTE SYSTEM CONSTANT BODY 
+%token OBRACE CBRACE
+
+%token <sval> GENC_ID
+%token GENC_CONST 
+
+%token GENC_SCOPE_INTERNAL GENC_SCOPE_PRIVATE GENC_SCOPE_PUBLIC
+%token GENC_ATTR_INLINE GENC_ATTR_NOINLINE GENC_ATTR_GLOBAL GENC_ATTR_EXPORT
+%token GENC_STRUCT GENC_TYPENAME
+
+%token DECL CAST BITCAST TYPEDEF PARAM PARAMS TYPE CASE DEFAULT BREAK CONTINUE RETURN RAISE 
+%token WHILE DO FOR FOR_PRE FOR_CHECK FOR_POST IF SWITCH
+%token IDX IDX_ELEM IDX_BITS MEMBER CALL
+%token TERNARY 
+%token PREFIX POSTFIX
+%token EQUALS VECTOR EXPR_STMT
+
+
+// debug tokens
+%token <ast_node> GENC_DUMMY_HELPER
+%token <ast_node> GENC_DUMMY_EXECUTE
+
+%token <ival> GENC_INT_CONST
+%token <sval> GENC_BASICTYPE
+
+%token GENC_EXECUTE
+%token GENC_HELPER
+%token <sval> GENC_HELPER_SCOPE
+%token <sval> GENC_HELPER_ATTRIBUTE
+
+%token GENC_OPEN_BRACKET
+%token GENC_CLOSE_BRACKET
+%token GENC_OPEN_BRACE
+%token GENC_CLOSE_BRACE
+%token GENC_OPEN_PAREN
+%token GENC_CLOSE_PAREN
+
+%token GENC_BREAK
+%token GENC_CASE
+%token GENC_CONTINUE
+%token GENC_DEFAULT
+%token GENC_DO
+%token GENC_FOR
+%token GENC_RAISE
+%token GENC_RETURN
+%token GENC_WHILE
+%token GENC_IF
+%token GENC_ELSE
+%token GENC_SWITCH
+
+%token GENC_PERIOD
+%token GENC_COMMA
+%token GENC_COLON
+%token GENC_AMPERSAND
+
+%token <sval> GENC_BINARY_OPERATOR GENC_MINUS GENC_EXCLAMATION GENC_TILDE GENC_PLUS
+
+%type <ast_node> definition_list typedef_definition constant_definition action_definition type execute_definition
+%type <ast_node> full_type_definition base_type vector_type_annotation reference_type_annotation struct_type numeric_type typename_type
+%type <ast_node> helper_definition helper_scope helper_paren_list helper_paren_list_nonempty helper_paren helper_attribute_list helper_attribute
+%type <ast_node> body statement statement_list iteration_statement selection_statement expression_statement flow_statement
+%type <ast_node> constant_expr expression if_statement switch_statement
+
+%type <ast_node> declaration_expression call_expression binary_expression variable_expression call_parameter_list call_parameter_list_nonempty unary_prefix_expression unary_postfix_expression unary_postfix_operator
+
+%type <ast_node> constant
+
+%precedence "then"
+%precedence GENC_ELSE
+
+%right GENC_EXCLAMATION
+%right GENC_TILDE
+%right GENC_MINUS_UNARY
+%right GENC_PLUS_UNARY
+
+%nonassoc GENC_OPEN_BRACKET 
+%nonassoc GENC_PERIOD
+%left GENC_BINARY_OPERATOR
+
+%%
+
+action_file : definition_list { root->AddChild($1); }
+
+definition_list : 
+    definition_list typedef_definition { $$ = $1; $$->AddChild($2); } |
+    definition_list constant_definition { $$ = $1; $$->AddChild($2); } |
+    definition_list action_definition { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(GenCNodeType::DefinitionList); }
+
+typedef_definition :
+    GENC_TYPENAME GENC_ID EQUALS type SEMICOLON { $$ = CreateNode(GenCNodeType::Typename); $$->AddChild(CreateStrNode<GenCNodeType>($2)); $$->AddChild($4); }
+
+constant_definition :
+    GENC_CONST GENC_ID EQUALS constant SEMICOLON { $$ = CreateNode(GenCNodeType::Constant); $$->AddChild(CreateStrNode<GenCNodeType>($2)); $$->AddChild($4); }
+
+action_definition :
+    helper_definition { $$ = $1; }|
+    execute_definition { $$ = $1; }
+
+helper_definition :
+    helper_scope GENC_HELPER type GENC_ID GENC_OPEN_PAREN helper_paren_list GENC_CLOSE_PAREN helper_attribute_list body 
+        { $$ = CreateNode(GenCNodeType::Helper); $$->AddChildren({$1, $3, CreateStrNode<GenCNodeType>($4), $6, $8, $9}); }
+
+helper_scope :
+    GENC_HELPER_SCOPE { $$ = CreateNode(GenCNodeType::HelperScope); $$->AddChild(CreateStrNode<GenCNodeType>($1)); } |
+    %empty { $$ = CreateNode(GenCNodeType::HelperScope); $$->AddChild(CreateStrNode<GenCNodeType>("default")); }
+
+helper_paren_list :
+    %empty { $$ = CreateNode(GenCNodeType::HelperParenList); } |
+    helper_paren_list_nonempty { $$ = $1; }
+
+helper_paren_list_nonempty :
+    helper_paren_list GENC_COMMA helper_paren { $$ = $1; $$->AddChild($3); } |
+    helper_paren { $$ = CreateNode(GenCNodeType::HelperParenList); $$->AddChild($1); }
+
+helper_paren :
+    type GENC_ID { $$ = CreateNode(GenCNodeType::HelperParen); $$->AddChild($1); $$->AddChild(CreateStrNode<GenCNodeType>($2)); }
+
+helper_attribute_list:
+    helper_attribute_list helper_attribute { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(GenCNodeType::HelperAttributeList); }
+
+helper_attribute:
+    GENC_HELPER_ATTRIBUTE { $$ = CreateStrNode<GenCNodeType>($1); }
+
+execute_definition :
+    GENC_EXECUTE GENC_OPEN_PAREN GENC_ID GENC_CLOSE_PAREN body { $$ = CreateNode(GenCNodeType::Execute); }
+
+body :
+    GENC_OPEN_BRACE statement_list GENC_CLOSE_BRACE { $$ = $2; }
+
+statement_list :
+    statement_list statement { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode<GenCNodeType>(GenCNodeType::Body); }
+
+statement :
+    body { $$ = $1; } |
+    SEMICOLON { $$ = CreateNode<GenCNodeType>(GenCNodeType::Body); } |
+    expression_statement { $$ = $1; } |
+    flow_statement { $$ = $1; } |
+    iteration_statement { $$ = $1; } |
+    selection_statement { $$ = $1; }
+
+expression_statement : 
+    expression SEMICOLON { $$ = $1; }
+
+flow_statement : 
+    GENC_CASE constant_expr GENC_COLON body { $$ = CreateNode(GenCNodeType::Case); $$->AddChildren({$2, $4}); } |
+    GENC_DEFAULT GENC_COLON body { $$ = CreateNode(GenCNodeType::Default, {$3}); } |
+    GENC_BREAK SEMICOLON { $$ = CreateNode(GenCNodeType::Break); } |
+    GENC_CONTINUE SEMICOLON { $$ = CreateNode(GenCNodeType::Continue); } |
+    GENC_RAISE SEMICOLON { $$ = CreateNode(GenCNodeType::Raise); } |
+    GENC_RETURN SEMICOLON { $$ = CreateNode(GenCNodeType::Return); } |
+    GENC_RETURN expression SEMICOLON { $$ = CreateNode(GenCNodeType::Return, {$2}); }
+
+iteration_statement :
+    GENC_WHILE GENC_OPEN_PAREN expression GENC_CLOSE_PAREN statement { $$ = CreateNode(GenCNodeType::While, {$3, $5}); } |
+    GENC_DO statement GENC_WHILE GENC_OPEN_PAREN expression GENC_CLOSE_PAREN SEMICOLON { $$ = CreateNode(GenCNodeType::Do, {$2, $5}); } |
+    GENC_FOR GENC_OPEN_PAREN expression SEMICOLON expression SEMICOLON expression GENC_CLOSE_PAREN statement { $$ = CreateNode(GenCNodeType::For, {$3, $5, $7, $9}); }
+
+selection_statement :
+    if_statement { $$ = $1; } |
+    switch_statement {$$ = $1; }
+
+if_statement :
+    GENC_IF GENC_OPEN_PAREN expression GENC_CLOSE_PAREN statement %prec "then" { $$ = CreateNode(GenCNodeType::If, {$3, $5}); } |
+    GENC_IF GENC_OPEN_PAREN expression GENC_CLOSE_PAREN statement GENC_ELSE statement { $$ = CreateNode(GenCNodeType::If, {$3, $5, $7}); }
+
+switch_statement :
+    GENC_SWITCH GENC_OPEN_PAREN expression GENC_CLOSE_PAREN body { $$ = CreateNode(GenCNodeType::Switch, {$3, $5}); }
+
+constant :
+    GENC_INT_CONST { $$ = CreateIntNode<GenCNodeType>($1); }
+
+constant_expr:
+    constant { $$ = $1; }
+
+expression :
+    declaration_expression { $$ = $1; } |
+    call_expression { $$ = $1; } |
+    binary_expression { $$ = $1; } |
+    unary_prefix_expression { $$ = $1; } %prec "prefix" |
+    unary_postfix_expression { $$ = $1; } %prec "postfix" |
+    variable_expression { $$ = $1; } | 
+    constant_expr { $$ = $1; }
+
+unary_prefix_expression :
+    GENC_MINUS expression { $$ = CreateNode(GenCNodeType::Unary, {CreateStrNode<GenCNodeType>("-"), $2}); } %prec GENC_MINUS_UNARY |
+    GENC_EXCLAMATION expression { $$ = CreateNode(GenCNodeType::Unary, {CreateStrNode<GenCNodeType>("!"), $2}); } |
+    GENC_TILDE expression { $$ = CreateNode(GenCNodeType::Unary, {CreateStrNode<GenCNodeType>("~"), $2}); } |
+    GENC_PLUS expression { $$ = $2; } %prec GENC_PLUS_UNARY
+
+unary_postfix_expression :
+    expression unary_postfix_operator { $$ = CreateNode(GenCNodeType::Unary, {$2, $1}); }
+
+unary_postfix_operator :
+    GENC_PERIOD GENC_ID { $$ = CreateNode(GenCNodeType::Member, {CreateStrNode<GenCNodeType>($2)}); } %prec "member" |
+    GENC_OPEN_BRACKET expression GENC_CLOSE_BRACKET { $$ = CreateNode(GenCNodeType::VectorElement, {$2}); } %prec "postfix_brackets" |
+    GENC_OPEN_BRACKET expression GENC_COLON expression GENC_CLOSE_BRACKET { $$ = CreateNode(GenCNodeType::BitExtract, {$2, $4}); } %prec "postfix_brackets"
+
+declaration_expression :
+    type GENC_ID { $$ = CreateNode(GenCNodeType::Declare, {$1, CreateStrNode<GenCNodeType>($2)}); }
+
+call_expression : 
+    GENC_ID GENC_OPEN_PAREN call_parameter_list GENC_CLOSE_PAREN { $$ = CreateNode(GenCNodeType::Call, {CreateStrNode<GenCNodeType>($1), $3}); }
+
+call_parameter_list :
+    %empty { $$ = CreateNode(GenCNodeType::ParamList); } |
+    call_parameter_list_nonempty { $$ = $1; }
+
+call_parameter_list_nonempty :
+    call_parameter_list_nonempty GENC_COMMA expression { $$ = $1; $$->AddChild($3); } |
+    expression { $$ = CreateNode(GenCNodeType::ParamList, {$1}); }
+
+binary_expression : 
+    expression GENC_BINARY_OPERATOR expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>($2), $1, $3}); }
+
+variable_expression :
+    GENC_ID { $$ = CreateNode(GenCNodeType::Variable, {CreateStrNode<GenCNodeType>($1)}); }
+
+type :
+    full_type_definition { $$ = CreateNode(GenCNodeType::Type); $$->AddChild($1); }
+
+full_type_definition:
+    base_type { $$ = $1; } |
+    base_type vector_type_annotation { $$ = $1; $$->AddChild($2); } |
+    base_type vector_type_annotation reference_type_annotation { $$ = $1; $$->AddChild($2); $$->AddChild($3); }
+
+vector_type_annotation:
+    GENC_OPEN_BRACKET GENC_INT_CONST GENC_CLOSE_BRACKET { $$ = CreateNode(GenCNodeType::Vector); $$->AddChild(CreateIntNode<GenCNodeType>($2)); }
+
+reference_type_annotation:
+    GENC_AMPERSAND { $$ = CreateNode(GenCNodeType::Reference); }
+
+base_type:
+    struct_type { $$ = $1; } |
+    numeric_type { $$ = $1; } |
+    typename_type { $$ = $1; } 
+
+struct_type:
+    GENC_STRUCT GENC_ID { $$ = CreateNode(GenCNodeType::Struct); $$->AddChild(CreateStrNode<GenCNodeType>($2));}
+
+numeric_type:
+    GENC_BASICTYPE { $$ = CreateNode(GenCNodeType::Type); $$->AddChild(CreateStrNode<GenCNodeType>($1)); }
+
+typename_type:
+    GENC_TYPENAME GENC_ID { $$ = CreateNode(GenCNodeType::Typename); $$->AddChild(CreateStrNode<GenCNodeType>($2));}
