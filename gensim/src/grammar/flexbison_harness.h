@@ -10,6 +10,8 @@
 enum class GenCNodeType {
 	STRING,
 	INT,
+	FLOAT,
+	DOUBLE,
 
 	ROOT,
 
@@ -20,6 +22,7 @@ enum class GenCNodeType {
 	Typename,
 	Constant,
 	Type,
+	Annotation,
 	Vector,
 	Reference,
 	Struct,
@@ -52,8 +55,11 @@ enum class GenCNodeType {
 	ParamList,
 	Binary,
 	Variable,
+	Cast,
 
-	Unary,
+	Prefix,
+	Postfix,
+	Ternary,
 	Member,
 	VectorElement,
 	BitExtract
@@ -65,6 +71,8 @@ static std::ostream &operator<<(std::ostream &os, GenCNodeType type)
 	switch(type) {
 			HANDLE(STRING);
 			HANDLE(INT);
+			HANDLE(FLOAT);
+			HANDLE(DOUBLE);
 			HANDLE(ROOT);
 
 			HANDLE(DefinitionList);
@@ -72,6 +80,7 @@ static std::ostream &operator<<(std::ostream &os, GenCNodeType type)
 			HANDLE(Typename);
 			HANDLE(Constant);
 			HANDLE(Type);
+			HANDLE(Annotation);
 			HANDLE(Vector);
 			HANDLE(Reference);
 			HANDLE(Struct);
@@ -102,8 +111,11 @@ static std::ostream &operator<<(std::ostream &os, GenCNodeType type)
 			HANDLE(ParamList);
 			HANDLE(Binary);
 			HANDLE(Variable);
+			HANDLE(Cast);
 
-			HANDLE(Unary);
+			HANDLE(Prefix);
+			HANDLE(Postfix);
+			HANDLE(Ternary);
 			HANDLE(Member);
 			HANDLE(VectorElement);
 			HANDLE(BitExtract);
@@ -121,6 +133,8 @@ public:
 	astnode(nodeclass clazz) : class_(clazz) {}
 	astnode(const char *data) : class_(nodeclass::STRING), strdata_(strdup(data)) {}
 	astnode(uint64_t data) : class_(nodeclass::INT), intdata_(data) {}
+	astnode(float data) : class_(nodeclass::FLOAT), floatdata_(data) {}
+	astnode(double data) : class_(nodeclass::DOUBLE), doubledata_(data) {}
 
 	~astnode()
 	{
@@ -151,6 +165,12 @@ public:
 			case GenCNodeType::INT:
 				std::cout << " = " << intdata_;
 				break;
+			case GenCNodeType::FLOAT:
+				std::cout << " = " << floatdata_;
+				break;
+			case GenCNodeType::DOUBLE:
+				std::cout << " = " << doubledata_;
+				break;
 		}
 
 		if(children_.size()) {
@@ -173,6 +193,8 @@ private:
 
 	char *strdata_;
 	uint64_t intdata_;
+	float floatdata_;
+	double doubledata_;
 };
 
 template <typename nodeclass> astnode<nodeclass> *CreateNode(nodeclass clazz)
@@ -191,6 +213,14 @@ template <typename nodeclass> astnode<nodeclass> *CreateStrNode(const char *data
 	return new astnode<nodeclass>(data);
 }
 template <typename nodeclass> astnode<nodeclass> *CreateIntNode(uint64_t data)
+{
+	return new astnode<nodeclass>(data);
+}
+template <typename nodeclass> astnode<nodeclass> *CreateFloatNode(float data)
+{
+	return new astnode<nodeclass>(data);
+}
+template <typename nodeclass> astnode<nodeclass> *CreateDoubleNode(double data)
 {
 	return new astnode<nodeclass>(data);
 }

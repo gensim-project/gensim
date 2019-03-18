@@ -63,7 +63,7 @@ function(grammar_flex_bison grammar-name grammar-path)
 		OUTPUT
 			"${CMAKE_CURRENT_BINARY_DIR}/${grammar-name}.y.cpp"
 			"${CMAKE_CURRENT_BINARY_DIR}/${grammar-name}.tabs.h"
-		COMMAND "sh" "-c" "bison -W -Wconflicts-sr -v -o ${CMAKE_CURRENT_BINARY_DIR}/${grammar-name}.y.cpp --defines=${CMAKE_CURRENT_BINARY_DIR}/${grammar-name}.tabs.h ${grammar-path}/${grammar-name}.ypp"
+		COMMAND "sh" "-c" "bison -W -Wconflicts-sr -v --graph=${CMAKE_CURRENT_BINARY_DIR}/${grammar-name}.dot -o ${CMAKE_CURRENT_BINARY_DIR}/${grammar-name}.y.cpp --defines=${CMAKE_CURRENT_BINARY_DIR}/${grammar-name}.tabs.h ${grammar-path}/${grammar-name}.ypp"
 		DEPENDS "${grammar-path}/${grammar-name}.ypp"
 		COMMENT "Generating parser for grammar ${grammar-name}"
 	)
