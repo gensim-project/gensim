@@ -28,4 +28,6 @@ int main(int argc, char **argv)
 	root->Dump();
 
 	fclose(f);
+
+	0 + 0 ? 0 ? 0 : 0 : 0;
 }
