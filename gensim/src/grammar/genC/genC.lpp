@@ -39,6 +39,9 @@
 "helper" return GENC_HELPER;
 "execute" return GENC_EXECUTE;
 
+"internal" { yylval->sval = strdup(yytext); return GENC_HELPER_SCOPE; }
+"public" { yylval->sval = strdup(yytext); return GENC_HELPER_SCOPE; }
+
 "noinline" return GENC_HELPER_ATTRIBUTE;
 "export" return GENC_HELPER_ATTRIBUTE;
 "global" return GENC_HELPER_ATTRIBUTE;
