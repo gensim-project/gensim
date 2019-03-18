@@ -56,6 +56,7 @@ enum class GenCNodeType {
 	Binary,
 	Variable,
 	Cast,
+	BitCast,
 
 	Prefix,
 	Postfix,
@@ -112,6 +113,7 @@ static std::ostream &operator<<(std::ostream &os, GenCNodeType type)
 			HANDLE(Binary);
 			HANDLE(Variable);
 			HANDLE(Cast);
+			HANDLE(BitCast);
 
 			HANDLE(Prefix);
 			HANDLE(Postfix);
@@ -125,22 +127,57 @@ static std::ostream &operator<<(std::ostream &os, GenCNodeType type)
 	}
 }
 
+class astnode_loc
+{
+public:
+	int lineno, column;
+
+	bool operator==(const astnode_loc &other) const
+	{
+		return lineno == other.lineno && column == other.column;
+	}
+	bool operator!=(const astnode_loc &other) const
+	{
+		return !operator==(other);
+	}
+};
+
 template<typename nodeclass> class astnode
 {
 public:
 	using ThisT = astnode<nodeclass>;
 
-	astnode(nodeclass clazz) : class_(clazz) {}
-	astnode(const char *data) : class_(nodeclass::STRING), strdata_(strdup(data)) {}
-	astnode(uint64_t data) : class_(nodeclass::INT), intdata_(data) {}
-	astnode(float data) : class_(nodeclass::FLOAT), floatdata_(data) {}
-	astnode(double data) : class_(nodeclass::DOUBLE), doubledata_(data) {}
+	astnode(nodeclass clazz) : class_(clazz), location_(
+	{
+		-1,-1
+	}) {}
+	astnode(const char *data) : class_(nodeclass::STRING), strdata_(strdup(data)), location_(
+	{
+		-1,-1
+	}) {}
+	astnode(uint64_t data) : class_(nodeclass::INT), intdata_(data), location_(
+	{
+		-1,-1
+	}) {}
+	astnode(float data) : class_(nodeclass::FLOAT), floatdata_(data), location_(
+	{
+		-1,-1
+	}) {}
+	astnode(double data) : class_(nodeclass::DOUBLE), doubledata_(data), location_(
+	{
+		-1,-1
+	}) {}
 
 	~astnode()
 	{
 		for(auto i : children_) {
 			delete i;
 		}
+	}
+
+	void SetLocation(astnode_loc location)
+	{
+		location_ = location;
 	}
 
 	void AddChild(astnode *newchild)
@@ -173,6 +210,10 @@ public:
 				break;
 		}
 
+		if(location_ != astnode_loc{-1,-1}) {
+			std::cout << " " << location_.lineno << ":" << location_.column;
+		}
+
 		if(children_.size()) {
 			std::cout << "{\n";
 			for(auto child : children_) {
@@ -195,6 +236,8 @@ private:
 	uint64_t intdata_;
 	float floatdata_;
 	double doubledata_;
+
+	astnode_loc location_;
 };
 
 template <typename nodeclass> astnode<nodeclass> *CreateNode(nodeclass clazz)
