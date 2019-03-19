@@ -1,9 +1,13 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 
 #include <flexbison_harness.h>
+#include <flexbison_genc_ast.h>
 #include <genC.tabs.h>
 #include <genC.l.h>
 
+#include <flexbison_genc.h>
+
+#include <fstream>
 
 int main(int argc, char **argv)
 {
@@ -12,22 +16,19 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	FILE *f = fopen(argv[1], "r");
+	std::ifstream infile(argv[1]);
 
-	yyscan_t scanner;
+	astnode<GenCNodeType, GenC::location> root_node(GenCNodeType::ROOT);
 
-	yylex_init(&scanner);
-	yyset_in(f, scanner);
+	GenC::GenCScanner scanner(&infile);
+	GenC::GenCParser parser(scanner, &root_node);
 
-	astnode<GenCNodeType> *root = CreateNode(GenCNodeType::ROOT);
+	if(parser.parse() != 0) {
+		std::cerr << "Failed to parse\n";
+		return 1;
+	}
 
-	yyparse(scanner, root);
+	root_node.Dump();
 
-	yylex_destroy(scanner);
-
-	root->Dump();
-
-	fclose(f);
-
-	0 + 0 ? 0 ? 0 : 0 : 0;
+	return 0;
 }

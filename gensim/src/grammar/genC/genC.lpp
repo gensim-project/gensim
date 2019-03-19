@@ -6,14 +6,25 @@
 #define yyerminate() return ENDOFFILE
 
 #include "flexbison_harness.h"
+#include "flexbison_genc_ast.h"
 #include "genC.tabs.h"
+#include "flexbison_genc.h"
+
+#undef YY_DECL
+#define YY_DECL int GenC::GenCScanner::yylex(typename GenC::GenCParser::semantic_type *const lval, typename GenC::GenCParser::location_type *location)
+#define YY_NO_UNISTD_H
+
+#define YY_USER_ACTION location->step(); location->columns(yyleng);
+
+using token = GenC::GenCParser::token;
 
 %}
 
-%option reentrant bison-bridge
-
+%option c++
 %option noyywrap
+%option nodefault
 %option yylineno
+%option yyclass="GenC::GenCScanner"
 
 %x GENC_COMMENT
 %x GENC_LINE_COMMENT
@@ -21,115 +32,120 @@
 
 %%
 
+%{ 
+    yylval = lval; 
+%}
+
 "/*" BEGIN(GENC_COMMENT);
 <GENC_COMMENT>"*/" BEGIN(INITIAL);
 <GENC_COMMENT>. ;
 <GENC_COMMENT>[ \t\r\n] ;
 
 "//" BEGIN(GENC_LINE_COMMENT);
-<GENC_LINE_COMMENT>"\n" BEGIN(INITIAL);
+<GENC_LINE_COMMENT>"\n" BEGIN(INITIAL); location->lines();
 <GENC_LINE_COMMENT>. ;
 
-[ \t\r\n]+ {}
-";" return SEMICOLON;
-":" return GENC_COLON;
+[ \t\r]+ {}
+"\n" location->lines();
+";" return token::SEMICOLON;
+":" return token::GENC_COLON;
 
-"typename" return GENC_TYPENAME;
-"struct" return GENC_STRUCT;
-"helper" return GENC_HELPER;
-"execute" return GENC_EXECUTE;
+"typename" return token::GENC_TYPENAME;
+"struct" return token::GENC_STRUCT;
+"helper" return token::GENC_HELPER;
+"execute" return token::GENC_EXECUTE;
 
-"internal" { yylval->sval = strdup(yytext); return GENC_HELPER_SCOPE; }
-"public" { yylval->sval = strdup(yytext); return GENC_HELPER_SCOPE; }
+"internal" { yylval->sval = strdup(yytext); return token::GENC_HELPER_SCOPE; }
+"public" { yylval->sval = strdup(yytext); return token::GENC_HELPER_SCOPE; }
 
-"noinline" return GENC_HELPER_ATTRIBUTE;
-"export" return GENC_HELPER_ATTRIBUTE;
-"global" return GENC_HELPER_ATTRIBUTE;
-"inline" return GENC_HELPER_ATTRIBUTE;
+"noinline" return token::GENC_HELPER_ATTRIBUTE;
+"export" return token::GENC_HELPER_ATTRIBUTE;
+"global" return token::GENC_HELPER_ATTRIBUTE;
+"inline" return token::GENC_HELPER_ATTRIBUTE;
 
-"return" return GENC_RETURN;
-"switch" return GENC_SWITCH;
-"case" return GENC_CASE;
-"default" return GENC_DEFAULT;
-"continue" return GENC_CONTINUE;
-"break" return GENC_BREAK;
-"raise" return GENC_RAISE;
-"do" return GENC_DO;
-"for" return GENC_FOR;
-"while" return GENC_WHILE;
-"if" return GENC_IF;
-"else" return GENC_ELSE;
+"return" return token::GENC_RETURN;
+"switch" return token::GENC_SWITCH;
+"case" return token::GENC_CASE;
+"default" return token::GENC_DEFAULT;
+"continue" return token::GENC_CONTINUE;
+"break" return token::GENC_BREAK;
+"raise" return token::GENC_RAISE;
+"do" return token::GENC_DO;
+"for" return token::GENC_FOR;
+"while" return token::GENC_WHILE;
+"if" return token::GENC_IF;
+"else" return token::GENC_ELSE;
 
-"&" return GENC_AMPERSAND;
-"[" return GENC_OPEN_BRACKET;
-"]" return GENC_CLOSE_BRACKET;
-"(" return GENC_OPEN_PAREN;
-")" return GENC_CLOSE_PAREN;
-"{" return GENC_OPEN_BRACE;
-"}" return GENC_CLOSE_BRACE;
+"&" return token::GENC_AMPERSAND;
+"[" return token::GENC_OPEN_BRACKET;
+"]" return token::GENC_CLOSE_BRACKET;
+"(" return token::GENC_OPEN_PAREN;
+")" return token::GENC_CLOSE_PAREN;
+"{" return token::GENC_OPEN_BRACE;
+"}" return token::GENC_CLOSE_BRACE;
 
-"=" return GENC_EQUALS;
-"." return GENC_PERIOD;
-"," return GENC_COMMA;
-"-" return GENC_MINUS;
-"+" return GENC_PLUS;
-"~" return GENC_TILDE;
-"<<" return GENC_SHIFTLEFT;
-">>" return GENC_SHIFTRIGHT;
-">>>" return GENC_ROTATERIGHT;
-"<<<" return GENC_ROTATELEFT;
-"*" return GENC_ASTERIX;
-"/" return GENC_FORWARDSLASH;
-"!" return GENC_EXCLAMATION;
-"|" return GENC_PIPE;
-"^" return GENC_CARET;
-"%" return GENC_PERCENT;
-"?" return GENC_QUESTIONMARK;
+"=" return token::GENC_EQUALS;
+"." return token::GENC_PERIOD;
+"," return token::GENC_COMMA;
+"-" return token::GENC_MINUS;
+"+" return token::GENC_PLUS;
+"~" return token::GENC_TILDE;
+"<<" return token::GENC_SHIFTLEFT;
+">>" return token::GENC_SHIFTRIGHT;
+">>>" return token::GENC_ROTATERIGHT;
+"<<<" return token::GENC_ROTATELEFT;
+"*" return token::GENC_ASTERIX;
+"/" return token::GENC_FORWARDSLASH;
+"!" return token::GENC_EXCLAMATION;
+"|" return token::GENC_PIPE;
+"^" return token::GENC_CARET;
+"%" return token::GENC_PERCENT;
+"?" return token::GENC_QUESTIONMARK;
 
-"&&" return GENC_LOGICAL_AND;
-"||" return GENC_LOGICAL_OR;
+"&&" return token::GENC_LOGICAL_AND;
+"||" return token::GENC_LOGICAL_OR;
 
-"|=" return GENC_PIPE_ASSIGN;
-"&=" return GENC_AMPERSAND_ASSIGN;
-"^=" return GENC_CARET_ASSIGN;
-"+=" return GENC_PLUS_ASSIGN;
-"-=" return GENC_MINUS_ASSIGN;
-"*=" return GENC_ASTERIX_ASSIGN;
-"/=" return GENC_DIVIDE_ASSIGN;
-"%=" return GENC_PERCENT_ASSIGN;
-"<<=" return GENC_LEFTSHIFT_ASSIGN;
-">>=" return GENC_RIGHTSHIFT_ASSIGN;
+"|=" return token::GENC_PIPE_ASSIGN;
+"&=" return token::GENC_AMPERSAND_ASSIGN;
+"^=" return token::GENC_CARET_ASSIGN;
+"+=" return token::GENC_PLUS_ASSIGN;
+"-=" return token::GENC_MINUS_ASSIGN;
+"*=" return token::GENC_ASTERIX_ASSIGN;
+"/=" return token::GENC_DIVIDE_ASSIGN;
+"%=" return token::GENC_PERCENT_ASSIGN;
+"<<=" return token::GENC_LEFTSHIFT_ASSIGN;
+">>=" return token::GENC_RIGHTSHIFT_ASSIGN;
 
-"==" return GENC_COMPARE_EQUALITY;
-"!=" return GENC_COMPARE_INEQUALITY;
-">" return GENC_RIGHT_CHEVRON;
-">=" return GENC_COMPARE_GTE;
-"<" return GENC_LEFT_CHEVRON;
-"<=" return GENC_COMPARE_LTE;
+"==" return token::GENC_COMPARE_EQUALITY;
+"!=" return token::GENC_COMPARE_INEQUALITY;
+">" return token::GENC_RIGHT_CHEVRON;
+">=" return token::GENC_COMPARE_GTE;
+"<" return token::GENC_LEFT_CHEVRON;
+"<=" return token::GENC_COMPARE_LTE;
 
-"++" return GENC_INCREMENT;
-"--" return GENC_DECREMENT;
+"++" return token::GENC_INCREMENT;
+"--" return token::GENC_DECREMENT;
 
-"uint8" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"uint16" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"uint32" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"uint64" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"uint128" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"sint8" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"sint16" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"sint32" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"sint64" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"sint128" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"float" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"double" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"longdouble" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
-"void" { yylval->sval = strdup(yytext); return GENC_BASICTYPE; }
+"uint8" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"uint16" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"uint32" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"uint64" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"uint128" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"sint8" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"sint16" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"sint32" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"sint64" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"sint128" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"float" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"double" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"longdouble" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
+"void" { yylval->sval = strdup(yytext); return token::GENC_BASICTYPE; }
 
-[a-zA-Z_][a-zA-Z0-9_]* { yylval->sval = strdup(yytext); return GENC_ID; }
+[a-zA-Z_][a-zA-Z0-9_]* { yylval->sval = strdup(yytext); return token::GENC_ID; }
 
-[0-9]+"U"?"L"* { yylval->ival = strtol(yytext, nullptr, 0); return GENC_INT_CONST; }
-"0x"[0-9a-fA-F]+"U"?"L"* { yylval->ival = strtol(yytext, nullptr, 0); return GENC_INT_CONST; }
-[0-9]+\.[0-9]*"f" { yylval->fval = strtof(yytext, nullptr); return GENC_FLOAT_CONST; }
-[0-9]+\.[0-9]* { yylval->dval = strtod(yytext, nullptr); return GENC_DOUBLE_CONST; }
+[0-9]+"U"?"L"* { yylval->ival = strtol(yytext, nullptr, 0); return token::GENC_INT_CONST; }
+"0x"[0-9a-fA-F]+"U"?"L"* { yylval->ival = strtol(yytext, nullptr, 0); return token::GENC_INT_CONST; }
+[0-9]+\.[0-9]*"f" { yylval->fval = strtof(yytext, nullptr); return token::GENC_FLOAT_CONST; }
+[0-9]+\.[0-9]* { yylval->dval = strtod(yytext, nullptr); return token::GENC_DOUBLE_CONST; }
 
 %%

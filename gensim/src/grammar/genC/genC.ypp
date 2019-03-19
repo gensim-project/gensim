@@ -1,28 +1,48 @@
 %{
 
 #include <stdint.h>
-#define YYERROR_VERBOSE 1
-
 #include "flexbison_harness.h"
+#include "flexbison_genc_ast.h"
 
-#include "genC.tabs.h"
-#include "genC.l.h"
-
-static inline void yyerror(void *yyscanner, astnode<GenCNodeType> *root, const char *s);
-
+#define YYERROR_VERBOSE 1
 %}
 
-%define api.pure full
-%lex-param {void *yyscanner}
-%parse-param {void *yyscanner} { astnode<GenCNodeType> * root }
+%code requires {
+    namespace GenC {
+        class GenCScanner;
+    }
+}
+
+%skeleton "lalr1.cc"
+
+%defines
+%locations
+%define api.namespace {GenC}
+%define parser_class_name {GenCParser}
 
 %union {
     uint64_t ival;
     char *sval;
     float fval;
     double dval;
-    astnode<GenCNodeType> *ast_node;
+    astnode<GenCNodeType, GenC::location> *ast_node;
 }
+
+%parse-param { GenCScanner &scanner } { astnode<GenCNodeType, GenC::location> * root }
+
+%code {
+#include "flexbison_genc.h"
+#undef yylex 
+#define yylex scanner.yylex
+
+#define CreateGenCNode CreateNode<GenCNodeType, GenC::location>
+#define CreateGenCStrNode CreateStrNode<GenCNodeType, GenC::location>
+#define CreateGenCIntNode CreateIntNode<GenCNodeType, GenC::location>
+
+}
+
+%define parse.assert
+%define parse.error verbose
 
 // AST Node Tokens
 %token SEMICOLON
@@ -162,13 +182,13 @@ definition_list :
     definition_list typedef_definition { $$ = $1; $$->AddChild($2); } |
     definition_list constant_definition { $$ = $1; $$->AddChild($2); } |
     definition_list action_definition { $$ = $1; $$->AddChild($2); } |
-    %empty { $$ = CreateNode(GenCNodeType::DefinitionList); }
+    %empty { $$ = CreateGenCNode(GenCNodeType::DefinitionList); }
 
 typedef_definition :
-    GENC_TYPENAME GENC_ID GENC_EQUALS type SEMICOLON { $$ = CreateNode(GenCNodeType::Typename); $$->AddChild(CreateStrNode<GenCNodeType>($2)); $$->AddChild($4); }
+    GENC_TYPENAME GENC_ID GENC_EQUALS type SEMICOLON { $$ = CreateGenCNode(GenCNodeType::Typename); $$->AddChild(CreateGenCStrNode($2)); $$->AddChild($4); }
 
 constant_definition :
-    GENC_CONST GENC_ID GENC_EQUALS constant SEMICOLON { $$ = CreateNode(GenCNodeType::Constant); $$->AddChild(CreateStrNode<GenCNodeType>($2)); $$->AddChild($4); }
+    GENC_CONST GENC_ID GENC_EQUALS constant SEMICOLON { $$ = CreateGenCNode(GenCNodeType::Constant); $$->AddChild(CreateGenCStrNode($2)); $$->AddChild($4); }
 
 action_definition :
     helper_definition { $$ = $1; } |
@@ -176,43 +196,43 @@ action_definition :
 
 helper_definition :
     helper_scope GENC_HELPER type GENC_ID GENC_OPEN_PAREN helper_paren_list GENC_CLOSE_PAREN helper_attribute_list body 
-        { $$ = CreateNode(GenCNodeType::Helper); $$->AddChildren({$1, $3, CreateStrNode<GenCNodeType>($4), $6, $8, $9}); }
+        { $$ = CreateGenCNode(GenCNodeType::Helper); $$->AddChildren({$1, $3, CreateGenCStrNode($4), $6, $8, $9}); }
 
 helper_scope :
-    GENC_HELPER_SCOPE { $$ = CreateNode(GenCNodeType::HelperScope); $$->AddChild(CreateStrNode<GenCNodeType>($1)); } |
-    %empty { $$ = CreateNode(GenCNodeType::HelperScope); $$->AddChild(CreateStrNode<GenCNodeType>("default")); }
+    GENC_HELPER_SCOPE { $$ = CreateGenCNode(GenCNodeType::HelperScope); $$->AddChild(CreateGenCStrNode($1)); } |
+    %empty { $$ = CreateGenCNode(GenCNodeType::HelperScope); $$->AddChild(CreateGenCStrNode("default")); }
 
 helper_paren_list :
-    %empty { $$ = CreateNode(GenCNodeType::HelperParenList); } |
+    %empty { $$ = CreateGenCNode(GenCNodeType::HelperParenList); } |
     helper_paren_list_nonempty { $$ = $1; }
 
 helper_paren_list_nonempty :
     helper_paren_list GENC_COMMA helper_paren { $$ = $1; $$->AddChild($3); } |
-    helper_paren { $$ = CreateNode(GenCNodeType::HelperParenList); $$->AddChild($1); }
+    helper_paren { $$ = CreateGenCNode(GenCNodeType::HelperParenList); $$->AddChild($1); }
 
 helper_paren :
-    type GENC_ID { $$ = CreateNode(GenCNodeType::HelperParen); $$->AddChild($1); $$->AddChild(CreateStrNode<GenCNodeType>($2)); }
+    type GENC_ID { $$ = CreateGenCNode(GenCNodeType::HelperParen); $$->AddChild($1); $$->AddChild(CreateGenCStrNode($2)); }
 
 helper_attribute_list:
     helper_attribute_list helper_attribute { $$ = $1; $$->AddChild($2); } |
-    %empty { $$ = CreateNode(GenCNodeType::HelperAttributeList); }
+    %empty { $$ = CreateGenCNode(GenCNodeType::HelperAttributeList); }
 
 helper_attribute:
-    GENC_HELPER_ATTRIBUTE { $$ = CreateStrNode<GenCNodeType>($1); }
+    GENC_HELPER_ATTRIBUTE { $$ = CreateGenCStrNode($1); }
 
 execute_definition :
-    GENC_EXECUTE GENC_OPEN_PAREN GENC_ID GENC_CLOSE_PAREN body { $$ = CreateNode(GenCNodeType::Execute, {CreateStrNode<GenCNodeType>($3), $5}); }
+    GENC_EXECUTE GENC_OPEN_PAREN GENC_ID GENC_CLOSE_PAREN body { $$ = CreateGenCNode(GenCNodeType::Execute, {CreateGenCStrNode($3), $5}); }
 
 body :
     GENC_OPEN_BRACE statement_list GENC_CLOSE_BRACE { $$ = $2; }
 
 statement_list :
     statement_list statement { $$ = $1; $$->AddChild($2); } |
-    %empty { $$ = CreateNode<GenCNodeType>(GenCNodeType::Body); }
+    %empty { $$ = CreateGenCNode(GenCNodeType::Body); }
 
 statement :
     body { $$ = $1; } |
-    SEMICOLON { $$ = CreateNode<GenCNodeType>(GenCNodeType::Body); } |
+    SEMICOLON { $$ = CreateGenCNode(GenCNodeType::Body); } |
     expression_statement SEMICOLON { $$ = $1; } |
     flow_statement { $$ = $1; } |
     iteration_statement { $$ = $1; } |
@@ -224,55 +244,55 @@ expression_statement :
     expression { $$ = $1; }
 
 declaration_expression : 
-    type GENC_ID { $$ = CreateNode(GenCNodeType::Declare, {$1, CreateStrNode<GenCNodeType>($2)}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    type GENC_ID GENC_EQUALS right_expression { $$ = CreateNode(GenCNodeType::Declare, {$1, CreateStrNode<GenCNodeType>($2), $4}); $$->SetLocation({yyget_lineno(yyscanner),0}); }
+    type GENC_ID { $$ = CreateGenCNode(GenCNodeType::Declare, {$1, CreateGenCStrNode($2)}); } |
+    type GENC_ID GENC_EQUALS right_expression { $$ = CreateGenCNode(GenCNodeType::Declare, {$1, CreateGenCStrNode($2), $4}); }
 
 assignment_expression :
-    left_expression GENC_EQUALS right_expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("="), $1, $3}); } |
-    left_expression GENC_PIPE_ASSIGN right_expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("|="), $1, $3}); } |
-    left_expression GENC_CARET_ASSIGN right_expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("^="), $1, $3}); } |
-    left_expression GENC_AMPERSAND_ASSIGN right_expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("&="), $1, $3}); } |
-    left_expression GENC_PLUS_ASSIGN right_expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("+="), $1, $3}); } |
-    left_expression GENC_MINUS_ASSIGN right_expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("-="), $1, $3}); } |
-    left_expression GENC_DIVIDE_ASSIGN right_expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("/="), $1, $3}); } |
-    left_expression GENC_PERCENT_ASSIGN right_expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("%="), $1, $3}); } |
-    left_expression GENC_ASTERIX_ASSIGN right_expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("*="), $1, $3}); } |
-    left_expression GENC_LEFTSHIFT_ASSIGN right_expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("<<="), $1, $3}); } |
-    left_expression GENC_RIGHTSHIFT_ASSIGN right_expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>(">>="), $1, $3}); }
+    left_expression GENC_EQUALS right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("="), $1, $3}); } |
+    left_expression GENC_PIPE_ASSIGN right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("|="), $1, $3}); } |
+    left_expression GENC_CARET_ASSIGN right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("^="), $1, $3}); } |
+    left_expression GENC_AMPERSAND_ASSIGN right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("&="), $1, $3}); } |
+    left_expression GENC_PLUS_ASSIGN right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("+="), $1, $3}); } |
+    left_expression GENC_MINUS_ASSIGN right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("-="), $1, $3}); } |
+    left_expression GENC_DIVIDE_ASSIGN right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("/="), $1, $3}); } |
+    left_expression GENC_PERCENT_ASSIGN right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("%="), $1, $3}); } |
+    left_expression GENC_ASTERIX_ASSIGN right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("*="), $1, $3}); } |
+    left_expression GENC_LEFTSHIFT_ASSIGN right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("<<="), $1, $3}); } |
+    left_expression GENC_RIGHTSHIFT_ASSIGN right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode(">>="), $1, $3}); }
 
 left_expression :
     variable_expression { $$ = $1; } |
-    left_expression unary_postfix_operator { $$ = CreateNode(GenCNodeType::Postfix, {$2, $1}); $$->SetLocation({yyget_lineno(yyscanner),0}); }
+    left_expression unary_postfix_operator { $$ = CreateGenCNode(GenCNodeType::Postfix, {$2, $1}); }
 
 flow_statement : 
-    GENC_CASE constant_expr GENC_COLON body { $$ = CreateNode(GenCNodeType::Case); $$->AddChildren({$2, $4});  $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    GENC_DEFAULT GENC_COLON body { $$ = CreateNode(GenCNodeType::Default, {$3});  $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    GENC_BREAK SEMICOLON { $$ = CreateNode(GenCNodeType::Break);  $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    GENC_CONTINUE SEMICOLON { $$ = CreateNode(GenCNodeType::Continue);  $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    GENC_RAISE SEMICOLON { $$ = CreateNode(GenCNodeType::Raise);  $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    GENC_RETURN SEMICOLON { $$ = CreateNode(GenCNodeType::Return);  $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    GENC_RETURN right_expression SEMICOLON { $$ = CreateNode(GenCNodeType::Return, {$2});  $$->SetLocation({yyget_lineno(yyscanner),0}); }
+    GENC_CASE constant_expr GENC_COLON body { $$ = CreateGenCNode(GenCNodeType::Case); $$->AddChildren({$2, $4}); } |
+    GENC_DEFAULT GENC_COLON body { $$ = CreateGenCNode(GenCNodeType::Default, {$3}); } |
+    GENC_BREAK SEMICOLON { $$ = CreateGenCNode(GenCNodeType::Break); } |
+    GENC_CONTINUE SEMICOLON { $$ = CreateGenCNode(GenCNodeType::Continue);  } |
+    GENC_RAISE SEMICOLON { $$ = CreateGenCNode(GenCNodeType::Raise);  } |
+    GENC_RETURN SEMICOLON { $$ = CreateGenCNode(GenCNodeType::Return);  } |
+    GENC_RETURN right_expression SEMICOLON { $$ = CreateGenCNode(GenCNodeType::Return, {$2});  }
 
 iteration_statement :
-    GENC_WHILE GENC_OPEN_PAREN expression GENC_CLOSE_PAREN statement { $$ = CreateNode(GenCNodeType::While, {$3, $5}); } |
-    GENC_DO statement GENC_WHILE GENC_OPEN_PAREN expression GENC_CLOSE_PAREN SEMICOLON { $$ = CreateNode(GenCNodeType::Do, {$2, $5}); } |
-    GENC_FOR GENC_OPEN_PAREN expression_statement SEMICOLON expression SEMICOLON expression_statement GENC_CLOSE_PAREN statement { $$ = CreateNode(GenCNodeType::For, {$3, $5, $7, $9}); }
+    GENC_WHILE GENC_OPEN_PAREN expression GENC_CLOSE_PAREN statement { $$ = CreateGenCNode(GenCNodeType::While, {$3, $5}); } |
+    GENC_DO statement GENC_WHILE GENC_OPEN_PAREN expression GENC_CLOSE_PAREN SEMICOLON { $$ = CreateGenCNode(GenCNodeType::Do, {$2, $5}); } |
+    GENC_FOR GENC_OPEN_PAREN expression_statement SEMICOLON expression SEMICOLON expression_statement GENC_CLOSE_PAREN statement { $$ = CreateGenCNode(GenCNodeType::For, {$3, $5, $7, $9}); }
 
 selection_statement :
     if_statement { $$ = $1; } |
     switch_statement {$$ = $1; }
 
 if_statement :
-    GENC_IF GENC_OPEN_PAREN expression_statement GENC_CLOSE_PAREN statement %prec "then" { $$ = CreateNode(GenCNodeType::If, {$3, $5});  $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    GENC_IF GENC_OPEN_PAREN expression_statement GENC_CLOSE_PAREN statement GENC_ELSE statement { $$ = CreateNode(GenCNodeType::If, {$3, $5, $7});  $$->SetLocation({yyget_lineno(yyscanner),0}); }
+    GENC_IF GENC_OPEN_PAREN expression_statement GENC_CLOSE_PAREN statement %prec "then" { $$ = CreateGenCNode(GenCNodeType::If, {$3, $5});  } |
+    GENC_IF GENC_OPEN_PAREN expression_statement GENC_CLOSE_PAREN statement GENC_ELSE statement { $$ = CreateGenCNode(GenCNodeType::If, {$3, $5, $7});  }
 
 switch_statement :
-    GENC_SWITCH GENC_OPEN_PAREN expression GENC_CLOSE_PAREN body { $$ = CreateNode(GenCNodeType::Switch, {$3, $5}); }
+    GENC_SWITCH GENC_OPEN_PAREN expression GENC_CLOSE_PAREN body { $$ = CreateGenCNode(GenCNodeType::Switch, {$3, $5}); }
 
 constant :
-    GENC_INT_CONST { $$ = CreateIntNode<GenCNodeType>($1); } |
-    GENC_FLOAT_CONST { $$ = CreateIntNode<GenCNodeType>($1); } |
-    GENC_DOUBLE_CONST { $$ = CreateIntNode<GenCNodeType>($1); }
+    GENC_INT_CONST { $$ = CreateGenCIntNode($1); } |
+    GENC_FLOAT_CONST { $$ = CreateGenCIntNode($1); } |
+    GENC_DOUBLE_CONST { $$ = CreateGenCIntNode($1); }
 
 constant_expr:
     constant { $$ = $1; }
@@ -296,70 +316,70 @@ vector_expression :
 
 vector_element_list :
     vector_element_list GENC_COMMA expression { $$ = $1; $$->AddChild($3); } |
-    expression { $$ = CreateNode(GenCNodeType::Vector, {$1}); }
+    expression { $$ = CreateGenCNode(GenCNodeType::Vector, {$1}); }
 
 ternary_expression :
-    expression GENC_QUESTIONMARK right_expression GENC_COLON right_expression { $$ = CreateNode(GenCNodeType::Ternary, {$1, $3, $5}); }
+    expression GENC_QUESTIONMARK right_expression GENC_COLON right_expression { $$ = CreateGenCNode(GenCNodeType::Ternary, {$1, $3, $5}); }
 
 cast_expression :
-    GENC_OPEN_PAREN type GENC_CLOSE_PAREN expression %prec "cast" { $$ = CreateNode(GenCNodeType::Cast, {$2, $4}); $$->SetLocation({yyget_lineno(yyscanner),0});} |
-    GENC_LEFT_CHEVRON type GENC_RIGHT_CHEVRON expression %prec "cast" { $$ = CreateNode(GenCNodeType::BitCast, {$2, $4}); $$->SetLocation({yyget_lineno(yyscanner),0});} 
+    GENC_OPEN_PAREN type GENC_CLOSE_PAREN expression %prec "cast" { $$ = CreateGenCNode(GenCNodeType::Cast, {$2, $4}); } |
+    GENC_LEFT_CHEVRON type GENC_RIGHT_CHEVRON expression %prec "cast" { $$ = CreateGenCNode(GenCNodeType::BitCast, {$2, $4}); } 
 
 unary_prefix_expression :
-    GENC_INCREMENT left_expression { $$ = CreateNode(GenCNodeType::Prefix, {CreateStrNode<GenCNodeType>("++"), $2}); $$->SetLocation({yyget_lineno(yyscanner),0}); }  |
-    GENC_DECREMENT left_expression { $$ = CreateNode(GenCNodeType::Prefix, {CreateStrNode<GenCNodeType>("--"), $2}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    GENC_MINUS expression { $$ = CreateNode(GenCNodeType::Prefix, {CreateStrNode<GenCNodeType>("-"), $2}); $$->SetLocation({yyget_lineno(yyscanner),0}); } %prec GENC_MINUS_UNARY |
-    GENC_EXCLAMATION expression { $$ = CreateNode(GenCNodeType::Prefix, {CreateStrNode<GenCNodeType>("!"), $2}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    GENC_TILDE expression { $$ = CreateNode(GenCNodeType::Prefix, {CreateStrNode<GenCNodeType>("~"), $2}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
+    GENC_INCREMENT left_expression { $$ = CreateGenCNode(GenCNodeType::Prefix, {CreateGenCStrNode("++"), $2}); }  |
+    GENC_DECREMENT left_expression { $$ = CreateGenCNode(GenCNodeType::Prefix, {CreateGenCStrNode("--"), $2}); } |
+    GENC_MINUS expression { $$ = CreateGenCNode(GenCNodeType::Prefix, {CreateGenCStrNode("-"), $2}); } %prec GENC_MINUS_UNARY |
+    GENC_EXCLAMATION expression { $$ = CreateGenCNode(GenCNodeType::Prefix, {CreateGenCStrNode("!"), $2}); } |
+    GENC_TILDE expression { $$ = CreateGenCNode(GenCNodeType::Prefix, {CreateGenCStrNode("~"), $2}); } |
     GENC_PLUS expression { $$ = $2; } %prec GENC_PLUS_UNARY
 
 unary_postfix_operator :
-    GENC_INCREMENT { $$ = CreateStrNode<GenCNodeType>("++"); } |
-    GENC_DECREMENT { $$ = CreateStrNode<GenCNodeType>("++"); } |
-    GENC_PERIOD GENC_ID { $$ = CreateNode(GenCNodeType::Member, {CreateStrNode<GenCNodeType>($2)}); } %prec "member" |
-    GENC_OPEN_BRACKET expression GENC_CLOSE_BRACKET { $$ = CreateNode(GenCNodeType::VectorElement, {$2}); } %prec "postfix_brackets" |
-    GENC_OPEN_BRACKET expression GENC_COLON expression GENC_CLOSE_BRACKET { $$ = CreateNode(GenCNodeType::BitExtract, {$2, $4}); } %prec "postfix_brackets"
+    GENC_INCREMENT { $$ = CreateGenCStrNode("++"); } |
+    GENC_DECREMENT { $$ = CreateGenCStrNode("++"); } |
+    GENC_PERIOD GENC_ID { $$ = CreateGenCNode(GenCNodeType::Member, {CreateGenCStrNode($2)}); } %prec "member" |
+    GENC_OPEN_BRACKET expression GENC_CLOSE_BRACKET { $$ = CreateGenCNode(GenCNodeType::VectorElement, {$2}); } %prec "postfix_brackets" |
+    GENC_OPEN_BRACKET expression GENC_COLON expression GENC_CLOSE_BRACKET { $$ = CreateGenCNode(GenCNodeType::BitExtract, {$2, $4}); } %prec "postfix_brackets"
 
 call_expression : 
-    GENC_ID GENC_OPEN_PAREN call_parameter_list GENC_CLOSE_PAREN { $$ = CreateNode(GenCNodeType::Call, {CreateStrNode<GenCNodeType>($1), $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); }
+    GENC_ID GENC_OPEN_PAREN call_parameter_list GENC_CLOSE_PAREN { $$ = CreateGenCNode(GenCNodeType::Call, {CreateGenCStrNode($1), $3}); }
 
 call_parameter_list :
-    %empty { $$ = CreateNode(GenCNodeType::ParamList); } |
+    %empty { $$ = CreateGenCNode(GenCNodeType::ParamList); } |
     call_parameter_list_nonempty { $$ = $1; }
 
 call_parameter_list_nonempty :
     call_parameter_list_nonempty GENC_COMMA expression { $$ = $1; $$->AddChild($3); } |
-    expression { $$ = CreateNode(GenCNodeType::ParamList, {$1}); }
+    expression { $$ = CreateGenCNode(GenCNodeType::ParamList, {$1}); }
 
 binary_expression : 
-    expression GENC_PLUS expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("+"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_MINUS expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("-"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_ASTERIX expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("*"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_FORWARDSLASH expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("/"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_PERCENT expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("%"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_SHIFTLEFT expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("<<"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_SHIFTRIGHT expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>(">>"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_ROTATELEFT expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("<<<"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_ROTATERIGHT expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>(">>>"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_AMPERSAND expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("&"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_CARET expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("^"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_PIPE expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("|"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
+    expression GENC_PLUS expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("+"), $1, $3}); } |
+    expression GENC_MINUS expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("-"), $1, $3}); } |
+    expression GENC_ASTERIX expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("*"), $1, $3}); } |
+    expression GENC_FORWARDSLASH expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("/"), $1, $3}); } |
+    expression GENC_PERCENT expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("%"), $1, $3}); } |
+    expression GENC_SHIFTLEFT expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("<<"), $1, $3}); } |
+    expression GENC_SHIFTRIGHT expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode(">>"), $1, $3}); } |
+    expression GENC_ROTATELEFT expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("<<<"), $1, $3}); } |
+    expression GENC_ROTATERIGHT expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode(">>>"), $1, $3}); } |
+    expression GENC_AMPERSAND expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("&"), $1, $3}); } |
+    expression GENC_CARET expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("^"), $1, $3}); } |
+    expression GENC_PIPE expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("|"), $1, $3}); } |
     
-    expression GENC_LOGICAL_AND expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("&&"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_LOGICAL_OR expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("||"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
+    expression GENC_LOGICAL_AND expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("&&"), $1, $3}); } |
+    expression GENC_LOGICAL_OR expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("||"), $1, $3}); } |
     
-    expression GENC_COMPARE_EQUALITY expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("=="), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_COMPARE_INEQUALITY expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("!="), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_RIGHT_CHEVRON expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>(">"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_COMPARE_GTE expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>(">="), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } | 
-    expression GENC_LEFT_CHEVRON expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("<"), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } |
-    expression GENC_COMPARE_LTE expression { $$ = CreateNode(GenCNodeType::Binary, {CreateStrNode<GenCNodeType>("<="), $1, $3}); $$->SetLocation({yyget_lineno(yyscanner),0}); } 
+    expression GENC_COMPARE_EQUALITY expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("=="), $1, $3}); } |
+    expression GENC_COMPARE_INEQUALITY expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("!="), $1, $3}); } |
+    expression GENC_RIGHT_CHEVRON expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode(">"), $1, $3}); } |
+    expression GENC_COMPARE_GTE expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode(">="), $1, $3}); } | 
+    expression GENC_LEFT_CHEVRON expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("<"), $1, $3}); } |
+    expression GENC_COMPARE_LTE expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("<="), $1, $3}); } 
 
 variable_expression :
-    GENC_ID { $$ = CreateNode(GenCNodeType::Variable, {CreateStrNode<GenCNodeType>($1)}); $$->SetLocation({yyget_lineno(yyscanner),0}); }
+    GENC_ID { $$ = CreateGenCNode(GenCNodeType::Variable, {CreateGenCStrNode($1)}); }
     
 type :
-    full_type_definition { $$ = CreateNode(GenCNodeType::Type); $$->AddChild($1); $$->SetLocation({yyget_lineno(yyscanner),0}); }
+    full_type_definition { $$ = CreateGenCNode(GenCNodeType::Type); $$->AddChild($1); }
 
 full_type_definition:
     base_type { $$ = $1; } |
@@ -367,17 +387,17 @@ full_type_definition:
 
 type_annotation_list :
     type_annotation_list type_annotation { $$ = $1; $$->AddChild($2); } |
-    type_annotation { $$ = CreateNode(GenCNodeType::Annotation); $$->AddChild($1); }
+    type_annotation { $$ = CreateGenCNode(GenCNodeType::Annotation); $$->AddChild($1); }
 
 type_annotation :
     vector_type_annotation |
     reference_type_annotation
 
 vector_type_annotation:
-    GENC_OPEN_BRACKET GENC_INT_CONST GENC_CLOSE_BRACKET { $$ = CreateNode(GenCNodeType::Vector); $$->AddChild(CreateIntNode<GenCNodeType>($2)); }
+    GENC_OPEN_BRACKET GENC_INT_CONST GENC_CLOSE_BRACKET { $$ = CreateGenCNode(GenCNodeType::Vector); $$->AddChild(CreateGenCIntNode($2)); }
 
 reference_type_annotation:
-    GENC_AMPERSAND { $$ = CreateNode(GenCNodeType::Reference); }
+    GENC_AMPERSAND { $$ = CreateGenCNode(GenCNodeType::Reference); }
 
 base_type:
     struct_type { $$ = $1; } |
@@ -385,17 +405,19 @@ base_type:
     typename_type { $$ = $1; } 
 
 struct_type:
-    GENC_STRUCT GENC_ID { $$ = CreateNode(GenCNodeType::Struct); $$->AddChild(CreateStrNode<GenCNodeType>($2)); $$->SetLocation({yyget_lineno(yyscanner),0});}
+    GENC_STRUCT GENC_ID { $$ = CreateGenCNode(GenCNodeType::Struct); $$->AddChild(CreateGenCStrNode($2)); }
 
 numeric_type:
-    GENC_BASICTYPE { $$ = CreateNode(GenCNodeType::Type); $$->AddChild(CreateStrNode<GenCNodeType>($1)); $$->SetLocation({yyget_lineno(yyscanner),0}); }
+    GENC_BASICTYPE { $$ = CreateGenCNode(GenCNodeType::Type); $$->AddChild(CreateGenCStrNode($1)); }
 
 typename_type:
-    GENC_TYPENAME GENC_ID { $$ = CreateNode(GenCNodeType::Typename); $$->AddChild(CreateStrNode<GenCNodeType>($2)); $$->SetLocation({yyget_lineno(yyscanner),0});}
+    GENC_TYPENAME GENC_ID { $$ = CreateGenCNode(GenCNodeType::Typename); $$->AddChild(CreateGenCStrNode($2)); }
+
 
 %%
 
-#include "genC.tabs.h"
-#include "genC.l.h"
-
-static inline void yyerror(void *yyscanner, astnode<GenCNodeType> *root, const char *s) { fprintf(stderr, "%u:%u: %s\n", yyget_lineno(yyscanner), yyget_column(yyscanner), s); }
+void GenC::GenCParser::error(const GenC::location &location, const std::string &error)
+{
+    std::cerr << location << ":" << error << std::endl;
+    //fprintf(stderr, "%s:%u: %s\n", location.begin.filename, location.begin.line, error.c_str());
+}
