@@ -16,6 +16,7 @@ namespace gensim
 	{
 
 		uint8_t Util::Verbose_Level = 0;
+		std::set<std::string> Util::GenC_Options;
 
 		const expression *expression::Parse(void *ptree)
 		{
