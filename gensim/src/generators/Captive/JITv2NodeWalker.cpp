@@ -82,7 +82,12 @@ namespace gensim
 					} else if (node.Statement.GetType() == IRTypes::Double) {
 						return "emitter.const_f64(" + node.GetFixedValue() + ")";
 					} else if (node.Statement.GetType().VectorWidth > 1) {
-						return "emitter.constant_vector_splat(" + node.GetFixedValue() + ", " + type_for_statement(node.Statement) + ")";
+						auto t = node.Statement.GetType();
+						if (t.IsFloating()) {
+							return "emitter.constant_vector_splat_f(" + node.GetFixedValue() + ", " + type_for_statement(node.Statement) + ")";
+						} else {
+							return "emitter.constant_vector_splat(" + node.GetFixedValue() + ", " + type_for_statement(node.Statement) + ")";
+						}
 					} else {
 						fprintf(stderr, "node type: %s @ %s:%d\n", node.Statement.GetType().GetUnifiedType().c_str(), node.Statement.GetDiag().Filename().c_str(), node.Statement.GetDiag().Line());
 						assert(false && "Unsupported node type");
@@ -412,9 +417,24 @@ namespace gensim
 						case IRConstant::Type_Integer:
 							str << "(" << stmt.GetType().GetCType() << ")" << stmt.Constant.Int() << "ULL";
 							return str.str();
-						case IRConstant::Type_Vector:
-							str << stmt.Constant.VGet(0).Int() << "ULL";
+						case IRConstant::Type_Vector: {
+							IRConstant splat_value = stmt.Constant.VGet(0);
+
+							// "(" << stmt.GetType().GetElementType().GetCType() << ")"
+							switch (splat_value.Type()) {
+								case IRConstant::Type_Integer:
+									str << "(dbt_u64)" << splat_value.Int() << "ULL";
+									break;
+								case IRConstant::Type_Float_Single:
+									str << "(dbt_f32)" << splat_value.Flt();
+									break;
+								case IRConstant::Type_Float_Double:
+									str << "(dbt_f64)" << splat_value.Dbl();
+									break;
+							}
+
 							return str.str();
+						}
 						default:
 							break;
 					}
@@ -451,7 +471,9 @@ namespace gensim
 							output << "emitter.convert(" << operand_for_node(*expr) << ", " << type_for_statement(Statement) << ");";
 						}
 					} else {
-						if (Statement.GetCastType() == SSACastStatement::Cast_Reinterpret) {
+						if (Statement.GetCastType() == SSACastStatement::Cast_VectorSplat) {
+							output << "emitter.splat(" << operand_for_node(*expr) << ", " << type_for_statement(Statement) << ");";
+						} else if (Statement.GetCastType() == SSACastStatement::Cast_Reinterpret) {
 							output << "emitter.reinterpret(" << operand_for_node(*expr) << ", " << type_for_statement(Statement) << ");";
 						} else {
 							// TODO: Make sure that the specified cast type matches what the sizes are talking about below
@@ -1220,7 +1242,10 @@ namespace gensim
 					if (Statement.Cond()->IsFixed()) {
 						output << Statement.GetName() << " = (" << cond->GetFixedValue() << ") ? (" << Statement.TrueVal()->GetName() << ") : (" << Statement.FalseVal()->GetName() << ");";
 					} else {
-						assert(false);
+
+						output << Statement.GetName() << " = emitter.select(" << operand_for_node(*cond) << ", " << operand_for_node(*if_true) << ", " << operand_for_node(*if_false) << ");";
+
+						//output << Statement.GetName() << " = (" << cond->GetFixedValue() << ") ? (" << Statement.TrueVal()->GetName() << ") : (" << Statement.FalseVal()->GetName() << ");";
 					}
 
 					return true;
@@ -1293,6 +1318,11 @@ namespace gensim
 
 				bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
+					const SSAVariableReadStatement &Statement = static_cast<const SSAVariableReadStatement &> (this->Statement);
+					//return "CV_" + Statement.Target()->GetName();
+
+					output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = CV_" << Statement.Target()->GetName() << ";";
+
 					return true;
 				}
 
@@ -1306,12 +1336,6 @@ namespace gensim
 					}
 #endif
 					return true;
-				}
-
-				std::string GetFixedValue() const
-				{
-					const SSAVariableReadStatement &Statement = static_cast<const SSAVariableReadStatement &> (this->Statement);
-					return "CV_" + Statement.Target()->GetName();
 				}
 			};
 
