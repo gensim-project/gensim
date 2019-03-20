@@ -8,6 +8,10 @@ gensim::DiagNode::DiagNode(const std::string& filename, pANTLR3_BASE_TREE node) 
 {
 }
 
+gensim::DiagNode::DiagNode(const std::string& filename, const location_data &node) : filename_(filename), line_number_(node.begin.Line)
+{
+
+}
 
 std::ostream &operator<<(std::ostream &str, const gensim::DiagNode& node)
 {

@@ -12,6 +12,7 @@
 
 namespace GenC
 {
+	using AstNode = astnode<GenCNodeType>;
 
 	class GenCScanner : public yyFlexLexer
 	{

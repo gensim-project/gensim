@@ -25,8 +25,8 @@ enum class GenCNodeType {
 	Struct,
 
 	Helper,
-	HelperParenList,
-	HelperParen,
+	HelperParamList,
+	HelperParam,
 	HelperScope,
 
 	HelperAttributeList,
@@ -60,7 +60,8 @@ enum class GenCNodeType {
 	Ternary,
 	Member,
 	VectorElement,
-	BitExtract
+	BitExtract,
+	ExprStmt
 };
 
 static std::ostream &operator<<(std::ostream &os, GenCNodeType type)
@@ -84,8 +85,8 @@ static std::ostream &operator<<(std::ostream &os, GenCNodeType type)
 			HANDLE(Struct);
 
 			HANDLE(Helper);
-			HANDLE(HelperParenList);
-			HANDLE(HelperParen);
+			HANDLE(HelperParamList);
+			HANDLE(HelperParam);
 			HANDLE(HelperAttributeList);
 			HANDLE(HelperScope);
 			HANDLE(Execute);
@@ -118,9 +119,12 @@ static std::ostream &operator<<(std::ostream &os, GenCNodeType type)
 			HANDLE(Member);
 			HANDLE(VectorElement);
 			HANDLE(BitExtract);
-
+			HANDLE(ExprStmt);
+#undef HANDLE
 		default:
 			throw std::logic_error("Unknown nodetype: " + std::to_string(static_cast<int>(type)));
 	}
+
+	return os;
 }
 
