@@ -45,6 +45,12 @@ InstructionFormatChunk ParseChunk(char *tok, uint8_t &length)
 		}
 		length = chunk.length;
 		chunk.is_constrained = true;
+
+		if (chunk.constrained_value > (1 << chunk.length)-1) {
+			fprintf(stderr, "constrained value greater than chunk width\n");
+			exit(1);
+		}
+
 		return chunk;
 	}
 	fprintf(stderr, "Invalid format chunk syntax '%s'\n", tok);
