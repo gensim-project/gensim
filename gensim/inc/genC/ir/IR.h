@@ -39,6 +39,7 @@ namespace gensim
 			class SSABlock;
 			class SSAStatement;
 			class SSAFormAction;
+			class SSASymbol;
 		}
 
 		class IRAction;
@@ -163,6 +164,7 @@ namespace gensim
 					case Complement:
 					case Negate:
 					case Member:
+					case Index:
 						return true;
 					default:
 						return false;
@@ -254,7 +256,7 @@ namespace gensim
 			const IRSymbol *Symbol;
 			IRScope &Scope;
 
-			IRVariableExpression(std::string name, IRScope &scope) : IRExpression(scope), Symbol(NULL), Scope(scope), name_(name) {}
+			IRVariableExpression(const std::string& name, IRScope &scope) : IRExpression(scope), Symbol(NULL), Scope(scope), name_(name) {}
 
 			virtual bool Resolve(GenCContext &Context);
 			virtual ssa::SSAStatement *EmitSSAForm(ssa::SSABuilder &bldr) const;
@@ -266,6 +268,11 @@ namespace gensim
 			}
 
 			virtual void PrettyPrint(std::ostringstream &out) const;
+
+			const std::string& GetName() const
+			{
+				return name_;
+			}
 
 		private:
 			std::string name_;
@@ -385,6 +392,9 @@ namespace gensim
 
 		private:
 			IRIterationStatement(IRScope &scope) : IRStatement(scope) {}
+
+			bool EmitUnrolledForLoop(ssa::SSABuilder &bldr) const;
+			void ReplaceInductionVariableReads(ssa::SSABlock *blk, ssa::SSASymbol *indvar, int indval) const;
 		};
 
 		class IRFlowStatement : public IRStatement

@@ -16,6 +16,8 @@
 #include "genC/ssa/statement/SSAStatements.h"
 #include "genC/ssa/SSASymbol.h"
 
+#include "Util.h"
+
 #define is(var, type) (dynamic_cast<type>(var) != NULL)
 
 using namespace gensim::genc;
@@ -71,7 +73,7 @@ SSAStatement *IRBinaryExpression::EmitSSAForm(SSABuilder &bldr) const
 
 				return new SSABinaryArithmeticStatement(&bldr.GetBlock(), left, right, BinaryOperator::Bitwise_Or);
 #else
-			if(0) {
+			if (0) {
 #endif
 			} else {
 
@@ -125,7 +127,7 @@ SSAStatement *IRBinaryExpression::EmitSSAForm(SSABuilder &bldr) const
 
 				return new SSABinaryArithmeticStatement(&bldr.GetBlock(), left, right, BinaryOperator::Bitwise_And);
 #else
-			if(0) {
+			if (0) {
 #endif
 			} else {
 
@@ -868,6 +870,12 @@ switch (Type) {
 		//    body
 		// after
 
+		if (gensim::util::Util::GenC_Options.count("unroll-loops")) {
+			if (EmitUnrolledForLoop(bldr)) {
+				return nullptr;
+			}
+		}
+
 		// Create the blocks
 		SSABlock *check_block = new SSABlock(bldr);
 		SSABlock *body_block = new SSABlock(bldr);
@@ -968,6 +976,147 @@ switch (Type) {
 		assert(false && "Unrecognized iteration type");
 }
 return NULL;
+}
+
+bool IRIterationStatement::EmitUnrolledForLoop(ssa::SSABuilder& bldr) const
+{
+// INIT of FOR statement must be trivial variable declaration + assignment
+auto var_decl = dynamic_cast<IRBinaryExpression *> (For_Expr_Start);
+if (var_decl == nullptr) {
+	//fprintf(stderr, "unroll-for: fail init not binexpr\n");
+	return false;
+}
+
+if (var_decl->Type != BinaryOperator::Set) {
+	//fprintf(stderr, "unroll-for: fail init not set\n");
+	return false;
+}
+
+if (dynamic_cast<IRDefineExpression *> (var_decl->Left) == nullptr) {
+	//fprintf(stderr, "unroll-for: fail init not var set\n");
+	return false;
+}
+
+const IRSymbol *induction_variable = dynamic_cast<IRDefineExpression *> (var_decl->Left)->GetSymbol();
+
+if (dynamic_cast<IRConstExpression *> (var_decl->Right) == nullptr) {
+	//fprintf(stderr, "unroll-for: fail init not var set const\n");
+	return false;
+}
+
+// CHECK of FOR statement must be trivial LT comparison
+auto check = dynamic_cast<IRBinaryExpression *> (For_Expr_Check);
+if (check == nullptr) {
+	//fprintf(stderr, "unroll-for: fail check not binexpr\n");
+	return false;
+}
+
+if (check->Type != BinaryOperator::LessThan) {
+	//fprintf(stderr, "unroll-for: fail check not lt\n");
+	return false;
+}
+
+auto check_lhs_var = dynamic_cast<IRVariableExpression *> (check->Left);
+if (check_lhs_var == nullptr) {
+	//fprintf(stderr, "unroll-for: fail check lt not var\n");
+	return false;
+}
+
+if (check_lhs_var->Symbol != induction_variable) {
+	auto cn = check_lhs_var->GetName();
+	auto in = induction_variable->GetLocalName();
+
+	//fprintf(stderr, "unroll-for: fail check lt var (%s) not indvar (%s)\n", cn.c_str(), in.c_str());
+	return false;
+}
+
+if (dynamic_cast<IRConstExpression *> (check->Right) == nullptr) {
+	//fprintf(stderr, "unroll-for: fail check lt amt not const\n");
+	return false;
+}
+
+// EXPR of FOR statement must be trivial pre/post-inc
+auto iter = dynamic_cast<IRUnaryExpression *> (Expr);
+if (iter == nullptr) {
+	//fprintf(stderr, "unroll-for: fail iter not unexpr\n");
+	return false;
+}
+
+if (iter->Type != IRUnaryOperator::Preincrement && iter->Type != IRUnaryOperator::Postincrement) {
+	//fprintf(stderr, "unroll-for: fail iter not pre/post-inc\n");
+	return false;
+}
+
+if (dynamic_cast<IRVariableExpression *> (iter->BaseExpression) == nullptr) {
+	//fprintf(stderr, "unroll-for: fail iter not on var\n");
+	return false;
+}
+
+if (dynamic_cast<IRVariableExpression *> (iter->BaseExpression)->Symbol != induction_variable) {
+	//fprintf(stderr, "unroll-for: fail iter not on indvar\n");
+	return false;
+}
+
+int start = dynamic_cast<IRConstExpression *> (var_decl->Right)->Value.Int();
+int end = dynamic_cast<IRConstExpression *> (check->Right)->Value.Int();
+
+//fprintf(stderr, "UNROLLING FOR LOOP from=%d, to=%d\n", start, end);
+
+auto indvar_sym = bldr.GetSymbol(induction_variable);
+
+SSABlock *current_iteration = new SSABlock(bldr);
+new SSAJumpStatement(&bldr.GetBlock(), *current_iteration);
+
+bldr.ChangeBlock(*current_iteration, false);
+
+for (int i = start; i < end; i++) {
+	Body->EmitSSAForm(bldr);
+
+	ReplaceInductionVariableReads(current_iteration, indvar_sym, i);
+
+	current_iteration = new SSABlock(bldr);
+	new SSAJumpStatement(&bldr.GetBlock(), *current_iteration);
+
+	bldr.ChangeBlock(*current_iteration, false);
+}
+
+return true;
+}
+
+void IRIterationStatement::ReplaceInductionVariableReads(ssa::SSABlock* blk, ssa::SSASymbol *indvar, int i) const
+{
+std::list<SSABlock *> block_queue;
+block_queue.push_back(blk);
+
+while (block_queue.size() > 0) {
+	SSABlock *cur = block_queue.front();
+	block_queue.pop_front();
+
+	for (auto s : cur->GetStatements()) {
+		if (auto vr = dynamic_cast<SSAVariableReadStatement *>(s)) {
+			if (vr->Target() == indvar) {
+				for (auto u : vr->GetUses()) {
+					if (auto su = dynamic_cast<SSAStatement *>(u)) {
+						/*fprintf(stderr,"REPLACE ");
+						vr->Dump();
+						fprintf(stderr, " IN ");
+						su->Dump();*/
+
+						auto indvar_val = new SSAConstantStatement(cur, IRConstant::Integer(i), indvar->GetType(), su);
+
+						su->Replace(vr, indvar_val);
+					}
+				}
+			}
+		}
+	}
+
+	if (cur->GetControlFlow() != nullptr) {
+		for (auto s : cur->GetSuccessors()) {
+			block_queue.push_back(s);
+		}
+	}
+}
 }
 
 SSAStatement *IRExpressionStatement::EmitSSAForm(SSABuilder &bldr) const

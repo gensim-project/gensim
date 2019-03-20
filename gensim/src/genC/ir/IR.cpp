@@ -14,30 +14,38 @@ namespace gensim
 	namespace genc
 	{
 
-/////////////////////////////////////////////////////////////
-// Constructors
-/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
+		// Constructors
+		/////////////////////////////////////////////////////////////
 
-		IRBody::IRBody(IRScope &containing_scope) : IRStatement(containing_scope), Scope(*(new IRScope(containing_scope, IRScope::SCOPE_BODY))) {}
+		IRBody::IRBody(IRScope &containing_scope) : IRStatement(containing_scope), Scope(*(new IRScope(containing_scope, IRScope::SCOPE_BODY)))
+		{
+		}
 
-		IRBody::IRBody(IRScope &containing_scope, IRScope &scope) : IRStatement(containing_scope), Scope(scope) {}
+		IRBody::IRBody(IRScope &containing_scope, IRScope &scope) : IRStatement(containing_scope), Scope(scope)
+		{
+		}
 
 		IRStatement::IRStatement(IRScope &scope) : Resolved(false), Scope(scope)
 		{
 		}
 
-		IRDefineExpression::IRDefineExpression(IRScope &scope, const IRType type, std::string name) : IRExpression(scope), type(type), name(name) {}
+		IRDefineExpression::IRDefineExpression(IRScope &scope, const IRType type, std::string name) : IRExpression(scope), type(type), name(name)
+		{
+		}
 
-		IRSelectionStatement::IRSelectionStatement(IRScope &scope, SelectionType type, IRExpression &expr, IRStatement &body, IRStatement *elsebody) : IRStatement(scope), Type(type), Expr(&expr), Body(&body), ElseBody(elsebody) {}
+		IRSelectionStatement::IRSelectionStatement(IRScope &scope, SelectionType type, IRExpression &expr, IRStatement &body, IRStatement *elsebody) : IRStatement(scope), Type(type), Expr(&expr), Body(&body), ElseBody(elsebody)
+		{
+		}
 
 		IRExpressionStatement::IRExpressionStatement(IRScope &scope, IRExpression &expr) : IRStatement(scope)
 		{
 			Expr = &expr;
 		}
 
-/////////////////////////////////////////////////////////////
-// Accessors
-/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
+		// Accessors
+		/////////////////////////////////////////////////////////////
 
 		const std::string IRDefineExpression::GetName()
 		{
@@ -49,9 +57,9 @@ namespace gensim
 			return type;
 		}
 
-/////////////////////////////////////////////////////////////
-// Resolve Pass
-/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
+		// Resolve Pass
+		/////////////////////////////////////////////////////////////
 
 		bool IRSelectionStatement::Resolve(GenCContext &Context)
 		{
@@ -86,7 +94,7 @@ namespace gensim
 				return false;
 			}
 			if (Left->EvaluateType() != Right->EvaluateType()) {
-				Context.Diag().Error( "Type mismatch between ternary subexpressions", Diag());
+				Context.Diag().Error("Type mismatch between ternary subexpressions", Diag());
 				return false;
 			}
 			Resolved = true;
@@ -103,46 +111,46 @@ namespace gensim
 				success = false;
 			}
 
-			if(paramType.Reference) {
+			if (paramType.Reference) {
 				// parameter must be a variable expression
-				if(dynamic_cast<IRVariableExpression*>(givenParameter) == nullptr) {
+				if (dynamic_cast<IRVariableExpression*> (givenParameter) == nullptr) {
 					std::string errstring = Format("In call to %s, parameter %u: Reference parameter must be a simple variable expression", TargetName.c_str(), idx, paramType.PrettyPrint().c_str(), givenType.PrettyPrint().c_str());
 					Context.Diag().Error(errstring, Diag());
 					success = false;
 				}
 
 				// given type must be paramtype or dereferenced paramtype
-//				if(paramType.Dereference() != givenType.Dereference()) {
-//					std::string errstring = Format("In call to %s, parameter %u: Reference parameters cannot be implicitly cast (expecting %s, got %s)", TargetName.c_str(), idx, paramType.PrettyPrint().c_str(), givenType.PrettyPrint().c_str());
-//					Context.Diag().Error(errstring, Diag());
-//					success = false;
-//				}
+				//				if(paramType.Dereference() != givenType.Dereference()) {
+				//					std::string errstring = Format("In call to %s, parameter %u: Reference parameters cannot be implicitly cast (expecting %s, got %s)", TargetName.c_str(), idx, paramType.PrettyPrint().c_str(), givenType.PrettyPrint().c_str());
+				//					Context.Diag().Error(errstring, Diag());
+				//					success = false;
+				//				}
 			}
 
 			// If the user gives a parameter which is floating, but an integer is expected, give an error
-			if(givenType.IsFloating() && !paramType.IsFloating()) {
+			if (givenType.IsFloating() && !paramType.IsFloating()) {
 				std::string errstring = Format("In call to %s, parameter %u: A floating point parameter was given but an integer was expected", TargetName.c_str(), idx);
 				Context.Diag().Error(errstring, Diag());
 				success = false;
 			}
 
 			// Cannot pass structs
-			if(givenType.IsStruct()) {
+			if (givenType.IsStruct()) {
 				std::string errstring = Format("In call to %s, parameter %u: Cannot pass struct to helper", TargetName.c_str(), idx);
 				Context.Diag().Error(errstring, Diag());
 				success = false;
 			}
 
 			// If the user gives a parameter which is an integer, but a float is expected, give an error
-			if(!givenType.IsFloating() && paramType.IsFloating()) {
+			if (!givenType.IsFloating() && paramType.IsFloating()) {
 				std::string errstring = Format("In call to %s, parameter %u: An integer parameter was given but a floating point value was expected", TargetName.c_str(), idx);
 				Context.Diag().Error(errstring, Diag());
 				success = false;
 			}
 
 			// If the user gives a parameter which is a constant and is too large to fit within the parameter, signal an error
-			if(IRConstExpression * constant = dynamic_cast<IRConstExpression*>(givenParameter)) {
-				if(constant->Value.Int() > paramType.GetMaxValue()) {
+			if (IRConstExpression * constant = dynamic_cast<IRConstExpression*> (givenParameter)) {
+				if (constant->Value.Int() > paramType.GetMaxValue()) {
 					std::string errstring = Format("In call to %s, parameter %u: Constant value is to large to fit in parameter type %s", TargetName.c_str(), idx, givenType.PrettyPrint().c_str());
 					Context.Diag().Error(errstring, Diag());
 
@@ -151,13 +159,13 @@ namespace gensim
 			}
 
 			// If the user gives a parameter which is a variable and is too large to fit within the parameter, signal a warning
-			if(IRExpression *variable = dynamic_cast<IRExpression*>(givenParameter)) {
+			if (IRExpression * variable = dynamic_cast<IRExpression*> (givenParameter)) {
 				IRType::PromoteResult res = givenType.AutoPromote(paramType);
-				if(res == IRType::PROMOTE_TRUNCATE) {
+				if (res == IRType::PROMOTE_TRUNCATE) {
 					std::string errstring = Format("In call to %s, parameter %u: Value of type %s is to large to fit in parameter type %s", TargetName.c_str(), idx, givenType.PrettyPrint().c_str(), paramType.PrettyPrint().c_str());
 					Context.Diag().Warning(errstring, Diag());
 				}
-				if(res == IRType::PROMOTE_SIGN_CHANGE) {
+				if (res == IRType::PROMOTE_SIGN_CHANGE) {
 					std::string errstring = Format("In call to %s, parameter %u: Parameter sign changed", TargetName.c_str(), idx, givenType.PrettyPrint().c_str(), paramType.PrettyPrint().c_str());
 					Context.Diag().Warning(errstring, Diag());
 				}
@@ -192,7 +200,7 @@ namespace gensim
 			int idx = 1;
 
 			// Loop through the args list and param types and check each one
-			for(unsigned int i = 0; i < params.size(); ++i) {
+			for (unsigned int i = 0; i < params.size(); ++i) {
 				auto &param = params.at(i);
 				auto &arg = Args.at(i);
 
@@ -307,11 +315,11 @@ namespace gensim
 						break;
 					}
 					case Index:
-						if(!Arg->Resolve(Context)) return false;
+						if (!Arg->Resolve(Context)) return false;
 						break;
 					case BitSequence:
-						if(!Arg->Resolve(Context)) return false;
-						if(!Arg2->Resolve(Context)) return false;
+						if (!Arg->Resolve(Context)) return false;
+						if (!Arg2->Resolve(Context)) return false;
 						break;
 					default: {
 
@@ -343,14 +351,14 @@ namespace gensim
 			bool left_is_vector = Left->EvaluateType().VectorWidth > 1;
 			bool right_is_vector = Right->EvaluateType().VectorWidth > 1;
 
-			if(left_is_vector != right_is_vector) {
-				if(!left_is_vector) {
+			if (left_is_vector != right_is_vector) {
+				if (!left_is_vector) {
 					auto cast = new IRCastExpression(GetScope(), Right->EvaluateType());
 					cast->Expr = Left;
 					Left = cast;
 					cast->Resolve(Context);
 				}
-				if(!right_is_vector) {
+				if (!right_is_vector) {
 					auto cast = new IRCastExpression(GetScope(), Left->EvaluateType());
 					cast->Expr = Right;
 					Right = cast;
@@ -376,7 +384,7 @@ namespace gensim
 			}
 
 
-			if(LType.DataType == IRType::Struct || RType.DataType == IRType::Struct) {
+			if (LType.DataType == IRType::Struct || RType.DataType == IRType::Struct) {
 				Context.Diag().Error("Cannot operate on struct types", Diag());
 				success = false;
 			}
@@ -419,13 +427,13 @@ namespace gensim
 			int ctrlflow_count = 0;
 			IRStatement *last_ctrlflow = nullptr;
 			for (std::vector<IRStatement *>::iterator i = Statements.begin(); i != Statements.end(); ++i) {
-				IRFlowStatement *flow = dynamic_cast<IRFlowStatement*>(*i);
-				if(flow && flow->Type != IRFlowStatement::FLOW_CASE && flow->Type != IRFlowStatement::FLOW_DEFAULT) {
+				IRFlowStatement *flow = dynamic_cast<IRFlowStatement*> (*i);
+				if (flow && flow->Type != IRFlowStatement::FLOW_CASE && flow->Type != IRFlowStatement::FLOW_DEFAULT) {
 					ctrlflow_count++;
 					last_ctrlflow = *i;
 				}
 			}
-			if(ctrlflow_count > 1) {
+			if (ctrlflow_count > 1) {
 				Context.Diag().Error("Block must have exactly one control flow statement", last_ctrlflow->Diag());
 				success = false;
 			}
@@ -495,7 +503,7 @@ namespace gensim
 					IRType expr_type = Expr->EvaluateType();
 					IRType return_type = GetScope().GetContainingAction().GetSignature().GetType();
 
-					if(expr_type.IsFloating() != return_type.IsFloating()) {
+					if (expr_type.IsFloating() != return_type.IsFloating()) {
 						Context.Diag().Error("Cannot implicitly cast between integer/float types in return", Diag());
 						success = false;
 						break;
@@ -517,7 +525,7 @@ namespace gensim
 
 							break;
 						default:
-							;  // Promotion successful
+							; // Promotion successful
 					}
 					break;
 				}
@@ -526,9 +534,9 @@ namespace gensim
 			return success;
 		}
 
-/////////////////////////////////////////////////////////////
-// Type Evaluation
-/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
+		// Type Evaluation
+		/////////////////////////////////////////////////////////////
 
 		const IRType IRCallExpression::EvaluateType()
 		{
@@ -580,13 +588,13 @@ namespace gensim
 				case Dereference:
 					assert(false);
 					return IRTypes::Void;
-				case Index:	{
+				case Index: {
 					IRType type = BaseExpression->EvaluateType();
 					assert(type.VectorWidth != 1);
 					type.VectorWidth = 1;
 					return type;
 				}
-				case BitSequence:	{
+				case BitSequence: {
 					IRType type = BaseExpression->EvaluateType();
 					type.VectorWidth = 1;
 					return type;
