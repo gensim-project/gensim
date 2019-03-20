@@ -110,6 +110,8 @@ void GenCContext::LoadExternalFunctions()
 	AddExternalFunction("__builtin_fma32", IRTypes::Float, {IRParam("a", IRTypes::Float), IRParam("b", IRTypes::Float), IRParam("c", IRTypes::Float)});
 	AddExternalFunction("__builtin_fma64", IRTypes::Double, {IRParam("a", IRTypes::Double), IRParam("b", IRTypes::Double), IRParam("c", IRTypes::Double)});
 
+	AddExternalFunction("__builtin_abs", IRTypes::UInt64, {IRParam("a", IRTypes::Int64)});
+
 	AddExternalFunction("invalidate_translations", IRTypes::Void, {});
 	AddExternalFunction("invalidate_translation", IRTypes::Void, {IRParam("addr", wordtype)});
 }
