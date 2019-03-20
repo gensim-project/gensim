@@ -555,6 +555,7 @@ bool GenCContext::Parse_Type(GenC::AstNode &node, IRType &out_type)
 				out_type = GetTypeManager()->GetBasicTypeByName(type_name);
 			} else {
 				Diag().Error("Unknown basic type " + type_name, DiagNode(CurrFilename, node.GetLocation()));
+				return false;
 			}
 			break;
 		}
@@ -564,6 +565,7 @@ bool GenCContext::Parse_Type(GenC::AstNode &node, IRType &out_type)
 				out_type = GetTypeManager()->GetStructType(type_name);
 			} else {
 				Diag().Error("Unknown struct type " + type_name, DiagNode(CurrFilename, node.GetLocation()));
+				return false;
 			}
 			break;
 		}
@@ -573,6 +575,7 @@ bool GenCContext::Parse_Type(GenC::AstNode &node, IRType &out_type)
 				out_type = GetTypeManager()->GetBasicTypeByName(type_name);
 			} else {
 				Diag().Error("Unknown typename " + type_name, DiagNode(CurrFilename, node.GetLocation()));
+				return false;
 			}
 			break;
 		}
