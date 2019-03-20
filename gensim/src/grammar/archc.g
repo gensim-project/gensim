@@ -136,7 +136,7 @@ WS  :   ( ' '
         ) {$channel=HIDDEN;}
     ;
     
-STRING
+ARCHC_STRING
     :  QUOTE ( ESC_SEQ | ~('\\'|'\n'|QUOTE) )* QUOTE
     ;
 
@@ -187,10 +187,10 @@ ar_fetchsize
 	:	AC_FETCHSIZE AC_INT SEMICOLON -> ^(AC_FETCHSIZE AC_INT);
 
 ar_predicated
-	:	AC_PREDICATED STRING SEMICOLON -> ^(AC_PREDICATED STRING);
+	:	AC_PREDICATED ARCHC_STRING SEMICOLON -> ^(AC_PREDICATED ARCHC_STRING);
 
 ar_include
-    :   AC_INCLUDE OPAREN STRING CPAREN SEMICOLON -> ^(AC_INCLUDE STRING);	
+    :   AC_INCLUDE OPAREN ARCHC_STRING CPAREN SEMICOLON -> ^(AC_INCLUDE ARCHC_STRING);	
 
 ar_regspace
 	:	AC_REGSPACE OPAREN AC_INT CPAREN OBRACE ar_reg_view+ CBRACE -> ^(AC_REGSPACE AC_INT ar_reg_view+);
@@ -207,7 +207,7 @@ ar_reg_view_bank
 	:	AC_REG_VIEW_BANK id=AC_ID OPAREN type=AC_ID COMMA offset=AC_INT COMMA regcnt=AC_INT COMMA regstride=AC_INT COMMA elemcnt=AC_INT COMMA elemsz=AC_INT COMMA elemstride=AC_INT CPAREN SEMICOLON -> ^(AC_REG_VIEW_BANK $id $type $offset $regcnt $regstride $elemcnt $elemsz $elemstride); 
 
 format
-	:	def_attr* AC_FORMAT AC_ID EQUALS STRING SEMICOLON -> ^(AC_FORMAT AC_ID STRING def_attr*);
+	:	def_attr* AC_FORMAT AC_ID EQUALS ARCHC_STRING SEMICOLON -> ^(AC_FORMAT AC_ID ARCHC_STRING def_attr*);
 
 ar_mem
 	:	AC_MEM AC_ID OPAREN address_width=AC_INT COMMA word_width=AC_INT COMMA endian=AC_ID COMMA is_fetch=AC_INT CPAREN SEMICOLON -> ^(AC_MEM AC_ID $address_width $word_width $endian $is_fetch);
@@ -240,13 +240,13 @@ ac_feature_set
 	:	AC_SET_FEATURE OPAREN name=AC_ID COMMA level=AC_INT CPAREN -> ^(AC_SET_FEATURE $name $level);
 
 ac_isa
-	:	AC_ISA OPAREN STRING CPAREN -> ^(AC_ISA STRING);
+	:	AC_ISA OPAREN ARCHC_STRING CPAREN -> ^(AC_ISA ARCHC_STRING);
 
 ac_uarch
-	:	AC_UARCH OPAREN STRING CPAREN -> ^(AC_UARCH STRING);
+	:	AC_UARCH OPAREN ARCHC_STRING CPAREN -> ^(AC_UARCH ARCHC_STRING);
 	
 ac_endianness
-	:	SET_ENDIAN OPAREN STRING CPAREN -> ^(SET_ENDIAN STRING);
+	:	SET_ENDIAN OPAREN ARCHC_STRING CPAREN -> ^(SET_ENDIAN ARCHC_STRING);
 
 arch_isa
 	:	AC_ISA_BLOCK OPAREN AC_ID CPAREN OBRACE isa_resource* CBRACE SEMICOLON -> ^(AC_ISA_BLOCK AC_ID isa_resource*);
@@ -288,19 +288,19 @@ isa_mapping
 	:	(isa_mapping_group | isa_mapping_strings) SEMICOLON!;
 	
 isa_mapping_group_lrule
-	:	STRING group -> ^(GROUP_LRULE STRING group);
+	:	ARCHC_STRING group -> ^(GROUP_LRULE ARCHC_STRING group);
 	
 isa_mapping_group
 	:	isa_mapping_group_lrule EQUALS group -> ^(GROUP isa_mapping_group_lrule group);
 
 isa_mapping_strings_lrule
-	:	STRING (COMMA STRING)* -> ^(STRINGS_LRULE STRING STRING*);
+	:	ARCHC_STRING (COMMA ARCHC_STRING)* -> ^(STRINGS_LRULE ARCHC_STRING ARCHC_STRING*);
 
 isa_mapping_strings
 	:	isa_mapping_strings_lrule EQUALS AC_INT -> ^( isa_mapping_strings_lrule AC_INT);
 
 asmResource
-	:	AC_ID PERIOD SET_ASM OPAREN STRING (COMMA (asmArg | asmConstraint))* CPAREN -> ^(SET_ASM AC_ID STRING asmArg* asmConstraint*);
+	:	AC_ID PERIOD SET_ASM OPAREN ARCHC_STRING (COMMA (asmArg | asmConstraint))* CPAREN -> ^(SET_ASM AC_ID ARCHC_STRING asmArg* asmConstraint*);
     
 asmArg	:	addexpr -> ^(ARG addexpr);
 
@@ -365,22 +365,22 @@ instr_resource
 	:	(decoderResource | asmResource | behaviourResource | eobResource | jumpVariableResource | jumpFixedResource | jumpFixedPredicatedResource | usesPcResource | limmResource | blockCondResource) SEMICOLON!;
 
 assembler_resource
-	:	ASSEMBLER PERIOD (rsc=SET_COMMENT | rsc=SET_LINE_COMMENT) OPAREN STRING CPAREN SEMICOLON -> ^(ASSEMBLER $rsc STRING);
+	:	ASSEMBLER PERIOD (rsc=SET_COMMENT | rsc=SET_LINE_COMMENT) OPAREN ARCHC_STRING CPAREN SEMICOLON -> ^(ASSEMBLER $rsc ARCHC_STRING);
 	
 modifiers_resource
-    :   AC_MODIFIERS OPAREN STRING CPAREN SEMICOLON -> ^(AC_MODIFIERS STRING);
+    :   AC_MODIFIERS OPAREN ARCHC_STRING CPAREN SEMICOLON -> ^(AC_MODIFIERS ARCHC_STRING);
     
 behaviours_resource
-    :   AC_BEHAVIOURS OPAREN STRING CPAREN SEMICOLON -> ^(AC_BEHAVIOURS STRING);
+    :   AC_BEHAVIOURS OPAREN ARCHC_STRING CPAREN SEMICOLON -> ^(AC_BEHAVIOURS ARCHC_STRING);
     
 decodes_resource
-	:	AC_DECODES OPAREN STRING CPAREN SEMICOLON -> ^(AC_DECODES STRING);
+	:	AC_DECODES OPAREN ARCHC_STRING CPAREN SEMICOLON -> ^(AC_DECODES ARCHC_STRING);
 	
 execute_resource
-	:	AC_EXECUTE OPAREN STRING CPAREN SEMICOLON -> ^(AC_EXECUTE STRING);
+	:	AC_EXECUTE OPAREN ARCHC_STRING CPAREN SEMICOLON -> ^(AC_EXECUTE ARCHC_STRING);
 
 system_resource
-	:	AC_SYSTEM OPAREN STRING CPAREN SEMICOLON -> ^(AC_SYSTEM STRING);
+	:	AC_SYSTEM OPAREN ARCHC_STRING CPAREN SEMICOLON -> ^(AC_SYSTEM ARCHC_STRING);
 
 ctor_resource
 	:	instr_resource
@@ -390,5 +390,5 @@ ctor_resource
     |   decodes_resource 
     |   execute_resource 
     |   system_resource
-	|	PSEUDO_INSTR OPAREN STRING CPAREN OBRACE (STRING SEMICOLON)+ CBRACE -> ^(PSEUDO_INSTR STRING*);
+	|	PSEUDO_INSTR OPAREN ARCHC_STRING CPAREN OBRACE (ARCHC_STRING SEMICOLON)+ CBRACE -> ^(PSEUDO_INSTR ARCHC_STRING*);
 

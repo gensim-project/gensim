@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 
 	std::ifstream infile(argv[1]);
 
-	astnode<GenCNodeType, GenC::location> root_node(GenCNodeType::ROOT);
+	astnode<GenCNodeType> root_node(GenCNodeType::ROOT);
 
 	GenC::GenCScanner scanner(&infile);
 	GenC::GenCParser parser(scanner, &root_node);
