@@ -1503,6 +1503,10 @@ execute(ldpsw)
 	write_gpr(1, inst.rt2, (uint64)(sint64)(sint32)data2);
 }
 
+execute(prfum)
+{
+}
+
 
 // ----------------------------------------------------------------------------
 // C4.4.1	Load/store register pair (pre-/post- indexed)
