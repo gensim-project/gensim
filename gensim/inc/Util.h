@@ -12,9 +12,10 @@
 
 #include <stdint.h>
 
-#include <vector>
+#include <set>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <cassert>
 
@@ -93,6 +94,7 @@ namespace gensim
 		{
 		public:
 			static uint8_t Verbose_Level;
+			static std::set<std::string> GenC_Options;
 
 			static uint32_t parse_binary(std::string str);
 			static std::string FormatBinary(uint32_t x, int width);
