@@ -107,8 +107,8 @@ AC_ISA(a64)
 	
 	// C4.4.12
 	ac_format LS_REG_USIMM = "%size:2 0x7:3 %V:1 0x0:2 %opc:2 0x0:1 %imm9:9 0x0:2 %rn:5 %rt:5";
-	ac_instr<LS_REG_USIMM> sturb, ldurb, sturh, ldurh, stur, ldur, ldursw;
-	ac_behaviour sturb, ldurb, sturh, ldurh, stur, ldur, ldursw;
+	ac_instr<LS_REG_USIMM> sturb, ldurb, sturh, ldurh, stur, ldur, ldursw, prfum;
+	ac_behaviour sturb, ldurb, sturh, ldurh, stur, ldur, ldursw, prfum;
 	ac_instr<LS_REG_USIMM> vstur, vldur;
 	ac_behaviour vstur, vldur;
 	
@@ -932,6 +932,9 @@ AC_ISA(a64)
 		
 		ldursw.set_decoder(size=2, V=0, opc=2);
 		ldursw.set_behaviour(ldursw);
+		
+		prfum.set_decoder(size=3, V=0, opc=2);
+		prfum.set_behaviour(prfum);
 		
 		// Load/store register (unsigned immediate)
 		vstr.set_decoder(size=0, V=1, opc=0);	// 8
