@@ -7,8 +7,6 @@
 #include <vector>
 #include <iostream>
 
-#include "location.hh"
-
 class position_data
 {
 public:

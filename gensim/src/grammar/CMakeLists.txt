@@ -92,9 +92,9 @@ endfunction()
 
 grammar(archCBehaviour)
 grammar(archcasm)
-grammar(genC)
 grammar(archc)
 grammar(archCuArch)
 grammar(ssa_asm)
 
 grammar_flex_bison(genC "${CMAKE_CURRENT_SOURCE_DIR}/genC")
+grammar_flex_bison(archC "${CMAKE_CURRENT_SOURCE_DIR}/archC")

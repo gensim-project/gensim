@@ -25,6 +25,7 @@ using token = GenC::GenCParser::token;
 %option nodefault
 %option yylineno
 %option yyclass="GenC::GenCScanner"
+%option prefix="GenC"
 
 %x GENC_COMMENT
 %x GENC_LINE_COMMENT

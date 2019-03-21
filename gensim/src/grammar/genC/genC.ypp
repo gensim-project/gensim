@@ -18,6 +18,7 @@
 %defines
 %locations
 %define api.namespace {GenC}
+%define api.prefix {GenC}
 %define parser_class_name {GenCParser}
 
 %union {
@@ -33,7 +34,7 @@
 %code {
 #include "flexbison_genc.h"
 #undef yylex 
-#define yylex scanner.yylex
+#define yylex scanner.GenClex
 
 #define CreateGenCNode CreateNode<GenCNodeType>
 #define CreateGenCStrNode CreateStrNode<GenCNodeType>
