@@ -154,6 +154,7 @@
 
 //%precedence GENC_EQUALS GENC_PIPE_ASSIGN GENC_PLUS_ASSIGN GENC_CARET_ASSIGN GENC_MINUS_ASSIGN GENC_DIVIDE_ASSIGN GENC_ASTERIX_ASSIGN GENC_PERCENT_ASSIGN GENC_AMPERSAND_ASSIGN GENC_LEFTSHIFT_ASSIGN GENC_RIGHTSHIFT_ASSIGN
 
+%nonassoc GENC_PERIOD
 %nonassoc GENC_QUESTIONMARK 
 
 %left GENC_LOGICAL_AND GENC_LOGICAL_OR
@@ -165,13 +166,15 @@
 %right GENC_PLUS_UNARY
 
 %nonassoc GENC_OPEN_BRACKET 
-%nonassoc GENC_PERIOD
+
 %left GENC_PLUS GENC_MINUS
 %left GENC_FORWARDSLASH GENC_PERCENT GENC_ASTERIX
 %left GENC_SHIFTLEFT GENC_SHIFTRIGHT GENC_ROTATELEFT GENC_ROTATERIGHT
 %left GENC_PIPE
 %left GENC_AMPERSAND
 %left GENC_CARET
+
+%left GENC_VCONCATENATE
 
 %precedence "cast"
 
@@ -241,10 +244,12 @@ statement :
 
 expression_statement : 
     assignment_expression { $$ = CreateGenCNode(GenCNodeType::ExprStmt, {$1}); } |
+    declaration_expression { $$ = CreateGenCNode(GenCNodeType::ExprStmt, {$1}); } |
     expression { $$ = CreateGenCNode(GenCNodeType::ExprStmt, {$1}); }
 
 declaration_expression : 
-    type GENC_ID { $$ = CreateGenCNode(GenCNodeType::Declare, {$1, CreateGenCStrNode($2)}); }
+    type GENC_ID { $$ = CreateGenCNode(GenCNodeType::Declare, {$1, CreateGenCStrNode($2)}); }  |
+    type GENC_ID GENC_EQUALS right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("="), CreateGenCNode(GenCNodeType::Declare, {$1, CreateGenCStrNode($2)}), $4}); }
 
 assignment_expression :
     left_expression GENC_EQUALS right_expression { $$ = CreateGenCNode(GenCNodeType::Binary, {CreateGenCStrNode("="), $1, $3}); } |
@@ -261,7 +266,6 @@ assignment_expression :
 
 left_expression :
     variable_expression { $$ = $1; } |
-    declaration_expression { $$ = $1; } |
     left_expression unary_postfix_operator { $$ = CreateGenCNode(GenCNodeType::Postfix, {$2, $1}); }
 
 flow_statement : 

@@ -493,6 +493,8 @@ bool GenCContext::Parse_Helper(GenC::AstNode &node)
 			noinlined = true;
 		} else if(attr_name == "export") {
 			exported = true;
+		} else if(attr_name == "global") {
+			// Probably need to do something here?
 		} else {
 			diag_ctx.Warning("Unknown attribute: " + attr_name);
 		}
@@ -1374,6 +1376,13 @@ IRExpression *GenCContext::Parse_Expression(GenC::AstNode &node, IRScope &contai
 				return nullptr;
 			}
 
+			// If we're a RMW, then the LHS cannot be a declaration
+			if(BinaryOperator::IsRMW(exp->Type)) {
+				if(dynamic_cast<IRDefineExpression*>(exp->Left) != nullptr) {
+					Diag().Error("Cannot have declaration on left hand side of RMW operator", exp->Diag());
+					return nullptr;
+				}
+			}
 
 			// If we're a set operation, then the LHS must be settable
 			if(BinaryOperator::IsAssignment(exp->Type)) {

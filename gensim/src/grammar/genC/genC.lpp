@@ -58,6 +58,7 @@ using token = GenC::GenCParser::token;
 
 "internal" { yylval->sval = strdup(yytext); return token::GENC_HELPER_SCOPE; }
 "public" { yylval->sval = strdup(yytext); return token::GENC_HELPER_SCOPE; }
+"private" { yylval->sval = strdup(yytext); return token::GENC_HELPER_SCOPE; }
 
 "noinline" { yylval->sval = strdup(yytext); return token::GENC_HELPER_ATTRIBUTE; }
 "export" { yylval->sval = strdup(yytext); return token::GENC_HELPER_ATTRIBUTE; }
