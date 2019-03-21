@@ -194,6 +194,10 @@ namespace gensim
 			{
 				return (op > START_OF_ASSIGNMENT_OPERATORS) && (op < END_OF_ASSIGNMENT_OPERATORS);
 			}
+			inline bool IsRMW(BinaryOperator::EBinaryOperator op)
+			{
+				return IsAssignment(op) && op != Set;
+			}
 		}
 	}
 }
