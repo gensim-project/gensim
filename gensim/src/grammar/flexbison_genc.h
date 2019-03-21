@@ -5,6 +5,8 @@
 #include <iostream>
 
 #if !defined(yyFlexLexerOnce)
+#undef yyFlexLexer
+#define yyFlexLexer GenCFlexLexer
 #include <FlexLexer.h>
 #endif
 

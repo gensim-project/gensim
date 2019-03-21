@@ -1,0 +1,349 @@
+%{
+
+#include <stdint.h>
+#include "flexbison_harness.h"
+#include "flexbison_archc_ast.h"
+
+#define YYERROR_VERBOSE 1
+%}
+
+%code requires {
+    namespace ArchC {
+        class ArchCScanner;
+    }
+}
+
+%skeleton "lalr1.cc"
+
+%defines
+%locations
+%define api.namespace {ArchC}
+%define api.prefix {ArchC}
+%define parser_class_name {ArchCParser}
+
+%union {
+    uint64_t ival;
+    char *sval;
+    float fval;
+    double dval;
+    astnode<ArchCNodeType> *ast_node;
+}
+
+%parse-param { ArchCScanner &scanner } { astnode<ArchCNodeType> * root }
+
+%code {
+#include "flexbison_archc.h"
+#undef yylex 
+#define yylex scanner.ArchClex
+}
+
+%token AC_ARCH AC_FORMAT AC_WORDSIZE AC_FETCHSIZE AC_PREDICATED AC_MEM AC_INCLUDE AC_REGSPACE AC_REG_VIEW_SLOT AC_REG_VIEW_BANK AC_PC ARCH_CTOR ARCH_ISA 
+%token SET_ENDIAN AC_ISA_BLOCK AC_INSTR AC_FIELD AC_BEHAVIOUR ISA_CTOR AC_ASM_MAP SET_ASM SET_DECODER SET_BEHAVIOUR SET_END_OF_BLOCK SET_JUMP_FIXED 
+%token SET_JUMP_FIXED_PREDICATED SET_JUMP_VARIABLE SET_USES_PC SET_BLOCK_COND FIXED RELATIVE AC_BEHAVIOURS AC_DECODE AC_EXECUTE 
+%token AC_TYPENAME AC_CONSTANT AC_FEATURES AC_FEATURE_LEVEL AC_FEATURE_FLAG AC_SET_FEATURE AC_STRUCT 
+
+%token OPAREN CPAREN
+%token OBRACKET CBRACKET
+%token OANGLE CANGLE
+%token OBRACE CBRACE
+%token GROUPING
+
+%token AC_AT
+
+%token AC_PLUS AC_MINUS AC_ASTERIX
+
+%token COMMA PERIOD SEMICOLON
+%token EQUALS
+
+%token <sval> AC_ID
+%token <sval> AC_INT
+%token <sval> AC_STRING
+
+%define parse.assert
+%define parse.error verbose
+
+%%
+
+file : arch_file | isa_file;
+
+arch_file : AC_ARCH OPAREN AC_ID CPAREN OBRACE arch_resource_list arch_ctor CBRACE SEMICOLON;
+
+arch_resource_list :
+    arch_resource_list arch_resource |
+    %empty;
+
+arch_resource :
+    ar_wordsize | 
+    ar_mem | 
+    ar_regspace | 
+    ar_pc | 
+    ar_features;
+
+ar_wordsize :
+    AC_WORDSIZE AC_INT SEMICOLON;
+
+format :
+    AC_FORMAT AC_ID EQUALS AC_STRING SEMICOLON;
+
+ar_mem :
+    AC_MEM AC_ID OPAREN AC_INT COMMA AC_INT COMMA AC_ID COMMA AC_INT CPAREN SEMICOLON;
+
+ar_regspace :
+    AC_REGSPACE OPAREN AC_INT CPAREN OBRACE ar_reg_view_list CBRACE;
+
+ar_reg_view_list :
+    ar_reg_view_list ar_reg_view |
+    %empty;
+
+ar_reg_view :
+    AC_REG_VIEW_BANK AC_ID OPAREN AC_ID COMMA AC_INT COMMA AC_INT COMMA AC_INT COMMA AC_INT COMMA AC_INT COMMA AC_INT CPAREN SEMICOLON |
+    AC_REG_VIEW_SLOT AC_ID OPAREN AC_ID COMMA AC_INT COMMA AC_INT CPAREN ar_reg_view_tag SEMICOLON;
+
+ar_reg_view_tag :
+    AC_ID |
+    %empty;
+
+ar_pc :
+    AC_PC AC_ID OPAREN AC_INT CPAREN SEMICOLON;
+
+ar_features :
+    AC_FEATURES OBRACE ar_feature_list CBRACE;
+
+ar_feature_list :
+    ar_feature_list ar_feature |
+    %empty;
+
+ar_feature :
+    AC_FEATURE_LEVEL AC_ID SEMICOLON;
+
+arch_ctor : ARCH_CTOR OPAREN AC_ID CPAREN OBRACE arch_ctor_resource_list CBRACE SEMICOLON;
+
+arch_ctor_resource_list :
+    arch_ctor_resource_list arch_ctor_resource SEMICOLON |
+    %empty;
+
+arch_ctor_resource :
+    ac_isa |
+    ac_endianness |
+    ac_feature_set |
+    ac_typename |
+    ac_constant;
+
+ac_isa :
+    ARCH_ISA OPAREN AC_STRING CPAREN;
+
+ac_endianness :
+    SET_ENDIAN OPAREN AC_STRING CPAREN;
+
+ac_feature_set :
+    AC_SET_FEATURE OPAREN AC_ID COMMA AC_INT CPAREN;
+
+ac_typename :
+    AC_TYPENAME OPAREN AC_ID COMMA AC_ID CPAREN;
+
+ac_constant :
+    AC_CONSTANT OPAREN AC_ID COMMA AC_ID COMMA AC_INT CPAREN;
+
+isa_file : AC_ISA_BLOCK OPAREN AC_ID CPAREN OBRACE isa_resource_list CBRACE SEMICOLON;
+
+isa_resource_list :
+    isa_resource_list isa_resource SEMICOLON |
+    %empty;
+
+isa_resource :
+    ar_fetchsize |
+    ar_include |
+    format |
+    isa_instruction |
+    isa_field |
+    isa_behaviour |
+    isa_CTOR |
+    isa_asm_map |
+    ar_predicated |
+    isa_struct_definition ;
+
+ar_fetchsize :
+    AC_FETCHSIZE AC_INT;
+
+ar_include :
+    AC_INCLUDE OPAREN AC_STRING CPAREN;
+
+format :
+    def_attr_list AC_FORMAT AC_ID EQUALS AC_STRING;
+
+def_attr_list :
+    def_attr_list_nonempty |
+    %empty;
+
+def_attr_list_nonempty :
+    def_attr_list_nonempty def_attr |
+    def_attr;
+
+def_attr :
+    AC_AT AC_ID;
+
+isa_instruction :
+    AC_INSTR OANGLE AC_ID CANGLE id_list;
+
+isa_field :
+    AC_FIELD OANGLE field_type CANGLE AC_ID;
+
+field_type :
+    AC_ID |
+    AC_ID AC_ASTERIX;
+
+isa_behaviour :
+    AC_BEHAVIOUR id_list;
+
+isa_CTOR :
+    ISA_CTOR OPAREN AC_ID CPAREN OBRACE ctor_resource_list CBRACE;
+
+ctor_resource_list :
+    ctor_resource_list ctor_resource SEMICOLON |
+    %empty;
+
+ctor_resource :
+    instr_resource |
+    behaviours_resource |
+    decodes_resource |
+    execute_resource;
+
+instr_resource :
+    decoder_resource |
+    assembler_resource |
+    behaviour_resource |
+    end_of_block_resource |
+    jump_variable_resource |
+    jump_fixed_resource |
+    jump_fixed_predicated_resource |
+    uses_pc_resource |
+    block_condition_resource;
+
+behaviours_resource :
+    AC_BEHAVIOURS OPAREN AC_STRING CPAREN;
+
+decodes_resource :
+    AC_DECODE OPAREN AC_STRING CPAREN;
+
+execute_resource :
+    AC_EXECUTE OPAREN AC_STRING CPAREN;
+
+decoder_resource :
+    AC_ID PERIOD SET_DECODER OPAREN expression_list CPAREN;
+
+assembler_resource :
+    AC_ID PERIOD SET_ASM OPAREN AC_STRING asm_arg_list CPAREN;
+
+behaviour_resource :
+    AC_ID PERIOD SET_BEHAVIOUR OPAREN AC_ID CPAREN;
+
+end_of_block_resource :
+    AC_ID PERIOD SET_END_OF_BLOCK OPAREN expression_list CPAREN;
+
+jump_variable_resource :
+    AC_ID PERIOD SET_JUMP_VARIABLE OPAREN CPAREN;
+
+jump_fixed_resource :
+    AC_ID PERIOD SET_JUMP_FIXED OPAREN AC_ID COMMA fixed_jump_type COMMA AC_INT CPAREN;
+
+fixed_jump_type :
+    FIXED |
+    RELATIVE;
+
+jump_fixed_predicated_resource :
+    AC_ID PERIOD SET_JUMP_FIXED_PREDICATED OPAREN AC_ID COMMA fixed_jump_type COMMA AC_INT CPAREN;
+
+uses_pc_resource :
+    AC_ID PERIOD SET_USES_PC OPAREN expression_list CPAREN;
+
+block_condition_resource :
+    AC_ID PERIOD SET_BLOCK_COND OPAREN CPAREN;
+
+asm_arg_list :
+    COMMA asm_arg |
+    %empty;
+
+asm_arg :
+    expression;
+
+isa_asm_map :
+    AC_ASM_MAP AC_ID OBRACE isa_mapping_list CBRACE;
+
+isa_mapping_list :
+    isa_mapping_list isa_mapping |
+    %empty;
+
+isa_mapping :
+    isa_mapping_group SEMICOLON |
+    isa_mapping_strings SEMICOLON;
+
+isa_mapping_group :
+    isa_mapping_group_lrule EQUALS group;
+
+isa_mapping_group_lrule :
+    AC_STRING group;
+
+group :
+    OBRACKET AC_INT GROUPING AC_INT CBRACKET;
+
+isa_mapping_strings :
+    isa_mapping_strings_lrule EQUALS AC_INT;
+
+isa_mapping_strings_lrule :
+    string_list_nonempty;
+
+ar_predicated :
+    AC_PREDICATED AC_STRING;
+
+isa_struct_definition :
+    AC_STRUCT AC_ID OBRACE isa_struct_definition_entry_list CBRACE;
+
+isa_struct_definition_entry_list :
+    isa_struct_definition_entry_list isa_struct_definition_entry SEMICOLON |
+    %empty;
+
+isa_struct_definition_entry :
+    AC_ID AC_ID;
+
+/* String list */
+
+string_list_nonempty :
+    string_list_nonempty COMMA AC_STRING |
+    AC_STRING;
+
+/* ID List */
+
+id_list :
+    id_list_nonempty |
+    %empty;
+
+id_list_nonempty :
+    id_list_nonempty COMMA AC_ID |
+    AC_ID;
+
+/* Expression Handling */
+
+expression :
+    expression operator expression |
+    AC_ID |
+    AC_INT;
+
+operator :
+    AC_PLUS |
+    AC_MINUS;
+
+expression_list :
+    expression_list_nonempty |
+    %empty;
+
+expression_list_nonempty :
+    expression_list_nonempty COMMA expression |
+    expression;
+
+%%
+
+void ArchC::ArchCParser::error(const ArchC::location &location, const std::string &error)
+{
+    std::cerr << location << ":" << error << std::endl;
+    //fprintf(stderr, "%s:%u: %s\n", location.begin.filename, location.begin.line, error.c_str());
+}
