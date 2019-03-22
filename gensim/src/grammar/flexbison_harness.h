@@ -44,11 +44,22 @@ public:
 	astnode(float data) : class_(nodeclass::FLOAT), floatdata_(data) {}
 	astnode(double data) : class_(nodeclass::DOUBLE), doubledata_(data) {}
 
+	astnode(const ThisT& other) = delete;
+
 	~astnode()
 	{
 		for(auto i : children_) {
 			delete i;
 		}
+	}
+
+	ThisT &operator[](int i)
+	{
+		return *GetChildren().at(i);
+	}
+	const ThisT &operator[](int i) const
+	{
+		return *GetChildren().at(i);
 	}
 
 	void SetLocation(const location_data &loc)

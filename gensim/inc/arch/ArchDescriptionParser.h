@@ -5,6 +5,9 @@
 #include "arch/ArchDescription.h"
 #include "DiagnosticContext.h"
 
+#include "flexbison_archc_ast.h"
+#include "flexbison_archc.h"
+
 #include <string>
 
 namespace gensim
@@ -22,11 +25,11 @@ namespace gensim
 		private:
 			DiagnosticContext& diag_ctx;
 
-			bool load_from_arch_node(pANTLR3_BASE_TREE node);
-			bool load_regspace(pANTLR3_BASE_TREE node);
-			bool load_arch_ctor(pANTLR3_BASE_TREE ctorNode);
-			bool load_feature_set(pANTLR3_BASE_TREE ctorNode);
-			bool load_mem(pANTLR3_BASE_TREE ctorNode);
+			bool load_from_arch_node(ArchC::AstNode &node);
+			bool load_regspace(ArchC::AstNode & node);
+			bool load_arch_ctor(ArchC::AstNode & ctorNode);
+			bool load_feature_set(ArchC::AstNode & ctorNode);
+			bool load_mem(ArchC::AstNode & ctorNode);
 
 			ArchDescription *arch;
 		};

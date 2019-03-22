@@ -28,6 +28,28 @@ enum class ArchCNodeType {
 	SetFeature,
 	AcTypename,
 	AcConstant,
+
+	IsaFile,
+	FetchSize,
+	Include,
+	Instruction,
+	Field,
+	PC,
+	Features,
+	AsmMap,
+	BehavioursList,
+
+	IsaCtor,
+	BehavioursFile,
+	DecodesFile,
+	ExecutesFile,
+
+	Decoder,
+	Assembler,
+	Behaviour,
+	EndOfBlock,
+	JumpVariable,
+	JumpFixed
 };
 
 static std::ostream &operator<<(std::ostream &os, ArchCNodeType type)
@@ -51,6 +73,33 @@ static std::ostream &operator<<(std::ostream &os, ArchCNodeType type)
 			HANDLE(RegViewBank);
 
 			HANDLE(ArchCtor);
+			HANDLE(AcIsa);
+			HANDLE(AcEndianness);
+			HANDLE(SetFeature);
+			HANDLE(AcTypename);
+			HANDLE(AcConstant);
+
+			HANDLE(IsaFile);
+			HANDLE(FetchSize);
+			HANDLE(Include);
+			HANDLE(Instruction);
+			HANDLE(Field);
+			HANDLE(PC);
+			HANDLE(Features);
+			HANDLE(AsmMap);
+			HANDLE(BehavioursList);
+
+			HANDLE(IsaCtor);
+			HANDLE(BehavioursFile);
+			HANDLE(DecodesFile);
+			HANDLE(ExecutesFile);
+
+			HANDLE(Decoder);
+			HANDLE(Assembler);
+			HANDLE(Behaviour);
+			HANDLE(EndOfBlock);
+			HANDLE(JumpVariable);
+			HANDLE(JumpFixed);
 
 #undef HANDLE
 		default:
