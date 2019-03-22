@@ -963,8 +963,21 @@ namespace gensim
 						case IntrinsicID::TakeException:
 						case IntrinsicID::Trap:
 							break;
+
+						case IntrinsicID::UpdateZNFlags32:
+						case IntrinsicID::UpdateZNFlags64:
+						case IntrinsicID::ADC8_Flags:
+						case IntrinsicID::ADC16_Flags:
+						case IntrinsicID::ADC32_Flags:
+						case IntrinsicID::ADC64_Flags:
+						case IntrinsicID::ADC8:
+						case IntrinsicID::ADC16:
+						case IntrinsicID::ADC32:
+						case IntrinsicID::ADC64:
+							return EmitDynamicCode(output, end_label, fully_fixed);
+
 						default:
-							assert(false && "Unimplemented Intrinsic");
+							throw std::logic_error("Unrecognised intrinsic: " + Statement.GetSignature().GetName());
 					}
 
 					return true;

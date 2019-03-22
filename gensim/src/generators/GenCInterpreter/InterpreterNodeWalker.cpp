@@ -417,10 +417,10 @@ namespace gensim
 						output << "thread->SetModeID(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
 						break;
 					case IntrinsicID::WriteDevice32:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ")->Write32(" << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
+						output << "thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ")->Write32(" << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
 						break;
 					case IntrinsicID::WriteDevice64:
-						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ")->Write64(" << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
+						output << "thread->GetPeripherals().GetDevice(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ")->Write64(" << Factory.GetOrCreate(stmt.Args(1))->GetFixedValue() << ", " << Factory.GetOrCreate(stmt.Args(2))->GetFixedValue() << ");";
 						break;
 
 					case IntrinsicID::PopInterrupt:
@@ -680,6 +680,28 @@ namespace gensim
 						output << "}";
 						break;
 					}
+
+					// Unimplemented
+					case IntrinsicID::ProbeDevice:
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = 0;";
+						output << "UNIMPLEMENTED;";
+						break;
+
+					/* Previously external functions */
+					case IntrinsicID::FlushITLBEntry:
+					case IntrinsicID::FlushDTLBEntry:
+						if(stmt.HasValue()) {
+							output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = ";
+						}
+						output << "thread->fn_" << stmt.GetSignature().GetName() << "(";
+						for(int i = 0; i < stmt.ArgCount(); ++i) {
+							if(i != 0) {
+								output << ", ";
+							}
+							output << "(" << Factory.GetOrCreate(stmt.Args(i))->GetFixedValue() << ")";
+						}
+						output << ");";
+						break;
 
 					default:
 						throw std::logic_error("Unrecognised intrinsic: " + stmt.GetSignature().GetName());
