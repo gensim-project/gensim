@@ -59,18 +59,31 @@
 %token <sval> AC_INT
 %token <sval> AC_STRING
 
+%type <ast_node> int string id
+%type <ast_node> file arch_file isa_file arch_resource_list arch_resource arch_ctor
+%type <ast_node> ar_wordsize ar_mem ar_regspace ar_pc ar_features 
+%type <ast_node> format ar_reg_view_list ar_reg_view
+%type <ast_node> arch_ctor_resource_list arch_ctor_resource
+%type <ast_node> ac_isa ac_endianness ac_feature_set ac_typename ac_constant
+
 %define parse.assert
 %define parse.error verbose
 
 %%
 
-file : arch_file | isa_file;
+file : 
+    arch_file { root->AddChild($1); } | 
+    isa_file { root->AddChild($1); }
 
-arch_file : AC_ARCH OPAREN AC_ID CPAREN OBRACE arch_resource_list arch_ctor CBRACE SEMICOLON;
+int : AC_INT { $$ = CreateNode(ArchCNodeType::INT, {CreateStrNode<ArchCNodeType>($1)}); }
+string : AC_STRING { $$ = CreateStrNode<ArchCNodeType>($1); }
+id : AC_ID { $$ = CreateNode(ArchCNodeType::Identifier, {CreateStrNode<ArchCNodeType>($1)}); }
+
+arch_file : AC_ARCH OPAREN id CPAREN OBRACE arch_resource_list arch_ctor CBRACE SEMICOLON { $$ = CreateNode(ArchCNodeType::Arch, {$3, $6, $7}); }
 
 arch_resource_list :
-    arch_resource_list arch_resource |
-    %empty;
+    arch_resource_list arch_resource { $$ = $1; $$->AddChild($2); }  |
+    %empty { $$ = CreateNode(ArchCNodeType::List); }
 
 arch_resource :
     ar_wordsize | 
@@ -80,31 +93,31 @@ arch_resource :
     ar_features;
 
 ar_wordsize :
-    AC_WORDSIZE AC_INT SEMICOLON;
+    AC_WORDSIZE int SEMICOLON { $$ = CreateNode(ArchCNodeType::WordSize, {$2}); }
 
 format :
-    AC_FORMAT AC_ID EQUALS AC_STRING SEMICOLON;
+    AC_FORMAT id EQUALS string SEMICOLON { $$ = CreateNode(ArchCNodeType::Format, {$2, $4}); }
 
 ar_mem :
-    AC_MEM AC_ID OPAREN AC_INT COMMA AC_INT COMMA AC_ID COMMA AC_INT CPAREN SEMICOLON;
+    AC_MEM id OPAREN int COMMA int COMMA id COMMA int CPAREN SEMICOLON { $$ = CreateNode(ArchCNodeType::MemInterface, {$2, $4, $6, $8, $10}); } 
 
 ar_regspace :
-    AC_REGSPACE OPAREN AC_INT CPAREN OBRACE ar_reg_view_list CBRACE;
+    AC_REGSPACE OPAREN int CPAREN OBRACE ar_reg_view_list CBRACE { $$ = CreateNode(ArchCNodeType::RegSpace, {$3, $6}); }
 
 ar_reg_view_list :
-    ar_reg_view_list ar_reg_view |
-    %empty;
+    ar_reg_view_list ar_reg_view {$$ = $1; $$->AddChild($2); }  |
+    %empty { $$ = CreateNode(ArchCNodeType::List); };
 
 ar_reg_view :
-    AC_REG_VIEW_BANK AC_ID OPAREN AC_ID COMMA AC_INT COMMA AC_INT COMMA AC_INT COMMA AC_INT COMMA AC_INT COMMA AC_INT CPAREN SEMICOLON |
-    AC_REG_VIEW_SLOT AC_ID OPAREN AC_ID COMMA AC_INT COMMA AC_INT CPAREN ar_reg_view_tag SEMICOLON;
+    AC_REG_VIEW_BANK id OPAREN id COMMA int COMMA int COMMA int COMMA int COMMA int COMMA int CPAREN SEMICOLON { $$ = CreateNode(ArchCNodeType::RegViewBank); } |
+    AC_REG_VIEW_SLOT id OPAREN id COMMA int COMMA int CPAREN ar_reg_view_tag SEMICOLON { $$ = CreateNode(ArchCNodeType::RegViewSlot); } 
 
 ar_reg_view_tag :
-    AC_ID |
+    id |
     %empty;
 
 ar_pc :
-    AC_PC AC_ID OPAREN AC_INT CPAREN SEMICOLON;
+    AC_PC id OPAREN int CPAREN SEMICOLON;
 
 ar_features :
     AC_FEATURES OBRACE ar_feature_list CBRACE;
@@ -114,13 +127,13 @@ ar_feature_list :
     %empty;
 
 ar_feature :
-    AC_FEATURE_LEVEL AC_ID SEMICOLON;
+    AC_FEATURE_LEVEL id SEMICOLON;
 
-arch_ctor : ARCH_CTOR OPAREN AC_ID CPAREN OBRACE arch_ctor_resource_list CBRACE SEMICOLON;
+arch_ctor : ARCH_CTOR OPAREN id CPAREN OBRACE arch_ctor_resource_list CBRACE SEMICOLON { $$ = CreateNode(ArchCNodeType::ArchCtor, {$3, $6}); }
 
 arch_ctor_resource_list :
-    arch_ctor_resource_list arch_ctor_resource SEMICOLON |
-    %empty;
+    arch_ctor_resource_list arch_ctor_resource SEMICOLON { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(ArchCNodeType::List); };
 
 arch_ctor_resource :
     ac_isa |
@@ -130,21 +143,21 @@ arch_ctor_resource :
     ac_constant;
 
 ac_isa :
-    ARCH_ISA OPAREN AC_STRING CPAREN;
+    ARCH_ISA OPAREN string CPAREN { $$ = CreateNode(ArchCNodeType::AcIsa, {$3}); }
 
 ac_endianness :
-    SET_ENDIAN OPAREN AC_STRING CPAREN;
+    SET_ENDIAN OPAREN string CPAREN  { $$ = CreateNode(ArchCNodeType::AcEndianness, {$3}); }
 
 ac_feature_set :
-    AC_SET_FEATURE OPAREN AC_ID COMMA AC_INT CPAREN;
+    AC_SET_FEATURE OPAREN id COMMA int CPAREN  { $$ = CreateNode(ArchCNodeType::SetFeature, {$3, $5}); }
 
 ac_typename :
-    AC_TYPENAME OPAREN AC_ID COMMA AC_ID CPAREN;
+    AC_TYPENAME OPAREN id COMMA id CPAREN  { $$ = CreateNode(ArchCNodeType::AcTypename, {$3, $5}); }
 
 ac_constant :
-    AC_CONSTANT OPAREN AC_ID COMMA AC_ID COMMA AC_INT CPAREN;
+    AC_CONSTANT OPAREN id COMMA id COMMA int CPAREN  { $$ = CreateNode(ArchCNodeType::AcConstant, {$3, $5, $7}); }
 
-isa_file : AC_ISA_BLOCK OPAREN AC_ID CPAREN OBRACE isa_resource_list CBRACE SEMICOLON;
+isa_file : AC_ISA_BLOCK OPAREN id CPAREN OBRACE isa_resource_list CBRACE SEMICOLON;
 
 isa_resource_list :
     isa_resource_list isa_resource SEMICOLON |
@@ -163,13 +176,13 @@ isa_resource :
     isa_struct_definition ;
 
 ar_fetchsize :
-    AC_FETCHSIZE AC_INT;
+    AC_FETCHSIZE int;
 
 ar_include :
-    AC_INCLUDE OPAREN AC_STRING CPAREN;
+    AC_INCLUDE OPAREN string CPAREN;
 
 format :
-    def_attr_list AC_FORMAT AC_ID EQUALS AC_STRING;
+    def_attr_list AC_FORMAT id EQUALS string;
 
 def_attr_list :
     def_attr_list_nonempty |
@@ -180,23 +193,23 @@ def_attr_list_nonempty :
     def_attr;
 
 def_attr :
-    AC_AT AC_ID;
+    AC_AT id;
 
 isa_instruction :
-    AC_INSTR OANGLE AC_ID CANGLE id_list;
+    AC_INSTR OANGLE id CANGLE id_list;
 
 isa_field :
-    AC_FIELD OANGLE field_type CANGLE AC_ID;
+    AC_FIELD OANGLE field_type CANGLE id;
 
 field_type :
-    AC_ID |
-    AC_ID AC_ASTERIX;
+    id |
+    id AC_ASTERIX;
 
 isa_behaviour :
     AC_BEHAVIOUR id_list;
 
 isa_CTOR :
-    ISA_CTOR OPAREN AC_ID CPAREN OBRACE ctor_resource_list CBRACE;
+    ISA_CTOR OPAREN id CPAREN OBRACE ctor_resource_list CBRACE;
 
 ctor_resource_list :
     ctor_resource_list ctor_resource SEMICOLON |
@@ -220,44 +233,44 @@ instr_resource :
     block_condition_resource;
 
 behaviours_resource :
-    AC_BEHAVIOURS OPAREN AC_STRING CPAREN;
+    AC_BEHAVIOURS OPAREN string CPAREN;
 
 decodes_resource :
-    AC_DECODE OPAREN AC_STRING CPAREN;
+    AC_DECODE OPAREN string CPAREN;
 
 execute_resource :
-    AC_EXECUTE OPAREN AC_STRING CPAREN;
+    AC_EXECUTE OPAREN string CPAREN;
 
 decoder_resource :
-    AC_ID PERIOD SET_DECODER OPAREN expression_list CPAREN;
+    id PERIOD SET_DECODER OPAREN expression_list CPAREN;
 
 assembler_resource :
-    AC_ID PERIOD SET_ASM OPAREN AC_STRING asm_arg_list CPAREN;
+    id PERIOD SET_ASM OPAREN string asm_arg_list CPAREN;
 
 behaviour_resource :
-    AC_ID PERIOD SET_BEHAVIOUR OPAREN AC_ID CPAREN;
+    id PERIOD SET_BEHAVIOUR OPAREN id CPAREN;
 
 end_of_block_resource :
-    AC_ID PERIOD SET_END_OF_BLOCK OPAREN expression_list CPAREN;
+    id PERIOD SET_END_OF_BLOCK OPAREN expression_list CPAREN;
 
 jump_variable_resource :
-    AC_ID PERIOD SET_JUMP_VARIABLE OPAREN CPAREN;
+    id PERIOD SET_JUMP_VARIABLE OPAREN CPAREN;
 
 jump_fixed_resource :
-    AC_ID PERIOD SET_JUMP_FIXED OPAREN AC_ID COMMA fixed_jump_type COMMA AC_INT CPAREN;
+    id PERIOD SET_JUMP_FIXED OPAREN id COMMA fixed_jump_type COMMA int CPAREN;
 
 fixed_jump_type :
     FIXED |
     RELATIVE;
 
 jump_fixed_predicated_resource :
-    AC_ID PERIOD SET_JUMP_FIXED_PREDICATED OPAREN AC_ID COMMA fixed_jump_type COMMA AC_INT CPAREN;
+    id PERIOD SET_JUMP_FIXED_PREDICATED OPAREN id COMMA fixed_jump_type COMMA int CPAREN;
 
 uses_pc_resource :
-    AC_ID PERIOD SET_USES_PC OPAREN expression_list CPAREN;
+    id PERIOD SET_USES_PC OPAREN expression_list CPAREN;
 
 block_condition_resource :
-    AC_ID PERIOD SET_BLOCK_COND OPAREN CPAREN;
+    id PERIOD SET_BLOCK_COND OPAREN CPAREN;
 
 asm_arg_list :
     COMMA asm_arg |
@@ -267,7 +280,7 @@ asm_arg :
     expression;
 
 isa_asm_map :
-    AC_ASM_MAP AC_ID OBRACE isa_mapping_list CBRACE;
+    AC_ASM_MAP id OBRACE isa_mapping_list CBRACE;
 
 isa_mapping_list :
     isa_mapping_list isa_mapping |
@@ -281,35 +294,35 @@ isa_mapping_group :
     isa_mapping_group_lrule EQUALS group;
 
 isa_mapping_group_lrule :
-    AC_STRING group;
+    string group;
 
 group :
-    OBRACKET AC_INT GROUPING AC_INT CBRACKET;
+    OBRACKET int GROUPING int CBRACKET;
 
 isa_mapping_strings :
-    isa_mapping_strings_lrule EQUALS AC_INT;
+    isa_mapping_strings_lrule EQUALS int;
 
 isa_mapping_strings_lrule :
     string_list_nonempty;
 
 ar_predicated :
-    AC_PREDICATED AC_STRING;
+    AC_PREDICATED string;
 
 isa_struct_definition :
-    AC_STRUCT AC_ID OBRACE isa_struct_definition_entry_list CBRACE;
+    AC_STRUCT id OBRACE isa_struct_definition_entry_list CBRACE;
 
 isa_struct_definition_entry_list :
     isa_struct_definition_entry_list isa_struct_definition_entry SEMICOLON |
     %empty;
 
 isa_struct_definition_entry :
-    AC_ID AC_ID;
+    id id;
 
 /* String list */
 
 string_list_nonempty :
-    string_list_nonempty COMMA AC_STRING |
-    AC_STRING;
+    string_list_nonempty COMMA string |
+    string;
 
 /* ID List */
 
@@ -318,15 +331,15 @@ id_list :
     %empty;
 
 id_list_nonempty :
-    id_list_nonempty COMMA AC_ID |
-    AC_ID;
+    id_list_nonempty COMMA id |
+    id;
 
 /* Expression Handling */
 
 expression :
     expression operator expression |
-    AC_ID |
-    AC_INT;
+    id |
+    int;
 
 operator :
     AC_PLUS |
