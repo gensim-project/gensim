@@ -201,7 +201,6 @@ namespace gensim
 
 		private:
 			ssa::SSAStatement *EmitIntrinsicCall(ssa::SSABuilder &bldr, const gensim::arch::ArchDescription &) const;
-			ssa::SSAStatement *EmitExternalCall(ssa::SSABuilder &bldr, const gensim::arch::ArchDescription &) const;
 			ssa::SSAStatement *EmitHelperCall(ssa::SSABuilder &bldr, const gensim::arch::ArchDescription &) const;
 
 			IRCallableAction *Target;

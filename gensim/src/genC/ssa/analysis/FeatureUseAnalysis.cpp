@@ -15,7 +15,7 @@ const std::set<const ArchFeature *> FeatureUseAnalysis::GetUsedFeatures(const SS
 	for (auto block : action->GetBlocks()) {
 		for (auto stmt : block->GetStatements()) {
 			if (auto intrinsic = dynamic_cast<SSAIntrinsicStatement *>(stmt)) {
-				if (intrinsic->Type == SSAIntrinsicStatement::SSAIntrinsic_GetFeature || intrinsic->Type == SSAIntrinsicStatement::SSAIntrinsic_SetFeature) {
+				if (intrinsic->GetID() == IntrinsicID::GetFeature || intrinsic->GetID() == IntrinsicID::SetFeature) {
 					auto feature_index_arg = dynamic_cast<SSAConstantStatement *>(intrinsic->Args(0));
 					if (feature_index_arg != nullptr && feature_index_arg->Constant.Type() == IRConstant::Type_Integer) {
 						auto feature = action->Arch->GetFeatures().GetFeature((uint32_t)feature_index_arg->Constant.Int());

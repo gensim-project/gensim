@@ -587,27 +587,19 @@ namespace gensim
 					const SSANodeWalker *arg0 = nullptr;
 					if (Statement.ArgCount() > 0) arg0 = Factory.GetOrCreate(Statement.Args(0));
 
-					switch (Statement.Type) {
-						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
-						case SSAIntrinsicStatement::SSAIntrinsic_WritePc:
-							assert(false && "ReadPC/WritePC cannot be fixed");
-							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
+					switch (Statement.GetID()) {
+						case IntrinsicID::PopCount32:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = __builtin_popcount(" << arg0->GetFixedValue() << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
+						case IntrinsicID::CLZ32:
+						case IntrinsicID::CLZ64:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = __builtin_clz(" << arg0->GetFixedValue() << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_GetFeature:
+						case IntrinsicID::GetFeature:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = __get_feature(" << arg0->GetFixedValue() << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
-						case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
-						case SSAIntrinsicStatement::SSAIntrinsic_Trap:
-							break;
 						default:
 							assert(false && "Unimplemented Fixed Intrinsic");
 					}
@@ -628,9 +620,9 @@ namespace gensim
 					const SSANodeWalker *arg2 = NULL;
 					if (Statement.ArgCount() > 2) arg2 = Factory.GetOrCreate(Statement.Args(2));
 
-					switch (Statement.Type) {
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
+					switch (Statement.GetID()) {
+						case IntrinsicID::CLZ32:
+						case IntrinsicID::CLZ64:
 							output << "auto " << Statement.GetName() << " = emitter.clz(" << operand_for_node(*arg0) << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
@@ -639,29 +631,24 @@ namespace gensim
 #endif
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
-							output << "emitter.call(__captive_set_cpu_mode, " << operand_for_node(*arg0) << ");\n";
-							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Trap:
+						case IntrinsicID::Trap:
 							output << "emitter.raise(emitter.const_u8(0));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
+						case IntrinsicID::TakeException:
 							output << "emitter.raise(emitter.const_u8(0));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
+						case IntrinsicID::PopInterrupt:
 							output << "emitter.raise(emitter.const_u8(0));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
+						case IntrinsicID::PushInterrupt:
 							output << "emitter.raise(emitter.const_u8(0));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
+						case IntrinsicID::HaltCpu:
 							output << "emitter.raise(emitter.const_u8(0));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
-							output << "auto " << Statement.GetName() << " = emitter.const_u8(0);";
-							output << "emitter.raise(emitter.const_u8(0));";
-							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
+
+						case IntrinsicID::WriteDevice32:
+						case IntrinsicID::WriteDevice64:
 							output << "if (TRACE) {";
 							output << "emitter.trace(dbt::el::TraceEvent::STORE_DEVICE,"
 							       << operand_for_node(*arg0)
@@ -674,11 +661,11 @@ namespace gensim
 							output << "emitter.store_device(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_SetFeature:
+						case IntrinsicID::SetFeature:
 							output << "emitter.set_feature(" << arg0->GetFixedValue() << ", " << operand_for_node(*arg1) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
+						case IntrinsicID::ReadPC:
 							output << "auto " << Statement.GetName() << " = emitter.load_pc();";
 #ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
@@ -687,29 +674,14 @@ namespace gensim
 #endif
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_WritePc:
+						case IntrinsicID::WritePC:
 							output << "emitter.store_pc(" << operand_for_node(*arg0) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_TriggerIRQ:
-							output << "emitter.call(__captive_trigger_irq);\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
-							output << "emitter.enter_kernel_mode();\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
-							output << "emitter.enter_user_mode();\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
-							output << "auto " << Statement.GetName() << " = ";
-							output << "emitter.call(__captive_popcnt32, " << operand_for_node(*arg0) << ");\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
+						case IntrinsicID::ADC8_Flags:
+						case IntrinsicID::ADC16_Flags:
+						case IntrinsicID::ADC32_Flags:
+						case IntrinsicID::ADC64_Flags:
 							output << "auto " << Statement.GetName() << " = emitter.adcf(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
@@ -718,8 +690,10 @@ namespace gensim
 #endif
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc64:
+						case IntrinsicID::ADC8:
+						case IntrinsicID::ADC16:
+						case IntrinsicID::ADC32:
+						case IntrinsicID::ADC64:
 							output << "auto " << Statement.GetName() << " = emitter.adc(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
@@ -728,8 +702,10 @@ namespace gensim
 #endif
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags:
+						case IntrinsicID::SBC8_Flags:
+						case IntrinsicID::SBC16_Flags:
+						case IntrinsicID::SBC32_Flags:
+						case IntrinsicID::SBC64_Flags:
 							output << "auto " << Statement.GetName() << " = emitter.sbcf(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
@@ -738,8 +714,10 @@ namespace gensim
 #endif
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc:
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc64:
+						case IntrinsicID::SBC8:
+						case IntrinsicID::SBC16:
+						case IntrinsicID::SBC32:
+						case IntrinsicID::SBC64:
 							output << "auto " << Statement.GetName() << " = emitter.sbc(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
@@ -748,7 +726,7 @@ namespace gensim
 #endif
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_SMULH:
+						case IntrinsicID::SMULH:
 							output << "auto " << Statement.GetName() << " = emitter.smulh(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
@@ -757,7 +735,7 @@ namespace gensim
 #endif
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_UMULH:
+						case IntrinsicID::UMULH:
 							output << "auto " << Statement.GetName() << " = emitter.umulh(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
@@ -766,13 +744,13 @@ namespace gensim
 #endif
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32:
-						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN64:
+						case IntrinsicID::UpdateZNFlags32:
+						case IntrinsicID::UpdateZNFlags64:
 							output << "emitter.set_zn(" << operand_for_node(*arg0) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
-						case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
+						case IntrinsicID::BSwap32:
+						case IntrinsicID::BSwap64:
 							output << "auto " << Statement.GetName() << " = emitter.bswap(" << operand_for_node(*arg0) << ");";
 #ifdef REGISTER_ALLOCATION_HINTS
 							if (((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
@@ -781,57 +759,28 @@ namespace gensim
 #endif
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatAbs:
-							output << "auto " << Statement.GetName() << " = ";
-							output << "emitter.call(__captive_fabs32, " << operand_for_node(*arg0) << ");\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
-							output << "auto " << Statement.GetName() << " = ";
-							output << "emitter.call(__captive_fabs64, " << operand_for_node(*arg0) << ");\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleIsQnan:
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatIsQnan:
-							output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().GetCaptiveType() << ");\n";
-							output << "ctx.add_instruction(IRInstruction::is_qnan(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << "));\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleIsSnan:
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatIsSnan:
-							output << "IRRegId " << Statement.GetName() << " = ctx.alloc_reg(" << Statement.GetType().GetCaptiveType() << ");\n";
-							output << "ctx.add_instruction(IRInstruction::is_snan(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << "));\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleSqrt:
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatSqrt:
-							output << "auto " << Statement.GetName() << " = emitter.sqrt(" << operand_for_node(*arg0) << ");";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
-							output << "emitter.call(__captive_set_rounding_mode, " << operand_for_node(*arg0) << ");\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
-							output << "auto " << Statement.GetName() << " = ";
-							output << "emitter.call(__captive_get_rounding_mode);\n";
-							break;
-
-						case SSAIntrinsicStatement::SSAIntrinsic_FMA32:
-							output << "auto " << Statement.GetName() << " = ";
-							output << "emitter.call(__captive_fma32, " << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");\n";
-							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_FMA64:
-							output << "auto " << Statement.GetName() << " = ";
-							output << "emitter.call(__captive_fma64, " << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");\n";
-							break;
-
 						default:
-							fprintf(stderr, "error: unimplemented intrinsic:\n");
-							std::ostringstream s;
-							Statement.PrettyPrint(s);
-							std::cerr << s.str();
-							assert(false && "Unimplemented intrinsic");
+							if (Statement.HasValue()) {
+								output << "auto " << Statement.GetName() << " = ";
+							}
+
+							output << "emitter.call(__captive_" << Statement.GetSignature().GetName();
+
+							for (int i = 0; i < Statement.ArgCount(); i++) {
+								const SSANodeWalker *arg = nullptr;
+								arg = Factory.GetOrCreate(Statement.Args(i));
+								output << ", " << operand_for_node(*arg);
+							}
+
+							output << ");\n";
+
+#ifdef REGISTER_ALLOCATION_HINTS
+							if (Statement.HasValue() && ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().IsStatementAllocated(&Statement)) {
+								output << Statement.GetName() << "->allocate(" << ((JITv2NodeWalkerFactory&) Factory).RegisterAllocation().GetRegisterForStatement(&Statement) << ");";
+							}
+#endif
+
+							break;
 					}
 
 					return true;
@@ -841,8 +790,8 @@ namespace gensim
 				{
 					const SSAIntrinsicStatement &Statement = static_cast<const SSAIntrinsicStatement &> (this->Statement);
 
-					switch (Statement.Type) {
-						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
+					switch (Statement.GetID()) {
+						case IntrinsicID::ReadPC:
 							return Statement.GetName();
 
 						default:

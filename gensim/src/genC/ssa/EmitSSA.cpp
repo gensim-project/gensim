@@ -572,11 +572,8 @@ SSAStatement *IRVariableExpression::EmitSSAForm(SSABuilder &bldr) const
 
 SSAStatement *IRCallExpression::EmitSSAForm(SSABuilder &bldr) const
 {
-// First we need to determine if we are using an intrinsic l(i.e. memory or register operation)
-
-	if (dynamic_cast<IRExternalAction *> (Target) != nullptr) {
-		return EmitExternalCall(bldr, GetTarget().Context.Arch);
-	} else if (dynamic_cast<IRIntrinsicAction *> (Target) != nullptr) {
+	// First we need to determine if we are using an intrinsic (i.e. memory or register operation)
+	if (dynamic_cast<IRIntrinsicAction *> (Target) != nullptr) {
 		return EmitIntrinsicCall(bldr, GetTarget().Context.Arch);
 	} else if (dynamic_cast<IRHelperAction *> (Target) != nullptr) {
 		return EmitHelperCall(bldr, GetTarget().Context.Arch);

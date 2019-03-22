@@ -1,4 +1,5 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+#if 0
 
 #include "define.h"
 #include "genC/Intrinsics.h"
@@ -130,3 +131,5 @@ SSAStatement *IRCallExpression::EmitExternalCall(SSABuilder &bldr, const gensim:
 
 	return stmt;
 }
+
+#endif
