@@ -6,12 +6,8 @@
 #include "genC/Parser.h"
 #include "genC/ir/IRConstant.h"
 
-#include <archc/archcLexer.h>
-#include <archc/archcParser.h>
-
-#include <antlr3.h>
-
-#include "antlr-ver.h"
+#include "flexbison_archc_ast.h"
+#include "flexbison_archc.h"
 
 #include <string.h>
 #include <fstream>
@@ -26,33 +22,26 @@ ArchDescriptionParser::ArchDescriptionParser(DiagnosticContext &diag_ctx) : diag
 
 bool ArchDescriptionParser::ParseFile(std::string filename)
 {
-	pANTLR3_UINT8 fname_str = (pANTLR3_UINT8)filename.c_str();
-	pANTLR3_INPUT_STREAM pts = antlr3AsciiFileStreamNew(fname_str);
-	if (!pts) {
-		diag_ctx.Error(Format("Couldn't open architecture file '%s': %s.", filename.c_str(), strerror(errno)), DiagNode(filename));
-		return false;
-	}
-	parchcLexer lexer = archcLexerNew(pts);
-	pANTLR3_COMMON_TOKEN_STREAM tstream = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(lexer));
-	parchcParser parser = archcParserNew(tstream);
+	std::ifstream file(filename);
 
-	archcParser_arch_return arch_r = parser->arch(parser);
+	ArchC::ArchCScanner scanner(&file);
 
-	if (parser->pParser->rec->getNumberOfSyntaxErrors(parser->pParser->rec) > 0 || lexer->pLexer->rec->getNumberOfSyntaxErrors(lexer->pLexer->rec)) {
-		return false;
-	}
+	ArchC::AstNode root(ArchCNodeType::ROOT);
+	ArchC::ArchCParser parser(scanner, &root);
 
-	pANTLR3_COMMON_TREE_NODE_STREAM nodes = antlr3CommonTreeNodeStreamNewTree(arch_r.tree, ANTLR3_SIZE_HINT);
+	int result = parser.parse();
 
-	if(!load_from_arch_node(nodes->root)) {
+	if(result != 0) {
+		diag_ctx.Error("Failed to parse.", DiagNode(filename));
 		return false;
 	}
 
-	nodes->free(nodes);
-	parser->free(parser);
-	tstream->free(tstream);
-	lexer->free(lexer);
-	pts->free(pts);
+	auto &arch_node = root[0];
+	GASSERT(arch_node.GetType() == ArchCNodeType::Arch);
+
+	if(!load_from_arch_node(arch_node)) {
+		return false;
+	}
 
 	return true;
 }
@@ -62,34 +51,28 @@ ArchDescription *ArchDescriptionParser::Get()
 	return arch;
 }
 
-bool ArchDescriptionParser::load_from_arch_node(pANTLR3_BASE_TREE node)
+bool ArchDescriptionParser::load_from_arch_node(ArchC::AstNode & node)
 {
-	pANTLR3_BASE_TREE NameNode = (pANTLR3_BASE_TREE)node->children->get(node->children, 0);
-	arch->Name = (char *)(NameNode->getText(NameNode)->chars);
+	auto &nameNode = node[0][0];
+	arch->Name = nameNode.GetString();
 
-	for (uint32_t i = 1; i < node->getChildCount(node); i++) {
-		pANTLR3_BASE_TREE childNode = (pANTLR3_BASE_TREE)node->children->get(node->children, i);
-		switch (childNode->getType(childNode)) {
-
-			case AC_REGSPACE:
-				if(!load_regspace(childNode)) return false;
+	auto &listNode = node[1];
+	for (auto childNode : listNode) {
+		switch (childNode->GetType()) {
+			case ArchCNodeType::RegSpace:
+				if(!load_regspace(*childNode)) return false;
 				break;
 
-			case AC_WORDSIZE: {
-				pANTLR3_BASE_TREE sizeNode = (pANTLR3_BASE_TREE)childNode->getChild(childNode, 0);
-				arch->wordsize = atoi((char *)(sizeNode->getText(sizeNode)->chars));
+			case ArchCNodeType::WordSize: {
+				arch->wordsize = (*childNode)[0].GetInt();
 				break;
 			}
-			case ARCH_CTOR: {
-				if(!load_arch_ctor(childNode)) return false;
+			case ArchCNodeType::Features: {
+				if(!load_feature_set(*childNode)) return false;
 				break;
 			}
-			case AC_FEATURES: {
-				if(!load_feature_set(childNode)) return false;
-				break;
-			}
-			case AC_MEM: {
-				if(!load_mem(childNode)) return false;
+			case ArchCNodeType::MemInterface: {
+				if(!load_mem(*childNode)) return false;
 				break;
 			}
 			default: {
@@ -99,6 +82,9 @@ bool ArchDescriptionParser::load_from_arch_node(pANTLR3_BASE_TREE node)
 		}
 	}
 
+	auto &ctorNode = node[2];
+	if(!load_arch_ctor(ctorNode)) return false;
+
 	if(!arch->GetRegFile().Resolve(diag_ctx)) return false;
 	if(!arch->GetMemoryInterfaces().Resolve(diag_ctx)) return false;
 
@@ -106,64 +92,64 @@ bool ArchDescriptionParser::load_from_arch_node(pANTLR3_BASE_TREE node)
 }
 
 
-RegBankViewDescriptor *load_reg_view_bank(pANTLR3_BASE_TREE node, RegSpaceDescriptor *space)
+RegBankViewDescriptor *load_reg_view_bank(ArchC::AstNode & node, RegSpaceDescriptor *space)
 {
-	assert(node->getChildCount(node) == 8);
+	assert(node.GetChildren().size() == 8);
 
-	pANTLR3_BASE_TREE id_node = (pANTLR3_BASE_TREE)node->getChild(node, 0);
-	pANTLR3_BASE_TREE type_node = (pANTLR3_BASE_TREE)node->getChild(node, 1);
-	pANTLR3_BASE_TREE offset_node = (pANTLR3_BASE_TREE)node->getChild(node, 2);
-	pANTLR3_BASE_TREE rcount_node = (pANTLR3_BASE_TREE)node->getChild(node, 3);
-	pANTLR3_BASE_TREE rstride_node = (pANTLR3_BASE_TREE)node->getChild(node, 4);
-	pANTLR3_BASE_TREE ecount_node = (pANTLR3_BASE_TREE)node->getChild(node, 5);
-	pANTLR3_BASE_TREE esize_node = (pANTLR3_BASE_TREE)node->getChild(node, 6);
-	pANTLR3_BASE_TREE estride_node = (pANTLR3_BASE_TREE)node->getChild(node, 7);
+	auto &id_node = node[0];
+	auto &type_node = node[1];
+	auto &offset_node = node[2];
+	auto &rcount_node = node[3];
+	auto &rstride_node = node[4];
+	auto &ecount_node = node[5];
+	auto &esize_node = node[6];
+	auto &estride_node = node[7];
 
-	assert(id_node->getType(id_node) == AC_ID);
-	assert(type_node->getType(type_node) == AC_ID);
-	assert(offset_node->getType(offset_node) == AC_INT);
-	assert(rcount_node->getType(rcount_node) == AC_INT);
-	assert(rstride_node->getType(rstride_node) == AC_INT);
-	assert(ecount_node->getType(ecount_node) == AC_INT);
-	assert(esize_node->getType(esize_node) == AC_INT);
-	assert(estride_node->getType(estride_node) == AC_INT);
+	assert(id_node.GetType() == ArchCNodeType::Identifier);
+	assert(type_node.GetType() == ArchCNodeType::Identifier);
+	assert(offset_node.GetType() == ArchCNodeType::INT);
+	assert(rcount_node.GetType() == ArchCNodeType::INT);
+	assert(rstride_node.GetType() == ArchCNodeType::INT);
+	assert(ecount_node.GetType() == ArchCNodeType::INT);
+	assert(esize_node.GetType() == ArchCNodeType::INT);
+	assert(estride_node.GetType() == ArchCNodeType::INT);
 
-	std::string id = std::string((char*)(id_node->getText(id_node)->chars));
-	std::string type = std::string((char*)(type_node->getText(type_node)->chars));
-	uint32_t offset = strtol((char*)offset_node->getText(offset_node)->chars, NULL, 10);
-	uint32_t rcount = strtol((char*)rcount_node->getText(rcount_node)->chars, NULL, 10);
-	uint32_t rstride = strtol((char*)rstride_node->getText(rstride_node)->chars, NULL, 10);
-	uint32_t ecount = strtol((char*)ecount_node->getText(ecount_node)->chars, NULL, 10);
-	uint32_t esize = strtol((char*)esize_node->getText(esize_node)->chars, NULL, 10);
-	uint32_t estride = strtol((char*)estride_node->getText(estride_node)->chars, NULL, 10);
+	std::string id = id_node[0].GetString(); // Dereference identifier node
+	std::string type = type_node[0].GetString();  // Dereference identifier node
+	uint32_t offset = offset_node.GetInt();
+	uint32_t rcount = rcount_node.GetInt();
+	uint32_t rstride = rstride_node.GetInt();
+	uint32_t ecount = ecount_node.GetInt();
+	uint32_t esize = esize_node.GetInt();
+	uint32_t estride = estride_node.GetInt();
 
 	return new RegBankViewDescriptor(space, id, offset, rcount, rstride, ecount, esize, estride, type);
 }
 
-RegSlotViewDescriptor *load_reg_view_slot(pANTLR3_BASE_TREE node, RegSpaceDescriptor *space)
+RegSlotViewDescriptor *load_reg_view_slot(ArchC::AstNode & node, RegSpaceDescriptor *space)
 {
-	assert(node->getChildCount(node) == 4 || node->getChildCount(node) == 5);
+	assert(node.GetChildren().size() == 4 || node.GetChildren().size() == 5);
 
-	pANTLR3_BASE_TREE id_node = (pANTLR3_BASE_TREE)node->getChild(node, 0);
-	pANTLR3_BASE_TREE type_node = (pANTLR3_BASE_TREE)node->getChild(node, 1);
-	pANTLR3_BASE_TREE width_node = (pANTLR3_BASE_TREE)node->getChild(node, 2);
-	pANTLR3_BASE_TREE offset_node = (pANTLR3_BASE_TREE)node->getChild(node, 3);
+	auto &id_node = node[0];
+	auto &type_node = node[1];
+	auto &width_node = node[2];
+	auto &offset_node = node[3];
 
-	assert(id_node->getType(id_node) == AC_ID);
-	assert(type_node->getType(type_node) == AC_ID);
-	assert(width_node->getType(width_node) == AC_INT);
-	assert(offset_node->getType(offset_node) == AC_INT);
+	assert(id_node.GetType() == ArchCNodeType::Identifier);
+	assert(type_node.GetType() == ArchCNodeType::Identifier);
+	assert(width_node.GetType() == ArchCNodeType::INT);
+	assert(offset_node.GetType() == ArchCNodeType::INT);
 
-	std::string id = std::string((char*)(id_node->getText(id_node)->chars));
-	std::string type = std::string((char*)(type_node->getText(type_node)->chars));
-	uint32_t width = strtol((char*)width_node->getText(width_node)->chars, NULL, 10);
-	uint32_t offset = strtol((char*)offset_node->getText(offset_node)->chars, NULL, 10);
 
-	if(node->getChildCount(node) == 5) {
-		pANTLR3_BASE_TREE tag_node = (pANTLR3_BASE_TREE)node->getChild(node, 4);
-		assert(tag_node->getType(tag_node) == AC_ID);
+	std::string id = id_node[0].GetString();
+	std::string type = type_node[0].GetString();
+	uint32_t width = width_node.GetInt();
+	uint32_t offset = offset_node.GetInt();
 
-		std::string tag = std::string((char*)(tag_node->getText(tag_node)->chars));
+	if(node.GetChildren().size() == 5) {
+		auto &tag_node = node[4];
+
+		std::string tag = tag_node[0].GetString();
 		return new RegSlotViewDescriptor(space, id, type, width, offset, tag);
 	} else {
 		return new RegSlotViewDescriptor(space, id, type, width, offset);
@@ -171,19 +157,20 @@ RegSlotViewDescriptor *load_reg_view_slot(pANTLR3_BASE_TREE node, RegSpaceDescri
 }
 
 // generate a register space from a declaration
-bool ArchDescriptionParser::load_regspace(pANTLR3_BASE_TREE childNode)
+bool ArchDescriptionParser::load_regspace(ArchC::AstNode & childNode)
 {
-	pANTLR3_BASE_TREE sizeNode = (pANTLR3_BASE_TREE)childNode->getChild(childNode, 0);
-	uint32_t space_size = strtoul((char*)(sizeNode->getText(sizeNode)->chars), NULL, 10);
+	auto &sizeNode = childNode[0];
+	uint32_t space_size = sizeNode.GetInt();
 
 	RegSpaceDescriptor *regspace = new RegSpaceDescriptor(&arch->GetRegFile(), space_size);
 
 	arch->GetRegFile().AddRegisterSpace(regspace);
 
-	for(uint32_t i = 1; i < childNode->getChildCount(childNode); ++i) {
-		pANTLR3_BASE_TREE viewNode = (pANTLR3_BASE_TREE)childNode->getChild(childNode, i);
-		switch(viewNode->getType(viewNode)) {
-			case AC_REG_VIEW_BANK: {
+	auto &listNode = childNode[1];
+	for(auto viewNodePtr : listNode) {
+		auto &viewNode = *viewNodePtr;
+		switch(viewNode.GetType()) {
+			case ArchCNodeType::RegViewBank: {
 				RegBankViewDescriptor *descriptor = load_reg_view_bank(viewNode, regspace);
 				if(!descriptor)
 					return false;
@@ -193,7 +180,7 @@ bool ArchDescriptionParser::load_regspace(pANTLR3_BASE_TREE childNode)
 
 				break;
 			}
-			case AC_REG_VIEW_SLOT: {
+			case ArchCNodeType::RegViewSlot: {
 				RegSlotViewDescriptor *descriptor = load_reg_view_slot(viewNode, regspace);
 				if(!descriptor)
 					return false;
@@ -203,25 +190,25 @@ bool ArchDescriptionParser::load_regspace(pANTLR3_BASE_TREE childNode)
 
 				break;
 			}
+			default: {
+				UNEXPECTED;
+			}
 		}
 	}
 
 	return true;
 }
 
-bool ArchDescriptionParser::load_feature_set(pANTLR3_BASE_TREE featuresNode)
+bool ArchDescriptionParser::load_feature_set(ArchC::AstNode & featuresNode)
 {
-	assert(featuresNode->getType(featuresNode) == AC_FEATURES);
+	auto &listNode = featuresNode[0];
+	for(auto featureNodePtr : listNode) {
+		auto &featureNode = *featureNodePtr;
+		// featureNode is an identifier
 
-	for(uint32_t i = 0; i < featuresNode->getChildCount(featuresNode); ++i) {
-		pANTLR3_BASE_TREE featureNode = (pANTLR3_BASE_TREE)featuresNode->getChild(featuresNode, i);
-		pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)featureNode->getChild(featureNode, 0);
-
-		assert(nameNode->getType(nameNode) == AC_ID);
-
-		std::string featureName = std::string((const char*)nameNode->getText(nameNode)->chars);
+		std::string featureName = featureNode[0].GetString();
 		if(!arch->GetFeatures().AddFeature(featureName)) {
-			diag_ctx.Error("Could not add feature", DiagNode("", featureNode));
+			diag_ctx.Error("Could not add feature", DiagNode("", featureNode.GetLocation()));
 			return false;
 		}
 	}
@@ -229,22 +216,20 @@ bool ArchDescriptionParser::load_feature_set(pANTLR3_BASE_TREE featuresNode)
 	return true;
 }
 
-bool ArchDescriptionParser::load_mem(pANTLR3_BASE_TREE memNode)
+bool ArchDescriptionParser::load_mem(ArchC::AstNode & memNode)
 {
-	assert(memNode->getType(memNode) == AC_MEM);
+	auto &nameNode = memNode[0];
+	auto &addrNode = memNode[1];
+	auto &wordNode = memNode[2];
+	auto &endianNode = memNode[3];
+	auto &fetchNode = memNode[4];
 
-	auto nameNode = (pANTLR3_BASE_TREE)memNode->getChild(memNode, 0);
-	auto addrNode = (pANTLR3_BASE_TREE)memNode->getChild(memNode, 1);
-	auto wordNode = (pANTLR3_BASE_TREE)memNode->getChild(memNode, 2);
-	auto endianNode = (pANTLR3_BASE_TREE)memNode->getChild(memNode, 3);
-	auto fetchNode = (pANTLR3_BASE_TREE)memNode->getChild(memNode, 4);
-
-	std::string name = (const char*)nameNode->getText(nameNode)->chars;
-	uint64_t addr = strtoll((char*)addrNode->getText(addrNode)->chars, nullptr, 10);
-	uint64_t word = strtoll((char*)wordNode->getText(addrNode)->chars, nullptr, 10);
+	std::string name = nameNode[0].GetString();
+	uint64_t addr = addrNode.GetInt();
+	uint64_t word = wordNode.GetInt();
 	bool big_endian = false;
 
-	std::string endian_text = (const char *)endianNode->getText(endianNode)->chars;
+	std::string endian_text = endianNode[0].GetString();
 	if(endian_text == "little") {
 		big_endian = false;
 	} else if(endian_text == "big") {
@@ -254,7 +239,7 @@ bool ArchDescriptionParser::load_mem(pANTLR3_BASE_TREE memNode)
 		return false;
 	}
 
-	bool is_fetch = strtoll((const char*)fetchNode->getText(fetchNode)->chars, nullptr, 10);
+	bool is_fetch = fetchNode.GetInt();
 
 	MemoryInterfaceDescription mid (name, addr, word, big_endian, arch->GetMemoryInterfaces().GetInterfaces().size());
 	arch->GetMemoryInterfaces().AddInterface(mid);
@@ -269,20 +254,24 @@ bool ArchDescriptionParser::load_mem(pANTLR3_BASE_TREE memNode)
 
 // walk the arch_ctor section
 
-bool ArchDescriptionParser::load_arch_ctor(pANTLR3_BASE_TREE ctorNode)
+bool ArchDescriptionParser::load_arch_ctor(ArchC::AstNode & ctorNode)
 {
 	int next_isa_id = 0;
 	bool success = true;
 
-	// walk the ARCH_CTOR subtree
-	for (uint32_t j = 0; j < ctorNode->getChildCount(ctorNode); j++) {
-		pANTLR3_BASE_TREE archNode = (pANTLR3_BASE_TREE)ctorNode->getChild(ctorNode, j);
+	auto &idNode = ctorNode[0]; // do nothing with this for now
+	auto &listNode = ctorNode[1];
 
-		switch (archNode->getType(archNode)) {
-			case AC_ISA: {
-				pANTLR3_BASE_TREE fileNameNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 0);
-				std::string filename = (const char *)fileNameNode->getText(fileNameNode)->chars;
-				filename = filename.substr(1, filename.length() - 2);
+	// walk the ARCH_CTOR subtree
+	for (auto archNodePtr : listNode) {
+		auto &archNode = *archNodePtr;
+
+		switch (archNode.GetType()) {
+
+			case ArchCNodeType::AcIsa: {
+				auto &filenameNode = archNode[0];
+				std::string filename = filenameNode.GetString();
+				filename = filename.substr(1, filename.length() - 2); // trim quotation marks
 
 				std::ifstream test_file_exists_stream (filename.c_str());
 				if(!test_file_exists_stream.good()) {
@@ -298,14 +287,14 @@ bool ArchDescriptionParser::load_arch_ctor(pANTLR3_BASE_TREE ctorNode)
 				break;
 			}
 
-			case AC_SET_FEATURE: {
-				pANTLR3_BASE_TREE id_node = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 0);
-				pANTLR3_BASE_TREE level_node = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 1);
+			case ArchCNodeType::SetFeature: {
+				auto &idNode = archNode[0][0];
+				auto &valueNode = archNode[1];
 
-				uint32_t level = atoi((char*)level_node->getText(level_node)->chars);
-				auto *feature = arch->GetFeatures().GetFeature(std::string((char*)id_node->getText(id_node)->chars));
+				uint32_t level = valueNode.GetInt();;
+				auto *feature = arch->GetFeatures().GetFeature(idNode.GetString());
 				if(!feature) {
-					diag_ctx.Error("Could not find feature", DiagNode("", archNode));
+					diag_ctx.Error("Could not find feature", DiagNode("", archNode.GetLocation()));
 					success = false;
 				} else {
 					feature->SetDefaultLevel(level);
@@ -314,12 +303,12 @@ bool ArchDescriptionParser::load_arch_ctor(pANTLR3_BASE_TREE ctorNode)
 				break;
 			}
 
-			case AC_TYPENAME: {
-				pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 0);
-				pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 1);
+			case ArchCNodeType::AcTypename: {
+				auto &nameNode = archNode[0][0];
+				auto &typeNode = archNode[1][0];
 
-				std::string name = (char*)nameNode->getText(nameNode)->chars;
-				std::string type = (char*)typeNode->getText(typeNode)->chars;
+				std::string name = nameNode.GetString();
+				std::string type = typeNode.GetString();
 
 				if(arch->GetTypenames().count(name)) {
 					diag_ctx.Error("Duplicate type " + name);
@@ -331,30 +320,33 @@ bool ArchDescriptionParser::load_arch_ctor(pANTLR3_BASE_TREE ctorNode)
 				break;
 			}
 
-			case AC_CONSTANT: {
-				pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 0);
-				pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 1);
-				pANTLR3_BASE_TREE valueNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 2);
+			case ArchCNodeType::AcConstant: {
+				auto &nameNode = archNode[0][0];
+				auto &typeNode = archNode[1][0];
+				auto &valueNode = archNode[2];
 
-				std::string name = (char*)nameNode->getText(nameNode)->chars;
-				std::string type = (char*)typeNode->getText(typeNode)->chars;
-				std::string valstring = (char*)valueNode->getText(valueNode)->chars;
+				std::string name = nameNode.GetString();
+				std::string type = typeNode.GetString();
 
-				uint64_t value = strtol(valstring.c_str(), nullptr, 0);
-
+				uint64_t value = valueNode.GetInt();
 
 				if(arch->GetConstants().count(name)) {
 					diag_ctx.Error("Duplicate constant name " + name);
 					success = false;
 				} else {
-					arch->GetConstants()[name] = std::make_pair(type, valstring);
+					arch->GetConstants()[name] = std::make_pair(type, std::to_string(value));
 				}
 
 				break;
 			}
 
-			case SET_ENDIAN: {
+			case ArchCNodeType::AcEndianness: {
+				// do nothing
 				break;
+			}
+
+			default: {
+				UNEXPECTED;
 			}
 		}
 	}
