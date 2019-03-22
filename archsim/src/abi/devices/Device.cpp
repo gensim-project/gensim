@@ -29,11 +29,6 @@ namespace archsim
 			{
 			}
 
-			bool Device::Configure(gensim::Processor *core, std::map<std::string,std::string>& settings)
-			{
-				return true;
-			}
-
 			bool Device::Read8(uint32_t address, uint8_t& value)
 			{
 				return false;

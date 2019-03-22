@@ -11,4 +11,4 @@ bootloader_start:
 bootloader_end:
 
 .globl bootloader_size
-bootloader_size: .word bootloader_end - bootloader_start
+bootloader_size: .8byte bootloader_end - bootloader_start

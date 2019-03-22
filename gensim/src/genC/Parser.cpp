@@ -45,7 +45,7 @@ static bool CanAssign(IRExpression *expr)
 		if(unary_expr != nullptr) {
 			if(unary_expr->Type == IRUnaryOperator::Index) {
 				return true;
-			} else if(unary_expr->Type == IRUnaryOperator::BitSequence) {
+			} else if(unary_expr->Type == IRUnaryOperator::Sequence) {
 				return true;
 			}
 		}
@@ -60,12 +60,8 @@ IRCallableAction *GenCContext::GetCallable(const std::string& name) const
 	IRCallableAction *action = GetIntrinsic(name);
 	if (action != nullptr) return action;
 
-	// Then helper functions (which can hence override externals)
+	// Then helper functions
 	action = GetHelper(name);
-	if (action != nullptr) return action;
-
-	// Finally external functions.
-	action = GetExternal(name);
 	if (action != nullptr) return action;
 
 	return nullptr;
@@ -79,19 +75,8 @@ IRHelperAction *GenCContext::GetHelper(const std::string& name) const
 
 IRIntrinsicAction *GenCContext::GetIntrinsic(const std::string& name) const
 {
-	if (IntrinsicTable.find(name) != IntrinsicTable.end()) return IntrinsicTable.at(name).first;
-	return nullptr;
-}
+	if (IntrinsicTable.find(name) != IntrinsicTable.end()) return IntrinsicTable.at(name);
 
-IRExternalAction *GenCContext::GetExternal(const std::string& name) const
-{
-	if (ExternalTable.find(name) != ExternalTable.end()) return ExternalTable.at(name);
-	return nullptr;
-}
-
-GenCContext::IntrinsicEmitterFn GenCContext::GetIntrinsicEmitter(const std::string& name) const
-{
-	if (IntrinsicTable.find(name) != IntrinsicTable.end()) return IntrinsicTable.at(name).second;
 	return nullptr;
 }
 
@@ -180,8 +165,33 @@ bool GenCContext::Parse()
 
 void GenCContext::LoadStandardConstants()
 {
-	InsertConstant("NAN", IRTypes::Double, __builtin_nanf(""));
+	InsertConstant("NAN", IRTypes::Double, IRConstant::Double(__builtin_nanf("")));
 	// ConstantTable["NAN"] = std::pair<IRSymbol*, double>(new IRSymbol("NAN", IRTypes::Double, Symbol_Constant, NULL), NAN);
+
+	// load constants from arch
+	for(auto &constant : Arch.GetConstants()) {
+		// parse type
+		if(!GetTypeManager()->HasNamedBasicType(constant.second.first)) {
+			Diag().Error("Unknown type " + constant.second.first);
+			continue;
+		}
+		IRType type = GetTypeManager()->GetBasicTypeByName(constant.second.first);
+
+		IRConstant c;
+		if(type.IsFloating()) {
+			if(type == IRTypes::Double) {
+				c = IRConstant::Double(strtod(constant.second.second.c_str(), nullptr));
+			} else if(type == IRTypes::Float) {
+				c = IRConstant::Float(strtod(constant.second.second.c_str(), nullptr));
+			} else {
+				UNEXPECTED;
+			}
+		} else {
+			c = IRConstant::Integer(strtol(constant.second.second.c_str(), nullptr, 0));
+		}
+
+		InsertConstant(constant.first, type, c);
+	}
 }
 
 void GenCContext::LoadRegisterNames()
@@ -189,19 +199,19 @@ void GenCContext::LoadRegisterNames()
 	// load register file names
 	int regbankid = 0;
 	for (const auto &bank : Arch.GetRegFile().GetBanks()) {
-		InsertConstant(bank->ID, IRTypes::UInt32, regbankid++);
+		InsertConstant(bank->ID, IRTypes::UInt32, IRConstant::Integer(regbankid++));
 	}
 
 	// now load individual registers
 	regbankid = 0;
 	for (const auto &slot : Arch.GetRegFile().GetSlots()) {
-		InsertConstant(slot->GetID(), IRTypes::UInt32, regbankid++);
+		InsertConstant(slot->GetID(), IRTypes::UInt32, IRConstant::Integer(regbankid++));
 	}
 
 	// also load memory interface names
 	regbankid = 0;
 	for(const auto &interface : Arch.GetMemoryInterfaces().GetInterfaces()) {
-		InsertConstant(interface.first, IRTypes::UInt32, interface.second.GetID());
+		InsertConstant(interface.first, IRTypes::UInt32, IRConstant::Integer(interface.second.GetID()));
 	}
 }
 
@@ -210,7 +220,7 @@ void GenCContext::LoadFeatureNames()
 	// load register file names
 	int regbankid = 0;
 	for (const auto &feature : Arch.GetFeatures()) {
-		InsertConstant(feature.GetName(), IRTypes::UInt32, feature.GetId());
+		InsertConstant(feature.GetName(), IRTypes::UInt32, IRConstant::Integer(feature.GetId()));
 	}
 }
 
@@ -233,11 +243,7 @@ ssa::SSAContext *GenCContext::EmitSSA()
 {
 	if (!Valid) return NULL;
 
-	auto context = new ssa::SSAContext(ISA, Arch);
-
-	for(auto i : StructTypeTable) {
-		context->GetTypeManager().InsertStructType(i.first, i.second);
-	}
+	auto context = new ssa::SSAContext(ISA, Arch, type_manager_);
 
 	for (std::map<std::string, IRHelperAction *>::const_iterator ci = HelperTable.begin(); ci != HelperTable.end(); ++ci) {
 		auto ssa_form = ci->second->GetSSAForm(*context);
@@ -253,12 +259,18 @@ ssa::SSAContext *GenCContext::EmitSSA()
 }
 
 
-void GenCContext::Build_Inst_Struct()
+void GenCContext::BuildStructTypes()
 {
 	gensim::genc::InstStructBuilder isb;
-	auto structType = isb.BuildType(&ISA);
+	auto structType = isb.BuildType(&ISA, *type_manager_);
+	GetTypeManager()->InsertStructType("Instruction", structType);
 
-	StructTypeTable["Instruction"] = structType;
+	gensim::genc::StructBuilder sb;
+	for(auto &struct_type : ISA.UserStructTypes) {
+		if(!GetTypeManager()->HasStructType(struct_type.GetName())) {
+			GetTypeManager()->InsertStructType(struct_type.GetName(), sb.BuildStruct(&ISA, &struct_type, *type_manager_));
+		}
+	}
 }
 
 FileContents::FileContents(const std::string& filename) : Filename(filename), TokenStream(GetFile(filename))
@@ -274,15 +286,20 @@ FileContents::FileContents(const std::string& filename, const std::string& filet
 
 GenCContext::GenCContext(const gensim::arch::ArchDescription &arch, const isa::ISADescription &isa, DiagnosticContext &diag_ctx) : Valid(true), Arch(arch), ISA(isa), GlobalScope(IRScope::CreateGlobalScope(*this)), diag_ctx(diag_ctx)
 {
+	type_manager_ = std::shared_ptr<ssa::SSATypeManager>(new ssa::SSATypeManager());
+
+	for(auto name : arch.GetTypenames()) {
+		type_manager_->InstallNamedType(name.first, type_manager_->GetBasicTypeByName(name.second));
+	}
+
 	// build the instruction structure
-	Build_Inst_Struct();
+	BuildStructTypes();
 
 	// Load register and register file names
 	LoadRegisterNames();
 	LoadFeatureNames();
 	LoadStandardConstants();
 	LoadIntrinsics();
-	LoadExternalFunctions();
 }
 
 bool GenCContext::RegisterInstruction(isa::InstructionDescription* insn, std::string execute)
@@ -313,11 +330,17 @@ gensim::isa::InstructionDescription *GenCContext::GetRegisteredInstructionFor(IR
 	return InstructionTable.at(exec_action->GetSignature().GetName());
 }
 
-void GenCContext::InsertConstant(std::string name, IRType type, uint32_t value)
+void GenCContext::InsertConstant(std::string name, const IRType &type, IRConstant value)
 {
 	IRSymbol *sym = GlobalScope.InsertSymbol(name, type, Symbol_Constant);
 	ConstantTable[name] = std::make_pair(sym, value);
 }
+
+std::pair<IRSymbol*, IRConstant> GenCContext::GetConstant(std::string name) const
+{
+	return ConstantTable.at(name);
+}
+
 
 bool GenCContext::Parse_File(pANTLR3_BASE_TREE File)
 {
@@ -329,6 +352,9 @@ bool GenCContext::Parse_File(pANTLR3_BASE_TREE File)
 		switch (node->getType(node)) {
 			case CONSTANT:
 				success &= Parse_Constant(node);
+				break;
+			case TYPEDEF:
+				success &= Parse_Typename(node);
 				break;
 			case HELPER:
 				success &= Parse_Helper(node);
@@ -369,12 +395,7 @@ bool GenCContext::Parse_Execute(pANTLR3_BASE_TREE Execute)
 		return false;
 	}
 
-	if(GetExternal(nameStr) != nullptr) {
-		diag_ctx.Error("The name " + nameStr + " is reserved by an external function", DiagNode("", nameNode));
-		return false;
-	}
-
-	IRExecuteAction *execute = new IRExecuteAction(nameStr, *this, StructTypeTable["Instruction"]);
+	IRExecuteAction *execute = new IRExecuteAction(nameStr, *this, GetTypeManager()->GetStructType("Instruction"));
 	execute->SetDiag(DiagNode("", Execute));
 
 	IRBody *body = Parse_Body(bodyNode, *execute->GetFunctionScope());
@@ -410,6 +431,7 @@ bool GenCContext::Parse_Constant(pANTLR3_BASE_TREE Node)
 {
 	assert(Node->getType(Node) == CONSTANT);
 	assert(Node->getChildCount(Node) == 2);
+	bool success = true;
 
 	pANTLR3_BASE_TREE declarationNode = (pANTLR3_BASE_TREE) Node->getChild(Node, 0);
 	pANTLR3_BASE_TREE constantNode = (pANTLR3_BASE_TREE) Node->getChild(Node, 1);
@@ -417,15 +439,39 @@ bool GenCContext::Parse_Constant(pANTLR3_BASE_TREE Node)
 	pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) declarationNode->getChild(declarationNode, 0);
 	pANTLR3_BASE_TREE idNode = (pANTLR3_BASE_TREE) declarationNode->getChild(declarationNode, 1);
 
-	IRType type = Parse_Type(typeNode);
+	IRType type;
+	success &= Parse_Type(typeNode, type);
 	type.Const = true;
 	std::string id = (char *) (idNode->getText(idNode)->chars);
 	uint32_t constant = Parse_ConstantInt(constantNode);
 
-	InsertConstant(id, type, constant);
+	InsertConstant(id, type, IRConstant::Integer(constant));
 
-	return true;
+	return success;
 }
+
+bool GenCContext::Parse_Typename(pANTLR3_BASE_TREE Node)
+{
+	assert(Node->getType(Node) == TYPEDEF);
+	assert(Node->getChildCount(Node) == 2);
+	bool success = true;
+
+	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)Node->getChild(Node, 0);
+	const std::string name = (char*)nameNode->getText(nameNode)->chars;
+
+	pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE)Node->getChild(Node, 1);
+	IRType target_type;
+	success &= Parse_Type(typeNode, target_type);
+
+	if(GetTypeManager()->HasNamedBasicType(name) || GetTypeManager()->HasStructType(name)) {
+		Diag().Error("Duplicate type name " + name + ".");
+		return false;
+	}
+	GetTypeManager()->InstallNamedType(name, target_type);
+
+	return success;
+}
+
 
 bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 {
@@ -459,7 +505,15 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 
 		std::string paramName = (char *) paramNameNode->getText(paramNameNode)->chars;
 
-		IRType paramType = Parse_Type(paramTypeNode);
+		IRType paramType;
+		if(!Parse_Type(paramTypeNode, paramType)) {
+			return false;
+		}
+
+		if(!paramType.Reference && paramType.IsStruct()) {
+			diag_ctx.Error("Helper function " + helpername + ", Parameter " + std::to_string(i+1) + ": cannot pass structs by value.");
+			return false;
+		}
 
 		param_list.push_back(IRParam(paramName, paramType));
 	}
@@ -502,7 +556,10 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 		}
 	}
 
-	IRType return_type = Parse_Type(typeNode);
+	IRType return_type;
+	if(!Parse_Type(typeNode, return_type)) {
+		return false;
+	}
 	if(return_type.Reference) {
 		Diag().Error("Cannot return a reference from a helper function");
 		return false;
@@ -528,50 +585,43 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 	return true;
 }
 
-IRType GenCContext::Parse_Type(pANTLR3_BASE_TREE node)
+bool GenCContext::Parse_Type(pANTLR3_BASE_TREE node, IRType &out_type)
 {
 	assert(node->getType(node) == TYPE);
 	assert(node->getChildCount(node) >= 1);
 
-	pANTLR3_BASE_TREE baseNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
+	pANTLR3_BASE_TREE classNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
+	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE) classNode->getChild(classNode, 0);
 
-	std::string baseType = (char *) baseNode->getText(baseNode)->chars;
+	bool success = true;
+	out_type = GetTypeManager()->GetVoidType();
+	std::string typeName = (char *) nameNode->getText(nameNode)->chars;
 
-	IRType type(IRTypes::Void);
-
-	if (baseType == "uint8") {
-		type = IRTypes::UInt8;
-	} else if (baseType == "sint8") {
-		type = IRTypes::Int8;
-	} else if (baseType == "uint16") {
-		type = IRTypes::UInt16;
-	} else if (baseType == "sint16") {
-		type = IRTypes::Int16;
-	} else if (baseType == "uint32") {
-		type = IRTypes::UInt32;
-	} else if (baseType == "sint32") {
-		type = IRTypes::Int32;
-	} else if (baseType == "uint64") {
-		type = IRTypes::UInt64;
-	} else if (baseType == "sint64") {
-		type = IRTypes::Int64;
-	} else if (baseType == "uint128") {
-		type = IRTypes::UInt128;
-	} else if (baseType == "sint128") {
-		type = IRTypes::Int128;
-	} else if (baseType == "float") {
-		type = IRTypes::Float;
-	} else if (baseType == "double") {
-		type = IRTypes::Double;
-	} else if (baseType == "longdouble") {
-		type = IRTypes::LongDouble;
-	} else if (baseType == "void") {
-		type = IRTypes::Void;
-	} else if (baseType == "Instruction") {
-		type = StructTypeTable["Instruction"];
-	} else {
-		Diag().Error("Unrecognized base type " + baseType, DiagNode(CurrFilename, node));
-		type = IRTypes::Void;
+	switch(classNode->getType(classNode)) {
+		case GENC_BASICTYPE:
+			if(GetTypeManager()->HasNamedBasicType(typeName)) {
+				out_type = GetTypeManager()->GetBasicTypeByName(typeName);
+			} else {
+				Diag().Error("Unknown basic type " + typeName, DiagNode(CurrFilename, nameNode));
+				success = false;
+			}
+			break;
+		case GENC_TYPENAME:
+			if(GetTypeManager()->HasNamedBasicType(typeName)) {
+				out_type = GetTypeManager()->GetBasicTypeByName(typeName);
+			} else {
+				Diag().Error("Unknown typename " + typeName, DiagNode(CurrFilename, nameNode));
+				success = false;
+			}
+			break;
+		case GENC_STRUCT:
+			if(GetTypeManager()->HasStructType(typeName)) {
+				out_type = GetTypeManager()->GetStructType(typeName);
+			} else {
+				Diag().Error("Unknown struct type " + typeName, DiagNode(CurrFilename, nameNode));
+				success = false;
+			}
+			break;
 	}
 
 	for (uint32_t i = 1; i < node->getChildCount(node); ++i) {
@@ -579,16 +629,17 @@ IRType GenCContext::Parse_Type(pANTLR3_BASE_TREE node)
 
 		std::string annotation = (char *) annotationNode->getText(annotationNode)->chars;
 		if (annotation == "&") {
-			type.Reference = true;
+			out_type.Reference = true;
 		} else if (annotationNode->getType(annotationNode) == VECTOR) {
 			pANTLR3_BASE_TREE widthNode = (pANTLR3_BASE_TREE) annotationNode->getChild(annotationNode, 0);
-			type.VectorWidth = strtol((char*) widthNode->getText(widthNode)->chars, NULL, 10);
+			out_type.VectorWidth = strtol((char*) widthNode->getText(widthNode)->chars, NULL, 10);
 		} else {
 			Diag().Error("Unrecognized type annotation " + annotation, DiagNode(CurrFilename, node));
+			success = false;
 		}
 	}
 
-	return type;
+	return success;
 }
 
 IRBody *GenCContext::Parse_Body(pANTLR3_BASE_TREE node, IRScope &containing_scope, IRScope *override_scope)
@@ -624,6 +675,8 @@ IRBody *GenCContext::Parse_Body(pANTLR3_BASE_TREE node, IRScope &containing_scop
 
 IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &containing_scope)
 {
+	GASSERT(node != nullptr);
+
 	switch (node->getType(node)) {
 		case BODY: {
 			return Parse_Body(node, containing_scope, NULL);
@@ -753,22 +806,49 @@ IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &conta
 			return iter;
 		}
 		case FOR: {
-			pANTLR3_BASE_TREE initNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			pANTLR3_BASE_TREE checkNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
-			pANTLR3_BASE_TREE postNode = (pANTLR3_BASE_TREE) node->getChild(node, 2);
-			pANTLR3_BASE_TREE bodyNode = (pANTLR3_BASE_TREE) node->getChild(node, 3);
-
-			IRExpression *start = Parse_Expression(initNode, containing_scope);
-			IRExpression *check = Parse_Expression(checkNode, containing_scope);
-			IRExpression *post = Parse_Expression(postNode, containing_scope);
-
-			if(start == nullptr || check == nullptr || post == nullptr) {
-				return nullptr;
-			}
+			IRExpression *start = nullptr;
+			IRExpression *check = nullptr;
+			IRExpression *post = nullptr;
 
 			IRScope *scope = new IRScope(containing_scope, IRScope::SCOPE_LOOP);
+			for(int i = 0; i < node->getChildCount(node)-1; ++i) {
+				pANTLR3_BASE_TREE child = (pANTLR3_BASE_TREE)node->getChild(node, i);
+				switch(child->getType(child)) {
+					case FOR_PRE:
+						if(child->getChildCount(child) > 0) {
+							start = Parse_Expression((pANTLR3_BASE_TREE)child->getChild(child,0), *scope);
+						}
+						break;
+					case FOR_CHECK:
+						if(child->getChildCount(child) > 0) {
+							check = Parse_Expression((pANTLR3_BASE_TREE)child->getChild(child,0), *scope);
+						}
+						break;
+					case FOR_POST:
+						if(child->getChildCount(child) > 0) {
+							post = Parse_Expression((pANTLR3_BASE_TREE)child->getChild(child,0), *scope);
+						}
+						break;
+					default:
+						UNEXPECTED;
+				}
+			}
 
-			IRIterationStatement *iter = IRIterationStatement::CreateFor(*scope, *start, *check, *post, *Parse_Statement(bodyNode, containing_scope));
+			IRExpression *post_expression = post;
+			if(start == nullptr) {
+				start = new IRConstExpression(*scope, IRTypes::UInt8, IRConstant::Integer(0));
+			}
+			if(check == nullptr) {
+				check = new IRConstExpression(*scope, IRTypes::UInt8, IRConstant::Integer(0));
+			}
+			if(post == nullptr) {
+				post = new IRConstExpression(*scope, IRTypes::UInt8, IRConstant::Integer(0));
+			}
+
+			pANTLR3_BASE_TREE bodyNode = (pANTLR3_BASE_TREE)node->getChild(node, node->getChildCount(node)-1);
+			GASSERT(bodyNode != nullptr);
+
+			IRIterationStatement *iter = IRIterationStatement::CreateFor(*scope, *start, *check, *post_expression, *Parse_Statement(bodyNode, *scope));
 			iter->SetDiag(DiagNode(CurrFilename, node));
 			return iter;
 		}
@@ -986,7 +1066,11 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 			pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
 			pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
 
-			IRType type = Parse_Type(typeNode);
+			IRType type;
+			if(!Parse_Type(typeNode, type)) {
+				return nullptr;
+			}
+
 			std::string name = (char *) nameNode->getText(nameNode)->chars;
 
 			IRDefineExpression *expr = new IRDefineExpression(containing_scope, type, name);
@@ -1036,6 +1120,36 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 			}
 		}
 
+		case BITCAST: {
+			assert(node->getChildCount(node) == 2);
+
+			pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
+			pANTLR3_BASE_TREE innerNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
+
+			assert(typeNode->getType(typeNode) == TYPE);
+
+			IRExpression *innerExpr = Parse_Expression(innerNode, containing_scope);
+			if(innerExpr == nullptr) {
+				return nullptr;
+			}
+
+			//TODO: this should be a syntax error
+			if(dynamic_cast<IRDefineExpression*>(innerExpr)) {
+				Diag().Error("Cannot cast a definition", DiagNode(CurrFilename, node));
+				return nullptr;
+			}
+
+			IRType target_type;
+			if(!Parse_Type(typeNode, target_type)) {
+				return nullptr;
+			}
+
+			IRCastExpression *gce = new IRCastExpression(containing_scope, target_type, IRCastExpression::Bitcast);
+			gce->SetDiag(DiagNode(CurrFilename, node));
+			gce->Expr = innerExpr;
+
+			return gce;
+		}
 		case CAST: {
 			assert(node->getChildCount(node) == 2);
 
@@ -1055,7 +1169,11 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 				return nullptr;
 			}
 
-			IRCastExpression *gce = new IRCastExpression(containing_scope, Parse_Type(typeNode));
+			IRType cast_type;
+			if(!Parse_Type(typeNode, cast_type)) {
+				return nullptr;
+			}
+			IRCastExpression *gce = new IRCastExpression(containing_scope, cast_type);
 			gce->SetDiag(DiagNode(CurrFilename, node));
 			gce->Expr = innerExpr;
 
@@ -1129,7 +1247,7 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 							pANTLR3_BASE_TREE from_node = (pANTLR3_BASE_TREE) index_expression->getChild(index_expression, 0);
 							pANTLR3_BASE_TREE to_node = (pANTLR3_BASE_TREE) index_expression->getChild(index_expression, 1);
 
-							unaryExpr->Type = IRUnaryOperator::BitSequence;
+							unaryExpr->Type = IRUnaryOperator::Sequence;
 							unaryExpr->Arg = new IRConstExpression(containing_scope, IRTypes::Int32, IRConstant::Integer(Parse_ConstantInt(from_node)));
 							unaryExpr->Arg2 = new IRConstExpression(containing_scope, IRTypes::Int32, IRConstant::Integer(Parse_ConstantInt(to_node)));
 						} else {
@@ -1196,6 +1314,19 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 			expr->SetDiag(DiagNode(CurrFilename, node));
 
 			return expr;
+		}
+		case VECTOR: {
+			std::vector<IRExpression *> elements;
+
+			for(int i = 0; i < node->getChildCount(node); ++i) {
+				pANTLR3_BASE_TREE child = (pANTLR3_BASE_TREE)node->getChild(node, i);
+
+				auto element = Parse_Expression(child, containing_scope);
+				elements.push_back(element);
+			}
+
+			IRVectorExpression *vector = new IRVectorExpression(containing_scope, elements);
+			return vector;
 		}
 		default: {
 			assert(node->getChildCount(node) == 2);
@@ -1295,9 +1426,12 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 				exp->Type = BinaryOperator::Equality;
 			else if (op == "!=")
 				exp->Type = BinaryOperator::Inequality;
-
-			else
+			else if(op == "::") {
+				exp->Type = BinaryOperator::VConcatenate;
+			} else {
 				Diag().Error("Unrecognized operator " + op, DiagNode(CurrFilename, node));
+				return nullptr;
+			}
 
 
 			// If we're a set operation, then the LHS must be settable

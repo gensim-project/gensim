@@ -9,6 +9,7 @@
 #include "genC/ssa/SSAFormAction.h"
 #include "genC/ssa/statement/SSAStatement.h"
 #include "genC/ssa/SSASymbol.h"
+#include "genC/ssa/SSATypeFormatter.h"
 #include "genC/ssa/SSAWalkerFactory.h"
 #include "genC/Parser.h"
 #include "genC/ir/IRAction.h"
@@ -40,6 +41,9 @@ namespace gensim
 
 		bool GenCInterpreterGenerator::GeneratePrototype(util::cppformatstream &stream, const gensim::isa::ISADescription &isa, const genc::ssa::SSAFormAction &action, HelperPrototypeVariant variant) const
 		{
+			gensim::genc::ssa::SSATypeFormatter formatter;
+			formatter.SetStructPrefix("gensim::" + action.Arch->Name + "::Decode::");
+
 			if(variant == HelperPrototypeVariant::DeclarationWithDefault) {
 				stream << "template<bool trace=false> ";
 			} else if(variant == HelperPrototypeVariant::DeclarationNoDefault) {
@@ -49,7 +53,7 @@ namespace gensim
 				stream << "template ";
 			}
 
-			stream << action.GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action.GetPrototype().GetIRSignature().GetName();
+			stream << formatter.FormatType(action.GetPrototype().ReturnType()) << " helper_" << isa.ISAName << "_" << action.GetPrototype().GetIRSignature().GetName();
 
 			if(variant == HelperPrototypeVariant::SpecialisationNoTracing) {
 				stream << "<false>";
@@ -60,13 +64,8 @@ namespace gensim
 			stream << "(archsim::core::thread::ThreadInstance *thread";
 
 			for(auto i : action.ParamSymbols) {
-				// if we're accessing a struct, assume that it's an instruction
-				if(i->GetType().IsStruct()) {
-					stream << ", gensim::" << Manager.GetArch().Name << "::Decode &inst";
-				} else {
-					auto type_string = i->GetType().GetCType();
-					stream << ", " << type_string << " " << i->GetName();
-				}
+				auto type_string = formatter.FormatType(i->GetType());
+				stream << ", " << type_string << " " << i->GetName();
 			}
 			stream << ")";
 
@@ -108,7 +107,7 @@ namespace gensim
 
 
 
-				Manager.AddFunctionEntry(FunctionEntry(prototype_stream.str(), body_stream.str(), {}, {"cstdint", "core/thread/ThreadInstance.h","util/Vector.h"}, {GeneratePrototype(isa, *action, HelperPrototypeVariant::SpecialisationNoTracing), GeneratePrototype(isa, *action, HelperPrototypeVariant::SpecialisationWithTracing)},true));
+				Manager.AddFunctionEntry(FunctionEntry(prototype_stream.str(), body_stream.str(), {}, {"cstdint", "core/thread/ThreadInstance.h","wutils/Vector.h"}, {GeneratePrototype(isa, *action, HelperPrototypeVariant::SpecialisationNoTracing), GeneratePrototype(isa, *action, HelperPrototypeVariant::SpecialisationWithTracing)},true));
 			}
 
 			return true;
@@ -117,18 +116,20 @@ namespace gensim
 		bool GenCInterpreterGenerator::GenerateExecuteBodyFor(util::cppformatstream &str, const genc::ssa::SSAFormAction &action) const
 		{
 			using namespace genc::ssa;
+			SSATypeFormatter formatter;
+			formatter.SetStructPrefix("gensim::" + action.Arch->Name + "::Decode::");
 
 			str << "{";
 			gensim::genc::IRType rtype = action.GetPrototype().ReturnType();
 			if(rtype != gensim::genc::IRTypes::Void) {
-				str << rtype.GetCType() << " _rval_;";
+				str << formatter.FormatType(rtype) << " _rval_;";
 			}
 
 			// first of all, emit slots for each variable we will be using
 			for (auto *sym : action.Symbols()) {
 				if(sym->SType == genc::Symbol_Parameter) continue;
 				if (sym->IsReference()) continue;
-				str << sym->GetType().GetCType() << " " << sym->GetName() << ";";
+				str << formatter.FormatType(sym->GetType()) << " " << sym->GetName() << ";";
 			}
 
 			// emit a jump to the entry block (since it might not be the first one)
@@ -170,7 +171,7 @@ namespace gensim
 		bool GenCInterpreterGenerator::GenerateExtraProcessorIncludes(util::cppformatstream &str) const
 		{
 			str << "#include \"translate/jit_funs.h\"\n";
-			str << "#include \"util/Vector.h\"\n";
+			str << "#include <wutils/Vector.h>\n";
 			str << "#include <math.h>\n";
 			str << "#include <cfenv>\n";
 
@@ -240,7 +241,7 @@ namespace gensim
 			// First, generate non-tracing
 			const arch::ArchDescription::ISAListType isalist = Manager.GetArch().ISAs;
 
-			str << "#include \"util/Vector.h\"\n";
+			str << "#include <wutils/Vector.h>\n";
 
 			str << "#undef GENSIM_TRACE\n";
 			str << "#include \"gensim/gensim_processor_api.h\"\n";

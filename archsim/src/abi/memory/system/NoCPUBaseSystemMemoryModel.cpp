@@ -103,7 +103,7 @@ uint32_t NoCPUBaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *dat
 		devices::MemoryComponent *dev;
 		GetDeviceManager()->LookupDevice(phys_addr, dev);
 
-		uint32_t device_data;
+		uint64_t device_data;
 		uint32_t mask = dev->GetSize()-1;
 
 		LC_DEBUG2(LogNoCPUSystemMemoryModel) << "Performing device read from address V" << std::hex << virt_addr << "(P" << phys_addr << ")";

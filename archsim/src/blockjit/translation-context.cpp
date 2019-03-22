@@ -84,6 +84,7 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "flush dtlb",	.format = "IXXXXX", .has_side_effects = true },
 
 	{ .mnemonic = "adc flags",	.format = "IIIXXX", .has_side_effects = true },
+	{ .mnemonic = "sbc flags",	.format = "IIIXXX", .has_side_effects = true },
 	{ .mnemonic = "zn flags",	.format = "IXXXXX", .has_side_effects = true },
 
 	{ .mnemonic = "barrier",	.format = "NXXXXX", .has_side_effects = true },
@@ -137,6 +138,8 @@ struct captive::shared::insn_descriptor captive::shared::insn_descriptors[] = {
 	{ .mnemonic = "vcmpeqi",	.format = "NIIOXX", .has_side_effects = false },
 	{ .mnemonic = "vcmpgti",	.format = "NIIOXX", .has_side_effects = false },
 	{ .mnemonic = "vcmpgtei",	.format = "NIIOXX", .has_side_effects = false },
+
+	{ .mnemonic = "vcmpltf",	.format = "NIIOXX", .has_side_effects = false },
 
 };
 

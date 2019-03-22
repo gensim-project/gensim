@@ -39,6 +39,7 @@ action void test1 () [ uint8 s ] < b_0 > {
 )||";
 
 auto test_action = CompileAsm(ssaasm);
+ASSERT_NE(nullptr, test_action);
 SSAPassManager manager;
 manager.AddPass(SSAPassDB::Get("O3"));
 manager.AddPass(SSAPassDB::Get("ParameterRename"));

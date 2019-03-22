@@ -95,7 +95,8 @@ namespace gensim
 			ExecutionEngine,
 			BlockJITTranslator,
 			Interpreter,
-			ArchDescriptor
+			ArchDescriptor,
+			LLVMTranslator
 		};
 
 		class ModuleEntry

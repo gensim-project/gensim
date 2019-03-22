@@ -327,7 +327,7 @@ private:
 		bool matched = match(kind, value);
 
 		if (!matched) {
-			LC_ERROR(LogLogging) << "Parse Error: Line " << lexer.GetCurrentToken().location.line << ", Expected " << token_kinds[kind] << ", read " << token_kinds[lexer.GetCurrentToken().kind];
+			LC_ERROR(LogLogging) << "Parse Error: Line " << lexer.GetCurrentToken().location.line << ", Expected " << token_kinds[kind] << ", read " << token_kinds[lexer.GetCurrentToken().kind] << " (" << value << ")";
 		}
 
 		lexer.ReadToken();
@@ -595,7 +595,7 @@ private:
 			enable = false;
 			return expect(Token::T_DISABLE);
 		} else {
-			LC_ERROR(LogLogging) << "Parse Error: Expected 'enable' or 'disable'";
+			LC_ERROR(LogLogging) << "Parse Error: Line " << lexer.GetCurrentToken().location.line << " Expected 'enable' or 'disable'";
 			return false;
 		}
 	}

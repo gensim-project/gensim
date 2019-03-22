@@ -1,0 +1,31 @@
+AC_ISA(rv64f)
+{
+	ac_format Type_FS64_DATA  = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+	
+	ac_instr<Type_FS64_DATA> fcvt_s_lu, fcvt_s_l, fcvt_lu_s, fcvt_l_s;
+	
+	ac_behaviour fcvt_s_lu, fcvt_s_l, fcvt_lu_s, fcvt_l_s;
+
+	ISA_CTOR(rv64f)
+	{
+		ac_execute("common/execute.rv64-f");
+		
+		
+		fcvt_s_lu.set_decoder(imm2=0x68, rs2=3, opcode=0x53);
+		fcvt_s_lu.set_asm("fcvt.s.lu");
+		fcvt_s_lu.set_behaviour(fcvt_s_lu);
+		
+		fcvt_s_l.set_decoder(imm2=0x68, rs2=2, opcode=0x53);
+		fcvt_s_l.set_asm("fcvt.s.l");
+		fcvt_s_l.set_behaviour(fcvt_s_l);
+		
+		fcvt_lu_s.set_decoder(imm2=0x60, rs2=3, opcode=0x53);
+		fcvt_lu_s.set_asm("fcvt.lu.s");
+		fcvt_lu_s.set_behaviour(fcvt_lu_s);
+		
+		fcvt_l_s.set_decoder(imm2=0x60, rs2=2, opcode=0x53);
+		fcvt_l_s.set_asm("fcvt.l.s");
+		fcvt_l_s.set_behaviour(fcvt_l_s);
+		
+	};
+};

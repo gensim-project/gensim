@@ -25,9 +25,11 @@ namespace archsim
 	class Address
 	{
 	public:
-		static const Address NullPtr;
-
 		using underlying_t = uint64_t;
+
+		static const Address NullPtr;
+		static const underlying_t PageSize = 4096;
+		static const underlying_t PageMask = PageSize-1;
 
 		explicit Address(underlying_t address) : address_(address) {}
 		Address() : address_(0) {};
@@ -38,15 +40,15 @@ namespace archsim
 
 		underlying_t GetPageBase() const
 		{
-			return Get() & ~archsim::RegionArch::PageMask;
+			return Get() & ~PageMask;
 		}
 		underlying_t GetPageOffset() const
 		{
-			return Get() & archsim::RegionArch::PageMask;
+			return Get() & (PageSize-1);
 		}
 		underlying_t GetPageIndex() const
 		{
-			return Get() >> archsim::RegionArch::PageBits;
+			return Get() / PageSize;
 		}
 
 		Address PageBase() const
@@ -167,7 +169,7 @@ namespace std
 	public:
 		size_t operator()(const archsim::Address &x) const
 		{
-			std::hash<uint32_t> uhash;
+			std::hash<archsim::Address::underlying_t> uhash;
 			return uhash(x.Get());
 		}
 	};
@@ -175,7 +177,7 @@ namespace std
 	public:
 		size_t operator()(const archsim::VirtualAddress &x) const
 		{
-			std::hash<uint32_t> uhash;
+			std::hash<archsim::Address::underlying_t> uhash;
 			return uhash(x.Get());
 		}
 	};
@@ -183,7 +185,7 @@ namespace std
 	public:
 		size_t operator()(const archsim::PhysicalAddress &x) const
 		{
-			std::hash<uint32_t> uhash;
+			std::hash<archsim::Address::underlying_t> uhash;
 			return uhash(x.Get());
 		}
 	};
@@ -240,5 +242,8 @@ inline archsim::Address operator "" _ga(unsigned long long a)
 {
 	return archsim::Address(a);
 }
+
+// handy for debugging
+archsim::Address _get_address(archsim::Address::underlying_t);
 
 #endif

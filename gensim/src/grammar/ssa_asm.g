@@ -25,6 +25,7 @@ CONTEXT;
 BLOCK;
 BLOCK_STATEMENTS;
 
+SSAASM_TYPE;
 SSAASM_TYPE_REF;
 SSAASM_TYPE_VECTOR;
 
@@ -85,15 +86,19 @@ CMP_LTE = '<=';
 ATTRIBUTE_NOINLINE = 'noinline';
 ATTRIBUTE_HELPER = 'helper';
 EXTERNAL = 'external';
+
+
 }
 
-SSAASM_TYPE : 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'uint128' | 'sint8' | 'sint16' | 'sint32' | 'sint64' | 'sint128' | 'float' | 'double' | 'void' | 'Instruction';
+NUMERIC_TYPE: 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'uint128' | 'sint8' | 'sint16' | 'sint32' | 'sint64' | 'sint128' | 'float' | 'double' | 'void';
 
 vector_size : '[' constant_value ']' -> ^(SSAASM_TYPE_VECTOR constant_value);
 
 ref : AMPERSAND -> SSAASM_TYPE_REF;
 
-type : SSAASM_TYPE vector_size? ref? -> ^(SSAASM_TYPE vector_size? ref?);
+ssaasm_type : (STATEMENT_STRUCT! SSAASM_ID) | NUMERIC_TYPE;
+
+type : ssaasm_type vector_size? ref? -> ^(ssaasm_type vector_size? ref?);
 
 SSAASM_ID : ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'0'..'9'|'_')*;
 

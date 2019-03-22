@@ -52,11 +52,6 @@ void SSAInterpreterStatementVisitor::VisitReturnStatement(SSAReturnStatement& st
 
 void SSAInterpreterStatementVisitor::VisitCastStatement(SSACastStatement& stmt)
 {
-	// fetch the value of the original expression
-	if(stmt.GetType().VectorWidth != 1) {
-		UNIMPLEMENTED;
-	}
-
 	IRConstant base_value = _vmstate.GetStatementValue(stmt.Expr());
 
 	IRConstant value = IRType::Cast(base_value, stmt.Expr()->GetType(), stmt.GetType());
@@ -298,7 +293,7 @@ void SSAInterpreterStatementVisitor::VisitRegisterStatement(SSARegisterStatement
 			if(value_type.VectorWidth > 1) {
 				IRConstant vector = IRConstant::Vector(value_type.VectorWidth, GetDefault(value_type.GetElementType()));
 				for(unsigned i = 0; i < value_type.VectorWidth; ++i) {
-					vector.VPut(i, ReadElement(_machine_state.RegisterFile(), data_offset, value_type.GetElementType()));
+					vector.GetVector().SetElement(i, ReadElement(_machine_state.RegisterFile(), data_offset, value_type.GetElementType()));
 					data_offset += value_type.SizeInBytes();
 				}
 				_vmstate.SetStatementValue(&stmt, vector);
@@ -315,7 +310,7 @@ void SSAInterpreterStatementVisitor::VisitRegisterStatement(SSARegisterStatement
 		try {
 			if(stmt.Value()->GetType().VectorWidth > 1) {
 				for(unsigned i = 0; i < stmt.Value()->GetType().VectorWidth; ++i) {
-					uint64_t data = _vmstate.GetStatementValue(stmt.Value()).VGet(i).POD();
+					uint64_t data = _vmstate.GetStatementValue(stmt.Value()).GetVector().GetElement(i).POD();
 					_machine_state.RegisterFile().Write(data_offset, data_size, (uint8_t*)&data);
 					data_offset += data_stride;
 				}
@@ -377,58 +372,122 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 {
 	_vmstate.SetResult(Interpret_Normal);
 
-	switch(stmt.Type) {
-		case SSAIntrinsicStatement::SSAIntrinsic_GetFeature: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_ReadPc: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice: // TODO: Implement properly
+	switch(stmt.GetID()) {
+		case IntrinsicID::GetFeature: // TODO: Implement properly
+		case IntrinsicID::GetCpuMode: // TODO: Implement properly
+		case IntrinsicID::ReadPC: // TODO: Implement properly
+		case IntrinsicID::FPGetFlush: // TODO: Implement properly
+		case IntrinsicID::FPGetRounding: // TODO: Implement properly
+		case IntrinsicID::FPSetFlush: // TODO: Implement properly
+		case IntrinsicID::FPSetRounding: // TODO: Implement properly
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(0));
 			break;
 
-		case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
-		case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
-		case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
-		case SSAIntrinsicStatement::SSAIntrinsic_Trap:
-		case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
-		case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
-		case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
-		case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
-		case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
-		case SSAIntrinsicStatement::SSAIntrinsic_SetFeature: // todo: implement
+		case IntrinsicID::SetCpuMode:
+		case IntrinsicID::TakeException:
+		case IntrinsicID::PendInterrupt:
+		case IntrinsicID::Trap:
+		case IntrinsicID::WriteDevice32:
+		case IntrinsicID::PopInterrupt:
+		case IntrinsicID::PushInterrupt:
+		case IntrinsicID::EnterKernelMode:
+		case IntrinsicID::EnterUserMode:
+		case IntrinsicID::SetFeature: // todo: implement
 			// do nothing?
 			break;
 
-		case SSAIntrinsicStatement::SSAIntrinsic_Popcount32: {
+		case IntrinsicID::PopCount32: {
 			uint32_t value = _vmstate.GetStatementValue(stmt.Args(0)).Int();
 			value = __builtin_popcount(value);
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(value));
 			break;
 		}
-		case SSAIntrinsicStatement::SSAIntrinsic_DoubleSqrt: {
+		case IntrinsicID::DoubleSqrt: {
 			double value = _vmstate.GetStatementValue(stmt.Args(0)).Dbl();
 			value = std::sqrt(value);
 			_vmstate.SetStatementValue(&stmt, IRConstant::Double(value));
 			break;
 		}
-		case SSAIntrinsicStatement::SSAIntrinsic_FloatSqrt: {
+		case IntrinsicID::FloatSqrt: {
 			float value = _vmstate.GetStatementValue(stmt.Args(0)).Flt();
 			value = std::sqrt(value);
 			_vmstate.SetStatementValue(&stmt, IRConstant::Float(value));
 			break;
 		}
 
-		case SSAIntrinsicStatement::SSAIntrinsic_Clz32: {
+		case IntrinsicID::UpdateZNFlags32: {
+			int32_t value = _vmstate.GetStatementValue(stmt.Args(0)).Int();
+
+			uint8_t z = value == 0;
+			uint8_t n = value < 0;
+
+			uint32_t z_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("Z")->GetRegFileOffset();
+			uint32_t n_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("N")->GetRegFileOffset();
+			_machine_state.RegisterFile().Write8(z_offset, z);
+			_machine_state.RegisterFile().Write8(n_offset, n);
+			break;
+		}
+		case IntrinsicID::UpdateZNFlags64: {
+			int64_t value = _vmstate.GetStatementValue(stmt.Args(0)).Int();
+
+			uint8_t z = value == 0L;
+			uint8_t n = value < 0L;
+
+			uint32_t z_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("Z")->GetRegFileOffset();
+			uint32_t n_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("N")->GetRegFileOffset();
+			_machine_state.RegisterFile().Write8(z_offset, z);
+			_machine_state.RegisterFile().Write8(n_offset, n);
+			break;
+		}
+
+		case IntrinsicID::ADC32:
+		case IntrinsicID::ADC32_Flags:
+		case IntrinsicID::ADC64:
+		case IntrinsicID::ADC64_Flags: {
+			// oh no
+			IRConstant lhs = _vmstate.GetStatementValue(stmt.Args(0));
+			IRConstant rhs = _vmstate.GetStatementValue(stmt.Args(1));
+			IRConstant carry_in = _vmstate.GetStatementValue(stmt.Args(2));
+
+			uint64_t result = lhs.Int() + rhs.Int() + carry_in.Int();
+			uint16_t flags;
+			uint8_t v;
+			uint32_t rhs_i = rhs.Int();
+
+
+			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(result));
+
+			if (stmt.GetID() == IntrinsicID::ADC32_Flags) {
+				uint32_t N = (result & 0x80000000) != 0;
+				uint32_t Z = ((uint32_t)result) == 0;
+				uint32_t C = result > 0xffffffff;
+
+				uint32_t V = ((lhs.Int() & 0x80000000) == (rhs.Int() & 0x80000000)) && ((lhs.Int() & 0x80000000) != (result & 0x80000000));
+
+				uint32_t c_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("C")->GetRegFileOffset();
+				uint32_t v_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("V")->GetRegFileOffset();
+				uint32_t z_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("Z")->GetRegFileOffset();
+				uint32_t n_offset = stmt.Parent->Parent->GetContext().GetArchDescription().GetRegFile().GetTaggedRegSlot("N")->GetRegFileOffset();
+
+				_machine_state.RegisterFile().Write8(c_offset, C);
+				_machine_state.RegisterFile().Write8(v_offset, V);
+				_machine_state.RegisterFile().Write8(z_offset, Z);
+				_machine_state.RegisterFile().Write8(n_offset, N);
+			} else if(stmt.GetID() == IntrinsicID::ADC64_Flags) {
+				UNIMPLEMENTED;
+			}
+
+			break;
+		}
+
+		case IntrinsicID::CLZ32: {
 			uint32_t input = _vmstate.GetStatementValue(stmt.Args(0)).Int();
 			uint32_t result = __builtin_clz(input);
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(result));
 			break;
 		}
 
-		case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
+		case IntrinsicID::HaltCpu:
 			_vmstate.SetResult(Interpret_Halt);
 			break;
 		default: {
@@ -464,7 +523,8 @@ void SSAInterpreterStatementVisitor::VisitPhiStatement(SSAPhiStatement& stmt)
 
 void SSAInterpreterStatementVisitor::VisitReadStructMemberStatement(SSAReadStructMemberStatement& stmt)
 {
-	_vmstate.SetStatementValue(&stmt, _machine_state.Instruction().GetField(stmt.MemberName));
+	UNIMPLEMENTED; // TODO: Fix this
+//	_vmstate.SetStatementValue(&stmt, _machine_state.Instruction().GetField(stmt.MemberName));
 	_vmstate.SetResult(Interpret_Normal);
 }
 
@@ -520,7 +580,8 @@ void SSAInterpreterStatementVisitor::VisitVectorExtractElementStatement(SSAVecto
 {
 	auto base = _vmstate.GetStatementValue(stmt.Base());
 	auto index = _vmstate.GetStatementValue(stmt.Index());
-	auto value = base.VGet(index.Int() % base.VSize());
+	auto value = base.GetVector().GetElement(index.Int() % base.GetVector().Width());
+	value = IRType::Cast(value, stmt.Base()->GetType().GetElementType(), stmt.Base()->GetType().GetElementType());
 	_vmstate.SetStatementValue(&stmt, value);
 	_vmstate.SetResult(InterpretResult::Interpret_Normal);
 }
@@ -528,11 +589,37 @@ void SSAInterpreterStatementVisitor::VisitVectorExtractElementStatement(SSAVecto
 void SSAInterpreterStatementVisitor::VisitVectorInsertElementStatement(SSAVectorInsertElementStatement& stmt)
 {
 	IRConstant vector = _vmstate.GetStatementValue(stmt.Base());
-	vector.VPut(_vmstate.GetStatementValue(stmt.Index()).Int() % vector.VSize(), _vmstate.GetStatementValue(stmt.Value()));
+
+	IRConstant value = _vmstate.GetStatementValue(stmt.Value());
+	value = IRType::Cast(value, stmt.Base()->GetType().GetElementType(), stmt.Base()->GetType().GetElementType());
+
+	vector.GetVector().SetElement(_vmstate.GetStatementValue(stmt.Index()).Int() % vector.GetVector().Width(), value);
 	_vmstate.SetStatementValue(&stmt, vector);
 
 	_vmstate.SetResult(InterpretResult::Interpret_Normal);
 }
+
+void SSAInterpreterStatementVisitor::VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt)
+{
+	IRConstantVector v0 = _vmstate.GetStatementValue(stmt.LHS()).GetVector();
+	IRConstantVector v1 = _vmstate.GetStatementValue(stmt.RHS()).GetVector();
+	IRConstantVector indices = _vmstate.GetStatementValue(stmt.Indices()).GetVector();
+
+	IRConstantVector output(indices.Width(), v0.GetElement(0));
+	for(int i = 0; i < output.Width(); ++i) {
+		int index = indices.GetElement(i).Int();
+
+		if(index < v0.Width()) {
+			output.SetElement(i, v0.GetElement(index));
+		} else {
+			index -= v0.Width();
+			output.SetElement(i, v1.GetElement(index));
+		}
+	}
+	_vmstate.SetStatementValue(&stmt, IRConstant::Vector(output));
+	_vmstate.SetResult(InterpretResult::Interpret_Normal);
+}
+
 
 void SSAInterpreterStatementVisitor::VisitBitDepositStatement(SSABitDepositStatement& stmt)
 {

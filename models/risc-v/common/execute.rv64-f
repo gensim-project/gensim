@@ -1,0 +1,32 @@
+
+execute(fcvt_s_l)
+{
+	sint64 data = read_gpr(inst.rs1);
+	float f = data;
+	
+	write_register_bank(FP_S, inst.rd, f);
+}
+
+execute(fcvt_s_lu)
+{
+	uint64 data = read_gpr(inst.rs1);
+	float f = data;
+	
+	write_register_bank(FP_S, inst.rd, f);
+}
+
+execute(fcvt_l_s)
+{
+	float f = read_register_bank(FP_S, inst.rs1);
+	sint64 d = f;
+	
+	write_register_bank(GPR, inst.rd, d);
+}
+
+execute(fcvt_lu_s)
+{
+	float f = read_register_bank(FP_S, inst.rs1);
+	uint64 d = f;
+	
+	write_register_bank(GPR, inst.rd, d);
+}

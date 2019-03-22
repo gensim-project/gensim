@@ -21,11 +21,17 @@ using namespace gensim;
 using namespace gensim::genc;
 using namespace gensim::genc::ssa;
 
+SSAContext::SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch) : SSAContext(isa, arch, std::shared_ptr<ssa::SSATypeManager>(new ssa::SSATypeManager()))
+{
+
+}
+
+
 /**
  * Constructs a new SSAContext, and associates it with the given architecture description.
  * @param arch The architecture description to associate the SSA context with.
  */
-SSAContext::SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch) : arch_(arch), isa_(isa), parallel_optimise_(false), test_optimise_(false)
+SSAContext::SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch, std::shared_ptr<SSATypeManager> type_manager) : arch_(arch), isa_(isa), parallel_optimise_(false), test_optimise_(false), type_manager_(type_manager)
 {
 #ifdef MULTITHREAD
 	SetParallelOptimise(true);
@@ -133,7 +139,6 @@ bool SSAContext::Resolve(DiagnosticContext &ctx)
 {
 	bool success = true;
 	for (const auto& action_item : actions_) {
-		if (action_item.second->HasAttribute(ActionAttribute::External)) continue;
 		if (!action_item.second->HasAttribute(ActionAttribute::Helper)) continue;
 
 		SSAFormAction *action = dynamic_cast<SSAFormAction *>(action_item.second);
@@ -146,7 +151,6 @@ bool SSAContext::Resolve(DiagnosticContext &ctx)
 	}
 
 	for (const auto& action_item : actions_) {
-		if (action_item.second->HasAttribute(ActionAttribute::External)) continue;
 		if (action_item.second->HasAttribute(ActionAttribute::Helper)) continue;
 
 		SSAFormAction *action = dynamic_cast<SSAFormAction *>(action_item.second);

@@ -13,13 +13,9 @@ IRSignature::IRSignature(const std::string& name, const IRType& return_type, con
 
 }
 
-IRAction::IRAction(const IRSignature& signature, GenCContext& context)
-	: _signature(signature), body(nullptr), Context(context), _scope(nullptr), emitted_ssa_(nullptr)
+IRAction::IRAction(GenCContext& context)
+	: body(nullptr), Context(context), _scope(nullptr), emitted_ssa_(nullptr)
 {
-	for (const auto p : GetSignature().GetParams()) {
-		IRType type = p.GetType();
-		_params.push_back(GetFunctionScope()->InsertSymbol(p.GetName(), type, Symbol_Parameter));
-	}
 }
 
 IRScope *IRAction::GetFunctionScope()
@@ -30,32 +26,29 @@ IRScope *IRAction::GetFunctionScope()
 	return _scope;
 }
 
-IRCallableAction::IRCallableAction(const IRSignature& signature, GenCContext& context)
-	: IRAction(signature, context)
+IRCallableAction::IRCallableAction(GenCContext& context)
+	: IRAction(context)
 {
 }
 
 IRExecuteAction::IRExecuteAction(const std::string& name, GenCContext &context, const IRType instructionType)
-	: IRAction(IRSignature(name, IRTypes::Void,
+	: IRAction(context), signature_(IRSignature(name, IRTypes::Void,
 {
 	IRParam("inst", instructionType)
-}), context)
+}))
 {
-	InstructionSymbol = _params.front();
+	GetFunctionScope()->InsertSymbol("inst", instructionType, Symbol_Parameter);
 }
 
 IRHelperAction::IRHelperAction(const IRSignature& signature, HelperScope scope, GenCContext &context)
-	: IRCallableAction(signature, context), _scope(scope)
+	: IRCallableAction(context), _scope(scope), signature_(signature)
 {
+	for (const auto p : signature.GetParams()) {
+		GetFunctionScope()->InsertSymbol(p.GetName(), p.GetType(), Symbol_Parameter);
+	}
 }
 
-IRIntrinsicAction::IRIntrinsicAction(const IRSignature& signature, GenCContext& context)
-	: IRCallableAction(signature, context)
+IRIntrinsicAction::IRIntrinsicAction(const std::string& name, IntrinsicID id, SignatureFactory factory, SSAEmitter ssaEmitter, FixednessResolver fixednessResolver, GenCContext& context)
+	: IRCallableAction(context), name_(name), id_(id), factory_(factory), emitter_(ssaEmitter), resolver_(fixednessResolver)
 {
 }
-
-IRExternalAction::IRExternalAction(const IRSignature& signature, GenCContext& context)
-	: IRCallableAction(signature, context)
-{
-}
-

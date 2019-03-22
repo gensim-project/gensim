@@ -56,7 +56,12 @@ namespace archsim
 
 				inline void AddSuccessor(Block& successor)
 				{
-					for(auto block : successors) if(block == &successor) return;
+					for(auto block : successors) {
+						if(block == &successor) {
+							return;
+						}
+					}
+
 					successors.push_back(&successor);
 				}
 
@@ -85,11 +90,27 @@ namespace archsim
 					root = true;
 				}
 
+				void IncrementInterpCount()
+				{
+					interp_count_++;
+				}
+
+				uint64_t GetInterpCount() const
+				{
+					return interp_count_;
+				}
+
+				void ClearInterpCount()
+				{
+					interp_count_ = 0;
+				}
+
 			private:
 				std::vector<Block *> successors;
 				Region& parent;
 
 				Address offset;
+				uint64_t interp_count_;
 
 				BlockStatus status;
 				uint8_t isa_mode;

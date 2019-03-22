@@ -19,6 +19,8 @@ namespace wutils
 		class iterator
 		{
 		public:
+			typedef std::forward_iterator_tag iterator_category;
+
 			iterator(this_t *target) : _d(*target), _chunk_ptr(_d._backing_store), _chunk_copy(*_chunk_ptr), _counter(0)
 			{
 				next();

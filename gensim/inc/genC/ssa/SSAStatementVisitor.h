@@ -37,6 +37,7 @@ namespace gensim
 			class SSAVariableWriteStatement;
 			class SSAVectorExtractElementStatement;
 			class SSAVectorInsertElementStatement;
+			class SSAVectorShuffleStatement;
 
 			class SSAStatementVisitor : public util::Visitor
 			{
@@ -70,6 +71,7 @@ namespace gensim
 				virtual void VisitVariableWriteStatement(SSAVariableWriteStatement& stmt) = 0;
 				virtual void VisitVectorExtractElementStatement(SSAVectorExtractElementStatement& stmt) = 0;
 				virtual void VisitVectorInsertElementStatement(SSAVectorInsertElementStatement& stmt) = 0;
+				virtual void VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt) = 0;
 			};
 
 			class HierarchicalSSAStatementVisitor : public SSAStatementVisitor
@@ -102,6 +104,7 @@ namespace gensim
 				void VisitVariableWriteStatement(SSAVariableWriteStatement& stmt) override;
 				void VisitVectorExtractElementStatement(SSAVectorExtractElementStatement& stmt) override;
 				void VisitVectorInsertElementStatement(SSAVectorInsertElementStatement& stmt) override;
+				void VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt) override;
 			};
 
 			class EmptySSAStatementVisitor : public SSAStatementVisitor
@@ -134,6 +137,7 @@ namespace gensim
 				void VisitVariableWriteStatement(SSAVariableWriteStatement& stmt) override;
 				void VisitVectorExtractElementStatement(SSAVectorExtractElementStatement& stmt) override;
 				void VisitVectorInsertElementStatement(SSAVectorInsertElementStatement& stmt) override;
+				void VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt) override;
 			};
 		}
 	}

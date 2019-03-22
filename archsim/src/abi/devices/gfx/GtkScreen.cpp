@@ -271,7 +271,18 @@ void archsim::abi::devices::gfx::button_press_event(GtkWidget *widget, GdkEventB
 	}
 }
 
-GtkScreen::GtkScreen(std::string id, memory::MemoryModel *mem_model, System* sys) : VirtualScreen(id, mem_model), Thread("Gtk Screen"), running(false), framebuffer(NULL), draw_area(NULL), window(NULL), last_mouse_x(0), last_mouse_y(0)
+void archsim::abi::devices::gfx::configure_callback(GtkWidget *widget, GdkEventConfigure *cr, void *screen)
+{
+	GtkScreen *scr = (GtkScreen*)screen;
+	scr->target_width_ = cr->width;
+	scr->target_height_ = cr->height;
+
+	gdk_pixbuf_unref(scr->pb_);
+	scr->pb_ = gdk_pixbuf_new(GDK_COLORSPACE_RGB, false, 8, scr->target_width_, scr->target_height_);
+	gtk_widget_set_size_request(scr->draw_area, cr->width, cr->height);
+}
+
+GtkScreen::GtkScreen(std::string id, memory::MemoryModel *mem_model, System* sys) : VirtualScreen(id, mem_model), Thread("Gtk Screen"), grabbed_(false), kbd(nullptr), mouse(nullptr), running(false), draw_area(NULL), window(NULL), last_mouse_x(0), last_mouse_y(0)
 {
 
 }
@@ -285,29 +296,34 @@ void archsim::abi::devices::gfx::draw_callback(GtkWidget *widget, cairo_t *cr, v
 {
 	GtkScreen *screen = (GtkScreen*)data;
 
-
-	uint16_t *fbp = (uint16_t*)screen->guest_fb;
-	uint16_t *fbp_end = fbp + (screen->GetHeight() * screen->GetWidth());
-
 	GdkPixbuf *pb = screen->pb_;
 	guchar *pixels = gdk_pixbuf_get_pixels(pb);
 
-	for(; fbp != fbp_end;) {
-		uint16_t pxl = *fbp++;
-		uint16_t r, g, b;
+	uint32_t rowstride = gdk_pixbuf_get_rowstride(pb);
 
-		// Extract the RGB565 data
-		r = pxl >> 11;
-		g = (pxl >> 5) & 0x3f;
-		b = pxl & 0x1f;
+	// target fb orientated resize
+	float scale_x = screen->target_width_ / (float)screen->GetWidth();
+	float scale_y = screen->target_height_ / (float)screen->GetHeight();
 
-		// Repack it into 24-bit RGB
-		uint32_t out = (b << 19) | (g << 10) | (r << 3);
+	for(int y = 0; y < screen->target_height_; ++y) {
+		uint32_t guest_y = y / scale_y;
+		for(int x = 0; x < screen->target_width_; ++x) {
+			uint32_t guest_x = x / scale_x;
 
-		*(uint32_t*)pixels = out;
-		pixels += 3;
+			uint32_t pxl = screen->GetPixelRGB(guest_x, guest_y);
+
+			uint8_t r = pxl & 0xff;
+			uint8_t g = (pxl >> 8) & 0xff;
+			uint8_t b = (pxl >> 16) & 0xff;
+
+			uint8_t *pxlptr = pixels + ((rowstride * y) + (x * 3));
+
+			*pxlptr++ = r;
+			*pxlptr++ = g;
+			*pxlptr++ = b;
+
+		}
 	}
-
 
 	gdk_cairo_set_source_pixbuf(cr, pb, 0, 0);
 	cairo_paint(cr);
@@ -322,6 +338,38 @@ bool delete_callback(GtkWidget *widget, GdkEvent event)
 	return false;
 }
 
+uint32_t GtkScreen::GetPixelRGB(uint32_t x, uint32_t y)
+{
+	uint32_t pxl_idx = (y * GetWidth()) + x;
+
+	switch(GetMode()) {
+		case VSM_16bit: {
+			uint16_t pxl = regions_.Read16(fb_ptr + (pxl_idx * 2));
+
+			uint16_t r, g, b;
+
+			// Extract the RGB565 data
+			r = pxl >> 11;
+			g = (pxl >> 5) & 0x3f;
+			b = pxl & 0x1f;
+
+			// Repack it into 24-bit RGB
+			uint32_t out = (b << 19) | (g << 10) | (r << 3);
+			return out;
+		}
+		case VSM_RGB: {
+			uint32_t pxl = regions_.Read32(fb_ptr + (pxl_idx * 3));
+			pxl &= 0x00ffffff;
+			return pxl;
+		}
+
+		default:
+			UNIMPLEMENTED;
+	}
+
+}
+
+
 bool GtkScreen::Initialise()
 {
 	{
@@ -333,6 +381,8 @@ bool GtkScreen::Initialise()
 
 		window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 		draw_area = gtk_drawing_area_new();
+		target_width_ = GetWidth();
+		target_height_ = GetHeight();
 		pb_ = gdk_pixbuf_new(GDK_COLORSPACE_RGB, false, 8, GetWidth(), GetHeight());
 
 		gtk_widget_set_events(window, GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK);
@@ -343,24 +393,26 @@ bool GtkScreen::Initialise()
 
 		gtk_widget_show_all(window);
 		gtk_window_set_title((GtkWindow*)window, GetId().c_str());
-		gtk_window_set_resizable((GtkWindow*)window,false);
+		gtk_window_set_resizable((GtkWindow*)window,true);
 
-		g_signal_connect(window, "key-press-event", G_CALLBACK(key_press_event), this);
-		g_signal_connect(window, "key-release-event", G_CALLBACK(key_release_event), this);
+		if(kbd != nullptr) {
+			g_signal_connect(window, "key-press-event", G_CALLBACK(key_press_event), this);
+			g_signal_connect(window, "key-release-event", G_CALLBACK(key_release_event), this);
+		}
 
 //		g_signal_connect(window, "motion-notify-event", G_CALLBACK(motion_notify_event), this);
-		g_signal_connect(window, "button-press-event", G_CALLBACK(button_press_event), this);
-		g_signal_connect(window, "button-release-event", G_CALLBACK(button_press_event), this);
+		if(mouse != nullptr) {
+			g_signal_connect(window, "button-press-event", G_CALLBACK(button_press_event), this);
+			g_signal_connect(window, "button-release-event", G_CALLBACK(button_press_event), this);
+		}
 
 		g_signal_connect(draw_area, "draw", G_CALLBACK(draw_callback), this);
 
 		g_signal_connect(window, "delete-event", G_CALLBACK(delete_callback), this);
+		g_signal_connect(window, "configure-event", G_CALLBACK(configure_callback), this);
 
-		framebuffer = (uint8_t*)malloc(3 * GetWidth() * GetHeight());
 
-		host_addr_t guest_fb_ptr;
-		GetMemory()->LockRegion(Address(fb_ptr), GetWidth() * GetHeight(), guest_fb_ptr);
-		guest_fb = (uint8_t*)guest_fb_ptr;
+		GetMemory()->LockRegions(fb_ptr, GetWidth() * GetHeight() * GetPixelSize(), regions_);
 
 		running = true;
 	}
@@ -376,9 +428,6 @@ bool GtkScreen::Reset()
 	running = false;
 
 	std::lock_guard<std::mutex> lock(gtk_lock_);
-
-	if(framebuffer)free(framebuffer);
-	framebuffer = NULL;
 
 	if(draw_area) gtk_widget_destroy(draw_area);
 	draw_area = NULL;

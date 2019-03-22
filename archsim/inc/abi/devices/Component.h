@@ -20,6 +20,14 @@
 
 namespace archsim
 {
+	namespace core
+	{
+		namespace thread
+		{
+			class ThreadInstance;
+		}
+	}
+
 	namespace abi
 	{
 
@@ -50,13 +58,19 @@ namespace archsim
 				ComponentParameter_Unknown,
 				ComponentParameter_String,
 				ComponentParameter_U64,
-				ComponentParameter_Component
+				ComponentParameter_Component,
+				ComponentParameter_Thread
 			};
 
 			class ComponentParameterDescriptor
 			{
 			public:
-				ComponentParameterDescriptor(ComponentParameterType type);
+				ComponentParameterDescriptor(ComponentParameterType type, bool is_collection = false);
+
+				static ComponentParameterDescriptor Container(ComponentParameterType type)
+				{
+					return ComponentParameterDescriptor(type, true);
+				}
 
 				ComponentParameterType GetType() const
 				{
@@ -70,8 +84,14 @@ namespace archsim
 				{
 					index_ = index;
 				}
+
+				bool IsCollection() const
+				{
+					return is_collection_;
+				}
 			private:
 				ComponentParameterType type_;
+				bool is_collection_;
 				uint32_t index_;
 			};
 
@@ -124,7 +144,28 @@ namespace archsim
 					return GetDescriptor().GetName();
 				}
 				template<typename T> T GetParameter(const std::string &parameter) const;
+				template<typename T> std::vector<T> GetListParameter(const std::string &parameter) const
+				{
+					void *ptr = GetParameterPointer(parameter);
+					std::vector<T> *&vptr = *(std::vector<T>**)ptr;
+					if(vptr == nullptr) {
+						return {};
+					}
+
+					return *vptr;
+				}
 				template<typename T> void SetParameter(const std::string &parameter, T value);
+				template<typename T> void SetListParameter(const std::string &parameter, const std::vector<T> &value)
+				{
+					void *ptr = GetParameterPointer(parameter);
+					std::vector<T> *&vptr = *(std::vector<T>**)ptr;
+					if(vptr == nullptr) {
+						vptr = new std::vector<T>();
+					}
+
+					vptr->clear();
+					vptr->insert(vptr->begin(), value.begin(), value.end());
+				}
 			private:
 				const ComponentDescriptor &descriptor_;
 				std::vector<void*> parameter_value_ptrs_;
@@ -132,8 +173,10 @@ namespace archsim
 				void *GetParameterPointer(const std::string &parameter) const;
 			};
 
+			template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, archsim::core::thread::ThreadInstance* value);
 			template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, Component* value);
 			template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, uint64_t value);
+			template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, std::string value);
 
 			class Component
 			{
@@ -160,9 +203,17 @@ namespace archsim
 				{
 					return GetDescriptor().GetParameter<T>(parameter);
 				}
+				template<typename T> std::vector<T> GetListParameter(const std::string &parameter) const
+				{
+					return GetDescriptor().GetListParameter<T>(parameter);
+				}
 				template<typename T> void SetParameter(const std::string &parameter, T value)
 				{
 					GetDescriptor().SetParameter(parameter, value);
+				}
+				template<typename T> void SetListParameter(const std::string &parameter, const std::vector<T> &value)
+				{
+					GetDescriptor().SetListParameter(parameter, value);
 				}
 
 				virtual bool Initialise() = 0;
@@ -215,6 +266,9 @@ namespace archsim
 #define COMPONENT_PARAMETER_ENTRY_HDR(name, component_type, real_type) real_type *Get##name();
 #define COMPONENT_PARAMETER_ENTRY_SRC(clazz, name, component_type, real_type) real_type *clazz::Get##name() { static_assert(std::is_base_of<Component, real_type>::value, "Component parameters must be derived from Component"); return dynamic_cast<real_type*>(GetParameter<Component*>(#name)); }
 
+#define COMPONENT_PARAMETER_STRING(name) std::string Get##name() { return (GetParameter<std::string>(#name)); }
+#define COMPONENT_PARAMETER_THREAD(name) archsim::core::thread::ThreadInstance *Get##name() { return (GetParameter<archsim::core::thread::ThreadInstance*>(#name)); }
+#define COMPONENT_PARAMETER_THREAD_LIST(name) std::vector<archsim::core::thread::ThreadInstance*> Get##name() const { return (GetListParameter<archsim::core::thread::ThreadInstance*>(#name)); }
 #define COMPONENT_PARAMETER_U64(name) uint64_t Get##name() { return (uint64_t)GetParameter<uint64_t>(#name); }
 
 			class CoreComponent : public Component
@@ -232,21 +286,26 @@ namespace archsim
 
 				inline Address GetBaseAddress() const
 				{
-					return base_address;
+					return base_address_;
 				}
 				inline uint32_t GetSize() const
 				{
-					return size;
+					return size_;
 				}
 
-				virtual bool Read(uint32_t offset, uint8_t size, uint32_t& data) = 0;
-				virtual bool Write(uint32_t offset, uint8_t size, uint32_t data) = 0;
+				EmulationModel &GetParentModel()
+				{
+					return parent_model_;
+				}
 
-			protected:
-				Address base_address;
-				uint32_t size;
+				virtual bool Read(uint32_t offset, uint8_t size, uint64_t& data) = 0;
+				virtual bool Write(uint32_t offset, uint8_t size, uint64_t data) = 0;
 
-				EmulationModel &parent_model;
+			private:
+				Address base_address_;
+				uint32_t size_;
+
+				EmulationModel &parent_model_;
 			};
 
 			class MemoryRegister
@@ -321,8 +380,8 @@ namespace archsim
 				RegisterBackedMemoryComponent(EmulationModel& parent_model, Address base_address, uint32_t size, std::string name);
 				virtual ~RegisterBackedMemoryComponent();
 
-				bool Read(uint32_t offset, uint8_t size, uint32_t& data) override;
-				bool Write(uint32_t offset, uint8_t size, uint32_t data) override;
+				bool Read(uint32_t offset, uint8_t size, uint64_t& data) override;
+				bool Write(uint32_t offset, uint8_t size, uint64_t data) override;
 
 				inline std::string GetName() const
 				{

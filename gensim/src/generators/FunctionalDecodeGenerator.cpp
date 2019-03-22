@@ -65,6 +65,8 @@ namespace gensim
 
 			header_str << "public:\n";
 
+			header_str << "  using Instruction = " << GetProperty("class") << ";";
+
 			header_str << "//Built in fields\n";
 			// header_str << "\t" << GetProperty("class") << "_Enum\tInstr_Code;\n";
 

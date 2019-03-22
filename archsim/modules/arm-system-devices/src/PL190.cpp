@@ -111,7 +111,7 @@ namespace archsim
 				return 0;
 			}
 
-			bool PL190::Read(uint32_t offset, uint8_t size, uint32_t& data)
+			bool PL190::Read(uint32_t offset, uint8_t size, uint64_t& data)
 			{
 				uint32_t reg = offset & 0xfff;
 
@@ -202,7 +202,7 @@ namespace archsim
 				return false;
 			}
 
-			bool PL190::Write(uint32_t offset, uint8_t size, uint32_t data)
+			bool PL190::Write(uint32_t offset, uint8_t size, uint64_t data)
 			{
 				uint32_t reg = offset & 0xfff;
 

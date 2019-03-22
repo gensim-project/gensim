@@ -71,15 +71,18 @@ static void InvalidateCallback(PubSubType::PubSubType type, void *ctx, const voi
 		case PubSubType::L1ICacheFlush:
 			txln_mgr->Invalidate();
 			break;
-		case PubSubType::FlushTranslations:
+		case PubSubType::FlushAllTranslations:
 			txln_mgr->Invalidate();
+			break;
+		case PubSubType::FlushTranslations:
+			txln_mgr->InvalidateRegionTxlnCache();
 			break;
 		default:
 			assert(false);
 	}
 }
 
-TranslationManager::TranslationManager(util::PubSubContext &psCtx) : _needs_leave(false), ics(NULL), curr_hotspot_threshold(archsim::options::JitHotspotThreshold), subscriber(psCtx), engine(NULL), manager(NULL)
+TranslationManager::TranslationManager(util::PubSubContext &psCtx) : _needs_leave(false), ics(NULL), curr_hotspot_threshold(archsim::options::JitHotspotThreshold), subscriber(psCtx), manager(NULL)
 {
 	if (!archsim::options::JitDisableBranchOpt) {
 		// Allocate storage for the region translation cache.
@@ -92,7 +95,7 @@ TranslationManager::TranslationManager(util::PubSubContext &psCtx) : _needs_leav
 	subscriber.Subscribe(PubSubType::ITlbEntryFlush, InvalidateCallback, this);
 	subscriber.Subscribe(PubSubType::ITlbFullFlush, InvalidateCallback, this);
 	subscriber.Subscribe(PubSubType::RegionInvalidatePhysical, InvalidateCallback, this);
-	subscriber.Subscribe(PubSubType::FlushTranslations, InvalidateCallback, this);
+	subscriber.Subscribe(PubSubType::FlushAllTranslations, InvalidateCallback, this);
 //	subscriber.Subscribe(PubSubType::L1ICacheFlush, InvalidateCallback, this);
 }
 
@@ -101,9 +104,6 @@ TranslationManager::~TranslationManager()
 	regions.Clear();
 
 	delete ics;
-
-	engine->Destroy();
-	delete engine;
 
 	if (txln_cache) {
 		// Release the region translation cache memory.
@@ -120,22 +120,9 @@ bool TranslationManager::TranslateRegion(archsim::core::thread::ThreadInstance* 
 
 bool TranslationManager::Initialise()
 {
-	// Attempt to acquire the translation engine
-	if (!GetComponentInstance(archsim::options::JitEngine, engine)) {
-		LC_ERROR(LogTranslate) << "Unable to create translation engine '" << archsim::options::JitEngine.GetValue() << "'";
-		return false;
-	}
-
-	if (!engine->Initialise()) {
-		LC_ERROR(LogTranslate) << "Unable to initialise translation engine '" << archsim::options::JitEngine.GetValue() << "'";
-		return false;
-	}
 
 	// Attempt to acquire the interrupt checking scheme.
 	if (!GetComponentInstance(archsim::options::JitInterruptScheme, ics)) {
-		engine->Destroy();
-		delete engine;
-
 		LC_ERROR(LogTranslate) << "Unknown interrupt checking scheme ''";
 		return false;
 	}
@@ -150,8 +137,18 @@ void TranslationManager::Destroy()
 
 Region& TranslationManager::GetRegion(Address phys_addr)
 {
-	GetCodeRegions().MarkRegionAsCode(PhysicalAddress(phys_addr.GetPageBase()));
-	return regions.Get(*this, phys_addr.PageBase());
+	auto &cache_entry = region_cache_.GetEntry(phys_addr);
+	if(cache_entry.tag != phys_addr.GetPageIndex()) {
+		GetCodeRegions().MarkRegionAsCode(PhysicalAddress(phys_addr.GetPageBase()));
+		auto &region = regions.Get(*this, phys_addr.PageBase());
+
+		cache_entry.tag = phys_addr.GetPageIndex();
+		cache_entry.data = &region;
+	}
+
+	touched_regions_.insert(cache_entry.data);
+
+	return *cache_entry.data;
 }
 
 bool TranslationManager::TryGetRegion(Address phys_addr, profile::Region*& region)
@@ -165,14 +162,57 @@ void TranslationManager::TraceBlock(archsim::core::thread::ThreadInstance *threa
 	uint32_t mode = (uint32_t)thread->GetExecutionRing();
 
 	LC_DEBUG4(LogProfile) << "Tracing block " << std::hex << block.GetOffset() << ", isa = " << (uint32_t)thread->GetModeID() << ", mode = " << mode;
+	auto &prev_block = this->prev_block[mode];
 
-	if (prev_block[mode] && prev_block[mode]->GetParent().GetPhysicalBaseAddress() == block.GetParent().GetPhysicalBaseAddress()) {
-		prev_block[mode]->AddSuccessor(block);
+	if (prev_block && prev_block->GetParent().GetPhysicalBaseAddress() == block.GetParent().GetPhysicalBaseAddress()) {
+		prev_block->AddSuccessor(block);
 	} else if (!block.IsRootBlock()) {
 		block.SetRoot();
 	}
 
-	prev_block[mode] = &block;
+	prev_block = &block;
+}
+
+bool archsim::translate::TranslationManager::ProfileRegion(archsim::core::thread::ThreadInstance* thread, profile::Region* region)
+{
+	if(dirty_code_pages.count(region->GetPhysicalBaseAddress().Get())) {
+		return false;
+	}
+
+	if (region->IsHot(curr_hotspot_threshold)) {
+		region_txln_count[region->GetPhysicalBaseAddress().Get()]++;
+
+		uint32_t weight = (region->GetTotalInterpCount()) / region_txln_count[region->GetPhysicalBaseAddress().Get()];
+
+		region->SetStatus(Region::InTranslation);
+
+		thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationPhysical, (void*)(uint64_t)region->GetPhysicalBaseAddress().Get());
+		for(auto virt_base : region->virtual_images) {
+			thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationVirtual, (void*)virt_base.Get());
+		}
+
+#ifdef PROTECT_CODE_REGIONS
+		host_addr_t addr;
+		bool b = cpu.GetEmulationModel().GetMemoryModel().LockRegion(region->GetPhysicalBaseAddress(), 4096, addr);
+		mprotect(addr, 4096, PROT_READ);
+#endif
+
+		// Region has been invalidated so bail out
+		if(!region->IsValid()) {
+			return false;
+		}
+
+		if (!TranslateRegion(thread, *region, weight)) {
+			region->SetStatus(Region::NotInTranslation);
+			LC_WARNING(LogTranslate) << "Region translation failed for region " << *region;
+		}
+
+		region->InvalidateHeat();
+
+		return true;
+	}
+
+	return false;
 }
 
 bool TranslationManager::Profile(archsim::core::thread::ThreadInstance *thread)
@@ -180,39 +220,17 @@ bool TranslationManager::Profile(archsim::core::thread::ThreadInstance *thread)
 	LC_DEBUG3(LogProfile) << "Performing profile";
 	bool txltd_regions = false;
 
-	for (auto region : regions) {
-		if(dirty_code_pages.count(region->GetPhysicalBaseAddress().Get())) continue;
-
-		if (region->IsHot(curr_hotspot_threshold)) {
-			region_txln_count[region->GetPhysicalBaseAddress().Get()]++;
-
-			uint32_t weight = (region->TotalBlockHeat()) / region_txln_count[region->GetPhysicalBaseAddress().Get()];
-
-			region->SetStatus(Region::InTranslation);
-			txltd_regions = true;
-
-			thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationPhysical, (void*)(uint64_t)region->GetPhysicalBaseAddress().Get());
-			for(auto virt_base : region->virtual_images) {
-				thread->GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::RegionDispatchedForTranslationVirtual, (void*)virt_base.Get());
-			}
-
-#ifdef PROTECT_CODE_REGIONS
-			host_addr_t addr;
-			bool b = cpu.GetEmulationModel().GetMemoryModel().LockRegion(region->GetPhysicalBaseAddress(), 4096, addr);
-			mprotect(addr, 4096, PROT_READ);
-#endif
-
-			assert(region->IsValid());
-
-			if (!TranslateRegion(thread, *region, weight)) {
-				region->SetStatus(Region::NotInTranslation);
-				LC_WARNING(LogTranslate) << "Region translation failed for region " << *region;
-			}
-
-			region->InvalidateHeat();
+	if(UpdateThreshold()) {
+		for(auto region : regions) {
+			txltd_regions |= ProfileRegion(thread, region);
+		}
+	} else {
+		for(auto region : touched_regions_) {
+			txltd_regions |= ProfileRegion(thread, region);
 		}
 	}
 
+	touched_regions_.clear();
 	dirty_code_pages.clear();
 
 	UpdateThreshold();
@@ -237,7 +255,8 @@ void TranslationManager::Invalidate()
 	dirty_code_pages.clear();
 	regions.Clear();
 
-
+	// invalidate cache
+	region_cache_.Invalidate();
 }
 
 void TranslationManager::InvalidateRegion(Address phys_addr)
@@ -351,9 +370,9 @@ void TranslationManager::RunGC()
 	stale_txlns.clear();
 }
 
-void TranslationManager::UpdateThreshold()
+bool TranslationManager::UpdateThreshold()
 {
-
+	return false;
 }
 
 void TranslationManager::PrintStatistics(std::ostream& stream)
@@ -384,7 +403,7 @@ size_t TranslationManager::ApproximateRegionMemoryUsage() const
 	return total;
 }
 
-Translation::Translation() : is_registered(false)
+Translation::Translation() : is_registered(false), contained_blocks(4096)
 {
 
 }

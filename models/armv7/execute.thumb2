@@ -1804,7 +1804,7 @@ execute(thumb2_clzt1)
 	}
 	else 
 	{
-		uint32 val = __builtin_clz(read_register_bank(RB, inst.rm) + pc_check(inst.rm));
+		uint32 val = __builtin_clz32(read_register_bank(RB, inst.rm) + pc_check(inst.rm));
 		write_register_bank(RB, inst.rd, val);
 	}
 }
@@ -2417,7 +2417,7 @@ execute(thumb2_ldmdbt2)
 	uint16 registers = ((uint16)inst.p << 15) | ((uint16)inst.m << 14) | (uint16) inst.immval;
 	uint32 v;
 	
-	base_address -= __builtin_popcount(registers) * 4;
+	base_address -= __builtin_popcount32(registers) * 4;
 	uint32 address = base_address;
 	
 	for (uint32 i = 0; i < 15; i += (uint32)1) {
@@ -5772,12 +5772,12 @@ helper void update_zn_flags(uint32 val) {
 	return;
 }
 
-internal helper uint8 instruction_is_predicated(Instruction inst)
+internal helper uint8 instruction_is_predicated(struct Instruction &inst)
 {
 	return inst.IsPredicated;
 }
 
-helper uint8 instruction_predicate(Instruction inst) 
+helper uint8 instruction_predicate(struct Instruction &inst) 
 {
 	if(!inst.IsPredicated) {
 		return 1;

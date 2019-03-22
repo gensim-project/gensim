@@ -151,16 +151,18 @@ namespace archsim
 			template class UserElfBinaryLoader<ElfClass32>;
 			template class UserElfBinaryLoader<ElfClass64>;
 
-			class SystemElfBinaryLoader : public ElfBinaryLoader<ElfClass32>
+			template<typename ElfClass> class SystemElfBinaryLoader : public ElfBinaryLoader<ElfClass>
 			{
 			public:
-				SystemElfBinaryLoader(EmulationModel& emulation_model, bool load_symbols) : ElfBinaryLoader<ElfClass32>(emulation_model, load_symbols) {}
+				SystemElfBinaryLoader(EmulationModel& emulation_model, bool load_symbols) : ElfBinaryLoader<ElfClass>(emulation_model, load_symbols) {}
 				~SystemElfBinaryLoader() {}
 
 			protected:
 				bool PrepareLoad() override;
-				bool LoadSegment(Elf32_Phdr *segment) override;
+				bool LoadSegment(typename ElfClass::PHeader *segment) override;
 			};
+			template class SystemElfBinaryLoader<ElfClass32>;
+			template class SystemElfBinaryLoader<ElfClass64>;
 		}
 	}
 }

@@ -27,10 +27,12 @@ namespace archsim
 		{
 
 			struct AccessInfo {
-				uint8_t Write:1, Kernel:1, Fetch:1, SideEffects:1;
+				uint32_t Ring;
+				uint8_t Write:1, Fetch:1, SideEffects:1;
+
 
 				AccessInfo() {}
-				AccessInfo(bool K, bool W, bool F, bool SE=0) : Write(W), Kernel(K), Fetch(F), SideEffects(SE) {}
+				AccessInfo(uint32_t Ring, bool W, bool F, bool SE=0) : Write(W), Ring(Ring), Fetch(F), SideEffects(SE) {}
 				friend std::ostream &operator <<(std::ostream &stream, const struct archsim::abi::devices::AccessInfo &info);
 			};
 
@@ -50,8 +52,10 @@ namespace archsim
 
 				bool UserCanRead:1;
 				bool UserCanWrite:1;
+				bool UserCanExecute:1;
 				bool KernelCanRead:1;
 				bool KernelCanWrite:1;
+				bool KernelCanExecute:1;
 			};
 
 			class MMU : public Device

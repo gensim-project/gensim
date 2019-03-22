@@ -38,8 +38,8 @@ namespace archsim
 
 					bool Initialise() override;
 
-					bool Read(uint32_t offset, uint8_t size, uint32_t& data) override;
-					bool Write(uint32_t offset, uint8_t size, uint32_t data) override;
+					bool Read(uint32_t offset, uint8_t size, uint64_t& data) override;
+					bool Write(uint32_t offset, uint8_t size, uint64_t data) override;
 
 					void Suspend()
 					{
@@ -57,7 +57,7 @@ namespace archsim
 
 						InternalTimer();
 
-						bool ReadRegister(uint32_t offset, uint32_t& data);
+						bool ReadRegister(uint32_t offset, uint64_t& data);
 						bool WriteRegister(uint32_t offset, uint32_t data);
 
 						inline void SetManager(util::timing::TimerManager& mgr)

@@ -1,0 +1,24 @@
+AC_ARCH(fuzzarch)
+{
+	ac_mem Fetch(32, 32, little, 1);
+	ac_mem Mem(32, 32, little, 0);
+
+	ac_regspace(64) {
+		// bank NAME (TYPE, OFFSET, COUNT, REG-STRIDE, # ELEMS, ELEM-SIZE, ELEM-STRIDE)
+		bank RB (uint32, 0, 16, 4, 1, 4, 4);
+			
+		slot PC (uint32, 4, 60) PC;
+		slot SP (uint32, 4, 52) SP;
+	}
+
+	ac_wordsize 32;
+
+	ARCH_CTOR(fuzzarch) 
+	{
+		set_typename(word_t, uint32);
+		set_typename(sword_t, sint32);
+	
+		ac_isa("./staging/fuzzarch.ac");
+		set_endian("little");
+	};
+};

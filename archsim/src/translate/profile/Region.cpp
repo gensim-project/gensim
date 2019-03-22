@@ -18,10 +18,12 @@ Region::Region(TranslationManager& mgr, Address phys_base_addr)
 	:	mgr(mgr),
 	  phys_base_addr(phys_base_addr),
 	  current_generation(0),
+	  total_interp_count_(0),
 	  max_generation(0),
 	  status(NotInTranslation),
 	  invalid_(false),
-	  txln(NULL)
+	  txln(NULL),
+	  max_block_interp_count_(0)
 {
 
 }
@@ -77,21 +79,36 @@ void Region::EraseBlock(Address virt_addr)
 	blocks.erase(offset);
 }
 
+void Region::InvalidateHeat()
+{
+	for(auto block : blocks) {
+		block.second->ClearInterpCount();
+	}
+	total_interp_count_ = 0;
+	max_block_interp_count_ = 0;
+}
+
 bool Region::HasTranslations() const
 {
-	return (GetStatus() == InTranslation) || txln;
+	return (GetStatus() != NotInTranslation) || txln;
 }
 
 void Region::TraceBlock(archsim::core::thread::ThreadInstance *thread, Address virt_addr)
 {
-	if (status == InTranslation)
+	total_interp_count_++;
+
+	if (GetStatus() == InTranslation)
 		return;
 
 	virtual_images.insert(virt_addr.PageBase());
-	block_interp_count[virt_addr.PageOffset()]++;
-	total_interp_count++;
 
-	mgr.TraceBlock(thread, GetBlock(virt_addr, thread->GetModeID()));
+	auto &block = GetBlock(virt_addr, thread->GetModeID());
+	block.IncrementInterpCount();
+	if(block.GetInterpCount() > max_block_interp_count_) {
+		max_block_interp_count_ = block.GetInterpCount();
+	}
+
+	mgr.TraceBlock(thread, block);
 }
 
 void Region::Invalidate()
@@ -104,7 +121,6 @@ size_t Region::GetApproximateMemoryUsage() const
 	size_t size = sizeof(*this);
 
 	for(auto i : virtual_images) size += sizeof(i);
-	for(auto i : block_interp_count) size += sizeof(i);
 	for(auto i : blocks) size += sizeof(i);
 	size += block_zone.GetAllocatedSize();
 

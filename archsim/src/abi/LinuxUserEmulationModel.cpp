@@ -4,7 +4,7 @@
 
 using namespace archsim::abi;
 
-LinuxUserEmulationModel::LinuxUserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary) : UserEmulationModel(arch, is_64bit_binary) { }
+LinuxUserEmulationModel::LinuxUserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary, const AuxVectorEntries &auxvs) : UserEmulationModel(arch, is_64bit_binary, auxvs) { }
 
 LinuxUserEmulationModel::~LinuxUserEmulationModel() { }
 

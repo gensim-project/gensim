@@ -1,0 +1,127 @@
+// 64-A Standard Extension
+execute(lr_d)
+{
+	typename word_t addr = read_gpr(inst.rs1);
+	uint64 val;
+	
+	mem_monitor_acquire(Mem, addr);
+	mem_read_64(Mem, addr, val);
+
+	write_register_bank(GPR, inst.rd, val);
+}
+
+execute(sc_d)
+{
+	typename word_t rs2 = read_gpr(inst.rs2);
+	typename word_t addr = read_gpr(inst.rs1);	
+	
+	if(mem_monitor_write_64(Mem, addr, rs2)) {
+		write_register_bank(GPR, inst.rd, 0);
+	} else {
+		write_register_bank(GPR, inst.rd, 1);
+	}
+}
+
+execute(amoswapd)
+{
+	mem_lock(Mem);
+	
+	typename word_t addr = read_gpr(inst.rs1);
+	uint64 val;
+	mem_read_64(Mem, addr, val);
+	
+	uint64 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_64(Mem, addr, rs2);
+	
+	mem_unlock(Mem);
+}
+
+execute(amoaddd)
+{
+	mem_lock(Mem);
+	
+	uint64 addr = read_gpr(inst.rs1);
+	uint64 val;
+	mem_read_64(Mem, addr, val);
+	
+	uint64 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_64(Mem, addr, rs2 + val);
+	
+	mem_unlock(Mem);
+}
+
+execute(amoandd)
+{
+	mem_lock(Mem);
+	
+	uint64 addr = read_gpr(inst.rs1);
+	uint64 val;
+	mem_read_64(Mem, addr, val);
+	
+	uint64 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_64(Mem, addr, rs2 & val);
+	
+	mem_unlock(Mem);
+}
+
+execute(amoord)
+{
+	mem_lock(Mem);
+	
+	uint64 addr = read_gpr(inst.rs1);
+	uint64 val;
+	mem_read_64(Mem, addr, val);
+	
+	uint64 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_64(Mem, addr, rs2 | val);
+	
+	mem_unlock(Mem);
+}
+
+execute(amoxord)
+{
+	trap();
+}
+
+execute(amomaxd)
+{
+	trap();
+}
+
+execute(amomaxud)
+{
+	mem_lock(Mem);
+	
+	uint64 addr = read_gpr(inst.rs1);
+	uint64 val;
+	mem_read_64(Mem, addr, val);
+	
+	uint64 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	if(rs2 > val) {
+		val = rs2;
+	}
+	
+	mem_write_64(Mem, addr, val);
+	
+	mem_unlock(Mem);
+}
+
+execute(amomind)
+{
+	trap();
+}
+
+execute(amominud)
+{
+	trap();
+}

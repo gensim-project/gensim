@@ -29,6 +29,7 @@ namespace gensim
 {
 	class DecodeContext;
 	class BaseDecode;
+	class BaseDisasm;
 	class BaseJumpInfoProvider;
 }
 
@@ -113,7 +114,7 @@ namespace archsim
 			return name_;
 		}
 
-		InvocationResult Invoke(archsim::core::thread::ThreadInstance *thread, const std::vector<uint64_t> args) const
+		InvocationResult Invoke(archsim::core::thread::ThreadInstance *thread, const std::vector<uint64_t> &args) const
 		{
 			return function_(InvocationContext(thread, args));
 		}
@@ -142,12 +143,12 @@ namespace archsim
 
 	/**
 	 * Class which encapsulates ISA specific portions of the architecture,
-	 * including instruction decoding and behaviour invocation.
+	 * including instruction decoding and behaviour invocation.gensim
 	 */
 	class ISADescriptor
 	{
 	public:
-		ISADescriptor(const std::string &name, uint32_t id, const DecodeFunction &decoder, const NewDecoderFunction &newdecoder, const NewJumpInfoFunction &newjumpinfo, const NewDTCFunction &dtc, const ISABehavioursDescriptor &behaviours);
+		ISADescriptor(const std::string &name, uint32_t id, const DecodeFunction &decoder, gensim::BaseDisasm *disasm, const NewDecoderFunction &newdecoder, const NewJumpInfoFunction &newjumpinfo, const NewDTCFunction &dtc, const ISABehavioursDescriptor &behaviours);
 
 		// This is a bit of a hack right now. In the future there needs to be a clearer interaction between the thread, the 'decode context', and the decoded instruction
 		uint32_t DecodeInstr(archsim::Address addr, archsim::MemoryInterface *interface, gensim::BaseDecode &target) const
@@ -158,6 +159,10 @@ namespace archsim
 		gensim::BaseDecode *GetNewDecode() const
 		{
 			return new_decoder_();
+		}
+		const gensim::BaseDisasm *GetDisasm() const
+		{
+			return disasm_;
 		}
 		gensim::BaseJumpInfoProvider *GetNewJumpInfo() const
 		{
@@ -187,6 +192,7 @@ namespace archsim
 		NewJumpInfoFunction new_jump_info_;
 		NewDTCFunction new_dtc_;
 
+		gensim::BaseDisasm *disasm_;
 		ISABehavioursDescriptor behaviours_;
 		const std::string name_;
 		uint32_t id_;

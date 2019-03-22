@@ -30,7 +30,7 @@ void ComponentDescriptor::CheckParameterIndices()
 }
 
 
-ComponentParameterDescriptor::ComponentParameterDescriptor(ComponentParameterType type) : type_(type), index_(0)
+ComponentParameterDescriptor::ComponentParameterDescriptor(ComponentParameterType type, bool is_collection) : type_(type), index_(0), is_collection_(false)
 {
 
 }
@@ -48,6 +48,9 @@ ComponentDescriptorInstance::ComponentDescriptorInstance(const ComponentDescript
 				break;
 			case ComponentParameter_Component:
 				parameter_value_ptrs_[i.second.GetIndex()] = new Component*();
+				break;
+			case ComponentParameter_Thread:
+				parameter_value_ptrs_[i.second.GetIndex()] = new archsim::core::thread::ThreadInstance*();
 				break;
 			default:
 				abort();
@@ -67,6 +70,9 @@ ComponentDescriptorInstance::~ComponentDescriptorInstance()
 				break;
 			case ComponentParameter_Component:
 				delete (Component**)parameter_value_ptrs_.at(i.second.GetIndex());
+				break;
+			case ComponentParameter_Thread:
+				delete (archsim::core::thread::ThreadInstance**)parameter_value_ptrs_.at(i.second.GetIndex());
 				break;
 			default:
 				abort();
@@ -90,12 +96,32 @@ template<> void ComponentDescriptorInstance::SetParameter(const std::string& par
 	*cptr = value;
 }
 
+template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, archsim::core::thread::ThreadInstance* value)
+{
+	assert(GetDescriptor().HasParameter(parameter));
+	assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_Thread);
+	void *ptr = GetParameterPointer(parameter);
+	archsim::core::thread::ThreadInstance **cptr = (archsim::core::thread::ThreadInstance**)ptr;
+
+	*cptr = value;
+}
+
 template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, uint64_t value)
 {
 	assert(GetDescriptor().HasParameter(parameter));
 	assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_U64);
 	void *ptr = GetParameterPointer(parameter);
 	uint64_t *cptr = (uint64_t*)ptr;
+
+	*cptr = value;
+}
+
+template<> void ComponentDescriptorInstance::SetParameter(const std::string& parameter, std::string value)
+{
+	assert(GetDescriptor().HasParameter(parameter));
+	assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_String);
+	void *ptr = GetParameterPointer(parameter);
+	std::string *cptr = (std::string*)ptr;
 
 	*cptr = value;
 }
@@ -117,12 +143,29 @@ namespace archsim
 				return *(Component **)ptr;
 			}
 
+			template<> archsim::core::thread::ThreadInstance *ComponentDescriptorInstance::GetParameter(const std::string &parameter) const
+			{
+				assert(GetDescriptor().HasParameter(parameter));
+				assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_Thread);
+				void *ptr = GetParameterPointer(parameter);
+
+				return *(archsim::core::thread::ThreadInstance **)ptr;
+			}
+
 			template<> uint64_t ComponentDescriptorInstance::GetParameter(const std::string &parameter) const
 			{
 				assert(GetDescriptor().HasParameter(parameter));
 				assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_U64);
 				void *ptr = GetParameterPointer(parameter);
 				return *(uint64_t*)ptr;
+			}
+
+			template<> std::string ComponentDescriptorInstance::GetParameter(const std::string &parameter) const
+			{
+				assert(GetDescriptor().HasParameter(parameter));
+				assert(GetDescriptor().GetParameterDescriptor(parameter).GetType() == ComponentParameter_String);
+				void *ptr = GetParameterPointer(parameter);
+				return *(std::string*)ptr;
 			}
 
 		}
@@ -163,7 +206,7 @@ template<> void Component::SetParameter(const std::string &parameter, archsim::a
 }
 #undef CASTTOCOMPONENT
 
-MemoryComponent::MemoryComponent(EmulationModel &model, Address _base_address, uint32_t _size) : base_address(_base_address), size(_size), parent_model(model)
+MemoryComponent::MemoryComponent(EmulationModel &model, Address _base_address, uint32_t _size) : base_address_(_base_address), size_(_size), parent_model_(model)
 {
 
 }
@@ -184,7 +227,7 @@ RegisterBackedMemoryComponent::~RegisterBackedMemoryComponent()
 }
 
 
-bool RegisterBackedMemoryComponent::Read(uint32_t offset, uint8_t size, uint32_t& data)
+bool RegisterBackedMemoryComponent::Read(uint32_t offset, uint8_t size, uint64_t& data)
 {
 	MemoryRegister *rg = GetRegister(offset);
 	if (!rg) {
@@ -198,7 +241,7 @@ bool RegisterBackedMemoryComponent::Read(uint32_t offset, uint8_t size, uint32_t
 	return true;
 }
 
-bool RegisterBackedMemoryComponent::Write(uint32_t offset, uint8_t size, uint32_t data)
+bool RegisterBackedMemoryComponent::Write(uint32_t offset, uint8_t size, uint64_t data)
 {
 	MemoryRegister *rg = GetRegister(offset);
 	if (!rg) {

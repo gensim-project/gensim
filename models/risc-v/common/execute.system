@@ -1,0 +1,233 @@
+helper typename word_t riscv_get_machmode()
+{
+	return read_register(MACHMODE);
+}
+
+helper void riscv_set_machmode(uint8 machmode) export
+{
+	// if we actually switch machmode, pend irqs
+	if(machmode != read_register(MACHMODE)) {
+		pend_interrupt();
+	}
+
+	write_register(MACHMODE, machmode);
+	__builtin_set_execution_ring(machmode);
+	return;
+}
+
+helper void riscv_reset() export
+{
+	// enter M mode
+	riscv_set_machmode(3);
+	
+	// disable all interrupts
+	
+	// set mprv to 0 (?)
+	
+	// set mcause to 0
+	riscv_csr_set_mcause(0);
+	
+	// set PC to implementation defined reset vector (great!)
+	
+	return;
+}
+
+helper void riscv_mret() noinline
+{
+	// make sure we have permission to mret (must be in machmode == 3)
+	if(riscv_get_machmode() != 3) {
+		// we should illegal instruction, but for now just trap
+		trap();
+	}
+
+	// determine which mode to return to
+	uint64 mstatus = riscv_csr_get_mstatus();
+	uint8 mpp = riscv_mstatus_get_mpp(mstatus);
+	
+	// set MIE to MPIE
+	mstatus = riscv_mstatus_set_mie(mstatus, riscv_mstatus_get_mpie(mstatus));
+	// set mpie to 1
+	mstatus = riscv_mstatus_set_mpie(mstatus, 1);
+	// set mpp to U
+	mstatus = riscv_mstatus_set_mpp(mstatus, 0);
+	
+	// write back mstatus
+	riscv_csr_set_mstatus(mstatus);
+	
+	// enter previous machmode
+	riscv_set_machmode(mpp);
+	
+	// set PC to mepc
+	write_register(PC, riscv_csr_get_mepc());
+	
+	return;
+}
+
+helper void riscv_sret() noinline
+{
+	// make sure we have permission to sret (must be in machmode >= 1)
+	if(riscv_get_machmode() == 0) {
+		// we should illegal instruction, but for now just trap
+		trap();
+	}
+
+	// determine which mode to return to
+	uint64 sstatus = riscv_csr_get_sstatus();
+	uint8 spp = riscv_mstatus_get_spp(sstatus);
+	
+	// set SIE to SPIE
+	sstatus = riscv_mstatus_set_sie(sstatus, riscv_mstatus_get_spie(sstatus));
+	// set spie to 1
+	sstatus = riscv_mstatus_set_spie(sstatus, 1);
+	// set spp to U
+	sstatus = riscv_mstatus_set_spp(sstatus, 0);
+	
+	// write back mstatus
+	riscv_csr_set_sstatus(sstatus);
+	
+	// enter previous machmode
+	riscv_set_machmode(spp);
+	
+	// set PC to sepc
+	write_register(PC, riscv_csr_get_sepc());
+	
+	return;
+}
+
+helper void riscv_trap_user(typename sword_t cause, typename word_t tval) noinline
+{
+	// can a user mode trap be delegated to U mode?
+	if(0) {
+	
+	} else {
+		riscv_trap_supervisor(cause, tval);
+	}
+	
+	return;
+}
+
+helper void riscv_trap_supervisor(typename sword_t cause, typename word_t tval) noinline export
+{
+	// read mdeleg to determine if this exception can be delegated
+	typename word_t mdelegation;
+	uint8 is_interrupt = cause < 0;
+	typename word_t bare_cause = (cause << 1) >> 1;
+	
+	if(is_interrupt) {
+		mdelegation = riscv_csr_get_mideleg();
+	} else {
+		mdelegation = riscv_csr_get_medeleg();
+	}
+	
+	if(mdelegation & (1 << bare_cause)) {
+		// delegate this trap to S mode
+		
+		// update SEPC
+		riscv_csr_set_sepc(get_pc());
+		
+		// update mcause and mtval
+		riscv_csr_set_scause(cause);
+		riscv_csr_set_stval(tval);
+		
+		// jump to exception handler
+		typename word_t vector_base = riscv_csr_get_stvec();
+		typename word_t vector = vector_base & ~0x3;
+		if(vector_base & 3) {
+			if(is_interrupt) {
+				vector += 4 * bare_cause;
+			}
+		}
+		write_register(PC, vector);
+		
+		// update SPP
+		typename word_t mstatus = riscv_csr_get_mstatus();
+		mstatus = riscv_mstatus_set_spp(mstatus, riscv_get_machmode());
+		
+		// configure interrupts
+		// stack sie onto spie
+		mstatus = riscv_mstatus_set_spie(mstatus, riscv_mstatus_get_sie(mstatus));
+		mstatus = riscv_mstatus_set_sie(mstatus, 0);
+		
+		// write back modified mstatus
+		riscv_csr_set_mstatus(mstatus);
+		
+		// switch to ring 1
+		riscv_set_machmode(1);
+		
+		return;
+	} else {
+		// trap to machine mode
+		riscv_trap_machine(cause, tval);
+	}
+	
+	return;
+}
+
+helper void riscv_trap_machine(typename sword_t cause, typename word_t tval) noinline export
+{
+	// cannot delegate a trap which happens in machine mode, so handle it
+	// immediately
+	
+	uint8 is_interrupt = cause < 0;
+	typename word_t bare_cause = (cause << 1) >> 1;
+	
+	// update MEPC
+	riscv_csr_set_mepc(get_pc());
+	
+	// update mcause and mtval
+	riscv_csr_set_mcause(cause);
+	riscv_csr_set_mtval(tval);
+	
+	// update MPP
+	typename word_t mstatus = riscv_csr_get_mstatus();
+	mstatus = riscv_mstatus_set_mpp(mstatus, riscv_get_machmode());
+	
+	
+	// jump to exception handler
+	typename word_t vector_base = riscv_csr_get_mtvec();
+	typename word_t vector = vector_base & ~0x3;
+	if(vector_base & 3) {
+		if(is_interrupt) {
+			vector += 4 * bare_cause;
+		}
+	}
+	write_register(PC, vector);
+	
+	// configure interrupts
+	// stack mie onto mpie
+	mstatus = riscv_mstatus_set_mpie(mstatus, riscv_mstatus_get_mie(mstatus));
+	mstatus = riscv_mstatus_set_mie(mstatus, 0);
+	
+	// write back modified mstatus
+	riscv_csr_set_mstatus(mstatus);
+	
+	// switch to ring 3
+	riscv_set_machmode(3);
+	
+	return;
+}
+
+helper void riscv_take_exception(typename sword_t cause, typename word_t tval) export
+{
+	switch(read_register(MACHMODE)) {
+		case 0: {
+			riscv_trap_user(cause, tval);
+			break;
+		}
+		case 1: {
+			riscv_trap_supervisor(cause, tval);
+			break;
+		}
+		case 2: {
+			trap();
+			break;
+		}
+		case 3: {
+			riscv_trap_machine(cause, tval);
+			break;
+		}
+	}
+	
+	return;
+}
+

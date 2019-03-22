@@ -206,10 +206,10 @@ bool BaseBlockJITTranslate::build_block(archsim::core::thread::ThreadInstance *p
 	return emit_block(processor, block_address, builder, block_heads);
 }
 
-bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstance* cpu, archsim::Address pc, gensim::BaseDecode* insn, captive::shared::IRBuilder& builder)
+bool BaseBlockJITTranslate::emit_instruction(archsim::core::thread::ThreadInstance* cpu, archsim::Address pc, gensim::BaseDecode*& insn, captive::shared::IRBuilder& builder)
 {
 	_decode_ctx->Reset(cpu);
-	auto fault = _decode_ctx->DecodeSync(cpu->GetFetchMI(), pc, GetIsaMode(), *insn);
+	auto fault = _decode_ctx->DecodeSync(cpu->GetFetchMI(), pc, GetIsaMode(), insn);
 	_decode_ctx->WriteBackState(cpu);
 	assert(!fault);
 

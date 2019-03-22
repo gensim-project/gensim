@@ -23,7 +23,7 @@
 #include "util/LogContext.h"
 #include "util/CounterTimer.h"
 
-#include "arch/arm/ArmSystemEmulationModel.h"
+#include "abi/devices/generic/block/FileBackedBlockDevice.h"
 #include "abi/devices/generic/block/MemoryCOWBlockDevice.h"
 
 #include "abi/devices/generic/timing/TickSource.h"
@@ -37,7 +37,7 @@
 \t\tArchsim: The Edinburgh High Speed (EHS) Simulator\n \
 \t\t\tUniversity of Edinburgh (c) 2017\n \
 \t\t\t\tRevision : SCM_REV\n \
-\t\t\t\tConfiguration: CONFIGSTRING\n\n)
+\t\t\t\tConfiguration: ARCHSIM_CONFIGSTRING\n\n)
 
 
 #ifdef CONFIG_MEMTRACE
@@ -88,6 +88,8 @@ static int run_simple_simulation(archsim::Session& session)
 	// Store a pointer to the system object, and start the simulation.
 	signals_register(simsys);
 
+	simsys->GetTickSource()->Start();
+
 	simsys->RunSimulation();
 	int rc = simsys->exit_code;
 
@@ -95,6 +97,7 @@ static int run_simple_simulation(archsim::Session& session)
 		simsys->PrintStatistics(std::cout);
 	}
 
+	simsys->GetTickSource()->Stop();
 	// Destroy System after simulation to clean up resources
 	simsys->Destroy();
 
@@ -140,16 +143,18 @@ int main(int argc, char *argv[])
 
 
 	// By default, we only show errors;
-	archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_ERROR);
+	if(!archsim::options::LogLevel.IsSpecified()) {
+		archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_ERROR);
 
-	// Update the reporting level.  If verbose is specified, then we show information messages.
-	if (archsim::options::Verbose && (archsim::options::LogLevel > archsim::util::LogEvent::LL_INFO)) {
-		archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_INFO);
-	}
+		// Update the reporting level.  If verbose is specified, then we show information messages.
+		if (archsim::options::Verbose && (archsim::options::LogLevel > archsim::util::LogEvent::LL_INFO)) {
+			archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_INFO);
+		}
 
-	// If debug is specified, then we show debug1 messages.
-	if (archsim::options::Debug && !archsim::options::LogLevel.IsSpecified() && (archsim::options::LogLevel > archsim::util::LogEvent::LL_DEBUG1)) {
-		archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_DEBUG1);
+		// If debug is specified, then we show debug1 messages.
+		if (archsim::options::Debug && !archsim::options::LogLevel.IsSpecified() && (archsim::options::LogLevel > archsim::util::LogEvent::LL_DEBUG1)) {
+			archsim::options::LogLevel.SetValue(archsim::util::LogEvent::LL_DEBUG1);
+		}
 	}
 
 	// Initialise the logging subsystem.

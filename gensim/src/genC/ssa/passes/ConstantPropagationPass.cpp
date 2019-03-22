@@ -157,7 +157,7 @@ private:
 
 	bool ReplaceUse(SSAReadStructMemberStatement *rstruct, SSAVariableReadStatement *read) const
 	{
-		SSAReadStructMemberStatement *newread = new SSAReadStructMemberStatement(read->Parent, rstruct->Target(), rstruct->MemberName, rstruct->Index, read);
+		SSAReadStructMemberStatement *newread = new SSAReadStructMemberStatement(read->Parent, rstruct->Target(), rstruct->MemberNames, read);
 		newread->SetDiag(read->GetDiag());
 
 		DPRINTF("Replacing struct read\n");

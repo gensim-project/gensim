@@ -11,10 +11,12 @@
 #ifndef THREADMETRICS_H
 #define THREADMETRICS_H
 
+#include "core/arch/ArchDescriptor.h"
 #include "util/Counter.h"
 #include "util/CounterTimer.h"
 #include "util/Histogram.h"
 
+#include <functional>
 #include <ostream>
 
 namespace archsim
@@ -34,12 +36,32 @@ namespace archsim
 				archsim::util::Histogram PCHistogram;
 				archsim::util::Histogram OpcodeHistogram;
 				archsim::util::Histogram InstructionIRHistogram;
+
+				archsim::util::Counter64 ReadHits;
+				archsim::util::Counter64 Reads;
+				archsim::util::Counter64 WriteHits;
+				archsim::util::Counter64 Writes;
+
+				archsim::util::Counter64 JITInstructionCount;
+				archsim::util::CounterTimer JITTime;
+
+				archsim::util::CounterTimer InterpretTime;
+
+				archsim::util::Counter64 JITSuccessfulChains;
+				archsim::util::Counter64 JITFailedChains;
+				archsim::util::Histogram JITExitReasons;
 			};
 
 			class ThreadMetricPrinter
 			{
 			public:
-				void PrintStats(const ThreadMetrics &metrics, std::ostream &str);
+				void PrintStats(const ArchDescriptor &arch, const ThreadMetrics &metrics, std::ostream &str);
+			};
+
+			class HistogramPrinter
+			{
+			public:
+				void PrintHistogram(const archsim::util::Histogram &hist, std::ostream &str, std::function<std::string(archsim::util::HistogramEntry::histogram_key_t)> key_formatter);
 			};
 		}
 	}

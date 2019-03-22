@@ -14,7 +14,9 @@ namespace gensim
 {
 	namespace genc
 	{
+		class IRType;
 		class IRStructMap;
+		class IRConstantVector;
 
 		class IRConstant
 		{
@@ -36,12 +38,9 @@ namespace gensim
 			IRConstant(const IRConstant &other);
 			IRConstant & operator=(const IRConstant &other);
 
-			~IRConstant()
-			{
-				if(Type() == Type_Vector) {
-					delete vector_;
-				}
-			}
+			~IRConstant();
+
+			static IRConstant GetDefault(const gensim::genc::IRType &type);
 
 			static IRConstant Integer(uint64_t i)
 			{
@@ -86,13 +85,8 @@ namespace gensim
 				v.struct_ = struc;
 				return v;
 			}
-			static IRConstant Vector(int width, const IRConstant &def)
-			{
-				IRConstant v;
-				v.type_ = Type_Vector;
-				v.vector_ = new std::vector<IRConstant>(width, def);
-				return v;
-			}
+			static IRConstant Vector(int width, const IRConstant &def);
+			static IRConstant Vector(const IRConstantVector &vector);
 
 			uint64_t Int() const
 			{
@@ -109,10 +103,20 @@ namespace gensim
 				GASSERT(Type() == Type_Float_Double);
 				return double_;
 			}
+			uint64_t DblBits() const
+			{
+				GASSERT(Type() == Type_Float_Double);
+				return *(uint64_t*)&double_;
+			}
 			float Flt() const
 			{
 				GASSERT(Type() == Type_Float_Single);
 				return float_;
+			}
+			uint32_t FltBits() const
+			{
+				GASSERT(Type() == Type_Float_Single);
+				return *(uint32_t*)&float_;
 			}
 			uint64_t POD() const
 			{
@@ -163,9 +167,16 @@ namespace gensim
 			static IRConstant ROR(const IRConstant &lhs, const IRConstant &rhs, int width);
 
 			// Vector operators
-			IRConstant VGet(int idx) const;
-			void VPut(int idx, const IRConstant &val);
-			size_t VSize() const;
+			IRConstantVector &GetVector()
+			{
+				GASSERT(type_ == Type_Vector);
+				return *vector_;
+			}
+			const IRConstantVector &GetVector() const
+			{
+				GASSERT(type_ == Type_Vector);
+				return *vector_;
+			}
 
 		private:
 			ValueType type_;
@@ -181,7 +192,37 @@ namespace gensim
 				} integer128_;
 			};
 			const IRStructMap * struct_;
-			std::vector<IRConstant> * vector_;
+			IRConstantVector * vector_;
+		};
+
+
+		class IRConstantVector
+		{
+		public:
+			IRConstantVector(int width, IRConstant def_elem) : storage_(width, def_elem) {}
+
+			const IRConstant &GetElement(int i) const
+			{
+				return storage_.at(i);
+			}
+			void SetElement(int i, const IRConstant &elem)
+			{
+				GASSERT(TypeMatches(elem));
+				storage_.at(i) = elem;
+			}
+			int Width() const
+			{
+				return storage_.size();
+			}
+
+		protected:
+			bool TypeMatches(const IRConstant &e)
+			{
+				return storage_.at(0).Type() == e.Type();
+			}
+
+		private:
+			std::vector<IRConstant> storage_;
 		};
 
 		class IRStructMap

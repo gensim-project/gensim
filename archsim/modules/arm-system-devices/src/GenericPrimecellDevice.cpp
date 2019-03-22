@@ -40,7 +40,7 @@ namespace archsim
 				return true;
 			}
 
-			bool GenericPrimecellDevice::Read(uint32_t offset, uint8_t size, uint32_t& data)
+			bool GenericPrimecellDevice::Read(uint32_t offset, uint8_t size, uint64_t& data)
 			{
 				uint32_t reg = (offset & (GetSize()-1));
 
@@ -82,7 +82,7 @@ namespace archsim
 				return true;
 			}
 
-			bool GenericPrimecellDevice::Write(uint32_t offset, uint8_t size, uint32_t data)
+			bool GenericPrimecellDevice::Write(uint32_t offset, uint8_t size, uint64_t data)
 			{
 				uint32_t reg = (offset & (GetSize()-1));
 				switch(reg) {

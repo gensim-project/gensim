@@ -128,7 +128,7 @@ uint32_t GlobalRegisterAllocationTransform::GetStackFrameSize() const
 	return stack_frame_size_;
 }
 
-wutils::vbitset GlobalRegisterAllocationTransform::GetUsedPhysRegs() const
+wutils::vbitset<> GlobalRegisterAllocationTransform::GetUsedPhysRegs() const
 {
 	return used_phys_regs_;
 }

@@ -68,7 +68,7 @@ namespace archsim
 		{
 		public:
 			TranslationBlockUnit(const TranslationBlockUnit&) = delete;
-			TranslationBlockUnit(TranslationWorkUnit& twu, Address offset, uint8_t isa_mode, bool entry_block);
+			TranslationBlockUnit(Address offset, uint8_t isa_mode, bool entry_block, uint64_t interp_count);
 			~TranslationBlockUnit();
 
 			TranslationInstructionUnit *AddInstruction(gensim::BaseDecode* decode, Address offset);
@@ -143,12 +143,15 @@ namespace archsim
 				return spanning;
 			}
 
-			void GetCtrlFlowInfo(bool &direct_jump, bool &indirect_jump, int32_t &direct_offset, int32_t &fallthrough_offset) const;
+			uint64_t GetInterpCount() const
+			{
+				return interp_count_;
+			}
 
 		private:
-			TranslationWorkUnit& twu;
 
 			Address offset;
+			uint64_t interp_count_;
 			uint8_t isa_mode;
 			bool entry;
 			bool interrupt_check;
@@ -174,10 +177,7 @@ namespace archsim
 				return emit_trace_calls;
 			}
 
-			inline uint32_t GetWeight() const
-			{
-				return weight;
-			}
+			uint32_t GetWeight() const;
 
 			inline uint32_t GetGeneration() const
 			{
@@ -222,6 +222,7 @@ namespace archsim
 			std::set<Address> potential_virtual_bases;
 
 		private:
+			uint64_t dispatch_heat_;
 			archsim::core::thread::ThreadInstance *thread;
 			profile::Region& region;
 			uint32_t generation;

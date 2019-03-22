@@ -1,5 +1,6 @@
 archsim_add_sources(
 	LowerAdcFlags.cpp
+	LowerSbcFlags.cpp
 	LowerAddSub.cpp
 	LowerBitwise.cpp
 	LowerBranch.cpp

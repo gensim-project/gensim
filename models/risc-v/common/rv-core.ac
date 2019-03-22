@@ -1,0 +1,370 @@
+/*
+RISC-V
+*/
+
+AC_ISA(riscv) 
+{
+	/* Instructions for processing data - ALU */
+
+	ac_format Type_I = "%imm:12 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+
+	ac_format Type_I_shamt = "%imm:6 %shamt:6 %rs1:5 %funct3:3 %rd:5 %opcode:7"; 
+
+	ac_format Type_R = "%funct7:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+
+	ac_format Type_S = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %imm1:5 %opcode:7";
+
+	ac_format Type_B = "%imm4:1 %imm2:6 %rs2:5 %rs1:5 %funct3:3 %imm1:4 %imm3:1 %opcode:7";
+
+	ac_format Type_U = "%imm:20 %rd:5 %opcode:7";
+
+	ac_format Type_J = "%imm4:1 %imm1:10 %imm2:1 %imm3:8 %rd:5 %opcode:7";
+	ac_field<sint32> j_offset; // jump offset field for constant jumps
+
+	ac_format Type_FENCE = "%imm:4 %pred:4 %succ:4 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+
+	ac_format Type_CSR1 = "%csr:12 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+
+	ac_format Type_CSR2 = "%csr:12 %imm:5 %funct3:3 %rd:5 %opcode:7";
+
+	// we need this because of a bug in gensim
+	ac_format Hacky_arm_format = "%cond2:32";
+
+
+	///////////////////////////////////Base Instructions///////////////////////////////////////
+	ac_instr<Type_U> lui,auipc;
+
+	ac_instr<Type_J> jal;
+
+	ac_instr<Type_I> jalr,lb,lh,lw,lbu,lhu,addi,slti,sltiu,xori,ori,andi,ecall,ebreak;
+
+	ac_instr<Type_I_shamt> slli,srli,srai;
+
+	ac_instr<Type_B> beq,bne,blt,bge,bltu,bgeu;
+
+	ac_instr<Type_S> sb,sh,sw;
+
+	ac_instr<Type_R> add,sub,sll,slt,sltu,xor,srl,sra,or,and, uret, sret, mret, wfi;
+
+	ac_instr<Type_FENCE> fence,fencei;
+
+	ac_instr<Type_CSR1> csrrw, csrrs, csrrc;
+
+	ac_instr<Type_CSR2> csrrwi, csrrsi, csrrci;
+
+	///////////////////////////////// F Standard Extension////////////////////////////////////
+	
+
+
+////////RISC-V specific register names/////////////////////////
+	ac_asm_map reg
+	{
+		"x"[0..31] = [0..31];
+	}	
+
+/////////////////////behaviour/////////////////////////////////
+
+//32 Base Instructions
+
+	ac_behaviour lui;
+	ac_behaviour auipc;
+	ac_behaviour jal;
+	ac_behaviour jalr;
+	ac_behaviour beq;
+	ac_behaviour bne;
+	ac_behaviour blt;
+	ac_behaviour bge;
+	ac_behaviour bltu;
+	ac_behaviour bgeu;
+	ac_behaviour lb;
+	ac_behaviour lh;
+	ac_behaviour lw;
+	ac_behaviour lbu;
+	ac_behaviour lhu;
+	ac_behaviour sb;
+	ac_behaviour sh;
+	ac_behaviour sw;
+	ac_behaviour addi;
+	ac_behaviour slti;
+	ac_behaviour sltiu;
+	ac_behaviour xori;
+	ac_behaviour ori;
+	ac_behaviour andi;
+	ac_behaviour slli;
+	ac_behaviour srli;
+	ac_behaviour srai;
+	ac_behaviour add;
+	ac_behaviour sub;
+	ac_behaviour sll;
+	ac_behaviour slt;
+	ac_behaviour sltu;
+	ac_behaviour xor;
+	ac_behaviour srl;
+	ac_behaviour sra;
+	ac_behaviour or;
+	ac_behaviour and;
+	ac_behaviour fence;
+	ac_behaviour fencei;
+	ac_behaviour ecall;
+	ac_behaviour ebreak;
+	ac_behaviour csrrw;
+	ac_behaviour csrrs;
+	ac_behaviour csrrc;
+	ac_behaviour csrrwi;
+	ac_behaviour csrrsi;
+	ac_behaviour csrrci;
+	ac_behaviour uret, sret, mret, wfi;
+
+/*** End of ac_behaviour declarations***/
+
+	ISA_CTOR(riscv)
+	{
+		ac_behaviours("common/behaviours.riscv");
+		ac_execute("common/execute.riscv");
+		ac_execute("common/execute.system");
+		ac_execute("common/execute.csr");
+
+// 32-Base Instructions
+
+		lui.set_decoder(opcode=0x37);
+		lui.set_asm("lui %reg, %imm", rd, imm);
+		lui.set_behaviour(lui);
+
+		auipc.set_decoder(opcode=0x17);
+		auipc.set_asm("auipc %reg,%imm", rd, imm);
+		auipc.set_behaviour(auipc);
+
+		jal.set_decoder(opcode=0x6F);
+		jal.set_asm("jal %reg, %imm, %imm, %imm, %imm", rd, imm4, imm3, imm2, imm1);
+		jal.set_behaviour(jal);
+		jal.set_end_of_block();
+		jal.set_fixed_jump(j_offset, RELATIVE, 0);
+
+		jalr.set_decoder(funct3=0x0, opcode=0x67);
+		jalr.set_asm("jalr %reg, %reg, %imm", rd, rs1, imm);
+		jalr.set_behaviour(jalr);
+		jalr.set_end_of_block();
+		jalr.set_variable_jump();
+
+		beq.set_decoder(funct3=0x0, opcode=0x63);
+		beq.set_asm("beq %reg, %reg, %imm, %imm, %imm, %imm", rs1, rs2, imm4, imm3, imm2, imm1);
+		beq.set_behaviour(beq);
+		beq.set_end_of_block();
+		beq.set_variable_jump();
+
+		bne.set_decoder(funct3=0x1, opcode=0x63);
+		bne.set_asm("bne %reg, %reg, %imm, %imm, %imm, %imm", rs1, rs2, imm4, imm3, imm2, imm1);
+		bne.set_behaviour(bne);
+		bne.set_end_of_block();
+		bne.set_variable_jump();
+
+		blt.set_decoder(funct3=0x4, opcode=0x63);
+		blt.set_asm("blt %reg, %reg, %imm, %imm, %imm, %imm", rs1, rs2, imm4, imm3, imm2, imm1);
+		blt.set_behaviour(blt);
+		blt.set_end_of_block();
+		blt.set_variable_jump();
+
+		bge.set_decoder(funct3=0x5, opcode=0x63);
+		bge.set_asm("bge %reg, %reg, %imm, %imm, %imm, %imm", rs1, rs2, imm4, imm3, imm2, imm1);
+		bge.set_behaviour(bge);
+		bge.set_end_of_block();
+		bge.set_variable_jump();
+
+		bltu.set_decoder(funct3=0x6, opcode=0x63);
+		bltu.set_asm("bltu %reg, %reg, %imm, %imm, %imm, %imm", rs1, rs2, imm4, imm3, imm2, imm1);
+		bltu.set_behaviour(bltu);
+		bltu.set_end_of_block();
+		bltu.set_variable_jump();
+
+		bgeu.set_decoder(funct3=0x7, opcode=0x63);
+		bgeu.set_asm("bgeu %reg, %reg, %imm, %imm, %imm, %imm", rs1, rs2, imm4, imm3, imm2, imm1);
+		bgeu.set_behaviour(bgeu);
+		bgeu.set_end_of_block();
+		bgeu.set_variable_jump();
+
+		lb.set_decoder(funct3=0x0, opcode=0x03);
+		lb.set_asm("lb %reg, %reg, %imm", rd, rs1, imm);
+		lb.set_asm("lb %reg, %imm (%reg)", rd, imm, rs1);
+		lb.set_behaviour(lb);
+
+		lh.set_decoder(funct3=0x1, opcode=0x03);
+		lh.set_asm("lh %reg, %reg, %imm", rd, rs1, imm);
+		lh.set_asm("lh %reg, %imm (%reg)", rd, imm, rs1);
+		lh.set_behaviour(lh);
+
+		lw.set_decoder(funct3=0x2, opcode=0x03);
+		lw.set_asm("lw %reg, %reg, %imm", rd, rs1, imm);
+		lw.set_asm("lw %reg, %imm (%reg)", rd, imm, rs1);
+		lw.set_behaviour(lw);
+
+		lbu.set_decoder(funct3=0x4, opcode=0x03);
+		lbu.set_asm("lbu %reg, %reg, %imm", rd, rs1, imm);
+		lbu.set_asm("lbu %reg, %imm (%reg)", rd, imm, rs1);
+		lbu.set_behaviour(lbu);
+
+		lhu.set_decoder(funct3=0x5, opcode=0x03);
+		lhu.set_asm("lhu %reg, %reg, %imm", rd, rs1, imm);
+		lhu.set_asm("lhu %reg, %imm (%reg)", rd, imm, rs1);
+		lhu.set_behaviour(lhu);
+
+		sb.set_decoder(funct3=0x0, opcode=0x23);
+		sb.set_asm("sb %reg, %reg, %imm, %imm", rs1, rs2, imm2, imm1);
+		sb.set_asm("sb %reg, %imm, %imm (%reg)", rs2, imm2, imm1, rs1);
+		sb.set_behaviour(sb);
+
+		sh.set_decoder(funct3=0x1, opcode=0x23);
+		sh.set_asm("sh %reg, %reg, %imm, %imm", rs1, rs2, imm2, imm1);
+		sh.set_asm("sh %reg, %imm, %imm (%reg)", rs2, imm2, imm1, rs1);
+		sh.set_behaviour(sh);
+
+		sw.set_decoder(funct3=0x2, opcode=0x23);
+		sw.set_asm("sw %reg, %reg, %imm, %imm", rs1, rs2, imm2, imm1);
+		sw.set_asm("sw %reg, %imm, %imm (%reg)", rs2, imm2, imm1, rs1);
+		sw.set_behaviour(sw);
+
+		addi.set_decoder(funct3=0x0, opcode=0x13);
+		addi.set_asm("addi %reg, %reg, %imm", rd, rs1, imm);
+		addi.set_asm("mv %reg, %reg", rd, rs1, imm=0);
+		addi.set_asm("nop", rd=0, rs1=0, imm=0);
+		addi.set_asm("li %reg, %imm", rd, rs1=0, imm);
+		addi.set_behaviour(addi);
+
+		slti.set_decoder(funct3=0x2, opcode=0x13);
+		slti.set_asm("slti %reg, %reg, %imm", rd, rs1, imm);
+		slti.set_behaviour(slti);
+
+		sltiu.set_decoder(funct3=0x3, opcode=0x13);
+		sltiu.set_asm("sltiu %reg, %reg, %imm", rd, rs1, imm);
+		sltiu.set_behaviour(sltiu);
+
+		xori.set_decoder(funct3=0x4, opcode=0x13);
+		xori.set_asm("xori %reg, %reg, %imm", rd, rs1, imm);
+		xori.set_behaviour(xori);
+
+		ori.set_decoder(funct3=0x6, opcode=0x13);
+		ori.set_asm("ori %reg, %reg, %imm", rd, rs1, imm);
+		ori.set_behaviour(ori);
+
+		andi.set_decoder(funct3=0x7, opcode=0x13);
+		andi.set_asm("andi %reg, %reg, %imm", rd, rs1, imm);
+		andi.set_behaviour(andi);
+
+		slli.set_decoder(imm=0x00, funct3=0x1, opcode=0x13);
+		slli.set_asm("slli %reg, %reg, %imm", rd, rs1, shamt);
+		slli.set_behaviour(slli);
+
+		srli.set_decoder(imm=0x00, funct3=0x5, opcode=0x13);
+		srli.set_asm("srli %reg, %reg, %imm", rd, rs1, shamt);
+		srli.set_behaviour(srli);
+
+		srai.set_decoder(imm=0x10, funct3=0x5, opcode=0x13);
+		srai.set_asm("srai %reg, %reg, %imm", rd, rs1, shamt);
+		srai.set_behaviour(srai);
+
+		add.set_decoder(funct7=0x00, funct3=0x0, opcode=0x33);
+		add.set_asm("add %reg, %reg, %reg", rd, rs1, rs2);
+		add.set_behaviour(add);
+
+		sub.set_decoder(funct7=0x20, funct3=0x0, opcode=0x33);
+		sub.set_asm("sub %reg, %reg, %reg", rd, rs1, rs2);
+		sub.set_behaviour(sub);
+
+		sll.set_decoder(funct7=0x00, funct3=0x1, opcode=0x33);
+		sll.set_asm("sll %reg, %reg, %reg", rd, rs1, rs2);
+		sll.set_behaviour(sll);
+
+		slt.set_decoder(funct7=0x00, funct3=0x2, opcode=0x33);
+		slt.set_asm("slt %reg, %reg, %reg", rd, rs1, rs2);
+		slt.set_behaviour(slt);
+
+		sltu.set_decoder(funct7=0x00, funct3=0x3, opcode=0x33);
+		sltu.set_asm("sltu %reg, %reg, %reg", rd, rs1, rs2);
+		sltu.set_behaviour(sltu);
+
+		xor.set_decoder(funct7=0x00, funct3=0x4, opcode=0x33);
+		xor.set_asm("xor %reg, %reg, %reg", rd, rs1, rs2);
+		xor.set_behaviour(xor);
+
+		srl.set_decoder(funct7=0x00, funct3=0x5, opcode=0x33);
+		srl.set_asm("srl %reg, %reg, %reg", rd, rs1, rs2);
+		srl.set_behaviour(srl);
+
+		sra.set_decoder(funct7=0x20, funct3=0x5, opcode=0x33);
+		sra.set_asm("sra %reg, %reg, %reg", rd, rs1, rs2);
+		sra.set_behaviour(sra);
+
+		or.set_decoder(funct7=0x00, funct3=0x6, opcode=0x33);
+		or.set_asm("or %reg, %reg, %reg", rd, rs1, rs2);
+		or.set_behaviour(or);
+
+		and.set_decoder(funct7=0x00, funct3=0x7, opcode=0x33);
+		and.set_asm("and %reg, %reg, %reg", rd, rs1, rs2);
+		and.set_behaviour(and);
+
+////////////////////FENCE////////////////////////////////////////////////
+
+
+		fence.set_decoder(imm=0x0, rs1=0x00, funct3=0x0, rd=0x00, opcode=0x0F);
+		fence.set_asm("fence %imm, %imm", pred, succ);
+		fence.set_behaviour(fence);
+
+		fencei.set_decoder(imm=0x0, pred=0x0, succ=0x0, rs1=0x00, funct3=0x1, rs1= 0x00, opcode=0x0F);
+		fencei.set_asm("fencei");
+		fencei.set_behaviour(fencei);
+
+		ecall.set_decoder(imm=0x000, rs1=0x00, funct3=0x0, rd=0x00, opcode=0x73);
+		ecall.set_asm("ecall");
+		ecall.set_behaviour(ecall);
+		ecall.set_end_of_block();
+
+		ebreak.set_decoder(imm=0x001, rs1=0x00, funct3=0x0, rd=0x00, opcode=0x73);
+		ebreak.set_asm("ebreak");
+		ebreak.set_behaviour(ebreak);
+		ebreak.set_end_of_block();
+		
+		csrrw.set_decoder(funct3=0x1, opcode=0x73);
+		csrrw.set_asm("csrrw %reg, %reg, %reg", csr, rd, rs1);
+		csrrw.set_behaviour(csrrw);
+
+		csrrs.set_decoder(funct3=0x2, opcode=0x73);
+		csrrs.set_asm("csrrs %reg, %reg, %reg", csr, rd, rs1);
+		csrrs.set_behaviour(csrrs);
+
+		csrrc.set_decoder(funct3=0x3, opcode=0x73);
+		csrrc.set_asm("csrrs %reg, %reg, %reg", csr, rd, rs1);
+		csrrc.set_behaviour(csrrc);
+
+		csrrwi.set_decoder(funct3=0x5, opcode=0x73);
+		csrrwi.set_asm("csrrwi %reg, %reg, %exp", csr, rd, imm);
+		csrrwi.set_behaviour(csrrwi);
+
+		csrrsi.set_decoder(funct3=0x6, opcode=0x73);
+		csrrsi.set_asm("csrrsi %reg, %reg, %exp", csr, rd, imm);
+		csrrsi.set_behaviour(csrrsi);
+
+		csrrci.set_decoder(funct3=0x7, opcode=0x73);
+		csrrci.set_asm("csrrci %reg, %reg, %exp", csr, rd, imm);
+		csrrci.set_behaviour(csrrci); 
+
+		mret.set_decoder(funct7=0x18, rd=0, rs1=0, rs2=0x2, funct3=0, opcode=0x73);
+		mret.set_asm("mret");
+		mret.set_behaviour(mret);
+		mret.set_end_of_block();
+		mret.set_variable_jump();
+		
+		sret.set_decoder(funct7=0x08, rd=0, rs1=0, rs2=0x2, funct3=0, opcode=0x73);
+		sret.set_asm("sret");
+		sret.set_behaviour(sret);
+		sret.set_end_of_block();
+		sret.set_variable_jump();
+		
+		uret.set_decoder(funct7=0x00, rd=0, rs1=0, rs2=0x2, funct3=0, opcode=0x73);
+		uret.set_asm("uret");
+		uret.set_behaviour(uret);
+		uret.set_end_of_block();
+		uret.set_variable_jump();
+		
+		wfi.set_decoder(funct7 = 0x08, rs2 = 0x5, rd=0, rs1=0, funct3=0, opcode=0x73);
+		wfi.set_behaviour(wfi);
+	};
+};

@@ -32,7 +32,7 @@ bool WorkUnitQueueComparator::operator()(const TranslationWorkUnit* lhs, const T
 	return lhs->GetWeight() < rhs->GetWeight();
 }
 
-bool AsynchronousTranslationManager::Initialise(gensim::blockjit::BaseBlockJITTranslate *translate)
+bool AsynchronousTranslationManager::Initialise(gensim::BaseLLVMTranslate *translate)
 {
 	if (!TranslationManager::Initialise())
 		return false;
@@ -52,9 +52,9 @@ void AsynchronousTranslationManager::Destroy()
 	// about to be terminated.
 	work_unit_queue_lock.lock();
 
-	while(!work_unit_queue.empty()) {
-		auto i = work_unit_queue.top();
-		work_unit_queue.pop();
+	while(!work_unit_queue_.empty()) {
+		auto i = work_unit_queue_.back();
+		work_unit_queue_.pop_back();
 		delete i;
 	}
 
@@ -71,9 +71,11 @@ void AsynchronousTranslationManager::Destroy()
 	TranslationManager::Destroy();
 }
 
-void AsynchronousTranslationManager::UpdateThreshold()
+bool AsynchronousTranslationManager::UpdateThreshold()
 {
-	if (work_unit_queue.size() > workers.size() * 2) {
+	auto initial_threshold = curr_hotspot_threshold;
+
+	if (work_unit_queue_.size() > workers.size() * 2) {
 		curr_hotspot_threshold *= 10;
 
 		// Cap the threshold to stop it from overflowing
@@ -91,11 +93,13 @@ void AsynchronousTranslationManager::UpdateThreshold()
 
 	// Since the threshold modifications are multiplicative, if the threshold becomes 0 we will be stuck
 	assert(curr_hotspot_threshold > 0);
+
+	return initial_threshold != curr_hotspot_threshold;
 }
 
 bool AsynchronousTranslationManager::TranslateRegion(archsim::core::thread::ThreadInstance *cpu, profile::Region& region, uint32_t weight)
 {
-	fprintf(stderr, "*** Translating %x\n", region.GetPhysicalBaseAddress());
+//	fprintf(stderr, "*** Translating %x\n", region.GetPhysicalBaseAddress());
 
 	if (!region.IsValid()) return false;
 
@@ -109,8 +113,8 @@ bool AsynchronousTranslationManager::TranslateRegion(archsim::core::thread::Thre
 	// Acquire the work unit queue lock.
 	work_unit_queue_lock.lock();
 
-	work_unit_queue.push(twu);
-	LC_DEBUG1(LogWorkQueue) << "[ENQUEUE] Enqueueing " << *twu << ", queue length " << work_unit_queue.size();
+	work_unit_queue_.push_back(twu);
+	LC_DEBUG1(LogWorkQueue) << "[ENQUEUE] Enqueueing " << *twu << ", queue length " << work_unit_queue_.size() << " threshold " << curr_hotspot_threshold;
 
 	work_unit_queue_cond.notify_one();
 	work_unit_queue_lock.unlock();
@@ -123,7 +127,7 @@ void AsynchronousTranslationManager::PrintStatistics(std::ostream& stream)
 	TranslationManager::PrintStatistics(stream);
 
 	work_unit_queue_lock.lock();
-	stream << "Work Queue Size: " << work_unit_queue.size() << std::endl;
+	stream << "Work Queue Size: " << work_unit_queue_.size() << std::endl;
 	work_unit_queue_lock.unlock();
 
 	stream << "-----------------------------------------------------" << std::endl;

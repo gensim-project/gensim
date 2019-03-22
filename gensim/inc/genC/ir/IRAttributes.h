@@ -19,7 +19,6 @@ namespace gensim
 			enum EActionAttribute {
 				NoInline,
 				Helper,
-				External,
 				Export
 			};
 		}

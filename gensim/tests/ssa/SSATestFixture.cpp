@@ -20,7 +20,7 @@ SSATestFixture::SSATestFixture() : test_arch_(gensim::arch::testing::GetTestArch
 	test_context_ = new SSAContext(*isa, *test_arch_);
 	gensim::genc::InstStructBuilder isb;
 
-	test_context_->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa));
+	test_context_->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa, test_context_->GetTypeManager()));
 }
 
 SSAFormAction* SSATestFixture::CompileAsm(const std::string& src, const std::string &action_name)

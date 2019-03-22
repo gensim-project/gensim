@@ -34,7 +34,8 @@ TraceSource::TraceSource(uint32_t BufferSize)
 	is_terminated_(false),
 	sink_(nullptr),
 	aggressive_flushing_(true),
-	packet_open_(false)
+	packet_open_(false),
+	skip_(0)
 {
 	packet_buffer_ = (TraceRecord*)malloc(PacketBufferSize * sizeof(TraceRecord));
 	packet_buffer_end_ = packet_buffer_+PacketBufferSize;
@@ -46,9 +47,15 @@ TraceSource::~TraceSource()
 	assert(is_terminated_);
 }
 
+void TraceSource::SetSink(TraceSink* sink)
+{
+	sink_ = sink;
+	id_ = sink->Open();
+}
+
 void TraceSource::EmitPackets()
 {
-	sink_->SinkPackets(packet_buffer_, packet_buffer_pos_);
+	sink_->SinkPackets(id_, packet_buffer_, packet_buffer_pos_);
 	packet_buffer_pos_ = packet_buffer_;
 }
 

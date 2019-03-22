@@ -11,6 +11,8 @@
 #include "core/MemoryInterface.h"
 #include "core/execution/ExecutionEngineFactory.h"
 
+#include <sys/param.h>
+
 extern char **environ;
 
 UseLogContext(LogEmulationModel);
@@ -19,13 +21,15 @@ DeclareChildLogContext(LogEmulationModelUser, LogEmulationModel, "User");
 using namespace archsim::abi;
 using archsim::Address;
 
-UserEmulationModel::UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary) : syscall_handler_(user::SyscallHandlerProvider::Singleton().Get(arch)), is_64bit_(is_64bit_binary) { }
+UserEmulationModel::UserEmulationModel(const user::arch_descriptor_t &arch, bool is_64bit_binary, const AuxVectorEntries &auxvs) : syscall_handler_(user::SyscallHandlerProvider::Singleton().Get(arch)), is_64bit_(is_64bit_binary), auxvs_(auxvs)
+{
+	monitor_ = std::make_shared<archsim::core::BaseMemoryMonitor>();
+}
 
 UserEmulationModel::~UserEmulationModel() { }
 
 void UserEmulationModel::PrintStatistics(std::ostream& stream)
 {
-//	cpu->PrintStatistics(stream);
 
 }
 
@@ -48,23 +52,63 @@ bool UserEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 
 	auto module = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName);
-	auto archentry = module->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
-	if(archentry == nullptr) {
+
+	execution_engine_ = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
+	if(execution_engine_ == nullptr) {
 		return false;
 	}
-	auto arch = archentry->Get();
-	auto engine = archsim::core::execution::ExecutionEngineFactory::GetSingleton().Get(module, "");
-	GetSystem().GetECM().AddEngine(engine);
-	main_thread_ = new archsim::core::thread::ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
 
-	for(auto i : main_thread_->GetMemoryInterfaces()) {
-		i->Connect(*new archsim::LegacyMemoryInterface(GetMemoryModel()));
-		i->ConnectTranslationProvider(*new archsim::IdentityTranslationProvider());
-	}
+	GetSystem().GetECM().AddEngine(execution_engine_);
 
-	engine->AttachThread(main_thread_);
+	auto main_thread = CreateThread(nullptr);
+	StartThread(main_thread);
 
 	return true;
+}
+
+archsim::core::thread::ThreadInstance* UserEmulationModel::CreateThread(archsim::core::thread::ThreadInstance* cloned_thread)
+{
+	auto module = GetSystem().GetModuleManager().GetModule(archsim::options::ProcessorName);
+	auto archentry = module->GetEntry<archsim::module::ModuleArchDescriptorEntry>("ArchDescriptor");
+	if(archentry == nullptr) {
+		return nullptr;
+	}
+	auto arch = archentry->Get();
+
+	auto thread = new archsim::core::thread::ThreadInstance(GetSystem().GetPubSub(), *arch, *this);
+	int idx = 0;
+	for(auto i : thread->GetMemoryInterfaces()) {
+		i->Connect(*new archsim::CachedLegacyMemoryInterface(idx, GetMemoryModel(), thread));
+		i->ConnectTranslationProvider(*new archsim::IdentityTranslationProvider());
+		i->SetMonitor(monitor_);
+		idx++;
+	}
+
+	if(cloned_thread) {
+		memcpy(thread->GetRegisterFile(), cloned_thread->GetRegisterFile(), thread->GetArch().GetRegisterFileDescriptor().GetSize());
+	}
+
+	threads_.push_back(thread);
+
+	return thread;
+}
+
+void UserEmulationModel::StartThread(archsim::core::thread::ThreadInstance* thread)
+{
+	execution_engine_->AttachThread(thread);
+}
+
+unsigned int UserEmulationModel::GetThreadID(const archsim::core::thread::ThreadInstance* thread) const
+{
+	unsigned int id = 0;
+	for(auto i : threads_) {
+		id++;
+		if(thread == i) {
+			return id;
+		}
+	}
+
+	UNEXPECTED;
 }
 
 void UserEmulationModel::Destroy()
@@ -72,14 +116,9 @@ void UserEmulationModel::Destroy()
 //	UNIMPLEMENTED;
 }
 
-gensim::Processor *UserEmulationModel::GetCore(int id)
-{
-	UNIMPLEMENTED;
-}
-
 archsim::core::thread::ThreadInstance* UserEmulationModel::GetMainThread()
 {
-	return main_thread_;
+	return threads_.at(0);
 }
 
 void UserEmulationModel::ResetCores()
@@ -89,7 +128,7 @@ void UserEmulationModel::ResetCores()
 
 void UserEmulationModel::HaltCores()
 {
-	main_thread_->SendMessage(core::thread::ThreadMessage::Halt);
+	GetMainThread()->SendMessage(core::thread::ThreadMessage::Halt);
 }
 
 bool UserEmulationModel::InitialiseProgramArguments()
@@ -107,23 +146,32 @@ bool UserEmulationModel::InitialiseProgramArguments()
 
 bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location, uint32_t elf_phnum, uint32_t elf_phentsize)
 {
-	_initial_stack_pointer = Address(0xc0000000);
 	_stack_size = archsim::options::GuestStackSize;
+	_initial_stack_pointer = GetMemoryModel().GetMappingManager()->MapAnonymousRegion(_stack_size, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite)) + _stack_size;
 
-	if(_stack_size & ((1 << 12)-1)) {
-		LC_ERROR(LogEmulationModelUser) << "[USER-EMULATION] Guest stack size must be a multiple of host page size";
-		return false;
-	}
+//	if(Is64BitBinary()) {
+//		_initial_stack_pointer = Address(0x800000000000);
+//	} else {
+//		_initial_stack_pointer = Address(0xc0000000);
+//	}
+//
+//
+//	if(_stack_size & ((1 << 12)-1)) {
+//		LC_ERROR(LogEmulationModelUser) << "[USER-EMULATION] Guest stack size must be a multiple of host page size";
+//		return false;
+//	}
+//
+//	GetMemoryModel().GetMappingManager()->MapRegion(_initial_stack_pointer - _stack_size, _stack_size, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[stack]");
 
-	GetMemoryModel().GetMappingManager()->MapRegion(_initial_stack_pointer - _stack_size, _stack_size, (memory::RegionFlags)(memory::RegFlagRead | memory::RegFlagWrite), "[stack]");
-
-	unsigned long envp_ptrs[1];
-	unsigned long argv_ptrs[global_argc + 1];
+	std::vector<Address> envp_ptrs (global_envc);
+	std::vector<Address> argv_ptrs (global_argc + 1);
 
 	int argc = global_argc + 1;
-	int envc = 1;
+	int envc = global_envc;
 
 	Address sp = _initial_stack_pointer;
+	// bias the stack pointer by the given stack faffle
+	sp -= archsim::options::StackFaffle.GetValue();
 
 //	printf("Start (%08x)\n", sp);
 
@@ -133,21 +181,28 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 #define ALIGN_STACK(v) do { sp -= ((uint64_t)sp.Get() & (v - 1)); } while (0)
 #define PUSH_AUX_ENT(_id, _value) do { PUSH(_value); PUSH(_id); } while (0)
 
-	PUSH(0);
-	PUSHSTR(archsim::options::TargetBinary.GetValue().c_str()); // global_argv[0]);
-	argv_ptrs[0] = sp.Get();
+	PUSHSTR(auxvs_.PlatformName.c_str());
+	Address platform_ptr = sp;
 
-	for (int i = 0; i < global_envc; i++) {
-		if(environ[i][0] == '_')
-			PUSHSTR("_=/home/a.out");
-		else
+	PUSH(0);
+	char the_realpath[MAXPATHLEN];
+	realpath(archsim::options::TargetBinary.GetValue().c_str(), the_realpath);
+	PUSHSTR(the_realpath); // global_argv[0]);
+	argv_ptrs[0] = sp;
+
+	for (int i = global_envc-1; i >= 0; i--) {
+		if(environ[i][0] == '_') {
+			std::string envstr = "_=" + archsim::options::TargetBinary.GetValue();
+			PUSHSTR(envstr.c_str());
+		} else {
 			PUSHSTR(environ[i]);
-		envp_ptrs[i] = sp.Get();
+		}
+		envp_ptrs[i] = sp;
 	}
 
 	for(int i = 0; i < global_argc; ++i) {
 		PUSHSTR(global_argv[i]);
-		argv_ptrs[i+1] = sp.Get();
+		argv_ptrs[i+1] = sp;
 	}
 
 	for(int i = 0; i < 16; ++i) {
@@ -162,20 +217,29 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 	std::vector<std::pair<uint64_t, uint64_t>> auxv_entries;
 	int elf_info_idx = 0;
 #define NEW_AUXV_ENTRY(a, b) do { auxv_entries.push_back({a, b}); elf_info_idx += 2; } while(0)
-	NEW_AUXV_ENTRY(AT_HWCAP, 0x8197);
+	NEW_AUXV_ENTRY(AT_SYSINFO_EHDR, 0x7fff00000000);
+	NEW_AUXV_ENTRY(AT_HWCAP, auxvs_.HWCAP);
 	NEW_AUXV_ENTRY(AT_PAGESZ, 4096);
 	NEW_AUXV_ENTRY(AT_PHDR, elf_phdr_location.Get());
 	NEW_AUXV_ENTRY(AT_PHENT, elf_phentsize);
 	NEW_AUXV_ENTRY(AT_PHNUM, elf_phnum);
-	NEW_AUXV_ENTRY(AT_FLAGS, 0x0);
+//	NEW_AUXV_ENTRY(AT_BASE, 0);
+	NEW_AUXV_ENTRY(AT_CLKTCK, 0x64);
+//	NEW_AUXV_ENTRY(AT_FLAGS, 0x0);
 	NEW_AUXV_ENTRY(AT_ENTRY, _initial_entry_point.Get());
-	NEW_AUXV_ENTRY(AT_UID, 0);
-	NEW_AUXV_ENTRY(AT_EUID, 0);
-	NEW_AUXV_ENTRY(AT_GID, 0);
-	NEW_AUXV_ENTRY(AT_EGID, 0);
-	NEW_AUXV_ENTRY(AT_SECURE, 0);
+	NEW_AUXV_ENTRY(AT_UID, 1000);
+	NEW_AUXV_ENTRY(AT_EUID, 1000);
+	NEW_AUXV_ENTRY(AT_GID, 1000);
+	NEW_AUXV_ENTRY(AT_EGID, 1000);
+//	NEW_AUXV_ENTRY(AT_SECURE, 0);
 	NEW_AUXV_ENTRY(AT_RANDOM, random_ptr.Get());
-	NEW_AUXV_ENTRY(AT_EXECFN, 0x4321);
+
+	if(auxvs_.HWCAP2 != 0) {
+		NEW_AUXV_ENTRY(AT_HWCAP2, auxvs_.HWCAP2);
+	}
+
+	NEW_AUXV_ENTRY(AT_EXECFN, argv_ptrs.at(0).Get());
+	NEW_AUXV_ENTRY(AT_PLATFORM, platform_ptr.Get());
 
 	NEW_AUXV_ENTRY(AT_NULL, 0);
 
@@ -188,14 +252,13 @@ bool UserEmulationModel::PrepareStack(System &system, Address elf_phdr_location,
 #define WRITE_STACK(value) do { if(Is64BitBinary()) {GetMemoryModel().Write64(sp, value); sp += 8;} else { GetMemoryModel().Write32(sp, value); sp += 4;} } while(0)
 	WRITE_STACK(argc);
 	for(auto i : argv_ptrs) {
-		WRITE_STACK(i);
+		WRITE_STACK(i.Get());
 	}
 	WRITE_STACK(0);
 	for(auto i : envp_ptrs) {
-		WRITE_STACK(i);
+		WRITE_STACK(i.Get());
 	}
 	WRITE_STACK(0);
-
 	for(auto i : auxv_entries) {
 		WRITE_STACK(i.first);
 		WRITE_STACK(i.second);
@@ -330,7 +393,7 @@ Address UserEmulationModel::GetInitialBreak()
 	return _initial_program_break;
 }
 
-ExceptionAction UserEmulationModel::HandleException(archsim::core::thread::ThreadInstance *thread, unsigned int category, unsigned int data)
+ExceptionAction UserEmulationModel::HandleException(archsim::core::thread::ThreadInstance *thread, uint64_t category, uint64_t data)
 {
 	LC_WARNING(LogEmulationModelUser) << "Unhandled exception " << category << ", " << data;
 	return AbortSimulation;

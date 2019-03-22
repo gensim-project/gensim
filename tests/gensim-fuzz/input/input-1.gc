@@ -1,0 +1,18 @@
+execute(test_insn)
+{
+	typename word_t rs1 = read_register_bank(RB, inst.rs1);
+	typename word_t rs2 = read_register_bank(RB, inst.rs2);
+
+	typename word_t val;
+
+	if (rs2 == 0) {
+		val = -1;
+	} else if ((rs1 == 0x80000000) && (rs2 == 0xffffffff)) {
+		val = 0x80000000;
+	} else {
+		val = (typename sword_t)rs1 / (typename sword_t)rs2;
+	}
+
+	write_register_bank(RB, inst.rd, val);
+
+}

@@ -20,7 +20,7 @@ using namespace captive::arch::jit::lowering;
 using namespace captive::arch::jit::lowering::x86;
 using namespace captive::shared;
 
-X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd, const wutils::vbitset &used_regs) : MCLoweringContext(stack_frame_size, arch, sbd), _encoder(encoder), _stack_fixed(false), used_phys_regs(used_regs)
+X86LoweringContext::X86LoweringContext(uint32_t stack_frame_size, encoder_t &encoder, const archsim::ArchDescriptor &arch, const archsim::StateBlockDescriptor &sbd, const wutils::vbitset<> &used_regs) : MCLoweringContext(stack_frame_size, arch, sbd), _encoder(encoder), _stack_fixed(false), used_phys_regs(used_regs)
 {
 	int i = 0;
 #define ASSIGN_REGS(x) assign(i++, x(8), x(4), x(2), x(1))
@@ -105,6 +105,7 @@ bool X86LoweringContext::Prepare(const TranslationContext &ctx)
 	A(IRInstruction::FLUSH_DTLB_ENTRY, FlushTlbEntry);
 	A(IRInstruction::FLUSH_ITLB_ENTRY, FlushTlbEntry);
 	A(IRInstruction::ADC_WITH_FLAGS, AdcFlags);
+	A(IRInstruction::SBC_WITH_FLAGS, SbcFlags);
 	A(IRInstruction::SET_ZN_FLAGS, ZNFlags);
 	A(IRInstruction::TAKE_EXCEPTION, TakeException);
 	A(IRInstruction::VERIFY, Verify);

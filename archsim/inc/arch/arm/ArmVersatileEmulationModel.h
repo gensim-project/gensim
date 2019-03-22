@@ -28,22 +28,20 @@ namespace archsim
 				bool Initialise(System& system, uarch::uArch& uarch) override;
 				void Destroy() override;
 
-				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance *thread, uint32_t category, uint32_t data) override;
+				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance *thread, uint64_t category, uint64_t data) override;
 				gensim::DecodeContext* GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu) override;
 
 
 			protected:
-				bool InstallDevices() override;
-				void DestroyDevices() override;
-				bool InstallPlatform(abi::loader::BinaryLoader& loader) override;
+				bool CreateCoreDevices(archsim::core::thread::ThreadInstance* thread) override;
+				bool CreateMemoryDevices() override;
+				bool PreparePlatform(abi::loader::BinaryLoader& loader) override;
 
 				bool PrepareCore(archsim::core::thread::ThreadInstance& core) override;
 
 			private:
 				Address entry_point;
 
-				bool InstallPeripheralDevices();
-				bool InstallPlatformDevices();
 				bool InstallBootloader(archsim::abi::loader::BinaryLoader& loader);
 
 				bool HackyMMIORegisterDevice(abi::devices::MemoryComponent& device);

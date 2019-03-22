@@ -11,30 +11,18 @@
  */
 #pragma once
 
-#include "genC/ir/IRType.h"
-
-#include <string>
-
 namespace gensim
 {
 	namespace genc
 	{
-		class IntrinsicDefinition
-		{
-		public:
+		enum class IntrinsicID {
+			UNKNOWN,
 
-		};
+#define Intrinsic(name, id, ...) id,
+#include "Intrinsics.def"
+#undef Intrinsic
 
-		class InternalIntrinsicDefinition : public IntrinsicDefinition
-		{
-		public:
-			InternalIntrinsicDefinition(const std::string& name);
-		};
-
-		class ExternalIntrinsicDefinition : public IntrinsicDefinition
-		{
-		public:
-			ExternalIntrinsicDefinition(const IRType& ret_type, const std::string& name, ...);
+			END
 		};
 	}
 }

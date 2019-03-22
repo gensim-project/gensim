@@ -203,7 +203,6 @@ namespace gensim
 
 		private:
 			ssa::SSAStatement *EmitIntrinsicCall(ssa::SSABuilder &bldr, const gensim::arch::ArchDescription &) const;
-			ssa::SSAStatement *EmitExternalCall(ssa::SSABuilder &bldr, const gensim::arch::ArchDescription &) const;
 			ssa::SSAStatement *EmitHelperCall(ssa::SSABuilder &bldr, const gensim::arch::ArchDescription &) const;
 
 			IRCallableAction *Target;
@@ -233,8 +232,14 @@ namespace gensim
 		class IRCastExpression : public IRExpression
 		{
 		public:
+			enum IRCastType {
+				Transform,
+				Bitcast
+			};
+
 			const IRType ToType;
 			IRExpression *Expr;
+			IRCastType CastType;
 
 			virtual bool Resolve(GenCContext &Context);
 			virtual ssa::SSAStatement *EmitSSAForm(ssa::SSABuilder &bldr) const;
@@ -247,7 +252,8 @@ namespace gensim
 				return Expr->IsTrivial();
 			}
 
-			IRCastExpression(IRScope &scope, const IRType toType) : IRExpression(scope), ToType(toType) {}
+			IRCastExpression(IRScope &scope, const IRType toType) : IRExpression(scope), ToType(toType), CastType(Transform) {}
+			IRCastExpression(IRScope &scope, const IRType toType, IRCastType ctype) : IRExpression(scope), ToType(toType), CastType(ctype) {}
 		};
 
 		class IRVariableExpression : public IRExpression
@@ -282,14 +288,18 @@ namespace gensim
 		{
 		public:
 			const IRType Type;
-			IRConstant Value;
 
-			IRConstExpression(IRScope &scope, const IRType &type, IRConstant value) : IRExpression(scope), Type(type), Value()
+			IRConstExpression(IRScope &scope, const IRType &type, IRConstant value) : IRExpression(scope), Type(type), value_()
 			{
 				if(IRType::Cast(value, type, type) != value) {
 					throw std::logic_error("Given type cannot store given value");
 				}
-				Value = value;
+				value_ = value;
+			}
+
+			const IRConstant &GetValue() const
+			{
+				return value_;
 			}
 
 			virtual bool Resolve(GenCContext &Context);
@@ -301,6 +311,39 @@ namespace gensim
 			{
 				return true;
 			}
+
+		private:
+			IRConstant value_;
+
+		};
+
+		class IRVectorExpression : public IRExpression
+		{
+		public:
+			IRVectorExpression(IRScope &scope, std::vector<IRExpression*> elements) : IRExpression(scope), elements_(elements) {}
+			~IRVectorExpression();
+
+			bool Resolve(GenCContext& Context) override;
+			ssa::SSAStatement* EmitSSAForm(ssa::SSABuilder& bldr) const override;
+			void PrettyPrint(std::ostringstream& out) const override;
+
+			const IRType EvaluateType() override;
+
+			bool IsTrivial() const override
+			{
+				return false;
+			}
+			std::vector<IRExpression*> &GetElements()
+			{
+				return elements_;
+			}
+			const std::vector<IRExpression*> &GetElements() const
+			{
+				return elements_;
+			}
+
+		private:
+			std::vector<IRExpression*> elements_;
 		};
 
 		class IRDefineExpression : public IRExpression
@@ -391,7 +434,7 @@ namespace gensim
 			static IRIterationStatement *CreateDoWhile(IRScope &scope, IRExpression &Expr, IRStatement &Body);
 
 		private:
-			IRIterationStatement(IRScope &scope) : IRStatement(scope) {}
+			IRIterationStatement(IRScope &scope) : IRStatement(scope), For_Expr_Check(nullptr), For_Expr_Start(nullptr), Expr(nullptr), Body(nullptr) {}
 
 			bool EmitUnrolledForLoop(ssa::SSABuilder &bldr) const;
 			void ReplaceInductionVariableReads(ssa::SSABlock *blk, ssa::SSASymbol *indvar, int indval) const;

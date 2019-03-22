@@ -1,0 +1,734 @@
+/*
+Risc-V execution
+*/
+
+helper typename word_t get_pc()
+{
+	return read_register(PC);
+}
+
+helper typename word_t read_gpr(uint32 gpr_idx)
+{
+	if(gpr_idx == 0) { 
+		return 0;
+	} else {
+		return read_register_bank(GPR, gpr_idx);
+	}
+}
+
+// 32-Base Instructions
+execute(addi)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+
+	
+	typename word_t rs = read_gpr(inst.rs1);
+
+	rs += (typename sword_t)imm;
+
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+execute(slti)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+
+	typename sword_t rs = read_gpr(inst.rs1);
+	typename word_t val;
+
+
+	if(rs < imm) val = 1;
+	else val = 0;
+
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+////////////////////////////////////////////////////////////////////
+execute(sltiu)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+
+	typename word_t uimm = imm;
+
+	typename word_t rs = read_gpr(inst.rs1);
+	typename word_t val;
+
+	//if (rs < uimm) val=0x1;
+	//else val=0x0;
+
+	if(rs < uimm) val = 1;       
+        
+        else val = 0;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+execute(andi)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+	
+
+	typename word_t rs = read_gpr(inst.rs1);
+	rs &= (typename sword_t)imm;
+
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+execute(ori)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+		
+
+	typename word_t rs = read_gpr(inst.rs1);
+	rs |= (typename sword_t)imm;	
+
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+execute(xori)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+	
+
+	typename word_t rs = read_gpr(inst.rs1);
+	rs ^= (typename sword_t)imm;
+
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+execute(slli)
+{
+	uint32 shamt = inst.shamt;
+	typename word_t rs = read_gpr(inst.rs1);
+
+	rs = rs << shamt;
+	
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+
+execute(srli)
+{
+	uint32 shamt = inst.shamt;
+	typename word_t rs = read_gpr(inst.rs1);
+
+	rs = rs >> shamt;
+
+	write_register_bank(GPR, inst.rd, rs);
+
+}
+
+execute(srai)
+{
+	uint32 shamt = inst.shamt;
+
+	//uint32 rs = read_gpr(inst.rs1);
+	typename sword_t rs = read_gpr(inst.rs1);
+	rs >>= shamt;
+	
+	//if((rs >> 31) == 1) rs = (rs >> shamt) | (0xFFFFFFFF << (32 - shamt));
+	//else rs = rs >> shamt;
+
+	write_register_bank(GPR, inst.rd, rs);
+	
+}
+
+execute(lui)
+{
+	sint32 imm = inst.imm;
+
+	imm <<= 12;
+
+	write_register_bank(GPR, inst.rd, (typename sword_t)imm);
+
+}
+
+execute(auipc)
+{
+	uint32 imm = inst.imm;
+
+	imm <<= 12;
+	
+	typename sword_t ximm = (sint32)imm;
+
+	typename word_t pc = get_pc();
+
+	pc += ximm;
+
+	//write_register(PC, pc);
+
+	write_register_bank(GPR, inst.rd, pc); 
+
+}
+
+/////////////rs1, rs2 signed or unsigned//////////////
+execute(add)
+{
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+
+	rs1 += rs2;
+
+	write_register_bank(GPR, inst.rd, rs1);
+
+}
+
+execute(sub)
+{
+	typename sword_t rs1 = read_gpr(inst.rs1);
+	typename sword_t rs2 = read_gpr(inst.rs2);
+	
+	typename sword_t val = rs1 - rs2;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+//////////////////////////////////////////////////////////
+execute(slt)
+{
+	typename sword_t rs1 = read_gpr(inst.rs1);
+	typename sword_t rs2 = read_gpr(inst.rs2);
+
+	typename word_t val = (rs1 < rs2) ? 1 : 0;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+///////////////////////////////////////////////////////////
+execute(sltu)
+{
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+
+	typename word_t val;
+
+	val = (rs1 < rs2) ? 1 : 0;
+
+	write_register_bank(GPR, inst.rd, val); 	
+
+}
+
+execute(and)
+{
+        typename word_t rs1 = read_gpr(inst.rs1);
+        typename word_t rs2 = read_gpr(inst.rs2);
+
+	rs1 &= rs2;
+
+	write_register_bank(GPR, inst.rd, rs1);
+}
+
+execute(or)
+{
+        typename word_t rs1 = read_gpr(inst.rs1);
+        typename word_t rs2 = read_gpr(inst.rs2);
+        
+        rs1 |= rs2;
+        
+        write_register_bank(GPR, inst.rd, rs1);
+
+}
+
+execute(xor)
+{
+        typename word_t rs1 = read_gpr(inst.rs1);
+        typename word_t rs2 = read_gpr(inst.rs2);
+        
+        rs1 ^= rs2;
+        
+        write_register_bank(GPR, inst.rd, rs1);
+}
+
+execute(sll)
+{
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+
+	rs2 = rs2 & (WordSize - 1);
+	rs1 <<= rs2;
+
+	write_register_bank(GPR, inst.rd, rs1);
+}
+
+execute(srl)
+{
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+       
+	rs2 = rs2 & (WordSize - 1);
+	rs1  >>= rs2;
+	
+	write_register_bank(GPR, inst.rd, rs1);
+}
+
+execute(sra)
+{
+	typename sword_t rs1 = read_gpr(inst.rs1);
+	typename sword_t rs2 = read_gpr(inst.rs2);
+
+	rs2 = rs2 & (WordSize - 1);
+	typename word_t val = rs1 >> rs2;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}
+
+//////////////////////////////////////////////////////////
+execute(jal)
+{
+	typename word_t addr = get_pc()+4;
+
+	write_register_bank(GPR, inst.rd, addr);
+
+	typename word_t pc = get_pc();
+	pc += (typename sword_t)(inst.j_offset);
+	write_register(PC, pc);
+}
+
+execute(jalr)
+{
+	typename word_t link_address = get_pc() + 4;
+
+	sint32 imm = inst.imm;
+
+	imm <<= 20;
+	imm >>= 20;
+
+	typename sword_t rs = read_gpr(inst.rs1);
+
+	rs += (typename sword_t)imm;
+	rs >>= 1;
+	rs <<= 1;
+
+	//rs = rs + (imm & ~1);	
+
+	write_register(PC, rs);
+	write_register_bank(GPR, inst.rd, link_address);
+}
+
+////////////////////////////////////////////////////////////////
+helper typename sword_t get_branch_offset(struct Instruction &inst)
+{
+	uint32 imm4 = inst.imm4;
+	uint32 imm3 = inst.imm3;
+	uint32 imm2 = inst.imm2;
+	uint32 imm1 = inst.imm1;
+	
+	sint32 imm = (imm4<<11) | (imm3 << 10) | (imm2 << 4) | imm1;
+	imm <<= 20;
+	imm >>= 20;
+	
+	return imm;
+}
+
+execute(beq)
+{
+	typename sword_t imm = get_branch_offset(inst);
+
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+	
+	typename word_t pc = get_pc();
+
+	typename word_t addr = pc + imm * 2 ;
+
+	pc = (rs1 == rs2) ? addr : (pc + 4);
+	
+	write_register(PC, pc);
+
+}
+
+execute(bne)
+{       
+	typename sword_t imm = get_branch_offset(inst);
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+	
+	typename word_t pc = get_pc();
+	
+	typename word_t addr = pc + imm * 2;
+	
+	pc = (rs1 != rs2) ? addr : (pc + 4);
+        
+	write_register(PC, pc);
+
+}
+
+////////////////////////signed and unsigned///////////
+execute(blt)
+{
+	typename sword_t imm = get_branch_offset(inst);
+
+	typename sword_t rs1 = read_gpr(inst.rs1);
+	typename sword_t rs2 = read_gpr(inst.rs2);
+	
+	typename word_t pc = get_pc();
+	typename word_t addr = pc + imm * 2;
+
+
+	pc = (rs1 < rs2) ? addr : (pc + 4);
+
+	write_register(PC, pc);
+ 
+}
+
+execute(bltu)
+{
+	typename sword_t imm = get_branch_offset(inst);
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+
+	typename word_t pc = get_pc();
+	typename word_t addr = pc + imm * 2;
+
+	pc = (rs1 < rs2) ? addr : (pc + 4);
+
+	write_register(PC, pc);
+
+}
+
+execute(bge)
+{
+	typename sword_t imm = get_branch_offset(inst);
+	
+	typename sword_t rs1 = read_gpr(inst.rs1);
+	typename sword_t rs2 = read_gpr(inst.rs2);
+	
+	typename word_t pc = get_pc();
+	typename word_t addr = pc + imm * 2;
+
+	pc = (rs1 >= rs2) ? addr : (pc + 4);
+
+	write_register(PC, pc);
+
+}
+
+execute(bgeu)
+{
+	typename sword_t imm = get_branch_offset(inst);
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t rs2 = read_gpr(inst.rs2);
+	
+	typename word_t pc = get_pc();
+	typename word_t addr = pc + imm * 2;
+
+	pc = (rs1 >= rs2) ? addr : (pc + 4);
+
+	write_register(PC, pc);
+
+}
+
+///////////lw is the same with addi?////////////////////
+execute(lw)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20; 
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t addr = rs1 +  (typename sword_t)imm;
+
+	uint32 val;
+        
+	mem_read_32(Mem, addr, val);
+
+	typename sword_t result = (sint32)val;
+	write_register_bank(GPR, inst.rd, result);
+
+}
+
+
+/////////////load 16-bits then sign_extended to 32-bits////////////////
+execute(lh)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t addr = rs1 +  (typename sword_t)imm;
+
+	uint16 val;	
+
+	mem_read_16(Mem, addr, val);
+
+	typename sword_t xresult = (sint16)val;
+
+	write_register_bank(GPR, inst.rd, xresult);
+
+}
+
+//////////load 16-bits then zero_extended to 32-bits/////////////
+execute(lhu)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+
+	typename word_t rs1 = read_gpr(inst.rs1);
+	typename word_t addr = rs1 +  (typename sword_t)imm;
+
+	uint16 valh;
+
+	mem_read_16(Mem, addr, valh);
+
+	uint32 val = valh;
+
+	write_register_bank(GPR, inst.rd, val);
+
+} 
+
+//////////////////load 8-bits then sign_extended to 32-bits////////////////////
+execute(lb)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+
+	typename word_t addr = rs1 + (typename sword_t)imm;
+
+	uint8 valb;
+
+	mem_read_8(Mem, addr, valb);
+
+	typename sword_t val = (sint8)valb;
+
+	write_register_bank(GPR, inst.rd, val); 
+
+}
+
+///////////////load 8-bits zero_extended to 32-bits//////////
+execute(lbu)
+{
+	sint32 imm = inst.imm;
+	imm <<= 20;
+	imm >>= 20;
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+	
+	typename word_t addr = rs1 + (typename sword_t)imm;
+	
+	uint8 valb;
+
+	mem_read_8(Mem, addr, valb);
+
+	uint32 val = valb;
+
+	write_register_bank(GPR, inst.rd, val);
+
+}       
+
+execute(sw)
+{
+	uint32 imm2 = inst.imm2;
+	uint32 imm1 = inst.imm1;
+	sint32 imm = (imm2 << 5) | imm1;
+
+	imm <<= 20;
+	imm >>= 20;
+
+	typename word_t rs1 = read_gpr(inst.rs1);
+	
+	typename word_t addr = rs1 + (typename sword_t)imm;
+
+	mem_write_32(Mem, addr, read_gpr(inst.rs2));
+}
+
+execute(sh)
+{
+	uint32 imm2 = inst.imm2;
+	uint32 imm1 = inst.imm1;
+	sint32 imm = (imm2 << 5) | imm1;
+	
+	imm <<= 20;
+	imm >>= 20; 
+	
+	typename word_t rs1 = read_gpr(inst.rs1);
+
+	typename word_t addr = rs1 + (typename sword_t)imm;
+
+	uint16 half = read_gpr(inst.rs2) & 0xFFFF;
+        
+	mem_write_16(Mem, addr, half);
+
+
+}
+
+execute(sb)
+{
+	uint32 imm2 = inst.imm2;
+	uint32 imm1 = inst.imm1;
+	sint32 imm = (imm2 << 5) | imm1;
+
+	imm <<= 20;
+	imm >>= 20;
+
+	typename word_t rs1 = read_gpr(inst.rs1);
+
+	typename word_t addr = rs1 + (typename sword_t)imm;
+
+	uint8 quarter = read_gpr(inst.rs2) & 0xFF;
+
+	mem_write_8(Mem, addr, quarter);
+
+}
+
+execute(fence)
+{
+
+}
+
+execute(fencei)
+{
+	take_exception(1024,0);
+}
+
+////////////swap csr and rs1//////////////////////////////
+execute(csrrw)
+{
+	typename word_t csr = 0;
+	
+	if(inst.rd != 0) {
+		csr = read_csr(inst.csr);
+	}
+	
+	typename word_t reg = read_gpr(inst.rs1);
+	write_csr(inst.csr, reg);
+	
+	if(inst.rd != 0) {
+		write_register_bank(GPR, inst.rd, csr);
+	}
+	
+}
+
+execute(csrrs)
+{
+	// read and set bits
+	typename word_t csr = read_csr(inst.csr);
+	typename word_t reg = read_gpr(inst.rd);
+	typename word_t rs1 = read_gpr(inst.rs1);
+	
+	write_register_bank(GPR, inst.rd, csr);
+	write_csr(inst.csr, csr | rs1);
+}
+
+execute(csrrc)
+{
+	// read and clear bits
+	typename word_t csr = read_csr(inst.csr);
+	typename word_t reg = read_gpr(inst.rd);
+	typename word_t rs1 = read_gpr(inst.rs1);
+	
+	write_register_bank(GPR, inst.rd, csr);
+	write_csr(inst.csr, csr & ~rs1);
+}
+
+execute(csrrwi)
+{
+	typename word_t csr = 0;
+	
+	if(inst.rd != 0) {
+		csr = read_csr(inst.csr);
+	}
+	
+	typename word_t reg = inst.imm;
+	write_csr(inst.csr, reg);
+	
+	if(inst.rd != 0) {
+		write_register_bank(GPR, inst.rd, csr);
+	}
+}
+
+execute(csrrsi)
+{
+	if(inst.imm) {
+		typename word_t csr = read_csr(inst.csr);
+		write_register_bank(GPR, inst.rd, csr);
+		
+		csr |= inst.imm;
+		write_csr(inst.csr, csr);
+	}
+}
+
+execute(csrrci)
+{
+	if(inst.imm) {
+		typename word_t csr = read_csr(inst.csr);
+		write_register_bank(GPR, inst.rd, csr);
+		
+		csr &= ~inst.imm;
+		write_csr(inst.csr, csr);
+	}
+}
+
+execute(mret)
+{
+	riscv_mret();
+}
+
+execute(sret)
+{
+	riscv_sret();
+}
+
+execute(uret)
+{
+	trap();
+}
+
+execute(wfi)
+{
+	// nothing for now
+}
+
+//////////////////////Enveironment Instructions./////////////////////////////////
+execute(ecall)
+{
+	// exception type changes depending on mode
+	take_exception(8 + read_register(MACHMODE), 0);
+}
+
+execute(ebreak)
+{
+	// exception type changes depending on mode
+	take_exception(3, 0);
+}
+
+
+internal helper uint8 instruction_is_predicated(struct Instruction &inst)
+{
+	return 0;
+}
+
+internal helper uint8 instruction_predicate(struct Instruction &inst)
+{
+	return 1;
+}
+
