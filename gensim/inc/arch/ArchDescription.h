@@ -98,6 +98,29 @@ namespace gensim
 
 			uint32_t GetMaxInstructionSize() const;
 
+			typedef std::map<std::string, std::string> TypenameMap;
+
+			// should refactor type manager to belong to arch in order to avoid
+			// having to pass around strings here
+			typedef std::map<std::string, std::pair<std::string, std::string>> ConstantMap;
+			TypenameMap &GetTypenames()
+			{
+				return type_names_;
+			}
+			const TypenameMap &GetTypenames() const
+			{
+				return type_names_;
+			}
+
+			ConstantMap &GetConstants()
+			{
+				return constants_;
+			}
+			const ConstantMap &GetConstants() const
+			{
+				return constants_;
+			}
+
 		private:
 			// disallow copy
 			ArchDescription(const ArchDescription &orig);
@@ -107,6 +130,9 @@ namespace gensim
 			ArchFeatureSet features_;
 
 			MemoryInterfacesDescription memory_interfaces_;
+
+			TypenameMap type_names_;
+			ConstantMap constants_;
 		};
 	}  // namespace arch
 }  // namespace gensim

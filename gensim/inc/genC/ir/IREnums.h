@@ -72,7 +72,7 @@ namespace gensim
 				Ptr,
 				Index,
 				TakeAddress,
-				BitSequence
+				Sequence
 			};
 		}
 
@@ -94,6 +94,8 @@ namespace gensim
 				Bitwise_And,
 				Bitwise_XOR,
 				SignedShiftRight,
+
+				VConcatenate,
 
 				END_OF_NORMAL_OPERATORS,
 

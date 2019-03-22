@@ -103,6 +103,7 @@ namespace captive
 			INSN2(bitwise_or, OR);
 			INSN2(bitwise_xor, XOR);
 			INSN3(adc_with_flags, ADC_WITH_FLAGS);
+			INSN3(sbc_with_flags, SBC_WITH_FLAGS);
 
 			INSN4(vaddi, VADDI);
 			INSN4(vaddf, VADDF);
@@ -115,6 +116,7 @@ namespace captive
 			INSN4(vcmpeqi, VCMPEQI);
 			INSN4(vcmpgti, VCMPGTI);
 			INSN4(vcmpgtei, VCMPGTEI);
+			INSN4(vcmp_ltf, VCMPLTF);
 
 			INSN1(fctrl_set_round, FCTRL_SET_ROUND);
 			INSN1(fctrl_get_round, FCTRL_GET_ROUND);
@@ -122,6 +124,7 @@ namespace captive
 			INSN1(fctrl_get_flush, FCTRL_GET_FLUSH_DENORMAL);
 			INSN3(fcmp_eq, FCMP_EQ);
 			INSN3(fcmp_lt, FCMP_LT);
+			INSN3(fcmp_lte, FCMP_LTE);
 			INSN3(fcmp_gt, FCMP_GT);
 			INSN2(fcvt_single_to_double, FCVT_S_TO_D);
 			INSN2(fcvt_double_to_single, FCVT_D_TO_S);

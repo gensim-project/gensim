@@ -59,7 +59,7 @@ void PL061::WriteRegister(MemoryRegister& reg, uint32_t value)
 	PrimecellRegisterDevice::WriteRegister(reg, value);
 }
 
-bool PL061::Read(uint32_t offset, uint8_t size, uint32_t& data)
+bool PL061::Read(uint32_t offset, uint8_t size, uint64_t& data)
 {
 	if (offset >= 0 && offset <= 0x3fc) {
 		return HandleDataRead(offset, size, data);
@@ -68,7 +68,7 @@ bool PL061::Read(uint32_t offset, uint8_t size, uint32_t& data)
 	return RegisterBackedMemoryComponent::Read(offset, size, data);
 }
 
-bool PL061::HandleDataRead(uint32_t offset, uint8_t size, uint32_t& data)
+bool PL061::HandleDataRead(uint32_t offset, uint8_t size, uint64_t& data)
 {
 	LC_DEBUG1(LogPL061) << "Read Data: " << std::hex << offset;
 	data = 0;

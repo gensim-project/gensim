@@ -18,19 +18,34 @@ using namespace archsim::abi::devices::timing;
 
 TickConsumer::~TickConsumer() {}
 
-TickSource::TickSource() : tick_count_(0), microticks_(0), microtick_scale_(1.0f/archsim::options::TickScale) {}
+TickSource::TickSource() : tick_count_(0), microticks_(0), microtick_scale_(1.0f/archsim::options::TickScale), running_(false) {}
 
 TickSource::~TickSource() {}
 
 void TickSource::AddConsumer(TickConsumer &consumer)
 {
+	std::lock_guard<std::mutex>  lock(consumers_lock_);
 	consumers.insert(&consumer);
 }
 
 void TickSource::RemoveConsumer(TickConsumer &consumer)
 {
+	std::lock_guard<std::mutex>  lock(consumers_lock_);
 	consumers.erase(&consumer);
 }
+
+void TickSource::Start()
+{
+	std::lock_guard<std::mutex>  lock(consumers_lock_);
+	running_ = true;
+}
+
+void TickSource::Stop()
+{
+	std::lock_guard<std::mutex>  lock(consumers_lock_);
+	running_ = false;
+}
+
 
 void TickSource::Tick(uint32_t tick_periods)
 {
@@ -38,8 +53,11 @@ void TickSource::Tick(uint32_t tick_periods)
 
 	if(microticks_ >= 1.0f) {
 		tick_count_ += microticks_;
-		for(auto *consumer : consumers) {
-			consumer->Tick(microticks_);
+		std::lock_guard<std::mutex>  lock(consumers_lock_);
+		if(running_) {
+			for(auto *consumer : consumers) {
+				consumer->Tick(microticks_);
+			}
 		}
 	}
 	microticks_ -= (int)microticks_;

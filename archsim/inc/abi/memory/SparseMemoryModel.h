@@ -12,7 +12,10 @@
 
 #include "abi/memory/MemoryModel.h"
 #include "abi/memory/MemoryTranslationModel.h"
+#include "concurrent/LWLock.h"
+#include "util/Cache.h"
 #include <map>
+#include <mutex>
 #include <string>
 
 namespace archsim
@@ -29,9 +32,9 @@ namespace archsim
 				SparseMemoryTranslationModel(SparseMemoryModel& model);
 				~SparseMemoryTranslationModel();
 
-				bool PrepareTranslation(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx);
-				bool EmitMemoryRead(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination);
-				bool EmitMemoryWrite(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value);
+//				bool PrepareTranslation(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx);
+//				bool EmitMemoryRead(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, bool sx, llvm::Value*& fault, llvm::Value* address, llvm::Type* destinationType, llvm::Value* destination);
+//				bool EmitMemoryWrite(archsim::translate::translate_llvm::LLVMInstructionTranslationContext& insn_ctx, int width, llvm::Value*& fault, llvm::Value* address, llvm::Value* value);
 
 			};
 
@@ -55,6 +58,10 @@ namespace archsim
 				MemoryTranslationModel& GetTranslationModel();
 				bool SynchroniseVMAProtection(GuestVMA& vma) override;
 
+				bool LockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t& host_addr) override;
+				bool UnlockRegion(guest_addr_t guest_addr, guest_size_t guest_size, host_addr_t host_addr) override;
+				bool LockRegions(guest_addr_t guest_addr, guest_size_t guest_size, LockedMemoryRegion& regions) override;
+
 
 			protected:
 				bool AllocateVMA(GuestVMA &vma);
@@ -62,6 +69,15 @@ namespace archsim
 				bool ResizeVMA(GuestVMA &vma, guest_size_t new_size);
 			private:
 				char *GetPage(Address addr);
+				char *GetPageUncached(Address addr);
+
+				archsim::util::Cache<Address::underlying_t, char*> cache_;
+
+				Address prev_page_base_;
+				char *prev_page_data_;
+				std::mutex map_lock_;
+
+				uint64_t pages_remaining_;
 
 				SparseMemoryTranslationModel* translation_model;
 				std::map<Address, char*> data_;

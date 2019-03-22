@@ -30,6 +30,8 @@
 
 #define CreateThreadExecutionSafepoint(thread) do { setjmp(thread->Safepoint); } while(0)
 
+UseLogContext(LogCPU);
+
 namespace archsim
 {
 	class MemoryInterface;
@@ -61,7 +63,10 @@ namespace archsim
 				FlushToZero
 			};
 			enum class RoundingMode {
-				RoundTowardZero
+				RoundDownward,
+				RoundToNearest,
+				RoundTowardZero,
+				RoundUpward
 			};
 
 			class FPState
@@ -70,6 +75,7 @@ namespace archsim
 				void SetFlushMode(FlushMode newMode)
 				{
 					flush_mode_ = newMode;
+					Apply();
 				}
 				FlushMode GetFlushMode() const
 				{
@@ -79,6 +85,7 @@ namespace archsim
 				void SetRoundingMode(RoundingMode newMode)
 				{
 					rounding_mode_ = newMode;
+					Apply();
 				}
 				RoundingMode GetRoundingMode() const
 				{
@@ -149,7 +156,7 @@ namespace archsim
 			public:
 				using memory_interface_collection_t = std::vector<MemoryInterface*>;
 
-				ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor &arch, archsim::abi::EmulationModel &emu_model);
+				ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor &arch, archsim::abi::EmulationModel &emu_model, int thread_id = 0);
 
 				// Functions to do with accessing the larger substructures within the thread
 				const ArchDescriptor &GetArch() const
@@ -191,6 +198,11 @@ namespace archsim
 					return emu_model_;
 				}
 
+				int GetThreadID() const
+				{
+					return thread_id_;
+				}
+
 				// Functions to do with execution modes
 				uint32_t GetModeID() const
 				{
@@ -218,11 +230,19 @@ namespace archsim
 				}
 				Address GetPC()
 				{
-					return GetRegisterFileInterface().GetTaggedSlot("PC");
+					if(pc_is_64bit_) {
+						return Address(*(uint64_t*)pc_ptr_);
+					} else {
+						return Address(*(uint32_t*)pc_ptr_);
+					}
 				}
 				void SetPC(Address target)
 				{
-					GetRegisterFileInterface().SetTaggedSlot("PC", target);
+					if(pc_is_64bit_) {
+						*(uint64_t*)pc_ptr_ = target.Get();
+					} else {
+						*(uint32_t*)pc_ptr_ = target.Get();
+					}
 				}
 				Address GetSP()
 				{
@@ -380,6 +400,66 @@ namespace archsim
 					UNIMPLEMENTED;
 				}
 
+				bool fn___builtin_f64_is_posinfinity(double f)
+				{
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+					return u.y == 0x7ff0000000000000;
+				}
+				bool fn___builtin_f64_is_neginfinity(double f)
+				{
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+					return u.y == 0xfff0000000000000;
+				}
+
+				bool fn___builtin_f32_is_snan(float f)
+				{
+					union {
+						float x;
+						uint32_t y;
+					} u;
+					u.x = f;
+
+					return (u.y & 0x7fc00000) == 0x7fc00000;
+				}
+				bool fn___builtin_f32_is_qnan(float f)
+				{
+					union {
+						float x;
+						uint32_t y;
+					} u;
+					u.x = f;
+
+					return (u.y & 0x7fc00000) == 0x7f800000;
+				}
+				bool fn___builtin_f64_is_snan(double f)
+				{
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+
+					return (u.y & 0x7ff8000000000000) == 0x7ff8000000000000;
+				}
+				bool fn___builtin_f64_is_qnan(double f)
+				{
+					union {
+						double x;
+						uint64_t y;
+					} u;
+					u.x = f;
+
+					return ((u.y & 0x7ff8000000000000) == 0x7ff0000000000000) && !fn___builtin_f64_is_posinfinity(f) && !fn___builtin_f64_is_neginfinity(f);
+				}
+
 				// Functions to do with manipulating state according to the architecture
 				archsim::abi::ExceptionAction TakeException(uint64_t category, uint64_t data);
 				archsim::abi::ExceptionAction TakeMemoryException(MemoryInterface &interface, Address address);
@@ -399,12 +479,12 @@ namespace archsim
 				{
 					std::unique_lock<std::mutex> lock(message_lock_);
 					message_queue_.push(message);
-					message_waiting_ = true;
+					*(uint32_t*)(((char*)GetStateBlock().GetData()) + message_waiting_offset_) = true;
 				}
 
 				bool HasMessage() const
 				{
-					return message_waiting_;
+					return *(uint32_t*)(((char*)GetStateBlock().GetData()) + message_waiting_offset_);
 				}
 				ThreadMessage GetNextMessage()
 				{
@@ -412,7 +492,7 @@ namespace archsim
 					auto message = message_queue_.front();
 					message_queue_.pop();
 
-					message_waiting_ = !message_queue_.empty();
+					*(uint32_t*)(((char*)GetStateBlock().GetData()) + message_waiting_offset_) = !message_queue_.empty();
 
 					return message;
 				}
@@ -446,12 +526,17 @@ namespace archsim
 				util::PubSubscriber pubsub_;
 				archsim::core::thread::ThreadMetrics *metrics_;
 
+				int thread_id_;
+
 				uint32_t mode_offset_;
 				uint32_t ring_offset_;
+				uint32_t message_waiting_offset_;
+
+				void *pc_ptr_;
+				bool pc_is_64bit_;
 
 				std::mutex message_lock_;
 				std::queue<ThreadMessage> message_queue_;
-				bool message_waiting_;
 				std::atomic<uint32_t> pending_irqs_;
 
 				StateBlock state_block_;

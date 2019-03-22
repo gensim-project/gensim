@@ -27,6 +27,8 @@
 #endif
 #endif
 
+static char parking_page[4096];
+
 namespace gensim
 {
 	class Processor;
@@ -111,6 +113,7 @@ namespace archsim
 				inline void Invalidate()
 				{
 					virt_tag = Address(kInvalidTag);
+					data = (void*)parking_page;
 				}
 
 				void Dump()
@@ -243,34 +246,14 @@ namespace archsim
 
 			private:
 
-				uint32_t DoRead(guest_addr_t virt_addr, uint8_t *data, int size, bool use_perms);
+				uint32_t DoRead(guest_addr_t virt_addr, uint8_t *data, int size, bool use_perms, bool isFetch);
 
-				inline bool TryGetReadUserCacheEntry(guest_addr_t addr, SMMCacheEntry *&entry)
-				{
-					return _read_user_cache.TryGetEntry(addr, entry);
-				}
-				inline bool TryGetReadKernelCacheEntry(guest_addr_t addr, SMMCacheEntry *&entry)
-				{
-					return _read_kernel_cache.TryGetEntry(addr, entry);
-				}
-				inline bool TryGetWriteUserCacheEntry(guest_addr_t addr, SMMCacheEntry *&entry)
-				{
-					return _write_user_cache.TryGetEntry(addr, entry);
-				}
-				inline bool TryGetWriteKernelCacheEntry(guest_addr_t addr, SMMCacheEntry *&entry)
-				{
-					return _write_kernel_cache.TryGetEntry(addr, entry);
-				}
+				uint32_t UpdateCacheEntry(guest_addr_t addr, SMMCacheEntry *entry, bool isWrite, bool isFetch, bool allow_side_effects);
 
-				uint32_t UpdateCacheEntry(guest_addr_t addr, SMMCacheEntry *entry, bool isWrite, bool allow_side_effects);
+				SMMCache &GetCache(int interface, int mode, bool write_cache);
 
-				SMMCache _read_user_cache;
-				SMMCache _write_user_cache;
-				SMMCache _read_kernel_cache;
-				SMMCache _write_kernel_cache;
-
-				archsim::PhysicalAddress _prev_fetch_page_phys;
-				archsim::VirtualAddress _prev_fetch_page_virt;
+				// map of (interface, mode) to (read,write) SMM cache poiners
+				std::map<std::pair<int, int>, std::pair<SMMCache*, SMMCache*>> caches_;
 
 				SystemMemoryTranslationModel *translation_model;
 				archsim::util::PubSubscriber *subscriber;

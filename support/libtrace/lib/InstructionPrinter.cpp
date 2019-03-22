@@ -14,29 +14,6 @@
 
 using namespace libtrace;
 
-class DataPrinter
-{
-public:
-	DataPrinter(uint32_t data_low, const InstructionPrinter::extension_list_t &extensions) : data_low_(data_low), extensions_(extensions)
-	{
-
-	}
-
-	friend std::ostream& operator<< (std::ostream& stream, const DataPrinter& matrix)
-	{
-		stream << "0x" << std::hex << std::setw(8) << std::setfill('0');
-		for(auto i : matrix.extensions_) {
-			stream << i.GetData();
-		}
-		stream << matrix.data_low_;
-		return stream;
-	}
-
-private:
-	uint32_t data_low_;
-	const InstructionPrinter::extension_list_t &extensions_;
-};
-
 InstructionPrinter::InstructionPrinter()
 {
 	SetDisplayAll();
@@ -44,10 +21,23 @@ InstructionPrinter::InstructionPrinter()
 
 std::string InstructionPrinter::operator()(TracePacketStreamInterface *stream)
 {
-	std::stringstream str;
-	PrintInstruction(str, stream);
-	return str.str();
+	std::string output;
+	if(!TryFormat(stream, output)) {
+		return "(malformed instruction)";
+	}
+	return output;
 }
+
+bool InstructionPrinter::TryFormat(TracePacketStreamInterface* stream, std::string& output)
+{
+	std::stringstream str;
+	if(!PrintInstruction(str, stream)) {
+		return false;
+	}
+	output = str.str();
+	return true;
+}
+
 
 class InstructionPrinterVisitor : public TraceRecordPacketVisitor
 {
@@ -100,13 +90,17 @@ bool InstructionPrinter::PrintInstruction(std::ostream& str, TracePacketStreamIn
 	TraceRecordPacket header_packet = stream->Get();
 	TraceRecordPacket code_packet = stream->Get();
 
-	assert(header_packet.GetRecord().GetType() == InstructionHeader);
-	assert(code_packet.GetRecord().GetType() == InstructionCode);
+	if(header_packet.GetRecord().GetType() != InstructionHeader) {
+		return false;
+	}
+	if(code_packet.GetRecord().GetType() != InstructionCode) {
+		return false;
+	}
 
 	InstructionHeaderReader hdr  (*(InstructionHeaderRecord*)&header_packet.GetRecord(), header_packet.GetExtensions());
 	InstructionCodeReader   code (*(InstructionCodeRecord*)&code_packet.GetRecord(), code_packet.GetExtensions());
 
-	str << "[" << std::hex << std::setw(8) << std::setfill('0') << hdr.GetPC().AsU32() << "] " << std::hex << std::setw(8) << std::setfill('0') << code.GetCode().AsU32() << " ";
+	str << "[" << std::hex << std::setw(16) << std::setfill('0') << hdr.GetPC() << "] " << std::hex << std::setw(8) << std::setfill('0') << code.GetCode().AsU32() << " ";
 
 	while(stream->Good() && (stream->Peek().GetRecord().GetType() != InstructionHeader)) {
 		TraceRecordPacket next_packet = stream->Get();
@@ -167,7 +161,7 @@ bool InstructionPrinter::PrintMemRead(std::ostream &str, RecordIterator &it, con
 	MemReadAddrRecord *addr = (MemReadAddrRecord*)&raddr;
 	MemReadDataRecord *data = (MemReadDataRecord*)&rdata;
 
-	str << "([" << DataPrinter(addr->GetAddress(), addr_extensions) << "](" << (uint32_t)addr->GetWidth() << ") => " << DataPrinter(data->GetData(), data_extensions) << ")";
+	str << "([" << addr->GetAddress() << "](" << (uint32_t)addr->GetWidth() << ") => " << data->GetData() << ")";
 
 	return true;
 }
@@ -188,7 +182,7 @@ bool InstructionPrinter::PrintMemWrite(std::ostream &str, RecordIterator &it, co
 	MemWriteAddrRecord *addr = (MemWriteAddrRecord*)&raddr;
 	MemWriteDataRecord *data = (MemWriteDataRecord*)&rdata;
 
-	str << "([" << DataPrinter(addr->GetAddress(), addr_extensions) << "](" << (uint32_t)addr->GetWidth() << ") <= " << DataPrinter(data->GetData(), data_extensions) << ")";
+	str << "([" << addr->GetAddress() << "](" << (uint32_t)addr->GetWidth() << ") <= " << data->GetData() << ")";
 	return true;
 }
 

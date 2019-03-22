@@ -20,7 +20,7 @@ execute(addi)
 	
 	if (inst.S) {
 		if (inst.sf == 0) {
-			write_gpr32(inst.rd, __builtin_adc_flags((uint32)op1, (uint32)imm, 0));
+			write_gpr32(inst.rd, __builtin_adc32_flags((uint32)op1, (uint32)imm, 0));
 		} else {
 			write_gpr64(inst.rd, __builtin_adc64_flags(op1, imm, 0));
 		}
@@ -36,7 +36,7 @@ execute(subi)
 	
 	if (inst.S) {
 		if (inst.sf == 0) {
-			write_gpr32(inst.rd, __builtin_sbc_flags((uint32)op1, (uint32)imm, 0));
+			write_gpr32(inst.rd, __builtin_sbc32_flags((uint32)op1, (uint32)imm, 0));
 		} else {
 			write_gpr64(inst.rd, __builtin_sbc64_flags(op1, imm, 0));
 		}
@@ -201,7 +201,7 @@ execute(andi)
 		if (inst.opc == 3) {
 			write_gpr(0, inst.rd, result);
 			
-			__builtin_update_zn_flags(result);
+			__builtin_update_zn_flags32(result);
 			write_register(C, 0);
 			write_register(V, 0);
 		} else {
@@ -317,11 +317,11 @@ execute(exgen)
 	} else if (inst.opc == 0 && inst.ll == 1) {
 		call_supervisor(inst.imm16);
 	} else if (inst.opc == 0 && inst.ll == 3) {
-		write_device(17, 0, 0);
+		write_device64(17, 0, 0);
 		write_pc(read_pc() + 4);
 	} else if (inst.opc == 2) {
 		if (inst.imm16 == 0xf000) {
-			write_device(19, 0, 0);
+			write_device64(19, 0, 0);
 			write_pc(read_pc() + 4);
 		}
 	} else {
@@ -418,14 +418,14 @@ execute(msr_reg)
 		uint8 rounding_mode = (value >> 22) & 3;
 		__builtin_set_fp_rounding(rounding_mode);
 	} else {
-		write_device(16, inst.ir, value);
+		write_device64(16, inst.ir, value);
 	}
 }
 
 execute(msr_sctlr)
 {
 	uint64 value = read_gpr64(inst.rt);
-	write_device(16, inst.ir, value);
+	write_device64(16, inst.ir, value);
 	write_pc(read_pc()+4);
 }
 
@@ -468,7 +468,7 @@ execute(mrs)
 	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 4 && inst.op2 == 0) {
 		value = (uint64)read_register(FPCR);
 	} else {
-		read_device(16, inst.ir, value);
+		read_device64(16, inst.ir, value);
 	}
 
 	write_gpr(1, inst.rt, value);
@@ -493,9 +493,9 @@ execute(sys)
 			uint64 addr = read_gpr64(inst.rt);
 			mem_write_64(Data, addr, 0);
 		} else if (inst.op1 == 0 && (inst.crm == 1 || inst.crm == 5) && inst.op2 == 0) {
-			invalidate_translations();
+			__builtin_jit_invalidate_txln_all();
 		} else if (inst.op1 == 3 && inst.crm == 5 && inst.op2 == 1) {
-			invalidate_translation(read_gpr64(inst.rt));
+			__builtin_jit_invalidate_txln(read_gpr64(inst.rt));
 		}
 	} else if (inst.crn == 8) {
 		// TLBI
@@ -1819,7 +1819,7 @@ execute(add_ereg)
 		if (inst.sf) {
 			write_gpr(1, inst.rd, __builtin_adc64_flags(rn, rm, 0));
 		} else {
-			write_gpr(0, inst.rd, (uint64)__builtin_adc_flags((uint32)rn, (uint32)rm, 0));
+			write_gpr(0, inst.rd, (uint64)__builtin_adc32_flags((uint32)rn, (uint32)rm, 0));
 		}
 	} else {
 		write_gpr_sp(inst.sf, inst.rd, rn + rm);
@@ -1835,7 +1835,7 @@ execute(sub_ereg)
 		if (inst.sf) {
 			write_gpr(1, inst.rd, __builtin_sbc64_flags(rn, rm, 0));
 		} else {
-			write_gpr(0, inst.rd, (uint64)__builtin_sbc_flags(rn, rm, 0));
+			write_gpr(0, inst.rd, (uint64)__builtin_sbc32_flags(rn, rm, 0));
 		}
 	} else {
 		write_gpr_sp(inst.sf, inst.rd, rn - rm);
@@ -1864,7 +1864,7 @@ execute(add_sreg)
 		uint32 result;
 		
 		if (inst.S) {
-			result = __builtin_adc_flags((uint32)op1, (uint32)op2, 0);
+			result = __builtin_adc32_flags((uint32)op1, (uint32)op2, 0);
 		} else {
 			result = (uint32)op1 + (uint32)op2;
 		}
@@ -1891,7 +1891,7 @@ execute(sub_sreg)
 		uint32 result;
 		
 		if (inst.S) {
-			result = __builtin_sbc_flags(read_gpr32(inst.rn), (uint32)op2, 0);
+			result = __builtin_sbc32_flags(read_gpr32(inst.rn), (uint32)op2, 0);
 		} else {
 			result = read_gpr32(inst.rn) - (uint32)op2;
 		}
@@ -1922,9 +1922,9 @@ execute(adc)
 		uint32 result;
 		
 		if (inst.S) {
-			result = __builtin_adc_flags((uint32)op1, (uint32)op2, read_register(C));
+			result = __builtin_adc32_flags((uint32)op1, (uint32)op2, read_register(C));
 		} else {
-			result = __builtin_adc((uint32)op1, (uint32)op2, read_register(C));
+			result = __builtin_adc32((uint32)op1, (uint32)op2, read_register(C));
 		}
 		
 		write_gpr(0, inst.rd, (uint64)result);
@@ -1950,9 +1950,9 @@ execute(sbc)
 		uint32 result;
 		
 		if (inst.S) {
-			result = __builtin_sbc_flags((uint32)op1, (uint32)op2, !read_register(C));
+			result = __builtin_sbc32_flags((uint32)op1, (uint32)op2, !read_register(C));
 		} else {
-			result = __builtin_sbc((uint32)op1, (uint32)op2, !read_register(C));
+			result = __builtin_sbc32((uint32)op1, (uint32)op2, !read_register(C));
 		}
 		
 		write_gpr(0, inst.rd, (uint64)result);
@@ -1970,7 +1970,7 @@ execute(ccmpi)
 		uint64 rn = read_gpr(inst.sf, inst.rn);
 		
 		if (inst.sf == 0) {
-			__builtin_adc_flags((uint32)rn, ~(uint32)inst.imm5, 1);
+			__builtin_adc32_flags((uint32)rn, ~(uint32)inst.imm5, 1);
 		} else {
 			__builtin_adc64_flags(rn, ~(uint64)inst.imm5, 1);
 		}
@@ -1990,7 +1990,7 @@ execute(ccmni)
 		uint64 rn = read_gpr(inst.sf, inst.rn);
 		
 		if (inst.sf == 0) {
-			__builtin_adc_flags((uint32)rn, (uint32)inst.imm5, 0);
+			__builtin_adc32_flags((uint32)rn, (uint32)inst.imm5, 0);
 		} else {
 			__builtin_adc64_flags(rn, (uint64)inst.imm5, 0);
 		}
@@ -2013,7 +2013,7 @@ execute(ccmpr)
 		uint64 rm = read_gpr(inst.sf, inst.rm);
 		
 		if (inst.sf == 0) {
-			__builtin_adc_flags((uint32)rn, ~(uint32)rm, 1);
+			__builtin_adc32_flags((uint32)rn, ~(uint32)rm, 1);
 		} else {
 			__builtin_adc64_flags(rn, ~rm, 1);
 		}
@@ -2033,7 +2033,7 @@ execute(ccmnr)
 		uint64 rm = read_gpr(inst.sf, inst.rm);
 		
 		if (inst.sf == 0) {
-			__builtin_adc_flags((uint32)rn, (uint32)rm, 0);
+			__builtin_adc32_flags((uint32)rn, (uint32)rm, 0);
 		} else {
 			__builtin_adc64_flags(rn, rm, 0);
 		}
@@ -2158,7 +2158,7 @@ execute(clz)
 		if (rn == 0) {
 			write_gpr(0, inst.rd, 32);
 		} else {
-			write_gpr(0, inst.rd, (uint64)__builtin_clz(rn));
+			write_gpr(0, inst.rd, (uint64)__builtin_clz32(rn));
 		}
 	}
 }
@@ -2181,7 +2181,7 @@ execute(cls)
 			write_gpr32(inst.rd, 31);
 		} else {
 			rn = (rn >> 1) ^ (rn & (~(uint32)0x80000000));
-			write_gpr32(inst.rd, ((uint32)__builtin_clz(rn))-(uint32)1);
+			write_gpr32(inst.rd, ((uint32)__builtin_clz32(rn))-(uint32)1);
 		}
 	}
 }
@@ -2388,7 +2388,7 @@ execute(andsr)
 		if (inst.sf) {
 			__builtin_update_zn_flags64(result);
 		} else {
-			__builtin_update_zn_flags((uint32)result);
+			__builtin_update_zn_flags32((uint32)result);
 		}
 		
 		write_register(C, 0);
@@ -2408,7 +2408,7 @@ execute(bicsr)
 		if (inst.sf) {
 			__builtin_update_zn_flags64(result);
 		} else {
-			__builtin_update_zn_flags((uint32)result);
+			__builtin_update_zn_flags32((uint32)result);
 		}
 		
 		write_register(C, 0);
@@ -2824,7 +2824,7 @@ internal helper void software_breakpoint(uint16 imm)
 internal helper void call_supervisor(uint16 imm)
 {
 	if (__builtin_get_feature(EMULATE_LINUX)) {
-		write_device(19, 1, imm);
+		write_device64(19, 1, imm);
 		write_pc(read_pc() + 4);
 	} else if(__builtin_get_feature(EMULATE_LINUX_ARCHSIM)) {
 		take_exception(3, imm);
@@ -2965,12 +2965,12 @@ internal helper void set_el(uint8 el) global
 	return;
 }
 
-internal helper uint8 instruction_is_predicated(Instruction inst) 
+internal helper uint8 instruction_is_predicated(struct Instruction &inst) 
 {
 	return (inst.ir & 0xff000010) == 0x54000000;
 }
 
-internal helper uint8 instruction_predicate(Instruction inst)
+internal helper uint8 instruction_predicate(struct Instruction &inst)
 {
 	uint8 state = 0;
 	

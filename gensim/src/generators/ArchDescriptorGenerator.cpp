@@ -4,10 +4,12 @@
 #include "arch/ArchDescription.h"
 #include "isa/ISADescription.h"
 #include "generators/ArchDescriptorGenerator.h"
+#include "generators/DisasmGenerator.h"
 #include "generators/GenCInterpreter/GenCInterpreterGenerator.h"
 #include "genC/ssa/SSAContext.h"
 #include "genC/ssa/SSAFormAction.h"
 #include "genC/ssa/SSASymbol.h"
+#include "genC/ssa/SSATypeFormatter.h"
 
 using namespace gensim::generator;
 
@@ -42,21 +44,18 @@ const std::vector<std::string> ArchDescriptorGenerator::GetSources() const
 
 static void GenerateHelperFunctionPrototype(gensim::util::cppformatstream &str, const gensim::isa::ISADescription &isa, const gensim::genc::ssa::SSAFormAction *action, bool addTemplateDefaultValue)
 {
+	gensim::genc::ssa::SSATypeFormatter formatter;
+	formatter.SetStructPrefix("gensim::" + action->Arch->Name + "::decode_t::");
+
 	if(addTemplateDefaultValue)
 		str << "template<bool trace=false> ";
 	else
 		str << "template<bool trace> ";
 
-	str << action->GetPrototype().ReturnType().GetCType() << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
+	str << formatter.FormatType(action->GetPrototype().ReturnType()) << " helper_" << isa.ISAName << "_" << action->GetPrototype().GetIRSignature().GetName() << "(archsim::core::thread::ThreadInstance *thread";
 
 	for(auto i : action->ParamSymbols) {
-		// if we're accessing a struct, assume that it's an instruction
-		if(i->GetType().IsStruct()) {
-			str << ", Decode &inst";
-		} else {
-			auto type_string = i->GetType().GetCType();
-			str << ", " << type_string << " " << i->GetName();
-		}
+		str << ", " << formatter.FormatType(i->GetType()) << " " << i->GetName();
 	}
 	str << ")";
 }
@@ -66,7 +65,11 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 	str << "#include <core/thread/ThreadInstance.h>\n";
 	str << "#include <core/execution/ExecutionEngine.h>\n";
 	str << "#include \"arch.h\"\n";
-	str << "#include \"decode.h\"\n";
+
+	if(Manager.GetComponent(GenerationManager::FnDecode)) {
+		str << "#include \"decode.h\"\n";
+	}
+
 	str << "#include \"jumpinfo.h\"\n";
 
 	str << "using namespace gensim::" << Manager.GetArch().Name << ";";
@@ -74,7 +77,7 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 	auto rfile = Manager.GetArch().GetRegFile();
 	std::string entry_list;
 	for(auto i : rfile.GetBanks()) {
-		str << "static archsim::RegisterFileEntryDescriptor rfd_entry_" << i->ID << "(\"" << i->ID <<"\", " << i->GetIndex() << ", " << i->GetRegFileOffset() << ", " << i->GetRegisterCount() << ", " << i->GetRegisterWidth() << ", " << i->GetRegisterStride() << ");";
+		str << "static archsim::RegisterFileEntryDescriptor rfd_entry_" << i->ID << "(\"" << i->ID <<"\", " << i->GetIndex() << ", " << i->GetRegFileOffset() << ", " << i->GetRegisterCount() << ", " << i->GetRegisterStride() << ", " << i->GetElementCount() << ", " << i->GetElementSize() << ", " << i->GetElementStride() << ");";
 		if(entry_list.size()) {
 			entry_list += ", ";
 		}
@@ -86,7 +89,17 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 		if(i->HasTag()) {
 			tag = i->GetTag();
 		}
-		str << "static archsim::RegisterFileEntryDescriptor rfd_entry_" << i->GetID() << "(\"" << i->GetID() <<"\", " << i->GetIndex() << ", " << i->GetRegFileOffset() << ", " << 1 << ", " << i->GetWidth() << ", " << i->GetWidth() << ", \"" << tag << "\");";
+		str << "static archsim::RegisterFileEntryDescriptor rfd_entry_" << i->GetID() << "(\"" <<
+		    i->GetID() 	<<"\", " <<
+		    i->GetIndex() << ", " <<
+		    i->GetRegFileOffset() << ", " <<
+		    1 << ", " << // Register Count
+		    i->GetWidth() << ", " << // Register stride
+		    "1 " << ", " << // Entry count
+		    i->GetWidth() << ", " <<
+		    i->GetWidth() << ", " <<
+		    "\"" << tag << "\"" <<
+		    ");";
 		if(entry_list.size()) {
 			entry_list += ", ";
 		}
@@ -116,6 +129,20 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 		str << "static archsim::FeatureDescriptor feature_" << feature.GetName() << "(\"" << feature.GetName() << "\", " << feature.GetId() << ", " << feature.GetDefaultLevel() << ");";
 	}
 	str << "static archsim::FeaturesDescriptor features ({" << feature_list << "});";
+
+
+	// Eventually this will probably be per-ISA but for now it's per-arch and
+	// shared between ISAs.
+	std::string disasm_ptr;
+	if(Manager.GetComponent(GenerationManager::FnDisasm) == nullptr) {
+		disasm_ptr = "nullptr";
+	} else {
+		auto component = (gensim::generator::DisasmGenerator*)Manager.GetComponent(GenerationManager::FnDisasm);
+
+		str << "#include \"disasm.h\"" << std::endl;
+		str << "static gensim::" << Manager.GetArch().Name << "::Disasm _disasm;";
+		disasm_ptr = "&_disasm";
+	}
 
 	std::string isa_list;
 	for(const auto &isa : Manager.GetArch().ISAs) {
@@ -191,7 +218,7 @@ bool ArchDescriptorGenerator::GenerateSource(util::cppformatstream &str) const
 		str << "static auto " << isa->ISAName << "_newjumpinfo = []() { return new gensim::" << Manager.GetArch().Name << "::JumpInfoProvider(); };";
 		str << "static auto " << isa->ISAName << "_newdtc = []() { return nullptr; };";
 
-		str << "static archsim::ISADescriptor isa_" << isa->ISAName << " (\"" << isa->ISAName << "\", " << (uint32_t)isa->isa_mode_id << ", " << isa->ISAName << "_decode_instr, " << isa->ISAName << "_newdecoder, " << isa->ISAName << "_newjumpinfo, " << isa->ISAName << "_newdtc, get_behaviours_" << isa->ISAName << "());";
+		str << "static archsim::ISADescriptor isa_" << isa->ISAName << " (\"" << isa->ISAName << "\", " << (uint32_t)isa->isa_mode_id << ", " << isa->ISAName << "_decode_instr, " << disasm_ptr << ", " << isa->ISAName << "_newdecoder, " << isa->ISAName << "_newjumpinfo, " << isa->ISAName << "_newdtc, get_behaviours_" << isa->ISAName << "());";
 
 	}
 
@@ -207,10 +234,11 @@ bool ArchDescriptorGenerator::GenerateHeader(util::cppformatstream &str) const
 	str << "#include <core/arch/ArchDescriptor.h>\n";
 	str << "#include <core/thread/ThreadInstance.h>\n";
 	str << "#include <gensim/gensim_processor_api.h>\n";
-	str << "#include <util/Vector.h>\n";
+	str << "#include <wutils/Vector.h>\n";
 
 	str << "#include <util/int128.h>\n";
-	str << "using uint128_t = wutils::int128<false>;";
+	str << "using uint128_t = __uint128_t;";
+	str << "using int128_t = __int128_t;";
 
 	str << "namespace gensim {";
 	str << "namespace " << Manager.GetArch().Name << " {";
@@ -246,8 +274,8 @@ bool ArchDescriptorGenerator::GenerateThreadInterface(util::cppformatstream &str
 			read_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Read(true, " + std::to_string(rbank->GetIndex()) + ", idx, (" + rbank->GetElementIRType().GetCType() + ")value); }";
 			write_trace_string = "if(trace) { thread_->GetTraceSource()->Trace_Bank_Reg_Write(true, " + std::to_string(rbank->GetIndex()) + ", idx, (" + rbank->GetElementIRType().GetCType() + ") value); }";
 		}
-		str << "template<bool trace=false> " << rbank->GetRegisterIRType().GetCType() << " read_register_bank_" << rbank->ID << "(uint32_t idx) const { auto value = *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")); " << read_trace_string << " return value; }";
-		str << "template<bool trace=false> void write_register_bank_" << rbank->ID << "(uint32_t idx, " << rbank->GetRegisterIRType().GetCType() << " value) { *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")) = value; " << write_trace_string << " }";
+		str << "template<bool trace=false> " << rbank->GetRegisterIRType().GetCType() << " read_register_bank_" << rbank->ID << "(uint32_t idx) const { assert(idx < " << rbank->GetRegisterCount() << "); auto value = *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")); " << read_trace_string << " return value; }";
+		str << "template<bool trace=false> void write_register_bank_" << rbank->ID << "(uint32_t idx, " << rbank->GetRegisterIRType().GetCType() << " value) { assert(idx < " << rbank->GetRegisterCount() << "); *(" << rbank->GetRegisterIRType().GetCType() << "*)(reg_file_ + " << rbank->GetRegFileOffset() << " + (idx * " << rbank->GetRegisterStride() << ")) = value; " << write_trace_string << " }";
 	}
 	for(gensim::arch::RegSlotViewDescriptor *slot : Manager.GetArch().GetRegFile().GetSlots()) {
 		str << "template<bool trace=false> " << slot->GetIRType().GetCType() << " read_register_" << slot->GetID() << "() const { auto value = *(" << slot->GetIRType().GetCType() << "*)(reg_file_ + " << slot->GetRegFileOffset() << "); if(trace) { thread_->GetTraceSource()->Trace_Reg_Read(1, " << slot->GetIndex() << ", value); } return value; }";

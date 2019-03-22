@@ -1,0 +1,33 @@
+AC_ISA(riscv) 
+{
+	ac_format Type_64MOP  = "%imm2:7 %rs2:5 %rs1:5 %funct3:3 %rd:5 %opcode:7";
+
+	ac_instr<Type_64MOP> mulw, divw, divuw, remw, remuw;
+
+	ac_behaviour mulw, divw, divuw, remw, remuw;
+
+	ISA_CTOR(riscv)
+	{
+		ac_execute("common/execute.rv64-m");
+
+		mulw.set_decoder(imm2=1, funct3=0, opcode=0x3b);
+		mulw.set_asm("mulw");
+		mulw.set_behaviour(mulw);
+		
+		divw.set_decoder(imm2=1, funct3=0x4, opcode=0x3b);
+		divw.set_asm("divw");
+		divw.set_behaviour(divw);
+		
+		divuw.set_decoder(imm2=1, funct3=0x5, opcode=0x3b);
+		divuw.set_asm("divuw");
+		divuw.set_behaviour(divuw);
+		
+		remw.set_decoder(imm2=1, funct3=0x6, opcode=0x3b);
+		remw.set_asm("remw");
+		remw.set_behaviour(remw);
+		
+		remuw.set_decoder(imm2=1, funct3=0x7, opcode=0x3b);
+		remuw.set_asm("remuw");
+		remuw.set_behaviour(remuw);
+	};
+};

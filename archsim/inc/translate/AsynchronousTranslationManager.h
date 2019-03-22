@@ -12,12 +12,15 @@
 
 #include "translate/TranslationManager.h"
 #include "blockjit/BlockJitTranslate.h"
+#include "gensim/gensim_translate.h"
 
 #include <condition_variable>
 #include <list>
 #include <mutex>
 #include <queue>
 #include <unordered_set>
+
+#include <llvm/IR/LLVMContext.h>
 
 namespace gensim
 {
@@ -49,10 +52,10 @@ namespace archsim
 			AsynchronousTranslationManager(util::PubSubContext *psctx);
 			~AsynchronousTranslationManager();
 
-			bool Initialise(gensim::blockjit::BaseBlockJITTranslate *translate);
+			bool Initialise(gensim::BaseLLVMTranslate *translate);
 			void Destroy() override;
 
-			void UpdateThreshold() override;
+			bool UpdateThreshold() override;
 
 			bool TranslateRegion(archsim::core::thread::ThreadInstance *cpu, profile::Region& rgn, uint32_t weight) override;
 
@@ -69,16 +72,9 @@ namespace archsim
 			 */
 			std::mutex work_unit_queue_lock;
 			std::condition_variable work_unit_queue_cond;
+			llvm::LLVMContext ctx_;
 
-			//typedef std::priority_queue<TranslationWorkUnit *, std::vector<TranslationWorkUnit *>, WorkUnitQueueComparator> work_unit_queue_t;
-			typedef std::priority_queue<TranslationWorkUnit *, std::vector<TranslationWorkUnit*>, WorkUnitQueueComparator> work_unit_queue_t;
-
-			/**
-			 * Queue of translation work units awaiting translation.
-			 * Manager pushes to BACK of queue
-			 * Workers pop from FRONT of queue
-			 */
-			work_unit_queue_t work_unit_queue;
+			std::vector<TranslationWorkUnit *> work_unit_queue_;
 		};
 	}
 }

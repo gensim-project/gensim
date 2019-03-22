@@ -64,11 +64,11 @@ namespace captive
 				class GlobalRegisterReuseTransform : public Transform
 				{
 				public:
-					GlobalRegisterReuseTransform(const wutils::vbitset &used_registers, int max_regs);
+					GlobalRegisterReuseTransform(const wutils::vbitset<> &used_registers, int max_regs);
 					virtual ~GlobalRegisterReuseTransform();
 					virtual bool Apply(TranslationContext &ctx) override;
 				private:
-					wutils::vbitset used_pregs_;
+					wutils::vbitset<> used_pregs_;
 					int max_regs_;
 				};
 
@@ -80,11 +80,11 @@ namespace captive
 					virtual bool Apply(TranslationContext &ctx) override;
 
 					uint32_t GetStackFrameSize() const;
-					wutils::vbitset GetUsedPhysRegs() const;
+					wutils::vbitset<> GetUsedPhysRegs() const;
 				private:
 					uint32_t stack_frame_size_;
 					uint32_t num_allocable_registers_;
-					wutils::vbitset used_phys_regs_;
+					wutils::vbitset<> used_phys_regs_;
 				};
 
 				class RegisterAllocationTransform : public Transform
@@ -95,25 +95,25 @@ namespace captive
 					virtual bool Apply(TranslationContext &ctx) override;
 
 					uint32_t GetStackFrameSize() const;
-					wutils::vbitset GetUsedPhysRegs() const;
+					wutils::vbitset<> GetUsedPhysRegs() const;
 
 				private:
 					uint32_t stack_frame_size_;
 					uint32_t number_allocable_registers_;
-					wutils::vbitset used_phys_regs_;
+					wutils::vbitset<> used_phys_regs_;
 				};
 
 				class StackToRegTransform : public Transform
 				{
 				public:
-					StackToRegTransform(wutils::vbitset used_phys_regs);
+					StackToRegTransform(wutils::vbitset<> used_phys_regs);
 					virtual ~StackToRegTransform();
 
 					virtual bool Apply(TranslationContext &ctx) override;
-					wutils::vbitset GetUsedPhysRegs() const;
+					wutils::vbitset<> GetUsedPhysRegs() const;
 
 				private:
-					wutils::vbitset used_phys_regs_;
+					wutils::vbitset<> used_phys_regs_;
 				};
 
 				class ReorderBlocksTransform : public Transform

@@ -1,0 +1,5464 @@
+action void cdq (
+    struct Instruction sym_2275_3_parameter_inst
+  )[
+    sint32 sym_2281_0_extended
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = regread 1;
+    s_b_0_1 = cast zextend  sint32 s_b_0_0;
+    s_b_0_2 = constant sint32 31;
+    s_b_0_3 = binary ->> s_b_0_1 s_b_0_2;
+    s_b_0_4: write sym_2281_0_extended s_b_0_3;
+    s_b_0_5 = read sym_2281_0_extended;
+    s_b_0_6 = cast zextend  uint32 s_b_0_5;
+    s_b_0_7: regwrite 8 s_b_0_6;
+    s_b_0_8: return;
+  }
+}
+action void cdqe (
+    struct Instruction sym_2288_3_parameter_inst
+  )[
+    sint32 sym_2291_0_source
+    sint64 sym_2295_0_extended
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = regread 1;
+    s_b_0_1 = cast sextend  sint32 s_b_0_0;
+    s_b_0_2: write sym_2291_0_source s_b_0_1;
+    s_b_0_3 = read sym_2291_0_source;
+    s_b_0_4 = cast sextend  sint64 s_b_0_3;
+    s_b_0_5: write sym_2295_0_extended s_b_0_4;
+    s_b_0_6 = read sym_2295_0_extended;
+    s_b_0_7 = cast zextend  uint64 s_b_0_6;
+    s_b_0_8: regwrite 0 s_b_0_7;
+    s_b_0_9: return;
+  }
+}
+action uint8 check_condition helper (
+    uint8 sym_210_3_parameter_condition
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+    b_7
+    b_8
+    b_9
+    b_10
+    b_11
+    b_12
+    b_13
+    b_14
+    b_15
+    b_16
+    b_17
+    b_18
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_210_3_parameter_condition;
+    s_b_0_1 = constant sint32 0;
+    s_b_0_2 = constant sint32 1;
+    s_b_0_3 = constant sint32 2;
+    s_b_0_4 = constant sint32 3;
+    s_b_0_5 = constant sint32 4;
+    s_b_0_6 = constant sint32 5;
+    s_b_0_7 = constant sint32 6;
+    s_b_0_8 = constant sint32 7;
+    s_b_0_9 = constant sint32 8;
+    s_b_0_10 = constant sint32 9;
+    s_b_0_11 = constant sint32 10;
+    s_b_0_12 = constant sint32 11;
+    s_b_0_13 = constant sint32 12;
+    s_b_0_14 = constant sint32 13;
+    s_b_0_15 = constant sint32 14;
+    s_b_0_16 = constant sint32 15;
+    s_b_0_17: switch s_b_0_0 b_18 [s_b_0_1 b_2 s_b_0_10 b_11 s_b_0_11 b_12 s_b_0_12 b_13 s_b_0_13 b_14 s_b_0_14 b_15 s_b_0_15 b_16 s_b_0_16 b_17 s_b_0_2 b_3 s_b_0_3 b_4 s_b_0_4 b_5 s_b_0_5 b_6 s_b_0_6 b_7 s_b_0_7 b_8 s_b_0_8 b_9 s_b_0_9 b_10 ];
+  }
+  block b_1 {
+    s_b_1_0 = constant sint32 0;
+    s_b_1_1 = cast truncate  uint8 s_b_1_0;
+    s_b_1_2: return s_b_1_1;
+  }
+  block b_2 {
+    s_b_2_0 = regread 14;
+    s_b_2_1: return s_b_2_0;
+  }
+  block b_3 {
+    s_b_3_0 = regread 14;
+    s_b_3_1 = regread 17;
+    s_b_3_2 = binary | s_b_3_0 s_b_3_1;
+    s_b_3_3: return s_b_3_2;
+  }
+  block b_4 {
+    s_b_4_0 = regread 18;
+    s_b_4_1 = regread 20;
+    s_b_4_2 = binary ^ s_b_4_0 s_b_4_1;
+    s_b_4_3: return s_b_4_2;
+  }
+  block b_5 {
+    s_b_5_0 = regread 17;
+    s_b_5_1 = regread 18;
+    s_b_5_2 = regread 20;
+    s_b_5_3 = binary ^ s_b_5_1 s_b_5_2;
+    s_b_5_4 = binary | s_b_5_0 s_b_5_3;
+    s_b_5_5: return s_b_5_4;
+  }
+  block b_6 {
+    s_b_6_0 = regread 14;
+    s_b_6_1 = unary ! s_b_6_0;
+    s_b_6_2: return s_b_6_1;
+  }
+  block b_7 {
+    s_b_7_0 = regread 14;
+    s_b_7_1 = regread 17;
+    s_b_7_2 = binary | s_b_7_0 s_b_7_1;
+    s_b_7_3 = unary ! s_b_7_2;
+    s_b_7_4: return s_b_7_3;
+  }
+  block b_8 {
+    s_b_8_0 = regread 18;
+    s_b_8_1 = regread 20;
+    s_b_8_2 = binary ^ s_b_8_0 s_b_8_1;
+    s_b_8_3 = unary ! s_b_8_2;
+    s_b_8_4: return s_b_8_3;
+  }
+  block b_9 {
+    s_b_9_0 = regread 17;
+    s_b_9_1 = regread 18;
+    s_b_9_2 = regread 20;
+    s_b_9_3 = binary ^ s_b_9_1 s_b_9_2;
+    s_b_9_4 = binary | s_b_9_0 s_b_9_3;
+    s_b_9_5 = unary ! s_b_9_4;
+    s_b_9_6: return s_b_9_5;
+  }
+  block b_10 {
+    s_b_10_0 = regread 20;
+    s_b_10_1 = unary ! s_b_10_0;
+    s_b_10_2: return s_b_10_1;
+  }
+  block b_11 {
+    s_b_11_0 = regread 15;
+    s_b_11_1 = unary ! s_b_11_0;
+    s_b_11_2: return s_b_11_1;
+  }
+  block b_12 {
+    s_b_12_0 = regread 18;
+    s_b_12_1 = unary ! s_b_12_0;
+    s_b_12_2: return s_b_12_1;
+  }
+  block b_13 {
+    s_b_13_0 = regread 17;
+    s_b_13_1 = unary ! s_b_13_0;
+    s_b_13_2: return s_b_13_1;
+  }
+  block b_14 {
+    s_b_14_0 = regread 20;
+    s_b_14_1: return s_b_14_0;
+  }
+  block b_15 {
+    s_b_15_0 = regread 15;
+    s_b_15_1: return s_b_15_0;
+  }
+  block b_16 {
+    s_b_16_0 = regread 18;
+    s_b_16_1: return s_b_16_0;
+  }
+  block b_17 {
+    s_b_17_0 = regread 17;
+    s_b_17_1: return s_b_17_0;
+  }
+  block b_18 {
+    s_b_18_0: intrinsic 10;
+    s_b_18_1: jump b_1;
+  }
+}
+action void cld (
+    struct Instruction sym_2303_3_parameter_inst
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 0;
+    s_b_0_1 = cast truncate  uint8 s_b_0_0;
+    s_b_0_2: regwrite 19 s_b_0_1;
+    s_b_0_3: return;
+  }
+}
+action void cpuid (
+    struct Instruction sym_2398_3_parameter_inst
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0: return;
+  }
+}
+action void cqo (
+    struct Instruction sym_2402_3_parameter_inst
+  )[
+    sint64 sym_2405_0_op0
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = regread 0;
+    s_b_0_1 = cast sextend  sint64 s_b_0_0;
+    s_b_0_2: write sym_2405_0_op0 s_b_0_1;
+    s_b_0_3 = read sym_2405_0_op0;
+    s_b_0_4 = constant sint32 63;
+    s_b_0_5 = cast sextend  sint64 s_b_0_4;
+    s_b_0_6 = binary ->> s_b_0_3 s_b_0_5;
+    s_b_0_7: write sym_2405_0_op0 s_b_0_6;
+    s_b_0_8 = read sym_2405_0_op0;
+    s_b_0_9 = cast zextend  uint64 s_b_0_8;
+    s_b_0_10: regwrite 7 s_b_0_9;
+    s_b_0_11: return;
+  }
+}
+action uint8 do_bsf helper (
+    uint64 sym_310_3_parameter_op
+    uint8 sym_311_3_parameter_size
+  )[
+    uint8 sym_317_0_i
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 0;
+    s_b_0_1 = cast truncate  uint8 s_b_0_0;
+    s_b_0_2: write sym_317_0_i s_b_0_1;
+    s_b_0_3: jump b_1;
+  }
+  block b_1 {
+    s_b_1_0 = read sym_317_0_i;
+    s_b_1_1 = read sym_311_3_parameter_size;
+    s_b_1_2 = binary < s_b_1_0 s_b_1_1;
+    s_b_1_3: if s_b_1_2 b_2 b_3;
+  }
+  block b_2 {
+    s_b_2_0 = read sym_310_3_parameter_op;
+    s_b_2_1 = constant sint32 1;
+    s_b_2_2 = read sym_317_0_i;
+    s_b_2_3 = cast zextend  uint32 s_b_2_1;
+    s_b_2_4 = cast zextend  uint32 s_b_2_2;
+    s_b_2_5 = binary << s_b_2_3 s_b_2_4;
+    s_b_2_6 = cast zextend  uint64 s_b_2_5;
+    s_b_2_7 = binary & s_b_2_0 s_b_2_6;
+    s_b_2_8: if s_b_2_7 b_4 b_5;
+  }
+  block b_3 {
+    s_b_3_0 = constant sint32 0;
+    s_b_3_1 = cast truncate  uint8 s_b_3_0;
+    s_b_3_2: return s_b_3_1;
+  }
+  block b_4 {
+    s_b_4_0 = read sym_317_0_i;
+    s_b_4_1: return s_b_4_0;
+  }
+  block b_5 {
+    s_b_5_0 = read sym_317_0_i;
+    s_b_5_1 = constant uint8 1;
+    s_b_5_2 = binary + s_b_5_0 s_b_5_1;
+    s_b_5_3: write sym_317_0_i s_b_5_2;
+    s_b_5_4: jump b_1;
+  }
+}
+action uint128 get_cd_pair helper (
+    uint8 sym_913_3_parameter_width_bits
+  )[
+    uint128 sym_949_0_a
+    uint128 sym_953_0_d
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_913_3_parameter_width_bits;
+    s_b_0_1 = constant sint32 16;
+    s_b_0_2 = constant sint32 32;
+    s_b_0_3 = constant sint32 64;
+    s_b_0_4 = constant sint32 128;
+    s_b_0_5: switch s_b_0_0 b_6 [s_b_0_1 b_2 s_b_0_2 b_3 s_b_0_3 b_4 s_b_0_4 b_5 ];
+  }
+  block b_1 {
+    s_b_1_0 = constant sint32 0;
+    s_b_1_1 = cast zextend  uint128 s_b_1_0;
+    s_b_1_2: return s_b_1_1;
+  }
+  block b_2 {
+    s_b_2_0 = regread 3;
+    s_b_2_1 = cast zextend  uint128 s_b_2_0;
+    s_b_2_2: return s_b_2_1;
+  }
+  block b_3 {
+    s_b_3_0 = regread 2;
+    s_b_3_1 = regread 9;
+    s_b_3_2 = cast zextend  uint32 s_b_3_1;
+    s_b_3_3 = constant sint32 16;
+    s_b_3_4 = cast zextend  uint32 s_b_3_3;
+    s_b_3_5 = binary << s_b_3_2 s_b_3_4;
+    s_b_3_6 = cast zextend  uint32 s_b_3_0;
+    s_b_3_7 = binary | s_b_3_6 s_b_3_5;
+    s_b_3_8 = cast zextend  uint128 s_b_3_7;
+    s_b_3_9: return s_b_3_8;
+  }
+  block b_4 {
+    s_b_4_0 = regread 1;
+    s_b_4_1 = regread 8;
+    s_b_4_2 = cast zextend  uint64 s_b_4_1;
+    s_b_4_3 = constant sint32 32;
+    s_b_4_4 = cast zextend  uint64 s_b_4_3;
+    s_b_4_5 = binary << s_b_4_2 s_b_4_4;
+    s_b_4_6 = cast zextend  uint64 s_b_4_0;
+    s_b_4_7 = binary | s_b_4_6 s_b_4_5;
+    s_b_4_8 = cast zextend  uint128 s_b_4_7;
+    s_b_4_9: return s_b_4_8;
+  }
+  block b_5 {
+    s_b_5_0 = regread 0;
+    s_b_5_1 = cast zextend  uint128 s_b_5_0;
+    s_b_5_2: write sym_949_0_a s_b_5_1;
+    s_b_5_3 = regread 7;
+    s_b_5_4 = cast zextend  uint128 s_b_5_3;
+    s_b_5_5: write sym_953_0_d s_b_5_4;
+    s_b_5_6 = read sym_949_0_a;
+    s_b_5_7 = read sym_953_0_d;
+    s_b_5_8 = constant sint32 64;
+    s_b_5_9 = cast zextend  uint128 s_b_5_8;
+    s_b_5_10 = binary << s_b_5_7 s_b_5_9;
+    s_b_5_11 = binary | s_b_5_6 s_b_5_10;
+    s_b_5_12: return s_b_5_11;
+  }
+  block b_6 {
+    s_b_6_0: intrinsic 10;
+    s_b_6_1: jump b_1;
+  }
+}
+action void movsb (
+    struct Instruction sym_2796_3_parameter_inst
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0: intrinsic 10;
+    s_b_0_1: return;
+  }
+}
+action void nop (
+    struct Instruction sym_2971_3_parameter_inst
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0: return;
+  }
+}
+action uint8 operand_get_size_mem helper (
+    struct Memory& sym_1059_3_parameter_mem
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1059_3_parameter_mem width;
+    s_b_0_1: return s_b_0_0;
+  }
+}
+action uint8 operand_get_size_reg helper (
+    struct Register& sym_1045_3_parameter_reg
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1045_3_parameter_reg width;
+    s_b_0_1: return s_b_0_0;
+  }
+}
+action void rdtsc (
+    struct Instruction sym_3705_3_parameter_inst
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 1;
+    s_b_0_1 = cast zextend  uint32 s_b_0_0;
+    s_b_0_2 = constant sint32 0;
+    s_b_0_3 = cast zextend  uint32 s_b_0_2;
+    s_b_0_4: intrinsic 11 s_b_0_1 s_b_0_3;
+    s_b_0_5: return;
+  }
+}
+action uint64 read_eflags helper (
+  )[
+    uint64 sym_1073_0_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 0;
+    s_b_0_1 = cast zextend  uint64 s_b_0_0;
+    s_b_0_2: write sym_1073_0_value s_b_0_1;
+    s_b_0_3 = read sym_1073_0_value;
+    s_b_0_4 = regread 14;
+    s_b_0_5 = cast zextend  uint64 s_b_0_4;
+    s_b_0_6 = binary | s_b_0_3 s_b_0_5;
+    s_b_0_7: write sym_1073_0_value s_b_0_6;
+    s_b_0_8 = read sym_1073_0_value;
+    s_b_0_9 = regread 15;
+    s_b_0_10 = constant uint32 2;
+    s_b_0_11 = cast zextend  uint32 s_b_0_9;
+    s_b_0_12 = binary << s_b_0_11 s_b_0_10;
+    s_b_0_13 = cast zextend  uint64 s_b_0_12;
+    s_b_0_14 = binary | s_b_0_8 s_b_0_13;
+    s_b_0_15: write sym_1073_0_value s_b_0_14;
+    s_b_0_16 = read sym_1073_0_value;
+    s_b_0_17 = regread 17;
+    s_b_0_18 = constant uint32 6;
+    s_b_0_19 = cast zextend  uint32 s_b_0_17;
+    s_b_0_20 = binary << s_b_0_19 s_b_0_18;
+    s_b_0_21 = cast zextend  uint64 s_b_0_20;
+    s_b_0_22 = binary | s_b_0_16 s_b_0_21;
+    s_b_0_23: write sym_1073_0_value s_b_0_22;
+    s_b_0_24 = read sym_1073_0_value;
+    s_b_0_25 = regread 18;
+    s_b_0_26 = constant uint32 7;
+    s_b_0_27 = cast zextend  uint32 s_b_0_25;
+    s_b_0_28 = binary << s_b_0_27 s_b_0_26;
+    s_b_0_29 = cast zextend  uint64 s_b_0_28;
+    s_b_0_30 = binary | s_b_0_24 s_b_0_29;
+    s_b_0_31: write sym_1073_0_value s_b_0_30;
+    s_b_0_32 = read sym_1073_0_value;
+    s_b_0_33 = regread 19;
+    s_b_0_34 = constant uint32 10;
+    s_b_0_35 = cast zextend  uint32 s_b_0_33;
+    s_b_0_36 = binary << s_b_0_35 s_b_0_34;
+    s_b_0_37 = cast zextend  uint64 s_b_0_36;
+    s_b_0_38 = binary | s_b_0_32 s_b_0_37;
+    s_b_0_39: write sym_1073_0_value s_b_0_38;
+    s_b_0_40 = read sym_1073_0_value;
+    s_b_0_41 = regread 20;
+    s_b_0_42 = constant uint32 11;
+    s_b_0_43 = cast zextend  uint32 s_b_0_41;
+    s_b_0_44 = binary << s_b_0_43 s_b_0_42;
+    s_b_0_45 = cast zextend  uint64 s_b_0_44;
+    s_b_0_46 = binary | s_b_0_40 s_b_0_45;
+    s_b_0_47: write sym_1073_0_value s_b_0_46;
+    s_b_0_48 = read sym_1073_0_value;
+    s_b_0_49: return s_b_0_48;
+  }
+}
+action uint8 read_h_reg helper (
+    uint8 sym_1001_3_parameter_reg
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_1001_3_parameter_reg;
+    s_b_0_1 = bankregread 4 s_b_0_0;
+    s_b_0_2: return s_b_0_1;
+  }
+}
+action uint64 read_mem helper (
+    uint64 sym_1124_3_parameter_addr
+    uint8 sym_1125_3_parameter_width_bits
+  )[
+    uint8 sym_1132_0_temp_data
+    uint64 sym_1135_0_final_data
+    uint16 sym_1142_0_temp_data
+    uint32 sym_1151_0_temp_data
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_1125_3_parameter_width_bits;
+    s_b_0_1 = constant sint32 8;
+    s_b_0_2 = constant sint32 16;
+    s_b_0_3 = constant sint32 32;
+    s_b_0_4 = constant sint32 64;
+    s_b_0_5: switch s_b_0_0 b_1 [s_b_0_1 b_2 s_b_0_2 b_3 s_b_0_3 b_4 s_b_0_4 b_5 ];
+  }
+  block b_1 {
+    s_b_1_0 = read sym_1135_0_final_data;
+    s_b_1_1: return s_b_1_0;
+  }
+  block b_2 {
+    s_b_2_0 = read sym_1124_3_parameter_addr;
+    s_b_2_1: memread 1 s_b_2_0 sym_1132_0_temp_data;
+    s_b_2_2 = read sym_1132_0_temp_data;
+    s_b_2_3 = cast zextend  uint64 s_b_2_2;
+    s_b_2_4: write sym_1135_0_final_data s_b_2_3;
+    s_b_2_5: jump b_1;
+  }
+  block b_3 {
+    s_b_3_0 = read sym_1124_3_parameter_addr;
+    s_b_3_1: memread 2 s_b_3_0 sym_1142_0_temp_data;
+    s_b_3_2 = read sym_1142_0_temp_data;
+    s_b_3_3 = cast zextend  uint64 s_b_3_2;
+    s_b_3_4: write sym_1135_0_final_data s_b_3_3;
+    s_b_3_5: jump b_1;
+  }
+  block b_4 {
+    s_b_4_0 = read sym_1124_3_parameter_addr;
+    s_b_4_1: memread 4 s_b_4_0 sym_1151_0_temp_data;
+    s_b_4_2 = read sym_1151_0_temp_data;
+    s_b_4_3 = cast zextend  uint64 s_b_4_2;
+    s_b_4_4: write sym_1135_0_final_data s_b_4_3;
+    s_b_4_5: jump b_1;
+  }
+  block b_5 {
+    s_b_5_0 = read sym_1124_3_parameter_addr;
+    s_b_5_1: memread 8 s_b_5_0 sym_1135_0_final_data;
+    s_b_5_2: jump b_1;
+  }
+}
+action uint64 read_op_imm helper (
+    struct Immediate& sym_1166_3_parameter_op
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1166_3_parameter_op value;
+    s_b_0_1: return s_b_0_0;
+  }
+}
+action uint64 read_op_reg_sse helper (
+    struct Register& sym_1183_3_parameter_reg
+  )[
+    uint64[2] sym_1191_0_vector
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1183_3_parameter_reg regclass;
+    s_b_0_1 = constant sint32 1;
+    s_b_0_2: switch s_b_0_0 b_3 [s_b_0_1 b_2 ];
+  }
+  block b_1 {
+    s_b_1_0 = constant sint32 0;
+    s_b_1_1 = cast zextend  uint64 s_b_1_0;
+    s_b_1_2: return s_b_1_1;
+  }
+  block b_2 {
+    s_b_2_0 = struct sym_1183_3_parameter_reg index;
+    s_b_2_1 = bankregread 5 s_b_2_0;
+    s_b_2_2: write sym_1191_0_vector s_b_2_1;
+    s_b_2_3 = read sym_1191_0_vector;
+    s_b_2_4 = constant sint32 0;
+    s_b_2_5 = vextract s_b_2_3[s_b_2_4];
+    s_b_2_6: return s_b_2_5;
+  }
+  block b_3 {
+    s_b_3_0: intrinsic 10;
+    s_b_3_1: jump b_1;
+  }
+}
+action uint64 read_op_relbr helper (
+    struct Immediate& sym_1205_3_parameter_op
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1205_3_parameter_op value;
+    s_b_0_1 = intrinsic 1;
+    s_b_0_2 = binary + s_b_0_0 s_b_0_1;
+    s_b_0_3: return s_b_0_2;
+  }
+}
+action uint64 read_reg helper (
+    uint8 sym_354_3_parameter_index
+    uint8 sym_355_3_parameter_width
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+    b_7
+    b_8
+    b_9
+    b_10
+    b_11
+    b_12
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_354_3_parameter_index;
+    s_b_0_1 = constant sint32 255;
+    s_b_0_2 = cast zextend  uint32 s_b_0_0;
+    s_b_0_3 = cast zextend  uint32 s_b_0_1;
+    s_b_0_4 = binary == s_b_0_2 s_b_0_3;
+    s_b_0_5: if s_b_0_4 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = intrinsic 1;
+    s_b_1_1: return s_b_1_0;
+  }
+  block b_2 {
+    s_b_2_0: intrinsic 10;
+    s_b_2_1 = constant sint32 0;
+    s_b_2_2 = cast zextend  uint64 s_b_2_1;
+    s_b_2_3: return s_b_2_2;
+  }
+  block b_3 {
+    s_b_3_0 = read sym_354_3_parameter_index;
+    s_b_3_1 = constant sint32 254;
+    s_b_3_2 = cast zextend  uint32 s_b_3_0;
+    s_b_3_3 = cast zextend  uint32 s_b_3_1;
+    s_b_3_4 = binary == s_b_3_2 s_b_3_3;
+    s_b_3_5: if s_b_3_4 b_4 b_6;
+  }
+  block b_4 {
+    s_b_4_0 = constant sint32 0;
+    s_b_4_1 = cast zextend  uint64 s_b_4_0;
+    s_b_4_2: return s_b_4_1;
+  }
+  block b_5 {
+    s_b_5_0: jump b_2;
+  }
+  block b_6 {
+    s_b_6_0 = read sym_355_3_parameter_width;
+    s_b_6_1 = constant sint32 8;
+    s_b_6_2 = constant sint32 16;
+    s_b_6_3 = constant sint32 32;
+    s_b_6_4 = constant sint32 64;
+    s_b_6_5: switch s_b_6_0 b_12 [s_b_6_1 b_8 s_b_6_2 b_9 s_b_6_3 b_10 s_b_6_4 b_11 ];
+  }
+  block b_7 {
+    s_b_7_0: jump b_5;
+  }
+  block b_8 {
+    s_b_8_0 = read sym_354_3_parameter_index;
+    s_b_8_1 = bankregread 3 s_b_8_0;
+    s_b_8_2 = cast zextend  uint64 s_b_8_1;
+    s_b_8_3: return s_b_8_2;
+  }
+  block b_9 {
+    s_b_9_0 = read sym_354_3_parameter_index;
+    s_b_9_1 = bankregread 2 s_b_9_0;
+    s_b_9_2 = cast zextend  uint64 s_b_9_1;
+    s_b_9_3: return s_b_9_2;
+  }
+  block b_10 {
+    s_b_10_0 = read sym_354_3_parameter_index;
+    s_b_10_1 = bankregread 1 s_b_10_0;
+    s_b_10_2 = cast zextend  uint64 s_b_10_1;
+    s_b_10_3: return s_b_10_2;
+  }
+  block b_11 {
+    s_b_11_0 = read sym_354_3_parameter_index;
+    s_b_11_1 = bankregread 0 s_b_11_0;
+    s_b_11_2: return s_b_11_1;
+  }
+  block b_12 {
+    s_b_12_0: intrinsic 10;
+    s_b_12_1: jump b_7;
+  }
+}
+action uint64 read_reg_struct helper (
+    struct Register& sym_992_3_parameter_reg
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_992_3_parameter_reg h_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_992_3_parameter_reg index;
+    s_b_1_1 = call read_h_reg s_b_1_0;
+    s_b_1_2 = cast zextend  uint64 s_b_1_1;
+    s_b_1_3: return s_b_1_2;
+  }
+  block b_2 {
+  }
+  block b_3 {
+    s_b_3_0 = struct sym_992_3_parameter_reg index;
+    s_b_3_1 = struct sym_992_3_parameter_reg width;
+    s_b_3_2 = call read_reg s_b_3_0 s_b_3_1;
+    s_b_3_3 = struct sym_992_3_parameter_reg offset;
+    s_b_3_4 = cast zextend  uint64 s_b_3_3;
+    s_b_3_5 = binary + s_b_3_2 s_b_3_4;
+    s_b_3_6: return s_b_3_5;
+  }
+}
+action uint16[8] read_xmm_u16 helper (
+    struct Operand& sym_1328_3_parameter_op
+  )[
+    struct Register sym_1336_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1328_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_1328_3_parameter_op reg;
+    s_b_1_1: write sym_1336_1_temporary_value s_b_1_0;
+    s_b_1_2 = struct sym_1336_1_temporary_value index;
+    s_b_1_3 = bankregread 8 s_b_1_2;
+    s_b_1_4: return s_b_1_3;
+  }
+  block b_2 {
+    s_b_2_0 = constant sint32 0;
+    s_b_2_1 = cast splat  uint16[8] s_b_2_0;
+    s_b_2_2: return s_b_2_1;
+  }
+  block b_3 {
+    s_b_3_0: intrinsic 10;
+    s_b_3_1: jump b_2;
+  }
+}
+action uint32[4] read_xmm_u32 helper (
+    struct Operand& sym_1347_3_parameter_op
+  )[
+    struct Register sym_1355_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1347_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_1347_3_parameter_op reg;
+    s_b_1_1: write sym_1355_1_temporary_value s_b_1_0;
+    s_b_1_2 = struct sym_1355_1_temporary_value index;
+    s_b_1_3 = bankregread 7 s_b_1_2;
+    s_b_1_4: return s_b_1_3;
+  }
+  block b_2 {
+    s_b_2_0 = constant sint32 0;
+    s_b_2_1 = cast splat  uint32[4] s_b_2_0;
+    s_b_2_2: return s_b_2_1;
+  }
+  block b_3 {
+    s_b_3_0: intrinsic 10;
+    s_b_3_1: jump b_2;
+  }
+}
+action uint8[16] read_xmm_u8 helper (
+    struct Operand& sym_1418_3_parameter_op
+  )[
+    struct Register sym_1426_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1418_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_1418_3_parameter_op reg;
+    s_b_1_1: write sym_1426_1_temporary_value s_b_1_0;
+    s_b_1_2 = struct sym_1426_1_temporary_value index;
+    s_b_1_3 = bankregread 9 s_b_1_2;
+    s_b_1_4: return s_b_1_3;
+  }
+  block b_2 {
+    s_b_2_0 = constant sint32 0;
+    s_b_2_1 = cast splat  uint8[16] s_b_2_0;
+    s_b_2_2: return s_b_2_1;
+  }
+  block b_3 {
+    s_b_3_0: intrinsic 10;
+    s_b_3_1: jump b_2;
+  }
+}
+action void rep_decrement_counter helper (
+    struct Instruction& sym_1437_3_parameter_inst
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = regread 6;
+    s_b_0_1 = constant sint32 1;
+    s_b_0_2 = cast zextend  uint32 s_b_0_1;
+    s_b_0_3 = binary - s_b_0_0 s_b_0_2;
+    s_b_0_4: regwrite 6 s_b_0_3;
+    s_b_0_5: return;
+  }
+}
+action uint8 rep_should_run helper (
+    struct Instruction& sym_1446_3_parameter_inst
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = regread 6;
+    s_b_0_1 = constant sint32 0;
+    s_b_0_2 = cast zextend  uint32 s_b_0_1;
+    s_b_0_3 = binary != s_b_0_0 s_b_0_2;
+    s_b_0_4: return s_b_0_3;
+  }
+}
+action uint8 repe_should_run helper (
+    struct Instruction& sym_1454_3_parameter_inst
+  )[
+    uint8 sym_1460_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+  > {
+  block b_0 {
+    s_b_0_0 = regread 6;
+    s_b_0_1 = constant sint32 0;
+    s_b_0_2 = cast zextend  uint32 s_b_0_1;
+    s_b_0_3 = binary != s_b_0_0 s_b_0_2;
+    s_b_0_4 = constant uint8 0;
+    s_b_0_5 = binary != s_b_0_3 s_b_0_4;
+    s_b_0_6: write sym_1460_1_temporary_value s_b_0_5;
+    s_b_0_7: if s_b_0_5 b_2 b_1;
+  }
+  block b_1 {
+    s_b_1_0 = read sym_1460_1_temporary_value;
+    s_b_1_1: return s_b_1_0;
+  }
+  block b_2 {
+    s_b_2_0 = regread 17;
+    s_b_2_1 = constant sint32 1;
+    s_b_2_2 = cast zextend  uint32 s_b_2_0;
+    s_b_2_3 = cast zextend  uint32 s_b_2_1;
+    s_b_2_4 = binary == s_b_2_2 s_b_2_3;
+    s_b_2_5 = constant uint8 0;
+    s_b_2_6 = binary != s_b_2_4 s_b_2_5;
+    s_b_2_7: write sym_1460_1_temporary_value s_b_2_6;
+    s_b_2_8: jump b_1;
+  }
+}
+action uint8 repne_should_run helper (
+    struct Instruction& sym_1479_3_parameter_inst
+  )[
+    uint8 sym_1485_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+  > {
+  block b_0 {
+    s_b_0_0 = regread 6;
+    s_b_0_1 = constant sint32 0;
+    s_b_0_2 = cast zextend  uint32 s_b_0_1;
+    s_b_0_3 = binary != s_b_0_0 s_b_0_2;
+    s_b_0_4 = constant uint8 0;
+    s_b_0_5 = binary != s_b_0_3 s_b_0_4;
+    s_b_0_6: write sym_1485_1_temporary_value s_b_0_5;
+    s_b_0_7: if s_b_0_5 b_2 b_1;
+  }
+  block b_1 {
+    s_b_1_0 = read sym_1485_1_temporary_value;
+    s_b_1_1: return s_b_1_0;
+  }
+  block b_2 {
+    s_b_2_0 = regread 17;
+    s_b_2_1 = constant sint32 1;
+    s_b_2_2 = cast zextend  uint32 s_b_2_0;
+    s_b_2_3 = cast zextend  uint32 s_b_2_1;
+    s_b_2_4 = binary != s_b_2_2 s_b_2_3;
+    s_b_2_5 = constant uint8 0;
+    s_b_2_6 = binary != s_b_2_4 s_b_2_5;
+    s_b_2_7: write sym_1485_1_temporary_value s_b_2_6;
+    s_b_2_8: jump b_1;
+  }
+}
+action uint64 sign_extend helper (
+    uint64 sym_90_3_parameter_value
+    uint8 sym_91_3_parameter_width
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_91_3_parameter_width;
+    s_b_0_1 = constant sint32 8;
+    s_b_0_2 = constant sint32 16;
+    s_b_0_3 = constant sint32 32;
+    s_b_0_4: switch s_b_0_0 b_5 [s_b_0_1 b_2 s_b_0_2 b_3 s_b_0_3 b_4 ];
+  }
+  block b_1 {
+    s_b_1_0 = read sym_90_3_parameter_value;
+    s_b_1_1: return s_b_1_0;
+  }
+  block b_2 {
+    s_b_2_0 = read sym_90_3_parameter_value;
+    s_b_2_1 = cast truncate  sint8 s_b_2_0;
+    s_b_2_2 = cast sextend  sint64 s_b_2_1;
+    s_b_2_3 = cast zextend  uint64 s_b_2_2;
+    s_b_2_4: write sym_90_3_parameter_value s_b_2_3;
+    s_b_2_5: jump b_1;
+  }
+  block b_3 {
+    s_b_3_0 = read sym_90_3_parameter_value;
+    s_b_3_1 = cast truncate  sint16 s_b_3_0;
+    s_b_3_2 = cast sextend  sint64 s_b_3_1;
+    s_b_3_3 = cast zextend  uint64 s_b_3_2;
+    s_b_3_4: write sym_90_3_parameter_value s_b_3_3;
+    s_b_3_5: jump b_1;
+  }
+  block b_4 {
+    s_b_4_0 = read sym_90_3_parameter_value;
+    s_b_4_1 = cast truncate  sint32 s_b_4_0;
+    s_b_4_2 = cast sextend  sint64 s_b_4_1;
+    s_b_4_3 = cast zextend  uint64 s_b_4_2;
+    s_b_4_4: write sym_90_3_parameter_value s_b_4_3;
+    s_b_4_5: jump b_1;
+  }
+  block b_5 {
+    s_b_5_0: jump b_1;
+  }
+}
+action uint64 stack_pop helper (
+  )[
+    uint64 sym_1658_0_sp
+    uint64 sym_1661_0_data
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = regread 11;
+    s_b_0_1: write sym_1658_0_sp s_b_0_0;
+    s_b_0_2 = constant sint32 0;
+    s_b_0_3 = cast zextend  uint64 s_b_0_2;
+    s_b_0_4: write sym_1661_0_data s_b_0_3;
+    s_b_0_5 = read sym_1658_0_sp;
+    s_b_0_6: memread 8 s_b_0_5 sym_1661_0_data;
+    s_b_0_7 = read sym_1658_0_sp;
+    s_b_0_8 = constant sint32 8;
+    s_b_0_9 = cast zextend  uint64 s_b_0_8;
+    s_b_0_10 = binary + s_b_0_7 s_b_0_9;
+    s_b_0_11: regwrite 11 s_b_0_10;
+    s_b_0_12 = read sym_1661_0_data;
+    s_b_0_13: return s_b_0_12;
+  }
+}
+action void stack_push helper (
+    uint64 sym_1674_3_parameter_value
+  )[
+    uint64 sym_1680_0_sp
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = regread 11;
+    s_b_0_1 = constant sint32 8;
+    s_b_0_2 = cast zextend  uint64 s_b_0_1;
+    s_b_0_3 = binary - s_b_0_0 s_b_0_2;
+    s_b_0_4: write sym_1680_0_sp s_b_0_3;
+    s_b_0_5 = read sym_1680_0_sp;
+    s_b_0_6: regwrite 11 s_b_0_5;
+    s_b_0_7 = read sym_1680_0_sp;
+    s_b_0_8 = read sym_1674_3_parameter_value;
+    s_b_0_9: memwrite 8 s_b_0_7 s_b_0_8;
+    s_b_0_10: return;
+  }
+}
+action void syscall (
+    struct Instruction sym_4068_3_parameter_inst
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 0;
+    s_b_0_1 = cast zextend  uint32 s_b_0_0;
+    s_b_0_2 = constant sint32 0;
+    s_b_0_3 = cast zextend  uint32 s_b_0_2;
+    s_b_0_4: intrinsic 11 s_b_0_1 s_b_0_3;
+    s_b_0_5: return;
+  }
+}
+action void update_parity helper (
+    uint8 sym_58_3_parameter_value
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_58_3_parameter_value;
+    s_b_0_1 = cast zextend  uint32 s_b_0_0;
+    s_b_0_2 = intrinsic 3 s_b_0_1;
+    s_b_0_3 = constant sint32 1;
+    s_b_0_4 = cast zextend  uint32 s_b_0_3;
+    s_b_0_5 = binary & s_b_0_2 s_b_0_4;
+    s_b_0_6 = constant sint32 0;
+    s_b_0_7 = cast zextend  uint32 s_b_0_6;
+    s_b_0_8 = binary == s_b_0_5 s_b_0_7;
+    s_b_0_9: regwrite 15 s_b_0_8;
+    s_b_0_10: return;
+  }
+}
+action void update_zs_flags helper (
+    uint64 sym_1689_3_parameter_value
+    uint8 sym_1690_3_parameter_width
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_1690_3_parameter_width;
+    s_b_0_1 = constant sint32 8;
+    s_b_0_2 = constant sint32 16;
+    s_b_0_3 = constant sint32 32;
+    s_b_0_4 = constant sint32 64;
+    s_b_0_5: switch s_b_0_0 b_1 [s_b_0_1 b_2 s_b_0_2 b_3 s_b_0_3 b_4 s_b_0_4 b_5 ];
+  }
+  block b_1 {
+    s_b_1_0: return;
+  }
+  block b_2 {
+    s_b_2_0 = read sym_1689_3_parameter_value;
+    s_b_2_1 = cast truncate  uint8 s_b_2_0;
+    s_b_2_2 = constant sint32 0;
+    s_b_2_3 = cast zextend  uint32 s_b_2_1;
+    s_b_2_4 = cast zextend  uint32 s_b_2_2;
+    s_b_2_5 = binary == s_b_2_3 s_b_2_4;
+    s_b_2_6: regwrite 17 s_b_2_5;
+    s_b_2_7 = read sym_1689_3_parameter_value;
+    s_b_2_8 = cast truncate  sint8 s_b_2_7;
+    s_b_2_9 = constant sint32 0;
+    s_b_2_10 = cast sextend  sint32 s_b_2_8;
+    s_b_2_11 = binary < s_b_2_10 s_b_2_9;
+    s_b_2_12: regwrite 18 s_b_2_11;
+    s_b_2_13: jump b_1;
+  }
+  block b_3 {
+    s_b_3_0 = read sym_1689_3_parameter_value;
+    s_b_3_1 = cast truncate  uint16 s_b_3_0;
+    s_b_3_2 = constant sint32 0;
+    s_b_3_3 = cast zextend  uint32 s_b_3_1;
+    s_b_3_4 = cast zextend  uint32 s_b_3_2;
+    s_b_3_5 = binary == s_b_3_3 s_b_3_4;
+    s_b_3_6: regwrite 17 s_b_3_5;
+    s_b_3_7 = read sym_1689_3_parameter_value;
+    s_b_3_8 = cast truncate  sint16 s_b_3_7;
+    s_b_3_9 = constant sint32 0;
+    s_b_3_10 = cast sextend  sint32 s_b_3_8;
+    s_b_3_11 = binary < s_b_3_10 s_b_3_9;
+    s_b_3_12: regwrite 18 s_b_3_11;
+    s_b_3_13: jump b_1;
+  }
+  block b_4 {
+    s_b_4_0 = read sym_1689_3_parameter_value;
+    s_b_4_1 = cast truncate  uint32 s_b_4_0;
+    s_b_4_2 = constant sint32 0;
+    s_b_4_3 = cast zextend  uint32 s_b_4_2;
+    s_b_4_4 = binary == s_b_4_1 s_b_4_3;
+    s_b_4_5: regwrite 17 s_b_4_4;
+    s_b_4_6 = read sym_1689_3_parameter_value;
+    s_b_4_7 = cast truncate  sint32 s_b_4_6;
+    s_b_4_8 = constant sint32 0;
+    s_b_4_9 = binary < s_b_4_7 s_b_4_8;
+    s_b_4_10: regwrite 18 s_b_4_9;
+    s_b_4_11: jump b_1;
+  }
+  block b_5 {
+    s_b_5_0 = read sym_1689_3_parameter_value;
+    s_b_5_1 = cast zextend  uint64 s_b_5_0;
+    s_b_5_2 = constant sint32 0;
+    s_b_5_3 = cast zextend  uint64 s_b_5_2;
+    s_b_5_4 = binary == s_b_5_1 s_b_5_3;
+    s_b_5_5: regwrite 17 s_b_5_4;
+    s_b_5_6 = read sym_1689_3_parameter_value;
+    s_b_5_7 = cast zextend  sint64 s_b_5_6;
+    s_b_5_8 = constant sint32 0;
+    s_b_5_9 = cast sextend  sint64 s_b_5_8;
+    s_b_5_10 = binary < s_b_5_7 s_b_5_9;
+    s_b_5_11: regwrite 18 s_b_5_10;
+    s_b_5_12: jump b_1;
+  }
+}
+action void write_cd_pair helper (
+    uint128 sym_1758_3_parameter_value
+    uint8 sym_1759_3_parameter_width_bits
+  )[
+    uint64 sym_1816_0_upper
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_1759_3_parameter_width_bits;
+    s_b_0_1 = constant sint32 16;
+    s_b_0_2 = constant sint32 32;
+    s_b_0_3 = constant sint32 64;
+    s_b_0_4 = constant sint32 128;
+    s_b_0_5: switch s_b_0_0 b_6 [s_b_0_1 b_2 s_b_0_2 b_3 s_b_0_3 b_4 s_b_0_4 b_5 ];
+  }
+  block b_1 {
+    s_b_1_0: return;
+  }
+  block b_2 {
+    s_b_2_0 = constant sint32 0;
+    s_b_2_1 = read sym_1758_3_parameter_value;
+    s_b_2_2 = cast truncate  uint16 s_b_2_1;
+    s_b_2_3: bankregwrite 2 s_b_2_0 s_b_2_2;
+    s_b_2_4: jump b_1;
+  }
+  block b_3 {
+    s_b_3_0 = constant sint32 2;
+    s_b_3_1 = read sym_1758_3_parameter_value;
+    s_b_3_2 = constant sint32 16;
+    s_b_3_3 = cast zextend  uint128 s_b_3_2;
+    s_b_3_4 = binary >> s_b_3_1 s_b_3_3;
+    s_b_3_5 = constant sint32 65535;
+    s_b_3_6 = cast zextend  uint128 s_b_3_5;
+    s_b_3_7 = binary & s_b_3_4 s_b_3_6;
+    s_b_3_8 = cast truncate  uint16 s_b_3_7;
+    s_b_3_9: bankregwrite 2 s_b_3_0 s_b_3_8;
+    s_b_3_10 = constant sint32 0;
+    s_b_3_11 = read sym_1758_3_parameter_value;
+    s_b_3_12 = constant sint32 65535;
+    s_b_3_13 = cast zextend  uint128 s_b_3_12;
+    s_b_3_14 = binary & s_b_3_11 s_b_3_13;
+    s_b_3_15 = cast truncate  uint16 s_b_3_14;
+    s_b_3_16: bankregwrite 2 s_b_3_10 s_b_3_15;
+    s_b_3_17: jump b_1;
+  }
+  block b_4 {
+    s_b_4_0 = constant sint32 2;
+    s_b_4_1 = read sym_1758_3_parameter_value;
+    s_b_4_2 = constant sint32 32;
+    s_b_4_3 = cast zextend  uint128 s_b_4_2;
+    s_b_4_4 = binary >> s_b_4_1 s_b_4_3;
+    s_b_4_5 = constant sint64 4294967295;
+    s_b_4_6 = cast zextend  uint128 s_b_4_5;
+    s_b_4_7 = binary & s_b_4_4 s_b_4_6;
+    s_b_4_8 = cast truncate  uint64 s_b_4_7;
+    s_b_4_9: bankregwrite 0 s_b_4_0 s_b_4_8;
+    s_b_4_10 = constant sint32 0;
+    s_b_4_11 = read sym_1758_3_parameter_value;
+    s_b_4_12 = constant sint64 4294967295;
+    s_b_4_13 = cast zextend  uint128 s_b_4_12;
+    s_b_4_14 = binary & s_b_4_11 s_b_4_13;
+    s_b_4_15 = cast truncate  uint64 s_b_4_14;
+    s_b_4_16: bankregwrite 0 s_b_4_10 s_b_4_15;
+    s_b_4_17: jump b_1;
+  }
+  block b_5 {
+    s_b_5_0 = read sym_1758_3_parameter_value;
+    s_b_5_1 = constant sint32 64;
+    s_b_5_2 = cast zextend  uint128 s_b_5_1;
+    s_b_5_3 = binary >> s_b_5_0 s_b_5_2;
+    s_b_5_4 = cast truncate  uint64 s_b_5_3;
+    s_b_5_5: write sym_1816_0_upper s_b_5_4;
+    s_b_5_6 = constant sint32 2;
+    s_b_5_7 = read sym_1816_0_upper;
+    s_b_5_8: bankregwrite 0 s_b_5_6 s_b_5_7;
+    s_b_5_9 = constant sint32 0;
+    s_b_5_10 = read sym_1758_3_parameter_value;
+    s_b_5_11 = cast truncate  uint64 s_b_5_10;
+    s_b_5_12: bankregwrite 0 s_b_5_9 s_b_5_11;
+    s_b_5_13: jump b_1;
+  }
+  block b_6 {
+    s_b_6_0: intrinsic 10;
+    s_b_6_1: jump b_1;
+  }
+}
+action void write_eflags helper (
+    uint64 sym_1833_3_parameter_value
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_1833_3_parameter_value;
+    s_b_0_1 = constant sint32 1;
+    s_b_0_2 = cast zextend  uint64 s_b_0_1;
+    s_b_0_3 = binary & s_b_0_0 s_b_0_2;
+    s_b_0_4 = cast truncate  uint8 s_b_0_3;
+    s_b_0_5: regwrite 14 s_b_0_4;
+    s_b_0_6 = read sym_1833_3_parameter_value;
+    s_b_0_7 = constant sint32 2;
+    s_b_0_8 = cast zextend  uint64 s_b_0_7;
+    s_b_0_9 = binary >> s_b_0_6 s_b_0_8;
+    s_b_0_10 = constant sint32 1;
+    s_b_0_11 = cast zextend  uint64 s_b_0_10;
+    s_b_0_12 = binary & s_b_0_9 s_b_0_11;
+    s_b_0_13 = cast truncate  uint8 s_b_0_12;
+    s_b_0_14: regwrite 15 s_b_0_13;
+    s_b_0_15 = read sym_1833_3_parameter_value;
+    s_b_0_16 = constant sint32 6;
+    s_b_0_17 = cast zextend  uint64 s_b_0_16;
+    s_b_0_18 = binary >> s_b_0_15 s_b_0_17;
+    s_b_0_19 = constant sint32 1;
+    s_b_0_20 = cast zextend  uint64 s_b_0_19;
+    s_b_0_21 = binary & s_b_0_18 s_b_0_20;
+    s_b_0_22 = cast truncate  uint8 s_b_0_21;
+    s_b_0_23: regwrite 17 s_b_0_22;
+    s_b_0_24 = read sym_1833_3_parameter_value;
+    s_b_0_25 = constant sint32 7;
+    s_b_0_26 = cast zextend  uint64 s_b_0_25;
+    s_b_0_27 = binary >> s_b_0_24 s_b_0_26;
+    s_b_0_28 = constant sint32 1;
+    s_b_0_29 = cast zextend  uint64 s_b_0_28;
+    s_b_0_30 = binary & s_b_0_27 s_b_0_29;
+    s_b_0_31 = cast truncate  uint8 s_b_0_30;
+    s_b_0_32: regwrite 18 s_b_0_31;
+    s_b_0_33 = read sym_1833_3_parameter_value;
+    s_b_0_34 = constant sint32 10;
+    s_b_0_35 = cast zextend  uint64 s_b_0_34;
+    s_b_0_36 = binary >> s_b_0_33 s_b_0_35;
+    s_b_0_37 = constant sint32 1;
+    s_b_0_38 = cast zextend  uint64 s_b_0_37;
+    s_b_0_39 = binary & s_b_0_36 s_b_0_38;
+    s_b_0_40 = cast truncate  uint8 s_b_0_39;
+    s_b_0_41: regwrite 19 s_b_0_40;
+    s_b_0_42 = read sym_1833_3_parameter_value;
+    s_b_0_43 = constant sint32 11;
+    s_b_0_44 = cast zextend  uint64 s_b_0_43;
+    s_b_0_45 = binary >> s_b_0_42 s_b_0_44;
+    s_b_0_46 = constant sint32 1;
+    s_b_0_47 = cast zextend  uint64 s_b_0_46;
+    s_b_0_48 = binary & s_b_0_45 s_b_0_47;
+    s_b_0_49 = cast truncate  uint8 s_b_0_48;
+    s_b_0_50: regwrite 20 s_b_0_49;
+    s_b_0_51: return;
+  }
+}
+action void write_h_reg helper (
+    uint8 sym_1888_3_parameter_index
+    uint8 sym_1889_3_parameter_value
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_1888_3_parameter_index;
+    s_b_0_1 = read sym_1889_3_parameter_value;
+    s_b_0_2: bankregwrite 4 s_b_0_0 s_b_0_1;
+    s_b_0_3: return;
+  }
+}
+action void write_mem helper (
+    uint64 sym_1896_3_parameter_addr
+    uint64 sym_1897_3_parameter_value
+    uint8 sym_1898_3_parameter_width_bits
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_1898_3_parameter_width_bits;
+    s_b_0_1 = constant sint32 8;
+    s_b_0_2 = constant sint32 16;
+    s_b_0_3 = constant sint32 32;
+    s_b_0_4 = constant sint32 64;
+    s_b_0_5: switch s_b_0_0 b_6 [s_b_0_1 b_2 s_b_0_2 b_3 s_b_0_3 b_4 s_b_0_4 b_5 ];
+  }
+  block b_1 {
+    s_b_1_0: return;
+  }
+  block b_2 {
+    s_b_2_0 = read sym_1896_3_parameter_addr;
+    s_b_2_1 = read sym_1897_3_parameter_value;
+    s_b_2_2 = cast truncate  uint8 s_b_2_1;
+    s_b_2_3: memwrite 1 s_b_2_0 s_b_2_2;
+    s_b_2_4: jump b_1;
+  }
+  block b_3 {
+    s_b_3_0 = read sym_1896_3_parameter_addr;
+    s_b_3_1 = read sym_1897_3_parameter_value;
+    s_b_3_2 = cast truncate  uint16 s_b_3_1;
+    s_b_3_3: memwrite 2 s_b_3_0 s_b_3_2;
+    s_b_3_4: jump b_1;
+  }
+  block b_4 {
+    s_b_4_0 = read sym_1896_3_parameter_addr;
+    s_b_4_1 = read sym_1897_3_parameter_value;
+    s_b_4_2 = cast truncate  uint32 s_b_4_1;
+    s_b_4_3: memwrite 4 s_b_4_0 s_b_4_2;
+    s_b_4_4: jump b_1;
+  }
+  block b_5 {
+    s_b_5_0 = read sym_1896_3_parameter_addr;
+    s_b_5_1 = read sym_1897_3_parameter_value;
+    s_b_5_2: memwrite 8 s_b_5_0 s_b_5_1;
+    s_b_5_3: jump b_1;
+  }
+  block b_6 {
+    s_b_6_0: intrinsic 10;
+    s_b_6_1: jump b_1;
+  }
+}
+action void write_op_reg_sse helper (
+    struct Register& sym_1967_3_parameter_reg
+    uint64 sym_1968_3_parameter_value
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1967_3_parameter_reg regclass;
+    s_b_0_1 = constant sint32 1;
+    s_b_0_2: switch s_b_0_0 b_3 [s_b_0_1 b_2 ];
+  }
+  block b_1 {
+    s_b_1_0: return;
+  }
+  block b_2 {
+    s_b_2_0 = struct sym_1967_3_parameter_reg index;
+    s_b_2_1 = read sym_1968_3_parameter_value;
+    s_b_2_2: bankregwrite 6 s_b_2_0 s_b_2_1;
+    s_b_2_3: return;
+  }
+  block b_3 {
+    s_b_3_0: intrinsic 10;
+    s_b_3_1: jump b_1;
+  }
+}
+action void write_reg helper (
+    uint8 sym_521_3_parameter_index
+    uint8 sym_522_3_parameter_width
+    uint64 sym_523_3_parameter_value
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_522_3_parameter_width;
+    s_b_0_1 = constant sint32 8;
+    s_b_0_2 = constant sint32 16;
+    s_b_0_3 = constant sint32 32;
+    s_b_0_4 = constant sint32 64;
+    s_b_0_5: switch s_b_0_0 b_6 [s_b_0_1 b_2 s_b_0_2 b_3 s_b_0_3 b_4 s_b_0_4 b_5 ];
+  }
+  block b_1 {
+    s_b_1_0: return;
+  }
+  block b_2 {
+    s_b_2_0 = read sym_521_3_parameter_index;
+    s_b_2_1 = read sym_523_3_parameter_value;
+    s_b_2_2 = cast truncate  uint8 s_b_2_1;
+    s_b_2_3: bankregwrite 3 s_b_2_0 s_b_2_2;
+    s_b_2_4: jump b_1;
+  }
+  block b_3 {
+    s_b_3_0 = read sym_521_3_parameter_index;
+    s_b_3_1 = read sym_523_3_parameter_value;
+    s_b_3_2 = cast truncate  uint16 s_b_3_1;
+    s_b_3_3: bankregwrite 2 s_b_3_0 s_b_3_2;
+    s_b_3_4: jump b_1;
+  }
+  block b_4 {
+    s_b_4_0 = read sym_521_3_parameter_index;
+    s_b_4_1 = read sym_523_3_parameter_value;
+    s_b_4_2 = constant sint64 4294967295;
+    s_b_4_3 = cast zextend  uint64 s_b_4_2;
+    s_b_4_4 = binary & s_b_4_1 s_b_4_3;
+    s_b_4_5: bankregwrite 0 s_b_4_0 s_b_4_4;
+    s_b_4_6: jump b_1;
+  }
+  block b_5 {
+    s_b_5_0 = read sym_521_3_parameter_index;
+    s_b_5_1 = read sym_523_3_parameter_value;
+    s_b_5_2: bankregwrite 0 s_b_5_0 s_b_5_1;
+    s_b_5_3: jump b_1;
+  }
+  block b_6 {
+    s_b_6_0: intrinsic 10;
+    s_b_6_1: jump b_1;
+  }
+}
+action void write_xmm_u16 helper (
+    struct Operand& sym_2059_3_parameter_op
+    uint16[8] sym_2060_3_parameter_value
+  )[
+    struct Register sym_2068_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2059_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_2059_3_parameter_op reg;
+    s_b_1_1: write sym_2068_1_temporary_value s_b_1_0;
+    s_b_1_2 = struct sym_2068_1_temporary_value index;
+    s_b_1_3 = read sym_2060_3_parameter_value;
+    s_b_1_4: bankregwrite 8 s_b_1_2 s_b_1_3;
+    s_b_1_5: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0: intrinsic 10;
+    s_b_3_1: jump b_2;
+  }
+}
+action void write_xmm_u32 helper (
+    struct Operand& sym_2078_3_parameter_op
+    uint32[4] sym_2079_3_parameter_value
+  )[
+    struct Register sym_2087_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2078_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_2078_3_parameter_op reg;
+    s_b_1_1: write sym_2087_1_temporary_value s_b_1_0;
+    s_b_1_2 = struct sym_2087_1_temporary_value index;
+    s_b_1_3 = read sym_2079_3_parameter_value;
+    s_b_1_4: bankregwrite 7 s_b_1_2 s_b_1_3;
+    s_b_1_5: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0: intrinsic 10;
+    s_b_3_1: jump b_2;
+  }
+}
+action void write_xmm_u64 helper (
+    struct Operand& sym_2097_3_parameter_op
+    uint64[2] sym_2098_3_parameter_value
+  )[
+    struct Register sym_2106_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2097_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_2097_3_parameter_op reg;
+    s_b_1_1: write sym_2106_1_temporary_value s_b_1_0;
+    s_b_1_2 = struct sym_2106_1_temporary_value index;
+    s_b_1_3 = read sym_2098_3_parameter_value;
+    s_b_1_4: bankregwrite 5 s_b_1_2 s_b_1_3;
+    s_b_1_5: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0: intrinsic 10;
+    s_b_3_1: jump b_2;
+  }
+}
+action void write_xmm_u8 helper (
+    struct Operand& sym_2116_3_parameter_op
+    uint8[16] sym_2117_3_parameter_value
+  )[
+    struct Register sym_2125_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2116_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_2116_3_parameter_op reg;
+    s_b_1_1: write sym_2125_1_temporary_value s_b_1_0;
+    s_b_1_2 = struct sym_2125_1_temporary_value index;
+    s_b_1_3 = read sym_2117_3_parameter_value;
+    s_b_1_4: bankregwrite 9 s_b_1_2 s_b_1_3;
+    s_b_1_5: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0: intrinsic 10;
+    s_b_3_1: jump b_2;
+  }
+}
+action void xgetbv (
+    struct Instruction sym_4131_3_parameter_inst
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 0;
+    s_b_0_1 = constant sint32 0;
+    s_b_0_2 = cast zextend  uint64 s_b_0_1;
+    s_b_0_3: bankregwrite 0 s_b_0_0 s_b_0_2;
+    s_b_0_4 = constant sint32 3;
+    s_b_0_5 = constant sint32 0;
+    s_b_0_6 = cast zextend  uint64 s_b_0_5;
+    s_b_0_7: bankregwrite 0 s_b_0_4 s_b_0_6;
+    s_b_0_8: return;
+  }
+}
+action uint64 addition helper (
+    uint64 sym_1_3_parameter_op0
+    uint64 sym_2_3_parameter_op1
+    uint8 sym_3_3_parameter_op_size
+  )[
+    sint64 sym_8_0_result
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_1_3_parameter_op0;
+    s_b_0_1 = read sym_2_3_parameter_op1;
+    s_b_0_2 = binary + s_b_0_0 s_b_0_1;
+    s_b_0_3 = cast sextend  sint64 s_b_0_2;
+    s_b_0_4: write sym_8_0_result s_b_0_3;
+    s_b_0_5 = read sym_3_3_parameter_op_size;
+    s_b_0_6 = constant sint32 8;
+    s_b_0_7 = constant sint32 16;
+    s_b_0_8 = constant sint32 32;
+    s_b_0_9 = constant sint32 64;
+    s_b_0_10: switch s_b_0_5 b_6 [s_b_0_6 b_2 s_b_0_7 b_3 s_b_0_8 b_4 s_b_0_9 b_5 ];
+  }
+  block b_1 {
+    s_b_1_0 = read sym_8_0_result;
+    s_b_1_1 = cast truncate  uint8 s_b_1_0;
+    s_b_1_2: call update_parity s_b_1_1;
+    s_b_1_3 = read sym_8_0_result;
+    s_b_1_4 = cast zextend  uint64 s_b_1_3;
+    s_b_1_5: return s_b_1_4;
+  }
+  block b_2 {
+    s_b_2_0 = read sym_1_3_parameter_op0;
+    s_b_2_1 = cast truncate  uint8 s_b_2_0;
+    s_b_2_2 = read sym_2_3_parameter_op1;
+    s_b_2_3 = cast truncate  uint8 s_b_2_2;
+    s_b_2_4 = constant sint32 0;
+    s_b_2_5 = cast truncate  uint8 s_b_2_4;
+    s_b_2_6 = intrinsic 36 s_b_2_1 s_b_2_3 s_b_2_5;
+    s_b_2_7: jump b_1;
+  }
+  block b_3 {
+    s_b_3_0 = read sym_1_3_parameter_op0;
+    s_b_3_1 = cast truncate  uint16 s_b_3_0;
+    s_b_3_2 = read sym_2_3_parameter_op1;
+    s_b_3_3 = cast truncate  uint16 s_b_3_2;
+    s_b_3_4 = constant sint32 0;
+    s_b_3_5 = cast truncate  uint8 s_b_3_4;
+    s_b_3_6 = intrinsic 37 s_b_3_1 s_b_3_3 s_b_3_5;
+    s_b_3_7: jump b_1;
+  }
+  block b_4 {
+    s_b_4_0 = read sym_1_3_parameter_op0;
+    s_b_4_1 = cast truncate  uint32 s_b_4_0;
+    s_b_4_2 = read sym_2_3_parameter_op1;
+    s_b_4_3 = cast truncate  uint32 s_b_4_2;
+    s_b_4_4 = constant sint32 0;
+    s_b_4_5 = cast truncate  uint8 s_b_4_4;
+    s_b_4_6 = intrinsic 38 s_b_4_1 s_b_4_3 s_b_4_5;
+    s_b_4_7: jump b_1;
+  }
+  block b_5 {
+    s_b_5_0 = read sym_1_3_parameter_op0;
+    s_b_5_1 = read sym_2_3_parameter_op1;
+    s_b_5_2 = constant sint32 0;
+    s_b_5_3 = cast truncate  uint8 s_b_5_2;
+    s_b_5_4 = intrinsic 39 s_b_5_0 s_b_5_1 s_b_5_3;
+    s_b_5_5: jump b_1;
+  }
+  block b_6 {
+    s_b_6_0: intrinsic 10;
+    s_b_6_1: jump b_1;
+  }
+}
+action uint64 bitwise_and helper (
+    uint64 sym_76_3_parameter_op0
+    uint64 sym_77_3_parameter_op1
+    uint8 sym_78_3_parameter_op_size
+  )[
+    sint64 sym_83_0_result
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_76_3_parameter_op0;
+    s_b_0_1 = read sym_77_3_parameter_op1;
+    s_b_0_2 = binary & s_b_0_0 s_b_0_1;
+    s_b_0_3 = cast sextend  sint64 s_b_0_2;
+    s_b_0_4: write sym_83_0_result s_b_0_3;
+    s_b_0_5 = read sym_83_0_result;
+    s_b_0_6 = cast zextend  uint64 s_b_0_5;
+    s_b_0_7 = read sym_78_3_parameter_op_size;
+    s_b_0_8 = call sign_extend s_b_0_6 s_b_0_7;
+    s_b_0_9 = cast sextend  sint64 s_b_0_8;
+    s_b_0_10: write sym_83_0_result s_b_0_9;
+    s_b_0_11 = read sym_83_0_result;
+    s_b_0_12 = constant sint32 0;
+    s_b_0_13 = cast sextend  sint64 s_b_0_12;
+    s_b_0_14 = binary == s_b_0_11 s_b_0_13;
+    s_b_0_15: regwrite 17 s_b_0_14;
+    s_b_0_16 = read sym_83_0_result;
+    s_b_0_17 = constant sint32 0;
+    s_b_0_18 = cast sextend  sint64 s_b_0_17;
+    s_b_0_19 = binary < s_b_0_16 s_b_0_18;
+    s_b_0_20: regwrite 18 s_b_0_19;
+    s_b_0_21 = read sym_83_0_result;
+    s_b_0_22 = cast truncate  uint8 s_b_0_21;
+    s_b_0_23: call update_parity s_b_0_22;
+    s_b_0_24 = read sym_83_0_result;
+    s_b_0_25 = cast zextend  uint64 s_b_0_24;
+    s_b_0_26: return s_b_0_25;
+  }
+}
+action uint64 bitwise_or helper (
+    uint64 sym_144_3_parameter_op0
+    uint64 sym_145_3_parameter_op1
+    uint8 sym_146_3_parameter_op_size
+  )[
+    sint64 sym_151_0_result
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_144_3_parameter_op0;
+    s_b_0_1 = read sym_145_3_parameter_op1;
+    s_b_0_2 = binary | s_b_0_0 s_b_0_1;
+    s_b_0_3 = cast sextend  sint64 s_b_0_2;
+    s_b_0_4: write sym_151_0_result s_b_0_3;
+    s_b_0_5 = read sym_151_0_result;
+    s_b_0_6 = cast zextend  uint64 s_b_0_5;
+    s_b_0_7 = read sym_146_3_parameter_op_size;
+    s_b_0_8 = call sign_extend s_b_0_6 s_b_0_7;
+    s_b_0_9 = cast sextend  sint64 s_b_0_8;
+    s_b_0_10: write sym_151_0_result s_b_0_9;
+    s_b_0_11 = read sym_151_0_result;
+    s_b_0_12 = constant sint32 0;
+    s_b_0_13 = cast sextend  sint64 s_b_0_12;
+    s_b_0_14 = binary == s_b_0_11 s_b_0_13;
+    s_b_0_15: regwrite 17 s_b_0_14;
+    s_b_0_16 = read sym_151_0_result;
+    s_b_0_17 = constant sint32 0;
+    s_b_0_18 = cast sextend  sint64 s_b_0_17;
+    s_b_0_19 = binary < s_b_0_16 s_b_0_18;
+    s_b_0_20: regwrite 18 s_b_0_19;
+    s_b_0_21 = read sym_151_0_result;
+    s_b_0_22 = cast truncate  uint8 s_b_0_21;
+    s_b_0_23: call update_parity s_b_0_22;
+    s_b_0_24 = read sym_151_0_result;
+    s_b_0_25 = cast zextend  uint64 s_b_0_24;
+    s_b_0_26: return s_b_0_25;
+  }
+}
+action uint64 bitwise_xor helper (
+    uint64 sym_177_3_parameter_op0
+    uint64 sym_178_3_parameter_op1
+    uint8 sym_179_3_parameter_op_size
+  )[
+    sint64 sym_184_0_result
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_177_3_parameter_op0;
+    s_b_0_1 = read sym_178_3_parameter_op1;
+    s_b_0_2 = binary ^ s_b_0_0 s_b_0_1;
+    s_b_0_3 = cast sextend  sint64 s_b_0_2;
+    s_b_0_4: write sym_184_0_result s_b_0_3;
+    s_b_0_5 = read sym_184_0_result;
+    s_b_0_6 = cast zextend  uint64 s_b_0_5;
+    s_b_0_7 = read sym_179_3_parameter_op_size;
+    s_b_0_8 = call sign_extend s_b_0_6 s_b_0_7;
+    s_b_0_9 = cast sextend  sint64 s_b_0_8;
+    s_b_0_10: write sym_184_0_result s_b_0_9;
+    s_b_0_11 = read sym_184_0_result;
+    s_b_0_12 = constant sint32 0;
+    s_b_0_13 = cast sextend  sint64 s_b_0_12;
+    s_b_0_14 = binary == s_b_0_11 s_b_0_13;
+    s_b_0_15: regwrite 17 s_b_0_14;
+    s_b_0_16 = read sym_184_0_result;
+    s_b_0_17 = constant sint32 0;
+    s_b_0_18 = cast sextend  sint64 s_b_0_17;
+    s_b_0_19 = binary < s_b_0_16 s_b_0_18;
+    s_b_0_20: regwrite 18 s_b_0_19;
+    s_b_0_21 = read sym_184_0_result;
+    s_b_0_22 = cast truncate  uint8 s_b_0_21;
+    s_b_0_23: call update_parity s_b_0_22;
+    s_b_0_24 = read sym_184_0_result;
+    s_b_0_25 = cast zextend  uint64 s_b_0_24;
+    s_b_0_26: return s_b_0_25;
+  }
+}
+action void do_movsb helper (
+    struct Instruction& sym_593_3_parameter_inst
+  )[
+    uint64 sym_600_0_src_addr
+    uint64 sym_607_0_dest_addr
+    uint8 sym_610_0_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 6;
+    s_b_0_1 = cast truncate  uint8 s_b_0_0;
+    s_b_0_2 = constant sint32 64;
+    s_b_0_3 = cast truncate  uint8 s_b_0_2;
+    s_b_0_4 = call read_reg s_b_0_1 s_b_0_3;
+    s_b_0_5: write sym_600_0_src_addr s_b_0_4;
+    s_b_0_6 = constant sint32 7;
+    s_b_0_7 = cast truncate  uint8 s_b_0_6;
+    s_b_0_8 = constant sint32 64;
+    s_b_0_9 = cast truncate  uint8 s_b_0_8;
+    s_b_0_10 = call read_reg s_b_0_7 s_b_0_9;
+    s_b_0_11: write sym_607_0_dest_addr s_b_0_10;
+    s_b_0_12 = read sym_600_0_src_addr;
+    s_b_0_13: memread 1 s_b_0_12 sym_610_0_value;
+    s_b_0_14 = read sym_607_0_dest_addr;
+    s_b_0_15 = read sym_610_0_value;
+    s_b_0_16: memwrite 1 s_b_0_14 s_b_0_15;
+    s_b_0_17 = constant sint32 6;
+    s_b_0_18 = cast truncate  uint8 s_b_0_17;
+    s_b_0_19 = constant sint32 64;
+    s_b_0_20 = cast truncate  uint8 s_b_0_19;
+    s_b_0_21 = read sym_600_0_src_addr;
+    s_b_0_22 = constant sint32 1;
+    s_b_0_23 = cast zextend  uint64 s_b_0_22;
+    s_b_0_24 = binary + s_b_0_21 s_b_0_23;
+    s_b_0_25: call write_reg s_b_0_18 s_b_0_20 s_b_0_24;
+    s_b_0_26 = constant sint32 7;
+    s_b_0_27 = cast truncate  uint8 s_b_0_26;
+    s_b_0_28 = constant sint32 64;
+    s_b_0_29 = cast truncate  uint8 s_b_0_28;
+    s_b_0_30 = read sym_607_0_dest_addr;
+    s_b_0_31 = constant sint32 1;
+    s_b_0_32 = cast zextend  uint64 s_b_0_31;
+    s_b_0_33 = binary + s_b_0_30 s_b_0_32;
+    s_b_0_34: call write_reg s_b_0_27 s_b_0_29 s_b_0_33;
+    s_b_0_35: return;
+  }
+}
+action void do_movsd helper (
+    struct Instruction& sym_635_3_parameter_inst
+  )[
+    uint64 sym_642_0_src_addr
+    uint64 sym_649_0_dest_addr
+    uint32 sym_652_0_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 6;
+    s_b_0_1 = cast truncate  uint8 s_b_0_0;
+    s_b_0_2 = constant sint32 64;
+    s_b_0_3 = cast truncate  uint8 s_b_0_2;
+    s_b_0_4 = call read_reg s_b_0_1 s_b_0_3;
+    s_b_0_5: write sym_642_0_src_addr s_b_0_4;
+    s_b_0_6 = constant sint32 7;
+    s_b_0_7 = cast truncate  uint8 s_b_0_6;
+    s_b_0_8 = constant sint32 64;
+    s_b_0_9 = cast truncate  uint8 s_b_0_8;
+    s_b_0_10 = call read_reg s_b_0_7 s_b_0_9;
+    s_b_0_11: write sym_649_0_dest_addr s_b_0_10;
+    s_b_0_12 = read sym_642_0_src_addr;
+    s_b_0_13: memread 4 s_b_0_12 sym_652_0_value;
+    s_b_0_14 = read sym_649_0_dest_addr;
+    s_b_0_15 = read sym_652_0_value;
+    s_b_0_16: memwrite 4 s_b_0_14 s_b_0_15;
+    s_b_0_17 = constant sint32 6;
+    s_b_0_18 = cast truncate  uint8 s_b_0_17;
+    s_b_0_19 = constant sint32 64;
+    s_b_0_20 = cast truncate  uint8 s_b_0_19;
+    s_b_0_21 = read sym_642_0_src_addr;
+    s_b_0_22 = constant sint32 4;
+    s_b_0_23 = cast zextend  uint64 s_b_0_22;
+    s_b_0_24 = binary + s_b_0_21 s_b_0_23;
+    s_b_0_25: call write_reg s_b_0_18 s_b_0_20 s_b_0_24;
+    s_b_0_26 = constant sint32 7;
+    s_b_0_27 = cast truncate  uint8 s_b_0_26;
+    s_b_0_28 = constant sint32 64;
+    s_b_0_29 = cast truncate  uint8 s_b_0_28;
+    s_b_0_30 = read sym_649_0_dest_addr;
+    s_b_0_31 = constant sint32 4;
+    s_b_0_32 = cast zextend  uint64 s_b_0_31;
+    s_b_0_33 = binary + s_b_0_30 s_b_0_32;
+    s_b_0_34: call write_reg s_b_0_27 s_b_0_29 s_b_0_33;
+    s_b_0_35: return;
+  }
+}
+action void do_movsq helper (
+    struct Instruction& sym_677_3_parameter_inst
+  )[
+    uint64 sym_684_0_src_addr
+    uint64 sym_691_0_dest_addr
+    uint64 sym_694_0_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 6;
+    s_b_0_1 = cast truncate  uint8 s_b_0_0;
+    s_b_0_2 = constant sint32 64;
+    s_b_0_3 = cast truncate  uint8 s_b_0_2;
+    s_b_0_4 = call read_reg s_b_0_1 s_b_0_3;
+    s_b_0_5: write sym_684_0_src_addr s_b_0_4;
+    s_b_0_6 = constant sint32 7;
+    s_b_0_7 = cast truncate  uint8 s_b_0_6;
+    s_b_0_8 = constant sint32 64;
+    s_b_0_9 = cast truncate  uint8 s_b_0_8;
+    s_b_0_10 = call read_reg s_b_0_7 s_b_0_9;
+    s_b_0_11: write sym_691_0_dest_addr s_b_0_10;
+    s_b_0_12 = read sym_684_0_src_addr;
+    s_b_0_13: memread 8 s_b_0_12 sym_694_0_value;
+    s_b_0_14 = read sym_691_0_dest_addr;
+    s_b_0_15 = read sym_694_0_value;
+    s_b_0_16: memwrite 8 s_b_0_14 s_b_0_15;
+    s_b_0_17 = constant sint32 6;
+    s_b_0_18 = cast truncate  uint8 s_b_0_17;
+    s_b_0_19 = constant sint32 64;
+    s_b_0_20 = cast truncate  uint8 s_b_0_19;
+    s_b_0_21 = read sym_684_0_src_addr;
+    s_b_0_22 = constant sint32 8;
+    s_b_0_23 = cast zextend  uint64 s_b_0_22;
+    s_b_0_24 = binary + s_b_0_21 s_b_0_23;
+    s_b_0_25: call write_reg s_b_0_18 s_b_0_20 s_b_0_24;
+    s_b_0_26 = constant sint32 7;
+    s_b_0_27 = cast truncate  uint8 s_b_0_26;
+    s_b_0_28 = constant sint32 64;
+    s_b_0_29 = cast truncate  uint8 s_b_0_28;
+    s_b_0_30 = read sym_691_0_dest_addr;
+    s_b_0_31 = constant sint32 8;
+    s_b_0_32 = cast zextend  uint64 s_b_0_31;
+    s_b_0_33 = binary + s_b_0_30 s_b_0_32;
+    s_b_0_34: call write_reg s_b_0_27 s_b_0_29 s_b_0_33;
+    s_b_0_35: return;
+  }
+}
+action void do_stosb helper (
+    struct Instruction& sym_773_3_parameter_inst
+  )[
+    uint64 sym_780_0_dest
+    uint64 sym_787_0_data
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 7;
+    s_b_0_1 = cast truncate  uint8 s_b_0_0;
+    s_b_0_2 = constant sint32 64;
+    s_b_0_3 = cast truncate  uint8 s_b_0_2;
+    s_b_0_4 = call read_reg s_b_0_1 s_b_0_3;
+    s_b_0_5: write sym_780_0_dest s_b_0_4;
+    s_b_0_6 = constant sint32 0;
+    s_b_0_7 = cast truncate  uint8 s_b_0_6;
+    s_b_0_8 = constant sint32 8;
+    s_b_0_9 = cast truncate  uint8 s_b_0_8;
+    s_b_0_10 = call read_reg s_b_0_7 s_b_0_9;
+    s_b_0_11: write sym_787_0_data s_b_0_10;
+    s_b_0_12 = read sym_780_0_dest;
+    s_b_0_13 = read sym_787_0_data;
+    s_b_0_14 = cast truncate  uint8 s_b_0_13;
+    s_b_0_15: memwrite 1 s_b_0_12 s_b_0_14;
+    s_b_0_16 = regread 19;
+    s_b_0_17: if s_b_0_16 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = constant sint32 7;
+    s_b_1_1 = cast truncate  uint8 s_b_1_0;
+    s_b_1_2 = constant sint32 64;
+    s_b_1_3 = cast truncate  uint8 s_b_1_2;
+    s_b_1_4 = read sym_780_0_dest;
+    s_b_1_5 = constant sint32 1;
+    s_b_1_6 = cast zextend  uint64 s_b_1_5;
+    s_b_1_7 = binary - s_b_1_4 s_b_1_6;
+    s_b_1_8: call write_reg s_b_1_1 s_b_1_3 s_b_1_7;
+    s_b_1_9: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = constant sint32 7;
+    s_b_3_1 = cast truncate  uint8 s_b_3_0;
+    s_b_3_2 = constant sint32 64;
+    s_b_3_3 = cast truncate  uint8 s_b_3_2;
+    s_b_3_4 = read sym_780_0_dest;
+    s_b_3_5 = constant sint32 1;
+    s_b_3_6 = cast zextend  uint64 s_b_3_5;
+    s_b_3_7 = binary + s_b_3_4 s_b_3_6;
+    s_b_3_8: call write_reg s_b_3_1 s_b_3_3 s_b_3_7;
+    s_b_3_9: jump b_2;
+  }
+}
+action void do_stosd helper (
+    struct Instruction& sym_820_3_parameter_inst
+  )[
+    uint64 sym_827_0_dest
+    uint64 sym_834_0_data
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 7;
+    s_b_0_1 = cast truncate  uint8 s_b_0_0;
+    s_b_0_2 = constant sint32 64;
+    s_b_0_3 = cast truncate  uint8 s_b_0_2;
+    s_b_0_4 = call read_reg s_b_0_1 s_b_0_3;
+    s_b_0_5: write sym_827_0_dest s_b_0_4;
+    s_b_0_6 = constant sint32 0;
+    s_b_0_7 = cast truncate  uint8 s_b_0_6;
+    s_b_0_8 = constant sint32 32;
+    s_b_0_9 = cast truncate  uint8 s_b_0_8;
+    s_b_0_10 = call read_reg s_b_0_7 s_b_0_9;
+    s_b_0_11: write sym_834_0_data s_b_0_10;
+    s_b_0_12 = read sym_827_0_dest;
+    s_b_0_13 = read sym_834_0_data;
+    s_b_0_14 = cast truncate  uint32 s_b_0_13;
+    s_b_0_15: memwrite 4 s_b_0_12 s_b_0_14;
+    s_b_0_16 = regread 19;
+    s_b_0_17: if s_b_0_16 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = constant sint32 7;
+    s_b_1_1 = cast truncate  uint8 s_b_1_0;
+    s_b_1_2 = constant sint32 64;
+    s_b_1_3 = cast truncate  uint8 s_b_1_2;
+    s_b_1_4 = read sym_827_0_dest;
+    s_b_1_5 = constant sint32 4;
+    s_b_1_6 = cast zextend  uint64 s_b_1_5;
+    s_b_1_7 = binary - s_b_1_4 s_b_1_6;
+    s_b_1_8: call write_reg s_b_1_1 s_b_1_3 s_b_1_7;
+    s_b_1_9: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = constant sint32 7;
+    s_b_3_1 = cast truncate  uint8 s_b_3_0;
+    s_b_3_2 = constant sint32 64;
+    s_b_3_3 = cast truncate  uint8 s_b_3_2;
+    s_b_3_4 = read sym_827_0_dest;
+    s_b_3_5 = constant sint32 4;
+    s_b_3_6 = cast zextend  uint64 s_b_3_5;
+    s_b_3_7 = binary + s_b_3_4 s_b_3_6;
+    s_b_3_8: call write_reg s_b_3_1 s_b_3_3 s_b_3_7;
+    s_b_3_9: jump b_2;
+  }
+}
+action void do_stosq helper (
+    struct Instruction& sym_867_3_parameter_inst
+  )[
+    uint64 sym_874_0_dest
+    uint64 sym_881_0_data
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 7;
+    s_b_0_1 = cast truncate  uint8 s_b_0_0;
+    s_b_0_2 = constant sint32 64;
+    s_b_0_3 = cast truncate  uint8 s_b_0_2;
+    s_b_0_4 = call read_reg s_b_0_1 s_b_0_3;
+    s_b_0_5: write sym_874_0_dest s_b_0_4;
+    s_b_0_6 = constant sint32 0;
+    s_b_0_7 = cast truncate  uint8 s_b_0_6;
+    s_b_0_8 = constant sint32 64;
+    s_b_0_9 = cast truncate  uint8 s_b_0_8;
+    s_b_0_10 = call read_reg s_b_0_7 s_b_0_9;
+    s_b_0_11: write sym_881_0_data s_b_0_10;
+    s_b_0_12 = read sym_874_0_dest;
+    s_b_0_13 = read sym_881_0_data;
+    s_b_0_14: memwrite 8 s_b_0_12 s_b_0_13;
+    s_b_0_15 = regread 19;
+    s_b_0_16: if s_b_0_15 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = constant sint32 7;
+    s_b_1_1 = cast truncate  uint8 s_b_1_0;
+    s_b_1_2 = constant sint32 64;
+    s_b_1_3 = cast truncate  uint8 s_b_1_2;
+    s_b_1_4 = read sym_874_0_dest;
+    s_b_1_5 = constant sint32 8;
+    s_b_1_6 = cast zextend  uint64 s_b_1_5;
+    s_b_1_7 = binary - s_b_1_4 s_b_1_6;
+    s_b_1_8: call write_reg s_b_1_1 s_b_1_3 s_b_1_7;
+    s_b_1_9: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = constant sint32 7;
+    s_b_3_1 = cast truncate  uint8 s_b_3_0;
+    s_b_3_2 = constant sint32 64;
+    s_b_3_3 = cast truncate  uint8 s_b_3_2;
+    s_b_3_4 = read sym_874_0_dest;
+    s_b_3_5 = constant sint32 8;
+    s_b_3_6 = cast zextend  uint64 s_b_3_5;
+    s_b_3_7 = binary + s_b_3_4 s_b_3_6;
+    s_b_3_8: call write_reg s_b_3_1 s_b_3_3 s_b_3_7;
+    s_b_3_9: jump b_2;
+  }
+}
+action void leave (
+    struct Instruction sym_2728_3_parameter_inst
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = regread 12;
+    s_b_0_1: regwrite 11 s_b_0_0;
+    s_b_0_2 = call stack_pop;
+    s_b_0_3: regwrite 12 s_b_0_2;
+    s_b_0_4: return;
+  }
+}
+action uint64 mem_get_addr helper (
+    struct Memory& sym_971_3_parameter_mem
+  )[
+    struct Register sym_1021_1_temporary_value
+    uint64 sym_974_0_address
+    struct Register sym_989_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 0;
+    s_b_0_1 = cast zextend  uint64 s_b_0_0;
+    s_b_0_2: write sym_974_0_address s_b_0_1;
+    s_b_0_3 = struct sym_971_3_parameter_mem has_segment;
+    s_b_0_4: if s_b_0_3 b_1 b_2;
+  }
+  block b_1 {
+    s_b_1_0 = read sym_974_0_address;
+    s_b_1_1 = struct sym_971_3_parameter_mem segment;
+    s_b_1_2 = bankregread 10 s_b_1_1;
+    s_b_1_3 = binary + s_b_1_0 s_b_1_2;
+    s_b_1_4: write sym_974_0_address s_b_1_3;
+    s_b_1_5: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0 = read sym_974_0_address;
+    s_b_2_1 = struct sym_971_3_parameter_mem base;
+    s_b_2_2: write sym_989_1_temporary_value s_b_2_1;
+    s_b_2_3 = call read_reg_struct sym_989_1_temporary_value;
+    s_b_2_4 = binary + s_b_2_0 s_b_2_3;
+    s_b_2_5: write sym_974_0_address s_b_2_4;
+    s_b_2_6 = read sym_974_0_address;
+    s_b_2_7 = struct sym_971_3_parameter_mem index;
+    s_b_2_8: write sym_1021_1_temporary_value s_b_2_7;
+    s_b_2_9 = call read_reg_struct sym_1021_1_temporary_value;
+    s_b_2_10 = struct sym_971_3_parameter_mem scale;
+    s_b_2_11 = cast zextend  uint64 s_b_2_10;
+    s_b_2_12 = binary * s_b_2_9 s_b_2_11;
+    s_b_2_13 = struct sym_971_3_parameter_mem displacement;
+    s_b_2_14 = binary + s_b_2_12 s_b_2_13;
+    s_b_2_15 = binary + s_b_2_6 s_b_2_14;
+    s_b_2_16: write sym_974_0_address s_b_2_15;
+    s_b_2_17 = read sym_974_0_address;
+    s_b_2_18: return s_b_2_17;
+  }
+}
+action uint8 operand_get_size helper (
+    struct Operand& sym_1034_3_parameter_op
+  )[
+    struct Register sym_1042_1_temporary_value
+    struct Memory sym_1056_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1034_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_1034_3_parameter_op reg;
+    s_b_1_1: write sym_1042_1_temporary_value s_b_1_0;
+    s_b_1_2 = call operand_get_size_reg sym_1042_1_temporary_value;
+    s_b_1_3: return s_b_1_2;
+  }
+  block b_2 {
+    s_b_2_0: intrinsic 10;
+    s_b_2_1 = constant sint32 0;
+    s_b_2_2 = cast truncate  uint8 s_b_2_1;
+    s_b_2_3: return s_b_2_2;
+  }
+  block b_3 {
+    s_b_3_0 = struct sym_1034_3_parameter_op is_mem;
+    s_b_3_1: if s_b_3_0 b_4 b_5;
+  }
+  block b_4 {
+    s_b_4_0 = struct sym_1034_3_parameter_op memory;
+    s_b_4_1: write sym_1056_1_temporary_value s_b_4_0;
+    s_b_4_2 = call operand_get_size_mem sym_1056_1_temporary_value;
+    s_b_4_3: return s_b_4_2;
+  }
+  block b_5 {
+    s_b_5_0: jump b_2;
+  }
+}
+action void pcmpeqb (
+    struct Instruction sym_3021_3_parameter_inst
+  )[
+    struct Operand sym_3024_1_temporary_value
+    struct Operand sym_3038_1_temporary_value
+    uint8[16] sym_3041_0_op0
+    struct Operand sym_3044_1_temporary_value
+    uint8[16] sym_3047_0_op1
+    struct Operand sym_3050_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3021_3_parameter_inst op0;
+    s_b_0_1: write sym_3024_1_temporary_value s_b_0_0;
+    s_b_0_2 = call operand_get_size sym_3024_1_temporary_value;
+    s_b_0_3 = constant sint32 64;
+    s_b_0_4 = cast zextend  uint32 s_b_0_2;
+    s_b_0_5 = cast zextend  uint32 s_b_0_3;
+    s_b_0_6 = binary == s_b_0_4 s_b_0_5;
+    s_b_0_7: if s_b_0_6 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0: intrinsic 10;
+    s_b_1_1: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = struct sym_3021_3_parameter_inst op0;
+    s_b_3_1: write sym_3038_1_temporary_value s_b_3_0;
+    s_b_3_2 = call read_xmm_u8 sym_3038_1_temporary_value;
+    s_b_3_3: write sym_3041_0_op0 s_b_3_2;
+    s_b_3_4 = struct sym_3021_3_parameter_inst op1;
+    s_b_3_5: write sym_3044_1_temporary_value s_b_3_4;
+    s_b_3_6 = call read_xmm_u8 sym_3044_1_temporary_value;
+    s_b_3_7: write sym_3047_0_op1 s_b_3_6;
+    s_b_3_8 = struct sym_3021_3_parameter_inst op0;
+    s_b_3_9: write sym_3050_1_temporary_value s_b_3_8;
+    s_b_3_10 = read sym_3041_0_op0;
+    s_b_3_11 = read sym_3047_0_op1;
+    s_b_3_12 = binary == s_b_3_10 s_b_3_11;
+    s_b_3_13: call write_xmm_u8 sym_3050_1_temporary_value s_b_3_12;
+    s_b_3_14: jump b_2;
+  }
+}
+action void popf (
+    struct Instruction sym_3296_3_parameter_inst
+  )[
+    uint64 sym_3299_0_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = call stack_pop;
+    s_b_0_1: write sym_3299_0_value s_b_0_0;
+    s_b_0_2 = read sym_3299_0_value;
+    s_b_0_3: call write_eflags s_b_0_2;
+    s_b_0_4: return;
+  }
+}
+action void punpcklbw (
+    struct Instruction sym_3419_3_parameter_inst
+  )[
+    struct Operand sym_3422_1_temporary_value
+    struct Operand sym_3436_1_temporary_value
+    uint8[16] sym_3439_0_op0
+    struct Operand sym_3442_1_temporary_value
+    uint8[16] sym_3445_0_op1
+    uint8[16] sym_3451_0_dest
+    struct Operand sym_3561_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3419_3_parameter_inst op0;
+    s_b_0_1: write sym_3422_1_temporary_value s_b_0_0;
+    s_b_0_2 = call operand_get_size sym_3422_1_temporary_value;
+    s_b_0_3 = constant sint32 32;
+    s_b_0_4 = cast zextend  uint32 s_b_0_2;
+    s_b_0_5 = cast zextend  uint32 s_b_0_3;
+    s_b_0_6 = binary == s_b_0_4 s_b_0_5;
+    s_b_0_7: if s_b_0_6 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0: intrinsic 10;
+    s_b_1_1: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = struct sym_3419_3_parameter_inst op0;
+    s_b_3_1: write sym_3436_1_temporary_value s_b_3_0;
+    s_b_3_2 = call read_xmm_u8 sym_3436_1_temporary_value;
+    s_b_3_3: write sym_3439_0_op0 s_b_3_2;
+    s_b_3_4 = struct sym_3419_3_parameter_inst op1;
+    s_b_3_5: write sym_3442_1_temporary_value s_b_3_4;
+    s_b_3_6 = call read_xmm_u8 sym_3442_1_temporary_value;
+    s_b_3_7: write sym_3445_0_op1 s_b_3_6;
+    s_b_3_8 = read sym_3439_0_op0;
+    s_b_3_9 = constant sint32 0;
+    s_b_3_10 = vextract s_b_3_8[s_b_3_9];
+    s_b_3_11 = constant sint32 0;
+    s_b_3_12 = read sym_3451_0_dest;
+    s_b_3_13 = vinsert s_b_3_12[s_b_3_11] s_b_3_10;
+    s_b_3_14: write sym_3451_0_dest s_b_3_13;
+    s_b_3_15 = read sym_3445_0_op1;
+    s_b_3_16 = constant sint32 0;
+    s_b_3_17 = vextract s_b_3_15[s_b_3_16];
+    s_b_3_18 = constant sint32 1;
+    s_b_3_19 = read sym_3451_0_dest;
+    s_b_3_20 = vinsert s_b_3_19[s_b_3_18] s_b_3_17;
+    s_b_3_21: write sym_3451_0_dest s_b_3_20;
+    s_b_3_22 = read sym_3439_0_op0;
+    s_b_3_23 = constant sint32 1;
+    s_b_3_24 = vextract s_b_3_22[s_b_3_23];
+    s_b_3_25 = constant sint32 2;
+    s_b_3_26 = read sym_3451_0_dest;
+    s_b_3_27 = vinsert s_b_3_26[s_b_3_25] s_b_3_24;
+    s_b_3_28: write sym_3451_0_dest s_b_3_27;
+    s_b_3_29 = read sym_3445_0_op1;
+    s_b_3_30 = constant sint32 1;
+    s_b_3_31 = vextract s_b_3_29[s_b_3_30];
+    s_b_3_32 = constant sint32 3;
+    s_b_3_33 = read sym_3451_0_dest;
+    s_b_3_34 = vinsert s_b_3_33[s_b_3_32] s_b_3_31;
+    s_b_3_35: write sym_3451_0_dest s_b_3_34;
+    s_b_3_36 = read sym_3439_0_op0;
+    s_b_3_37 = constant sint32 2;
+    s_b_3_38 = vextract s_b_3_36[s_b_3_37];
+    s_b_3_39 = constant sint32 4;
+    s_b_3_40 = read sym_3451_0_dest;
+    s_b_3_41 = vinsert s_b_3_40[s_b_3_39] s_b_3_38;
+    s_b_3_42: write sym_3451_0_dest s_b_3_41;
+    s_b_3_43 = read sym_3445_0_op1;
+    s_b_3_44 = constant sint32 2;
+    s_b_3_45 = vextract s_b_3_43[s_b_3_44];
+    s_b_3_46 = constant sint32 5;
+    s_b_3_47 = read sym_3451_0_dest;
+    s_b_3_48 = vinsert s_b_3_47[s_b_3_46] s_b_3_45;
+    s_b_3_49: write sym_3451_0_dest s_b_3_48;
+    s_b_3_50 = read sym_3439_0_op0;
+    s_b_3_51 = constant sint32 3;
+    s_b_3_52 = vextract s_b_3_50[s_b_3_51];
+    s_b_3_53 = constant sint32 6;
+    s_b_3_54 = read sym_3451_0_dest;
+    s_b_3_55 = vinsert s_b_3_54[s_b_3_53] s_b_3_52;
+    s_b_3_56: write sym_3451_0_dest s_b_3_55;
+    s_b_3_57 = read sym_3445_0_op1;
+    s_b_3_58 = constant sint32 3;
+    s_b_3_59 = vextract s_b_3_57[s_b_3_58];
+    s_b_3_60 = constant sint32 7;
+    s_b_3_61 = read sym_3451_0_dest;
+    s_b_3_62 = vinsert s_b_3_61[s_b_3_60] s_b_3_59;
+    s_b_3_63: write sym_3451_0_dest s_b_3_62;
+    s_b_3_64 = read sym_3439_0_op0;
+    s_b_3_65 = constant sint32 8;
+    s_b_3_66 = vextract s_b_3_64[s_b_3_65];
+    s_b_3_67 = constant sint32 8;
+    s_b_3_68 = read sym_3451_0_dest;
+    s_b_3_69 = vinsert s_b_3_68[s_b_3_67] s_b_3_66;
+    s_b_3_70: write sym_3451_0_dest s_b_3_69;
+    s_b_3_71 = read sym_3439_0_op0;
+    s_b_3_72 = constant sint32 9;
+    s_b_3_73 = vextract s_b_3_71[s_b_3_72];
+    s_b_3_74 = constant sint32 9;
+    s_b_3_75 = read sym_3451_0_dest;
+    s_b_3_76 = vinsert s_b_3_75[s_b_3_74] s_b_3_73;
+    s_b_3_77: write sym_3451_0_dest s_b_3_76;
+    s_b_3_78 = read sym_3439_0_op0;
+    s_b_3_79 = constant sint32 10;
+    s_b_3_80 = vextract s_b_3_78[s_b_3_79];
+    s_b_3_81 = constant sint32 10;
+    s_b_3_82 = read sym_3451_0_dest;
+    s_b_3_83 = vinsert s_b_3_82[s_b_3_81] s_b_3_80;
+    s_b_3_84: write sym_3451_0_dest s_b_3_83;
+    s_b_3_85 = read sym_3439_0_op0;
+    s_b_3_86 = constant sint32 11;
+    s_b_3_87 = vextract s_b_3_85[s_b_3_86];
+    s_b_3_88 = constant sint32 11;
+    s_b_3_89 = read sym_3451_0_dest;
+    s_b_3_90 = vinsert s_b_3_89[s_b_3_88] s_b_3_87;
+    s_b_3_91: write sym_3451_0_dest s_b_3_90;
+    s_b_3_92 = read sym_3439_0_op0;
+    s_b_3_93 = constant sint32 12;
+    s_b_3_94 = vextract s_b_3_92[s_b_3_93];
+    s_b_3_95 = constant sint32 12;
+    s_b_3_96 = read sym_3451_0_dest;
+    s_b_3_97 = vinsert s_b_3_96[s_b_3_95] s_b_3_94;
+    s_b_3_98: write sym_3451_0_dest s_b_3_97;
+    s_b_3_99 = read sym_3439_0_op0;
+    s_b_3_100 = constant sint32 13;
+    s_b_3_101 = vextract s_b_3_99[s_b_3_100];
+    s_b_3_102 = constant sint32 13;
+    s_b_3_103 = read sym_3451_0_dest;
+    s_b_3_104 = vinsert s_b_3_103[s_b_3_102] s_b_3_101;
+    s_b_3_105: write sym_3451_0_dest s_b_3_104;
+    s_b_3_106 = read sym_3439_0_op0;
+    s_b_3_107 = constant sint32 14;
+    s_b_3_108 = vextract s_b_3_106[s_b_3_107];
+    s_b_3_109 = constant sint32 14;
+    s_b_3_110 = read sym_3451_0_dest;
+    s_b_3_111 = vinsert s_b_3_110[s_b_3_109] s_b_3_108;
+    s_b_3_112: write sym_3451_0_dest s_b_3_111;
+    s_b_3_113 = read sym_3439_0_op0;
+    s_b_3_114 = constant sint32 15;
+    s_b_3_115 = vextract s_b_3_113[s_b_3_114];
+    s_b_3_116 = constant sint32 15;
+    s_b_3_117 = read sym_3451_0_dest;
+    s_b_3_118 = vinsert s_b_3_117[s_b_3_116] s_b_3_115;
+    s_b_3_119: write sym_3451_0_dest s_b_3_118;
+    s_b_3_120 = struct sym_3419_3_parameter_inst op0;
+    s_b_3_121: write sym_3561_1_temporary_value s_b_3_120;
+    s_b_3_122 = read sym_3451_0_dest;
+    s_b_3_123: call write_xmm_u8 sym_3561_1_temporary_value s_b_3_122;
+    s_b_3_124: jump b_2;
+  }
+}
+action void punpcklwd (
+    struct Instruction sym_3568_3_parameter_inst
+  )[
+    struct Operand sym_3571_1_temporary_value
+    struct Operand sym_3585_1_temporary_value
+    uint16[8] sym_3588_0_op0
+    struct Operand sym_3591_1_temporary_value
+    uint16[8] sym_3594_0_op1
+    uint16[8] sym_3600_0_dest
+    struct Operand sym_3654_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3568_3_parameter_inst op0;
+    s_b_0_1: write sym_3571_1_temporary_value s_b_0_0;
+    s_b_0_2 = call operand_get_size sym_3571_1_temporary_value;
+    s_b_0_3 = constant sint32 32;
+    s_b_0_4 = cast zextend  uint32 s_b_0_2;
+    s_b_0_5 = cast zextend  uint32 s_b_0_3;
+    s_b_0_6 = binary == s_b_0_4 s_b_0_5;
+    s_b_0_7: if s_b_0_6 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0: intrinsic 10;
+    s_b_1_1: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = struct sym_3568_3_parameter_inst op0;
+    s_b_3_1: write sym_3585_1_temporary_value s_b_3_0;
+    s_b_3_2 = call read_xmm_u16 sym_3585_1_temporary_value;
+    s_b_3_3: write sym_3588_0_op0 s_b_3_2;
+    s_b_3_4 = struct sym_3568_3_parameter_inst op1;
+    s_b_3_5: write sym_3591_1_temporary_value s_b_3_4;
+    s_b_3_6 = call read_xmm_u16 sym_3591_1_temporary_value;
+    s_b_3_7: write sym_3594_0_op1 s_b_3_6;
+    s_b_3_8 = read sym_3588_0_op0;
+    s_b_3_9 = constant sint32 0;
+    s_b_3_10 = vextract s_b_3_8[s_b_3_9];
+    s_b_3_11 = constant sint32 0;
+    s_b_3_12 = read sym_3600_0_dest;
+    s_b_3_13 = vinsert s_b_3_12[s_b_3_11] s_b_3_10;
+    s_b_3_14: write sym_3600_0_dest s_b_3_13;
+    s_b_3_15 = read sym_3594_0_op1;
+    s_b_3_16 = constant sint32 0;
+    s_b_3_17 = vextract s_b_3_15[s_b_3_16];
+    s_b_3_18 = constant sint32 1;
+    s_b_3_19 = read sym_3600_0_dest;
+    s_b_3_20 = vinsert s_b_3_19[s_b_3_18] s_b_3_17;
+    s_b_3_21: write sym_3600_0_dest s_b_3_20;
+    s_b_3_22 = read sym_3588_0_op0;
+    s_b_3_23 = constant sint32 1;
+    s_b_3_24 = vextract s_b_3_22[s_b_3_23];
+    s_b_3_25 = constant sint32 2;
+    s_b_3_26 = read sym_3600_0_dest;
+    s_b_3_27 = vinsert s_b_3_26[s_b_3_25] s_b_3_24;
+    s_b_3_28: write sym_3600_0_dest s_b_3_27;
+    s_b_3_29 = read sym_3594_0_op1;
+    s_b_3_30 = constant sint32 1;
+    s_b_3_31 = vextract s_b_3_29[s_b_3_30];
+    s_b_3_32 = constant sint32 3;
+    s_b_3_33 = read sym_3600_0_dest;
+    s_b_3_34 = vinsert s_b_3_33[s_b_3_32] s_b_3_31;
+    s_b_3_35: write sym_3600_0_dest s_b_3_34;
+    s_b_3_36 = read sym_3588_0_op0;
+    s_b_3_37 = constant sint32 4;
+    s_b_3_38 = vextract s_b_3_36[s_b_3_37];
+    s_b_3_39 = constant sint32 4;
+    s_b_3_40 = read sym_3600_0_dest;
+    s_b_3_41 = vinsert s_b_3_40[s_b_3_39] s_b_3_38;
+    s_b_3_42: write sym_3600_0_dest s_b_3_41;
+    s_b_3_43 = read sym_3588_0_op0;
+    s_b_3_44 = constant sint32 5;
+    s_b_3_45 = vextract s_b_3_43[s_b_3_44];
+    s_b_3_46 = constant sint32 5;
+    s_b_3_47 = read sym_3600_0_dest;
+    s_b_3_48 = vinsert s_b_3_47[s_b_3_46] s_b_3_45;
+    s_b_3_49: write sym_3600_0_dest s_b_3_48;
+    s_b_3_50 = read sym_3588_0_op0;
+    s_b_3_51 = constant sint32 6;
+    s_b_3_52 = vextract s_b_3_50[s_b_3_51];
+    s_b_3_53 = constant sint32 6;
+    s_b_3_54 = read sym_3600_0_dest;
+    s_b_3_55 = vinsert s_b_3_54[s_b_3_53] s_b_3_52;
+    s_b_3_56: write sym_3600_0_dest s_b_3_55;
+    s_b_3_57 = read sym_3588_0_op0;
+    s_b_3_58 = constant sint32 7;
+    s_b_3_59 = vextract s_b_3_57[s_b_3_58];
+    s_b_3_60 = constant sint32 7;
+    s_b_3_61 = read sym_3600_0_dest;
+    s_b_3_62 = vinsert s_b_3_61[s_b_3_60] s_b_3_59;
+    s_b_3_63: write sym_3600_0_dest s_b_3_62;
+    s_b_3_64 = struct sym_3568_3_parameter_inst op0;
+    s_b_3_65: write sym_3654_1_temporary_value s_b_3_64;
+    s_b_3_66 = read sym_3600_0_dest;
+    s_b_3_67: call write_xmm_u16 sym_3654_1_temporary_value s_b_3_66;
+    s_b_3_68: jump b_2;
+  }
+}
+action void pushfq (
+    struct Instruction sym_3673_3_parameter_inst
+  )[
+    uint64 sym_3676_0_data
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = call read_eflags;
+    s_b_0_1: write sym_3676_0_data s_b_0_0;
+    s_b_0_2 = read sym_3676_0_data;
+    s_b_0_3: call stack_push s_b_0_2;
+    s_b_0_4: return;
+  }
+}
+action uint64 read_op_mem helper (
+    struct Memory& sym_1171_3_parameter_mem
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = call mem_get_addr sym_1171_3_parameter_mem;
+    s_b_0_1 = struct sym_1171_3_parameter_mem width;
+    s_b_0_2 = call read_mem s_b_0_0 s_b_0_1;
+    s_b_0_3: return s_b_0_2;
+  }
+}
+action uint64 read_op_reg helper (
+    struct Register& sym_1178_3_parameter_reg
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = call read_reg_struct sym_1178_3_parameter_reg;
+    s_b_0_1: return s_b_0_0;
+  }
+}
+action uint64 read_operand helper (
+    struct Operand& sym_1212_3_parameter_op
+  )[
+    struct Register sym_1220_1_temporary_value
+    struct Immediate sym_1230_1_temporary_value
+    struct Immediate sym_1240_1_temporary_value
+    struct Memory sym_1249_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+    b_7
+    b_8
+    b_9
+    b_10
+    b_11
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1212_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_1212_3_parameter_op reg;
+    s_b_1_1: write sym_1220_1_temporary_value s_b_1_0;
+    s_b_1_2 = call read_op_reg sym_1220_1_temporary_value;
+    s_b_1_3: return s_b_1_2;
+  }
+  block b_2 {
+    s_b_2_0: intrinsic 10;
+    s_b_2_1 = constant sint32 0;
+    s_b_2_2 = cast zextend  uint64 s_b_2_1;
+    s_b_2_3: return s_b_2_2;
+  }
+  block b_3 {
+    s_b_3_0 = struct sym_1212_3_parameter_op is_imm;
+    s_b_3_1: if s_b_3_0 b_4 b_6;
+  }
+  block b_4 {
+    s_b_4_0 = struct sym_1212_3_parameter_op imm;
+    s_b_4_1: write sym_1230_1_temporary_value s_b_4_0;
+    s_b_4_2 = call read_op_imm sym_1230_1_temporary_value;
+    s_b_4_3: return s_b_4_2;
+  }
+  block b_5 {
+    s_b_5_0: jump b_2;
+  }
+  block b_6 {
+    s_b_6_0 = struct sym_1212_3_parameter_op is_relbr;
+    s_b_6_1: if s_b_6_0 b_7 b_9;
+  }
+  block b_7 {
+    s_b_7_0 = struct sym_1212_3_parameter_op imm;
+    s_b_7_1: write sym_1240_1_temporary_value s_b_7_0;
+    s_b_7_2 = call read_op_relbr sym_1240_1_temporary_value;
+    s_b_7_3: return s_b_7_2;
+  }
+  block b_8 {
+    s_b_8_0: jump b_5;
+  }
+  block b_9 {
+    s_b_9_0 = struct sym_1212_3_parameter_op is_mem;
+    s_b_9_1: if s_b_9_0 b_10 b_11;
+  }
+  block b_10 {
+    s_b_10_0 = struct sym_1212_3_parameter_op memory;
+    s_b_10_1: write sym_1249_1_temporary_value s_b_10_0;
+    s_b_10_2 = call read_op_mem sym_1249_1_temporary_value;
+    s_b_10_3: return s_b_10_2;
+  }
+  block b_11 {
+    s_b_11_0: jump b_8;
+  }
+}
+action uint64 read_operand_sse_scalar helper (
+    struct Operand& sym_1261_3_parameter_op
+  )[
+    struct Register sym_1269_1_temporary_value
+    struct Register sym_1281_1_temporary_value
+    struct Register sym_1286_1_temporary_value
+    struct Immediate sym_1297_1_temporary_value
+    struct Immediate sym_1307_1_temporary_value
+    struct Memory sym_1316_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+    b_7
+    b_8
+    b_9
+    b_10
+    b_11
+    b_12
+    b_13
+    b_14
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1261_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_1261_3_parameter_op reg;
+    s_b_1_1: write sym_1269_1_temporary_value s_b_1_0;
+    s_b_1_2 = struct sym_1269_1_temporary_value regclass;
+    s_b_1_3 = constant sint32 0;
+    s_b_1_4 = cast zextend  uint32 s_b_1_2;
+    s_b_1_5 = cast zextend  uint32 s_b_1_3;
+    s_b_1_6 = binary == s_b_1_4 s_b_1_5;
+    s_b_1_7: if s_b_1_6 b_4 b_6;
+  }
+  block b_2 {
+    s_b_2_0: intrinsic 10;
+    s_b_2_1 = constant sint32 0;
+    s_b_2_2 = cast zextend  uint64 s_b_2_1;
+    s_b_2_3: return s_b_2_2;
+  }
+  block b_3 {
+    s_b_3_0 = struct sym_1261_3_parameter_op is_imm;
+    s_b_3_1: if s_b_3_0 b_7 b_9;
+  }
+  block b_4 {
+    s_b_4_0 = struct sym_1261_3_parameter_op reg;
+    s_b_4_1: write sym_1281_1_temporary_value s_b_4_0;
+    s_b_4_2 = call read_op_reg sym_1281_1_temporary_value;
+    s_b_4_3: return s_b_4_2;
+  }
+  block b_5 {
+    s_b_5_0: jump b_2;
+  }
+  block b_6 {
+    s_b_6_0 = struct sym_1261_3_parameter_op reg;
+    s_b_6_1: write sym_1286_1_temporary_value s_b_6_0;
+    s_b_6_2 = call read_op_reg_sse sym_1286_1_temporary_value;
+    s_b_6_3: return s_b_6_2;
+  }
+  block b_7 {
+    s_b_7_0 = struct sym_1261_3_parameter_op imm;
+    s_b_7_1: write sym_1297_1_temporary_value s_b_7_0;
+    s_b_7_2 = call read_op_imm sym_1297_1_temporary_value;
+    s_b_7_3: return s_b_7_2;
+  }
+  block b_8 {
+    s_b_8_0: jump b_2;
+  }
+  block b_9 {
+    s_b_9_0 = struct sym_1261_3_parameter_op is_relbr;
+    s_b_9_1: if s_b_9_0 b_10 b_12;
+  }
+  block b_10 {
+    s_b_10_0 = struct sym_1261_3_parameter_op imm;
+    s_b_10_1: write sym_1307_1_temporary_value s_b_10_0;
+    s_b_10_2 = call read_op_relbr sym_1307_1_temporary_value;
+    s_b_10_3: return s_b_10_2;
+  }
+  block b_11 {
+    s_b_11_0: jump b_8;
+  }
+  block b_12 {
+    s_b_12_0 = struct sym_1261_3_parameter_op is_mem;
+    s_b_12_1: if s_b_12_0 b_13 b_14;
+  }
+  block b_13 {
+    s_b_13_0 = struct sym_1261_3_parameter_op memory;
+    s_b_13_1: write sym_1316_1_temporary_value s_b_13_0;
+    s_b_13_2 = call read_op_mem sym_1316_1_temporary_value;
+    s_b_13_3: return s_b_13_2;
+  }
+  block b_14 {
+    s_b_14_0: jump b_11;
+  }
+}
+action uint64[2] read_xmm_u64 helper (
+    struct Operand& sym_1366_3_parameter_op
+  )[
+    struct Register sym_1374_1_temporary_value
+    struct Memory sym_1385_1_temporary_value
+    uint64 sym_1388_0_addr
+    uint64 sym_1391_0_data
+    uint64[2] sym_1395_0_output
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1366_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_1366_3_parameter_op reg;
+    s_b_1_1: write sym_1374_1_temporary_value s_b_1_0;
+    s_b_1_2 = struct sym_1374_1_temporary_value index;
+    s_b_1_3 = bankregread 5 s_b_1_2;
+    s_b_1_4: return s_b_1_3;
+  }
+  block b_2 {
+    s_b_2_0 = constant sint32 0;
+    s_b_2_1 = cast splat  uint64[2] s_b_2_0;
+    s_b_2_2: return s_b_2_1;
+  }
+  block b_3 {
+    s_b_3_0 = struct sym_1366_3_parameter_op is_mem;
+    s_b_3_1: if s_b_3_0 b_4 b_6;
+  }
+  block b_4 {
+    s_b_4_0 = struct sym_1366_3_parameter_op memory;
+    s_b_4_1: write sym_1385_1_temporary_value s_b_4_0;
+    s_b_4_2 = call mem_get_addr sym_1385_1_temporary_value;
+    s_b_4_3: write sym_1388_0_addr s_b_4_2;
+    s_b_4_4 = read sym_1388_0_addr;
+    s_b_4_5: memread 8 s_b_4_4 sym_1391_0_data;
+    s_b_4_6 = read sym_1391_0_data;
+    s_b_4_7 = constant sint32 0;
+    s_b_4_8 = read sym_1395_0_output;
+    s_b_4_9 = vinsert s_b_4_8[s_b_4_7] s_b_4_6;
+    s_b_4_10: write sym_1395_0_output s_b_4_9;
+    s_b_4_11 = read sym_1388_0_addr;
+    s_b_4_12 = constant sint32 8;
+    s_b_4_13 = cast zextend  uint64 s_b_4_12;
+    s_b_4_14 = binary + s_b_4_11 s_b_4_13;
+    s_b_4_15: memread 8 s_b_4_14 sym_1391_0_data;
+    s_b_4_16 = read sym_1391_0_data;
+    s_b_4_17 = constant sint32 1;
+    s_b_4_18 = read sym_1395_0_output;
+    s_b_4_19 = vinsert s_b_4_18[s_b_4_17] s_b_4_16;
+    s_b_4_20: write sym_1395_0_output s_b_4_19;
+    s_b_4_21 = read sym_1395_0_output;
+    s_b_4_22: return s_b_4_21;
+  }
+  block b_5 {
+    s_b_5_0: jump b_2;
+  }
+  block b_6 {
+    s_b_6_0: intrinsic 10;
+    s_b_6_1: jump b_5;
+  }
+}
+action void rep_movsb (
+    struct Instruction sym_3714_3_parameter_inst
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+  > {
+  block b_0 {
+    s_b_0_0 = call rep_should_run sym_3714_3_parameter_inst;
+    s_b_0_1: if s_b_0_0 b_1 b_2;
+  }
+  block b_1 {
+    s_b_1_0: call do_movsb sym_3714_3_parameter_inst;
+    s_b_1_1: call rep_decrement_counter sym_3714_3_parameter_inst;
+    s_b_1_2: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0 = call rep_should_run sym_3714_3_parameter_inst;
+    s_b_2_1 = unary ! s_b_2_0;
+    s_b_2_2: if s_b_2_1 b_3 b_4;
+  }
+  block b_3 {
+    s_b_3_0 = intrinsic 1;
+    s_b_3_1 = struct sym_3714_3_parameter_inst Instr_Length;
+    s_b_3_2 = cast zextend  uint64 s_b_3_1;
+    s_b_3_3 = binary + s_b_3_0 s_b_3_2;
+    s_b_3_4: intrinsic 2 s_b_3_3;
+    s_b_3_5: jump b_4;
+  }
+  block b_4 {
+    s_b_4_0: return;
+  }
+}
+action void rep_movsd (
+    struct Instruction sym_3736_3_parameter_inst
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+  > {
+  block b_0 {
+    s_b_0_0 = call rep_should_run sym_3736_3_parameter_inst;
+    s_b_0_1: if s_b_0_0 b_1 b_2;
+  }
+  block b_1 {
+    s_b_1_0: call do_movsd sym_3736_3_parameter_inst;
+    s_b_1_1: call rep_decrement_counter sym_3736_3_parameter_inst;
+    s_b_1_2: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0 = call rep_should_run sym_3736_3_parameter_inst;
+    s_b_2_1 = unary ! s_b_2_0;
+    s_b_2_2: if s_b_2_1 b_3 b_4;
+  }
+  block b_3 {
+    s_b_3_0 = intrinsic 1;
+    s_b_3_1 = struct sym_3736_3_parameter_inst Instr_Length;
+    s_b_3_2 = cast zextend  uint64 s_b_3_1;
+    s_b_3_3 = binary + s_b_3_0 s_b_3_2;
+    s_b_3_4: intrinsic 2 s_b_3_3;
+    s_b_3_5: jump b_4;
+  }
+  block b_4 {
+    s_b_4_0: return;
+  }
+}
+action void rep_movsq (
+    struct Instruction sym_3758_3_parameter_inst
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+  > {
+  block b_0 {
+    s_b_0_0 = call rep_should_run sym_3758_3_parameter_inst;
+    s_b_0_1: if s_b_0_0 b_1 b_2;
+  }
+  block b_1 {
+    s_b_1_0: call do_movsq sym_3758_3_parameter_inst;
+    s_b_1_1: call rep_decrement_counter sym_3758_3_parameter_inst;
+    s_b_1_2: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0 = call rep_should_run sym_3758_3_parameter_inst;
+    s_b_2_1 = unary ! s_b_2_0;
+    s_b_2_2: if s_b_2_1 b_3 b_4;
+  }
+  block b_3 {
+    s_b_3_0 = intrinsic 1;
+    s_b_3_1 = struct sym_3758_3_parameter_inst Instr_Length;
+    s_b_3_2 = cast zextend  uint64 s_b_3_1;
+    s_b_3_3 = binary + s_b_3_0 s_b_3_2;
+    s_b_3_4: intrinsic 2 s_b_3_3;
+    s_b_3_5: jump b_4;
+  }
+  block b_4 {
+    s_b_4_0: return;
+  }
+}
+action void rep_stosb (
+    struct Instruction sym_3780_3_parameter_inst
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+  > {
+  block b_0 {
+    s_b_0_0 = call rep_should_run sym_3780_3_parameter_inst;
+    s_b_0_1: if s_b_0_0 b_1 b_2;
+  }
+  block b_1 {
+    s_b_1_0: call do_stosb sym_3780_3_parameter_inst;
+    s_b_1_1: call rep_decrement_counter sym_3780_3_parameter_inst;
+    s_b_1_2: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0 = call rep_should_run sym_3780_3_parameter_inst;
+    s_b_2_1 = unary ! s_b_2_0;
+    s_b_2_2: if s_b_2_1 b_3 b_4;
+  }
+  block b_3 {
+    s_b_3_0 = intrinsic 1;
+    s_b_3_1 = struct sym_3780_3_parameter_inst Instr_Length;
+    s_b_3_2 = cast zextend  uint64 s_b_3_1;
+    s_b_3_3 = binary + s_b_3_0 s_b_3_2;
+    s_b_3_4: intrinsic 2 s_b_3_3;
+    s_b_3_5: jump b_4;
+  }
+  block b_4 {
+    s_b_4_0: return;
+  }
+}
+action void rep_stosd (
+    struct Instruction sym_3802_3_parameter_inst
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+  > {
+  block b_0 {
+    s_b_0_0 = call rep_should_run sym_3802_3_parameter_inst;
+    s_b_0_1: if s_b_0_0 b_1 b_2;
+  }
+  block b_1 {
+    s_b_1_0: call do_stosd sym_3802_3_parameter_inst;
+    s_b_1_1: call rep_decrement_counter sym_3802_3_parameter_inst;
+    s_b_1_2: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0 = call rep_should_run sym_3802_3_parameter_inst;
+    s_b_2_1 = unary ! s_b_2_0;
+    s_b_2_2: if s_b_2_1 b_3 b_4;
+  }
+  block b_3 {
+    s_b_3_0 = intrinsic 1;
+    s_b_3_1 = struct sym_3802_3_parameter_inst Instr_Length;
+    s_b_3_2 = cast zextend  uint64 s_b_3_1;
+    s_b_3_3 = binary + s_b_3_0 s_b_3_2;
+    s_b_3_4: intrinsic 2 s_b_3_3;
+    s_b_3_5: jump b_4;
+  }
+  block b_4 {
+    s_b_4_0: return;
+  }
+}
+action void rep_stosq (
+    struct Instruction sym_3824_3_parameter_inst
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+  > {
+  block b_0 {
+    s_b_0_0 = call rep_should_run sym_3824_3_parameter_inst;
+    s_b_0_1: if s_b_0_0 b_1 b_2;
+  }
+  block b_1 {
+    s_b_1_0: call do_stosq sym_3824_3_parameter_inst;
+    s_b_1_1: call rep_decrement_counter sym_3824_3_parameter_inst;
+    s_b_1_2: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0 = call rep_should_run sym_3824_3_parameter_inst;
+    s_b_2_1 = unary ! s_b_2_0;
+    s_b_2_2: if s_b_2_1 b_3 b_4;
+  }
+  block b_3 {
+    s_b_3_0 = intrinsic 1;
+    s_b_3_1 = struct sym_3824_3_parameter_inst Instr_Length;
+    s_b_3_2 = cast zextend  uint64 s_b_3_1;
+    s_b_3_3 = binary + s_b_3_0 s_b_3_2;
+    s_b_3_4: intrinsic 2 s_b_3_3;
+    s_b_3_5: jump b_4;
+  }
+  block b_4 {
+    s_b_4_0: return;
+  }
+}
+action void ret (
+    struct Instruction sym_3890_3_parameter_inst
+  )[
+    uint64 sym_3893_0_r_addr
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = call stack_pop;
+    s_b_0_1: write sym_3893_0_r_addr s_b_0_0;
+    s_b_0_2 = read sym_3893_0_r_addr;
+    s_b_0_3: intrinsic 2 s_b_0_2;
+    s_b_0_4: return;
+  }
+}
+action void set_zsp_flags helper (
+    sint64 sym_1522_3_parameter_result
+  )[
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_1522_3_parameter_result;
+    s_b_0_1 = constant sint32 0;
+    s_b_0_2 = cast sextend  sint64 s_b_0_1;
+    s_b_0_3 = binary == s_b_0_0 s_b_0_2;
+    s_b_0_4: regwrite 17 s_b_0_3;
+    s_b_0_5 = read sym_1522_3_parameter_result;
+    s_b_0_6 = constant sint32 0;
+    s_b_0_7 = cast sextend  sint64 s_b_0_6;
+    s_b_0_8 = binary < s_b_0_5 s_b_0_7;
+    s_b_0_9: regwrite 18 s_b_0_8;
+    s_b_0_10 = read sym_1522_3_parameter_result;
+    s_b_0_11 = cast truncate  uint8 s_b_0_10;
+    s_b_0_12: call update_parity s_b_0_11;
+    s_b_0_13: return;
+  }
+}
+action uint64 subtract helper (
+    uint64 sym_438_3_parameter_op0
+    uint64 sym_439_3_parameter_op1
+    uint8 sym_440_3_parameter_size
+  )[
+    sint64 sym_453_0_result
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_438_3_parameter_op0;
+    s_b_0_1 = read sym_440_3_parameter_size;
+    s_b_0_2 = call sign_extend s_b_0_0 s_b_0_1;
+    s_b_0_3: write sym_438_3_parameter_op0 s_b_0_2;
+    s_b_0_4 = read sym_439_3_parameter_op1;
+    s_b_0_5 = read sym_440_3_parameter_size;
+    s_b_0_6 = call sign_extend s_b_0_4 s_b_0_5;
+    s_b_0_7: write sym_439_3_parameter_op1 s_b_0_6;
+    s_b_0_8 = read sym_438_3_parameter_op0;
+    s_b_0_9 = read sym_439_3_parameter_op1;
+    s_b_0_10 = binary - s_b_0_8 s_b_0_9;
+    s_b_0_11 = cast sextend  sint64 s_b_0_10;
+    s_b_0_12: write sym_453_0_result s_b_0_11;
+    s_b_0_13 = read sym_440_3_parameter_size;
+    s_b_0_14 = constant sint32 8;
+    s_b_0_15 = constant sint32 16;
+    s_b_0_16 = constant sint32 32;
+    s_b_0_17 = constant sint32 64;
+    s_b_0_18: switch s_b_0_13 b_6 [s_b_0_14 b_2 s_b_0_15 b_3 s_b_0_16 b_4 s_b_0_17 b_5 ];
+  }
+  block b_1 {
+    s_b_1_0 = read sym_453_0_result;
+    s_b_1_1 = cast truncate  uint8 s_b_1_0;
+    s_b_1_2: call update_parity s_b_1_1;
+    s_b_1_3 = read sym_453_0_result;
+    s_b_1_4 = cast zextend  uint64 s_b_1_3;
+    s_b_1_5: return s_b_1_4;
+  }
+  block b_2 {
+    s_b_2_0 = read sym_438_3_parameter_op0;
+    s_b_2_1 = cast truncate  uint8 s_b_2_0;
+    s_b_2_2 = read sym_439_3_parameter_op1;
+    s_b_2_3 = cast truncate  uint8 s_b_2_2;
+    s_b_2_4 = constant sint32 0;
+    s_b_2_5 = cast truncate  uint8 s_b_2_4;
+    s_b_2_6 = intrinsic 41 s_b_2_1 s_b_2_3 s_b_2_5;
+    s_b_2_7: jump b_1;
+  }
+  block b_3 {
+    s_b_3_0 = read sym_438_3_parameter_op0;
+    s_b_3_1 = cast truncate  uint16 s_b_3_0;
+    s_b_3_2 = read sym_439_3_parameter_op1;
+    s_b_3_3 = cast truncate  uint16 s_b_3_2;
+    s_b_3_4 = constant sint32 0;
+    s_b_3_5 = cast truncate  uint8 s_b_3_4;
+    s_b_3_6 = intrinsic 42 s_b_3_1 s_b_3_3 s_b_3_5;
+    s_b_3_7: jump b_1;
+  }
+  block b_4 {
+    s_b_4_0 = read sym_438_3_parameter_op0;
+    s_b_4_1 = cast truncate  uint32 s_b_4_0;
+    s_b_4_2 = read sym_439_3_parameter_op1;
+    s_b_4_3 = cast truncate  uint32 s_b_4_2;
+    s_b_4_4 = constant sint32 0;
+    s_b_4_5 = cast truncate  uint8 s_b_4_4;
+    s_b_4_6 = intrinsic 40 s_b_4_1 s_b_4_3 s_b_4_5;
+    s_b_4_7: jump b_1;
+  }
+  block b_5 {
+    s_b_5_0 = read sym_438_3_parameter_op0;
+    s_b_5_1 = read sym_439_3_parameter_op1;
+    s_b_5_2 = constant sint32 0;
+    s_b_5_3 = cast truncate  uint8 s_b_5_2;
+    s_b_5_4 = intrinsic 43 s_b_5_0 s_b_5_1 s_b_5_3;
+    s_b_5_5: jump b_1;
+  }
+  block b_6 {
+    s_b_6_0: intrinsic 10;
+    s_b_6_1: jump b_1;
+  }
+}
+action void test (
+    struct Instruction sym_4077_3_parameter_inst
+  )[
+    struct Operand sym_4080_1_temporary_value
+    uint64 sym_4083_0_op0
+    struct Operand sym_4086_1_temporary_value
+    uint64 sym_4089_0_op1
+    struct Operand sym_4092_1_temporary_value
+    uint8 sym_4095_0_op_size
+    uint64 sym_4101_0_result
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_4077_3_parameter_inst op0;
+    s_b_0_1: write sym_4080_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_4080_1_temporary_value;
+    s_b_0_3: write sym_4083_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_4077_3_parameter_inst op1;
+    s_b_0_5: write sym_4086_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_4086_1_temporary_value;
+    s_b_0_7: write sym_4089_0_op1 s_b_0_6;
+    s_b_0_8 = struct sym_4077_3_parameter_inst op0;
+    s_b_0_9: write sym_4092_1_temporary_value s_b_0_8;
+    s_b_0_10 = call operand_get_size sym_4092_1_temporary_value;
+    s_b_0_11: write sym_4095_0_op_size s_b_0_10;
+    s_b_0_12 = read sym_4083_0_op0;
+    s_b_0_13 = read sym_4089_0_op1;
+    s_b_0_14 = read sym_4095_0_op_size;
+    s_b_0_15 = call bitwise_and s_b_0_12 s_b_0_13 s_b_0_14;
+    s_b_0_16: write sym_4101_0_result s_b_0_15;
+    s_b_0_17: return;
+  }
+}
+action void write_op_mem helper (
+    struct Memory& sym_1935_3_parameter_mem
+    uint64 sym_1936_3_parameter_value
+  )[
+    uint64 sym_1939_0_addr
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = call mem_get_addr sym_1935_3_parameter_mem;
+    s_b_0_1: write sym_1939_0_addr s_b_0_0;
+    s_b_0_2 = read sym_1939_0_addr;
+    s_b_0_3 = read sym_1936_3_parameter_value;
+    s_b_0_4 = struct sym_1935_3_parameter_mem width;
+    s_b_0_5: call write_mem s_b_0_2 s_b_0_3 s_b_0_4;
+    s_b_0_6: return;
+  }
+}
+action void write_op_reg helper (
+    struct Register& sym_1947_3_parameter_reg
+    uint64 sym_1948_3_parameter_value
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1947_3_parameter_reg h_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_1947_3_parameter_reg index;
+    s_b_1_1 = read sym_1948_3_parameter_value;
+    s_b_1_2 = cast truncate  uint8 s_b_1_1;
+    s_b_1_3: call write_h_reg s_b_1_0 s_b_1_2;
+    s_b_1_4: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = struct sym_1947_3_parameter_reg index;
+    s_b_3_1 = struct sym_1947_3_parameter_reg width;
+    s_b_3_2 = read sym_1948_3_parameter_value;
+    s_b_3_3: call write_reg s_b_3_0 s_b_3_1 s_b_3_2;
+    s_b_3_4: jump b_2;
+  }
+}
+action void write_operand helper (
+    struct Operand& sym_1984_3_parameter_op
+    uint64 sym_1985_3_parameter_value
+  )[
+    struct Register sym_1993_1_temporary_value
+    struct Memory sym_2003_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_1984_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_1984_3_parameter_op reg;
+    s_b_1_1: write sym_1993_1_temporary_value s_b_1_0;
+    s_b_1_2 = read sym_1985_3_parameter_value;
+    s_b_1_3: call write_op_reg sym_1993_1_temporary_value s_b_1_2;
+    s_b_1_4: return;
+  }
+  block b_2 {
+    s_b_2_0: intrinsic 10;
+    s_b_2_1: return;
+  }
+  block b_3 {
+    s_b_3_0 = struct sym_1984_3_parameter_op is_mem;
+    s_b_3_1: if s_b_3_0 b_4 b_5;
+  }
+  block b_4 {
+    s_b_4_0 = struct sym_1984_3_parameter_op memory;
+    s_b_4_1: write sym_2003_1_temporary_value s_b_4_0;
+    s_b_4_2 = read sym_1985_3_parameter_value;
+    s_b_4_3: call write_op_mem sym_2003_1_temporary_value s_b_4_2;
+    s_b_4_4: return;
+  }
+  block b_5 {
+    s_b_5_0: jump b_2;
+  }
+}
+action void write_operand_sse_scalar helper (
+    struct Operand& sym_2012_3_parameter_op
+    uint64 sym_2013_3_parameter_value
+  )[
+    struct Register sym_2021_1_temporary_value
+    struct Register sym_2033_1_temporary_value
+    struct Register sym_2039_1_temporary_value
+    struct Memory sym_2050_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+    b_7
+    b_8
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2012_3_parameter_op is_reg;
+    s_b_0_1: if s_b_0_0 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_2012_3_parameter_op reg;
+    s_b_1_1: write sym_2021_1_temporary_value s_b_1_0;
+    s_b_1_2 = struct sym_2021_1_temporary_value regclass;
+    s_b_1_3 = constant sint32 0;
+    s_b_1_4 = cast zextend  uint32 s_b_1_2;
+    s_b_1_5 = cast zextend  uint32 s_b_1_3;
+    s_b_1_6 = binary == s_b_1_4 s_b_1_5;
+    s_b_1_7: if s_b_1_6 b_4 b_6;
+  }
+  block b_2 {
+    s_b_2_0: intrinsic 10;
+    s_b_2_1: return;
+  }
+  block b_3 {
+    s_b_3_0 = struct sym_2012_3_parameter_op is_mem;
+    s_b_3_1: if s_b_3_0 b_7 b_8;
+  }
+  block b_4 {
+    s_b_4_0 = struct sym_2012_3_parameter_op reg;
+    s_b_4_1: write sym_2033_1_temporary_value s_b_4_0;
+    s_b_4_2 = read sym_2013_3_parameter_value;
+    s_b_4_3: call write_op_reg sym_2033_1_temporary_value s_b_4_2;
+    s_b_4_4: jump b_5;
+  }
+  block b_5 {
+    s_b_5_0: return;
+  }
+  block b_6 {
+    s_b_6_0 = struct sym_2012_3_parameter_op reg;
+    s_b_6_1: write sym_2039_1_temporary_value s_b_6_0;
+    s_b_6_2 = read sym_2013_3_parameter_value;
+    s_b_6_3: call write_op_reg_sse sym_2039_1_temporary_value s_b_6_2;
+    s_b_6_4: jump b_5;
+  }
+  block b_7 {
+    s_b_7_0 = struct sym_2012_3_parameter_op memory;
+    s_b_7_1: write sym_2050_1_temporary_value s_b_7_0;
+    s_b_7_2 = read sym_2013_3_parameter_value;
+    s_b_7_3: call write_op_mem sym_2050_1_temporary_value s_b_7_2;
+    s_b_7_4: return;
+  }
+  block b_8 {
+    s_b_8_0: jump b_2;
+  }
+}
+action void xchg (
+    struct Instruction sym_4105_3_parameter_inst
+  )[
+    struct Operand sym_4108_1_temporary_value
+    uint64 sym_4111_0_op0
+    struct Operand sym_4114_1_temporary_value
+    uint64 sym_4117_0_op1
+    struct Operand sym_4120_1_temporary_value
+    struct Operand sym_4125_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_4105_3_parameter_inst op0;
+    s_b_0_1: write sym_4108_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_4108_1_temporary_value;
+    s_b_0_3: write sym_4111_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_4105_3_parameter_inst op1;
+    s_b_0_5: write sym_4114_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_4114_1_temporary_value;
+    s_b_0_7: write sym_4117_0_op1 s_b_0_6;
+    s_b_0_8 = struct sym_4105_3_parameter_inst op0;
+    s_b_0_9: write sym_4120_1_temporary_value s_b_0_8;
+    s_b_0_10 = read sym_4117_0_op1;
+    s_b_0_11: call write_operand sym_4120_1_temporary_value s_b_0_10;
+    s_b_0_12 = struct sym_4105_3_parameter_inst op1;
+    s_b_0_13: write sym_4125_1_temporary_value s_b_0_12;
+    s_b_0_14 = read sym_4111_0_op0;
+    s_b_0_15: call write_operand sym_4125_1_temporary_value s_b_0_14;
+    s_b_0_16: return;
+  }
+}
+action void xor (
+    struct Instruction sym_4143_3_parameter_inst
+  )[
+    struct Operand sym_4146_1_temporary_value
+    uint64 sym_4149_0_op1
+    struct Operand sym_4152_1_temporary_value
+    uint64 sym_4155_0_op2
+    struct Operand sym_4160_1_temporary_value
+    uint64 sym_4164_0_result
+    struct Operand sym_4167_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_4143_3_parameter_inst op0;
+    s_b_0_1: write sym_4146_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_4146_1_temporary_value;
+    s_b_0_3: write sym_4149_0_op1 s_b_0_2;
+    s_b_0_4 = struct sym_4143_3_parameter_inst op1;
+    s_b_0_5: write sym_4152_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_4152_1_temporary_value;
+    s_b_0_7: write sym_4155_0_op2 s_b_0_6;
+    s_b_0_8 = read sym_4149_0_op1;
+    s_b_0_9 = read sym_4155_0_op2;
+    s_b_0_10 = struct sym_4143_3_parameter_inst op0;
+    s_b_0_11: write sym_4160_1_temporary_value s_b_0_10;
+    s_b_0_12 = call operand_get_size sym_4160_1_temporary_value;
+    s_b_0_13 = call bitwise_xor s_b_0_8 s_b_0_9 s_b_0_12;
+    s_b_0_14: write sym_4164_0_result s_b_0_13;
+    s_b_0_15 = struct sym_4143_3_parameter_inst op0;
+    s_b_0_16: write sym_4167_1_temporary_value s_b_0_15;
+    s_b_0_17 = read sym_4164_0_result;
+    s_b_0_18: call write_operand sym_4167_1_temporary_value s_b_0_17;
+    s_b_0_19: return;
+  }
+}
+action void add (
+    struct Instruction sym_2135_3_parameter_inst
+  )[
+    struct Operand sym_2138_1_temporary_value
+    uint64 sym_2141_0_op0
+    struct Operand sym_2144_1_temporary_value
+    uint64 sym_2147_0_op1
+    struct Operand sym_2152_1_temporary_value
+    uint64 sym_2156_0_result
+    struct Operand sym_2159_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2135_3_parameter_inst op0;
+    s_b_0_1: write sym_2138_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2138_1_temporary_value;
+    s_b_0_3: write sym_2141_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_2135_3_parameter_inst op1;
+    s_b_0_5: write sym_2144_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_2144_1_temporary_value;
+    s_b_0_7: write sym_2147_0_op1 s_b_0_6;
+    s_b_0_8 = read sym_2141_0_op0;
+    s_b_0_9 = read sym_2147_0_op1;
+    s_b_0_10 = struct sym_2135_3_parameter_inst op0;
+    s_b_0_11: write sym_2152_1_temporary_value s_b_0_10;
+    s_b_0_12 = call operand_get_size sym_2152_1_temporary_value;
+    s_b_0_13 = call addition s_b_0_8 s_b_0_9 s_b_0_12;
+    s_b_0_14: write sym_2156_0_result s_b_0_13;
+    s_b_0_15 = struct sym_2135_3_parameter_inst op0;
+    s_b_0_16: write sym_2159_1_temporary_value s_b_0_15;
+    s_b_0_17 = read sym_2156_0_result;
+    s_b_0_18: call write_operand sym_2159_1_temporary_value s_b_0_17;
+    s_b_0_19: return;
+  }
+}
+action void and (
+    struct Instruction sym_2165_3_parameter_inst
+  )[
+    struct Operand sym_2168_1_temporary_value
+    uint64 sym_2171_0_op0
+    struct Operand sym_2174_1_temporary_value
+    uint64 sym_2177_0_op1
+    struct Operand sym_2182_1_temporary_value
+    uint64 sym_2186_0_result
+    struct Operand sym_2189_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2165_3_parameter_inst op0;
+    s_b_0_1: write sym_2168_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2168_1_temporary_value;
+    s_b_0_3: write sym_2171_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_2165_3_parameter_inst op1;
+    s_b_0_5: write sym_2174_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_2174_1_temporary_value;
+    s_b_0_7: write sym_2177_0_op1 s_b_0_6;
+    s_b_0_8 = read sym_2171_0_op0;
+    s_b_0_9 = read sym_2177_0_op1;
+    s_b_0_10 = struct sym_2165_3_parameter_inst op0;
+    s_b_0_11: write sym_2182_1_temporary_value s_b_0_10;
+    s_b_0_12 = call operand_get_size sym_2182_1_temporary_value;
+    s_b_0_13 = call bitwise_and s_b_0_8 s_b_0_9 s_b_0_12;
+    s_b_0_14: write sym_2186_0_result s_b_0_13;
+    s_b_0_15 = struct sym_2165_3_parameter_inst op0;
+    s_b_0_16: write sym_2189_1_temporary_value s_b_0_15;
+    s_b_0_17 = read sym_2186_0_result;
+    s_b_0_18: call write_operand sym_2189_1_temporary_value s_b_0_17;
+    s_b_0_19: return;
+  }
+}
+action void bsf (
+    struct Instruction sym_2195_3_parameter_inst
+  )[
+    struct Operand sym_2198_1_temporary_value
+    uint64 sym_2201_0_op1
+    struct Operand sym_2205_1_temporary_value
+    uint8 sym_2209_0_value
+    struct Operand sym_2212_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2195_3_parameter_inst op1;
+    s_b_0_1: write sym_2198_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2198_1_temporary_value;
+    s_b_0_3: write sym_2201_0_op1 s_b_0_2;
+    s_b_0_4 = read sym_2201_0_op1;
+    s_b_0_5 = struct sym_2195_3_parameter_inst op1;
+    s_b_0_6: write sym_2205_1_temporary_value s_b_0_5;
+    s_b_0_7 = call operand_get_size sym_2205_1_temporary_value;
+    s_b_0_8 = call do_bsf s_b_0_4 s_b_0_7;
+    s_b_0_9: write sym_2209_0_value s_b_0_8;
+    s_b_0_10 = struct sym_2195_3_parameter_inst op0;
+    s_b_0_11: write sym_2212_1_temporary_value s_b_0_10;
+    s_b_0_12 = read sym_2209_0_value;
+    s_b_0_13 = cast zextend  uint64 s_b_0_12;
+    s_b_0_14: call write_operand sym_2212_1_temporary_value s_b_0_13;
+    s_b_0_15: return;
+  }
+}
+action void bt (
+    struct Instruction sym_2219_3_parameter_inst
+  )[
+    struct Operand sym_2222_1_temporary_value
+    uint64 sym_2225_0_op0
+    struct Operand sym_2228_1_temporary_value
+    uint64 sym_2231_0_op1
+    struct Operand sym_2236_1_temporary_value
+    uint64 sym_2247_0_mask
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2219_3_parameter_inst op0;
+    s_b_0_1: write sym_2222_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2222_1_temporary_value;
+    s_b_0_3: write sym_2225_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_2219_3_parameter_inst op1;
+    s_b_0_5: write sym_2228_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_2228_1_temporary_value;
+    s_b_0_7: write sym_2231_0_op1 s_b_0_6;
+    s_b_0_8 = constant sint32 1;
+    s_b_0_9 = read sym_2231_0_op1;
+    s_b_0_10 = struct sym_2219_3_parameter_inst op0;
+    s_b_0_11: write sym_2236_1_temporary_value s_b_0_10;
+    s_b_0_12 = call operand_get_size sym_2236_1_temporary_value;
+    s_b_0_13 = constant sint32 1;
+    s_b_0_14 = cast zextend  uint32 s_b_0_12;
+    s_b_0_15 = cast zextend  uint32 s_b_0_13;
+    s_b_0_16 = binary - s_b_0_14 s_b_0_15;
+    s_b_0_17 = cast zextend  uint64 s_b_0_16;
+    s_b_0_18 = binary & s_b_0_9 s_b_0_17;
+    s_b_0_19 = cast zextend  uint64 s_b_0_8;
+    s_b_0_20 = binary << s_b_0_19 s_b_0_18;
+    s_b_0_21: write sym_2247_0_mask s_b_0_20;
+    s_b_0_22 = read sym_2225_0_op0;
+    s_b_0_23 = read sym_2247_0_mask;
+    s_b_0_24 = binary & s_b_0_22 s_b_0_23;
+    s_b_0_25 = constant sint32 0;
+    s_b_0_26 = cast zextend  uint64 s_b_0_25;
+    s_b_0_27 = binary != s_b_0_24 s_b_0_26;
+    s_b_0_28: regwrite 14 s_b_0_27;
+    s_b_0_29: return;
+  }
+}
+action void Call (
+    struct Instruction sym_2258_3_parameter_inst
+  )[
+    struct Operand sym_2261_1_temporary_value
+    uint64 sym_2264_0_target
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2258_3_parameter_inst op0;
+    s_b_0_1: write sym_2261_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2261_1_temporary_value;
+    s_b_0_3: write sym_2264_0_target s_b_0_2;
+    s_b_0_4 = intrinsic 1;
+    s_b_0_5 = struct sym_2258_3_parameter_inst Instr_Length;
+    s_b_0_6 = cast zextend  uint64 s_b_0_5;
+    s_b_0_7 = binary + s_b_0_4 s_b_0_6;
+    s_b_0_8: call stack_push s_b_0_7;
+    s_b_0_9 = read sym_2264_0_target;
+    s_b_0_10: regwrite 13 s_b_0_9;
+    s_b_0_11: return;
+  }
+}
+action void cmov (
+    struct Instruction sym_2310_3_parameter_inst
+  )[
+    uint8 sym_2314_0_condition
+    struct Operand sym_2321_1_temporary_value
+    uint64 sym_2324_0_value
+    struct Operand sym_2327_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2310_3_parameter_inst condition;
+    s_b_0_1 = call check_condition s_b_0_0;
+    s_b_0_2: write sym_2314_0_condition s_b_0_1;
+    s_b_0_3 = read sym_2314_0_condition;
+    s_b_0_4: if s_b_0_3 b_1 b_2;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_2310_3_parameter_inst op1;
+    s_b_1_1: write sym_2321_1_temporary_value s_b_1_0;
+    s_b_1_2 = call read_operand sym_2321_1_temporary_value;
+    s_b_1_3: write sym_2324_0_value s_b_1_2;
+    s_b_1_4 = struct sym_2310_3_parameter_inst op0;
+    s_b_1_5: write sym_2327_1_temporary_value s_b_1_4;
+    s_b_1_6 = read sym_2324_0_value;
+    s_b_1_7: call write_operand sym_2327_1_temporary_value s_b_1_6;
+    s_b_1_8: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+}
+action void cmp (
+    struct Instruction sym_2334_3_parameter_inst
+  )[
+    struct Operand sym_2337_1_temporary_value
+    uint64 sym_2340_0_op0
+    struct Operand sym_2343_1_temporary_value
+    uint64 sym_2346_0_op1
+    struct Operand sym_2351_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2334_3_parameter_inst op0;
+    s_b_0_1: write sym_2337_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2337_1_temporary_value;
+    s_b_0_3: write sym_2340_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_2334_3_parameter_inst op1;
+    s_b_0_5: write sym_2343_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_2343_1_temporary_value;
+    s_b_0_7: write sym_2346_0_op1 s_b_0_6;
+    s_b_0_8 = read sym_2340_0_op0;
+    s_b_0_9 = read sym_2346_0_op1;
+    s_b_0_10 = struct sym_2334_3_parameter_inst op0;
+    s_b_0_11: write sym_2351_1_temporary_value s_b_0_10;
+    s_b_0_12 = call operand_get_size sym_2351_1_temporary_value;
+    s_b_0_13 = call subtract s_b_0_8 s_b_0_9 s_b_0_12;
+    s_b_0_14: return;
+  }
+}
+action void cmpxchg (
+    struct Instruction sym_2357_3_parameter_inst
+  )[
+    struct Operand sym_2360_1_temporary_value
+    uint64 sym_2363_0_op0
+    struct Operand sym_2366_1_temporary_value
+    uint64 sym_2369_0_op1
+    uint64 sym_2372_0_rax
+    struct Operand sym_2385_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2357_3_parameter_inst op0;
+    s_b_0_1: write sym_2360_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2360_1_temporary_value;
+    s_b_0_3: write sym_2363_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_2357_3_parameter_inst op1;
+    s_b_0_5: write sym_2366_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_2366_1_temporary_value;
+    s_b_0_7: write sym_2369_0_op1 s_b_0_6;
+    s_b_0_8 = regread 0;
+    s_b_0_9: write sym_2372_0_rax s_b_0_8;
+    s_b_0_10 = read sym_2363_0_op0;
+    s_b_0_11 = read sym_2372_0_rax;
+    s_b_0_12 = binary == s_b_0_10 s_b_0_11;
+    s_b_0_13: if s_b_0_12 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = constant sint32 1;
+    s_b_1_1 = cast truncate  uint8 s_b_1_0;
+    s_b_1_2: regwrite 17 s_b_1_1;
+    s_b_1_3 = struct sym_2357_3_parameter_inst op0;
+    s_b_1_4: write sym_2385_1_temporary_value s_b_1_3;
+    s_b_1_5 = read sym_2369_0_op1;
+    s_b_1_6: call write_operand sym_2385_1_temporary_value s_b_1_5;
+    s_b_1_7: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = constant sint32 0;
+    s_b_3_1 = cast truncate  uint8 s_b_3_0;
+    s_b_3_2: regwrite 17 s_b_3_1;
+    s_b_3_3 = read sym_2363_0_op0;
+    s_b_3_4: regwrite 0 s_b_3_3;
+    s_b_3_5: jump b_2;
+  }
+}
+action void dec (
+    struct Instruction sym_2418_3_parameter_inst
+  )[
+    struct Operand sym_2421_1_temporary_value
+    uint64 sym_2424_0_op0
+    struct Operand sym_2427_1_temporary_value
+    struct Operand sym_2433_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2418_3_parameter_inst op0;
+    s_b_0_1: write sym_2421_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2421_1_temporary_value;
+    s_b_0_3: write sym_2424_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_2418_3_parameter_inst op0;
+    s_b_0_5: write sym_2427_1_temporary_value s_b_0_4;
+    s_b_0_6 = read sym_2424_0_op0;
+    s_b_0_7 = constant sint32 1;
+    s_b_0_8 = cast zextend  uint64 s_b_0_7;
+    s_b_0_9 = struct sym_2418_3_parameter_inst op0;
+    s_b_0_10: write sym_2433_1_temporary_value s_b_0_9;
+    s_b_0_11 = call operand_get_size sym_2433_1_temporary_value;
+    s_b_0_12 = call subtract s_b_0_6 s_b_0_8 s_b_0_11;
+    s_b_0_13: call write_operand sym_2427_1_temporary_value s_b_0_12;
+    s_b_0_14: return;
+  }
+}
+action void div (
+    struct Instruction sym_2440_3_parameter_inst
+  )[
+    struct Operand sym_2443_1_temporary_value
+    uint8 sym_2446_0_width
+    uint128 sym_2455_0_dividend
+    struct Operand sym_2458_1_temporary_value
+    uint64 sym_2461_0_divisor
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2440_3_parameter_inst op0;
+    s_b_0_1: write sym_2443_1_temporary_value s_b_0_0;
+    s_b_0_2 = call operand_get_size sym_2443_1_temporary_value;
+    s_b_0_3: write sym_2446_0_width s_b_0_2;
+    s_b_0_4 = read sym_2446_0_width;
+    s_b_0_5 = constant sint32 2;
+    s_b_0_6 = cast zextend  uint32 s_b_0_4;
+    s_b_0_7 = cast zextend  uint32 s_b_0_5;
+    s_b_0_8 = binary * s_b_0_6 s_b_0_7;
+    s_b_0_9 = cast truncate  uint8 s_b_0_8;
+    s_b_0_10 = call get_cd_pair s_b_0_9;
+    s_b_0_11: write sym_2455_0_dividend s_b_0_10;
+    s_b_0_12 = struct sym_2440_3_parameter_inst op0;
+    s_b_0_13: write sym_2458_1_temporary_value s_b_0_12;
+    s_b_0_14 = call read_operand sym_2458_1_temporary_value;
+    s_b_0_15: write sym_2461_0_divisor s_b_0_14;
+    s_b_0_16 = read sym_2446_0_width;
+    s_b_0_17 = constant sint32 8;
+    s_b_0_18 = cast zextend  uint32 s_b_0_16;
+    s_b_0_19 = cast zextend  uint32 s_b_0_17;
+    s_b_0_20 = binary == s_b_0_18 s_b_0_19;
+    s_b_0_21: if s_b_0_20 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = read sym_2455_0_dividend;
+    s_b_1_1 = read sym_2461_0_divisor;
+    s_b_1_2 = cast zextend  uint128 s_b_1_1;
+    s_b_1_3 = binary / s_b_1_0 s_b_1_2;
+    s_b_1_4 = cast truncate  uint8 s_b_1_3;
+    s_b_1_5: regwrite 3 s_b_1_4;
+    s_b_1_6 = read sym_2455_0_dividend;
+    s_b_1_7 = read sym_2461_0_divisor;
+    s_b_1_8 = cast zextend  uint128 s_b_1_7;
+    s_b_1_9 = binary % s_b_1_6 s_b_1_8;
+    s_b_1_10 = cast truncate  uint8 s_b_1_9;
+    s_b_1_11: regwrite 4 s_b_1_10;
+    s_b_1_12: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = constant sint32 0;
+    s_b_3_1 = cast truncate  uint8 s_b_3_0;
+    s_b_3_2 = read sym_2446_0_width;
+    s_b_3_3 = read sym_2455_0_dividend;
+    s_b_3_4 = read sym_2461_0_divisor;
+    s_b_3_5 = cast zextend  uint128 s_b_3_4;
+    s_b_3_6 = binary / s_b_3_3 s_b_3_5;
+    s_b_3_7 = cast truncate  uint64 s_b_3_6;
+    s_b_3_8: call write_reg s_b_3_1 s_b_3_2 s_b_3_7;
+    s_b_3_9 = constant sint32 2;
+    s_b_3_10 = cast truncate  uint8 s_b_3_9;
+    s_b_3_11 = read sym_2446_0_width;
+    s_b_3_12 = read sym_2455_0_dividend;
+    s_b_3_13 = read sym_2461_0_divisor;
+    s_b_3_14 = cast zextend  uint128 s_b_3_13;
+    s_b_3_15 = binary % s_b_3_12 s_b_3_14;
+    s_b_3_16 = cast truncate  uint64 s_b_3_15;
+    s_b_3_17: call write_reg s_b_3_10 s_b_3_11 s_b_3_16;
+    s_b_3_18: jump b_2;
+  }
+}
+action void do_cmpsb helper (
+    struct Instruction& sym_347_3_parameter_inst
+  )[
+    uint64 sym_416_0_src_addr
+    uint64 sym_423_0_dest_addr
+    uint8 sym_426_0_value0
+    uint8 sym_429_0_value1
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 6;
+    s_b_0_1 = cast truncate  uint8 s_b_0_0;
+    s_b_0_2 = constant sint32 64;
+    s_b_0_3 = cast truncate  uint8 s_b_0_2;
+    s_b_0_4 = call read_reg s_b_0_1 s_b_0_3;
+    s_b_0_5: write sym_416_0_src_addr s_b_0_4;
+    s_b_0_6 = constant sint32 7;
+    s_b_0_7 = cast truncate  uint8 s_b_0_6;
+    s_b_0_8 = constant sint32 64;
+    s_b_0_9 = cast truncate  uint8 s_b_0_8;
+    s_b_0_10 = call read_reg s_b_0_7 s_b_0_9;
+    s_b_0_11: write sym_423_0_dest_addr s_b_0_10;
+    s_b_0_12 = read sym_416_0_src_addr;
+    s_b_0_13: memread 1 s_b_0_12 sym_426_0_value0;
+    s_b_0_14 = read sym_423_0_dest_addr;
+    s_b_0_15: memread 1 s_b_0_14 sym_429_0_value1;
+    s_b_0_16 = read sym_426_0_value0;
+    s_b_0_17 = cast zextend  uint64 s_b_0_16;
+    s_b_0_18 = read sym_429_0_value1;
+    s_b_0_19 = cast zextend  uint64 s_b_0_18;
+    s_b_0_20 = constant sint32 8;
+    s_b_0_21 = cast truncate  uint8 s_b_0_20;
+    s_b_0_22 = call subtract s_b_0_17 s_b_0_19 s_b_0_21;
+    s_b_0_23 = regread 19;
+    s_b_0_24: if s_b_0_23 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = constant sint32 6;
+    s_b_1_1 = cast truncate  uint8 s_b_1_0;
+    s_b_1_2 = constant sint32 64;
+    s_b_1_3 = cast truncate  uint8 s_b_1_2;
+    s_b_1_4 = read sym_416_0_src_addr;
+    s_b_1_5 = constant sint32 1;
+    s_b_1_6 = cast zextend  uint64 s_b_1_5;
+    s_b_1_7 = binary - s_b_1_4 s_b_1_6;
+    s_b_1_8: call write_reg s_b_1_1 s_b_1_3 s_b_1_7;
+    s_b_1_9 = constant sint32 7;
+    s_b_1_10 = cast truncate  uint8 s_b_1_9;
+    s_b_1_11 = constant sint32 64;
+    s_b_1_12 = cast truncate  uint8 s_b_1_11;
+    s_b_1_13 = read sym_423_0_dest_addr;
+    s_b_1_14 = constant sint32 1;
+    s_b_1_15 = cast zextend  uint64 s_b_1_14;
+    s_b_1_16 = binary - s_b_1_13 s_b_1_15;
+    s_b_1_17: call write_reg s_b_1_10 s_b_1_12 s_b_1_16;
+    s_b_1_18: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = constant sint32 6;
+    s_b_3_1 = cast truncate  uint8 s_b_3_0;
+    s_b_3_2 = constant sint32 64;
+    s_b_3_3 = cast truncate  uint8 s_b_3_2;
+    s_b_3_4 = read sym_416_0_src_addr;
+    s_b_3_5 = constant sint32 1;
+    s_b_3_6 = cast zextend  uint64 s_b_3_5;
+    s_b_3_7 = binary + s_b_3_4 s_b_3_6;
+    s_b_3_8: call write_reg s_b_3_1 s_b_3_3 s_b_3_7;
+    s_b_3_9 = constant sint32 7;
+    s_b_3_10 = cast truncate  uint8 s_b_3_9;
+    s_b_3_11 = constant sint32 64;
+    s_b_3_12 = cast truncate  uint8 s_b_3_11;
+    s_b_3_13 = read sym_423_0_dest_addr;
+    s_b_3_14 = constant sint32 1;
+    s_b_3_15 = cast zextend  uint64 s_b_3_14;
+    s_b_3_16 = binary + s_b_3_13 s_b_3_15;
+    s_b_3_17: call write_reg s_b_3_10 s_b_3_12 s_b_3_16;
+    s_b_3_18: jump b_2;
+  }
+}
+action void do_scasb helper (
+    struct Instruction& sym_719_3_parameter_inst
+  )[
+    uint64 sym_726_0_rdi
+    uint8 sym_733_0_al
+    uint8 sym_737_0_mem
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = constant sint32 7;
+    s_b_0_1 = cast truncate  uint8 s_b_0_0;
+    s_b_0_2 = constant sint32 64;
+    s_b_0_3 = cast truncate  uint8 s_b_0_2;
+    s_b_0_4 = call read_reg s_b_0_1 s_b_0_3;
+    s_b_0_5: write sym_726_0_rdi s_b_0_4;
+    s_b_0_6 = constant sint32 0;
+    s_b_0_7 = cast truncate  uint8 s_b_0_6;
+    s_b_0_8 = constant sint32 8;
+    s_b_0_9 = cast truncate  uint8 s_b_0_8;
+    s_b_0_10 = call read_reg s_b_0_7 s_b_0_9;
+    s_b_0_11 = cast truncate  uint8 s_b_0_10;
+    s_b_0_12: write sym_733_0_al s_b_0_11;
+    s_b_0_13 = read sym_726_0_rdi;
+    s_b_0_14: memread 1 s_b_0_13 sym_737_0_mem;
+    s_b_0_15 = read sym_733_0_al;
+    s_b_0_16 = cast zextend  uint64 s_b_0_15;
+    s_b_0_17 = read sym_737_0_mem;
+    s_b_0_18 = cast zextend  uint64 s_b_0_17;
+    s_b_0_19 = constant sint32 8;
+    s_b_0_20 = cast truncate  uint8 s_b_0_19;
+    s_b_0_21 = call subtract s_b_0_16 s_b_0_18 s_b_0_20;
+    s_b_0_22 = regread 19;
+    s_b_0_23: if s_b_0_22 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = constant sint32 7;
+    s_b_1_1 = cast truncate  uint8 s_b_1_0;
+    s_b_1_2 = constant sint32 64;
+    s_b_1_3 = cast truncate  uint8 s_b_1_2;
+    s_b_1_4 = read sym_726_0_rdi;
+    s_b_1_5 = constant sint32 1;
+    s_b_1_6 = cast zextend  uint64 s_b_1_5;
+    s_b_1_7 = binary - s_b_1_4 s_b_1_6;
+    s_b_1_8: call write_reg s_b_1_1 s_b_1_3 s_b_1_7;
+    s_b_1_9: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = constant sint32 7;
+    s_b_3_1 = cast truncate  uint8 s_b_3_0;
+    s_b_3_2 = constant sint32 64;
+    s_b_3_3 = cast truncate  uint8 s_b_3_2;
+    s_b_3_4 = read sym_726_0_rdi;
+    s_b_3_5 = constant sint32 1;
+    s_b_3_6 = cast zextend  uint64 s_b_3_5;
+    s_b_3_7 = binary + s_b_3_4 s_b_3_6;
+    s_b_3_8: call write_reg s_b_3_1 s_b_3_3 s_b_3_7;
+    s_b_3_9: jump b_2;
+  }
+}
+action void idiv (
+    struct Instruction sym_2506_3_parameter_inst
+  )[
+    struct Operand sym_2509_1_temporary_value
+    uint8 sym_2512_0_width
+    sint128 sym_2521_0_dividend
+    struct Operand sym_2525_1_temporary_value
+    sint64 sym_2528_0_divisor
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2506_3_parameter_inst op0;
+    s_b_0_1: write sym_2509_1_temporary_value s_b_0_0;
+    s_b_0_2 = call operand_get_size sym_2509_1_temporary_value;
+    s_b_0_3: write sym_2512_0_width s_b_0_2;
+    s_b_0_4 = read sym_2512_0_width;
+    s_b_0_5 = constant sint32 2;
+    s_b_0_6 = cast zextend  uint32 s_b_0_4;
+    s_b_0_7 = cast zextend  uint32 s_b_0_5;
+    s_b_0_8 = binary * s_b_0_6 s_b_0_7;
+    s_b_0_9 = cast truncate  uint8 s_b_0_8;
+    s_b_0_10 = call get_cd_pair s_b_0_9;
+    s_b_0_11 = cast sextend  sint128 s_b_0_10;
+    s_b_0_12: write sym_2521_0_dividend s_b_0_11;
+    s_b_0_13 = struct sym_2506_3_parameter_inst op0;
+    s_b_0_14: write sym_2525_1_temporary_value s_b_0_13;
+    s_b_0_15 = call read_operand sym_2525_1_temporary_value;
+    s_b_0_16 = cast sextend  sint64 s_b_0_15;
+    s_b_0_17: write sym_2528_0_divisor s_b_0_16;
+    s_b_0_18 = read sym_2512_0_width;
+    s_b_0_19 = constant sint32 8;
+    s_b_0_20 = cast zextend  uint32 s_b_0_18;
+    s_b_0_21 = cast zextend  uint32 s_b_0_19;
+    s_b_0_22 = binary == s_b_0_20 s_b_0_21;
+    s_b_0_23: if s_b_0_22 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = read sym_2521_0_dividend;
+    s_b_1_1 = read sym_2528_0_divisor;
+    s_b_1_2 = cast sextend  sint128 s_b_1_1;
+    s_b_1_3 = binary / s_b_1_0 s_b_1_2;
+    s_b_1_4 = cast truncate  uint8 s_b_1_3;
+    s_b_1_5: regwrite 3 s_b_1_4;
+    s_b_1_6 = read sym_2521_0_dividend;
+    s_b_1_7 = read sym_2528_0_divisor;
+    s_b_1_8 = cast sextend  sint128 s_b_1_7;
+    s_b_1_9 = binary % s_b_1_6 s_b_1_8;
+    s_b_1_10 = cast truncate  uint8 s_b_1_9;
+    s_b_1_11: regwrite 4 s_b_1_10;
+    s_b_1_12: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = constant sint32 0;
+    s_b_3_1 = cast truncate  uint8 s_b_3_0;
+    s_b_3_2 = read sym_2512_0_width;
+    s_b_3_3 = read sym_2521_0_dividend;
+    s_b_3_4 = read sym_2528_0_divisor;
+    s_b_3_5 = cast sextend  sint128 s_b_3_4;
+    s_b_3_6 = binary / s_b_3_3 s_b_3_5;
+    s_b_3_7 = cast truncate  uint64 s_b_3_6;
+    s_b_3_8: call write_reg s_b_3_1 s_b_3_2 s_b_3_7;
+    s_b_3_9 = constant sint32 2;
+    s_b_3_10 = cast truncate  uint8 s_b_3_9;
+    s_b_3_11 = read sym_2512_0_width;
+    s_b_3_12 = read sym_2521_0_dividend;
+    s_b_3_13 = read sym_2528_0_divisor;
+    s_b_3_14 = cast sextend  sint128 s_b_3_13;
+    s_b_3_15 = binary % s_b_3_12 s_b_3_14;
+    s_b_3_16 = cast truncate  uint64 s_b_3_15;
+    s_b_3_17: call write_reg s_b_3_10 s_b_3_11 s_b_3_16;
+    s_b_3_18: jump b_2;
+  }
+}
+action void imul2 (
+    struct Instruction sym_2574_3_parameter_inst
+  )[
+    struct Operand sym_2577_1_temporary_value
+    sint128 sym_2580_0_op0
+    struct Operand sym_2584_1_temporary_value
+    sint128 sym_2587_0_op1
+    sint128 sym_2593_0_result
+    uint8 sym_2600_0_truncation
+    struct Operand sym_2607_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2574_3_parameter_inst op0;
+    s_b_0_1: write sym_2577_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2577_1_temporary_value;
+    s_b_0_3 = cast sextend  sint128 s_b_0_2;
+    s_b_0_4: write sym_2580_0_op0 s_b_0_3;
+    s_b_0_5 = struct sym_2574_3_parameter_inst op1;
+    s_b_0_6: write sym_2584_1_temporary_value s_b_0_5;
+    s_b_0_7 = call read_operand sym_2584_1_temporary_value;
+    s_b_0_8 = cast sextend  sint128 s_b_0_7;
+    s_b_0_9: write sym_2587_0_op1 s_b_0_8;
+    s_b_0_10 = read sym_2580_0_op0;
+    s_b_0_11 = read sym_2587_0_op1;
+    s_b_0_12 = binary * s_b_0_10 s_b_0_11;
+    s_b_0_13: write sym_2593_0_result s_b_0_12;
+    s_b_0_14 = read sym_2593_0_result;
+    s_b_0_15 = read sym_2593_0_result;
+    s_b_0_16 = cast truncate  sint64 s_b_0_15;
+    s_b_0_17 = cast sextend  sint128 s_b_0_16;
+    s_b_0_18 = binary != s_b_0_14 s_b_0_17;
+    s_b_0_19: write sym_2600_0_truncation s_b_0_18;
+    s_b_0_20 = read sym_2600_0_truncation;
+    s_b_0_21: regwrite 14 s_b_0_20;
+    s_b_0_22 = read sym_2600_0_truncation;
+    s_b_0_23: regwrite 20 s_b_0_22;
+    s_b_0_24 = struct sym_2574_3_parameter_inst op0;
+    s_b_0_25: write sym_2607_1_temporary_value s_b_0_24;
+    s_b_0_26 = read sym_2593_0_result;
+    s_b_0_27 = cast truncate  uint64 s_b_0_26;
+    s_b_0_28: call write_operand sym_2607_1_temporary_value s_b_0_27;
+    s_b_0_29: return;
+  }
+}
+action void imul3 (
+    struct Instruction sym_2614_3_parameter_inst
+  )[
+    struct Operand sym_2617_1_temporary_value
+    sint128 sym_2620_0_op0
+    struct Operand sym_2624_1_temporary_value
+    sint128 sym_2627_0_op1
+    sint128 sym_2633_0_result
+    uint8 sym_2640_0_truncation
+    struct Operand sym_2647_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2614_3_parameter_inst op1;
+    s_b_0_1: write sym_2617_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2617_1_temporary_value;
+    s_b_0_3 = cast sextend  sint128 s_b_0_2;
+    s_b_0_4: write sym_2620_0_op0 s_b_0_3;
+    s_b_0_5 = struct sym_2614_3_parameter_inst op2;
+    s_b_0_6: write sym_2624_1_temporary_value s_b_0_5;
+    s_b_0_7 = call read_operand sym_2624_1_temporary_value;
+    s_b_0_8 = cast sextend  sint128 s_b_0_7;
+    s_b_0_9: write sym_2627_0_op1 s_b_0_8;
+    s_b_0_10 = read sym_2620_0_op0;
+    s_b_0_11 = read sym_2627_0_op1;
+    s_b_0_12 = binary * s_b_0_10 s_b_0_11;
+    s_b_0_13: write sym_2633_0_result s_b_0_12;
+    s_b_0_14 = read sym_2633_0_result;
+    s_b_0_15 = read sym_2633_0_result;
+    s_b_0_16 = cast truncate  sint64 s_b_0_15;
+    s_b_0_17 = cast sextend  sint128 s_b_0_16;
+    s_b_0_18 = binary != s_b_0_14 s_b_0_17;
+    s_b_0_19: write sym_2640_0_truncation s_b_0_18;
+    s_b_0_20 = read sym_2640_0_truncation;
+    s_b_0_21: regwrite 14 s_b_0_20;
+    s_b_0_22 = read sym_2640_0_truncation;
+    s_b_0_23: regwrite 20 s_b_0_22;
+    s_b_0_24 = struct sym_2614_3_parameter_inst op0;
+    s_b_0_25: write sym_2647_1_temporary_value s_b_0_24;
+    s_b_0_26 = read sym_2633_0_result;
+    s_b_0_27 = cast truncate  uint64 s_b_0_26;
+    s_b_0_28: call write_operand sym_2647_1_temporary_value s_b_0_27;
+    s_b_0_29: return;
+  }
+}
+action void inc (
+    struct Instruction sym_2654_3_parameter_inst
+  )[
+    struct Operand sym_2657_1_temporary_value
+    uint64 sym_2660_0_op0
+    struct Operand sym_2663_1_temporary_value
+    struct Operand sym_2669_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2654_3_parameter_inst op0;
+    s_b_0_1: write sym_2657_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2657_1_temporary_value;
+    s_b_0_3: write sym_2660_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_2654_3_parameter_inst op0;
+    s_b_0_5: write sym_2663_1_temporary_value s_b_0_4;
+    s_b_0_6 = read sym_2660_0_op0;
+    s_b_0_7 = constant sint32 1;
+    s_b_0_8 = cast zextend  uint64 s_b_0_7;
+    s_b_0_9 = struct sym_2654_3_parameter_inst op0;
+    s_b_0_10: write sym_2669_1_temporary_value s_b_0_9;
+    s_b_0_11 = call operand_get_size sym_2669_1_temporary_value;
+    s_b_0_12 = call addition s_b_0_6 s_b_0_8 s_b_0_11;
+    s_b_0_13: call write_operand sym_2663_1_temporary_value s_b_0_12;
+    s_b_0_14: return;
+  }
+}
+action void jcond (
+    struct Instruction sym_2676_3_parameter_inst
+  )[
+    uint8 sym_2680_0_cond
+    struct Operand sym_2688_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2676_3_parameter_inst condition;
+    s_b_0_1 = call check_condition s_b_0_0;
+    s_b_0_2: write sym_2680_0_cond s_b_0_1;
+    s_b_0_3 = read sym_2680_0_cond;
+    s_b_0_4: if s_b_0_3 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_2676_3_parameter_inst op0;
+    s_b_1_1: write sym_2688_1_temporary_value s_b_1_0;
+    s_b_1_2 = call read_operand sym_2688_1_temporary_value;
+    s_b_1_3: intrinsic 2 s_b_1_2;
+    s_b_1_4: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0 = intrinsic 1;
+    s_b_3_1 = struct sym_2676_3_parameter_inst Instr_Length;
+    s_b_3_2 = cast zextend  uint64 s_b_3_1;
+    s_b_3_3 = binary + s_b_3_0 s_b_3_2;
+    s_b_3_4: intrinsic 2 s_b_3_3;
+    s_b_3_5: jump b_2;
+  }
+}
+action void jmp (
+    struct Instruction sym_2701_3_parameter_inst
+  )[
+    struct Operand sym_2704_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2701_3_parameter_inst op0;
+    s_b_0_1: write sym_2704_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2704_1_temporary_value;
+    s_b_0_3: intrinsic 2 s_b_0_2;
+    s_b_0_4: return;
+  }
+}
+action void lea (
+    struct Instruction sym_2710_3_parameter_inst
+  )[
+    struct Operand sym_2713_1_temporary_value
+    struct Memory sym_2716_1_temporary_value
+    uint64 sym_2719_0_value
+    struct Operand sym_2722_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2710_3_parameter_inst op1;
+    s_b_0_1: write sym_2713_1_temporary_value s_b_0_0;
+    s_b_0_2 = struct sym_2713_1_temporary_value memory;
+    s_b_0_3: write sym_2716_1_temporary_value s_b_0_2;
+    s_b_0_4 = call mem_get_addr sym_2716_1_temporary_value;
+    s_b_0_5: write sym_2719_0_value s_b_0_4;
+    s_b_0_6 = struct sym_2710_3_parameter_inst op0;
+    s_b_0_7: write sym_2722_1_temporary_value s_b_0_6;
+    s_b_0_8 = read sym_2719_0_value;
+    s_b_0_9: call write_operand sym_2722_1_temporary_value s_b_0_8;
+    s_b_0_10: return;
+  }
+}
+action void mov (
+    struct Instruction sym_2736_3_parameter_inst
+  )[
+    struct Operand sym_2739_1_temporary_value
+    uint64 sym_2742_0_value
+    struct Operand sym_2745_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2736_3_parameter_inst op1;
+    s_b_0_1: write sym_2739_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2739_1_temporary_value;
+    s_b_0_3: write sym_2742_0_value s_b_0_2;
+    s_b_0_4 = struct sym_2736_3_parameter_inst op0;
+    s_b_0_5: write sym_2745_1_temporary_value s_b_0_4;
+    s_b_0_6 = read sym_2742_0_value;
+    s_b_0_7: call write_operand sym_2745_1_temporary_value s_b_0_6;
+    s_b_0_8: return;
+  }
+}
+action void movd (
+    struct Instruction sym_2751_3_parameter_inst
+  )[
+    struct Operand sym_2754_1_temporary_value
+    uint64 sym_2757_0_op1
+    struct Operand sym_2760_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2751_3_parameter_inst op1;
+    s_b_0_1: write sym_2754_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand_sse_scalar sym_2754_1_temporary_value;
+    s_b_0_3: write sym_2757_0_op1 s_b_0_2;
+    s_b_0_4 = struct sym_2751_3_parameter_inst op0;
+    s_b_0_5: write sym_2760_1_temporary_value s_b_0_4;
+    s_b_0_6 = read sym_2757_0_op1;
+    s_b_0_7: call write_operand_sse_scalar sym_2760_1_temporary_value s_b_0_6;
+    s_b_0_8: return;
+  }
+}
+action void movdqu (
+    struct Instruction sym_2766_3_parameter_inst
+  )[
+    struct Operand sym_2769_1_temporary_value
+    uint64[2] sym_2772_0_src
+    struct Operand sym_2775_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2766_3_parameter_inst op1;
+    s_b_0_1: write sym_2769_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_xmm_u64 sym_2769_1_temporary_value;
+    s_b_0_3: write sym_2772_0_src s_b_0_2;
+    s_b_0_4 = struct sym_2766_3_parameter_inst op0;
+    s_b_0_5: write sym_2775_1_temporary_value s_b_0_4;
+    s_b_0_6 = read sym_2772_0_src;
+    s_b_0_7: call write_xmm_u64 sym_2775_1_temporary_value s_b_0_6;
+    s_b_0_8: return;
+  }
+}
+action void movq (
+    struct Instruction sym_2781_3_parameter_inst
+  )[
+    struct Operand sym_2784_1_temporary_value
+    uint64 sym_2787_0_op1
+    struct Operand sym_2790_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2781_3_parameter_inst op1;
+    s_b_0_1: write sym_2784_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand_sse_scalar sym_2784_1_temporary_value;
+    s_b_0_3: write sym_2787_0_op1 s_b_0_2;
+    s_b_0_4 = struct sym_2781_3_parameter_inst op0;
+    s_b_0_5: write sym_2790_1_temporary_value s_b_0_4;
+    s_b_0_6 = read sym_2787_0_op1;
+    s_b_0_7: call write_operand_sse_scalar sym_2790_1_temporary_value s_b_0_6;
+    s_b_0_8: return;
+  }
+}
+action void movsx (
+    struct Instruction sym_2801_3_parameter_inst
+  )[
+    struct Operand sym_2804_1_temporary_value
+    uint64 sym_2807_0_op1
+    struct Operand sym_2811_1_temporary_value
+    struct Operand sym_2817_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2801_3_parameter_inst op1;
+    s_b_0_1: write sym_2804_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2804_1_temporary_value;
+    s_b_0_3: write sym_2807_0_op1 s_b_0_2;
+    s_b_0_4 = read sym_2807_0_op1;
+    s_b_0_5 = struct sym_2801_3_parameter_inst op1;
+    s_b_0_6: write sym_2811_1_temporary_value s_b_0_5;
+    s_b_0_7 = call operand_get_size sym_2811_1_temporary_value;
+    s_b_0_8 = call sign_extend s_b_0_4 s_b_0_7;
+    s_b_0_9: write sym_2807_0_op1 s_b_0_8;
+    s_b_0_10 = struct sym_2801_3_parameter_inst op0;
+    s_b_0_11: write sym_2817_1_temporary_value s_b_0_10;
+    s_b_0_12 = read sym_2807_0_op1;
+    s_b_0_13: call write_operand sym_2817_1_temporary_value s_b_0_12;
+    s_b_0_14: return;
+  }
+}
+action void movsxd (
+    struct Instruction sym_2823_3_parameter_inst
+  )[
+    struct Operand sym_2826_1_temporary_value
+    uint64 sym_2829_0_value
+    struct Operand sym_2832_1_temporary_value
+    struct Operand sym_2868_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+    b_5
+    b_6
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2823_3_parameter_inst op1;
+    s_b_0_1: write sym_2826_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2826_1_temporary_value;
+    s_b_0_3: write sym_2829_0_value s_b_0_2;
+    s_b_0_4 = struct sym_2823_3_parameter_inst op1;
+    s_b_0_5: write sym_2832_1_temporary_value s_b_0_4;
+    s_b_0_6 = call operand_get_size sym_2832_1_temporary_value;
+    s_b_0_7 = constant sint32 8;
+    s_b_0_8 = constant sint32 16;
+    s_b_0_9 = constant sint32 32;
+    s_b_0_10 = constant sint32 64;
+    s_b_0_11: switch s_b_0_6 b_6 [s_b_0_10 b_5 s_b_0_7 b_2 s_b_0_8 b_3 s_b_0_9 b_4 ];
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_2823_3_parameter_inst op0;
+    s_b_1_1: write sym_2868_1_temporary_value s_b_1_0;
+    s_b_1_2 = read sym_2829_0_value;
+    s_b_1_3: call write_operand sym_2868_1_temporary_value s_b_1_2;
+    s_b_1_4: return;
+  }
+  block b_2 {
+    s_b_2_0 = read sym_2829_0_value;
+    s_b_2_1 = cast truncate  sint8 s_b_2_0;
+    s_b_2_2 = cast sextend  sint64 s_b_2_1;
+    s_b_2_3 = cast zextend  uint64 s_b_2_2;
+    s_b_2_4: write sym_2829_0_value s_b_2_3;
+    s_b_2_5: jump b_1;
+  }
+  block b_3 {
+    s_b_3_0 = read sym_2829_0_value;
+    s_b_3_1 = cast truncate  sint16 s_b_3_0;
+    s_b_3_2 = cast sextend  sint64 s_b_3_1;
+    s_b_3_3 = cast zextend  uint64 s_b_3_2;
+    s_b_3_4: write sym_2829_0_value s_b_3_3;
+    s_b_3_5: jump b_1;
+  }
+  block b_4 {
+    s_b_4_0 = read sym_2829_0_value;
+    s_b_4_1 = cast truncate  sint32 s_b_4_0;
+    s_b_4_2 = cast sextend  sint64 s_b_4_1;
+    s_b_4_3 = cast zextend  uint64 s_b_4_2;
+    s_b_4_4: write sym_2829_0_value s_b_4_3;
+    s_b_4_5: jump b_1;
+  }
+  block b_5 {
+    s_b_5_0: jump b_1;
+  }
+  block b_6 {
+    s_b_6_0: intrinsic 10;
+    s_b_6_1: jump b_1;
+  }
+}
+action void movzx (
+    struct Instruction sym_2874_3_parameter_inst
+  )[
+    struct Operand sym_2877_1_temporary_value
+    uint64 sym_2880_0_value
+    struct Operand sym_2883_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2874_3_parameter_inst op1;
+    s_b_0_1: write sym_2877_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2877_1_temporary_value;
+    s_b_0_3: write sym_2880_0_value s_b_0_2;
+    s_b_0_4 = struct sym_2874_3_parameter_inst op0;
+    s_b_0_5: write sym_2883_1_temporary_value s_b_0_4;
+    s_b_0_6 = read sym_2880_0_value;
+    s_b_0_7: call write_operand sym_2883_1_temporary_value s_b_0_6;
+    s_b_0_8: return;
+  }
+}
+action void mul (
+    struct Instruction sym_2889_3_parameter_inst
+  )[
+    struct Operand sym_2892_1_temporary_value
+    uint8 sym_2895_0_width
+    struct Operand sym_2898_1_temporary_value
+    uint128 sym_2901_0_op0
+    uint128 sym_2905_0_op1
+    uint128 sym_2917_0_result
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2889_3_parameter_inst op0;
+    s_b_0_1: write sym_2892_1_temporary_value s_b_0_0;
+    s_b_0_2 = call operand_get_size sym_2892_1_temporary_value;
+    s_b_0_3: write sym_2895_0_width s_b_0_2;
+    s_b_0_4 = struct sym_2889_3_parameter_inst op0;
+    s_b_0_5: write sym_2898_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_2898_1_temporary_value;
+    s_b_0_7 = cast zextend  uint128 s_b_0_6;
+    s_b_0_8: write sym_2901_0_op0 s_b_0_7;
+    s_b_0_9 = regread 0;
+    s_b_0_10 = cast zextend  uint128 s_b_0_9;
+    s_b_0_11: write sym_2905_0_op1 s_b_0_10;
+    s_b_0_12 = read sym_2905_0_op1;
+    s_b_0_13 = cast truncate  uint64 s_b_0_12;
+    s_b_0_14 = read sym_2895_0_width;
+    s_b_0_15 = call sign_extend s_b_0_13 s_b_0_14;
+    s_b_0_16 = cast zextend  uint128 s_b_0_15;
+    s_b_0_17: write sym_2905_0_op1 s_b_0_16;
+    s_b_0_18 = read sym_2901_0_op0;
+    s_b_0_19 = read sym_2905_0_op1;
+    s_b_0_20 = binary * s_b_0_18 s_b_0_19;
+    s_b_0_21: write sym_2917_0_result s_b_0_20;
+    s_b_0_22 = read sym_2917_0_result;
+    s_b_0_23 = constant sint32 64;
+    s_b_0_24 = cast zextend  uint128 s_b_0_23;
+    s_b_0_25 = binary >> s_b_0_22 s_b_0_24;
+    s_b_0_26: if s_b_0_25 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = constant sint32 0;
+    s_b_1_1 = cast truncate  uint8 s_b_1_0;
+    s_b_1_2: regwrite 20 s_b_1_1;
+    s_b_1_3 = constant sint32 0;
+    s_b_1_4 = cast truncate  uint8 s_b_1_3;
+    s_b_1_5: regwrite 14 s_b_1_4;
+    s_b_1_6: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0 = read sym_2917_0_result;
+    s_b_2_1 = constant sint32 128;
+    s_b_2_2 = cast truncate  uint8 s_b_2_1;
+    s_b_2_3: call write_cd_pair s_b_2_0 s_b_2_2;
+    s_b_2_4: return;
+  }
+  block b_3 {
+    s_b_3_0 = constant sint32 1;
+    s_b_3_1 = cast truncate  uint8 s_b_3_0;
+    s_b_3_2: regwrite 20 s_b_3_1;
+    s_b_3_3 = constant sint32 1;
+    s_b_3_4 = cast truncate  uint8 s_b_3_3;
+    s_b_3_5: regwrite 14 s_b_3_4;
+    s_b_3_6: jump b_2;
+  }
+}
+action void neg (
+    struct Instruction sym_2947_3_parameter_inst
+  )[
+    struct Operand sym_2950_1_temporary_value
+    uint64 sym_2953_0_value
+    struct Operand sym_2959_1_temporary_value
+    struct Operand sym_2965_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2947_3_parameter_inst op0;
+    s_b_0_1: write sym_2950_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2950_1_temporary_value;
+    s_b_0_3: write sym_2953_0_value s_b_0_2;
+    s_b_0_4 = constant sint32 0;
+    s_b_0_5 = cast zextend  uint64 s_b_0_4;
+    s_b_0_6 = read sym_2953_0_value;
+    s_b_0_7 = struct sym_2947_3_parameter_inst op0;
+    s_b_0_8: write sym_2959_1_temporary_value s_b_0_7;
+    s_b_0_9 = call operand_get_size sym_2959_1_temporary_value;
+    s_b_0_10 = call subtract s_b_0_5 s_b_0_6 s_b_0_9;
+    s_b_0_11: write sym_2953_0_value s_b_0_10;
+    s_b_0_12 = struct sym_2947_3_parameter_inst op0;
+    s_b_0_13: write sym_2965_1_temporary_value s_b_0_12;
+    s_b_0_14 = read sym_2953_0_value;
+    s_b_0_15: call write_operand sym_2965_1_temporary_value s_b_0_14;
+    s_b_0_16: return;
+  }
+}
+action void not (
+    struct Instruction sym_2975_3_parameter_inst
+  )[
+    struct Operand sym_2978_1_temporary_value
+    uint64 sym_2981_0_value
+    struct Operand sym_2984_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2975_3_parameter_inst op0;
+    s_b_0_1: write sym_2978_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2978_1_temporary_value;
+    s_b_0_3: write sym_2981_0_value s_b_0_2;
+    s_b_0_4 = struct sym_2975_3_parameter_inst op0;
+    s_b_0_5: write sym_2984_1_temporary_value s_b_0_4;
+    s_b_0_6 = read sym_2981_0_value;
+    s_b_0_7 = unary ~ s_b_0_6;
+    s_b_0_8: call write_operand sym_2984_1_temporary_value s_b_0_7;
+    s_b_0_9: return;
+  }
+}
+action void or (
+    struct Instruction sym_2991_3_parameter_inst
+  )[
+    struct Operand sym_2994_1_temporary_value
+    uint64 sym_2997_0_op0
+    struct Operand sym_3000_1_temporary_value
+    uint64 sym_3003_0_op1
+    struct Operand sym_3008_1_temporary_value
+    uint64 sym_3012_0_result
+    struct Operand sym_3015_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_2991_3_parameter_inst op0;
+    s_b_0_1: write sym_2994_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_2994_1_temporary_value;
+    s_b_0_3: write sym_2997_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_2991_3_parameter_inst op1;
+    s_b_0_5: write sym_3000_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_3000_1_temporary_value;
+    s_b_0_7: write sym_3003_0_op1 s_b_0_6;
+    s_b_0_8 = read sym_2997_0_op0;
+    s_b_0_9 = read sym_3003_0_op1;
+    s_b_0_10 = struct sym_2991_3_parameter_inst op0;
+    s_b_0_11: write sym_3008_1_temporary_value s_b_0_10;
+    s_b_0_12 = call operand_get_size sym_3008_1_temporary_value;
+    s_b_0_13 = call bitwise_or s_b_0_8 s_b_0_9 s_b_0_12;
+    s_b_0_14: write sym_3012_0_result s_b_0_13;
+    s_b_0_15 = struct sym_2991_3_parameter_inst op0;
+    s_b_0_16: write sym_3015_1_temporary_value s_b_0_15;
+    s_b_0_17 = read sym_3012_0_result;
+    s_b_0_18: call write_operand sym_3015_1_temporary_value s_b_0_17;
+    s_b_0_19: return;
+  }
+}
+action void pmovmskb (
+    struct Instruction sym_3059_3_parameter_inst
+  )[
+    struct Operand sym_3062_1_temporary_value
+    uint8[16] sym_3065_0_op1
+    uint32 sym_3068_0_output
+    struct Operand sym_3277_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3059_3_parameter_inst op1;
+    s_b_0_1: write sym_3062_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_xmm_u8 sym_3062_1_temporary_value;
+    s_b_0_3: write sym_3065_0_op1 s_b_0_2;
+    s_b_0_4 = constant sint32 0;
+    s_b_0_5 = cast zextend  uint32 s_b_0_4;
+    s_b_0_6: write sym_3068_0_output s_b_0_5;
+    s_b_0_7 = read sym_3068_0_output;
+    s_b_0_8 = read sym_3065_0_op1;
+    s_b_0_9 = constant sint32 0;
+    s_b_0_10 = vextract s_b_0_8[s_b_0_9];
+    s_b_0_11 = constant sint32 7;
+    s_b_0_12 = cast zextend  uint32 s_b_0_10;
+    s_b_0_13 = cast zextend  uint32 s_b_0_11;
+    s_b_0_14 = binary >> s_b_0_12 s_b_0_13;
+    s_b_0_15 = binary | s_b_0_7 s_b_0_14;
+    s_b_0_16: write sym_3068_0_output s_b_0_15;
+    s_b_0_17 = read sym_3068_0_output;
+    s_b_0_18 = read sym_3065_0_op1;
+    s_b_0_19 = constant sint32 1;
+    s_b_0_20 = vextract s_b_0_18[s_b_0_19];
+    s_b_0_21 = constant sint32 7;
+    s_b_0_22 = cast zextend  uint32 s_b_0_20;
+    s_b_0_23 = cast zextend  uint32 s_b_0_21;
+    s_b_0_24 = binary >> s_b_0_22 s_b_0_23;
+    s_b_0_25 = constant sint32 1;
+    s_b_0_26 = cast zextend  uint32 s_b_0_25;
+    s_b_0_27 = binary << s_b_0_24 s_b_0_26;
+    s_b_0_28 = binary | s_b_0_17 s_b_0_27;
+    s_b_0_29: write sym_3068_0_output s_b_0_28;
+    s_b_0_30 = read sym_3068_0_output;
+    s_b_0_31 = read sym_3065_0_op1;
+    s_b_0_32 = constant sint32 2;
+    s_b_0_33 = vextract s_b_0_31[s_b_0_32];
+    s_b_0_34 = constant sint32 7;
+    s_b_0_35 = cast zextend  uint32 s_b_0_33;
+    s_b_0_36 = cast zextend  uint32 s_b_0_34;
+    s_b_0_37 = binary >> s_b_0_35 s_b_0_36;
+    s_b_0_38 = constant sint32 2;
+    s_b_0_39 = cast zextend  uint32 s_b_0_38;
+    s_b_0_40 = binary << s_b_0_37 s_b_0_39;
+    s_b_0_41 = binary | s_b_0_30 s_b_0_40;
+    s_b_0_42: write sym_3068_0_output s_b_0_41;
+    s_b_0_43 = read sym_3068_0_output;
+    s_b_0_44 = read sym_3065_0_op1;
+    s_b_0_45 = constant sint32 3;
+    s_b_0_46 = vextract s_b_0_44[s_b_0_45];
+    s_b_0_47 = constant sint32 7;
+    s_b_0_48 = cast zextend  uint32 s_b_0_46;
+    s_b_0_49 = cast zextend  uint32 s_b_0_47;
+    s_b_0_50 = binary >> s_b_0_48 s_b_0_49;
+    s_b_0_51 = constant sint32 3;
+    s_b_0_52 = cast zextend  uint32 s_b_0_51;
+    s_b_0_53 = binary << s_b_0_50 s_b_0_52;
+    s_b_0_54 = binary | s_b_0_43 s_b_0_53;
+    s_b_0_55: write sym_3068_0_output s_b_0_54;
+    s_b_0_56 = read sym_3068_0_output;
+    s_b_0_57 = read sym_3065_0_op1;
+    s_b_0_58 = constant sint32 4;
+    s_b_0_59 = vextract s_b_0_57[s_b_0_58];
+    s_b_0_60 = constant sint32 7;
+    s_b_0_61 = cast zextend  uint32 s_b_0_59;
+    s_b_0_62 = cast zextend  uint32 s_b_0_60;
+    s_b_0_63 = binary >> s_b_0_61 s_b_0_62;
+    s_b_0_64 = constant sint32 4;
+    s_b_0_65 = cast zextend  uint32 s_b_0_64;
+    s_b_0_66 = binary << s_b_0_63 s_b_0_65;
+    s_b_0_67 = binary | s_b_0_56 s_b_0_66;
+    s_b_0_68: write sym_3068_0_output s_b_0_67;
+    s_b_0_69 = read sym_3068_0_output;
+    s_b_0_70 = read sym_3065_0_op1;
+    s_b_0_71 = constant sint32 5;
+    s_b_0_72 = vextract s_b_0_70[s_b_0_71];
+    s_b_0_73 = constant sint32 7;
+    s_b_0_74 = cast zextend  uint32 s_b_0_72;
+    s_b_0_75 = cast zextend  uint32 s_b_0_73;
+    s_b_0_76 = binary >> s_b_0_74 s_b_0_75;
+    s_b_0_77 = constant sint32 5;
+    s_b_0_78 = cast zextend  uint32 s_b_0_77;
+    s_b_0_79 = binary << s_b_0_76 s_b_0_78;
+    s_b_0_80 = binary | s_b_0_69 s_b_0_79;
+    s_b_0_81: write sym_3068_0_output s_b_0_80;
+    s_b_0_82 = read sym_3068_0_output;
+    s_b_0_83 = read sym_3065_0_op1;
+    s_b_0_84 = constant sint32 6;
+    s_b_0_85 = vextract s_b_0_83[s_b_0_84];
+    s_b_0_86 = constant sint32 7;
+    s_b_0_87 = cast zextend  uint32 s_b_0_85;
+    s_b_0_88 = cast zextend  uint32 s_b_0_86;
+    s_b_0_89 = binary >> s_b_0_87 s_b_0_88;
+    s_b_0_90 = constant sint32 6;
+    s_b_0_91 = cast zextend  uint32 s_b_0_90;
+    s_b_0_92 = binary << s_b_0_89 s_b_0_91;
+    s_b_0_93 = binary | s_b_0_82 s_b_0_92;
+    s_b_0_94: write sym_3068_0_output s_b_0_93;
+    s_b_0_95 = read sym_3068_0_output;
+    s_b_0_96 = read sym_3065_0_op1;
+    s_b_0_97 = constant sint32 7;
+    s_b_0_98 = vextract s_b_0_96[s_b_0_97];
+    s_b_0_99 = constant sint32 7;
+    s_b_0_100 = cast zextend  uint32 s_b_0_98;
+    s_b_0_101 = cast zextend  uint32 s_b_0_99;
+    s_b_0_102 = binary >> s_b_0_100 s_b_0_101;
+    s_b_0_103 = constant sint32 7;
+    s_b_0_104 = cast zextend  uint32 s_b_0_103;
+    s_b_0_105 = binary << s_b_0_102 s_b_0_104;
+    s_b_0_106 = binary | s_b_0_95 s_b_0_105;
+    s_b_0_107: write sym_3068_0_output s_b_0_106;
+    s_b_0_108 = read sym_3068_0_output;
+    s_b_0_109 = read sym_3065_0_op1;
+    s_b_0_110 = constant sint32 8;
+    s_b_0_111 = vextract s_b_0_109[s_b_0_110];
+    s_b_0_112 = constant sint32 7;
+    s_b_0_113 = cast zextend  uint32 s_b_0_111;
+    s_b_0_114 = cast zextend  uint32 s_b_0_112;
+    s_b_0_115 = binary >> s_b_0_113 s_b_0_114;
+    s_b_0_116 = constant sint32 8;
+    s_b_0_117 = cast zextend  uint32 s_b_0_116;
+    s_b_0_118 = binary << s_b_0_115 s_b_0_117;
+    s_b_0_119 = binary | s_b_0_108 s_b_0_118;
+    s_b_0_120: write sym_3068_0_output s_b_0_119;
+    s_b_0_121 = read sym_3068_0_output;
+    s_b_0_122 = read sym_3065_0_op1;
+    s_b_0_123 = constant sint32 9;
+    s_b_0_124 = vextract s_b_0_122[s_b_0_123];
+    s_b_0_125 = constant sint32 7;
+    s_b_0_126 = cast zextend  uint32 s_b_0_124;
+    s_b_0_127 = cast zextend  uint32 s_b_0_125;
+    s_b_0_128 = binary >> s_b_0_126 s_b_0_127;
+    s_b_0_129 = constant sint32 9;
+    s_b_0_130 = cast zextend  uint32 s_b_0_129;
+    s_b_0_131 = binary << s_b_0_128 s_b_0_130;
+    s_b_0_132 = binary | s_b_0_121 s_b_0_131;
+    s_b_0_133: write sym_3068_0_output s_b_0_132;
+    s_b_0_134 = read sym_3068_0_output;
+    s_b_0_135 = read sym_3065_0_op1;
+    s_b_0_136 = constant sint32 10;
+    s_b_0_137 = vextract s_b_0_135[s_b_0_136];
+    s_b_0_138 = constant sint32 7;
+    s_b_0_139 = cast zextend  uint32 s_b_0_137;
+    s_b_0_140 = cast zextend  uint32 s_b_0_138;
+    s_b_0_141 = binary >> s_b_0_139 s_b_0_140;
+    s_b_0_142 = constant sint32 10;
+    s_b_0_143 = cast zextend  uint32 s_b_0_142;
+    s_b_0_144 = binary << s_b_0_141 s_b_0_143;
+    s_b_0_145 = binary | s_b_0_134 s_b_0_144;
+    s_b_0_146: write sym_3068_0_output s_b_0_145;
+    s_b_0_147 = read sym_3068_0_output;
+    s_b_0_148 = read sym_3065_0_op1;
+    s_b_0_149 = constant sint32 11;
+    s_b_0_150 = vextract s_b_0_148[s_b_0_149];
+    s_b_0_151 = constant sint32 7;
+    s_b_0_152 = cast zextend  uint32 s_b_0_150;
+    s_b_0_153 = cast zextend  uint32 s_b_0_151;
+    s_b_0_154 = binary >> s_b_0_152 s_b_0_153;
+    s_b_0_155 = constant sint32 11;
+    s_b_0_156 = cast zextend  uint32 s_b_0_155;
+    s_b_0_157 = binary << s_b_0_154 s_b_0_156;
+    s_b_0_158 = binary | s_b_0_147 s_b_0_157;
+    s_b_0_159: write sym_3068_0_output s_b_0_158;
+    s_b_0_160 = read sym_3068_0_output;
+    s_b_0_161 = read sym_3065_0_op1;
+    s_b_0_162 = constant sint32 12;
+    s_b_0_163 = vextract s_b_0_161[s_b_0_162];
+    s_b_0_164 = constant sint32 7;
+    s_b_0_165 = cast zextend  uint32 s_b_0_163;
+    s_b_0_166 = cast zextend  uint32 s_b_0_164;
+    s_b_0_167 = binary >> s_b_0_165 s_b_0_166;
+    s_b_0_168 = constant sint32 12;
+    s_b_0_169 = cast zextend  uint32 s_b_0_168;
+    s_b_0_170 = binary << s_b_0_167 s_b_0_169;
+    s_b_0_171 = binary | s_b_0_160 s_b_0_170;
+    s_b_0_172: write sym_3068_0_output s_b_0_171;
+    s_b_0_173 = read sym_3068_0_output;
+    s_b_0_174 = read sym_3065_0_op1;
+    s_b_0_175 = constant sint32 13;
+    s_b_0_176 = vextract s_b_0_174[s_b_0_175];
+    s_b_0_177 = constant sint32 7;
+    s_b_0_178 = cast zextend  uint32 s_b_0_176;
+    s_b_0_179 = cast zextend  uint32 s_b_0_177;
+    s_b_0_180 = binary >> s_b_0_178 s_b_0_179;
+    s_b_0_181 = constant sint32 13;
+    s_b_0_182 = cast zextend  uint32 s_b_0_181;
+    s_b_0_183 = binary << s_b_0_180 s_b_0_182;
+    s_b_0_184 = binary | s_b_0_173 s_b_0_183;
+    s_b_0_185: write sym_3068_0_output s_b_0_184;
+    s_b_0_186 = read sym_3068_0_output;
+    s_b_0_187 = read sym_3065_0_op1;
+    s_b_0_188 = constant sint32 14;
+    s_b_0_189 = vextract s_b_0_187[s_b_0_188];
+    s_b_0_190 = constant sint32 7;
+    s_b_0_191 = cast zextend  uint32 s_b_0_189;
+    s_b_0_192 = cast zextend  uint32 s_b_0_190;
+    s_b_0_193 = binary >> s_b_0_191 s_b_0_192;
+    s_b_0_194 = constant sint32 14;
+    s_b_0_195 = cast zextend  uint32 s_b_0_194;
+    s_b_0_196 = binary << s_b_0_193 s_b_0_195;
+    s_b_0_197 = binary | s_b_0_186 s_b_0_196;
+    s_b_0_198: write sym_3068_0_output s_b_0_197;
+    s_b_0_199 = read sym_3068_0_output;
+    s_b_0_200 = read sym_3065_0_op1;
+    s_b_0_201 = constant sint32 15;
+    s_b_0_202 = vextract s_b_0_200[s_b_0_201];
+    s_b_0_203 = constant sint32 7;
+    s_b_0_204 = cast zextend  uint32 s_b_0_202;
+    s_b_0_205 = cast zextend  uint32 s_b_0_203;
+    s_b_0_206 = binary >> s_b_0_204 s_b_0_205;
+    s_b_0_207 = constant sint32 15;
+    s_b_0_208 = cast zextend  uint32 s_b_0_207;
+    s_b_0_209 = binary << s_b_0_206 s_b_0_208;
+    s_b_0_210 = binary | s_b_0_199 s_b_0_209;
+    s_b_0_211: write sym_3068_0_output s_b_0_210;
+    s_b_0_212 = struct sym_3059_3_parameter_inst op0;
+    s_b_0_213: write sym_3277_1_temporary_value s_b_0_212;
+    s_b_0_214 = read sym_3068_0_output;
+    s_b_0_215 = cast zextend  uint64 s_b_0_214;
+    s_b_0_216: call write_operand sym_3277_1_temporary_value s_b_0_215;
+    s_b_0_217: return;
+  }
+}
+action void pop (
+    struct Instruction sym_3284_3_parameter_inst
+  )[
+    uint64 sym_3287_0_value
+    struct Operand sym_3290_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = call stack_pop;
+    s_b_0_1: write sym_3287_0_value s_b_0_0;
+    s_b_0_2 = struct sym_3284_3_parameter_inst op0;
+    s_b_0_3: write sym_3290_1_temporary_value s_b_0_2;
+    s_b_0_4 = read sym_3287_0_value;
+    s_b_0_5: call write_operand sym_3290_1_temporary_value s_b_0_4;
+    s_b_0_6: return;
+  }
+}
+action void por (
+    struct Instruction sym_3305_3_parameter_inst
+  )[
+    struct Operand sym_3308_1_temporary_value
+    uint64[2] sym_3311_0_op0
+    struct Operand sym_3314_1_temporary_value
+    uint64[2] sym_3317_0_op1
+    struct Operand sym_3320_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3305_3_parameter_inst op0;
+    s_b_0_1: write sym_3308_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_xmm_u64 sym_3308_1_temporary_value;
+    s_b_0_3: write sym_3311_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_3305_3_parameter_inst op1;
+    s_b_0_5: write sym_3314_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_xmm_u64 sym_3314_1_temporary_value;
+    s_b_0_7: write sym_3317_0_op1 s_b_0_6;
+    s_b_0_8 = struct sym_3305_3_parameter_inst op0;
+    s_b_0_9: write sym_3320_1_temporary_value s_b_0_8;
+    s_b_0_10 = read sym_3311_0_op0;
+    s_b_0_11 = read sym_3317_0_op1;
+    s_b_0_12 = binary | s_b_0_10 s_b_0_11;
+    s_b_0_13: call write_xmm_u64 sym_3320_1_temporary_value s_b_0_12;
+    s_b_0_14: return;
+  }
+}
+action void pshufd (
+    struct Instruction sym_3328_3_parameter_inst
+  )[
+    struct Operand sym_3331_1_temporary_value
+    struct Operand sym_3343_1_temporary_value
+    uint32[4] sym_3346_0_op1
+    struct Operand sym_3349_1_temporary_value
+    uint8 sym_3352_0_order
+    uint32[4] sym_3363_0_dest
+    struct Operand sym_3410_1_temporary_value
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3328_3_parameter_inst op0;
+    s_b_0_1: write sym_3331_1_temporary_value s_b_0_0;
+    s_b_0_2 = call operand_get_size sym_3331_1_temporary_value;
+    s_b_0_3 = constant sint32 128;
+    s_b_0_4 = cast zextend  uint32 s_b_0_2;
+    s_b_0_5 = cast zextend  uint32 s_b_0_3;
+    s_b_0_6 = binary == s_b_0_4 s_b_0_5;
+    s_b_0_7: if s_b_0_6 b_1 b_3;
+  }
+  block b_1 {
+    s_b_1_0 = struct sym_3328_3_parameter_inst op1;
+    s_b_1_1: write sym_3343_1_temporary_value s_b_1_0;
+    s_b_1_2 = call read_xmm_u32 sym_3343_1_temporary_value;
+    s_b_1_3: write sym_3346_0_op1 s_b_1_2;
+    s_b_1_4 = struct sym_3328_3_parameter_inst op2;
+    s_b_1_5: write sym_3349_1_temporary_value s_b_1_4;
+    s_b_1_6 = call read_operand sym_3349_1_temporary_value;
+    s_b_1_7 = cast truncate  uint8 s_b_1_6;
+    s_b_1_8: write sym_3352_0_order s_b_1_7;
+    s_b_1_9 = read sym_3346_0_op1;
+    s_b_1_10 = read sym_3352_0_order;
+    s_b_1_11 = constant sint32 3;
+    s_b_1_12 = cast zextend  uint32 s_b_1_10;
+    s_b_1_13 = cast zextend  uint32 s_b_1_11;
+    s_b_1_14 = binary & s_b_1_12 s_b_1_13;
+    s_b_1_15 = vextract s_b_1_9[s_b_1_14];
+    s_b_1_16 = constant sint32 0;
+    s_b_1_17 = read sym_3363_0_dest;
+    s_b_1_18 = vinsert s_b_1_17[s_b_1_16] s_b_1_15;
+    s_b_1_19: write sym_3363_0_dest s_b_1_18;
+    s_b_1_20 = read sym_3346_0_op1;
+    s_b_1_21 = read sym_3352_0_order;
+    s_b_1_22 = constant sint32 2;
+    s_b_1_23 = cast zextend  uint32 s_b_1_21;
+    s_b_1_24 = cast zextend  uint32 s_b_1_22;
+    s_b_1_25 = binary >> s_b_1_23 s_b_1_24;
+    s_b_1_26 = constant sint32 3;
+    s_b_1_27 = cast zextend  uint32 s_b_1_26;
+    s_b_1_28 = binary & s_b_1_25 s_b_1_27;
+    s_b_1_29 = vextract s_b_1_20[s_b_1_28];
+    s_b_1_30 = constant sint32 1;
+    s_b_1_31 = read sym_3363_0_dest;
+    s_b_1_32 = vinsert s_b_1_31[s_b_1_30] s_b_1_29;
+    s_b_1_33: write sym_3363_0_dest s_b_1_32;
+    s_b_1_34 = read sym_3346_0_op1;
+    s_b_1_35 = read sym_3352_0_order;
+    s_b_1_36 = constant sint32 4;
+    s_b_1_37 = cast zextend  uint32 s_b_1_35;
+    s_b_1_38 = cast zextend  uint32 s_b_1_36;
+    s_b_1_39 = binary >> s_b_1_37 s_b_1_38;
+    s_b_1_40 = constant sint32 3;
+    s_b_1_41 = cast zextend  uint32 s_b_1_40;
+    s_b_1_42 = binary & s_b_1_39 s_b_1_41;
+    s_b_1_43 = vextract s_b_1_34[s_b_1_42];
+    s_b_1_44 = constant sint32 2;
+    s_b_1_45 = read sym_3363_0_dest;
+    s_b_1_46 = vinsert s_b_1_45[s_b_1_44] s_b_1_43;
+    s_b_1_47: write sym_3363_0_dest s_b_1_46;
+    s_b_1_48 = read sym_3346_0_op1;
+    s_b_1_49 = read sym_3352_0_order;
+    s_b_1_50 = constant sint32 6;
+    s_b_1_51 = cast zextend  uint32 s_b_1_49;
+    s_b_1_52 = cast zextend  uint32 s_b_1_50;
+    s_b_1_53 = binary >> s_b_1_51 s_b_1_52;
+    s_b_1_54 = constant sint32 3;
+    s_b_1_55 = cast zextend  uint32 s_b_1_54;
+    s_b_1_56 = binary & s_b_1_53 s_b_1_55;
+    s_b_1_57 = vextract s_b_1_48[s_b_1_56];
+    s_b_1_58 = constant sint32 3;
+    s_b_1_59 = read sym_3363_0_dest;
+    s_b_1_60 = vinsert s_b_1_59[s_b_1_58] s_b_1_57;
+    s_b_1_61: write sym_3363_0_dest s_b_1_60;
+    s_b_1_62 = struct sym_3328_3_parameter_inst op0;
+    s_b_1_63: write sym_3410_1_temporary_value s_b_1_62;
+    s_b_1_64 = read sym_3363_0_dest;
+    s_b_1_65: call write_xmm_u32 sym_3410_1_temporary_value s_b_1_64;
+    s_b_1_66: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0: return;
+  }
+  block b_3 {
+    s_b_3_0: intrinsic 10;
+    s_b_3_1: jump b_2;
+  }
+}
+action void push (
+    struct Instruction sym_3661_3_parameter_inst
+  )[
+    struct Operand sym_3664_1_temporary_value
+    uint64 sym_3667_0_data
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3661_3_parameter_inst op0;
+    s_b_0_1: write sym_3664_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_3664_1_temporary_value;
+    s_b_0_3: write sym_3667_0_data s_b_0_2;
+    s_b_0_4 = read sym_3667_0_data;
+    s_b_0_5: call stack_push s_b_0_4;
+    s_b_0_6: return;
+  }
+}
+action void pxor (
+    struct Instruction sym_3682_3_parameter_inst
+  )[
+    struct Operand sym_3685_1_temporary_value
+    uint64[2] sym_3688_0_op0
+    struct Operand sym_3691_1_temporary_value
+    uint64[2] sym_3694_0_op1
+    struct Operand sym_3697_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3682_3_parameter_inst op0;
+    s_b_0_1: write sym_3685_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_xmm_u64 sym_3685_1_temporary_value;
+    s_b_0_3: write sym_3688_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_3682_3_parameter_inst op1;
+    s_b_0_5: write sym_3691_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_xmm_u64 sym_3691_1_temporary_value;
+    s_b_0_7: write sym_3694_0_op1 s_b_0_6;
+    s_b_0_8 = struct sym_3682_3_parameter_inst op0;
+    s_b_0_9: write sym_3697_1_temporary_value s_b_0_8;
+    s_b_0_10 = read sym_3688_0_op0;
+    s_b_0_11 = read sym_3694_0_op1;
+    s_b_0_12 = binary ^ s_b_0_10 s_b_0_11;
+    s_b_0_13: call write_xmm_u64 sym_3697_1_temporary_value s_b_0_12;
+    s_b_0_14: return;
+  }
+}
+action void repe_cmpsb (
+    struct Instruction sym_3846_3_parameter_inst
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+  > {
+  block b_0 {
+    s_b_0_0 = call repe_should_run sym_3846_3_parameter_inst;
+    s_b_0_1: if s_b_0_0 b_1 b_2;
+  }
+  block b_1 {
+    s_b_1_0: call do_cmpsb sym_3846_3_parameter_inst;
+    s_b_1_1: call rep_decrement_counter sym_3846_3_parameter_inst;
+    s_b_1_2: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0 = call repe_should_run sym_3846_3_parameter_inst;
+    s_b_2_1 = unary ! s_b_2_0;
+    s_b_2_2: if s_b_2_1 b_3 b_4;
+  }
+  block b_3 {
+    s_b_3_0 = intrinsic 1;
+    s_b_3_1 = struct sym_3846_3_parameter_inst Instr_Length;
+    s_b_3_2 = cast zextend  uint64 s_b_3_1;
+    s_b_3_3 = binary + s_b_3_0 s_b_3_2;
+    s_b_3_4: intrinsic 2 s_b_3_3;
+    s_b_3_5: jump b_4;
+  }
+  block b_4 {
+    s_b_4_0: return;
+  }
+}
+action void repne_scasb (
+    struct Instruction sym_3868_3_parameter_inst
+  )[
+  ] <
+    b_0
+    b_1
+    b_2
+    b_3
+    b_4
+  > {
+  block b_0 {
+    s_b_0_0 = call repne_should_run sym_3868_3_parameter_inst;
+    s_b_0_1: if s_b_0_0 b_1 b_2;
+  }
+  block b_1 {
+    s_b_1_0: call do_scasb sym_3868_3_parameter_inst;
+    s_b_1_1: call rep_decrement_counter sym_3868_3_parameter_inst;
+    s_b_1_2: jump b_2;
+  }
+  block b_2 {
+    s_b_2_0 = call repne_should_run sym_3868_3_parameter_inst;
+    s_b_2_1 = unary ! s_b_2_0;
+    s_b_2_2: if s_b_2_1 b_3 b_4;
+  }
+  block b_3 {
+    s_b_3_0 = intrinsic 1;
+    s_b_3_1 = struct sym_3868_3_parameter_inst Instr_Length;
+    s_b_3_2 = cast zextend  uint64 s_b_3_1;
+    s_b_3_3 = binary + s_b_3_0 s_b_3_2;
+    s_b_3_4: intrinsic 2 s_b_3_3;
+    s_b_3_5: jump b_4;
+  }
+  block b_4 {
+    s_b_4_0: return;
+  }
+}
+action void sar (
+    struct Instruction sym_3899_3_parameter_inst
+  )[
+    struct Operand sym_3902_1_temporary_value
+    sint64 sym_3905_0_op0
+    struct Operand sym_3909_1_temporary_value
+    sint64 sym_3912_0_op1
+    sint64 sym_3918_0_result
+    struct Operand sym_3921_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3899_3_parameter_inst op0;
+    s_b_0_1: write sym_3902_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_3902_1_temporary_value;
+    s_b_0_3 = cast sextend  sint64 s_b_0_2;
+    s_b_0_4: write sym_3905_0_op0 s_b_0_3;
+    s_b_0_5 = struct sym_3899_3_parameter_inst op1;
+    s_b_0_6: write sym_3909_1_temporary_value s_b_0_5;
+    s_b_0_7 = call read_operand sym_3909_1_temporary_value;
+    s_b_0_8 = cast sextend  sint64 s_b_0_7;
+    s_b_0_9: write sym_3912_0_op1 s_b_0_8;
+    s_b_0_10 = read sym_3905_0_op0;
+    s_b_0_11 = read sym_3912_0_op1;
+    s_b_0_12 = binary ->> s_b_0_10 s_b_0_11;
+    s_b_0_13: write sym_3918_0_result s_b_0_12;
+    s_b_0_14 = struct sym_3899_3_parameter_inst op0;
+    s_b_0_15: write sym_3921_1_temporary_value s_b_0_14;
+    s_b_0_16 = read sym_3918_0_result;
+    s_b_0_17 = cast zextend  uint64 s_b_0_16;
+    s_b_0_18: call write_operand sym_3921_1_temporary_value s_b_0_17;
+    s_b_0_19: return;
+  }
+}
+action void sbb (
+    struct Instruction sym_3928_3_parameter_inst
+  )[
+    struct Operand sym_3931_1_temporary_value
+    uint64 sym_3934_0_op0
+    struct Operand sym_3937_1_temporary_value
+    uint64 sym_3940_0_op1
+    struct Operand sym_3948_1_temporary_value
+    uint64 sym_3952_0_result
+    struct Operand sym_3955_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3928_3_parameter_inst op0;
+    s_b_0_1: write sym_3931_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_3931_1_temporary_value;
+    s_b_0_3: write sym_3934_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_3928_3_parameter_inst op1;
+    s_b_0_5: write sym_3937_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_3937_1_temporary_value;
+    s_b_0_7: write sym_3940_0_op1 s_b_0_6;
+    s_b_0_8 = read sym_3934_0_op0;
+    s_b_0_9 = read sym_3940_0_op1;
+    s_b_0_10 = regread 14;
+    s_b_0_11 = cast zextend  uint64 s_b_0_10;
+    s_b_0_12 = binary + s_b_0_9 s_b_0_11;
+    s_b_0_13 = struct sym_3928_3_parameter_inst op0;
+    s_b_0_14: write sym_3948_1_temporary_value s_b_0_13;
+    s_b_0_15 = call operand_get_size sym_3948_1_temporary_value;
+    s_b_0_16 = call subtract s_b_0_8 s_b_0_12 s_b_0_15;
+    s_b_0_17: write sym_3952_0_result s_b_0_16;
+    s_b_0_18 = struct sym_3928_3_parameter_inst op0;
+    s_b_0_19: write sym_3955_1_temporary_value s_b_0_18;
+    s_b_0_20 = read sym_3952_0_result;
+    s_b_0_21: call write_operand sym_3955_1_temporary_value s_b_0_20;
+    s_b_0_22: return;
+  }
+}
+action void sbc16 helper (
+    uint16 sym_1504_3_parameter_op0
+    uint16 sym_1505_3_parameter_op1
+    uint8 sym_1506_3_parameter_carry
+  )[
+    uint32 sym_1516_0_result
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_1504_3_parameter_op0;
+    s_b_0_1 = cast zextend  uint32 s_b_0_0;
+    s_b_0_2 = read sym_1505_3_parameter_op1;
+    s_b_0_3 = cast zextend  uint32 s_b_0_2;
+    s_b_0_4 = read sym_1506_3_parameter_carry;
+    s_b_0_5 = cast zextend  uint32 s_b_0_4;
+    s_b_0_6 = binary + s_b_0_3 s_b_0_5;
+    s_b_0_7 = binary - s_b_0_1 s_b_0_6;
+    s_b_0_8: write sym_1516_0_result s_b_0_7;
+    s_b_0_9 = read sym_1516_0_result;
+    s_b_0_10 = cast truncate  uint16 s_b_0_9;
+    s_b_0_11 = cast sextend  sint64 s_b_0_10;
+    s_b_0_12: call set_zsp_flags s_b_0_11;
+    s_b_0_13 = read sym_1516_0_result;
+    s_b_0_14 = constant sint32 65535;
+    s_b_0_15 = cast zextend  uint32 s_b_0_14;
+    s_b_0_16 = binary > s_b_0_13 s_b_0_15;
+    s_b_0_17: regwrite 14 s_b_0_16;
+    s_b_0_18 = read sym_1504_3_parameter_op0;
+    s_b_0_19 = constant sint32 32768;
+    s_b_0_20 = cast zextend  uint32 s_b_0_18;
+    s_b_0_21 = cast zextend  uint32 s_b_0_19;
+    s_b_0_22 = binary & s_b_0_20 s_b_0_21;
+    s_b_0_23 = read sym_1505_3_parameter_op1;
+    s_b_0_24 = constant sint32 32768;
+    s_b_0_25 = cast zextend  uint32 s_b_0_23;
+    s_b_0_26 = cast zextend  uint32 s_b_0_24;
+    s_b_0_27 = binary & s_b_0_25 s_b_0_26;
+    s_b_0_28 = binary == s_b_0_22 s_b_0_27;
+    s_b_0_29 = read sym_1504_3_parameter_op0;
+    s_b_0_30 = constant sint32 32768;
+    s_b_0_31 = cast zextend  uint32 s_b_0_29;
+    s_b_0_32 = cast zextend  uint32 s_b_0_30;
+    s_b_0_33 = binary & s_b_0_31 s_b_0_32;
+    s_b_0_34 = read sym_1516_0_result;
+    s_b_0_35 = constant sint32 32768;
+    s_b_0_36 = cast zextend  uint32 s_b_0_35;
+    s_b_0_37 = binary & s_b_0_34 s_b_0_36;
+    s_b_0_38 = binary != s_b_0_33 s_b_0_37;
+    s_b_0_39 = constant uint8 0;
+    s_b_0_40 = binary != s_b_0_28 s_b_0_39;
+    s_b_0_41 = binary != s_b_0_38 s_b_0_39;
+    s_b_0_42 = binary & s_b_0_40 s_b_0_41;
+    s_b_0_43: regwrite 20 s_b_0_42;
+    s_b_0_44: return;
+  }
+}
+action void sbc8 helper (
+    uint8 sym_1572_3_parameter_op0
+    uint8 sym_1573_3_parameter_op1
+    uint8 sym_1574_3_parameter_carry
+  )[
+    uint16 sym_1584_0_result
+    sint8 sym_1597_0_sop0
+    sint8 sym_1601_0_sop1
+    uint8 sym_1625_0_cond1
+    uint8 sym_1648_0_cond2
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = read sym_1572_3_parameter_op0;
+    s_b_0_1 = cast zextend  uint16 s_b_0_0;
+    s_b_0_2 = read sym_1573_3_parameter_op1;
+    s_b_0_3 = cast zextend  uint16 s_b_0_2;
+    s_b_0_4 = read sym_1574_3_parameter_carry;
+    s_b_0_5 = cast zextend  uint16 s_b_0_4;
+    s_b_0_6 = binary + s_b_0_3 s_b_0_5;
+    s_b_0_7 = binary - s_b_0_1 s_b_0_6;
+    s_b_0_8: write sym_1584_0_result s_b_0_7;
+    s_b_0_9 = read sym_1584_0_result;
+    s_b_0_10 = cast truncate  uint8 s_b_0_9;
+    s_b_0_11 = cast sextend  sint64 s_b_0_10;
+    s_b_0_12: call set_zsp_flags s_b_0_11;
+    s_b_0_13 = read sym_1584_0_result;
+    s_b_0_14 = constant sint32 255;
+    s_b_0_15 = cast zextend  uint32 s_b_0_13;
+    s_b_0_16 = cast zextend  uint32 s_b_0_14;
+    s_b_0_17 = binary > s_b_0_15 s_b_0_16;
+    s_b_0_18: regwrite 14 s_b_0_17;
+    s_b_0_19 = read sym_1572_3_parameter_op0;
+    s_b_0_20 = cast sextend  sint8 s_b_0_19;
+    s_b_0_21: write sym_1597_0_sop0 s_b_0_20;
+    s_b_0_22 = read sym_1573_3_parameter_op1;
+    s_b_0_23 = cast sextend  sint8 s_b_0_22;
+    s_b_0_24: write sym_1601_0_sop1 s_b_0_23;
+    s_b_0_25 = read sym_1597_0_sop0;
+    s_b_0_26 = constant sint32 0;
+    s_b_0_27 = cast sextend  sint32 s_b_0_25;
+    s_b_0_28 = binary < s_b_0_27 s_b_0_26;
+    s_b_0_29 = read sym_1601_0_sop1;
+    s_b_0_30 = constant sint32 0;
+    s_b_0_31 = cast sextend  sint32 s_b_0_29;
+    s_b_0_32 = binary < s_b_0_31 s_b_0_30;
+    s_b_0_33 = constant uint8 0;
+    s_b_0_34 = binary != s_b_0_28 s_b_0_33;
+    s_b_0_35 = binary != s_b_0_32 s_b_0_33;
+    s_b_0_36 = binary & s_b_0_34 s_b_0_35;
+    s_b_0_37 = read sym_1584_0_result;
+    s_b_0_38 = cast truncate  sint8 s_b_0_37;
+    s_b_0_39 = constant sint32 0;
+    s_b_0_40 = cast sextend  sint32 s_b_0_38;
+    s_b_0_41 = binary >= s_b_0_40 s_b_0_39;
+    s_b_0_42 = constant uint8 0;
+    s_b_0_43 = binary != s_b_0_36 s_b_0_42;
+    s_b_0_44 = binary != s_b_0_41 s_b_0_42;
+    s_b_0_45 = binary & s_b_0_43 s_b_0_44;
+    s_b_0_46: write sym_1625_0_cond1 s_b_0_45;
+    s_b_0_47 = read sym_1597_0_sop0;
+    s_b_0_48 = constant sint32 0;
+    s_b_0_49 = cast sextend  sint32 s_b_0_47;
+    s_b_0_50 = binary >= s_b_0_49 s_b_0_48;
+    s_b_0_51 = read sym_1601_0_sop1;
+    s_b_0_52 = constant sint32 0;
+    s_b_0_53 = cast sextend  sint32 s_b_0_51;
+    s_b_0_54 = binary >= s_b_0_53 s_b_0_52;
+    s_b_0_55 = constant uint8 0;
+    s_b_0_56 = binary != s_b_0_50 s_b_0_55;
+    s_b_0_57 = binary != s_b_0_54 s_b_0_55;
+    s_b_0_58 = binary & s_b_0_56 s_b_0_57;
+    s_b_0_59 = read sym_1584_0_result;
+    s_b_0_60 = cast truncate  sint8 s_b_0_59;
+    s_b_0_61 = constant sint32 0;
+    s_b_0_62 = cast sextend  sint32 s_b_0_60;
+    s_b_0_63 = binary < s_b_0_62 s_b_0_61;
+    s_b_0_64 = constant uint8 0;
+    s_b_0_65 = binary != s_b_0_58 s_b_0_64;
+    s_b_0_66 = binary != s_b_0_63 s_b_0_64;
+    s_b_0_67 = binary & s_b_0_65 s_b_0_66;
+    s_b_0_68: write sym_1648_0_cond2 s_b_0_67;
+    s_b_0_69 = read sym_1625_0_cond1;
+    s_b_0_70 = read sym_1648_0_cond2;
+    s_b_0_71 = binary | s_b_0_69 s_b_0_70;
+    s_b_0_72: regwrite 20 s_b_0_71;
+    s_b_0_73: return;
+  }
+}
+action void setcc (
+    struct Instruction sym_3961_3_parameter_inst
+  )[
+    struct Operand sym_3964_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3961_3_parameter_inst op0;
+    s_b_0_1: write sym_3964_1_temporary_value s_b_0_0;
+    s_b_0_2 = struct sym_3961_3_parameter_inst condition;
+    s_b_0_3 = call check_condition s_b_0_2;
+    s_b_0_4 = cast zextend  uint64 s_b_0_3;
+    s_b_0_5: call write_operand sym_3964_1_temporary_value s_b_0_4;
+    s_b_0_6: return;
+  }
+}
+action void shl (
+    struct Instruction sym_3972_3_parameter_inst
+  )[
+    struct Operand sym_3975_1_temporary_value
+    uint64 sym_3978_0_op0
+    struct Operand sym_3981_1_temporary_value
+    uint64 sym_3984_0_op1
+    uint64 sym_3989_0_result
+    struct Operand sym_3992_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3972_3_parameter_inst op0;
+    s_b_0_1: write sym_3975_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_3975_1_temporary_value;
+    s_b_0_3: write sym_3978_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_3972_3_parameter_inst op1;
+    s_b_0_5: write sym_3981_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_3981_1_temporary_value;
+    s_b_0_7: write sym_3984_0_op1 s_b_0_6;
+    s_b_0_8 = read sym_3978_0_op0;
+    s_b_0_9 = read sym_3984_0_op1;
+    s_b_0_10 = binary << s_b_0_8 s_b_0_9;
+    s_b_0_11: write sym_3989_0_result s_b_0_10;
+    s_b_0_12 = struct sym_3972_3_parameter_inst op0;
+    s_b_0_13: write sym_3992_1_temporary_value s_b_0_12;
+    s_b_0_14 = read sym_3989_0_result;
+    s_b_0_15: call write_operand sym_3992_1_temporary_value s_b_0_14;
+    s_b_0_16: return;
+  }
+}
+action void shr (
+    struct Instruction sym_3998_3_parameter_inst
+  )[
+    struct Operand sym_4001_1_temporary_value
+    uint64 sym_4004_0_op0
+    struct Operand sym_4007_1_temporary_value
+    uint64 sym_4010_0_op1
+    uint64 sym_4026_0_result
+    struct Operand sym_4032_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_3998_3_parameter_inst op0;
+    s_b_0_1: write sym_4001_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_4001_1_temporary_value;
+    s_b_0_3: write sym_4004_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_3998_3_parameter_inst op1;
+    s_b_0_5: write sym_4007_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_4007_1_temporary_value;
+    s_b_0_7: write sym_4010_0_op1 s_b_0_6;
+    s_b_0_8 = read sym_4004_0_op0;
+    s_b_0_9 = read sym_4010_0_op1;
+    s_b_0_10 = constant sint32 1;
+    s_b_0_11 = cast zextend  uint64 s_b_0_10;
+    s_b_0_12 = binary - s_b_0_9 s_b_0_11;
+    s_b_0_13 = binary >> s_b_0_8 s_b_0_12;
+    s_b_0_14 = constant sint32 1;
+    s_b_0_15 = cast zextend  uint64 s_b_0_14;
+    s_b_0_16 = binary & s_b_0_13 s_b_0_15;
+    s_b_0_17 = cast truncate  uint8 s_b_0_16;
+    s_b_0_18: regwrite 14 s_b_0_17;
+    s_b_0_19 = read sym_4004_0_op0;
+    s_b_0_20 = read sym_4010_0_op1;
+    s_b_0_21 = binary >> s_b_0_19 s_b_0_20;
+    s_b_0_22: write sym_4026_0_result s_b_0_21;
+    s_b_0_23 = read sym_4026_0_result;
+    s_b_0_24 = cast sextend  sint64 s_b_0_23;
+    s_b_0_25: call set_zsp_flags s_b_0_24;
+    s_b_0_26 = struct sym_3998_3_parameter_inst op0;
+    s_b_0_27: write sym_4032_1_temporary_value s_b_0_26;
+    s_b_0_28 = read sym_4026_0_result;
+    s_b_0_29: call write_operand sym_4032_1_temporary_value s_b_0_28;
+    s_b_0_30: return;
+  }
+}
+action void sub (
+    struct Instruction sym_4038_3_parameter_inst
+  )[
+    struct Operand sym_4041_1_temporary_value
+    uint64 sym_4044_0_op0
+    struct Operand sym_4047_1_temporary_value
+    uint64 sym_4050_0_op1
+    struct Operand sym_4055_1_temporary_value
+    uint64 sym_4059_0_result
+    struct Operand sym_4062_1_temporary_value
+  ] <
+    b_0
+  > {
+  block b_0 {
+    s_b_0_0 = struct sym_4038_3_parameter_inst op0;
+    s_b_0_1: write sym_4041_1_temporary_value s_b_0_0;
+    s_b_0_2 = call read_operand sym_4041_1_temporary_value;
+    s_b_0_3: write sym_4044_0_op0 s_b_0_2;
+    s_b_0_4 = struct sym_4038_3_parameter_inst op1;
+    s_b_0_5: write sym_4047_1_temporary_value s_b_0_4;
+    s_b_0_6 = call read_operand sym_4047_1_temporary_value;
+    s_b_0_7: write sym_4050_0_op1 s_b_0_6;
+    s_b_0_8 = read sym_4044_0_op0;
+    s_b_0_9 = read sym_4050_0_op1;
+    s_b_0_10 = struct sym_4038_3_parameter_inst op0;
+    s_b_0_11: write sym_4055_1_temporary_value s_b_0_10;
+    s_b_0_12 = call operand_get_size sym_4055_1_temporary_value;
+    s_b_0_13 = call subtract s_b_0_8 s_b_0_9 s_b_0_12;
+    s_b_0_14: write sym_4059_0_result s_b_0_13;
+    s_b_0_15 = struct sym_4038_3_parameter_inst op0;
+    s_b_0_16: write sym_4062_1_temporary_value s_b_0_15;
+    s_b_0_17 = read sym_4059_0_result;
+    s_b_0_18: call write_operand sym_4062_1_temporary_value s_b_0_17;
+    s_b_0_19: return;
+  }
+}

@@ -93,14 +93,14 @@ namespace gensim
 					header_str << "\tstd::string ";
 					if (GetProperty("InlineHints") == "1") header_str << "inline ";
 
-					header_str << "Disasm_" << isa->ISAName << "_" << i->second->Name << "(const " << decode->GetProperty("class") << "&, uint32_t pc);\n";
+					header_str << "Disasm_" << isa->ISAName << "_" << i->second->Name << "(const " << decode->GetProperty("class") << "&, archsim::Address pc) const;\n";
 				}
 			}
 
 			header_str << "public:\n";
 
-			header_str << "\tstd::string DisasmInstr(const gensim::BaseDecode&, uint32_t pc);\n\n";
-			header_str << "\tstd::string GetInstrName(uint32_t opcode);\n";
+			header_str << "\tstd::string DisasmInstr(const gensim::BaseDecode&, archsim::Address pc) const;\n\n";
+			header_str << "\tstd::string GetInstrName(uint32_t opcode) const;\n";
 			header_str << "\tstatic std::string InstructionNames[];\n";
 
 			header_str << "};\n";
@@ -131,7 +131,7 @@ namespace gensim
 			source_str << "namespace " << arch.Name << "{\n";
 
 			// Emit GetInstrName
-			source_str << "std::string " << GetProperty("class") << "::GetInstrName(uint32_t opcode)\n";
+			source_str << "std::string " << GetProperty("class") << "::GetInstrName(uint32_t opcode) const\n";
 			source_str << "{\n";
 
 			source_str << "switch(opcode)\n {\n";
@@ -175,7 +175,7 @@ namespace gensim
 				source_str << "\n";
 			}
 
-			source_str << "std::string " << GetProperty("class") << "::DisasmInstr(const gensim::BaseDecode &baseinstr, uint32_t pc)\n";
+			source_str << "std::string " << GetProperty("class") << "::DisasmInstr(const gensim::BaseDecode &baseinstr, archsim::Address pc) const\n";
 			source_str << "{\n";
 
 			source_str << "const " << decode->GetProperty("class") << " &instr = static_cast<const " << decode->GetProperty("class") << "&>(baseinstr);\n";
@@ -217,9 +217,9 @@ namespace gensim
 			const arch::ArchDescription &arch = Manager.GetArch();
 
 			if (decode->HasProperty("Classful"))
-				source_str << "std::string " << GetProperty("class") << "::Disasm_" << isa.ISAName << "_" << instr.Name << "(const " << decode->GetProperty("class_of_" + instr.Format->GetName()) << " &instr, uint32_t pc)\n{\n";
+				source_str << "std::string " << GetProperty("class") << "::Disasm_" << isa.ISAName << "_" << instr.Name << "(const " << decode->GetProperty("class_of_" + instr.Format->GetName()) << " &instr, archsim::Address pc) const \n{\n";
 			else
-				source_str << "std::string " << GetProperty("class") << "::Disasm_" << isa.ISAName << "_" << instr.Name << "(const " << decode->GetProperty("class") << " &instr, uint32_t pc)\n{\n";
+				source_str << "std::string " << GetProperty("class") << "::Disasm_" << isa.ISAName << "_" << instr.Name << "(const " << decode->GetProperty("class") << " &instr, archsim::Address pc) const \n{\n";
 
 			source_str << "std::stringstream str; uint32_t map_val;\n";
 
@@ -282,7 +282,7 @@ namespace gensim
 							if (!map_name.compare("imm") || !map_name.compare("exp") || !map_name.compare("reladdr") || !map_name.compare("hex32") || !map_name.compare("hex64")) {
 
 								if (!map_name.compare("reladdr")) {
-									source_str << "str << std::hex << (uint32_t)(pc + (sint32_t)(uint32_t)(" << i->args[curr_arg]->ToString("instr", &modifier_decode_function) << ")) << std::dec;\n";
+									source_str << "str << std::hex << (uint32_t)(pc.Get() + (sint32_t)(uint32_t)(" << i->args[curr_arg]->ToString("instr", &modifier_decode_function) << ")) << std::dec;\n";
 								} else {
 									source_str << "str << (uint32_t)(" << i->args[curr_arg]->ToString("instr", &modifier_decode_function) << ");\n";
 								}

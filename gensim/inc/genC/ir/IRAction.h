@@ -7,9 +7,12 @@
 #include "genC/ir/IRScope.h"
 #include "genC/ir/IRSignature.h"
 #include "genC/DiagNode.h"
+#include "genC/Intrinsics.h"
+#include "IR.h"
 
 #include <map>
 #include <string>
+#include <functional>
 
 namespace gensim
 {
@@ -18,12 +21,14 @@ namespace gensim
 		class GenCContext;
 		class IRScope;
 		class IRStatement;
+		class IRCallExpression;
 
 		namespace ssa
 		{
 			class SSABuilder;
 			class SSAFormAction;
 			class SSAContext;
+			class SSAIntrinsicStatement;
 		}
 
 		class IRAction
@@ -33,21 +38,16 @@ namespace gensim
 			typedef ParamListType::iterator ParamListIterator;
 			typedef ParamListType::const_iterator ParamListConstIterator;
 
-			IRAction(const IRSignature &signature, GenCContext &context);
+			IRAction(GenCContext &context);
+			virtual ~IRAction() { }
 
-			IRSignature& GetSignature()
-			{
-				return _signature;
-			}
-			const IRSignature& GetSignature() const
-			{
-				return _signature;
-			}
+			virtual IRSignature GetSignature(const IRCallExpression *callExpression = nullptr) const = 0;
 
 			const DiagNode& Diag() const
 			{
 				return _diag_node;
 			}
+
 			void SetDiag(const DiagNode &node)
 			{
 				_diag_node = node;
@@ -64,12 +64,8 @@ namespace gensim
 			ssa::SSAFormAction *GetSSAForm(ssa::SSAContext& context);
 			void EmitSSA(ssa::SSABuilder &bldr);
 
-		protected:
-			ParamListType _params;
-
 		private:
 			IRScope *_scope;
-			IRSignature _signature;
 			DiagNode _diag_node;
 			ssa::SSAFormAction *emitted_ssa_;
 		};
@@ -77,48 +73,87 @@ namespace gensim
 		class IRCallableAction : public IRAction
 		{
 		public:
-			IRCallableAction(const IRSignature &signature, GenCContext &context);
+			IRCallableAction(GenCContext &context);
+			virtual ~IRCallableAction() { }
 		};
 
 		class IRHelperAction : public IRCallableAction
 		{
 		public:
+			IRHelperAction(const IRSignature &signature, HelperScope scope, GenCContext &context);
+			virtual ~IRHelperAction() { }
+
 			virtual void PrettyPrintHeader(std::ostringstream &out) const;
 
-			IRHelperAction(const IRSignature &signature, HelperScope scope, GenCContext &context);
+			IRSignature GetSignature(const IRCallExpression *callExpression = nullptr) const override
+			{
+				return signature_;
+			}
 
 		private:
+			IRSignature signature_;
 			uint32_t _statement_count;
 			const HelperScope _scope;
-		};
-
-		class IRExternalAction : public IRCallableAction
-		{
-		public:
-			IRExternalAction(const IRSignature &signature, GenCContext& context);
-
-			void PrettyPrintHeader(std::ostringstream& out) const override;
 		};
 
 		class IRIntrinsicAction : public IRCallableAction
 		{
 		public:
-			void PrettyPrintHeader(std::ostringstream& out) const override;
+			using SignatureFactory = std::function<IRSignature(const IRIntrinsicAction *, const IRCallExpression *)>;
+			using SSAEmitter = std::function<genc::ssa::SSAStatement *(const IRIntrinsicAction *, const IRCallExpression *, ssa::SSABuilder &)>;
+			using FixednessResolver = std::function<bool(const genc::ssa::SSAIntrinsicStatement *, const IRIntrinsicAction *)>;
 
-			IRIntrinsicAction(const IRSignature &signature, GenCContext& context);
+			IRIntrinsicAction(const std::string& name, IntrinsicID id, SignatureFactory factory, SSAEmitter ssaEmitter, FixednessResolver fixednessResolver, GenCContext& context);
+			virtual ~IRIntrinsicAction() { }
+
+			virtual void PrettyPrintHeader(std::ostringstream& out) const override;
+
+			IRSignature GetSignature(const IRCallExpression *callExpression) const override
+			{
+				return factory_(this, callExpression);
+			}
+
+			const std::string& GetName() const
+			{
+				return name_;
+			}
+			IntrinsicID GetID() const
+			{
+				return id_;
+			}
+
+			bool ResolveFixedness(const genc::ssa::SSAIntrinsicStatement *intrinsicStmt) const
+			{
+				return resolver_(intrinsicStmt, this);
+			}
+
+			ssa::SSAStatement *Emit(const IRCallExpression *callExpression, ssa::SSABuilder& builder) const
+			{
+				return emitter_(this, callExpression, builder);
+			}
+
+		private:
+			std::string name_;
+			IntrinsicID id_;
+			SignatureFactory factory_;
+			SSAEmitter emitter_;
+			FixednessResolver resolver_;
 		};
 
 		class IRExecuteAction : public IRAction
 		{
 		public:
-			IRSymbol *InstructionSymbol;
+			IRExecuteAction(const std::string& name, GenCContext& context, const IRType instructionType);
+			virtual ~IRExecuteAction() { }
 
 			virtual void PrettyPrintHeader(std::ostringstream &out) const;
-
-			IRExecuteAction(const std::string& name, GenCContext& context, const IRType instructionType);
+			virtual IRSignature GetSignature(const IRCallExpression *callExpression = nullptr) const override
+			{
+				return signature_;
+			}
 
 		private:
-			IRExecuteAction();
+			IRSignature signature_;
 		};
 	}
 }

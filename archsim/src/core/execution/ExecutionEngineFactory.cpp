@@ -37,6 +37,7 @@ ExecutionEngine *ExecutionEngineFactory::Get(const archsim::module::ModuleInfo *
 					return result;
 				} else {
 					LC_ERROR(LogEEFactory) << "Tried to use specified mode " << archsim::options::Mode.GetValue() << ", but it returned an error";
+					return nullptr;
 				}
 			}
 		}

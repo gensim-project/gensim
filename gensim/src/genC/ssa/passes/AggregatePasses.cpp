@@ -51,6 +51,7 @@ public:
 		manager.AddPass(SSAPassDB::Get("BlockMerging"));
 		manager.AddPass(SSAPassDB::Get("Inlining"));
 		manager.AddPass(SSAPassDB::Get("DeadSymbolElimination"));
+		manager.AddPass(SSAPassDB::Get("ReadStructMerge"));
 
 		return manager.Run(action);
 	}
@@ -75,6 +76,7 @@ public:
 		manager.AddPass(SSAPassDB::Get("Inlining"));
 		manager.AddPass(SSAPassDB::Get("DeadSymbolElimination"));
 		manager.AddPass(SSAPassDB::Get("JumpThreading"));
+		manager.AddPass(SSAPassDB::Get("ReadStructMerge"));
 
 		return manager.Run(action);
 	}

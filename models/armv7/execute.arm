@@ -1882,9 +1882,9 @@ execute(mcr)
 	uint32 val = read_register_bank(RB, inst.rd);
 	if(inst.cp_num == 0xf) {
 		if(mcr_write_special(inst.crn, inst.crm, inst.funcc2, inst.funcc3, val)) {}
-		else write_coproc_reg(inst.cp_num, inst.funcc2, inst.funcc3, inst.crn, inst.crm, val);
+		else write_coproc_reg_inst(inst.cp_num, inst, val);
 	} else {
-		write_coproc_reg(inst.cp_num, inst.funcc2, inst.funcc3, inst.crn, inst.crm, val);
+		write_coproc_reg_inst(inst.cp_num, inst, val);
 	}
 }
 
@@ -1972,7 +1972,7 @@ execute(clz)
 		write_register_bank(RB, inst.rd, (uint32)32);
 	}
 	else {
-		uint32 val = __builtin_clz(reg);
+		uint32 val = __builtin_clz32(reg);
 		write_register_bank(RB, inst.rd, val);
 	}
 }
@@ -2959,7 +2959,7 @@ helper uint32 rotate_imm(uint8 imm8, uint8 rot, uint8 carry_in, uint8 &carry_out
 
 helper  void update_ZN_flags(uint32 value)
 {
-	__builtin_update_zn_flags(value);
+	__builtin_update_zn_flags32(value);
 
 	return;
 }
@@ -2977,7 +2977,7 @@ helper  uint32 add_with_carry( uint32 op1,  uint32 op2,  uint8 flags,  uint8 is_
 	
 	if(flags)
 	{
-		__builtin_adc_flags(op1, op2, carry_in);
+		__builtin_adc32_flags(op1, op2, carry_in);
 	}
 	
 	return result;
@@ -3674,12 +3674,12 @@ internal helper void return_from_exception() noinline
 	return;
 }
 
-internal helper uint8 instruction_is_predicated(Instruction inst)
+internal helper uint8 instruction_is_predicated(struct Instruction &inst)
 {
 	return (inst.ir & 0xf0000000) < 0xe0000000;
 }
 
-internal helper uint8 instruction_predicate(Instruction inst)
+internal helper uint8 instruction_predicate(struct Instruction &inst)
 {
 	uint8 cond = inst.cond >> 1;
 	uint8 invert = inst.cond & 1;
@@ -3729,14 +3729,20 @@ internal helper uint8 instruction_predicate(Instruction inst)
 }
 
 
+helper void write_coproc_reg_inst(uint32 cp_num, struct Instruction &inst, uint32 data)
+{
+	write_coproc_reg(cp_num, inst.funcc2, inst.funcc3, inst.crn, inst.crm, data);
+	return;
+}
+
 helper void write_coproc_reg(uint32 cp_num, uint32 op1, uint32 op2, uint32 crn, uint32 crm, uint32 data)
 {	
-	write_device((uint32)cp_num, (uint32)0, (uint32)op1);
-	write_device((uint32)cp_num, (uint32)1, (uint32)op2);
-	write_device((uint32)cp_num, (uint32)2, (uint32)crn);
-	write_device((uint32)cp_num, (uint32)3, (uint32)crm);
+	write_device32((uint32)cp_num, (uint32)0, (uint32)op1);
+	write_device32((uint32)cp_num, (uint32)1, (uint32)op2);
+	write_device32((uint32)cp_num, (uint32)2, (uint32)crn);
+	write_device32((uint32)cp_num, (uint32)3, (uint32)crm);
 	
-	write_device((uint32)cp_num, (uint32)4, data);
+	write_device32((uint32)cp_num, (uint32)4, data);
 	
 	return;
 }
@@ -3745,12 +3751,12 @@ helper uint32 read_coproc_reg(uint32 cp_num, uint32 op1, uint32 op2, uint32 crn,
 {
 	uint32 d;
 	
-	write_device((uint32)cp_num, (uint32)0, (uint32)op1);
-	write_device((uint32)cp_num, (uint32)1, (uint32)op2);
-	write_device((uint32)cp_num, (uint32)2, (uint32)crn);
-	write_device((uint32)cp_num, (uint32)3, (uint32)crm);
+	write_device32((uint32)cp_num, (uint32)0, (uint32)op1);
+	write_device32((uint32)cp_num, (uint32)1, (uint32)op2);
+	write_device32((uint32)cp_num, (uint32)2, (uint32)crn);
+	write_device32((uint32)cp_num, (uint32)3, (uint32)crm);
 	
-	read_device((uint32)cp_num, (uint32)4, d);
+	read_device32((uint32)cp_num, (uint32)4, d);
 	
 	return (uint32)d;
 }

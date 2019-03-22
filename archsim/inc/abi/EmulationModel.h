@@ -109,7 +109,7 @@ namespace archsim
 
 			virtual bool PrepareBoot(System& system) = 0;
 
-			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* thread, uint32_t category, uint32_t data) = 0;
+			virtual ExceptionAction HandleException(archsim::core::thread::ThreadInstance* thread, uint64_t category, uint64_t data) = 0;
 			virtual ExceptionAction HandleMemoryFault(archsim::core::thread::ThreadInstance &thread, archsim::MemoryInterface &interface, archsim::Address address);
 			virtual void HandleInterrupt(archsim::core::thread::ThreadInstance* thread, archsim::abi::devices::CPUIRQLine *irq);
 

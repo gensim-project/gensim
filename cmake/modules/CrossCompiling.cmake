@@ -25,7 +25,7 @@ endfunction()
 
 function(cross_compile_try_compiler prefix)
 	execute_process(
-		COMMAND "sh" "-c" "which ${prefix}gcc"
+		COMMAND "sh" "-c" "which ${prefix}gcc >/dev/null 2>/dev/null"
 		RESULT_VARIABLE COMPILE_RESULT
 		OUTPUT_QUIET
 		ERROR_QUIET
@@ -42,31 +42,56 @@ function(cross_compile_try_arch_prefix arch prefix)
 	cross_compile_try_compiler(${prefix})
 	IF(COMPILER_FOUND)
 		SET(CC_PREFIX_${arch} "${prefix}" CACHE STRING "Cross compiler prefix for ${arch}")
+		SET(CC_PREFIX_${arch}_valid "${prefix}" CACHE BOOLEAN "Is cross compiler prefix for ${arch} valid?")
 	ENDIF()
 endfunction()
 
-# Lookup cross compiler prefix for given architecture
-function(cross_compile_prefix arch outvar)
-
-	if(CC_PREFIX_${arch})
+function(cross_compile_try_prefix arch outvar)
+	MESSAGE(STATUS "Looking for a compiler for ${arch}")
+	if(CC_PREFIX_${arch}_valid)
+		MESSAGE(STATUS " - Got cached result ${CC_PREFIX_${arch}}")
 		SET(${outvar} ${CC_PREFIX_${arch}} PARENT_SCOPE)
+		SET(${outvar}_valid 1 PARENT_SCOPE)
 		return()
 	endif()
 
 	MESSAGE(STATUS "Looking for a compiler prefix for ${arch}...")
 
-#	arm-linux-gnu is for building kernels, not user space programs, so remove that one from the list
-	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnu-")
+	IF("${arch}" STREQUAL "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+		MESSAGE(STATUS " - Got native compiler")
+		SET(${outvar} "" PARENT_SCOPE)
+		SET(${outvar}_valid 1 PARENT_SCOPE)
+	ELSE()
+#		arm-linux-gnu is for building kernels, not user space programs (apparently), so remove that one from the list
+		cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnu-")
 
-	cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnueabi-")
-	cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnueabi-")
-	cross_compile_try_arch_prefix("${arch}" "${arch}-none-eabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-linux-gnueabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnueabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-unknown-linux-gnu-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-none-eabi-")
+		cross_compile_try_arch_prefix("${arch}" "${arch}-redhat-linux-")		
+		
+		IF(CC_PREFIX_${arch}_valid)
+			MESSAGE(STATUS " - Got cross compiler ${CC_PREFIX_${arch}}")
+		ELSE()
+			MESSAGE(SEND_ERROR " - No valid cross compiler for architecture \"${arch}\"")
+		ENDIF()
+		
+		SET(${outvar} ${CC_PREFIX_${arch}} PARENT_SCOPE)
+		SET(${outvar}_valid ${CC_PREFIX_${arch}}_valid PARENT_SCOPE)
+	ENDIF()
+
+endfunction()
+
+# Lookup cross compiler prefix for given architecture
+function(cross_compile_prefix arch outvar)
+
+	cross_compile_try_prefix(${arch} ${outvar})
 	
-	IF(CC_PREFIX_${arch})
-		MESSAGE(STATUS "Found ${arch} cross compiler prefix: ${CC_PREFIX_${arch}}")
+	IF(${outvar}_valid)
 		SET(${outvar} ${CC_PREFIX_${arch}} PARENT_SCOPE)
 	ELSE()
-		MESSAGE(SEND_ERROR "Failed to find a cross compiler for ${arch}")
+		MESSAGE(SEND_ERROR "Failed to find a necessary cross compiler for ${arch}")
 	ENDIF()
 	
 endfunction()
@@ -119,7 +144,7 @@ function(cross_compile_bin ARCHITECTURE FLAGS SOURCE_FILE SYMBOL_NAME)
 		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_start: >> ${CC_OUTPUT_FILE}"
 		COMMAND "sh" "-c" "echo .incbin \\\"${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_FILE}.o.bin\\\"" >> ${CC_OUTPUT_FILE}
 		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_end: .word 0 >> ${CC_OUTPUT_FILE}"
-		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_size: .word ${SYMBOL_NAME}_end - ${SYMBOL_NAME}_start >> ${CC_OUTPUT_FILE}"
+		COMMAND "sh" "-c" "echo ${SYMBOL_NAME}_size: .8byte ${SYMBOL_NAME}_end - ${SYMBOL_NAME}_start >> ${CC_OUTPUT_FILE}"
 		DEPENDS ${CC_SOURCE_FILE} 
 		COMMENT "Repacking ${SOURCE_FILE}"
 		VERBATIM

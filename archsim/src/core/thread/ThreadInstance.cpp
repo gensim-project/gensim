@@ -8,6 +8,7 @@
 #include "system.h"
 
 #include <setjmp.h>
+#include <fenv.h>
 
 // These are deprecated and should be removed soon
 DeclareLogContext(LogCPU, "CPU");
@@ -19,12 +20,29 @@ using namespace archsim::core::thread;
 
 void FPState::Apply()
 {
-	// TODO: properly apply the floating point state represented by this FPState object.
-	UNIMPLEMENTED;
+	int target_rounding_mode = 0;
+	switch(rounding_mode_) {
+		case RoundingMode::RoundDownward:
+			target_rounding_mode = FE_DOWNWARD;
+			break;
+		case RoundingMode::RoundToNearest:
+			target_rounding_mode = FE_TONEAREST;
+			break;
+		case RoundingMode::RoundTowardZero:
+			target_rounding_mode = FE_TOWARDZERO;
+			break;
+		case RoundingMode::RoundUpward:
+			target_rounding_mode = FE_UPWARD;
+			break;
+		default:
+			UNIMPLEMENTED;
+	}
+
+	fesetround(target_rounding_mode);
 }
 
 
-ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this)
+ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor& arch, archsim::abi::EmulationModel &emu_model, int thread_id) : pubsub_(pubsub), descriptor_(arch), state_block_(), features_(pubsub), emu_model_(emu_model), register_file_(arch.GetRegisterFileDescriptor()), peripherals_(*this), thread_id_(thread_id)
 {
 	// Need to fill in structures based on arch descriptor info
 
@@ -59,7 +77,14 @@ ThreadInstance::ThreadInstance(util::PubSubContext &pubsub, const ArchDescriptor
 	ring_offset_ = state_block_.AddBlock("RingID", sizeof(uint32_t));
 	state_block_.SetEntry<uint32_t>("RingID", 0);
 
-	message_waiting_ = false;
+	// Set up Message Waiting
+	message_waiting_offset_ = state_block_.AddBlock("MessageWaiting", sizeof(uint32_t));
+	state_block_.SetEntry<uint32_t>("MessageWaiting", 0);
+
+	// Get a pointer to the PC
+	pc_ptr_ = GetRegisterFileInterface().GetTaggedSlotPointer<void*>("PC");
+	pc_is_64bit_ = GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC").GetEntrySize() == 8;
+
 	trace_source_ = nullptr;
 }
 
@@ -72,6 +97,7 @@ void ThreadInstance::SetExecutionRing(uint32_t new_ring)
 {
 	GetStateBlock().SetEntry<uint32_t>("RingID", new_ring);
 	GetEmulationModel().GetSystem().GetPubSub().Publish(PubSubType::PrivilegeLevelChange, this);
+	LC_DEBUG1(LogCPU) << "Now executing in ring " << new_ring;
 }
 
 MemoryInterface& ThreadInstance::GetMemoryInterface(const std::string& interface_name)
@@ -121,6 +147,7 @@ void RegisterFileInterface::SetTaggedSlot(const std::string &tag, Address target
 
 archsim::abi::ExceptionAction ThreadInstance::TakeException(uint64_t category, uint64_t data)
 {
+	LC_DEBUG1(LogCPU) << "Thread " << GetThreadID() << ": Took exception " << Address(category) << ":" << Address(data);
 	auto result = emu_model_.HandleException(this, category, data);
 	if(result != archsim::abi::ExceptionAction::ResumeNext) {
 		ReturnToSafepoint();

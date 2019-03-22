@@ -41,9 +41,9 @@ bool SP804::Initialise()
 	return true;
 }
 
-bool SP804::Read(uint32_t offset, uint8_t size, uint32_t& data)
+bool SP804::Read(uint32_t offset, uint8_t size, uint64_t& data)
 {
-	LC_DEBUG1(LogSP804) << "["<< std::hex  << base_address << "] Read "<< offset << " = ...";
+	LC_DEBUG1(LogSP804) << "["<< std::hex  << GetBaseAddress() << "] Read "<< offset << " = ...";
 
 //	fprintf(stderr, "SP804 Read: offset: %x", offset);
 	if (offset < 0x20) {
@@ -57,10 +57,10 @@ bool SP804::Read(uint32_t offset, uint8_t size, uint32_t& data)
 	}
 }
 
-bool SP804::Write(uint32_t offset, uint8_t size, uint32_t data)
+bool SP804::Write(uint32_t offset, uint8_t size, uint64_t data)
 {
 //	fprintf(stderr, "SP804 Write offset: %x, size: %x, data: %x\n", offset, size, data);
-	LC_DEBUG1(LogSP804) << "["<< std::hex  << base_address << "] Write "<< offset << " = " << data;
+	LC_DEBUG1(LogSP804) << "["<< std::hex  << GetBaseAddress() << "] Write "<< offset << " = " << data;
 	if (offset < 0x20) {
 		assert(size == 4);
 		return timers[0].WriteRegister(offset, data);
@@ -108,7 +108,7 @@ SP804::InternalTimer::InternalTimer() :
 	control_reg.value = 0x20;
 }
 
-bool SP804::InternalTimer::ReadRegister(uint32_t offset, uint32_t& data)
+bool SP804::InternalTimer::ReadRegister(uint32_t offset, uint64_t& data)
 {
 //	fprintf(stderr, "SP804 Internal Timer Read Register\n");
 	switch (offset) {
@@ -139,7 +139,7 @@ bool SP804::InternalTimer::ReadRegister(uint32_t offset, uint32_t& data)
 bool SP804::InternalTimer::WriteRegister(uint32_t offset, uint32_t data)
 {
 //	fprintf(stderr, "SP804 Internal Timer Write Register\n");
-	LC_DEBUG1(LogSP804) << "[" << std::hex << owner->base_address << ":" << (uint32_t)id << "] Write " << offset << " = " << data;
+	LC_DEBUG1(LogSP804) << "[" << std::hex << owner->GetBaseAddress() << ":" << (uint32_t)id << "] Write " << offset << " = " << data;
 	switch (offset) {
 		case 0x0:						// LOAD
 			load_value = data;

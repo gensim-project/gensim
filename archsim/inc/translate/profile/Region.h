@@ -55,6 +55,7 @@ namespace archsim
 
 				enum RegionStatus {
 					NotInTranslation,
+					QueuedForTranslation,
 					InTranslation,
 				};
 
@@ -94,11 +95,7 @@ namespace archsim
 
 				void EraseBlock(Address virt_addr);
 
-				inline void InvalidateHeat()
-				{
-					for(auto &heat : block_interp_count) heat.second = 0;
-					total_interp_count = 0;
-				}
+				void InvalidateHeat();
 
 				inline void IncrementGeneration()
 				{
@@ -125,22 +122,9 @@ namespace archsim
 					return phys_base_addr;
 				}
 
-				inline uint32_t TotalBlockHeat() const
-				{
-					uint32_t total = 0;
-
-					return total_interp_count;
-				}
-
 				inline bool IsHot(uint32_t hotspot_threshold) const
 				{
-					for (auto bi : block_interp_count) {
-						if (bi.second > hotspot_threshold) {
-							return true;
-						}
-					}
-
-					return false;
+					return max_block_interp_count_ >= hotspot_threshold;
 				}
 
 				inline bool IsValid() const
@@ -151,6 +135,11 @@ namespace archsim
 				void dump();
 				void dump_dot();
 
+				uint64_t GetTotalInterpCount() const
+				{
+					return total_interp_count_;
+				}
+
 			public:
 				size_t GetApproximateMemoryUsage() const;
 
@@ -159,10 +148,7 @@ namespace archsim
 				/*
 				 * Map of page offsets to block interpretation counts
 				 */
-				std::map<Address, uint32_t> block_interp_count;
-				uint64_t total_interp_count;
-
-				typedef std::unordered_map<Address, Block*> block_map_t;
+				typedef std::map<Address, Block*> block_map_t;
 
 				/**
 				 * Map of page offsets to blocks
@@ -177,6 +163,9 @@ namespace archsim
 				Translation *txln;
 
 			private:
+				uint64_t max_block_interp_count_;
+				uint64_t total_interp_count_;
+
 				TranslationManager& mgr;
 
 				Address phys_base_addr;

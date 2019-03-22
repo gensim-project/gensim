@@ -104,6 +104,13 @@ namespace archsim
 			class CPUIRQLine : public IRQLine
 			{
 			public:
+				enum class State {
+					Idle,
+					Raised,
+					Acknowledged,
+					Rescinded
+				};
+
 				CPUIRQLine(archsim::core::thread::ThreadInstance *cpu);
 
 				void Assert();
@@ -111,22 +118,35 @@ namespace archsim
 
 				inline void Acknowledge()
 				{
-					fflush(stderr);
-					assert(IsAsserted());
-					Acknowledged = true;
+					switch(state_) {
+						case State::Raised:
+							state_ = State::Acknowledged;
+							break;
+						case State::Rescinded:
+							state_ = State::Idle;
+							break;
+						default:
+							break;
+					}
 				}
 				inline void Raise()
 				{
-					if(IsAsserted()) Acknowledged = false;
+					switch(state_) {
+						case State::Acknowledged:
+							state_ = State::Raised;
+							break;
+						default:
+							break;
+					}
 				}
 				inline bool IsAcknowledged() const
 				{
-					return Acknowledged;
+					return state_ == State::Acknowledged;
 				}
 
 			protected:
 				archsim::core::thread::ThreadInstance *CPU;
-				bool Acknowledged;
+				State state_;
 			};
 
 			class IRQController : public virtual Component  //: public IRQSource

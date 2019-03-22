@@ -131,7 +131,7 @@ public:
 
 	void VisitIntrinsicStatement(SSAIntrinsicStatement &stmt) override
 	{
-		auto newstmt = new SSAIntrinsicStatement(_block, stmt.Type);
+		auto newstmt = new SSAIntrinsicStatement(_block, stmt.GetID(), stmt.GetSignature(), stmt.GetFixednessResolverFunction());
 
 		for(unsigned i = 0; i < stmt.ArgCount(); ++i) {
 			newstmt->AddArg(_clone_context.get(stmt.Args(i)));
@@ -142,7 +142,7 @@ public:
 	}
 	void VisitReadStructMemberStatement(SSAReadStructMemberStatement& stmt) override
 	{
-		auto newstmt = new SSAReadStructMemberStatement(_block, _clone_context.get(stmt.Target()), stmt.MemberName, stmt.Index);
+		auto newstmt = new SSAReadStructMemberStatement(_block, _clone_context.get(stmt.Target()), stmt.MemberNames);
 		_clone_context.add(&stmt, newstmt);
 	}
 
@@ -177,6 +177,10 @@ public:
 	void VisitVectorInsertElementStatement(SSAVectorInsertElementStatement& stmt) override
 	{
 		_clone_context.add(&stmt, new SSAVectorInsertElementStatement(_block, _clone_context.get(stmt.Base()), _clone_context.get(stmt.Index()), _clone_context.get(stmt.Value())));
+	}
+	void VisitVectorShuffleStatement(SSAVectorShuffleStatement& stmt) override
+	{
+		_clone_context.add(&stmt, new SSAVectorShuffleStatement(_block, _clone_context.get(stmt.LHS()), _clone_context.get(stmt.RHS()), _clone_context.get(stmt.Indices())));
 	}
 
 	void VisitBitDepositStatement(SSABitDepositStatement& stmt) override

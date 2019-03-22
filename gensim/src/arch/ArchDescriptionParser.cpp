@@ -4,6 +4,7 @@
 #include "isa/ISADescriptionParser.h"
 #include "genC/ssa/SSAContext.h"
 #include "genC/Parser.h"
+#include "genC/ir/IRConstant.h"
 
 #include <archc/archcLexer.h>
 #include <archc/archcParser.h>
@@ -308,6 +309,45 @@ bool ArchDescriptionParser::load_arch_ctor(pANTLR3_BASE_TREE ctorNode)
 					success = false;
 				} else {
 					feature->SetDefaultLevel(level);
+				}
+
+				break;
+			}
+
+			case AC_TYPENAME: {
+				pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 0);
+				pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 1);
+
+				std::string name = (char*)nameNode->getText(nameNode)->chars;
+				std::string type = (char*)typeNode->getText(typeNode)->chars;
+
+				if(arch->GetTypenames().count(name)) {
+					diag_ctx.Error("Duplicate type " + name);
+					success = false;
+				} else {
+					arch->GetTypenames()[name] = type;
+				}
+
+				break;
+			}
+
+			case AC_CONSTANT: {
+				pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 0);
+				pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 1);
+				pANTLR3_BASE_TREE valueNode = (pANTLR3_BASE_TREE)archNode->getChild(archNode, 2);
+
+				std::string name = (char*)nameNode->getText(nameNode)->chars;
+				std::string type = (char*)typeNode->getText(typeNode)->chars;
+				std::string valstring = (char*)valueNode->getText(valueNode)->chars;
+
+				uint64_t value = strtol(valstring.c_str(), nullptr, 0);
+
+
+				if(arch->GetConstants().count(name)) {
+					diag_ctx.Error("Duplicate constant name " + name);
+					success = false;
+				} else {
+					arch->GetConstants()[name] = std::make_pair(type, valstring);
 				}
 
 				break;

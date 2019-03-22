@@ -12,19 +12,24 @@
 
 namespace wutils
 {
+
 	template<bool signedness> class int128
 	{
 	public:
-		int128(uint64_t v) : low_(v), high_(0) {}
-		operator uint64_t()
+		int128() : value_(0) {}
+		int128(uint64_t v) : value_(v) {}
+		operator __int128()
 		{
-			return low_;
+			return value_;
 		}
 
 	private:
-		uint64_t low_, high_;
+		// TODO: this relies on gcc int128 types
+		__int128 value_;
 	};
 }
+
+
 
 #endif /* INT128_H */
 

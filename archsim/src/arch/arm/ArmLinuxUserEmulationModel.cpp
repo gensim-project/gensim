@@ -30,7 +30,7 @@ RegisterComponent(archsim::abi::EmulationModel, ArmLinuxUserEmulationModel, "arm
 
 ArmLinuxUserEmulationModel::ArmLinuxUserEmulationModel() : ArmLinuxUserEmulationModel(archsim::options::ArmOabi ? ABI_OABI : ABI_EABI) { }
 
-ArmLinuxUserEmulationModel::ArmLinuxUserEmulationModel(ArmLinuxABIVersion version) : LinuxUserEmulationModel("arm", false), abi_version(version) { }
+ArmLinuxUserEmulationModel::ArmLinuxUserEmulationModel(ArmLinuxABIVersion version) : LinuxUserEmulationModel("arm", false, AuxVectorEntries("arm", 0x8197, 0)), abi_version(version) { }
 
 ArmLinuxUserEmulationModel::~ArmLinuxUserEmulationModel() { }
 
@@ -149,6 +149,8 @@ bool ArmLinuxUserEmulationModel::InstallKernelHelpers()
 	GetMemoryModel().Write32(0xffff0fe4_ga, 0xe12fff1e);
 	AddSymbol(0xffff0fe0_ga, 8, "__aeabi_get_tls", FunctionSymbol);
 
+	// 0xffff0ff0 [TLS pointer]
+
 	/* version */
 	GetMemoryModel().Write32(0xffff1000_ga, 4);
 
@@ -166,13 +168,13 @@ bool ArmLinuxUserEmulationModel::InstallKernelHelpers()
 	return true;
 }
 
-archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsim::core::thread::ThreadInstance* thread, unsigned int category, unsigned int data)
+archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsim::core::thread::ThreadInstance* thread, uint64_t category, uint64_t data)
 {
 	if (category == 3) {
 		auto bank = thread->GetRegisterFileInterface().GetEntry<uint32_t>("RB");
 		uint32_t* registers = (uint32_t*)bank;
 
-		archsim::abi::SyscallRequest request {0, thread};
+		archsim::abi::SyscallRequest request {0, thread, 0, 0, 0, 0, 0, 0};
 		if(IsOABI()) {
 			request.syscall = data & 0xfffff;
 		} else if(IsEABI()) {
@@ -210,7 +212,7 @@ archsim::abi::ExceptionAction ArmLinuxUserEmulationModel::HandleException(archsi
 	} else if (category == 11) {
 		LC_ERROR(LogEmulationModelArmLinux) << "Undefined Instruction Exception @ " << std::hex << thread->GetPC();
 		GetSystem().exit_code = 1;
-		exit(1);
+		thread->SendMessage(archsim::core::thread::ThreadMessage::Halt);
 		return AbortSimulation;
 	} else {
 		LC_ERROR(LogEmulationModelArmLinux) << "Unsupported Exception " << category << ":" << data;

@@ -1,6 +1,7 @@
 # Archsim top-level CMAKE file
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
+include(ExternalProject)
 
 # Dependencies
 FIND_PACKAGE(Threads REQUIRED)
@@ -35,6 +36,7 @@ SET_PROPERTY(GLOBAL PROPERTY ARCHSIM_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/inc")
 
 TARGET_LINK_LIBRARIES(archsim
 	archsim-core
+	 -Wl,-z,now
 )
 
 TARGET_LINK_LIBRARIES(archsim-core 
@@ -45,6 +47,39 @@ TARGET_LINK_LIBRARIES(archsim-core
 	${CMAKE_THREAD_LIBS_INIT}
 	${CMAKE_DL_LIBS}
 )
+
+
+# Need intel XED for the x86 model
+IF(MODEL_x86_ENABLED)
+	# It has its own weird mbuild stuff (lucky us)
+	ExternalProject_Add(
+		mbuild
+		
+		GIT_REPOSITORY https://github.com/intelxed/mbuild.git
+		PREFIX intel-xed
+		CONFIGURE_COMMAND true
+		BUILD_COMMAND true
+		INSTALL_COMMAND true
+	)
+
+	ExternalProject_Add(
+		IntelXED
+		
+		GIT_REPOSITORY https://github.com/intelxed/xed.git
+		PREFIX intel-xed
+		DEPENDS mbuild
+		CONFIGURE_COMMAND true
+		BUILD_COMMAND cd ../IntelXED && ./mfile.py --shared --opt=3 --install-dir ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/ install
+		INSTALL_COMMAND echo "XED ready at ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/"
+	)
+
+	SET(ARCHSIM_XED_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/IntelXED/kit/ CACHE STRING "XED Kit location")
+	ADD_DEPENDENCIES(archsim-core IntelXED)
+
+	TARGET_INCLUDE_DIRECTORIES(archsim-core PRIVATE "${ARCHSIM_XED_DIRECTORY}/include")
+	TARGET_LINK_LIBRARIES(archsim-core "${ARCHSIM_XED_DIRECTORY}/lib/libxed.so")
+ENDIF()
+
 
 
 # Add each provided source file along with its source directory
@@ -58,8 +93,9 @@ endfunction()
 TARGET_INCLUDE_DIRECTORIES(archsim-core PUBLIC "inc/")
 TARGET_COMPILE_DEFINITIONS(archsim-core PUBLIC "-DARCHSIM_MODULE_DIRECTORY=${ARCHSIM_MODULE_DIRECTORY}")
 
+TARGET_COMPILE_DEFINITIONS(archsim-core PUBLIC "-DARCHSIM_CONFIGSTRING=${CONFIGSTRING}")
+
 # Process the configuration files
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-config.h)
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-scm.h.in ${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-scm.h)
 
 # Determing the simulation host that we're building for
@@ -69,10 +105,12 @@ IF(NOT ARCHSIM_SIMULATION_HOST)
 	# are desired (blockjit, llvm, interpreter, etc) but for now we're either
 	# x86 or we're generic
 	IF("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
-		SET(ARCHSIM_SIMULATION_HOST "${CMAKE_SYSTEM_PROCESSOR}")
+		SET(ARCHSIM_SIMULATION_HOST_ "${CMAKE_SYSTEM_PROCESSOR}")
 	ELSE()
-		SET(ARCHSIM_SIMULATION_HOST "generic")
+		SET(ARCHSIM_SIMULATION_HOST_ "generic")
 	ENDIF()
+	
+	SET(ARCHSIM_SIMULATION_HOST "${ARCHSIM_SIMULATION_HOST_}" CACHE STRING "What simulation host should ArchSim be compiled for?")
 ENDIF()
 
 MESSAGE(STATUS "ArchSim simulation host: ${ARCHSIM_SIMULATION_HOST}")
@@ -94,10 +132,15 @@ IF(GTK3_FOUND)
 	TARGET_INCLUDE_DIRECTORIES(archsim-core PRIVATE ${GTK3_INCLUDE_DIRS})
 ENDIF()
 
+SET(ARCHSIM_ENABLE_LLVM FALSE CACHE BOOL "Should LLVM DBT support be used in ArchSim?")
+SET(ARCHSIM_LLVM_DIR "" CACHE STRING "Location of LLVM cmake configuration to be used in ArchSim")
+
 IF(ARCHSIM_ENABLE_LLVM)
-	FIND_PACKAGE(LLVM 6.0.0 REQUIRED CONFIG)
+	FIND_PACKAGE(LLVM 8.0.0 REQUIRED CONFIG PATHS ${ARCHSIM_LLVM_DIR})
+	TARGET_COMPILE_OPTIONS(archsim-core PUBLIC "-DARCHSIM_ENABLE_LLVM=1")
+	
 	IF(LLVM_FOUND)
-		llvm_map_components_to_libnames(llvm_libs target x86desc x86info x86codegen x86asmparser runtimedyld support core irreader codegen mcjit executionengine passes )
+		llvm_map_components_to_libnames(llvm_libs target x86desc x86info x86codegen x86asmparser runtimedyld linker support core irreader asmparser codegen mcjit orcjit executionengine passes)
 
 		message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 		message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -106,8 +149,8 @@ IF(ARCHSIM_ENABLE_LLVM)
 
 		TARGET_COMPILE_DEFINITIONS(archsim-core PRIVATE ${LLVM_DEFINITIONS})
 		TARGET_COMPILE_DEFINITIONS(archsim-core PUBLIC "-DARCHSIM_ENABLE_LLVM=1")
-		TARGET_LINK_LIBRARIES(archsim-core LLVM)
-		TARGET_INCLUDE_DIRECTORIES(archsim-core PRIVATE ${LLVM_INCLUDE_DIRS})
+		TARGET_LINK_LIBRARIES(archsim-core ${llvm_libs})
+		TARGET_INCLUDE_DIRECTORIES(archsim-core PUBLIC ${LLVM_INCLUDE_DIRS})
 	ELSE()
 		MESSAGE(SEND_ERROR "ARCHSIM_ENABLE_LLVM was set but LLVM could not be found.")
 	ENDIF()

@@ -12,6 +12,7 @@
 
 #include <vector>
 #include <map>
+#include <mutex>
 #include <iostream>
 
 #include "abi/devices/Component.h"
@@ -108,6 +109,7 @@ namespace archsim
 			PubSubType::PubSubType type;
 			uint64_t publish_count;
 			bool publishing;
+			std::mutex lock_;
 
 		public:
 			uint64_t GetPublishCount() const

@@ -101,7 +101,7 @@ uint32_t BaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *data, in
 		devices::MemoryComponent *dev;
 		GetDeviceManager()->LookupDevice(phys_addr, dev);
 
-		uint32_t device_data;
+		uint64_t device_data;
 		uint32_t mask = dev->GetSize()-1;
 
 		LC_DEBUG2(LogSystemMemoryModel) << "Performing device read from address V" << std::hex << virt_addr << "(P" << phys_addr << ")";
@@ -121,6 +121,9 @@ uint32_t BaseSystemMemoryModel::DoRead(guest_addr_t virt_addr, uint8_t *data, in
 					break;
 				case 4:
 					*((uint32_t *)data) = device_data;
+					break;
+				case 8:
+					*((uint64_t *)data) = device_data;
 					break;
 				default:
 					assert(false && "Invalid device read size");
@@ -205,6 +208,12 @@ uint32_t BaseSystemMemoryModel::DoWrite(guest_addr_t virt_addr, uint8_t *data, i
 				LC_DEBUG2(LogSystemMemoryModel) << "Writing data " << std::hex << *(uint32_t*)data;
 				device_data = *(uint32_t*)(data);
 				dev->Write(virt_addr.Get(), 4, *(uint32_t*)data);
+				break;
+			}
+			case 8: {
+				LC_DEBUG2(LogSystemMemoryModel) << "Writing data " << std::hex << *(uint64_t*)data;
+				device_data = *(uint64_t*)(data);
+				dev->Write(virt_addr.Get(), 8, *(uint64_t*)data);
 				break;
 			}
 			default:

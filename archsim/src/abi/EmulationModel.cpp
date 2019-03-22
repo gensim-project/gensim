@@ -7,6 +7,7 @@
 #include "abi/EmulationModel.h"
 #include "abi/memory/MemoryModel.h"
 #include "abi/devices/Device.h"
+#include "core/thread/ThreadInstance.h"
 
 #include "util/ComponentManager.h"
 #include "util/LogContext.h"
@@ -40,6 +41,7 @@ void EmulationModel::HandleInterrupt(archsim::core::thread::ThreadInstance* thre
 ExceptionAction EmulationModel::HandleMemoryFault(archsim::core::thread::ThreadInstance& thread, archsim::MemoryInterface& interface, archsim::Address address)
 {
 	LC_ERROR(LogEmulationModel) << "A memory fault occurred at address " << address;
+	thread.SendMessage(archsim::core::thread::ThreadMessage::Halt);
 	return ExceptionAction::AbortSimulation;
 }
 
@@ -160,6 +162,12 @@ bool EmulationModel::LookupSymbol(Address address, bool exact_match, const Binar
 bool EmulationModel::ResolveSymbol(std::string name, Address& value)
 {
 	for (auto symbol : _functions) {
+		if (symbol.second->Name == name) {
+			value = symbol.first;
+			return true;
+		}
+	}
+	for (auto symbol : _symbols) {
 		if (symbol.second->Name == name) {
 			value = symbol.first;
 			return true;

@@ -1,0 +1,185 @@
+// 32-A Standard Extension
+execute(lr_w)
+{
+	typename word_t addr = read_gpr(inst.rs1);
+	uint32 val;
+	
+	mem_monitor_acquire(Mem, addr);
+	mem_read_32(Mem, addr, val);
+
+	typename sword_t xval = (sint32)val;
+
+	write_register_bank(GPR, inst.rd, xval);
+}
+
+execute(sc_w)
+{
+	uint32 rs2 = read_gpr(inst.rs2);
+	typename word_t addr = read_gpr(inst.rs1);	
+	
+	if(mem_monitor_write_32(Mem, addr, rs2)) {
+		write_register_bank(GPR, inst.rd, 0);
+	} else {
+		write_register_bank(GPR, inst.rd, 1);
+	}
+}
+
+execute(amoswap_w)
+{
+	mem_lock(Mem);
+	
+	typename word_t addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(Mem, addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_32(Mem, addr, rs2);
+	
+	mem_unlock(Mem);
+}
+
+execute(amoadd_w)
+{
+	mem_lock(Mem);
+
+	typename word_t addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(Mem, addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_32(Mem, addr, rs2 + val);
+	
+	mem_unlock(Mem);
+}
+
+execute(amoxor_w)
+{
+	mem_lock(Mem);
+	
+	typename word_t addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(Mem, addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_32(Mem, addr, rs2 ^ val);
+	
+	mem_unlock(Mem);
+}
+
+execute(amoand_w)
+{
+	mem_lock(Mem);
+	
+	typename word_t addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(Mem, addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_32(Mem, addr, rs2 & val);
+	
+	mem_unlock(Mem);
+}
+
+execute(amoor_w)
+{
+	mem_lock(Mem);	
+	
+	typename word_t addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(Mem, addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	mem_write_32(Mem, addr, rs2 | val);
+	
+	mem_unlock(Mem);
+}
+
+execute(amomin_w)
+{
+	mem_lock(Mem);
+	
+	typename word_t addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(Mem, addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	if((sint32)rs2 < (sint32)val) {
+		val = rs2;
+	}
+	
+	mem_write_32(Mem, addr, val);
+	
+	mem_unlock(Mem);
+}
+
+execute(amominu_w)
+{
+	mem_lock(Mem);
+	
+	typename word_t addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(Mem, addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	if(rs2 < val) {
+		val = rs2;
+	}
+	
+	mem_write_32(Mem, addr, val);
+	
+	mem_unlock(Mem);
+}
+
+execute(amomax_w)
+{
+	mem_lock(Mem);
+	
+	typename word_t addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(Mem, addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	if((sint32)rs2 > (sint32)val) {
+		val = rs2;
+	}
+	
+	mem_write_32(Mem, addr, val);
+	
+	mem_unlock(Mem);
+}
+
+execute(amomaxu_w)
+{
+	mem_lock(Mem);
+	
+	typename word_t addr = read_gpr(inst.rs1);
+	uint32 val;
+	mem_read_32(Mem, addr, val);
+	
+	uint32 rs2 = read_gpr(inst.rs2);
+	write_register_bank(GPR, inst.rd, val);
+	
+	if(rs2 > val) {
+		val = rs2;
+	}
+	
+	mem_write_32(Mem, addr, val);
+	
+	mem_unlock(Mem);
+}

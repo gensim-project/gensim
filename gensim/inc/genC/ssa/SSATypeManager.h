@@ -25,6 +25,7 @@ namespace gensim
 				const SSAType& GetVectorType(const SSAType& underlying_type, uint8_t width);
 
 				const SSAType &GetStructType(const std::string &name);
+				bool HasStructType(const std::string &name) const;
 				void InsertStructType(const std::string &name, const SSAType &struct_type);
 
 				const SSAType& GetUInt8()
@@ -69,16 +70,24 @@ namespace gensim
 					return GetFloatType(64);
 				}
 
+				const IRType &GetBasicTypeByName(const std::string &name)
+				{
+					return type_map_.at(name);
+				}
+				bool HasNamedBasicType(const std::string &name)
+				{
+					return type_map_.count(name);
+				}
+				bool InstallNamedType(const std::string &name, const IRType &type);
+
 			private:
+				bool InstallDefaultTypes();
+
 				SSATypeManager(const SSATypeManager&) = delete;
 				SSATypeManager(SSATypeManager&&) = delete;
 
-				SSAType _void_type;
-				SSAType _u1_type, _u8_type, _u16_type, _u32_type, _u64_type;
-				SSAType _s8_type, _s16_type, _s32_type, _s64_type;
-				SSAType _f32_type, _f64_type;
-
 				std::map<std::string, SSAType> struct_types_;
+				std::map<std::string, SSAType> type_map_;
 			};
 		}
 	}

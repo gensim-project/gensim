@@ -219,6 +219,7 @@ namespace libtrace
 
 	struct DataExtensionRecord : public TraceRecord {
 	public:
+		DataExtensionRecord() : TraceRecord(DataExtension, 0, 0, 0) {}
 		DataExtensionRecord(uint16_t prevtype, uint32_t data) : TraceRecord(DataExtension, prevtype, data, 0) {}
 
 		uint32_t GetData() const

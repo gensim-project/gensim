@@ -1,0 +1,125 @@
+decode(Type_I)
+{
+
+}
+
+decode(Type_I_shamt)
+{
+
+}
+
+decode(Type_U)
+{
+
+}
+
+decode(Type_J)
+{
+	sint32 imm = (imm4<<19) | (imm3 << 11) | (imm2 << 10) | imm1;
+	imm <<= 12;
+	imm >>= 12;
+	
+	j_offset = imm * 2;
+}
+
+decode(Type_B)
+{
+
+}
+
+decode(Type_S)
+{
+
+}
+
+decode(Type_R)
+{
+
+}
+
+decode(Type_FENCE)
+{
+
+}
+
+decode(Type_CSR1)
+{
+
+}
+
+decode(Type_CSR2)
+{
+
+}
+
+///////////////////////////////////////////////////////////
+////  Behaviour Info///
+////////////////////////////////////////////////////////
+
+behaviour(read_pc)
+{
+        return read_register(PC);
+}
+
+behaviour(write_pc)
+{
+//        uint32 m_val = val & 0xfffffffe;
+        write_register(PC,val);
+}
+
+behaviour(read_sp)
+{
+	return read_register(SP);
+}
+
+behaviour(write_sp)
+{
+	write_register(SP, val);
+}
+
+behaviour(get_status_string)
+{
+}
+
+behaviour(instruction_is_predicated)
+{
+	return false;
+}
+
+behaviour(get_predicate_info)
+{
+	return 0;
+}
+
+behaviour(instruction_predicate)
+{
+	return true;
+}
+
+behaviour(handle_exception)
+{
+}
+
+behaviour(reset)
+{
+}
+
+behaviour(irq) 
+{
+
+}
+
+behaviour(fetch_exception)
+{
+}
+
+behaviour(undef)
+{
+}
+
+behaviour(simulation_start) {}
+
+behaviour(simulation_suspend) {}
+behaviour(simulation_resume) {}
+behaviour(simulation_end) {}
+

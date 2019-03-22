@@ -41,9 +41,13 @@ extern "C" {
 
 	uint8_t devReadDevice(archsim::core::thread::ThreadInstance *cpu, uint32_t device_id, uint32_t addr, uint32_t* data);
 
+	uint8_t devWriteDevice64(archsim::core::thread::ThreadInstance *cpu, uint32_t device_id, uint32_t addr, uint64_t data);
+
+	uint8_t devReadDevice64(archsim::core::thread::ThreadInstance *cpu, uint32_t device_id, uint32_t addr, uint64_t* data);
+
 	void sysVerify(gensim::Processor *cpu);
 
-	uint32_t cpuTakeException(archsim::core::thread::ThreadInstance *cpu, uint32_t category, uint32_t data);
+	uint32_t cpuTakeException(archsim::core::thread::ThreadInstance *cpu, uint64_t category, uint64_t data);
 
 	void cpuPushInterruptState(gensim::Processor *cpu, uint32_t state);
 
@@ -55,6 +59,7 @@ extern "C" {
 	void cpuPendInterrupt(archsim::core::thread::ThreadInstance *cpu);
 
 	uint32_t cpuTranslate(gensim::Processor *cpu, uint32_t virt_addr, uint32_t *phys_addr);
+	void cpuTrap(archsim::core::thread::ThreadInstance *cpu);
 
 	void blkProfile(gensim::Processor *cpu, void *region, uint32_t address);
 
@@ -75,7 +80,7 @@ extern "C" {
 	uint32_t cpuWrite8(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint8_t data);
 	uint32_t cpuWrite16(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint16_t data);
 	uint32_t cpuWrite32(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint32_t data);
-	uint32_t cpuWrite64(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint32_t data);
+	uint32_t cpuWrite64(archsim::core::thread::ThreadInstance *cpu, uint32_t interface_id, uint64_t address, uint64_t data);
 
 	void cpuEnterKernelMode(gensim::Processor *cpu);
 	void cpuEnterUserMode(gensim::Processor *cpu);
@@ -83,7 +88,7 @@ extern "C" {
 
 	void cpuTraceString(gensim::Processor *cpu, const char* str, uint32_t do_emit);
 
-	void cpuTraceInstruction(archsim::core::thread::ThreadInstance *cpu, uint32_t pc, uint32_t ir, uint8_t isa_mode, uint8_t irq_mode, uint8_t exec);
+	void cpuTraceInstruction(archsim::core::thread::ThreadInstance *cpu, uint64_t pc, uint32_t ir, uint8_t isa_mode, uint8_t irq_mode, uint8_t exec);
 
 	void cpuTraceInsnEnd(archsim::core::thread::ThreadInstance *cpu);
 
@@ -91,10 +96,10 @@ extern "C" {
 
 	void cpuTraceRegRead(archsim::core::thread::ThreadInstance *cpu, uint8_t reg, uint64_t value);
 
-	void cpuTraceRegBankWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint64_t value);
+	void cpuTraceRegBankWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint8_t *value_ptr);
 	void cpuTraceRegBank0Write(archsim::core::thread::ThreadInstance *cpu, uint32_t reg, uint64_t value);
 
-	void cpuTraceRegBankRead(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint64_t value);
+	void cpuTraceRegBankRead(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint8_t *value_ptr);
 	void cpuTraceRegBank0Read(archsim::core::thread::ThreadInstance *cpu, uint32_t reg, uint64_t value);
 
 	char cpuTraceMemRead8(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint32_t* value);

@@ -9,7 +9,7 @@ DeclareChildLogContext(LogLinuxSystemEmulationModel, LogSystemEmulationModel, "L
 
 using namespace archsim::abi;
 
-LinuxSystemEmulationModel::LinuxSystemEmulationModel()
+LinuxSystemEmulationModel::LinuxSystemEmulationModel(bool is64bit) : SystemEmulationModel(is64bit)
 {
 	rootfs.valid = false;
 	atags.valid = false;
@@ -31,7 +31,7 @@ void LinuxSystemEmulationModel::Destroy()
 	SystemEmulationModel::Destroy();
 }
 
-bool LinuxSystemEmulationModel::InstallPlatform(loader::BinaryLoader& loader)
+bool LinuxSystemEmulationModel::PreparePlatform(archsim::abi::loader::BinaryLoader& loader)
 {
 	if (archsim::options::RootFS.IsSpecified()) {
 		// Load the root filesystem

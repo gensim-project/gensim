@@ -40,6 +40,7 @@ namespace archsim
 
 		uint32_t AddBlock(const std::string &name, size_t size_in_bytes);
 		size_t GetBlockOffset(const std::string &name) const;
+		size_t GetBlockSizeInBytes(const std::string &name) const;
 		bool HasEntry(const std::string &name) const
 		{
 			return block_offsets_.count(name);
@@ -47,6 +48,7 @@ namespace archsim
 
 	private:
 		std::map<std::string, uint64_t> block_offsets_;
+		std::map<std::string, uint64_t> block_sizes_in_bytes_;
 		uint32_t total_size_;
 	};
 
@@ -86,7 +88,7 @@ namespace archsim
 			memcpy(GetEntryPointer<T>(entryname), &t, sizeof(t));
 		}
 
-	private:
+
 		template<typename T> T* GetEntryPointer(const std::string &entryname)
 		{
 			return (T*)(((char*)GetData()) + descriptor_.GetBlockOffset(entryname));
@@ -96,6 +98,7 @@ namespace archsim
 			return (T*)(((char*)GetData()) + descriptor_.GetBlockOffset(entryname));
 		}
 
+	private:
 		StateBlockDescriptor descriptor_;
 		std::vector<unsigned char> data_;
 	};

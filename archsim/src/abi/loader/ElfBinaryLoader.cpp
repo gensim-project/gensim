@@ -26,6 +26,9 @@ template<typename elfclass> bool ElfBinaryLoader<elfclass>::ProcessSymbolTable(t
 	for (unsigned int i = 0; i < (symbol_table_section->sh_size / symbol_table_section->sh_entsize); i++) {
 		Sym *symbol = (Sym *)((unsigned long)symbols_base + (i * symbol_table_section->sh_entsize));
 		uint32_t symbol_type = ELF32_ST_TYPE(symbol->st_info);
+
+		LC_DEBUG1(LogElf) << "Loaded symbol " << std::string(&strings_base[symbol->st_name]);
+
 		if(symbol_type == STT_FUNC)
 			_emulation_model.AddSymbol(symbol->st_value + _load_bias, symbol->st_size, std::string(&strings_base[symbol->st_name]), FunctionSymbol);
 		else
@@ -103,8 +106,8 @@ template<typename elfclass> bool ElfBinaryLoader<elfclass>::ProcessBinary(bool l
 
 	// If the ELF file is dynamic, create a load bias.
 	if (_elf_header->e_type == ET_DYN) {
-		_load_bias = Address(0xF0000000);
-		_entry_point += 0xF0000000;
+		_load_bias = Address(0x7ffff7dd7000);
+		_entry_point = _entry_point + _load_bias;
 	} else
 		_load_bias = Address(0);
 
@@ -126,6 +129,12 @@ template<typename elfclass> bool ElfBinaryLoader<elfclass>::ProcessBinary(bool l
 		PHeader *prog_header = (PHeader *)((unsigned long)prog_header_base + (i * _elf_header->e_phentsize));
 
 		if (prog_header->p_type == PT_LOAD) {
+
+			if(_ph_loc == Address::NullPtr) {
+				_ph_loc = Address(prog_header->p_vaddr + _elf_header->e_phoff + _load_bias);
+				LC_DEBUG1(LogElf) << "Assuming PHDR location is " << _ph_loc;
+			}
+
 			LC_DEBUG1(LogElf) << "Encountered loadable ELF segment: vaddr=" << std::hex << prog_header->p_vaddr << ", memsz=" << std::hex << prog_header->p_memsz << ", filesz=" << std::hex << prog_header->p_filesz;
 			if (!LoadSegment(prog_header)) {
 				LC_DEBUG1(LogElf) << "Could not load segment.";
@@ -136,6 +145,7 @@ template<typename elfclass> bool ElfBinaryLoader<elfclass>::ProcessBinary(bool l
 			_ph_loc = Address(prog_header->p_vaddr);
 		}
 	}
+
 
 	return true;
 }
@@ -204,15 +214,15 @@ template<typename elfclass> bool UserElfBinaryLoader<elfclass>::LoadSegment(type
 	return true;
 }
 
-bool SystemElfBinaryLoader::PrepareLoad()
+template<typename elfclass> bool SystemElfBinaryLoader<elfclass>::PrepareLoad()
 {
 	return true;
 }
 
-bool SystemElfBinaryLoader::LoadSegment(Elf32_Phdr* segment)
+template<typename elfclass> bool SystemElfBinaryLoader<elfclass>::LoadSegment(typename elfclass::PHeader* segment)
 {
-	Address target_address = segment->p_paddr + _load_bias;
+	Address target_address = segment->p_paddr + this->_load_bias;
 
 	LC_DEBUG1(LogElf) << "[ELF] Loading ELF Segment, target address = " << std::hex << target_address << " poffset " << segment->p_offset;
-	return _emulation_model.GetMemoryModel().Poke(target_address, (uint8_t *)((unsigned long)_elf_header + segment->p_offset), (size_t)segment->p_filesz) == 0;
+	return this->_emulation_model.GetMemoryModel().Poke(target_address, (uint8_t *)((unsigned long)this->_elf_header + segment->p_offset), (size_t)segment->p_filesz) == 0;
 }

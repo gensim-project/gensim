@@ -20,6 +20,9 @@ function(standard_flags target-name)
 			POSITION_INDEPENDENT_CODE ON
 	)
 
+	# Add some standard werrors
+	TARGET_COMPILE_OPTIONS(${target-name} PRIVATE -Werror=return-type)
+
 	IF("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
 		TARGET_COMPILE_OPTIONS(${target-name} PRIVATE -g -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-reorder)
 		SET(CONFIGSTRING "Debug" PARENT_SCOPE)

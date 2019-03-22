@@ -52,7 +52,7 @@ struct packet_protocolversion {
 
 void ClientConnection::SendRaw(const void* data, size_t size)
 {
-	if(client_socket_->Write(data, size) != size) {
+	if(client_socket_->Write(data, size) != (ssize_t)size) {
 		throw std::logic_error("Something went wrong: " + std::string(strerror(errno)));
 	}
 }
