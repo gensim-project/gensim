@@ -127,7 +127,7 @@ namespace gensim
 
 			void SSAIntrinsicStatement::PrettyPrint(std::ostringstream &str) const
 			{
-				str << GetName() << " = " << IntrinsicNames[Type];
+				str << GetName() << " = " << signature_.GetName();
 
 				// TODO: Print arguments?
 			}

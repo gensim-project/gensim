@@ -1972,7 +1972,7 @@ execute(clz)
 		write_register_bank(RB, inst.rd, (uint32)32);
 	}
 	else {
-		uint32 val = __builtin_clz(reg);
+		uint32 val = __builtin_clz32(reg);
 		write_register_bank(RB, inst.rd, val);
 	}
 }
@@ -2959,7 +2959,7 @@ helper uint32 rotate_imm(uint8 imm8, uint8 rot, uint8 carry_in, uint8 &carry_out
 
 helper  void update_ZN_flags(uint32 value)
 {
-	__builtin_update_zn_flags(value);
+	__builtin_update_zn_flags32(value);
 
 	return;
 }
@@ -2977,7 +2977,7 @@ helper  uint32 add_with_carry( uint32 op1,  uint32 op2,  uint8 flags,  uint8 is_
 	
 	if(flags)
 	{
-		__builtin_adc_flags(op1, op2, carry_in);
+		__builtin_adc32_flags(op1, op2, carry_in);
 	}
 	
 	return result;
@@ -3737,12 +3737,12 @@ helper void write_coproc_reg_inst(uint32 cp_num, struct Instruction &inst, uint3
 
 helper void write_coproc_reg(uint32 cp_num, uint32 op1, uint32 op2, uint32 crn, uint32 crm, uint32 data)
 {	
-	write_device((uint32)cp_num, (uint32)0, (uint32)op1);
-	write_device((uint32)cp_num, (uint32)1, (uint32)op2);
-	write_device((uint32)cp_num, (uint32)2, (uint32)crn);
-	write_device((uint32)cp_num, (uint32)3, (uint32)crm);
+	write_device32((uint32)cp_num, (uint32)0, (uint32)op1);
+	write_device32((uint32)cp_num, (uint32)1, (uint32)op2);
+	write_device32((uint32)cp_num, (uint32)2, (uint32)crn);
+	write_device32((uint32)cp_num, (uint32)3, (uint32)crm);
 	
-	write_device((uint32)cp_num, (uint32)4, data);
+	write_device32((uint32)cp_num, (uint32)4, data);
 	
 	return;
 }
@@ -3751,12 +3751,12 @@ helper uint32 read_coproc_reg(uint32 cp_num, uint32 op1, uint32 op2, uint32 crn,
 {
 	uint32 d;
 	
-	write_device((uint32)cp_num, (uint32)0, (uint32)op1);
-	write_device((uint32)cp_num, (uint32)1, (uint32)op2);
-	write_device((uint32)cp_num, (uint32)2, (uint32)crn);
-	write_device((uint32)cp_num, (uint32)3, (uint32)crm);
+	write_device32((uint32)cp_num, (uint32)0, (uint32)op1);
+	write_device32((uint32)cp_num, (uint32)1, (uint32)op2);
+	write_device32((uint32)cp_num, (uint32)2, (uint32)crn);
+	write_device32((uint32)cp_num, (uint32)3, (uint32)crm);
 	
-	read_device((uint32)cp_num, (uint32)4, d);
+	read_device32((uint32)cp_num, (uint32)4, d);
 	
 	return (uint32)d;
 }

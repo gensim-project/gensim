@@ -812,22 +812,22 @@ namespace gensim
 						arg0 = Factory.GetOrCreate(Statement.Args(0));
 					}
 
-					switch (Statement.Type) {
-						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc: {
+					switch (Statement.GetID()) {
+						case IntrinsicID::ReadPC: {
 							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = " << GetLLVMValue(pc_desc->GetIRType(), "phys_pc.Get()") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
 							break;
 						}
-						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
+						case IntrinsicID::PopCount32:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = __builtin_popcount(" << arg0->GetFixedValue() << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
+						case IntrinsicID::CLZ32:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = __builtin_clz(" << arg0->GetFixedValue() << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode:
+						case IntrinsicID::GetCpuMode:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = " << Statement.Parent->Parent->GetAction()->Context.ISA.isa_mode_id << ";";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_GetFeature:
+						case IntrinsicID::GetFeature:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << ";";
 							output << "UNIMPLEMENTED;";
 							break;
@@ -852,54 +852,54 @@ namespace gensim
 					if (Statement.ArgCount() > 2) arg2 = Factory.GetOrCreate(Statement.Args(2));
 					if (Statement.ArgCount() > 3) arg3 = Factory.GetOrCreate(Statement.Args(3));
 
-					output << "//emit intrinsic here " << Statement.Type << "\n";
+					output << "//emit intrinsic here " << Statement.GetSignature().GetName() << "\n";
 					// if (HasValue()) output << GetType().GetCType() << " " << GetName() << " = 0;";
-					switch (Statement.Type) {
-						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc: {
+					switch (Statement.GetID()) {
+						case IntrinsicID::ReadPC: {
 							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
 							output << "llvm::Value *" << Statement.GetName() << " = " << GetLLVMValue(pc_desc->GetIRType(), "phys_pc.Get()") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
 							break;
 						}
-						case SSAIntrinsicStatement::SSAIntrinsic_WritePc: {
+						case IntrinsicID::WritePC: {
 							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
 
 							output << "EmitRegisterWrite(__irBuilder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry(\"PC\"), nullptr, " << arg0->GetDynamicValue() << ");";
 
 							break;
 						}
-						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
+						case IntrinsicID::PopCount32:
 							assert(arg0);
 							output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.ctpop_i32, " << arg0->GetDynamicValue() << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
+						case IntrinsicID::CLZ32:
 							assert(arg0);
 
 							output <<
 							       "llvm::Function *intrinsic = (llvm::Function*)ctx.Functions.clz_i32;"
 							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(intrinsic, {" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i1, 0, false)});";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
+						case IntrinsicID::CLZ64:
 							assert(arg0);
 
 							output <<
 							       "llvm::Function *intrinsic = (llvm::Function*)ctx.Functions.clz_i64;"
 							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(intrinsic, {" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i1, 0, false)});";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Ctz32:
+						case IntrinsicID::CTZ32:
 							assert(arg0);
 
 							output <<
 							       "llvm::Function *intrinsic = (llvm::Function*)ctx.Functions.ctz_i32;"
 							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(intrinsic, {" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i1, 0, false)});";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Ctz64:
+						case IntrinsicID::CTZ64:
 							assert(arg0);
 
 							output <<
 							       "llvm::Function *intrinsic = (llvm::Function*)ctx.Functions.ctz_i64;"
 							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(intrinsic, {" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i1, 0, false)});";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
+						case IntrinsicID::SetCpuMode:
 							assert(arg0);
 							output << "{";
 							output << "llvm::Value *isa_mode_ptr = ctx.GetStateBlockPointer(__irBuilder, \"ModeID\");";
@@ -908,7 +908,7 @@ namespace gensim
 							output << "}";
 
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode:
+						case IntrinsicID::GetCpuMode:
 							output << "llvm::Value *" << Statement.GetName() << " = NULL;";
 
 							output << "{";
@@ -916,53 +916,53 @@ namespace gensim
 							output << Statement.GetName() << " = __irBuilder.CreateLoad(isa_mode_ptr);";
 							output << "}";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
+						case IntrinsicID::TakeException:
 							assert(arg0 && arg1);
 							output << "EmitTakeException(__irBuilder, ctx, " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ");";
 //							output << "ctx.block.region.EmitTakeException(ctx.tiu.GetOffset(), " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
+						case IntrinsicID::ProbeDevice:
 							assert(arg0);
 							output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall2(ctx.Functions.dev_probe_device, ctx.GetThreadPtr(__irBuilder), " << arg0->GetDynamicValue() << ", \"dev_probe_result\");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
+						case IntrinsicID::WriteDevice32:
 							assert(arg0 && arg1 && arg2);
 							output << "llvm::Value *" << Statement.GetName();
 							output << " = __irBuilder.CreateCall(ctx.Functions.dev_write_device, {ctx.GetThreadPtr(__irBuilder), ";
 							output << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << "}, \"dev_write_result\");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice64:
+						case IntrinsicID::WriteDevice64:
 							assert(arg0 && arg1 && arg2);
 							output << "llvm::Value *" << Statement.GetName();
 							output << " = __irBuilder.CreateCall(ctx.Functions.dev_write_device64, {ctx.GetThreadPtr(__irBuilder), ";
 							output << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << "}, \"dev_write_result\");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
+						case IntrinsicID::PushInterrupt:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpuPushInterrupt, {ctx.GetThreadPtr(__irBuilder), " << GetLLVMValue(IRTypes::UInt32, "0") << "});";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
+						case IntrinsicID::PopInterrupt:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpu_pop_interrupt, ctx.GetThreadPtr(__irBuilder));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Trap:
+						case IntrinsicID::Trap:
 							output << "__irBuilder.CreateCall(ctx.Functions.jit_trap, {ctx.GetThreadPtr(__irBuilder)});";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
+						case IntrinsicID::PendInterrupt:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpuPendIRQ, ctx.GetThreadPtr(__irBuilder));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
+						case IntrinsicID::HaltCpu:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpu_halt, ctx.GetThreadPtr(__irBuilder));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_SetExecutionRing:
+						case IntrinsicID::SetExecutionRing:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpuSetRing, {ctx.GetThreadPtr(__irBuilder), " << arg0->GetDynamicValue() << "});";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
+						case IntrinsicID::EnterKernelMode:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpuEnterKernel, ctx.GetThreadPtr(__irBuilder));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
+						case IntrinsicID::EnterUserMode:
 							output << "__irBuilder.CreateCall(ctx.Functions.cpuEnterUser, ctx.GetThreadPtr(__irBuilder));";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatIsQnan:
+						case IntrinsicID::FloatIsQNaN:
 							assert(arg0);
 							output <<
 							       "llvm::Value *" << Statement.GetName() << " = NULL;"
@@ -973,7 +973,7 @@ namespace gensim
 							       "	" << Statement.GetName() << " = __irBuilder.CreateZExtOrBitCast(val, ctx.Types.i8);"
 							       "}";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatIsSnan:
+						case IntrinsicID::FloatIsSNaN:
 							assert(arg0);
 							output <<
 							       "llvm::Value *" << Statement.GetName() << " = NULL;"
@@ -985,7 +985,7 @@ namespace gensim
 							       "}";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleIsQnan:
+						case IntrinsicID::DoubleIsQNaN:
 							assert(arg0);
 							output <<
 							       "llvm::Value *" << Statement.GetName() << " = NULL;"
@@ -996,7 +996,7 @@ namespace gensim
 							       "	" << Statement.GetName() << " = __irBuilder.CreateZExtOrBitCast(val, ctx.Types.i8);"
 							       "}";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleIsSnan:
+						case IntrinsicID::DoubleIsSNaN:
 							assert(arg0);
 							output <<
 							       "llvm::Value *" << Statement.GetName() << " = NULL;"
@@ -1008,29 +1008,29 @@ namespace gensim
 							       "}";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleSqrt:
+						case IntrinsicID::DoubleSqrt:
 							assert(arg0);
 							output <<
 							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.double_sqrt, " << arg0->GetDynamicValue() << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatSqrt:
+						case IntrinsicID::FloatSqrt:
 							assert(arg0);
 							output <<
 							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.float_sqrt, " << arg0->GetDynamicValue() << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
+						case IntrinsicID::DoubleAbs:
 							assert(arg0);
 							output <<
 							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.double_abs, " << arg0->GetDynamicValue() << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatAbs:
+						case IntrinsicID::FloatAbs:
 							assert(arg0);
 							output <<
 							       "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.float_abs, " << arg0->GetDynamicValue() << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32: {
+						case IntrinsicID::UpdateZNFlags32: {
 							output << "{"
 							       "llvm::Value *n = __irBuilder.CreateLShr(" << arg0->GetDynamicValue() << ", 31);"
 							       "llvm::Value *z = __irBuilder.CreateICmpEQ(" << arg0->GetDynamicValue() << ", llvm::ConstantInt::get(ctx.Types.i32, 0, false));"
@@ -1041,22 +1041,22 @@ namespace gensim
 						}
 
 
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc8WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc16WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
+						case IntrinsicID::ADC8_Flags:
+						case IntrinsicID::ADC16_Flags:
+						case IntrinsicID::ADC32_Flags:
+						case IntrinsicID::ADC64_Flags:
 							output << "EmitAdcWithFlags(__irBuilder, ctx, ";
-							switch(Statement.Type) {
-								case SSAIntrinsicStatement::SSAIntrinsic_Adc8WithFlags:
+							switch(Statement.GetID()) {
+								case IntrinsicID::ADC8_Flags:
 									output << "8";
 									break;
-								case SSAIntrinsicStatement::SSAIntrinsic_Adc16WithFlags:
+								case IntrinsicID::ADC16_Flags:
 									output << "16";
 									break;
-								case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
+								case IntrinsicID::ADC32_Flags:
 									output << "32";
 									break;
-								case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
+								case IntrinsicID::ADC64_Flags:
 									output << "64";
 									break;
 								default:
@@ -1065,22 +1065,22 @@ namespace gensim
 							output << ", " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc8WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc16WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags:
+						case IntrinsicID::SBC8_Flags:
+						case IntrinsicID::SBC16_Flags:
+						case IntrinsicID::SBC32_Flags:
+						case IntrinsicID::SBC64_Flags:
 							output << "EmitSbcWithFlags(__irBuilder, ctx, ";
-							switch(Statement.Type) {
-								case SSAIntrinsicStatement::SSAIntrinsic_Sbc8WithFlags:
+							switch(Statement.GetID()) {
+								case IntrinsicID::SBC8_Flags:
 									output << "8";
 									break;
-								case SSAIntrinsicStatement::SSAIntrinsic_Sbc16WithFlags:
+								case IntrinsicID::SBC16_Flags:
 									output << "16";
 									break;
-								case SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags:
+								case IntrinsicID::SBC32_Flags:
 									output << "32";
 									break;
-								case SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags:
+								case IntrinsicID::SBC64_Flags:
 									output << "64";
 									break;
 								default:
@@ -1089,30 +1089,30 @@ namespace gensim
 							output << ", " << arg0->GetDynamicValue() << ", " << arg1->GetDynamicValue() << ", " << arg2->GetDynamicValue() << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
-						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
-						case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
-						case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
+						case IntrinsicID::FPSetRounding:
+						case IntrinsicID::FPGetRounding:
+						case IntrinsicID::FPSetFlush:
+						case IntrinsicID::FPGetFlush:
 							output << "llvm::Value *" << Statement.GetName() << " = nullptr;";
 							output << "UNIMPLEMENTED;";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
+						case IntrinsicID::BSwap32:
 							output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.bswap_i32, " << arg0->GetDynamicValue() << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
+						case IntrinsicID::BSwap64:
 							output << "llvm::Value *" << Statement.GetName() << " = __irBuilder.CreateCall(ctx.Functions.bswap_i64, " << arg0->GetDynamicValue() << ");";
 							break;
 
 
-						case SSAIntrinsicStatement::SSAIntrinsic_MemLock:
-						case SSAIntrinsicStatement::SSAIntrinsic_MemUnlock:
+						case IntrinsicID::MemLock:
+						case IntrinsicID::MemUnlock:
 							// TODO: just do nothing for now
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_SetFeature:
-						case SSAIntrinsicStatement::SSAIntrinsic_GetFeature:
-						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN64:
+						case IntrinsicID::SetFeature:
+						case IntrinsicID::GetFeature:
+						case IntrinsicID::UpdateZNFlags64:
 							output << "llvm::Value *" << Statement.GetName() << " = nullptr;";
 							output << "UNIMPLEMENTED;";
 							break;
@@ -1128,34 +1128,34 @@ namespace gensim
 				{
 					const SSAIntrinsicStatement &Statement = static_cast<const SSAIntrinsicStatement &>(this->Statement);
 
-					switch (Statement.Type) {
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
-						case SSAIntrinsicStatement::SSAIntrinsic_Ctz32:
-						case SSAIntrinsicStatement::SSAIntrinsic_Ctz64:
-						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
-						case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode:
-						case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
-						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
-						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
-						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice64:
+					switch (Statement.GetID()) {
+						case IntrinsicID::CLZ32:
+						case IntrinsicID::CLZ64:
+						case IntrinsicID::CTZ32:
+						case IntrinsicID::CTZ64:
+						case IntrinsicID::PopCount32:
+						case IntrinsicID::GetCpuMode:
+						case IntrinsicID::ProbeDevice:
+						case IntrinsicID::ReadPC:
+						case IntrinsicID::WriteDevice32:
+						case IntrinsicID::WriteDevice64:
 
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatIsSnan:
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatIsQnan:
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleIsSnan:
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleIsQnan:
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleSqrt:
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatSqrt:
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatAbs:
+						case IntrinsicID::FloatIsSNaN:
+						case IntrinsicID::FloatIsQNaN:
+						case IntrinsicID::DoubleIsSNaN:
+						case IntrinsicID::DoubleIsQNaN:
+						case IntrinsicID::DoubleSqrt:
+						case IntrinsicID::FloatSqrt:
+						case IntrinsicID::DoubleAbs:
+						case IntrinsicID::FloatAbs:
 
-						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
+						case IntrinsicID::ADC32_Flags:
 
-						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
-						case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
+						case IntrinsicID::FPGetRounding:
+						case IntrinsicID::FPGetFlush:
 
-						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
-						case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
+						case IntrinsicID::BSwap32:
+						case IntrinsicID::BSwap64:
 
 							return Statement.GetName();
 

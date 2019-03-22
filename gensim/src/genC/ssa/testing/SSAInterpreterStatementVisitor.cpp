@@ -372,51 +372,50 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 {
 	_vmstate.SetResult(Interpret_Normal);
 
-	switch(stmt.Type) {
-		case SSAIntrinsicStatement::SSAIntrinsic_GetFeature: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_ReadPc: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding: // TODO: Implement properly
-		case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice: // TODO: Implement properly
+	switch(stmt.GetID()) {
+		case IntrinsicID::GetFeature: // TODO: Implement properly
+		case IntrinsicID::GetCpuMode: // TODO: Implement properly
+		case IntrinsicID::ReadPC: // TODO: Implement properly
+		case IntrinsicID::FPGetFlush: // TODO: Implement properly
+		case IntrinsicID::FPGetRounding: // TODO: Implement properly
+		case IntrinsicID::FPSetFlush: // TODO: Implement properly
+		case IntrinsicID::FPSetRounding: // TODO: Implement properly
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(0));
 			break;
 
-		case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
-		case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
-		case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
-		case SSAIntrinsicStatement::SSAIntrinsic_Trap:
-		case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
-		case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
-		case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
-		case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
-		case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
-		case SSAIntrinsicStatement::SSAIntrinsic_SetFeature: // todo: implement
+		case IntrinsicID::SetCpuMode:
+		case IntrinsicID::TakeException:
+		case IntrinsicID::PendInterrupt:
+		case IntrinsicID::Trap:
+		case IntrinsicID::WriteDevice32:
+		case IntrinsicID::PopInterrupt:
+		case IntrinsicID::PushInterrupt:
+		case IntrinsicID::EnterKernelMode:
+		case IntrinsicID::EnterUserMode:
+		case IntrinsicID::SetFeature: // todo: implement
 			// do nothing?
 			break;
 
-		case SSAIntrinsicStatement::SSAIntrinsic_Popcount32: {
+		case IntrinsicID::PopCount32: {
 			uint32_t value = _vmstate.GetStatementValue(stmt.Args(0)).Int();
 			value = __builtin_popcount(value);
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(value));
 			break;
 		}
-		case SSAIntrinsicStatement::SSAIntrinsic_DoubleSqrt: {
+		case IntrinsicID::DoubleSqrt: {
 			double value = _vmstate.GetStatementValue(stmt.Args(0)).Dbl();
 			value = std::sqrt(value);
 			_vmstate.SetStatementValue(&stmt, IRConstant::Double(value));
 			break;
 		}
-		case SSAIntrinsicStatement::SSAIntrinsic_FloatSqrt: {
+		case IntrinsicID::FloatSqrt: {
 			float value = _vmstate.GetStatementValue(stmt.Args(0)).Flt();
 			value = std::sqrt(value);
 			_vmstate.SetStatementValue(&stmt, IRConstant::Float(value));
 			break;
 		}
 
-		case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32: {
+		case IntrinsicID::UpdateZNFlags32: {
 			int32_t value = _vmstate.GetStatementValue(stmt.Args(0)).Int();
 
 			uint8_t z = value == 0;
@@ -428,7 +427,7 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 			_machine_state.RegisterFile().Write8(n_offset, n);
 			break;
 		}
-		case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN64: {
+		case IntrinsicID::UpdateZNFlags64: {
 			int64_t value = _vmstate.GetStatementValue(stmt.Args(0)).Int();
 
 			uint8_t z = value == 0L;
@@ -441,10 +440,10 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 			break;
 		}
 
-		case SSAIntrinsicStatement::SSAIntrinsic_Adc:
-		case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
-		case SSAIntrinsicStatement::SSAIntrinsic_Adc64:
-		case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags: {
+		case IntrinsicID::ADC32:
+		case IntrinsicID::ADC32_Flags:
+		case IntrinsicID::ADC64:
+		case IntrinsicID::ADC64_Flags: {
 			// oh no
 			IRConstant lhs = _vmstate.GetStatementValue(stmt.Args(0));
 			IRConstant rhs = _vmstate.GetStatementValue(stmt.Args(1));
@@ -458,7 +457,7 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(result));
 
-			if (stmt.Type == SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags) {
+			if (stmt.GetID() == IntrinsicID::ADC32_Flags) {
 				uint32_t N = (result & 0x80000000) != 0;
 				uint32_t Z = ((uint32_t)result) == 0;
 				uint32_t C = result > 0xffffffff;
@@ -474,21 +473,21 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 				_machine_state.RegisterFile().Write8(v_offset, V);
 				_machine_state.RegisterFile().Write8(z_offset, Z);
 				_machine_state.RegisterFile().Write8(n_offset, N);
-			} else if(stmt.Type == SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags) {
+			} else if(stmt.GetID() == IntrinsicID::ADC64_Flags) {
 				UNIMPLEMENTED;
 			}
 
 			break;
 		}
 
-		case SSAIntrinsicStatement::SSAIntrinsic_Clz32: {
+		case IntrinsicID::CLZ32: {
 			uint32_t input = _vmstate.GetStatementValue(stmt.Args(0)).Int();
 			uint32_t result = __builtin_clz(input);
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(result));
 			break;
 		}
 
-		case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
+		case IntrinsicID::HaltCpu:
 			_vmstate.SetResult(Interpret_Halt);
 			break;
 		default: {

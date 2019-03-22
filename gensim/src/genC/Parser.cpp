@@ -60,12 +60,8 @@ IRCallableAction *GenCContext::GetCallable(const std::string& name) const
 	IRCallableAction *action = GetIntrinsic(name);
 	if (action != nullptr) return action;
 
-	// Then helper functions (which can hence override externals)
+	// Then helper functions
 	action = GetHelper(name);
-	if (action != nullptr) return action;
-
-	// Finally external functions.
-	action = GetExternal(name);
 	if (action != nullptr) return action;
 
 	return nullptr;
@@ -79,19 +75,8 @@ IRHelperAction *GenCContext::GetHelper(const std::string& name) const
 
 IRIntrinsicAction *GenCContext::GetIntrinsic(const std::string& name) const
 {
-	if (IntrinsicTable.find(name) != IntrinsicTable.end()) return IntrinsicTable.at(name).first;
-	return nullptr;
-}
+	if (IntrinsicTable.find(name) != IntrinsicTable.end()) return IntrinsicTable.at(name);
 
-IRExternalAction *GenCContext::GetExternal(const std::string& name) const
-{
-	if (ExternalTable.find(name) != ExternalTable.end()) return ExternalTable.at(name);
-	return nullptr;
-}
-
-GenCContext::IntrinsicEmitterFn GenCContext::GetIntrinsicEmitter(const std::string& name) const
-{
-	if (IntrinsicTable.find(name) != IntrinsicTable.end()) return IntrinsicTable.at(name).second;
 	return nullptr;
 }
 
@@ -315,7 +300,6 @@ GenCContext::GenCContext(const gensim::arch::ArchDescription &arch, const isa::I
 	LoadFeatureNames();
 	LoadStandardConstants();
 	LoadIntrinsics();
-	LoadExternalFunctions();
 }
 
 bool GenCContext::RegisterInstruction(isa::InstructionDescription* insn, std::string execute)
@@ -408,11 +392,6 @@ bool GenCContext::Parse_Execute(pANTLR3_BASE_TREE Execute)
 
 	if(GetIntrinsic(nameStr) != nullptr) {
 		diag_ctx.Error("The name " + nameStr + " is reserved by an intrinsic function", DiagNode("", nameNode));
-		return false;
-	}
-
-	if(GetExternal(nameStr) != nullptr) {
-		diag_ctx.Error("The name " + nameStr + " is reserved by an external function", DiagNode("", nameNode));
 		return false;
 	}
 

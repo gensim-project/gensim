@@ -139,7 +139,6 @@ bool SSAContext::Resolve(DiagnosticContext &ctx)
 {
 	bool success = true;
 	for (const auto& action_item : actions_) {
-		if (action_item.second->HasAttribute(ActionAttribute::External)) continue;
 		if (!action_item.second->HasAttribute(ActionAttribute::Helper)) continue;
 
 		SSAFormAction *action = dynamic_cast<SSAFormAction *>(action_item.second);
@@ -152,7 +151,6 @@ bool SSAContext::Resolve(DiagnosticContext &ctx)
 	}
 
 	for (const auto& action_item : actions_) {
-		if (action_item.second->HasAttribute(ActionAttribute::External)) continue;
 		if (action_item.second->HasAttribute(ActionAttribute::Helper)) continue;
 
 		SSAFormAction *action = dynamic_cast<SSAFormAction *>(action_item.second);

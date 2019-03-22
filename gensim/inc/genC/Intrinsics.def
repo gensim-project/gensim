@@ -1,0 +1,121 @@
+// ** Specials ** //
+Intrinsic("read_pc", ReadPC, Signature(ArchWordType), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("write_pc", WritePC, Signature(IRTypes::Void, { ArchWordType }), DefaultIntrinsicEmitter, NeverFixed)
+
+Intrinsic("__builtin_set_feature", SetFeature, Signature(IRTypes::Void, { IRTypes::UInt32, IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("__builtin_get_feature", GetFeature, Signature(IRTypes::UInt32, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, AlwaysFixed)
+
+// ** Registers **/
+//Intrinsic("read_register", ReadRegister, gensim::genc::ssa::GetReadRegisterSignature, ReadRegisterIntrinsicEmitter, NeverFixed)
+
+// ** Memory ** //
+Intrinsic("mem_read_8", MR8, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType, IRType::Ref(IRTypes::UInt8) }), MemoryIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_read_16", MR16, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType, IRType::Ref(IRTypes::UInt16) }), MemoryIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_read_32", MR32, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType, IRType::Ref(IRTypes::UInt32) }), MemoryIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_read_64", MR64, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType, IRType::Ref(IRTypes::UInt64) }), MemoryIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_read_128", MR128, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType, IRType::Ref(IRTypes::UInt128) }), MemoryIntrinsicEmitter, NeverFixed)
+
+Intrinsic("mem_write_8", MW8, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType, IRTypes::UInt8 }), MemoryIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_write_16", MW16, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType, IRTypes::UInt16 }), MemoryIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_write_32", MW32, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType, IRTypes::UInt32 }), MemoryIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_write_64", MW64, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType, IRTypes::UInt64 }), MemoryIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_write_128", MW128, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType, IRTypes::UInt128 }), MemoryIntrinsicEmitter, NeverFixed)
+
+Intrinsic("mem_lock", MemLock, Signature(IRTypes::Void, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_unlock", MemUnlock, Signature(IRTypes::Void, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
+
+Intrinsic("mem_monitor_acquire", MemMonitorAcquire, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_monitor_write8", MemMonitorWrite8, Signature(IRTypes::UInt8, { IRTypes::UInt32, ArchWordType, IRTypes::UInt8 }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_monitor_write16", MemMonitorWrite16, Signature(IRTypes::UInt8, { IRTypes::UInt32, ArchWordType, IRTypes::UInt16 }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_monitor_write32", MemMonitorWrite32, Signature(IRTypes::UInt8, { IRTypes::UInt32, ArchWordType, IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_monitor_write64", MemMonitorWrite64, Signature(IRTypes::UInt8, { IRTypes::UInt32, ArchWordType, IRTypes::UInt64 }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_monitor_write128", MemMonitorWrite128, Signature(IRTypes::UInt8, { IRTypes::UInt32, ArchWordType, IRTypes::UInt128 }), DefaultIntrinsicEmitter, NeverFixed)
+
+// ** Devices ** //
+Intrinsic("probe_device", ProbeDevice, Signature(IRTypes::UInt8, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("read_device32", ReadDevice32, Signature(IRTypes::Void, { IRTypes::UInt32, IRTypes::UInt32, IRType::Ref(IRTypes::UInt32) }), DeviceIntrinsicEmitter, NeverFixed)
+Intrinsic("read_device64", ReadDevice64, Signature(IRTypes::Void, { IRTypes::UInt32, IRTypes::UInt32, IRType::Ref(IRTypes::UInt64) }), DeviceIntrinsicEmitter, NeverFixed)
+Intrinsic("write_device32", WriteDevice32, Signature(IRTypes::Void, { IRTypes::UInt32, IRTypes::UInt32, IRTypes::UInt32 }), DeviceIntrinsicEmitter, NeverFixed)
+Intrinsic("write_device64", WriteDevice64, Signature(IRTypes::Void, { IRTypes::UInt32, IRTypes::UInt32, IRTypes::UInt64 }), DeviceIntrinsicEmitter, NeverFixed)
+
+// ** Simulator Control ** //
+Intrinsic("trap", Trap, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("halt_cpu", HaltCpu, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+
+// ** Architectural Features ** //
+Intrinsic("push_interrupt", PushInterrupt, Signature(IRTypes::Void, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("pop_interrupt", PopInterrupt, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("pend_interrupt", PendInterrupt, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("trigger_irq", TriggerIRQ, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+
+Intrinsic("enter_kernel_mode", EnterKernelMode, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("enter_user_mode", EnterUserMode, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("__builtin_set_execution_ring", SetExecutionRing, Signature(IRTypes::Void, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("take_exception", TakeException, Signature(IRTypes::Void, { IRTypes::UInt32, IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("set_cpu_mode", SetCpuMode, Signature(IRTypes::Void, { IRTypes::UInt8 }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("get_cpu_mode", GetCpuMode, Signature(IRTypes::UInt8), DefaultIntrinsicEmitter, NeverFixed)
+
+Intrinsic("flush_tlbs", Flush, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("flush_dtlb", FlushDTLB, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("flush_itlb", FlushITLB, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("flush_dtlb_entry", FlushDTLBEntry, Signature(IRTypes::Void, { ArchWordType }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("flush_itlb_entry", FlushITLBEntry, Signature(IRTypes::Void, { ArchWordType }), DefaultIntrinsicEmitter, NeverFixed)
+
+// ** Arithmetic ** //
+Intrinsic("__builtin_update_zn_flags32", UpdateZNFlags32, Signature(IRTypes::Void, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_update_zn_flags64", UpdateZNFlags64, Signature(IRTypes::Void, { IRTypes::UInt64 }), DefaultIntrinsicEmitter, AutoFixedness)
+
+Intrinsic("__builtin_bswap32", BSwap32, Signature(IRTypes::UInt32, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_bswap64", BSwap64, Signature(IRTypes::UInt64, { IRTypes::UInt64 }), DefaultIntrinsicEmitter, AutoFixedness)
+
+Intrinsic("__builtin_clz32", CLZ32, Signature(IRTypes::UInt32, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_clz64", CLZ64, Signature(IRTypes::UInt64, { IRTypes::UInt64 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_ctz32", CTZ32, Signature(IRTypes::UInt32, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_ctz64", CTZ64, Signature(IRTypes::UInt64, { IRTypes::UInt64 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_popcount32", PopCount32, Signature(IRTypes::UInt32, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, AutoFixedness)
+
+Intrinsic("__builtin_adc8", ADC8, Signature(IRTypes::UInt8, { IRTypes::UInt8, IRTypes::UInt8, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_adc16", ADC16, Signature(IRTypes::UInt16, { IRTypes::UInt16, IRTypes::UInt16, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_adc32", ADC32, Signature(IRTypes::UInt32, { IRTypes::UInt32, IRTypes::UInt32, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_adc64", ADC64, Signature(IRTypes::UInt64, { IRTypes::UInt64, IRTypes::UInt64, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_adc8_flags", ADC8_Flags, Signature(IRTypes::UInt8, { IRTypes::UInt8, IRTypes::UInt8, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_adc16_flags", ADC16_Flags, Signature(IRTypes::UInt16, { IRTypes::UInt16, IRTypes::UInt16, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_adc32_flags", ADC32_Flags, Signature(IRTypes::UInt32, { IRTypes::UInt32, IRTypes::UInt32, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_adc64_flags", ADC64_Flags, Signature(IRTypes::UInt64, { IRTypes::UInt64, IRTypes::UInt64, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_sbc8", SBC8, Signature(IRTypes::UInt8, { IRTypes::UInt8, IRTypes::UInt8, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_sbc16", SBC16, Signature(IRTypes::UInt16, { IRTypes::UInt16, IRTypes::UInt16, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_sbc32", SBC32, Signature(IRTypes::UInt32, { IRTypes::UInt32, IRTypes::UInt32, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_sbc64", SBC64, Signature(IRTypes::UInt64, { IRTypes::UInt64, IRTypes::UInt64, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_sbc8_flags", SBC8_Flags, Signature(IRTypes::UInt8, { IRTypes::UInt8, IRTypes::UInt8, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_sbc16_flags", SBC16_Flags, Signature(IRTypes::UInt16, { IRTypes::UInt16, IRTypes::UInt16, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_sbc32_flags", SBC32_Flags, Signature(IRTypes::UInt32, { IRTypes::UInt32, IRTypes::UInt32, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_sbc64_flags", SBC64_Flags, Signature(IRTypes::UInt64, { IRTypes::UInt64, IRTypes::UInt64, IRTypes::UInt8 }), DefaultIntrinsicEmitter, AutoFixedness)
+
+Intrinsic("__builtin_umull", UMULL, Signature(IRTypes::UInt64, { IRTypes::UInt64, IRTypes::UInt64 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_umulh", UMULH, Signature(IRTypes::UInt64, { IRTypes::UInt64, IRTypes::UInt64 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_smull", SMULL, Signature(IRTypes::UInt64, { IRTypes::UInt64, IRTypes::UInt64 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_smulh", SMULH, Signature(IRTypes::UInt64, { IRTypes::UInt64, IRTypes::UInt64 }), DefaultIntrinsicEmitter, AutoFixedness)
+
+// ** Floating Point Helpers ** //
+
+Intrinsic("float_sqrt", FloatSqrt, Signature(IRTypes::Float, { IRTypes::Float }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("float_abs", FloatAbs, Signature(IRTypes::Float, { IRTypes::Float }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("double_sqrt", DoubleSqrt, Signature(IRTypes::Double, { IRTypes::Double }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("double_abs", DoubleAbs, Signature(IRTypes::Double, { IRTypes::Double }), DefaultIntrinsicEmitter, AutoFixedness)
+
+Intrinsic("float_is_snan", FloatIsSNaN, Signature(IRTypes::UInt8, { IRTypes::Float }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("float_is_qnan", FloatIsQNaN, Signature(IRTypes::UInt8, { IRTypes::Float }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("double_is_snan", DoubleIsSNaN, Signature(IRTypes::UInt8, { IRTypes::Double }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("double_is_qnan", DoubleIsQNaN, Signature(IRTypes::UInt8, { IRTypes::Double }), DefaultIntrinsicEmitter, AutoFixedness)
+
+Intrinsic("__builtin_fma32", FMA32, Signature(IRTypes::Float, { IRTypes::Float, IRTypes::Float, IRTypes::Float }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_fma64", FMA64, Signature(IRTypes::Double, { IRTypes::Double, IRTypes::Double, IRTypes::Double }), DefaultIntrinsicEmitter, AutoFixedness)
+
+Intrinsic("__builtin_set_fp_flush", FPSetFlush, Signature(IRTypes::Void, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_get_fp_flush", FPGetFlush, Signature(IRTypes::UInt32), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_set_fp_rounding", FPSetRounding, Signature(IRTypes::Void, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_get_fp_rounding", FPGetRounding, Signature(IRTypes::UInt32), DefaultIntrinsicEmitter, AutoFixedness)
+
+// ** Conversions ** //
+Intrinsic("__builtin_cast_float_to_u32_truncate", CastFloatToU32Truncate, Signature(IRTypes::UInt32, { IRTypes::Float }), CastIntrinsicEmitter, AutoFixedness)
+Intrinsic("__builtin_cast_double_to_u64_truncate", CastDoubleToU64Truncate, Signature(IRTypes::UInt64, { IRTypes::Double }), CastIntrinsicEmitter, AutoFixedness)

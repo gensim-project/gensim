@@ -10,6 +10,8 @@
 using namespace gensim::genc::ssa;
 using gensim::genc::IRType;
 
+#if 0
+
 const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 {
 	switch (kind) {
@@ -126,6 +128,7 @@ bool SSAIntrinsicStatement::IsFixed() const
 			return false;
 	}
 }
+#endif
 
 SSAIntrinsicStatement::~SSAIntrinsicStatement()
 {
