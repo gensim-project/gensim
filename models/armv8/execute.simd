@@ -723,12 +723,12 @@ execute(fabd)
 			float rn = read_float_reg32(inst.rn);
 			float rm = read_float_reg32(inst.rm);
 		
-			write_float_reg32(inst.rd, __builtin_fabs32(rn - rm));
+			write_float_reg32(inst.rd, float_abs(rn - rm));
 		} else if (inst.size == 3) {
 			double rn = read_float_reg64(inst.rn);
 			double rm = read_float_reg64(inst.rm);
 		
-			write_float_reg64(inst.rd, __builtin_fabs64(rn - rm));
+			write_float_reg64(inst.rd, double_abs(rn - rm));
 		}
 	} else {
 		trap();
@@ -931,7 +931,7 @@ execute(cnt)
 			
 			uint8[8] rd = (uint8)0;
 			for (uint8 i = 0; i < 8; i++) {
-				rd[i] = (uint8)__builtin_popcount(rn[i]);
+				rd[i] = (uint8)__builtin_popcount32(rn[i]);
 			}
 			
 			write_register_bank(VB8B, inst.rd, rd);
@@ -944,7 +944,7 @@ execute(cnt)
 			
 			uint8[16] rd = (uint8)0;
 			for (uint8 i = 0; i < 16; i++) {
-				rd[i] = (uint8)__builtin_popcount(rn[i]);
+				rd[i] = (uint8)__builtin_popcount32(rn[i]);
 			}
 			
 			write_register_bank(VB16B, inst.rd, rd);
@@ -1988,9 +1988,9 @@ execute(fsqrt)
 execute(fabs)
 {
 	if (inst.type == 0) {
-		write_float_reg32(inst.rd, __builtin_fabs32(read_float_reg32(inst.rn)));
+		write_float_reg32(inst.rd, float_abs(read_float_reg32(inst.rn)));
 	} else {
-		write_float_reg64(inst.rd, __builtin_fabs64(read_float_reg64(inst.rn)));
+		write_float_reg64(inst.rd, double_abs(read_float_reg64(inst.rn)));
 	}
 }
 
