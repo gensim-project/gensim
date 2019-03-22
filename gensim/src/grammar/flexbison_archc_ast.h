@@ -12,6 +12,22 @@ enum class ArchCNodeType {
 
 	ROOT,
 
+	Identifier,
+	Arch,
+	List,
+	WordSize,
+	Format,
+	MemInterface,
+	RegSpace,
+	RegViewSlot,
+	RegViewBank,
+
+	ArchCtor,
+	AcIsa,
+	AcEndianness,
+	SetFeature,
+	AcTypename,
+	AcConstant,
 };
 
 static std::ostream &operator<<(std::ostream &os, ArchCNodeType type)
@@ -23,6 +39,18 @@ static std::ostream &operator<<(std::ostream &os, ArchCNodeType type)
 			HANDLE(FLOAT);
 			HANDLE(DOUBLE);
 			HANDLE(ROOT);
+
+			HANDLE(Identifier);
+			HANDLE(Arch);
+			HANDLE(List);
+			HANDLE(WordSize);
+			HANDLE(Format);
+			HANDLE(MemInterface);
+			HANDLE(RegSpace);
+			HANDLE(RegViewSlot);
+			HANDLE(RegViewBank);
+
+			HANDLE(ArchCtor);
 
 #undef HANDLE
 		default:

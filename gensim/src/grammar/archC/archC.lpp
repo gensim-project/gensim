@@ -61,6 +61,8 @@ using token = ArchC::ArchCParser::token;
 "<" return token::OANGLE;
 ">" return token::CANGLE;
 
+"@" return token::AC_AT;
+
 "," return token::COMMA;
 
 \"(\\.|[^"\\])*\" return token::AC_STRING;
