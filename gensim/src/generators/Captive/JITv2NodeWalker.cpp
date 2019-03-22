@@ -601,7 +601,7 @@ namespace gensim
 							break;
 
 						default:
-							assert(false && "Unimplemented Fixed Intrinsic");
+							throw std::logic_error("Unimplemented fixed intrinsic: " + Statement.GetSignature().GetName());
 					}
 
 					return true;
