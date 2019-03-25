@@ -2,13 +2,14 @@
 
 #include "genC/ssa/io/Assembler.h"
 #include "genC/ssa/io/AssemblyReader.h"
-#include "ssa_asm/ssa_asmLexer.h"
-#include "ssa_asm/ssa_asmParser.h"
 
 #include "genC/ssa/SSAContext.h"
 #include "genC/ssa/SSABlock.h"
 #include "genC/ssa/statement/SSAStatements.h"
 #include "define.h"
+
+#include "ssa_asm/ssa_asmLexer.h"
+#include "ssa_asm/ssa_asmParser.h"
 
 #include <string>
 #include <cstring>

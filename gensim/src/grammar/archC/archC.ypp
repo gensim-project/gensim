@@ -50,15 +50,17 @@
 
 %token AC_AT
 
-%token AC_PLUS AC_MINUS AC_ASTERIX
+%token AC_PLUS AC_MINUS AC_ASTERIX AC_CARET
 
 %token COMMA PERIOD SEMICOLON
-%token EQUALS
+%token AMPERSAND
+%token EQUALS NOTEQUALS
 
 %token <sval> AC_ID
 %token <ival> AC_INT
 %token <sval> AC_STRING
 
+%type <sval> operator
 %type <ast_node> int string id string_list_nonempty id_list id_list_nonempty
 %type <ast_node> file arch_file arch_resource_list arch_resource arch_ctor
 %type <ast_node> ar_wordsize ar_mem ar_regspace ar_pc ar_features ar_reg_view_tag ar_feature_list ar_feature
@@ -67,10 +69,11 @@
 %type <ast_node> ac_isa ac_endianness ac_feature_set ac_typename ac_constant 
 %type <ast_node> isa_file isa_resource_list isa_resource ar_fetchsize ar_include format def_attr_list_nonempty def_attr_list def_attr isa_instruction isa_field
 %type <ast_node> field_type isa_behaviour
-%type <ast_node> asm_arg asm_arg_list isa_asm_map isa_mapping_list isa_mapping
+%type <ast_node> asm_arg asm_arg_list isa_asm_map isa_mapping_list isa_mapping isa_mapping_group isa_mapping_group_lrule  group isa_mapping_strings_lrule isa_mapping_strings
 %type <ast_node> isa_CTOR ctor_resource_list ctor_resource behaviours_resource decodes_resource execute_resource
 %type <ast_node> decoder_resource assembler_resource behaviour_resource end_of_block_resource jump_variable_resource jump_fixed_resource expression_list fixed_jump_type
 %type <ast_node> expression_list_nonempty expression
+%type <ast_node> isa_struct_definition isa_struct_definition_entry_list isa_struct_definition_entry uses_pc_resource jump_fixed_predicated_resource block_condition_resource
 
 %define parse.assert
 %define parse.error verbose
@@ -264,13 +267,13 @@ fixed_jump_type :
     RELATIVE { $$ = CreateStrNode<ArchCNodeType>("Relative"); }
 
 jump_fixed_predicated_resource :
-    id PERIOD SET_JUMP_FIXED_PREDICATED OPAREN id COMMA fixed_jump_type COMMA int CPAREN;
+    id PERIOD SET_JUMP_FIXED_PREDICATED OPAREN id COMMA fixed_jump_type COMMA int CPAREN { $$ = CreateNode(ArchCNodeType::JumpFixedPredicated, {$1, $5, $7, $9}); }
 
 uses_pc_resource :
-    id PERIOD SET_USES_PC OPAREN expression_list CPAREN;
+    id PERIOD SET_USES_PC OPAREN expression_list CPAREN { $$ = CreateNode(ArchCNodeType::UsesPc, {$1, $5}); }
 
 block_condition_resource :
-    id PERIOD SET_BLOCK_COND OPAREN CPAREN;
+    id PERIOD SET_BLOCK_COND OPAREN CPAREN { $$ = CreateNode(ArchCNodeType::BlockCond, {$1}); }
 
 asm_arg_list :
     asm_arg_list COMMA asm_arg { $$ = $1; $$->AddChild($3); } |
@@ -291,32 +294,32 @@ isa_mapping :
     isa_mapping_strings SEMICOLON
 
 isa_mapping_group :
-    isa_mapping_group_lrule EQUALS group;
+    isa_mapping_group_lrule EQUALS group { $$ = CreateNode(ArchCNodeType::AsmMapGroup, {$1, $3}); }
 
 isa_mapping_group_lrule :
-    string group;
+    string group { $$ = CreateNode(ArchCNodeType::AsmMapGroupLRule, {$1, $2}); }
 
 group :
-    OBRACKET int GROUPING int CBRACKET;
+    OBRACKET int GROUPING int CBRACKET { $$ = CreateNode(ArchCNodeType::AsmMapGrouping, {$2, $4}); }
 
 isa_mapping_strings :
-    isa_mapping_strings_lrule EQUALS int;
+    isa_mapping_strings_lrule EQUALS int { $$ = CreateNode(ArchCNodeType::AsmMapGroup, {$1, $3}); }
 
 isa_mapping_strings_lrule :
-    string_list_nonempty;
+    string;
 
 ar_predicated :
     AC_PREDICATED string SEMICOLON;
 
 isa_struct_definition :
-    AC_STRUCT id OBRACE isa_struct_definition_entry_list CBRACE;
+    AC_STRUCT id OBRACE isa_struct_definition_entry_list CBRACE SEMICOLON { $$ = CreateNode(ArchCNodeType::Struct, {$2, $4}); }
 
 isa_struct_definition_entry_list :
-    isa_struct_definition_entry_list isa_struct_definition_entry SEMICOLON |
-    %empty;
+    isa_struct_definition_entry_list isa_struct_definition_entry SEMICOLON { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(ArchCNodeType::List); }
 
 isa_struct_definition_entry :
-    id id;
+    id id { $$ = CreateNode(ArchCNodeType::StructField, {$1, $2}); }
 
 /* String list */
 
@@ -337,14 +340,17 @@ id_list_nonempty :
 /* Expression Handling */
 
 expression :
-    expression operator expression |
+    expression operator expression { $$ = CreateNode(ArchCNodeType::Expression, {CreateStrNode<ArchCNodeType>($2), $1, $3}); } |
     id |
     int;
 
 operator :
     AC_PLUS |
     AC_MINUS |
-    EQUALS;
+    AMPERSAND |
+    AC_CARET |
+    EQUALS |
+    NOTEQUALS;
 
 expression_list :
     expression_list_nonempty { $$ = $1; } |

@@ -98,3 +98,4 @@ grammar(ssa_asm)
 
 grammar_flex_bison(genC "${CMAKE_CURRENT_SOURCE_DIR}/genC")
 grammar_flex_bison(archC "${CMAKE_CURRENT_SOURCE_DIR}/archC")
+grammar_flex_bison(archCAsm "${CMAKE_CURRENT_SOURCE_DIR}/archCAsm")

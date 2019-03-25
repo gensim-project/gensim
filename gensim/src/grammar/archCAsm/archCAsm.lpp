@@ -1,0 +1,50 @@
+%{
+
+#include <iostream>
+#include <stdint.h>
+
+#define yyerminate() return ENDOFFILE
+
+#include "flexbison_harness.h"
+#include "flexbison_archcasm_ast.h"
+#include "archCAsm.tabs.h"
+#include "flexbison_archcasm.h"
+
+#undef YY_DECL
+#define YY_DECL int ArchCAsm::ArchCAsmScanner::yylex(typename ArchCAsm::ArchCAsmParser::semantic_type *const lval, typename ArchCAsm::ArchCAsmParser::location_type *location)
+#define YY_NO_UNISTD_H
+
+#define YY_USER_ACTION location->step(); location->columns(yyleng);
+
+using token = ArchCAsm::ArchCAsmParser::token;
+
+%}
+
+%option c++
+%option noyywrap
+%option nodefault
+%option yylineno
+%option yyclass="ArchCAsm::ArchCAsmScanner"
+%option prefix="ArchCAsm"
+
+%x ARCHC_COMMENT
+%x ARCHC_LINE_COMMENT
+%x ARCHC_STRING
+
+%%
+
+%{ 
+    yylval = lval; 
+%}
+
+[a-zA-Z0-9]+ return token::CHARSEQ;
+" " return token::WS;
+"\t" return token::WS;
+"%" return token::PERCENT;
+"[" return token::OBRACKET;
+"]" return token::CBRACKET;
+[,;:!^&*()#+-{}@_$.<>?/\\] return token::SPECIALCHAR;
+
+. { printf("Unmatched character '%s' at line ???\n", yytext); }
+
+%%

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -88,17 +89,29 @@ public:
 	{
 		return children_.end();
 	}
+	typename ChildListT::const_iterator begin() const
+	{
+		return children_.begin();
+	}
+	typename ChildListT::const_iterator end() const
+	{
+		return children_.end();
+	}
 	ChildListT &GetChildren()
 	{
 		return children_;
 	}
+	const ChildListT &GetChildren() const
+	{
+		return children_;
+	}
 
-	const location_data &GetLocation()
+	const location_data &GetLocation() const
 	{
 		return location_;
 	}
 
-	void Dump(int depth=0)
+	void Dump(int depth=0) const
 	{
 		for(int i = 0; i < depth; ++i) {
 			std::cout << "\t";
@@ -134,22 +147,22 @@ public:
 		std::cout << "\n";
 	}
 
-	std::string GetString()
+	const std::string GetString() const
 	{
 		assert(class_ == nodeclass::STRING);
 		return strdata_;
 	}
-	uint64_t GetInt()
+	uint64_t GetInt() const
 	{
 		assert(class_ == nodeclass::INT);
 		return intdata_;
 	}
-	float GetFloat()
+	float GetFloat() const
 	{
 		assert(class_ == nodeclass::FLOAT);
 		return floatdata_;
 	}
-	double GetDouble()
+	double GetDouble() const
 	{
 		assert(class_ == nodeclass::DOUBLE);
 		return doubledata_;

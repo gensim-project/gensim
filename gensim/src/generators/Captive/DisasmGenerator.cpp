@@ -20,14 +20,15 @@ namespace gensim
 		namespace captive
 		{
 
-			std::string modifier_decode_function(std::string this_str, std::string fnname, int argc, const util::expression **argv)
+			std::string modifier_decode_function(std::string this_str, std::string fnname, const std::vector<const util::expression *> &args)
 			{
 				std::stringstream output;
 				output << "modifier_decode_" << fnname << "(";
 				bool first = true;
-				for (int i = 0; i < argc; ++i) {
+				for (auto &arg : args) {
 					if (!first) output << ",";
-					output << argv[i]->ToString(this_str, &modifier_decode_function);
+					output << arg->ToString(this_str, &modifier_decode_function);
+					first = false;
 				}
 				output << ", instr, pc)";
 				return output.str();
@@ -212,7 +213,7 @@ namespace gensim
 									first = false;
 								}
 
-								str << "(insn." << constraint.first << " == " << constraint.second->ToString("insn", &modifier_decode_function) << ")";
+								str << "(" << constraint->ToString("insn", &modifier_decode_function) << ")";
 							}
 
 							str << ") {";

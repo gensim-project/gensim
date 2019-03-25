@@ -31,14 +31,14 @@ namespace gensim
 
 // function for expression function processing
 
-		std::string modifier_decode_function(std::string this_str, std::string fnname, int argc, const util::expression **argv)
+		std::string modifier_decode_function(std::string this_str, std::string fnname, const std::vector<const util::expression *> &args)
 		{
 			std::stringstream output;
 			output << "modifier_decode_" << fnname << "(";
 			bool first = true;
-			for (int i = 0; i < argc; ++i) {
+			for (unsigned i = 0; i < args.size(); ++i) {
 				if (!first) output << ",";
-				output << argv[i]->ToString(this_str, &modifier_decode_function);
+				output << args.at(i)->ToString(this_str, &modifier_decode_function);
 			}
 			output << ", instr, pc)";
 			return output.str();
@@ -238,11 +238,14 @@ namespace gensim
 				if (i->constraints.size() > 0) {
 					source_str << "if(";
 					bool first = true;
-					for (std::map<std::string, const util::expression *>::const_iterator constraint = i->constraints.begin(); constraint != i->constraints.end(); ++constraint) {
-						if (!first) source_str << " && ";
-						source_str << "(instr." << constraint->first << " == " << constraint->second->ToString("instr", &modifier_decode_function) << ")";
+					for(auto &constraint : i->constraints) {
+						if(!first) {
+							source_str << " && ";
+						}
+						source_str << "(" << constraint->ToString("instr", &modifier_decode_function) << ")";
 						first = false;
 					}
+
 					source_str << ") \n {\n";
 				}
 

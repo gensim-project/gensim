@@ -11,6 +11,9 @@
 
 #include "DiagnosticContext.h"
 
+#include "flexbison_archc_ast.h"
+#include "flexbison_archc.h"
+
 #include <string>
 
 namespace gensim
@@ -33,7 +36,7 @@ namespace gensim
 		public:
 			FieldDescriptionParser(DiagnosticContext &diag);
 
-			bool Parse(void *ptree);
+			bool Parse(const ArchC::AstNode &ptree);
 			FieldDescription *Get();
 
 		private:
