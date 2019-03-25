@@ -1,0 +1,81 @@
+%{
+
+#include <stdint.h>
+#include "flexbison_harness.h"
+#include "flexbison_archcasm_ast.h"
+
+#define YYERROR_VERBOSE 1
+%}
+
+%code requires {
+    namespace ArchCAsm {
+        class ArchCAsmScanner;
+    }
+}
+
+%skeleton "lalr1.cc"
+
+%defines
+%locations
+%define api.namespace {ArchCAsm}
+%define api.prefix {ArchCAsm}
+%define parser_class_name {ArchCAsmParser}
+
+%union {
+    uint64_t ival;
+    char *sval;
+    float fval;
+    double dval;
+    astnode<ArchCAsmNodeType> *ast_node;
+}
+
+%parse-param { ArchCAsmScanner &scanner } { astnode<ArchCAsmNodeType> * root }
+
+%code {
+#include "flexbison_archcasm.h"
+#undef yylex 
+#define yylex scanner.ArchCAsmlex
+}
+
+%token WS CHARSEQ SPECIALCHAR OBRACKET CBRACKET PERCENT
+
+%define parse.assert
+%define parse.error verbose
+
+%%
+
+asm_string : 
+    atom_list;
+
+atom_list : 
+    atom_list atom |
+    %empty
+
+atom :
+    ws_string |
+    char_string |
+    placeholder;
+
+ws_string :
+    WS;
+
+char_string :
+    CHARSEQ |
+    SPECIALCHAR |
+    OBRACKET |
+    CBRACKET;
+
+placeholder :
+    PERCENT id |
+    PERCENT OBRACKET id CBRACKET 
+
+id :
+    CHARSEQ;
+
+%%
+
+void ArchCAsm::ArchCAsmParser::error(const ArchCAsm::location &location, const std::string &error)
+{
+    std::cerr << location << ":" << error << std::endl;
+    //fprintf(stderr, "%s:%u: %s\n", location.begin.filename, location.begin.line, error.c_str());
+}

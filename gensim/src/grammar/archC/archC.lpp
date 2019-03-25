@@ -62,12 +62,15 @@ using token = ArchC::ArchCParser::token;
 ">" return token::CANGLE;
 
 "@" return token::AC_AT;
-"+" return token::AC_PLUS;
-"-" return token::AC_MINUS;
+"+" { yylval->sval = strdup("+"); return token::AC_PLUS; }
+"-" { yylval->sval = strdup("-"); return token::AC_MINUS; }
+"^" { yylval->sval = strdup("^"); return token::AC_CARET; }
 
 ".." return token::GROUPING;
 "," return token::COMMA;
-"=" return token::EQUALS;
+"=" { yylval->sval = strdup("="); return token::EQUALS; }
+"!=" { yylval->sval = strdup("!="); return token::NOTEQUALS; }
+"&" { yylval->sval = strdup("&");return token::AMPERSAND; }
 
 \"(\\.|[^"\\])*\" { yylval->sval = yytext; return token::AC_STRING; }
 
@@ -106,7 +109,7 @@ using token = ArchC::ArchCParser::token;
 "set_fixed_jump" return token::SET_JUMP_FIXED;
 "set_fixed_predicated_jump" return token::SET_JUMP_FIXED_PREDICATED;
 "set_variable_jump" return token::SET_JUMP_VARIABLE;
-"set_uses_pc" return token::SET_USES_PC;
+"set_reads_pc" return token::SET_USES_PC;
 "set_block_cond" return token::SET_BLOCK_COND;
 
 "FIXED" return token::FIXED;

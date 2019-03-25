@@ -581,6 +581,10 @@ bool GenCContext::Parse_Type(GenC::AstNode &node, IRType &out_type)
 			}
 			break;
 		}
+
+		default: {
+			UNEXPECTED;
+		}
 	}
 
 	// parse annotations if they're there

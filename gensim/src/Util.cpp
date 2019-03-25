@@ -4,12 +4,13 @@
 #include <sstream>
 #include <fstream>
 
-#include <archc/archcParser.h>
-#include <antlr3.h>
 #include <string.h>
 
 #include "define.h"
 #include "Util.h"
+
+#include <archc/archcParser.h>
+#include <antlr3.h>
 
 namespace gensim
 {
@@ -17,6 +18,54 @@ namespace gensim
 	{
 
 		uint8_t Util::Verbose_Level = 0;
+
+		expression *expression::CreateID(const std::string &id)
+		{
+			expression *exp = new expression();
+			exp->node_str = id;
+			exp->nodetype = EXPNODE_ID;
+
+			return exp;
+		}
+
+		const expression *expression::Parse(const ArchC::AstNode &node)
+		{
+			expression *exp = new expression();
+
+			switch(node.GetType()) {
+				case ArchCNodeType::Expression: {
+					// op, lhs, rhs
+					exp->nodetype = EXPNODE_OPERATOR;
+					std::string opstring = node[0].GetString();
+					if(opstring == "=") {
+						opstring = "==";
+					}
+					exp->node_str = opstring;
+
+					exp->subexpressions.push_back(Parse(node[1]));
+					exp->subexpressions.push_back(Parse(node[2]));
+
+					break;
+				}
+
+				case ArchCNodeType::INT: {
+					exp->nodetype = EXPNODE_VAL;
+					exp->node_val = node.GetInt();
+					break;
+				}
+
+				case ArchCNodeType::Identifier: {
+					exp->nodetype = EXPNODE_ID;
+					exp->node_str = node[0].GetString();
+					break;
+				}
+				default: {
+					UNEXPECTED;
+				}
+			}
+
+			return exp;
+		}
 
 		const expression *expression::Parse(void *ptree)
 		{
@@ -39,10 +88,9 @@ namespace gensim
 					pANTLR3_BASE_TREE fnNameNode = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
 					exp->node_str = (char *)fnNameNode->getText(fnNameNode)->chars;
 					exp->nodetype = EXPNODE_FNCALL;
-					exp->subexprcount = tree->getChildCount(tree) - 1;
-					exp->subexprs = (const expression **)malloc(sizeof(expression *) * exp->subexprcount);
-					for (int i = 0; i < exp->subexprcount; ++i) {
-						exp->subexprs[i] = (Parse((pANTLR3_BASE_TREE)tree->getChild(tree, i + 1)));
+					int subexprcount = tree->getChildCount(tree) - 1;
+					for (int i = 0; i < subexprcount; ++i) {
+						exp->subexpressions.push_back(Parse((pANTLR3_BASE_TREE)tree->getChild(tree, i + 1)));
 					}
 					return exp;
 				}
@@ -52,25 +100,23 @@ namespace gensim
 					break;
 			}
 			if (tree->getChildCount(tree) > 0) {
-				exp->subexprcount = tree->getChildCount(tree);
-				exp->subexprs = (const expression **)malloc(sizeof(expression *) * exp->subexprcount);
-				for (int i = 0; i < exp->subexprcount; ++i) {
-					exp->subexprs[i] = (Parse((pANTLR3_BASE_TREE)tree->getChild(tree, i)));
+				for (unsigned i = 0; i < tree->getChildCount(tree); ++i) {
+					exp->subexpressions.push_back(Parse((pANTLR3_BASE_TREE)tree->getChild(tree, i)));
 				}
 			}
 
 			return exp;
 		}
 
-		std::string expression::ToString(std::string this_str, std::string (*fn_process_fn)(std::string, std::string, int, const expression **)) const
+		std::string expression::ToString(std::string this_str, std::string (*fn_process_fn)(std::string, std::string, const std::vector<const expression *>&)) const
 		{
 			std::stringstream str;
 			str << "(";
 			if (nodetype == EXPNODE_FNCALL) {
-				str << fn_process_fn(this_str, node_str, subexprcount, subexprs);
+				str << fn_process_fn(this_str, node_str, subexpressions);
 			} else {
-				if (subexprcount == 2)  // if we have left and right subexprs
-					str << subexprs[0]->ToString(this_str, fn_process_fn);
+				if (subexpressions.size() == 2)  // if we have left and right subexprs
+					str << subexpressions[0]->ToString(this_str, fn_process_fn);
 				switch (nodetype) {
 					case EXPNODE_ID:
 						str << this_str << "." << node_str;
@@ -84,8 +130,8 @@ namespace gensim
 					default:
 						GASSERT(false);
 				}
-				if (subexprcount == 2)  // if we have left and right subexprs
-					str << subexprs[1]->ToString(this_str, fn_process_fn);
+				if (subexpressions.size() == 2)  // if we have left and right subexprs
+					str << subexpressions[1]->ToString(this_str, fn_process_fn);
 			}
 			str << ")";
 			return str.str();

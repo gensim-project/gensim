@@ -18,6 +18,10 @@
 
 #include <cassert>
 
+#include "flexbison_harness.h"
+#include "flexbison_archc_ast.h"
+#include "flexbison_archc.h"
+
 static uint32_t rol32(uint32_t x, uint32_t n)
 {
 	assert (n<32);
@@ -77,16 +81,16 @@ namespace gensim
 			ExpressionNodeType nodetype;
 			std::string node_str;
 			uint32_t node_val;
-			const expression **subexprs;
-			int subexprcount;
+			std::vector<const expression *> subexpressions;
 
 			static const expression *Parse(void *tree);
+			static const expression *Parse(const ArchC::AstNode &tree);
 
-			expression() : subexprs(NULL), subexprcount(0) {}
+			static expression *CreateID(const std::string &id);
 
 			// function pointer:
 			// std::string fn_process_fn(this_string, function_name, arg_count, function_args)
-			std::string ToString(std::string this_str, std::string (*fn_process_fn)(std::string, std::string, int, const expression **)) const;
+			std::string ToString(std::string this_str, std::string (*fn_process_fn)(std::string, std::string, const std::vector<const expression *>&)) const;
 		};
 
 		class Util

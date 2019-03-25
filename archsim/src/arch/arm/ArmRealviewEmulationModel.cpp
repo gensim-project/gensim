@@ -53,8 +53,11 @@ bool ArmRealviewEmulationModel::Initialise(System& system, uarch::uArch& uarch)
 		return false;
 
 	// Initialise "physical memory".
-	if (GetMemoryModel().GetMappingManager())
-		GetMemoryModel().GetMappingManager()->MapAll((archsim::abi::memory::RegionFlags)7);
+	if (GetMemoryModel().GetMappingManager()) {
+		if(!GetMemoryModel().GetMappingManager()->MapAll((archsim::abi::memory::RegionFlags)7)) {
+			LC_ERROR(LogSystemEmulationModel) << "Failed to map memory.";
+		}
+	}
 
 	InstantiateThreads(1);
 

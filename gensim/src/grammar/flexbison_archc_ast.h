@@ -22,6 +22,8 @@ enum class ArchCNodeType {
 	RegViewSlot,
 	RegViewBank,
 
+	Expression,
+
 	ArchCtor,
 	AcIsa,
 	AcEndianness,
@@ -37,6 +39,9 @@ enum class ArchCNodeType {
 	PC,
 	Features,
 	AsmMap,
+	AsmMapGroup,
+	AsmMapGrouping,
+	AsmMapGroupLRule,
 	BehavioursList,
 
 	IsaCtor,
@@ -49,7 +54,13 @@ enum class ArchCNodeType {
 	Behaviour,
 	EndOfBlock,
 	JumpVariable,
-	JumpFixed
+	JumpFixed,
+	JumpFixedPredicated,
+	UsesPc,
+	BlockCond,
+
+	Struct,
+	StructField
 };
 
 static std::ostream &operator<<(std::ostream &os, ArchCNodeType type)
@@ -72,6 +83,8 @@ static std::ostream &operator<<(std::ostream &os, ArchCNodeType type)
 			HANDLE(RegViewSlot);
 			HANDLE(RegViewBank);
 
+			HANDLE(Expression);
+
 			HANDLE(ArchCtor);
 			HANDLE(AcIsa);
 			HANDLE(AcEndianness);
@@ -87,6 +100,9 @@ static std::ostream &operator<<(std::ostream &os, ArchCNodeType type)
 			HANDLE(PC);
 			HANDLE(Features);
 			HANDLE(AsmMap);
+			HANDLE(AsmMapGroup);
+			HANDLE(AsmMapGrouping);
+			HANDLE(AsmMapGroupLRule);
 			HANDLE(BehavioursList);
 
 			HANDLE(IsaCtor);
@@ -100,6 +116,12 @@ static std::ostream &operator<<(std::ostream &os, ArchCNodeType type)
 			HANDLE(EndOfBlock);
 			HANDLE(JumpVariable);
 			HANDLE(JumpFixed);
+			HANDLE(JumpFixedPredicated);
+			HANDLE(UsesPc);
+			HANDLE(BlockCond);
+
+			HANDLE(Struct);
+			HANDLE(StructField);
 
 #undef HANDLE
 		default:

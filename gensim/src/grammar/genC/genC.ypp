@@ -425,6 +425,6 @@ typename_type:
 
 void GenC::GenCParser::error(const GenC::location &location, const std::string &error)
 {
-    std::cerr << location << ":" << error << std::endl;
+    std::cerr << "GenC Error: " << location << ":" << error << std::endl;
     //fprintf(stderr, "%s:%u: %s\n", location.begin.filename, location.begin.line, error.c_str());
 }
