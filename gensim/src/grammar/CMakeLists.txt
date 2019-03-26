@@ -92,7 +92,6 @@ endfunction()
 
 grammar(archCBehaviour)
 grammar(archcasm)
-grammar(archc)
 grammar(archCuArch)
 grammar(ssa_asm)
 

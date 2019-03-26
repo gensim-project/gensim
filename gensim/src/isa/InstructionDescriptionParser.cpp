@@ -4,9 +4,6 @@
 
 #include "isa/InstructionDescriptionParser.h"
 
-#include <archc/archcParser.h>
-#include <archc/archcLexer.h>
-
 #include "define.h"
 
 using namespace gensim::isa;

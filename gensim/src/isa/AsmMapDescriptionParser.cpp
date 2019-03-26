@@ -2,9 +2,6 @@
 
 #include "isa/AsmMapDescriptionParser.h"
 
-#include <archc/archcParser.h>
-#include <archc/archcLexer.h>
-
 using namespace gensim::isa;
 
 

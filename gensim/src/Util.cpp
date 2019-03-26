@@ -9,7 +9,6 @@
 #include "define.h"
 #include "Util.h"
 
-#include <archc/archcParser.h>
 #include <antlr3.h>
 
 namespace gensim
@@ -61,47 +60,6 @@ namespace gensim
 				}
 				default: {
 					UNEXPECTED;
-				}
-			}
-
-			return exp;
-		}
-
-		const expression *expression::Parse(void *ptree)
-		{
-			pANTLR3_BASE_TREE tree = (pANTLR3_BASE_TREE)ptree;
-			expression *exp = new expression();
-			switch (tree->getType(tree)) {
-				case AC_ID:
-					exp->node_str = (char *)tree->getText(tree)->chars;
-					exp->nodetype = EXPNODE_ID;
-					break;
-				case AC_INT:
-					sscanf((char *)tree->getText(tree)->chars, "%u", &exp->node_val);
-					exp->nodetype = EXPNODE_VAL;
-					break;
-				case AC_HEX_VAL:
-					sscanf((char *)tree->getText(tree)->chars, "0x%x", &exp->node_val);
-					exp->nodetype = EXPNODE_VAL;
-					break;
-				case FNCALL: {
-					pANTLR3_BASE_TREE fnNameNode = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-					exp->node_str = (char *)fnNameNode->getText(fnNameNode)->chars;
-					exp->nodetype = EXPNODE_FNCALL;
-					int subexprcount = tree->getChildCount(tree) - 1;
-					for (int i = 0; i < subexprcount; ++i) {
-						exp->subexpressions.push_back(Parse((pANTLR3_BASE_TREE)tree->getChild(tree, i + 1)));
-					}
-					return exp;
-				}
-				default:
-					exp->node_str = (char *)tree->getText(tree)->chars;
-					exp->nodetype = EXPNODE_OPERATOR;
-					break;
-			}
-			if (tree->getChildCount(tree) > 0) {
-				for (unsigned i = 0; i < tree->getChildCount(tree); ++i) {
-					exp->subexpressions.push_back(Parse((pANTLR3_BASE_TREE)tree->getChild(tree, i)));
 				}
 			}
 
