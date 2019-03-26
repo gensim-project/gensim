@@ -72,7 +72,7 @@
 %type <ast_node> asm_arg asm_arg_list isa_asm_map isa_mapping_list isa_mapping isa_mapping_group isa_mapping_group_lrule  group isa_mapping_strings_lrule isa_mapping_strings
 %type <ast_node> isa_CTOR ctor_resource_list ctor_resource behaviours_resource decodes_resource execute_resource
 %type <ast_node> decoder_resource assembler_resource behaviour_resource end_of_block_resource jump_variable_resource jump_fixed_resource expression_list fixed_jump_type
-%type <ast_node> expression_list_nonempty expression
+%type <ast_node> expression_list_nonempty expression ar_predicated
 %type <ast_node> isa_struct_definition isa_struct_definition_entry_list isa_struct_definition_entry uses_pc_resource jump_fixed_predicated_resource block_condition_resource
 
 %define parse.assert
@@ -309,7 +309,7 @@ isa_mapping_strings_lrule :
     string;
 
 ar_predicated :
-    AC_PREDICATED string SEMICOLON;
+    AC_PREDICATED string SEMICOLON { $$ = CreateNode(ArchCNodeType::AcPredicated, {$2}); }
 
 isa_struct_definition :
     AC_STRUCT id OBRACE isa_struct_definition_entry_list CBRACE SEMICOLON { $$ = CreateNode(ArchCNodeType::Struct, {$2, $4}); }

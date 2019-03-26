@@ -5,8 +5,6 @@
 #include "isa/AsmDescriptionParser.h"
 #include "isa/AsmMapDescriptionParser.h"
 
-#include <archcasm/archcasmParser.h>
-#include <archcasm/archcasmLexer.h>
 #include <archCBehaviour/archCBehaviourLexer.h>
 #include <archCBehaviour/archCBehaviourParser.h>
 
@@ -219,12 +217,11 @@ bool ISADescriptionParser::load_from_node(ArchC::AstNode &node, std::string file
 				break;
 			}
 
-			// case ArchCNodeType::Predicated: {
-			// UNIMPLEMENTED;
-			// pANTLR3_BASE_TREE value = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-			// isa->SetDefaultPredicated(strcmp((const char *)value->getText(value)->chars, "yes") == 0);
-			// break;
-			// }
+			case ArchCNodeType::AcPredicated: {
+				std::string text_value = child[0].GetString();
+				isa->SetDefaultPredicated(text_value == "yes");
+				break;
+			}
 
 			case ArchCNodeType::Struct: {
 				success &= parse_struct(child);

@@ -37,7 +37,10 @@
 #define yylex scanner.ArchCAsmlex
 }
 
-%token WS CHARSEQ SPECIALCHAR OBRACKET CBRACKET PERCENT
+%token<sval> WS CHARSEQ SPECIALCHAR OBRACKET CBRACKET PERCENT DOTS
+
+%type<ast_node> asm_string atom_list atom placeholder modifier modifier_list modified_id id
+%type<sval> ws_string char_string  
 
 %define parse.assert
 %define parse.error verbose
@@ -45,32 +48,43 @@
 %%
 
 asm_string : 
-    atom_list;
+    atom_list { root->AddChild($1); };
 
 atom_list : 
-    atom_list atom |
-    %empty
+    atom_list atom { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(ArchCAsmNodeType::List); }
 
 atom :
-    ws_string |
-    char_string |
-    placeholder;
+    ws_string { $$ = CreateNode(ArchCAsmNodeType::Text, {CreateStrNode<ArchCAsmNodeType>($1)}); } |
+    char_string { $$ = CreateNode(ArchCAsmNodeType::Text, {CreateStrNode<ArchCAsmNodeType>($1)}); } |
+    placeholder { $$ = $1; }
 
 ws_string :
-    WS;
+    WS
 
 char_string :
     CHARSEQ |
     SPECIALCHAR |
     OBRACKET |
-    CBRACKET;
+    CBRACKET |
+    DOTS;
 
 placeholder :
-    PERCENT id |
-    PERCENT OBRACKET id CBRACKET 
+    PERCENT modified_id { $$ = $2; } |
+    PERCENT OBRACKET modified_id CBRACKET { $$ = $3; }
+
+modified_id :
+    id modifier_list { $$ = CreateNode(ArchCAsmNodeType::Placeholder, {$1, $2}); }
 
 id :
-    CHARSEQ;
+    CHARSEQ { $$ = CreateStrNode<ArchCAsmNodeType>($1); }
+
+modifier_list :
+    modifier_list modifier { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(ArchCAsmNodeType::List); }
+
+modifier :
+    DOTS { $$ = CreateStrNode<ArchCAsmNodeType>($1); }
 
 %%
 
