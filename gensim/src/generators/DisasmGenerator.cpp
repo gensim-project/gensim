@@ -5,10 +5,9 @@
 #include <algorithm>
 #include <queue>
 
-#include <antlr3.h>
-#include <antlr-ver.h>
-#include <archcasm/archcasmLexer.h>
-#include <archcasm/archcasmParser.h>
+#include "flexbison_harness.h"
+#include "flexbison_archcasm_ast.h"
+#include "flexbison_archcasm.h"
 
 #include "generators/DisasmGenerator.h"
 #include "isa/ISADescription.h"
@@ -251,69 +250,65 @@ namespace gensim
 
 				// now, decode the format string and output
 
-				// do all the ANTLR parsing setup and parse the format string
-				pANTLR3_INPUT_STREAM pts = antlr3NewAsciiStringCopyStream((uint8_t *)i->format.c_str(), i->format.length(), (uint8_t *)"stream");
-				parchcasmLexer lexer = archcasmLexerNew(pts);
-				pANTLR3_COMMON_TOKEN_STREAM tstream = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(lexer));
+				// parse the format string
+				std::stringstream input;
+				input.str(i->format);
 
-				parchcasmParser parser = archcasmParserNew(tstream);
+				ArchCAsm::ArchCAsmScanner scanner(&input);
+				ArchCAsm::AstNode root_node (ArchCAsmNodeType::ROOT);
+				ArchCAsm::ArchCAsmParser parser(scanner, &root_node);
 
-				archcasmParser_asmStmt_return asm_stmt = parser->asmStmt(parser);
-
-				pANTLR3_BASE_TREE root_node = asm_stmt.tree;
+				// We should have already parsed the input to determine if there are syntax errors, so this parse should always succeed.
+				if(parser.parse()) {
+					UNEXPECTED;
+				}
 
 				// now loop through the parsed components and output code to emit them
 				uint32_t curr_arg = 0;
-				for (uint32_t childNum = 0; childNum < root_node->getChildCount(root_node); childNum++) {
-					pANTLR3_BASE_TREE child = (pANTLR3_BASE_TREE)root_node->getChild(root_node, childNum);
-					// each node is either an ARG or just text
-					if (child->getType(child) == ASM_ARG) {
-						if (curr_arg >= i->args.size()) {
-							fprintf(stderr, "Too few disassembly arguments provided to disassembly for instruction %s\n", instr.Name.c_str());
-							success = false;
-							return success;
-						}
-
-						// if this node is an ARG, grab the identifier which names either a map or a builtin map (imm or exp)
-						pANTLR3_BASE_TREE name_child = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-						std::string map_name((char *)name_child->getText(name_child)->chars);
-
-						// identifiers can be affected by modifiers (e.g. ... for reg lists). we can tell if a node is modified
-						// by looking at how many children it has.
-						if (child->getChildCount(child) == 1) { // if this arg is unmodified then process it immediately
-							// if this is an imm or an exp (handled identically) then output the expression to generate that imm or exp
-							if (!map_name.compare("imm") || !map_name.compare("exp") || !map_name.compare("reladdr") || !map_name.compare("hex32") || !map_name.compare("hex64")) {
-
-								if (!map_name.compare("reladdr")) {
-									source_str << "str << std::hex << (uint32_t)(pc.Get() + (sint32_t)(uint32_t)(" << i->args[curr_arg]->ToString("instr", &modifier_decode_function) << ")) << std::dec;\n";
-								} else {
-									source_str << "str << (uint32_t)(" << i->args[curr_arg]->ToString("instr", &modifier_decode_function) << ");\n";
-								}
-							} else {
-								// otherwise look up the map (generating an error if it is invalid) and output code to generate a map lookup
-								std::map<std::string, isa::AsmMapDescription>::const_iterator map_it = isa.Mappings.find(map_name);
-								if (map_it == isa.Mappings.end()) {
-									// TODO: throw an exception here instead
-									fprintf(stderr, "Attempted to use an undefined asm map %s for insn %s\n", map_name.c_str(), i->instruction_name.c_str());
-									return false;
-								}
-								source_str << "map_val = " << map_it->second.GetMin() << " + " << i->args[curr_arg]->ToString("instr", modifier_decode_function) << ";"
-								           "if(map_val < " << map_it->second.mapping.size() << ")"
-								           "str << " << GetProperty("class") << "::Map_" << isa.ISAName << "_" << map_name << "[map_val];\n"
-								           "else str << \"???\";";
+				const auto &listNode = root_node[0];
+				for (unsigned asm_arg = 0; asm_arg < listNode.GetChildren().size(); ++asm_arg) {
+					auto &child = listNode[asm_arg];
+					// each node is either an argument placeholder or just text
+					switch(child.GetType()) {
+						case ArchCAsmNodeType::Placeholder: {
+							if (curr_arg >= i->args.size()) {
+								fprintf(stderr, "Too few disassembly arguments provided to disassembly for instruction %s\n", instr.Name.c_str());
+								success = false;
+								return success;
 							}
-						} else {
-							// this node is modified by some modifier (... for reglist or L,H,A,R for value modifiers)
-							pANTLR3_BASE_TREE mod_node = (pANTLR3_BASE_TREE)child->getChild(child, 1);  // get the main modifier node
 
-							if (!map_name.compare("imm") || !map_name.compare("exp") || !map_name.compare("reladdr")) {
-								if (mod_node->getType(mod_node) != ASM_MODIFIER) {
-									fprintf(stderr, "Known values can only be modified by modifier functions\n");
-									return false;
+							// if this node is an ARG, grab the identifier which names either a map or a builtin map (imm or exp)
+							std::string map_name = child[0].GetString();
+							const auto &modifier_list = child[1];
+							// identifiers can be affected by modifiers (e.g. ... for reg lists). we can tell if a node is modified
+							// by looking at how many children it has.
+							if (modifier_list.GetChildren().size() == 0) { // if this arg is unmodified then process it immediately
+								// if this is an imm or an exp (handled identically) then output the expression to generate that imm or exp
+								if (!map_name.compare("imm") || !map_name.compare("exp") || !map_name.compare("reladdr") || !map_name.compare("hex32") || !map_name.compare("hex64")) {
+
+									if (!map_name.compare("reladdr")) {
+										source_str << "str << std::hex << (uint32_t)(pc.Get() + (sint32_t)(uint32_t)(" << i->args[curr_arg]->ToString("instr", &modifier_decode_function) << ")) << std::dec;\n";
+									} else {
+										source_str << "str << (uint32_t)(" << i->args[curr_arg]->ToString("instr", &modifier_decode_function) << ");\n";
+									}
+								} else {
+									// otherwise look up the map (generating an error if it is invalid) and output code to generate a map lookup
+									std::map<std::string, isa::AsmMapDescription>::const_iterator map_it = isa.Mappings.find(map_name);
+									if (map_it == isa.Mappings.end()) {
+										// TODO: throw an exception here instead
+										fprintf(stderr, "Attempted to use an undefined asm map %s for insn %s\n", map_name.c_str(), i->instruction_name.c_str());
+										return false;
+									}
+									source_str << "map_val = " << map_it->second.GetMin() << " + " << i->args[curr_arg]->ToString("instr", modifier_decode_function) << ";"
+									           "if(map_val < " << map_it->second.mapping.size() << ")"
+									           "str << " << GetProperty("class") << "::Map_" << isa.ISAName << "_" << map_name << "[map_val];\n"
+									           "else str << \"???\";";
 								}
-								pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)mod_node->getChild(mod_node, 0);
-								source_str << "str << modifier_decode_" << nameNode->getText(nameNode)->chars << "(" << i->args[curr_arg]->ToString("instr", &modifier_decode_function) << ", instr, pc);\n";
 							} else {
+								// this node is modified by some modifier (... for reglist or L,H,A,R for value modifiers)
+								GASSERT(modifier_list.GetChildren().size() == 1);
+								const auto &mod_node = modifier_list[0];
+
 								// look up the map we are mapping to
 								std::map<std::string, isa::AsmMapDescription>::const_iterator map_it = isa.Mappings.find(map_name);
 								if (map_it == isa.Mappings.end()) {
@@ -323,38 +318,34 @@ namespace gensim
 								}
 								isa::AsmMapDescription map = map_it->second;
 
-								switch (mod_node->getType(mod_node)) {
-									case ASM_BIT_LIST: {
-										source_str << "uint32_t val = " << i->args[curr_arg]->ToString("instr", &modifier_decode_function) << ";\n bool first = true;\n";
-										// loop from low to high bits. a register map value represents the bit representing that register
-										for (int bit = map.GetMin(); bit <= map.GetMax(); bit++) {
-											uint32_t val = 1 << bit;
-											source_str << "if(val & " << val << ")\n";
-											source_str << "{\n";
-											source_str << "   if(!first) str << \", \";\n";
-											source_str << "str << " << GetProperty("class") << "::Map_" << isa.ISAName << "_" << map_name << "[" << (bit - map.GetMin()) << "];\n";
-											source_str << "first = false;\n";
-											source_str << "}\n";
-										}
-										break;
+								if(mod_node.GetString() == "...") {
+									source_str << "uint32_t val = " << i->args[curr_arg]->ToString("instr", &modifier_decode_function) << ";\n bool first = true;\n";
+									// loop from low to high bits. a register map value represents the bit representing that register
+									for (int bit = map.GetMin(); bit <= map.GetMax(); bit++) {
+										uint32_t val = 1 << bit;
+										source_str << "if(val & " << val << ")\n";
+										source_str << "{\n";
+										source_str << "   if(!first) str << \", \";\n";
+										source_str << "str << " << GetProperty("class") << "::Map_" << isa.ISAName << "_" << map_name << "[" << (bit - map.GetMin()) << "];\n";
+										source_str << "first = false;\n";
+										source_str << "}\n";
 									}
-									default: {
-										fprintf(stderr, "Modifier is not currently supported for insn %s\n", i->instruction_name.c_str());
-										return false;
-									}
+								} else {
+									UNEXPECTED;
 								}
+
 							}
+							curr_arg++;
 						}
-						curr_arg++;
-					} else {
-						source_str << "str << \"" << child->getText(child)->chars << "\";\n";
+						case ArchCAsmNodeType::Text: {
+							source_str << "str << \"" << child[0].GetString() << "\";\n";
+							break;
+						}
+						default: {
+							UNEXPECTED;
+						}
 					}
 				}
-
-				parser->free(parser);
-				tstream->free(tstream);
-				lexer->free(lexer);
-				pts->free(pts);
 
 				source_str << "return str.str();\n";
 				if (i->constraints.size() > 0) {

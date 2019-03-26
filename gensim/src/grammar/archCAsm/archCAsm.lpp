@@ -37,13 +37,14 @@ using token = ArchCAsm::ArchCAsmParser::token;
     yylval = lval; 
 %}
 
-[a-zA-Z0-9]+ return token::CHARSEQ;
-" " return token::WS;
-"\t" return token::WS;
-"%" return token::PERCENT;
-"[" return token::OBRACKET;
-"]" return token::CBRACKET;
-[,;:!^&*()#+-{}@_$.<>?/\\] return token::SPECIALCHAR;
+[a-zA-Z0-9]+ { yylval->sval = strdup(yytext); return token::CHARSEQ; }
+" " { yylval->sval = strdup(yytext); return token::WS; }
+"\t" { yylval->sval = strdup(yytext); return token::WS; }
+"%" { yylval->sval = strdup(yytext); return token::PERCENT; }
+"[" { yylval->sval = strdup(yytext); return token::OBRACKET; }
+"]" { yylval->sval = strdup(yytext); return token::CBRACKET; }
+[,;:!^&*()#+-{}@_$.<>?/\\] { yylval->sval = strdup(yytext); return token::SPECIALCHAR; }
+"..." { yylval->sval = strdup(yytext); return token::DOTS; }
 
 . { printf("Unmatched character '%s' at line ???\n", yytext); }
 

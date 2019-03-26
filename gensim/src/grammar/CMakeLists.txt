@@ -91,7 +91,6 @@ function(grammar_flex_bison grammar-name grammar-path)
 endfunction()
 
 grammar(archCBehaviour)
-grammar(archcasm)
 grammar(archCuArch)
 grammar(ssa_asm)
 

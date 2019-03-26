@@ -12,6 +12,10 @@ enum class ArchCAsmNodeType {
 
 	ROOT,
 
+	List,
+	Placeholder,
+	Text
+
 };
 
 static std::ostream &operator<<(std::ostream &os, ArchCAsmNodeType type)
@@ -23,6 +27,9 @@ static std::ostream &operator<<(std::ostream &os, ArchCAsmNodeType type)
 			HANDLE(FLOAT);
 			HANDLE(DOUBLE);
 			HANDLE(ROOT);
+			HANDLE(List);
+			HANDLE(Placeholder);
+			HANDLE(Text);
 
 
 #undef HANDLE

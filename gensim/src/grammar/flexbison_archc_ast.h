@@ -42,6 +42,7 @@ enum class ArchCNodeType {
 	AsmMapGroup,
 	AsmMapGrouping,
 	AsmMapGroupLRule,
+	AcPredicated,
 	BehavioursList,
 
 	IsaCtor,
@@ -99,6 +100,7 @@ static std::ostream &operator<<(std::ostream &os, ArchCNodeType type)
 			HANDLE(Field);
 			HANDLE(PC);
 			HANDLE(Features);
+			HANDLE(AcPredicated);
 			HANDLE(AsmMap);
 			HANDLE(AsmMapGroup);
 			HANDLE(AsmMapGrouping);
