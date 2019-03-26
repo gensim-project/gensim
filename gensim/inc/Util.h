@@ -83,7 +83,6 @@ namespace gensim
 			uint32_t node_val;
 			std::vector<const expression *> subexpressions;
 
-			static const expression *Parse(void *tree);
 			static const expression *Parse(const ArchC::AstNode &tree);
 
 			static expression *CreateID(const std::string &id);
