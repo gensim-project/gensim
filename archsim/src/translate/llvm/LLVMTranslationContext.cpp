@@ -329,7 +329,7 @@ LLVMTranslationContext::LLVMTranslationContext(llvm::LLVMContext &ctx, llvm::Fun
 	Functions.InstructionTick = (llvm::Function*)Module->getOrInsertFunction("cpuInstructionTick", Types.vtype, Types.i8Ptr);
 
 	guest_reg_emitter_ = std::unique_ptr<LLVMGuestRegisterAccessEmitter>(new GEPLLVMGuestRegisterAccessEmitter(*this));
-	memory_access_emitter_ = std::unique_ptr<LLVMMemoryAccessEmitter>(new CacheLLVMMemoryAccessEmitter(*this));
+	memory_access_emitter_ = std::unique_ptr<LLVMMemoryAccessEmitter>(new BaseLLVMMemoryAccessEmitter(*this));
 }
 
 llvm::Value* LLVMTranslationContext::GetThreadPtr(llvm::IRBuilder<> &builder)

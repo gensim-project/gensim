@@ -77,23 +77,41 @@ static void EmitControlFlow_DirectNonPred(llvm::IRBuilder<> &builder, LLVMTransl
 	builder.CreateBr(taken_block);
 }
 
-static void EmitControlFlow_DirectPred(llvm::IRBuilder<> &builder, translate_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region, gensim::JumpInfo &ji)
+static void EmitControlFlow_DirectPred(llvm::IRBuilder<> &builder, translate_llvm::LLVMTranslationContext &ctx, gensim::BaseLLVMTranslate *translate, TranslationWorkUnit &unit, llvm::Value *virt_page_base, TranslationBlockUnit &block, TranslationInstructionUnit *ctrlflow, translate_llvm::LLVMRegionTranslationContext &region, gensim::JumpInfo &ji)
 {
-	llvm::BasicBlock *taken_block = region.GetDispatchBlock();
-	llvm::BasicBlock *nontaken_block = region.GetDispatchBlock();
+	llvm::BasicBlock *taken_block = region.GetExitBlock(LLVMRegionTranslationContext::EXIT_REASON_PAGECHANGE);
+	llvm::BasicBlock *nontaken_block = region.GetExitBlock(LLVMRegionTranslationContext::EXIT_REASON_PAGECHANGE);
+	auto &pc_descriptor = ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC");
 	llvm::Value *pc = translate->EmitRegisterRead(builder, ctx, ctx.GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
 
-	// we need to account for the fact that the PC is virtual, not physical.
-	// subtract the physical PC, then re-add the physical jump target to get the virtual jump target
-	llvm::Value *taken_pc = builder.CreateSub(pc, llvm::ConstantInt::get(pc->getType(), (unit.GetRegion().GetPhysicalBaseAddress() + block.GetOffset() + ctrlflow->GetOffset()).Get()));
-	taken_pc = builder.CreateAdd(pc, llvm::ConstantInt::get(pc->getType(), ji.JumpTarget.Get()));
+	uint64_t pc_mask = 0;
+	switch(pc_descriptor.GetEntrySize()) {
+		case 4:
+			pc_mask = 0xffffffff;
+			break;
+		case 8:
+			pc_mask = 0xffffffffffffffff;
+			break;
+		default:
+			UNEXPECTED;
+	}
+
+	// we need to account for the fact that the PC is virtual, not physical. Compute the physical PC offset from the jump info
+	archsim::Address physical_pc = unit.GetRegion().GetPhysicalBaseAddress() + block.GetOffset() + ctrlflow->GetOffset().Get();
+	archsim::Address phys_jump_target = ji.JumpTarget & pc_mask;
+	archsim::Address physical_offset = phys_jump_target - unit.GetRegion().GetPhysicalBaseAddress();
+
+	llvm::Value *taken_pc = builder.CreateAdd(virt_page_base, llvm::ConstantInt::get(pc->getType(), physical_offset.Get()));
+	// llvm::Value *taken_pc = llvm::ConstantInt::get(pc->getType(), jump_target.Get());
 
 	// If physical jump target falls on this physical page, then all is fine: we're jumping from one block to another (or falling through)
-	if((ji.JumpTarget >= unit.GetRegion().GetPhysicalBaseAddress()) && (ji.JumpTarget < (unit.GetRegion().GetPhysicalBaseAddress() + 4096))) {
+	if((phys_jump_target >= unit.GetRegion().GetPhysicalBaseAddress()) && (phys_jump_target < (unit.GetRegion().GetPhysicalBaseAddress() + 4096))) {
 		// jump target is on page
-		archsim::Address offset = ji.JumpTarget.PageOffset();
+		archsim::Address offset = phys_jump_target.PageOffset();
 		if(region.GetBlockMap().count(offset)) {
 			taken_block = region.GetBlockMap().at(offset);
+		} else {
+			taken_block = region.GetExitBlock(LLVMRegionTranslationContext::EXIT_REASON_NOBLOCK);
 		}
 	}
 
@@ -102,6 +120,8 @@ static void EmitControlFlow_DirectPred(llvm::IRBuilder<> &builder, translate_llv
 	if(fallthrough_addr >= unit.GetRegion().GetPhysicalBaseAddress() && fallthrough_addr < unit.GetRegion().GetPhysicalBaseAddress() + 4096) {
 		if(region.GetBlockMap().count(fallthrough_addr.PageOffset())) {
 			nontaken_block = region.GetBlockMap().at(fallthrough_addr.PageOffset());
+		} else {
+			nontaken_block = region.GetExitBlock(LLVMRegionTranslationContext::EXIT_REASON_NOBLOCK);
 		}
 	}
 
@@ -163,7 +183,7 @@ static void EmitControlFlow(llvm::IRBuilder<> &builder, translate_llvm::LLVMTran
 					EmitControlFlow_DirectNonPred(builder, ctx, translate, unit, block, ctrlflow, region, ji);
 				} else {
 					// situation 3
-					EmitControlFlow_DirectPred(builder, ctx, translate, unit, block, ctrlflow, region, ji);
+					EmitControlFlow_DirectPred(builder, ctx, translate, unit, virt_page_base, block, ctrlflow, region, ji);
 				}
 			} else {
 				// situation 4
