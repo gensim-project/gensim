@@ -105,6 +105,12 @@ template<typename PC_t> ExecutionResult BasicJITExecutionEngine::ExecuteLoop(Exe
 {
 	auto thread = ctx->GetThread();
 
+	bool verbose = archsim::options::Verbose;
+
+	if(verbose) {
+		thread->GetMetrics().SelfRuntime.Start();
+	}
+
 	CreateThreadExecutionSafepoint(thread);
 
 	while(ctx->GetState() == ExecutionState::Running) {
@@ -129,25 +135,32 @@ template<typename PC_t> ExecutionResult BasicJITExecutionEngine::ExecuteLoop(Exe
 		if(lookupBlock(thread, Address(*pc_ptr), fn)) {
 			assert(fn != nullptr);
 
-			ExecuteInnerLoop(ctx, pc_ptr);
-		} else {
-			auto pre_time = std::chrono::high_resolution_clock::now();
-
-			if(!translateBlock(thread, Address(*pc_ptr), false, false)) {
-				// failed to decode a block: abort
-				return ExecutionResult::Abort;
+			if(verbose) {
+				thread->GetMetrics().JITTime.Start();
 			}
 
-			auto post_time = std::chrono::high_resolution_clock::now();
+			ExecuteInnerLoop(ctx, pc_ptr);
 
-			auto duration = post_time - pre_time;
-
-//			std::cout << "Compiled block " << Address(*pc_ptr) << ": " << std::chrono::duration_cast<std::chrono::nanoseconds>(post_time-pre_time).count() << "ns" << std::endl;
+			if(verbose) {
+				thread->GetMetrics().JITTime.Stop();
+			}
+		} else {
+			if(!translateBlock(thread, Address(*pc_ptr), false, false)) {
+				// failed to decode a block: abort
+				if(verbose) {
+					thread->GetMetrics().SelfRuntime.Stop();
+				}
+				return ExecutionResult::Abort;
+			}
 		}
 
 		if(thread->GetTraceSource() != nullptr && thread->GetTraceSource()->IsPacketOpen()) {
 			thread->GetTraceSource()->Trace_End_Insn();
 		}
+	}
+
+	if(verbose) {
+		thread->GetMetrics().SelfRuntime.Stop();
 	}
 
 	return ExecutionResult::Halt;

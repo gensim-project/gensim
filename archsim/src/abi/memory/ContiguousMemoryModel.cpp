@@ -79,13 +79,17 @@ bool ContiguousMemoryModel::Initialise()
 	is_initialised = true;
 
 #if ARCHSIM_SIMULATION_HOST_IS_x86_64
-	if(arch_prctl(ARCH_SET_GS, (unsigned long)mem_base) == -1) {
-		LC_ERROR(LogMemoryModel) << "Failed to set GS register: " << strerror(errno);
-	}
+	if(archsim::options::SystemMemoryModel == "user") {
+		if(arch_prctl(ARCH_SET_GS, (unsigned long)mem_base) == -1) {
+			LC_ERROR(LogMemoryModel) << "Failed to set GS register: " << strerror(errno);
+		}
 
-	unsigned long l;
-	arch_prctl(ARCH_GET_GS, (unsigned long)&l);
-	assert(l == (unsigned long)mem_base);
+		unsigned long l;
+		arch_prctl(ARCH_GET_GS, (unsigned long)&l);
+		assert(l == (unsigned long)mem_base);
+
+		LC_INFO(LogMemoryModel) << "Using X86_64 specific memory model extension.";
+	}
 #endif
 
 #if CONFIG_LLVM
