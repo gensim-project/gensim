@@ -72,6 +72,7 @@ function(define_model target-name arch-name arch-file)
 	# include directories directory.
 	GET_PROPERTY(libtrace-includes GLOBAL PROPERTY LIBTRACE_INCLUDES)
 	GET_PROPERTY(archsim-includes GLOBAL PROPERTY ARCHSIM_INCLUDES)
+	GET_PROPERTY(archsim-llvm-includes GLOBAL PROPERTY ARCHSIM_LLVM_INCLUDES)
 
 	# Figure out correct optimisation level depending on build type
 	IF(${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
@@ -82,7 +83,14 @@ function(define_model target-name arch-name arch-file)
 		SET(MODEL_OPT "3")
 	ENDIF()
 
-	SET(gensim-options -s module,arch,decode,disasm,ee_interp,ee_blockjit,jumpinfo,function,makefile -o decode.GenerateDotGraph=1,makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.llvm_path=${LLVM_INCLUDE_DIRS},makefile.Optimise=${MODEL_OPT},makefile.Debug=1)
+	SET(gensim-components "module,arch,decode,disasm,ee_interp,ee_blockjit,jumpinfo,function,makefile")
+	SET(gensim-component-options "decode.GenerateDotGraph=1,makefile.libtrace_path=${libtrace-includes},makefile.archsim_path=${archsim-includes},makefile.llvm_path=${archsim-llvm-includes},makefile.Optimise=${MODEL_OPT},makefile.Debug=1")
+
+	IF(ARCHSIM_ENABLE_LLVM)
+		SET(gensim-components "module,arch,decode,disasm,llvm_translator,ee_interp,ee_blockjit,jumpinfo,function,makefile")
+	ENDIF()
+
+	SET(gensim-options -s ${gensim-components} -o ${gensim-component-options})
 
 	build_model(${target-name} ${arch-name} ${arch-file} "${gensim-options}" ${ARGN})
 	
