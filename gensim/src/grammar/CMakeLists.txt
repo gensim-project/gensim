@@ -91,7 +91,6 @@ function(grammar_flex_bison grammar-name grammar-path)
 endfunction()
 
 grammar(archCBehaviour)
-grammar(archCuArch)
 grammar(ssa_asm)
 
 grammar_flex_bison(genC "${CMAKE_CURRENT_SOURCE_DIR}/genC")
