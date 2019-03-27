@@ -491,31 +491,39 @@ void LLVMTranslationContext::StoreGuestRegister(llvm::IRBuilder<>& builder, cons
 	return guest_reg_emitter_->EmitRegisterWrite(builder, reg, index, value);
 }
 
+#define USE_CACHED_REGISTERS 0
 
 llvm::Value* LLVMTranslationContext::LoadRegister(llvm::IRBuilder<> &builder, int name)
 {
-//	return builder.CreateLoad(live_register_pointers_.at(name));
-
-	if(!live_register_values_.count(name)) {
-		live_register_values_[name] = builder.CreateLoad(live_register_pointers_.at(name));
+	if(USE_CACHED_REGISTERS) {
+		if(!live_register_values_.count(name)) {
+			live_register_values_[name] = builder.CreateLoad(live_register_pointers_.at(name));
+		}
+		return live_register_values_.at(name);
+	} else {
+		return builder.CreateLoad(live_register_pointers_.at(name));
 	}
-	return live_register_values_.at(name);
 }
 
 void LLVMTranslationContext::StoreRegister(llvm::IRBuilder<> &builder, int name, llvm::Value* value)
 {
-//	builder.CreateStore(value, live_register_pointers_.at(name));
-	live_register_values_[name] = value;
+	if(USE_CACHED_REGISTERS) {
+		live_register_values_[name] = value;
+	} else {
+		builder.CreateStore(value, live_register_pointers_.at(name));
+	}
 }
 
 void LLVMTranslationContext::ResetLiveRegisters(llvm::IRBuilder<> &builder)
 {
-	if(builder.GetInsertBlock()->size()) {
-		builder.SetInsertPoint(&builder.GetInsertBlock()->back());
-	}
+	if(USE_CACHED_REGISTERS) {
+		if(builder.GetInsertBlock()->size()) {
+			builder.SetInsertPoint(&builder.GetInsertBlock()->back());
+		}
 
-	for(auto live_reg : live_register_values_) {
-		builder.CreateStore(live_reg.second, live_register_pointers_.at(live_reg.first));
+		for(auto live_reg : live_register_values_) {
+			builder.CreateStore(live_reg.second, live_register_pointers_.at(live_reg.first));
+		}
+		live_register_values_.clear();
 	}
-	live_register_values_.clear();
 }
