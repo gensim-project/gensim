@@ -1,0 +1,67 @@
+%{
+
+#include <iostream>
+#include <stdint.h>
+
+#define yyerminate() return ENDOFFILE
+
+#include "flexbison_harness.h"
+#include "flexbison_archcbehaviours_ast.h"
+#include "archCBehaviours.tabs.h"
+#include "flexbison_archcbehaviours.h"
+
+#undef YY_DECL
+#define YY_DECL int ArchCBehaviours::ArchCBehavioursScanner::yylex(typename ArchCBehaviours::ArchCBehavioursParser::semantic_type *const lval, typename ArchCBehaviours::ArchCBehavioursParser::location_type *location)
+#define YY_NO_UNISTD_H
+
+#define YY_USER_ACTION location->step(); location->columns(yyleng);
+
+using token = ArchCBehaviours::ArchCBehavioursParser::token;
+
+%}
+
+%option c++
+%option noyywrap
+%option nodefault
+%option yylineno
+%option yyclass="ArchCBehaviours::ArchCBehavioursScanner"
+%option prefix="ArchCBehaviours"
+
+%x BLOCKCOMMENT
+%x LINECOMMENT
+
+%%
+
+%{ 
+    yylval = lval; 
+%}
+
+"/*" BEGIN(BLOCKCOMMENT) ;
+<BLOCKCOMMENT>"\n" location->lines();
+<BLOCKCOMMENT>"*/" BEGIN(INITIAL);
+<BLOCKCOMMENT>. ;
+
+("/")("/")+ BEGIN(LINECOMMENT);
+<LINECOMMENT>"\n" BEGIN(INITIAL); location->lines();
+<LINECOMMENT>. ;
+
+"behaviour" return token::BEHAVIOUR;
+"decode" return token::DECODE;
+"0x"[0-9a-f]+ { yylval->sval = strdup(yytext); return token::CHARSEQ; }
+[a-zA-Z_][a-zA-Z_0-9]* { yylval->sval = strdup(yytext); return token::CHARSEQ; }
+"[" { yylval->sval = strdup(yytext); return token::OBRACKET; }
+"]" { yylval->sval = strdup(yytext); return token::CBRACKET; }
+"{" { yylval->sval = strdup(yytext); return token::OBRACE; }
+"}" { yylval->sval = strdup(yytext); return token::CBRACE; }
+"(" { yylval->sval = strdup(yytext); return token::OPAREN; }
+")" { yylval->sval = strdup(yytext); return token::CPAREN; }
+[,;:!^&*#+-@$.<>?\\%|~]+ { yylval->sval = strdup(yytext); return token::SPECIALCHAR; }
+"/" { yylval->sval = strdup(yytext); return token::SPECIALCHAR; }
+"=" { yylval->sval = strdup(yytext); return token::EQUALS; }
+
+[ \t\r] ;
+"\n" location->lines();
+
+. { printf("Unmatched character '%s' at line ???\n", yytext); }
+
+%%

@@ -5,17 +5,14 @@
 #include "isa/AsmDescriptionParser.h"
 #include "isa/AsmMapDescriptionParser.h"
 
-#include <archCBehaviour/archCBehaviourLexer.h>
-#include <archCBehaviour/archCBehaviourParser.h>
-
-#include <antlr3.h>
-#include "antlr-ver.h"
-
 #include "clean_defines.h"
 #include "define.h"
 
 #include "flexbison_archc_ast.h"
 #include "flexbison_archc.h"
+
+#include "flexbison_archcbehaviours_ast.h"
+#include "flexbison_archcbehaviours.h"
 
 #include <cstring>
 #include <fstream>
@@ -420,12 +417,31 @@ bool ISADescriptionParser::load_isa_from_node(ArchC::AstNode &node, std::string 
 	return success;
 }
 
+std::string format_code(ArchCBehaviours::AstNode &node)
+{
+	switch(node.GetType()) {
+		case ArchCBehavioursNodeType::List: {
+			std::string outcode;
+			for(auto child : node) {
+				outcode += format_code(*child) + " ";
+			}
+			return outcode;
+		}
+		case ArchCBehavioursNodeType::STRING: {
+			return node.GetString();
+		}
+		default: {
+			UNEXPECTED;
+		}
+	}
+}
+
 bool ISADescriptionParser::load_behaviour_file(std::string filename)
 {
 	bool success = true;
 
-	std::ifstream _check_file(filename.c_str());
-	if (!_check_file) {
+	std::ifstream filestream(filename.c_str());
+	if (!filestream) {
 		std::cerr << "Could not find behaviour file " << filename << std::endl;
 		return false;
 	}
@@ -433,98 +449,45 @@ bool ISADescriptionParser::load_behaviour_file(std::string filename)
 	if(loaded_files.count(filename)) return true;
 	loaded_files.insert(filename);
 
-//	printf("Parsing behaviour file %s\n", filename.c_str());
+	printf("Parsing behaviour file %s\n", filename.c_str());
 
-	pANTLR3_UINT8 fname_str = (pANTLR3_UINT8)filename.c_str();
-	pANTLR3_INPUT_STREAM pts = antlr3AsciiFileStreamNew(fname_str);
-	parchCBehaviourLexer lexer = archCBehaviourLexerNew(pts);
-	pANTLR3_COMMON_TOKEN_STREAM tstream = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(lexer));
-	parchCBehaviourParser parser = archCBehaviourParserNew(tstream);
+	ArchCBehaviours::ArchCBehavioursScanner scanner (&filestream);
+	ArchCBehaviours::AstNode root_node(ArchCBehavioursNodeType::ROOT);
+	ArchCBehaviours::ArchCBehavioursParser parser(scanner, &root_node);
 
-	archCBehaviourParser_behaviour_file_return arch = parser->behaviour_file(parser);
+	if(parser.parse() != 0) {
+		return false;
+	}
 
-	pANTLR3_COMMON_TREE_NODE_STREAM nodes = antlr3CommonTreeNodeStreamNewTree(arch.tree, ANTLR3_SIZE_HINT);
+	for (auto childPtr : root_node[0]) {
+		auto &child = *childPtr;
 
-	pANTLR3_BASE_TREE behaviourTree = nodes->root;
-
-	for (uint32_t behaviourIndex = 0; behaviourIndex < behaviourTree->getChildCount(behaviourTree); behaviourIndex++) {
-		pANTLR3_BASE_TREE child = (pANTLR3_BASE_TREE)behaviourTree->getChild(behaviourTree, behaviourIndex);
-		switch (child->getType(child)) {
-			case BE_DECODE: {
-				pANTLR3_BASE_TREE nameChild = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string format = (char *)nameChild->getText(nameChild)->chars;
-
-				pANTLR3_BASE_TREE codeChild = (pANTLR3_BASE_TREE)child->getChild(child, 1);
-				std::string code = (char *)codeChild->getText(codeChild)->chars;
+		switch (child.GetType()) {
+			case ArchCBehavioursNodeType::DecodeBehaviour: {
+				std::string format = child[0].GetString();
+				std::string code = format_code(child[1]);
 
 				if (isa->Formats.find(format) != isa->Formats.end())
 					isa->formats_[format]->DecodeBehaviourCode = code;
 				else {
-					std::cerr << "Attempted to assign a behaviour string to a non-existant decode type " << format << "(Line " << child->getLine(child) << ")" << std::endl;
+//					std::cerr << "Attempted to assign a behaviour string to a non-existant decode type " << format << "(Line " << child->getLine(child) << ")" << std::endl;
 					success = false;
 				}
 				break;
 			}
-			case BE_EXECUTE: {
-				pANTLR3_BASE_TREE nameChild = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string format = (char *)nameChild->getText(nameChild)->chars;
-
-				pANTLR3_BASE_TREE codeChild = (pANTLR3_BASE_TREE)child->getChild(child, 1);
-				std::string code = (char *)codeChild->getText(codeChild)->chars;
-
-				// if (ExecuteActions.find(format) != ExecuteActions.end())
-				if(!isa->ExecuteActionDeclared(format)) {
-					diag.Error("Adding behaviour to unknown execute action " + format, DiagNode(filename, nameChild));
-					success = false;
-				} else {
-					isa->AddExecuteAction(format, code);
-				}
-				// else
-				//{
-				// std::cerr << "Attempted to assign a behaviour string to an unknown behaviour " << format << std::endl;
-				// success = false;
-				//}
-				break;
-			}
-			case BE_BEHAVIOUR: {
-				pANTLR3_BASE_TREE nameChild = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string name = (char *)nameChild->getText(nameChild)->chars;
-
-				pANTLR3_BASE_TREE codeChild = (pANTLR3_BASE_TREE)child->getChild(child, 1);
-				std::string code = (char *)codeChild->getText(codeChild)->chars;
+			case ArchCBehavioursNodeType::GenericBehaviour: {
+				std::string name = child[0].GetString();
+				std::string code = format_code(child[2]);
 
 				isa->AddBehaviourAction(name, code);
 				break;
 			}
 
-			case BE_HELPER: {
-				pANTLR3_BASE_TREE prototypeChild = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				pANTLR3_BASE_TREE bodyChild = (pANTLR3_BASE_TREE)child->getChild(child, 1);
-
-				std::string prototype;
-
-				for (uint32_t i = 0; i < prototypeChild->getChildCount(prototypeChild); ++i) {
-					pANTLR3_BASE_TREE node = (pANTLR3_BASE_TREE)prototypeChild->getChild(prototypeChild, i);
-					prototype.append((char *)node->getText(node)->chars);
-					prototype.append(" ");
-				}
-
-				std::string body = (char *)bodyChild->getText(bodyChild)->chars;
-
-				if (util::Util::Verbose_Level) std::cout << "Loading helper function " << prototype << std::endl;
-
-				isa->AddHelperFn(prototype, body);
-				break;
+			default : {
+				UNEXPECTED;
 			}
 		}
 	}
-
-//	FIXME: free these safely
-	nodes->free(nodes);
-	parser->free(parser);
-	tstream->free(tstream);
-	lexer->free(lexer);
-	pts->free(pts);
 
 	return success;
 }
