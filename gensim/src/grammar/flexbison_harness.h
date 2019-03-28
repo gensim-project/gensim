@@ -45,7 +45,29 @@ public:
 	astnode(float data) : class_(nodeclass::FLOAT), floatdata_(data) {}
 	astnode(double data) : class_(nodeclass::DOUBLE), doubledata_(data) {}
 
-	astnode(const ThisT& other) = delete;
+	astnode(const ThisT& other) : class_(other.class_)
+	{
+		switch(class_) {
+			case nodeclass::INT:
+				intdata_ = other.intdata_;
+				break;
+			case nodeclass::DOUBLE:
+				doubledata_ = other.doubledata_;
+				break;
+			case nodeclass::FLOAT:
+				floatdata_ = other.floatdata_;
+				break;
+			case nodeclass::STRING:
+				strdata_ = strdup(other.strdata_);
+				break;
+			default :
+				break;
+		}
+
+		for(auto child : other.children_) {
+			children_.push_back(new ThisT(*child));
+		}
+	}
 
 	~astnode()
 	{
