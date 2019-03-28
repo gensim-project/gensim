@@ -1,0 +1,77 @@
+%{
+
+#include <iostream>
+#include <stdint.h>
+
+#define yyerminate() return ENDOFFILE
+
+#include "flexbison_harness.h"
+#include "flexbison_gencssa_ast.h"
+#include "genCSSA.tabs.h"
+#include "flexbison_gencssa.h"
+
+#undef YY_DECL
+#define YY_DECL int GenCSSA::GenCSSAScanner::yylex(typename GenCSSA::GenCSSAParser::semantic_type *const lval, typename GenCSSA::GenCSSAParser::location_type *location)
+#define YY_NO_UNISTD_H
+
+#define YY_USER_ACTION location->step(); location->columns(yyleng);
+
+using token = GenCSSA::GenCSSAParser::token;
+
+%}
+
+%option c++
+%option noyywrap
+%option nodefault
+%option yylineno
+%option yyclass="GenCSSA::GenCSSAScanner"
+%option prefix="GenCSSA"
+
+%x GENC_COMMENT
+%x GENC_LINE_COMMENT
+%x GENC_STRING
+
+%%
+
+%{ 
+    yylval = lval; 
+%}
+
+"/*" BEGIN(GENC_COMMENT);
+<GENC_COMMENT>"*/" BEGIN(INITIAL);
+<GENC_COMMENT>. ;
+<GENC_COMMENT>[ \t\r\n] ;
+
+"//" BEGIN(GENC_LINE_COMMENT);
+<GENC_LINE_COMMENT>"\n" BEGIN(INITIAL); location->lines();
+<GENC_LINE_COMMENT>. ;
+
+[ \t\r]+ {}
+"\n" location->lines();
+";" return token::SEMICOLON;
+
+
+
+"uint8" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"uint16" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"uint32" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"uint64" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"uint128" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"sint8" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"sint16" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"sint32" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"sint64" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"sint128" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"float" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"double" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"longdouble" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"void" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+
+[a-zA-Z_][a-zA-Z0-9_]* { yylval->sval = strdup(yytext); return token::SSA_ID; }
+
+[0-9]+"U"?"L"* { yylval->sval = strdup(yytext); return token::SSA_INT; }
+"0x"[0-9a-fA-F]+"U"?"L"* { yylval->sval = strdup(yytext); return token::SSA_INT; }
+[0-9]+\.[0-9]*"f" { yylval->sval = strdup(yytext); return token::SSA_FLOAT; }
+[0-9]+\.[0-9]* { yylval->sval = strdup(yytext); return token::SSA_DOUBLE; }
+
+%%

@@ -107,9 +107,7 @@ bool GenCContext::Parse()
 	for (auto file : file_list) {
 		CurrFilename = file.Filename;
 
-		std::ifstream stream(CurrFilename.c_str());
-
-		GenC::GenCScanner scanner(&stream);
+		GenC::GenCScanner scanner(file.Stream.get());
 
 		GenC::AstNode root(GenCNodeType::ROOT);
 		GenC::GenCParser parser(scanner, &root);

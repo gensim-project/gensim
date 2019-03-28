@@ -158,6 +158,7 @@ namespace gensim
 			}
 
 			std::string PrettyPrintOperator(BinaryOperator::EBinaryOperator);
+			BinaryOperator::EBinaryOperator ParseOperator(const std::string &operatorString);
 			inline BinaryOperator::EBinaryOperator ReverseOperator(BinaryOperator::EBinaryOperator op)
 			{
 				switch (op) {
