@@ -1,0 +1,51 @@
+%{
+
+#include <iostream>
+#include <stdint.h>
+
+#define yyerminate() return ENDOFFILE
+
+#include "flexbison_harness.h"
+#include "flexbison_archcasm_ast.h"
+#include "archCAsm.tabs.h"
+#include "flexbison_archcasm.h"
+
+#undef YY_DECL
+#define YY_DECL int ArchCAsm::ArchCAsmScanner::yylex(typename ArchCAsm::ArchCAsmParser::semantic_type *const lval, typename ArchCAsm::ArchCAsmParser::location_type *location)
+#define YY_NO_UNISTD_H
+
+#define YY_USER_ACTION location->step(); location->columns(yyleng);
+
+using token = ArchCAsm::ArchCAsmParser::token;
+
+%}
+
+%option c++
+%option noyywrap
+%option nodefault
+%option yylineno
+%option yyclass="ArchCAsm::ArchCAsmScanner"
+%option prefix="ArchCAsm"
+
+%x ARCHC_COMMENT
+%x ARCHC_LINE_COMMENT
+%x ARCHC_STRING
+
+%%
+
+%{ 
+    yylval = lval; 
+%}
+
+[a-zA-Z0-9]+ { yylval->sval = strdup(yytext); return token::CHARSEQ; }
+" " { yylval->sval = strdup(yytext); return token::WS; }
+"\t" { yylval->sval = strdup(yytext); return token::WS; }
+"%" { yylval->sval = strdup(yytext); return token::PERCENT; }
+"[" { yylval->sval = strdup(yytext); return token::OBRACKET; }
+"]" { yylval->sval = strdup(yytext); return token::CBRACKET; }
+[,;:!^&*()#+-{}@_$.<>?/\\] { yylval->sval = strdup(yytext); return token::SPECIALCHAR; }
+"..." { yylval->sval = strdup(yytext); return token::DOTS; }
+
+. { printf("Unmatched character '%s' at line ???\n", yytext); }
+
+%%

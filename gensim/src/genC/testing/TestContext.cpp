@@ -19,7 +19,10 @@ GenCContext *TestContext::GetTestContext(bool include_instruction, gensim::Diagn
 
 SSAContext *TestContext::CompileSource(GenCContext *ctx, const std::string &source)
 {
-	ctx->AddFile(FileContents("in-mem", source));
+	auto stream = std::make_shared<std::stringstream>();
+	stream->str(source);
+
+	ctx->AddFile(FileContents("in-mem", stream));
 	if(!ctx->Parse()) {
 		return nullptr;
 	} else {

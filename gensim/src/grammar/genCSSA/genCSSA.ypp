@@ -1,0 +1,250 @@
+%{
+
+#include <stdint.h>
+#include "flexbison_harness.h"
+#include "flexbison_gencssa_ast.h"
+
+#define YYERROR_VERBOSE 1
+%}
+
+%code requires {
+    namespace GenCSSA {
+        class GenCSSAScanner;
+    }
+}
+
+%skeleton "lalr1.cc"
+
+%defines
+%locations
+%define api.namespace {GenCSSA}
+%define api.prefix {GenCSSA}
+%define parser_class_name {GenCSSAParser}
+
+%union {
+    uint64_t ival;
+    char *sval;
+    float fval;
+    double dval;
+    astnode<GenCSSANodeType> *ast_node;
+}
+
+%parse-param { GenCSSAScanner &scanner } { astnode<GenCSSANodeType> * root }
+
+%code {
+#include "flexbison_gencssa.h"
+#undef yylex 
+#define yylex scanner.GenCSSAlex
+
+
+}
+
+%define parse.assert
+%define parse.error verbose
+
+%token<sval> ACTION_ATTRIBUTE_EXPORT ACTION_ATTRIBUTE_GLOBAL ACTION_ATTRIBUTE_HELPER ACTION_ATTRIBUTE_NOINLINE
+%token ACTION BLOCK STRUCT
+%token OBRACKET CBRACKET OPAREN CPAREN OBRACE CBRACE
+%token EQUALS SEMICOLON COLON
+%token STATEMENT_BANKREGREAD STATEMENT_BANKREGWRITE STATEMENT_BINOP STATEMENT_CALL STATEMENT_CAST STATEMENT_CONSTANT STATEMENT_DEVREAD STATEMENT_DEVWRITE
+%token STATEMENT_IF STATEMENT_INTRINSIC STATEMENT_JUMP STATEMENT_MEMREAD STATEMENT_MEMWRITE STATEMENT_PHI STATEMENT_RAISE STATEMENT_READ STATEMENT_REGREAD
+%token STATEMENT_REGWRITE STATEMENT_RETURN STATEMENT_SELECT STATEMENT_STRUCT STATEMENT_SWITCH STATEMENT_UNOP STATEMENT_VEXTRACT STATEMENT_VINSERT STATEMENT_WRITE
+
+%token<sval> OANGLE CANGLE BINOP_PLUS NEGATIVE BINOP_MUL BINOP_DIV BINOP_MOD AMPERSAND BINOP_OR BINOP_XOR BINOP_SHR BINOP_SAR BINOP_SHL CMP_EQUALS CMP_NOTEQUALS CMP_GT CMP_GTE CMP_LT CMP_LTE BINOP_ROL BINOP_ROR
+%token<sval> EXCLAMATION COMPLEMENT
+
+%token<sval> SSA_ID SSA_TYPE
+%token<ival> SSA_INT
+%token<fval> SSA_FLOAT
+%token<dval> SSA_DOUBLE
+
+%type<sval> binary_op_inner
+%type<ast_node> basic_type type id binary_op unary_op
+%type<ast_node> context action asm_file context_entry context_entry_list action_attribute action_attribute_list action_parameter action_parameter_list action_symbol action_symbol_list
+%type<ast_node> action_symbol_list_inner action_parameter_list_inner action_block_def_list action_block_def_list_inner block action_block_list action_block_list_inner
+%type<ast_node> block_statement_list block_statement_list_inner statement valued_statement valueless_statement valued_statement_body valueless_statement_body
+%type<ast_node> binary_statement constant_statement constant_value cast_statement dev_read_statement dev_write_statement register_read_statement bank_register_read_statement 
+%type<ast_node> intrinsic_statement phi_statement select_statement struct_member_statement unary_statement variable_read_statement vector_insert_statement
+%type<ast_node> vector_extract_statement if_statement jump_statement mem_read_statement mem_write_statement register_write_statement banked_register_write_statement
+%type<ast_node> return_statement return_void_statement switch_statement switch_parameter_list variable_write_statement id_list raise_statement call_statement
+
+
+%%
+
+asm_file : 
+    context { root->AddChild($1); }
+
+context :
+    context_entry_list { $$ = CreateNode(GenCSSANodeType::Context, {$1}); }
+
+context_entry_list :
+    context_entry_list action { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(GenCSSANodeType::List); }
+
+action :
+    ACTION type id action_attribute_list action_parameter_list action_symbol_list action_block_def_list action_block_list { $$ = CreateNode(GenCSSANodeType::Action, {$2, $3, $4, $5, $6, $7, $8}); }
+
+id :
+    SSA_ID { $$ = CreateStrNode<GenCSSANodeType>($1); }
+
+type :
+    basic_type |
+    basic_type AMPERSAND { $$ = CreateNode(GenCSSANodeType::ReferenceType, {$1}); }
+
+basic_type :
+    SSA_TYPE { $$ = CreateNode(GenCSSANodeType::BasicType, {CreateStrNode<GenCSSANodeType>($1)}); } |
+    STRUCT id { $$ = CreateNode(GenCSSANodeType::StructType, {$2}); } |
+    SSA_TYPE OBRACKET constant_value CBRACKET { $$ = CreateNode(GenCSSANodeType::VectorType, {CreateStrNode<GenCSSANodeType>($1), $3}); }
+
+action_attribute :
+    ACTION_ATTRIBUTE_NOINLINE { $$ = CreateNode(GenCSSANodeType::AttributeNoinline); } |
+    ACTION_ATTRIBUTE_HELPER { $$ = CreateNode(GenCSSANodeType::AttributeHelper); } |
+    ACTION_ATTRIBUTE_GLOBAL { $$ = CreateStrNode<GenCSSANodeType>($1); } |
+    ACTION_ATTRIBUTE_EXPORT { $$ = CreateStrNode<GenCSSANodeType>($1); }
+
+action_attribute_list :
+    action_attribute_list action_attribute { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(GenCSSANodeType::List); }
+
+action_parameter :
+    type id { $$ = CreateNode(GenCSSANodeType::List, {$1, $2}); }
+
+action_parameter_list :
+    OPAREN action_parameter_list_inner CPAREN { $$ = $2; }
+
+action_parameter_list_inner :
+    action_parameter_list_inner action_parameter { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(GenCSSANodeType::List); }
+
+action_symbol :
+    type id { $$ = CreateNode(GenCSSANodeType::List, {$1, $2}); }
+
+action_symbol_list :
+    OBRACKET action_symbol_list_inner CBRACKET { $$ = $2; }
+
+action_symbol_list_inner :
+    action_symbol_list_inner action_symbol { $$ = $1; $$->AddChild($2); } |
+    %empty  { $$ = CreateNode(GenCSSANodeType::List); };
+
+action_block_def_list :
+    OANGLE action_block_def_list_inner CANGLE { $$ = $2; }
+
+action_block_def_list_inner :
+    action_block_def_list_inner id { $$ = $1; $$->AddChild($2); } |
+    %empty  { $$ = CreateNode(GenCSSANodeType::List); }
+
+action_block_list :
+    OBRACE action_block_list_inner CBRACE { $$ = $2; }
+
+action_block_list_inner :
+    action_block_list_inner block  { $$ = $1; $$->AddChild($2); } |
+    %empty  { $$ = CreateNode(GenCSSANodeType::List); }
+
+block :
+    BLOCK id block_statement_list  { $$ = CreateNode(GenCSSANodeType::Block, {$2, $3}); }
+
+block_statement_list :
+    OBRACE block_statement_list_inner CBRACE { $$ = $2; }
+
+block_statement_list_inner :
+    block_statement_list_inner statement { $$ = $1; $$->AddChild($2); } |
+    %empty  { $$ = CreateNode(GenCSSANodeType::List); }
+
+statement :
+    valued_statement SEMICOLON |
+    valueless_statement SEMICOLON
+
+valued_statement :
+    id EQUALS valued_statement_body { $$ = CreateNode(GenCSSANodeType::Statement, {$1, $3}); }
+
+valueless_statement :
+    id COLON valueless_statement_body { $$ = CreateNode(GenCSSANodeType::Statement, {$1, $3}); }
+
+valued_statement_body :
+    binary_statement | call_statement | constant_statement | cast_statement | dev_read_statement | dev_write_statement | register_read_statement | bank_register_read_statement | intrinsic_statement | phi_statement | select_statement | struct_member_statement | unary_statement | variable_read_statement | vector_insert_statement | vector_extract_statement;
+
+
+binary_statement : STATEMENT_BINOP binary_op id id { $$ = CreateNode(GenCSSANodeType::StatementBinary, {$2, $3, $4}); }
+
+binary_op :
+    binary_op_inner { $$ = CreateStrNode<GenCSSANodeType>($1); }
+
+binary_op_inner :
+    BINOP_PLUS | NEGATIVE | BINOP_MUL | BINOP_DIV | BINOP_MOD | AMPERSAND | BINOP_OR | BINOP_XOR | BINOP_SHR | BINOP_SAR | BINOP_SHL | CMP_EQUALS | CMP_NOTEQUALS | CANGLE | CMP_GTE | OANGLE | CMP_LTE | BINOP_ROL | BINOP_ROR;
+
+constant_statement : STATEMENT_CONSTANT type constant_value { $$ = CreateNode(GenCSSANodeType::StatementConstant, {$2, $3}); }
+
+constant_value : SSA_INT { $$ = CreateIntNode<GenCSSANodeType>($1); } | SSA_FLOAT { $$ = CreateFloatNode<GenCSSANodeType>($1); } | SSA_DOUBLE { $$ = CreateFloatNode<GenCSSANodeType>($1); }
+
+cast_statement : STATEMENT_CAST id id type id { $$ = CreateNode(GenCSSANodeType::StatementCast, {$2, $3, $4, $5}); }
+
+dev_read_statement : STATEMENT_DEVREAD id id id { $$ = CreateNode(GenCSSANodeType::StatementDevRead, {$2, $3, $4}); }
+
+dev_write_statement : STATEMENT_DEVWRITE id id id { $$ = CreateNode(GenCSSANodeType::StatementDevWrite, {$2, $3, $4}); }
+
+register_read_statement : STATEMENT_REGREAD constant_value { $$ = CreateNode(GenCSSANodeType::StatementRegRead, {$2}); }
+
+bank_register_read_statement : STATEMENT_BANKREGREAD constant_value id { $$ = CreateNode(GenCSSANodeType::StatementBankRegRead, {$2, $3}); }
+
+id_list :
+    id_list id { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(GenCSSANodeType::List); }
+
+intrinsic_statement : STATEMENT_INTRINSIC constant_value id_list { $$ = CreateNode(GenCSSANodeType::StatementIntrinsic, {$2, $3}); };
+
+phi_statement : STATEMENT_PHI type OBRACKET id_list CBRACKET { $$ = CreateNode(GenCSSANodeType::StatementPhi, {$2,$4}); };
+
+select_statement : STATEMENT_SELECT id id id { $$ = CreateNode(GenCSSANodeType::StatementSelect, {$2, $3, $4}); };
+
+struct_member_statement : STRUCT id id { $$ = CreateNode(GenCSSANodeType::StatementStructMember, {$2, $3}); };
+
+unary_statement : STATEMENT_UNOP unary_op id { $$ = CreateNode(GenCSSANodeType::StatementUnary, {$2, $3}); }
+
+unary_op : EXCLAMATION { $$ = CreateStrNode<GenCSSANodeType>($1); } | COMPLEMENT { $$ = CreateStrNode<GenCSSANodeType>($1); } | NEGATIVE { $$ = CreateStrNode<GenCSSANodeType>($1); };
+
+variable_read_statement : STATEMENT_READ id { $$ = CreateNode(GenCSSANodeType::StatementVariableRead, {$2}); };
+
+vector_insert_statement : STATEMENT_VINSERT id OBRACKET id CBRACKET id { $$ = CreateNode(GenCSSANodeType::StatementVInsert, {$2, $4, $6}); };
+
+vector_extract_statement : STATEMENT_VEXTRACT id OBRACKET id CBRACKET { $$ = CreateNode(GenCSSANodeType::StatementVExtract, {$2, $4}); };
+
+
+valueless_statement_body :
+    if_statement | jump_statement | mem_read_statement | mem_write_statement | register_write_statement | banked_register_write_statement | return_statement | return_void_statement | raise_statement | switch_statement | variable_write_statement | call_statement | intrinsic_statement;
+
+if_statement : STATEMENT_IF id id id { $$ = CreateNode(GenCSSANodeType::StatementIf, {$2, $3, $4}); }
+
+jump_statement : STATEMENT_JUMP id { $$ = CreateNode(GenCSSANodeType::StatementJump, {$2}); };
+
+mem_read_statement : STATEMENT_MEMREAD constant_value id id { $$ = CreateNode(GenCSSANodeType::StatementMemRead, {$2, $3, $4}); }
+
+mem_write_statement : STATEMENT_MEMWRITE constant_value id id { $$ = CreateNode(GenCSSANodeType::StatementMemWrite, {$2, $3, $4}); };
+
+register_write_statement : STATEMENT_REGWRITE constant_value id { $$ = CreateNode(GenCSSANodeType::StatementRegWrite, {$2, $3}); };
+
+banked_register_write_statement : STATEMENT_BANKREGWRITE constant_value id id { $$ = CreateNode(GenCSSANodeType::StatementBankRegWrite, {$2, $3, $4}); };
+
+return_void_statement : STATEMENT_RETURN { $$ = CreateNode(GenCSSANodeType::StatementReturnVoid); };
+
+return_statement : STATEMENT_RETURN id { $$ = CreateNode(GenCSSANodeType::StatementReturn, {$2}); };
+
+raise_statement : STATEMENT_RAISE { $$ = CreateNode(GenCSSANodeType::StatementRaise); };
+
+switch_statement : STATEMENT_SWITCH id id OBRACKET switch_parameter_list CBRACKET { $$ = CreateNode(GenCSSANodeType::StatementSwitch, {$2, $3, $5}); };
+
+switch_parameter_list :
+    switch_parameter_list id id { $$->AddChild(CreateNode(GenCSSANodeType::List, {$2, $3})); } |
+    %empty { $$ = CreateNode(GenCSSANodeType::List); }
+
+variable_write_statement : STATEMENT_WRITE id id { $$ = CreateNode(GenCSSANodeType::StatementVariableWrite, {$2, $3}); };
+
+call_statement : STATEMENT_CALL id id_list { $$ = CreateNode(GenCSSANodeType::StatementCall, {$2, $3}); };
+
+
+%%
+
+void GenCSSA::GenCSSAParser::error(const GenCSSA::location &location, const std::string &error)
+{
+    std::cerr << "GenCSSA Error: " << location << ":" << error << std::endl;
+    //fprintf(stderr, "%s:%u: %s\n", location.begin.filename, location.begin.line, error.c_str());
+}
