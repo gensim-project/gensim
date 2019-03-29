@@ -1,0 +1,132 @@
+%{
+
+#include <iostream>
+#include <stdint.h>
+
+#define yyerminate() return ENDOFFILE
+
+#include "flexbison_harness.h"
+#include "flexbison_gencssa_ast.h"
+#include "genCSSA.tabs.h"
+#include "flexbison_gencssa.h"
+
+#undef YY_DECL
+#define YY_DECL int GenCSSA::GenCSSAScanner::yylex(typename GenCSSA::GenCSSAParser::semantic_type *const lval, typename GenCSSA::GenCSSAParser::location_type *location)
+#define YY_NO_UNISTD_H
+
+#define YY_USER_ACTION location->step(); location->columns(yyleng);
+
+using token = GenCSSA::GenCSSAParser::token;
+
+%}
+
+%option c++
+%option noyywrap
+%option nodefault
+%option yylineno
+%option yyclass="GenCSSA::GenCSSAScanner"
+%option prefix="GenCSSA"
+
+%x GENC_COMMENT
+%x GENC_LINE_COMMENT
+%x GENC_STRING
+
+%%
+
+%{ 
+    yylval = lval; 
+%}
+
+"/*" BEGIN(GENC_COMMENT);
+<GENC_COMMENT>"*/" BEGIN(INITIAL);
+<GENC_COMMENT>. ;
+<GENC_COMMENT>[ \t\r\n] ;
+
+"//" BEGIN(GENC_LINE_COMMENT);
+<GENC_LINE_COMMENT>"\n" BEGIN(INITIAL); location->lines();
+<GENC_LINE_COMMENT>. ;
+
+[ \t\r]+ {}
+"\n" location->lines();
+";" return token::SEMICOLON;
+
+"action" return token::ACTION;
+"block" return token::BLOCK;
+
+"noinline" return token::ACTION_ATTRIBUTE_NOINLINE;
+"helper" return token::ACTION_ATTRIBUTE_HELPER;
+"global" return token::ACTION_ATTRIBUTE_GLOBAL;
+"export" return token::ACTION_ATTRIBUTE_EXPORT;
+
+"(" return token::OPAREN;
+")" return token::CPAREN;
+"[" return token::OBRACKET;
+"]" return token::CBRACKET;
+"{" return token::OBRACE;
+"}" return token::CBRACE;
+"!" { yylval->sval = strdup(yytext); return token::EXCLAMATION; }
+"<" { yylval->sval = strdup(yytext); return token::OANGLE; }
+">" { yylval->sval = strdup(yytext); return token::CANGLE; }
+"=" { yylval->sval = strdup(yytext); return token::EQUALS; }
+":" { yylval->sval = strdup(yytext); return token::COLON; }
+"==" { yylval->sval = strdup(yytext); return token::CMP_EQUALS; }
+"!=" { yylval->sval = strdup(yytext); return token::CMP_NOTEQUALS; }
+"-" { yylval->sval = strdup(yytext); return token::NEGATIVE; }
+"&" { yylval->sval = strdup(yytext); return token::AMPERSAND; }
+"/" { yylval->sval = strdup(yytext); return token::BINOP_DIV; }
+"%" { yylval->sval = strdup(yytext); return token::BINOP_MOD; }
+"+" { yylval->sval = strdup(yytext); return token::BINOP_PLUS; }
+"|" { yylval->sval = strdup(yytext); return token::BINOP_OR; }
+"^" { yylval->sval = strdup(yytext); return token::BINOP_XOR; }
+"<<" { yylval->sval = strdup(yytext); return token::BINOP_SHL; }
+">>" { yylval->sval = strdup(yytext); return token::BINOP_SHR; }
+"<<<" { yylval->sval = strdup(yytext); return token::BINOP_ROL; }
+">>>" { yylval->sval = strdup(yytext); return token::BINOP_ROR; }
+"->>" { yylval->sval = strdup(yytext); return token::BINOP_SAR; }
+">=" { yylval->sval = strdup(yytext); return token::CMP_GTE; }
+"<=" { yylval->sval = strdup(yytext); return token::CMP_LTE; }
+"~" { yylval->sval = strdup(yytext); return token::COMPLEMENT; }
+
+"struct" return token::STRUCT;
+
+"bankregread" return token::STATEMENT_BANKREGREAD;
+"bankregwrite" return token::STATEMENT_BANKREGWRITE;
+"binary" return token::STATEMENT_BINOP;
+"cast" return token::STATEMENT_CAST;
+"call" return token::STATEMENT_CALL;
+"constant" return token::STATEMENT_CONSTANT;
+"if" return token::STATEMENT_IF;
+"intrinsic" return token::STATEMENT_INTRINSIC;
+"jump" return token::STATEMENT_JUMP;
+"read" return token::STATEMENT_READ;
+"regread" return token::STATEMENT_REGREAD;
+"regwrite" return token::STATEMENT_REGWRITE;
+"return" return token::STATEMENT_RETURN;
+"select" return token::STATEMENT_SELECT;
+"switch" return token::STATEMENT_SWITCH;
+"unary" return token::STATEMENT_UNOP;
+"write" return token::STATEMENT_WRITE;
+
+"uint8" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"uint16" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"uint32" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"uint64" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"uint128" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"sint8" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"sint16" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"sint32" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"sint64" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"sint128" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"float" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"double" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"longdouble" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+"void" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }
+
+[a-zA-Z_][a-zA-Z0-9_]* { yylval->sval = strdup(yytext); return token::SSA_ID; }
+
+[0-9]+"U"?"L"* { yylval->ival = strtoll(yytext, nullptr, 0); return token::SSA_INT; }
+"0x"[0-9a-fA-F]+"U"?"L"* { yylval->ival = strtoll(yytext, nullptr, 0); return token::SSA_INT; }
+[0-9]+\.[0-9]*"f" { yylval->fval = strtof(yytext, nullptr); return token::SSA_FLOAT; }
+[0-9]+\.[0-9]* { yylval->dval = strtod(yytext, nullptr); return token::SSA_DOUBLE; }
+
+%%

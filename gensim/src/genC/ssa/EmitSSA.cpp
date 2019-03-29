@@ -225,6 +225,10 @@ SSAStatement *IRBinaryExpression::EmitSSAForm(SSABuilder &bldr) const
 			SSAStatement *left = Left->EmitSSAForm(bldr);
 			SSAStatement *right = Right->EmitSSAForm(bldr);
 
+			if(left == nullptr || right == nullptr) {
+				return nullptr;
+			}
+
 			// pretend we have just an addition since we want to promote the types, not find the resultant type
 			IRType maxType = IRType::Resolve(BinaryOperator::Add, left->GetType(), right->GetType());
 

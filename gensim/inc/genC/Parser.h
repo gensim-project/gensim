@@ -27,6 +27,12 @@
 #include "DiagnosticContext.h"
 #include "ir/IRAction.h"
 
+#include <flexbison_harness.h>
+#include <flexbison_genc_ast.h>
+#include <genC.tabs.h>
+
+#include <flexbison_genc.h>
+
 namespace gensim
 {
 
@@ -96,11 +102,10 @@ namespace gensim
 		class FileContents
 		{
 		public:
-			FileContents(const std::string &filename);
-			FileContents(const std::string &filename, const std::string &filetext);
+			FileContents(const std::string &filename, std::shared_ptr<std::istream> stream);
 
 			std::string Filename;
-			pANTLR3_INPUT_STREAM TokenStream;
+			std::shared_ptr<std::istream> Stream;
 		};
 
 		class GenCContext
@@ -180,21 +185,21 @@ namespace gensim
 
 			GenCContext(pANTLR3_BASE_TREE file, std::ostringstream &error_stream, gensim::arch::ArchDescription &arch);
 
-			bool Parse_File(pANTLR3_BASE_TREE File);
-			bool Parse_Constant(pANTLR3_BASE_TREE Node);
-			bool Parse_Typename(pANTLR3_BASE_TREE Node);
-			bool Parse_Helper(pANTLR3_BASE_TREE Behaviour);
-			bool Parse_Behaviour(pANTLR3_BASE_TREE Action);
-			bool Parse_Execute(pANTLR3_BASE_TREE Execute);
-			bool Parse_Vector(pANTLR3_BASE_TREE Execute);
+			bool Parse_File(GenC::AstNode &File);
+			bool Parse_Constant(GenC::AstNode &Node);
+			bool Parse_Typename(GenC::AstNode &Node);
+			bool Parse_Helper(GenC::AstNode &Behaviour);
+			bool Parse_Behaviour(GenC::AstNode &Action);
+			bool Parse_Execute(GenC::AstNode &Execute);
+			bool Parse_Vector(GenC::AstNode &Execute);
 
-			uint64_t Parse_ConstantInt(pANTLR3_BASE_TREE node);
+			uint64_t Parse_ConstantInt(GenC::AstNode &node);
 
-			bool Parse_Type(pANTLR3_BASE_TREE node, IRType &type);
+			bool Parse_Type(GenC::AstNode &node, IRType &type);
 
-			IRBody *Parse_Body(pANTLR3_BASE_TREE Body, IRScope &containing_scope, IRScope *override_scope = NULL);
-			IRStatement *Parse_Statement(pANTLR3_BASE_TREE node, IRScope &containing_scope);
-			IRExpression *Parse_Expression(pANTLR3_BASE_TREE node, IRScope &containing_scope);
+			IRBody *Parse_Body(GenC::AstNode &Body, IRScope &containing_scope, IRScope *override_scope = NULL);
+			IRStatement *Parse_Statement(GenC::AstNode &node, IRScope &containing_scope);
+			IRExpression *Parse_Expression(GenC::AstNode &node, IRScope &containing_scope);
 
 			void BuildStructTypes();
 

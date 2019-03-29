@@ -15,6 +15,9 @@
 #include "isa/AsmDescription.h"
 #include <string>
 
+#include "flexbison_archc_ast.h"
+#include "flexbison_archc.h"
+
 namespace gensim
 {
 	namespace isa
@@ -25,7 +28,7 @@ namespace gensim
 		public:
 			AsmDescriptionParser(DiagnosticContext &diag, std::string filename);
 
-			bool Parse(void *tree, const ISADescription &format);
+			bool Parse(const ArchC::AstNode &tree, const ISADescription &format);
 
 			AsmDescription *Get();
 		private:

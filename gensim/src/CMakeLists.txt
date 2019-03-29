@@ -1,7 +1,6 @@
 TARGET_ADD_SOURCES(gensim-lib
 	DecodeTree.cpp
 	DiagnosticContext.cpp
-	UArchDescription.cpp
 	Util.cpp
 )
 

@@ -5,22 +5,17 @@
 #include "isa/AsmDescriptionParser.h"
 #include "isa/AsmMapDescriptionParser.h"
 
-#include <archcasm/archcasmParser.h>
-#include <archcasm/archcasmLexer.h>
-#include <archCBehaviour/archCBehaviourLexer.h>
-#include <archCBehaviour/archCBehaviourParser.h>
-
 #include "clean_defines.h"
 #include "define.h"
-#include <archc/archcParser.h>
-#include "clean_defines.h"
-#include <archc/archcLexer.h>
+
+#include "flexbison_archc_ast.h"
+#include "flexbison_archc.h"
+
+#include "flexbison_archcbehaviours_ast.h"
+#include "flexbison_archcbehaviours.h"
 
 #include <cstring>
 #include <fstream>
-
-#include <antlr3.h>
-#include <antlr-ver.h>
 
 using namespace gensim;
 using namespace gensim::isa;
@@ -39,35 +34,22 @@ bool ISADescriptionParser::ParseFile(std::string filename)
 
 	parsed_files.insert(filename);
 
-	std::ifstream test (filename);
-	if(!test.good()) {
+	std::ifstream input_file (filename);
+	if(!input_file.good()) {
 		diag.Error("Could not open file " + filename, filename);
 		return false;
 	}
 
-	pANTLR3_UINT8 fname_str = (pANTLR3_UINT8)filename.c_str();
-	pANTLR3_INPUT_STREAM pts = antlr3AsciiFileStreamNew(fname_str);
-	parchcLexer lexer = archcLexerNew(pts);
-	pANTLR3_COMMON_TOKEN_STREAM tstream = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(lexer));
-	parchcParser parser = archcParserNew(tstream);
+	ArchC::ArchCScanner scanner (&input_file);
 
-	archcParser_arch_isa_return arch = parser->arch_isa(parser);
+	ArchC::AstNode astnode(ArchCNodeType::ROOT);
+	ArchC::ArchCParser parser (scanner, &astnode);
 
-	if (parser->pParser->rec->getNumberOfSyntaxErrors(parser->pParser->rec) > 0 || lexer->pLexer->rec->getNumberOfSyntaxErrors(lexer->pLexer->rec)) {
-		diag.Error("Syntax errors detected in ISA Description", filename);
+	if(parser.parse()) {
 		return false;
 	}
 
-	pANTLR3_COMMON_TREE_NODE_STREAM nodes = antlr3CommonTreeNodeStreamNewTree(arch.tree, ANTLR3_SIZE_HINT);
-
-	bool valid = load_from_node(nodes->root, filename);
-
-//	 FIXME: free these safely
-	nodes->free(nodes);
-	parser->free(parser);
-	tstream->free(tstream);
-	lexer->free(lexer);
-	pts->free(pts);
+	bool valid = load_from_node(astnode[0], filename);
 
 	return valid;
 }
@@ -77,19 +59,18 @@ ISADescription *ISADescriptionParser::Get()
 	return isa;
 }
 
-bool ISADescriptionParser::parse_struct(pANTLR3_BASE_TREE node)
+bool ISADescriptionParser::parse_struct(ArchC::AstNode &node)
 {
 	bool success = true;
-	auto struct_name_node = (pANTLR3_BASE_TREE)node->getChild(node, 0);
 
-	StructDescription sd(std::string((char*)struct_name_node->getText(struct_name_node)->chars));
+	StructDescription sd(node[0][0].GetString());
 
-	for(unsigned i = 1; i < node->getChildCount(node); i += 2) {
-		auto entry_name_node = (pANTLR3_BASE_TREE)node->getChild(node, i+1);
-		auto entry_type_node = (pANTLR3_BASE_TREE)node->getChild(node, i);
+	auto &listNode = node[1];
+	for(auto &entryPtr : listNode) {
+		auto &entry = *entryPtr;
 
-		std::string entry_name = std::string((char*)entry_name_node->getText(entry_name_node)->chars);
-		std::string entry_type = std::string((char*)entry_type_node->getText(entry_type_node)->chars);
+		std::string entry_name = entry[1][0].GetString();
+		std::string entry_type = entry[0][0].GetString();
 
 		sd.AddMember(entry_name, entry_type);
 	}
@@ -100,37 +81,37 @@ bool ISADescriptionParser::parse_struct(pANTLR3_BASE_TREE node)
 }
 
 
-bool ISADescriptionParser::load_from_node(pANTLR3_BASE_TREE node, std::string filename)
+bool ISADescriptionParser::load_from_node(ArchC::AstNode &node, std::string filename)
 {
 	bool success = true;
 
-	for (uint32_t i = 0; i < node->getChildCount(node); i++) {
-		pANTLR3_BASE_TREE child = (pANTLR3_BASE_TREE)node->getChild(node, i);
-		switch (child->getType(child)) {
-			case AC_FETCHSIZE: {
-				pANTLR3_BASE_TREE sizeNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				isa->SetFetchLength(atoi((char *)(sizeNode->getText(sizeNode)->chars)));
+	auto &nameNode = node[0];
+	isa->ISAName = nameNode[0].GetString();
+
+	auto &listNode = node[1];
+
+	for (auto childPtr : listNode) {
+		auto &child = *childPtr;
+
+		switch (child.GetType()) {
+			case ArchCNodeType::FetchSize: {
+				isa->SetFetchLength(child[0].GetInt());
 				break;
 			}
 
-			case AC_INCLUDE: {
-				assert(child->getChildCount(child) == 1);
-				pANTLR3_BASE_TREE filenameNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string filename = std::string((char*)filenameNode->getText(filenameNode)->chars);
+			case ArchCNodeType::Include: {
+				std::string filename = child[0].GetString();
 				filename = filename.substr(1, filename.size()-2);
 				success &= ParseFile(filename);
 				break;
 			}
 
-			case AC_FORMAT: {
-				pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				pANTLR3_BASE_TREE formatNode = (pANTLR3_BASE_TREE)child->getChild(child, 1);
-
+			case ArchCNodeType::Format: {
 				// trim quotes from format string
-				std::string format_str = (char *)formatNode->getText(formatNode)->chars;
+				std::string format_str = child[1].GetString();
 				format_str = format_str.substr(1, format_str.length() - 2);
 
-				std::string name_str = (char *)nameNode->getText(nameNode)->chars;
+				std::string name_str = child[0][0].GetString();
 
 				InstructionFormatDescriptionParser parser (diag, *isa);
 				InstructionFormatDescription *fmt;
@@ -144,23 +125,24 @@ bool ISADescriptionParser::load_from_node(pANTLR3_BASE_TREE node, std::string fi
 					break;
 				}
 
-				for(int i = 2; i < child->getChildCount(child); ++i) {
-					pANTLR3_BASE_TREE attrNode = (pANTLR3_BASE_TREE)child->getChild(child, i);
-					fmt->AddAttribute(std::string((char*)attrNode->getText(attrNode)->chars));
+				auto &attrListNode = child[2];
+				for(auto attrPtr : attrListNode) {
+					auto &attr = *attrPtr;
+					fmt->AddAttribute(attr[0].GetString());
 
-					if(!strcmp((char*)attrNode->getText(attrNode)->chars, "notpred")) {
+					if(attr[0].GetString() == "notpred") {
 						fmt->SetCanBePredicated(false);
 					}
 				}
 
 				if(isa->HasFormat(fmt->GetName())) {
-					diag.Error("Instruction format " + name_str + " already defined", DiagNode(filename, formatNode));
+					diag.Error("Instruction format " + name_str + " already defined", DiagNode(filename, child.GetLocation()));
 					success = false;
 				} else {
 					isa->AddFormat(fmt);
 
 					if ((fmt->GetLength() % isa->GetFetchLength()) != 0) {
-						diag.Error("Instruction format " + name_str + " does not conform to ISA instruction fetch length", DiagNode(filename, formatNode));
+						diag.Error("Instruction format " + name_str + " does not conform to ISA instruction fetch length", DiagNode(filename,  child.GetLocation()));
 						success = false;
 						continue;
 					}
@@ -168,30 +150,31 @@ bool ISADescriptionParser::load_from_node(pANTLR3_BASE_TREE node, std::string fi
 
 				break;
 			}
-			case AC_ASM_MAP: {
+			case ArchCNodeType::AsmMap: {
 				AsmMapDescription map = AsmMapDescriptionParser::Parse(child);
 				isa->AddMapping(map);
 				break;
 			}
-			case AC_INSTR: {
-				pANTLR3_BASE_TREE formatNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string formatName = (char *)(formatNode->getText(formatNode)->chars);
+			case ArchCNodeType::Instruction: {
+				auto &formatNode = child[0][0];
+				std::string formatName = formatNode.GetString();;
 
 				if (isa->Formats.find(formatName) == isa->Formats.end()) {
-					diag.Error("Instruction specified with unknown format", DiagNode(filename, formatNode));
+					diag.Error("Instruction specified with unknown format", DiagNode(filename, formatNode.GetLocation()));
 					success = false;
 					continue;
 				}
 
 				InstructionFormatDescription *format = (isa->Formats.at(formatName));
 
-				for (uint32_t j = 1; j < child->getChildCount(child); j++) {
-					pANTLR3_BASE_TREE instrNode = (pANTLR3_BASE_TREE)child->getChild(child, j);
-					std::string instrName = (char *)(instrNode->getText(instrNode)->chars);
+				auto &listNode = child[1];
+				for(auto instrPtr : listNode) {
+					auto &instr = *instrPtr;
+					std::string instrName = instr[0].GetString();
 
 					isa::ISADescription::InstructionDescriptionMap::const_iterator ins = isa->Instructions.find(instrName);
 					if (ins != isa->Instructions.end()) {
-						diag.Error("Duplicate instruction specified: " + instrName, DiagNode(filename, formatNode));
+						diag.Error("Duplicate instruction specified: " + instrName, DiagNode(filename, formatNode.GetLocation()));
 						success = false;
 						continue;
 					}
@@ -201,7 +184,7 @@ bool ISADescriptionParser::load_from_node(pANTLR3_BASE_TREE node, std::string fi
 
 				break;
 			}
-			case AC_FIELD: {
+			case ArchCNodeType::Field: {
 				FieldDescriptionParser parser (diag);
 				if(parser.Parse(child)) {
 					isa->UserFields.push_back(*parser.Get());
@@ -209,19 +192,20 @@ bool ISADescriptionParser::load_from_node(pANTLR3_BASE_TREE node, std::string fi
 
 				break;
 			}
-			case ISA_CTOR: {
+			case ArchCNodeType::IsaCtor: {
 
 				success &= load_isa_from_node(child, filename);
 
 				break;
 			}
-			case AC_BEHAVIOUR: {
-				for (int i = 0; i < child->getChildCount(child); ++i) {
-					pANTLR3_BASE_TREE behaviour_node = (pANTLR3_BASE_TREE)child->getChild(child, i);
-					std::string behaviour_name = (char *)behaviour_node->getText(behaviour_node)->chars;
+			case ArchCNodeType::BehavioursList: {
+				auto &listNode = child[0];
+				for (auto &entryPtr : listNode) {
+					auto &behaviourNode = *entryPtr;
+					std::string behaviour_name = behaviourNode[0].GetString();
 
 					if(isa->ExecuteActionDeclared(behaviour_name)) {
-						diag.Error("Behaviour action " + behaviour_name + " redefined", DiagNode(filename, behaviour_node));
+						diag.Error("Behaviour action " + behaviour_name + " redefined", DiagNode(filename, behaviourNode.GetLocation()));
 						success = false;
 					} else {
 						isa->DeclareExecuteAction(behaviour_name);
@@ -229,137 +213,116 @@ bool ISADescriptionParser::load_from_node(pANTLR3_BASE_TREE node, std::string fi
 				}
 				break;
 			}
-			case AC_ID: {
-				isa->ISAName = std::string((const char *)child->getText(child)->chars);
-				break;
-			}
-			case AC_PREDICATED: {
-				pANTLR3_BASE_TREE value = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				isa->SetDefaultPredicated(strcmp((const char *)value->getText(value)->chars, "yes") == 0);
+
+			case ArchCNodeType::AcPredicated: {
+				std::string text_value = child[0].GetString();
+				isa->SetDefaultPredicated(text_value == "yes");
 				break;
 			}
 
-			case AC_STRUCT: {
+			case ArchCNodeType::Struct: {
 				success &= parse_struct(child);
 				break;
 			}
 
 			default:
-				diag.Error("Internal error: Unknown node type on line " + std::to_string(child->getLine(child)));
-				success = false;
-				break;
+				UNEXPECTED;
 		}
 	}
 	return success;
 }
 
 
-bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::string filename)
+bool ISADescriptionParser::load_isa_from_node(ArchC::AstNode &node, std::string filename)
 {
 	using util::Util;
 
 	bool success = true;
-	for (uint32_t i = 0; i < node->getChildCount(node); i++) {
-		pANTLR3_BASE_TREE child = (pANTLR3_BASE_TREE)node->getChild(node, i);
-		switch (child->getType(child)) {
-			case AC_MODIFIERS: {
-				pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-//				printf("Loading modifiers from file %s\n", nameNode->getText(nameNode)->chars);
-				std::string str = (char *)nameNode->getText(nameNode)->chars;
-				str = str.substr(1, str.length() - 2);
-				isa->SetProperty("Modifiers", str);
-				break;
-			}
 
-			case AC_BEHAVIOURS: {
-				pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
+	auto &listNode = node[1];
+	for (auto entryptr : listNode) {
+		auto &child = *entryptr;
+
+		switch (child.GetType()) {
+			case ArchCNodeType::BehavioursFile: {
 //				if (Util::Verbose_Level) printf("Loading behaviours from file %s\n", nameNode->getText(nameNode)->chars);
-				std::string str = (char *)nameNode->getText(nameNode)->chars;
+				std::string str = child[0].GetString();
 				str = str.substr(1, str.length() - 2);
 				isa->BehaviourFiles.push_back(str);
 				break;
 			}
 
-			case AC_DECODES: {
-				pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-//				if (Util::Verbose_Level) printf("Loading behaviours from file %s\n", nameNode->getText(nameNode)->chars);
-				std::string str = (char *)nameNode->getText(nameNode)->chars;
+			case ArchCNodeType::DecodesFile: {
+				std::string str = child[0].GetString();
 				str = str.substr(1, str.length() - 2);
 //				if (Util::Verbose_Level) printf("Loading behaviours from file %s\n", str.c_str());
 				isa->DecodeFiles.push_back(str);
 				break;
 			}
 
-			case AC_EXECUTE: {
-				pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-//				if (Util::Verbose_Level) printf("Loading behaviours from file %s\n", nameNode->getText(nameNode)->chars);
-				std::string str = (char *)nameNode->getText(nameNode)->chars;
+			case ArchCNodeType::ExecutesFile: {
+				std::string str = child[0].GetString();
 				str = str.substr(1, str.length() - 2);
 				isa->ExecuteFiles.push_back(str);
 				break;
 			}
 
-			case SET_DECODER: {
-				pANTLR3_BASE_TREE instrNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string instrName = (char *)instrNode->getText(instrNode)->chars;
-//				if (Util::Verbose_Level) printf("Loading decode info for instruction %s\n", instrNode->getText(instrNode)->chars);
+			case ArchCNodeType::Decoder: {
+				std::string instrName = child[0][0].GetString();
 
 				if (isa->Instructions.find(instrName) == isa->Instructions.end()) {
-					diag.Error("Attempting to add decode constraints to unknown instruction", DiagNode(filename, instrNode));
+					diag.Error("Attempting to add decode constraints to unknown instruction", DiagNode(filename, child.GetLocation()));
 					success = false;
 					continue;
 				} else {
 					isa->instructions_.at(instrName)->bitStringsCalculated = false;
-					if(!InstructionDescriptionParser::load_constraints_from_node(child, isa->instructions_.at(instrName)->Decode_Constraints))
+					if(!InstructionDescriptionParser::load_constraints_from_node(child[1], isa->instructions_.at(instrName)->Decode_Constraints))
 						success = false;
 				}
 				break;
 			}
-			case SET_EOB: {
-				pANTLR3_BASE_TREE instrNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string instrName = (char *)instrNode->getText(instrNode)->chars;
+			case ArchCNodeType::EndOfBlock: {
+				std::string instrName = child[0][0].GetString();
 //				if (Util::Verbose_Level) printf("Loading decode info for instruction %s\n", instrNode->getText(instrNode)->chars);
 
 				if (isa->Instructions.find(instrName) == isa->Instructions.end()) {
-					diag.Error("Attempting to add end of block constraint to unknown instruction " + instrName, DiagNode(filename, instrNode));
+					diag.Error("Attempting to add end of block constraint to unknown instruction " + instrName, DiagNode(filename, child.GetLocation()));
 					success = false;
 				} else {
 					isa->instructions_.at(instrName)->bitStringsCalculated = false;
-					if(!InstructionDescriptionParser::load_constraints_from_node(child, isa->instructions_.at(instrName)->EOB_Contraints))
+					if(!InstructionDescriptionParser::load_constraints_from_node(child[1], isa->instructions_.at(instrName)->EOB_Contraints))
 						success = false;
 				}
 				break;
 			}
-			case SET_USES_PC: {
-				pANTLR3_BASE_TREE instrNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string instrName = (char *)instrNode->getText(instrNode)->chars;
+			case ArchCNodeType::UsesPc: {
+				std::string instrName = child[0][0].GetString();
 //				if (Util::Verbose_Level) printf("Loading decode info for instruction %s\n", instrNode->getText(instrNode)->chars);
 
 				if (isa->Instructions.find(instrName) == isa->Instructions.end()) {
-					diag.Error("Attempting to add Uses-PC constraint to unknown instruction", DiagNode(filename, instrNode));
+					diag.Error("Attempting to add Uses-PC constraint to unknown instruction", DiagNode(filename, child.GetLocation()));
 					success = false;
 				} else {
 					isa->instructions_.at(instrName)->bitStringsCalculated = false;
-					if(!InstructionDescriptionParser::load_constraints_from_node(child, isa->instructions_.at(instrName)->Uses_PC_Constraints))
+					if(!InstructionDescriptionParser::load_constraints_from_node(child[1], isa->instructions_.at(instrName)->Uses_PC_Constraints))
 						success = false;
 				}
 				break;
 			}
-			case SET_JUMP_FIXED:
-			case SET_JUMP_FIXED_PREDICATED: {
-				pANTLR3_BASE_TREE instrNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string instrName = (char *)instrNode->getText(instrNode)->chars;
+			case ArchCNodeType::JumpFixed:
+			case ArchCNodeType::JumpFixedPredicated: {
+				std::string instrName = child[0][0].GetString();
 //				if (Util::Verbose_Level) printf("Loading jump info for instruction %s\n", instrNode->getText(instrNode)->chars);
 
 				if (isa->Instructions.find(instrName) == isa->Instructions.end()) {
-					diag.Error("Attempting to add jump info to unknown instruction", DiagNode(filename, instrNode));
+					diag.Error("Attempting to add jump info to unknown instruction", DiagNode(filename, child.GetLocation()));
 					success = false;
 				} else {
-					pANTLR3_BASE_TREE fieldNode = (pANTLR3_BASE_TREE)child->getChild(child, 1);
+					auto &fieldNode = child[1];
 					InstructionDescription *instr = isa->instructions_.at(instrName);
-					instr->FixedJumpField = std::string((char *)fieldNode->getText(fieldNode)->chars);
+					instr->FixedJumpField = fieldNode[0].GetString();
 
-					if (child->getType(child) == SET_JUMP_FIXED) {
+					if (child.GetType() == ArchCNodeType::JumpFixed) {
 						instr->FixedJump = true;
 						instr->FixedJumpPred = false;
 					} else {
@@ -367,26 +330,26 @@ bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::strin
 						instr->FixedJumpPred = true;
 					}
 
-					pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE)child->getChild(child, 2);
-					if (typeNode->getType(typeNode) == RELATIVE)
+					auto &typeNode = child[2];
+					GASSERT(typeNode.GetType() == ArchCNodeType::STRING);
+					if (typeNode.GetString() == "Relative")
 						instr->FixedJumpType = 1;
 					else
 						instr->FixedJumpType = 0;
 
-					if (child->getChildCount(child) > 3) {
-						pANTLR3_BASE_TREE offsetNode = (pANTLR3_BASE_TREE)child->getChild(child, 3);
-						instr->FixedJumpOffset = atoi((char *)(offsetNode->getText(offsetNode)->chars));
+					if (child.GetChildren().size() > 3) {
+						auto &offsetNode = child[3];
+						instr->FixedJumpOffset = offsetNode.GetInt();
 					}
 				}
 				break;
 			}
-			case SET_JUMP_VARIABLE: {
-				pANTLR3_BASE_TREE instrNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string instrName = (char *)instrNode->getText(instrNode)->chars;
+			case ArchCNodeType::JumpVariable: {
+				std::string instrName = child[0][0].GetString();
 //				if (Util::Verbose_Level) printf("Loading jump info for instruction %s\n", instrNode->getText(instrNode)->chars);
 
 				if (isa->Instructions.find(instrName) == isa->Instructions.end()) {
-					diag.Error("Attempting to add jump info to unknown instruction", DiagNode(filename, instrNode));
+					diag.Error("Attempting to add jump info to unknown instruction", DiagNode(filename, child.GetLocation()));
 					success = false;
 				} else {
 					InstructionDescription *instr = isa->instructions_.at(instrName);
@@ -394,12 +357,11 @@ bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::strin
 				}
 				break;
 			}
-			case SET_BLOCK_COND: {
-				pANTLR3_BASE_TREE instrNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string instrName = (char *)instrNode->getText(instrNode)->chars;
+			case ArchCNodeType::BlockCond: {
+				std::string instrName = child[0][0].GetString();
 
 				if (isa->Instructions.find(instrName) == isa->Instructions.end()) {
-					diag.Error("Attempting to add conditional block instruction info to unknown instruction", DiagNode(filename, instrNode));
+					diag.Error("Attempting to add conditional block instruction info to unknown instruction", DiagNode(filename, child.GetLocation()));
 					success = false;
 				} else {
 					InstructionDescription *instr = isa->instructions_.at(instrName);
@@ -408,13 +370,12 @@ bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::strin
 
 				break;
 			}
-			case SET_ASM: {
-				pANTLR3_BASE_TREE instrNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string instrName = (char *)instrNode->getText(instrNode)->chars;
+			case ArchCNodeType::Assembler: {
+				std::string instrName = child[0][0].GetString();
 //				if (Util::Verbose_Level) printf("Loading disasm info for instruction %s\n", instrNode->getText(instrNode)->chars);
 
 				if (isa->Instructions.find(instrName) == isa->Instructions.end()) {
-					diag.Error("Attempting to add disasm info to unknown instruction", DiagNode(filename, instrNode));
+					diag.Error("Attempting to add disasm info to unknown instruction", DiagNode(filename, child.GetLocation()));
 					success = false;
 				} else {
 					AsmDescriptionParser asm_parser (diag, filename);
@@ -423,18 +384,16 @@ bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::strin
 				}
 				break;
 			}
-			case SET_BEHAVIOUR: {
-				pANTLR3_BASE_TREE instrNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				pANTLR3_BASE_TREE behaviourNode = (pANTLR3_BASE_TREE)child->getChild(child, 1);
-				std::string instrName = (char *)instrNode->getText(instrNode)->chars;
-				std::string behaviourName = (char *)behaviourNode->getText(behaviourNode)->chars;
+			case ArchCNodeType::Behaviour: {
+				std::string instrName = child[0][0].GetString();
+				std::string behaviourName = child[1][0].GetString();
 
 				if (isa->Instructions.find(instrName) == isa->Instructions.end()) {
-					diag.Error("Attempted to add behaviour to unknown instruction " + instrName, DiagNode(filename, child));
+					diag.Error("Attempted to add behaviour to unknown instruction " + instrName, DiagNode(filename, child.GetLocation()));
 					success = false;
 				} else {
 					if(!isa->ExecuteActionDeclared(behaviourName)) {
-						diag.Error("Attempted to add unknown behaviour " + behaviourName + " to instruction", DiagNode(filename, child));
+						diag.Error("Attempted to add unknown behaviour " + behaviourName + " to instruction", DiagNode(filename, child.GetLocation()));
 						success = false;
 					} else {
 						isa->SetBehaviour(instrName, behaviourName);
@@ -443,24 +402,9 @@ bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::strin
 
 				break;
 			}
-			case SET_HAS_LIMM: {
-				pANTLR3_BASE_TREE instrNode = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				pANTLR3_BASE_TREE limmLengthNode = (pANTLR3_BASE_TREE)child->getChild(child, 1);
 
-				std::string instrName = (char *)instrNode->getText(instrNode)->chars;
-				int limmLength = atoi((char *)limmLengthNode->getText(limmLengthNode)->chars);
-
-				if (isa->Instructions.find(instrName) == isa->Instructions.end()) {
-//					fprintf(stderr, "Attempting to set limm for unknown instruction %s (Line %u)\n", instrName.c_str(), instrNode->getLine(instrNode));
-					success = false;
-				}
-
-				if (success) {
-					InstructionDescription *inst = isa->instructions_[instrName];
-					inst->LimmCount = limmLength;
-				}
-
-				break;
+			default: {
+				UNEXPECTED;
 			}
 		}
 	}
@@ -473,12 +417,31 @@ bool ISADescriptionParser::load_isa_from_node(pANTLR3_BASE_TREE node, std::strin
 	return success;
 }
 
+std::string format_code(ArchCBehaviours::AstNode &node)
+{
+	switch(node.GetType()) {
+		case ArchCBehavioursNodeType::List: {
+			std::string outcode;
+			for(auto child : node) {
+				outcode += format_code(*child) + " ";
+			}
+			return outcode;
+		}
+		case ArchCBehavioursNodeType::STRING: {
+			return node.GetString();
+		}
+		default: {
+			UNEXPECTED;
+		}
+	}
+}
+
 bool ISADescriptionParser::load_behaviour_file(std::string filename)
 {
 	bool success = true;
 
-	std::ifstream _check_file(filename.c_str());
-	if (!_check_file) {
+	std::ifstream filestream(filename.c_str());
+	if (!filestream) {
 		std::cerr << "Could not find behaviour file " << filename << std::endl;
 		return false;
 	}
@@ -486,98 +449,45 @@ bool ISADescriptionParser::load_behaviour_file(std::string filename)
 	if(loaded_files.count(filename)) return true;
 	loaded_files.insert(filename);
 
-//	printf("Parsing behaviour file %s\n", filename.c_str());
+	printf("Parsing behaviour file %s\n", filename.c_str());
 
-	pANTLR3_UINT8 fname_str = (pANTLR3_UINT8)filename.c_str();
-	pANTLR3_INPUT_STREAM pts = antlr3AsciiFileStreamNew(fname_str);
-	parchCBehaviourLexer lexer = archCBehaviourLexerNew(pts);
-	pANTLR3_COMMON_TOKEN_STREAM tstream = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(lexer));
-	parchCBehaviourParser parser = archCBehaviourParserNew(tstream);
+	ArchCBehaviours::ArchCBehavioursScanner scanner (&filestream);
+	ArchCBehaviours::AstNode root_node(ArchCBehavioursNodeType::ROOT);
+	ArchCBehaviours::ArchCBehavioursParser parser(scanner, &root_node);
 
-	archCBehaviourParser_behaviour_file_return arch = parser->behaviour_file(parser);
+	if(parser.parse() != 0) {
+		return false;
+	}
 
-	pANTLR3_COMMON_TREE_NODE_STREAM nodes = antlr3CommonTreeNodeStreamNewTree(arch.tree, ANTLR3_SIZE_HINT);
+	for (auto childPtr : root_node[0]) {
+		auto &child = *childPtr;
 
-	pANTLR3_BASE_TREE behaviourTree = nodes->root;
-
-	for (uint32_t behaviourIndex = 0; behaviourIndex < behaviourTree->getChildCount(behaviourTree); behaviourIndex++) {
-		pANTLR3_BASE_TREE child = (pANTLR3_BASE_TREE)behaviourTree->getChild(behaviourTree, behaviourIndex);
-		switch (child->getType(child)) {
-			case BE_DECODE: {
-				pANTLR3_BASE_TREE nameChild = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string format = (char *)nameChild->getText(nameChild)->chars;
-
-				pANTLR3_BASE_TREE codeChild = (pANTLR3_BASE_TREE)child->getChild(child, 1);
-				std::string code = (char *)codeChild->getText(codeChild)->chars;
+		switch (child.GetType()) {
+			case ArchCBehavioursNodeType::DecodeBehaviour: {
+				std::string format = child[0].GetString();
+				std::string code = format_code(child[1]);
 
 				if (isa->Formats.find(format) != isa->Formats.end())
 					isa->formats_[format]->DecodeBehaviourCode = code;
 				else {
-					std::cerr << "Attempted to assign a behaviour string to a non-existant decode type " << format << "(Line " << child->getLine(child) << ")" << std::endl;
+//					std::cerr << "Attempted to assign a behaviour string to a non-existant decode type " << format << "(Line " << child->getLine(child) << ")" << std::endl;
 					success = false;
 				}
 				break;
 			}
-			case BE_EXECUTE: {
-				pANTLR3_BASE_TREE nameChild = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string format = (char *)nameChild->getText(nameChild)->chars;
-
-				pANTLR3_BASE_TREE codeChild = (pANTLR3_BASE_TREE)child->getChild(child, 1);
-				std::string code = (char *)codeChild->getText(codeChild)->chars;
-
-				// if (ExecuteActions.find(format) != ExecuteActions.end())
-				if(!isa->ExecuteActionDeclared(format)) {
-					diag.Error("Adding behaviour to unknown execute action " + format, DiagNode(filename, nameChild));
-					success = false;
-				} else {
-					isa->AddExecuteAction(format, code);
-				}
-				// else
-				//{
-				// std::cerr << "Attempted to assign a behaviour string to an unknown behaviour " << format << std::endl;
-				// success = false;
-				//}
-				break;
-			}
-			case BE_BEHAVIOUR: {
-				pANTLR3_BASE_TREE nameChild = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				std::string name = (char *)nameChild->getText(nameChild)->chars;
-
-				pANTLR3_BASE_TREE codeChild = (pANTLR3_BASE_TREE)child->getChild(child, 1);
-				std::string code = (char *)codeChild->getText(codeChild)->chars;
+			case ArchCBehavioursNodeType::GenericBehaviour: {
+				std::string name = child[0].GetString();
+				std::string code = format_code(child[2]);
 
 				isa->AddBehaviourAction(name, code);
 				break;
 			}
 
-			case BE_HELPER: {
-				pANTLR3_BASE_TREE prototypeChild = (pANTLR3_BASE_TREE)child->getChild(child, 0);
-				pANTLR3_BASE_TREE bodyChild = (pANTLR3_BASE_TREE)child->getChild(child, 1);
-
-				std::string prototype;
-
-				for (uint32_t i = 0; i < prototypeChild->getChildCount(prototypeChild); ++i) {
-					pANTLR3_BASE_TREE node = (pANTLR3_BASE_TREE)prototypeChild->getChild(prototypeChild, i);
-					prototype.append((char *)node->getText(node)->chars);
-					prototype.append(" ");
-				}
-
-				std::string body = (char *)bodyChild->getText(bodyChild)->chars;
-
-				if (util::Util::Verbose_Level) std::cout << "Loading helper function " << prototype << std::endl;
-
-				isa->AddHelperFn(prototype, body);
-				break;
+			default : {
+				UNEXPECTED;
 			}
 		}
 	}
-
-//	FIXME: free these safely
-	nodes->free(nodes);
-	parser->free(parser);
-	tstream->free(tstream);
-	lexer->free(lexer);
-	pts->free(pts);
 
 	return success;
 }

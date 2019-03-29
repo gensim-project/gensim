@@ -229,6 +229,7 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 
 	if(archsim::options::Verbose) {
 		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().InstructionCount.get_ptr()), IROperand::const64(1));
+		builder.count(IROperand::const64((uint64_t)processor->GetMetrics().JITInstructionCount.get_ptr()), IROperand::const64(1));
 	}
 
 	if(archsim::options::InstructionTick) {

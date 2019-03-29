@@ -136,6 +136,7 @@ s_2_3: return;
 
 auto test_action = CompileAsm(ssaasm, "test1");
 const SSAPass *phianalysispass = SSAPassDB::Get("PhiAnalysis");
+ASSERT_NE(test_action, nullptr);
 ASSERT_NE(phianalysispass, nullptr);
 phianalysispass->Run(*test_action);
 

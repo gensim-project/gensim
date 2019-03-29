@@ -89,6 +89,8 @@ bool SSATestFixture::RunPass(SSAFormAction* action, SSAStatementValidationPass* 
 bool SSATestFixture::TryAsmWithPass(const std::string& src, gensim::genc::ssa::validation::SSAStatementValidationPass* pass)
 {
 	auto test_action = CompileAsm(src, "test_action");
-
+	if(test_action == nullptr) {
+		throw std::logic_error("Failed to compile");
+	}
 	return RunPass(test_action, pass);
 }

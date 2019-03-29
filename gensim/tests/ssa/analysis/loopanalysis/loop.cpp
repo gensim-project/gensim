@@ -34,6 +34,8 @@ s3: return;
 
 auto test_action = CompileAsm(ssaasm, "noloop");
 
+ASSERT_NE(test_action, nullptr);
+
 gensim::genc::ssa::LoopAnalysis la;
 auto result = la.Analyse(*test_action);
 
@@ -57,6 +59,8 @@ s3: return;
 }
 )||";
 auto test_action = CompileAsm(ssaasm, "noloop");
+
+ASSERT_NE(test_action, nullptr);
 
 gensim::genc::ssa::LoopAnalysis la;
 auto result = la.Analyse(*test_action);

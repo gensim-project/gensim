@@ -14,6 +14,10 @@
 #include "util/AntlrWrapper.h"
 #include "DiagnosticContext.h"
 
+#include "flexbison_harness.h"
+#include "flexbison_archc_ast.h"
+#include "flexbison_archc.h"
+
 namespace gensim
 {
 	namespace isa
@@ -22,7 +26,7 @@ namespace gensim
 		class InstructionDescriptionParser
 		{
 		public:
-			static bool load_constraints_from_node(gensim::AntlrTreeWrapper tree, std::list<std::vector<InstructionDescription::DecodeConstraint> > &target);
+			static bool load_constraints_from_node(const ArchC::AstNode &tree, std::list<std::vector<InstructionDescription::DecodeConstraint> > &target);
 		};
 	}
 }

@@ -292,7 +292,7 @@ public:
 		}
 		switch(stmt.GetOption()) {
 			case SSACastStatement::Option_None:
-				cast_option = "";
+				cast_option = "none";
 				break;
 			case SSACastStatement::Option_RoundDefault:
 				cast_option = "round_default";

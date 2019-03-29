@@ -32,10 +32,8 @@ namespace gensim
 		public:
 			std::string instruction_name;
 			std::string format;
-			std::map<std::string, const util::expression *> constraints;
+			std::vector<const util::expression *> constraints;
 			std::vector<const util::expression *> args;
-
-			void *parsed_format;
 
 		};
 
