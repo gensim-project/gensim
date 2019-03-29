@@ -20,6 +20,8 @@ s1: return;
 
 auto test_action = CompileAsm(ssaasm, "the_action");
 
+ASSERT_NE(test_action, nullptr);
+
 auto the_param = test_action->GetPrototype().ParameterTypes().at(0);
 
 ASSERT_EQ(the_param.Reference, true);
@@ -36,6 +38,8 @@ s1: return;
 )||";
 
 auto test_action = CompileAsm(ssaasm, "the_action");
+
+ASSERT_NE(test_action, nullptr);
 
 auto the_param = test_action->GetPrototype().ParameterTypes().at(0);
 
