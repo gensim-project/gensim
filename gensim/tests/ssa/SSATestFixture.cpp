@@ -17,7 +17,8 @@ using namespace gensim::genc::ssa;
 SSATestFixture::SSATestFixture() : test_arch_(gensim::arch::testing::GetTestArch()), diag_src_("test"), diag_ctx_(diag_src_)
 {
 	gensim::isa::ISADescription *isa = gensim::isa::testing::GetTestISA(false);
-	test_context_ = new SSAContext(*isa, *test_arch_);
+	gensim::genc::IntrinsicManager *intrinsics = new gensim::genc::IntrinsicManager(*test_arch_);
+	test_context_ = new SSAContext(*isa, *test_arch_, *intrinsics);
 	gensim::genc::InstStructBuilder isb;
 
 	test_context_->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa, test_context_->GetTypeManager()));

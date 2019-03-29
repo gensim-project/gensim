@@ -17,8 +17,10 @@ using namespace gensim::genc::ssa::testing;
 
 SSAContext *gensim::genc::ssa::testing::GetTestContext()
 {
+	auto test_arch = gensim::arch::testing::GetTestArch();
+	IntrinsicManager *intrinsics = new IntrinsicManager(*test_arch);
 	auto isa = gensim::isa::testing::GetTestISA(false);
-	auto ctx = new SSAContext(*isa, *gensim::arch::testing::GetTestArch());
+	auto ctx = new SSAContext(*isa, *test_arch, *intrinsics);
 	gensim::genc::InstStructBuilder isb;
 
 	ctx->GetTypeManager().InsertStructType("Instruction", isb.BuildType(isa, ctx->GetTypeManager()));

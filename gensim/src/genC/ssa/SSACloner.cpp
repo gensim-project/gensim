@@ -131,7 +131,7 @@ public:
 
 	void VisitIntrinsicStatement(SSAIntrinsicStatement &stmt) override
 	{
-		auto newstmt = new SSAIntrinsicStatement(_block, stmt.GetID(), stmt.GetSignature(), stmt.GetFixednessResolverFunction());
+		auto newstmt = new SSAIntrinsicStatement(_block, stmt.GetDescriptor(), stmt.GetType());
 
 		for(unsigned i = 0; i < stmt.ArgCount(); ++i) {
 			newstmt->AddArg(_clone_context.get(stmt.Args(i)));

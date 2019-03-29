@@ -373,7 +373,7 @@ namespace gensim
 			{
 				const SSAIntrinsicStatement &stmt = (const SSAIntrinsicStatement &) (Statement);
 
-				switch (stmt.GetID()) {
+				switch (stmt.GetDescriptor().GetID()) {
 					case IntrinsicID::BSwap32:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = ";
 						output << "genc_bswap32(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
@@ -501,7 +501,7 @@ namespace gensim
 
 						std::string intrinsic = "";
 						std::string operation = "";
-						switch(stmt.GetID()) {
+						switch(stmt.GetDescriptor().GetID()) {
 							case IntrinsicID::ADC8_Flags:
 								intrinsic = "genc_adc8_flags";
 								operation = "+";
@@ -652,7 +652,7 @@ namespace gensim
 						output << "if(interface.GetMonitor()->LockMonitor(thread, addr)) {";
 						output << stmt.GetName() << " = 1;";
 						output << "archsim::MemoryResult mem_result = ";
-						switch(stmt.GetID()) {
+						switch(stmt.GetDescriptor().GetID()) {
 							case IntrinsicID::MemMonitorWrite8:
 								output << "interface.Write8(addr, value);";
 								break;
@@ -693,7 +693,7 @@ namespace gensim
 						if(stmt.HasValue()) {
 							output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = ";
 						}
-						output << "thread->fn_" << stmt.GetSignature().GetName() << "(";
+						output << "thread->fn_" << stmt.GetDescriptor().GetName() << "(";
 						for(int i = 0; i < stmt.ArgCount(); ++i) {
 							if(i != 0) {
 								output << ", ";
@@ -704,7 +704,7 @@ namespace gensim
 						break;
 
 					default:
-						throw std::logic_error("Unrecognised intrinsic: " + stmt.GetSignature().GetName());
+						throw std::logic_error("Unrecognised intrinsic: " + stmt.GetDescriptor().GetName());
 				}
 				return true;
 			}
@@ -712,7 +712,7 @@ namespace gensim
 			std::string GetFixedValue() const
 			{
 				const SSAIntrinsicStatement &stmt = (const SSAIntrinsicStatement &) (Statement);
-				switch (stmt.GetID()) {
+				switch (stmt.GetDescriptor().GetID()) {
 					case IntrinsicID::ReadPC:
 						return "interface.read_pc().Get()";
 					default:

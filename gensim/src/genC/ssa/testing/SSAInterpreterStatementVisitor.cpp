@@ -372,7 +372,7 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 {
 	_vmstate.SetResult(Interpret_Normal);
 
-	switch(stmt.GetID()) {
+	switch(stmt.GetDescriptor().GetID()) {
 		case IntrinsicID::GetFeature: // TODO: Implement properly
 		case IntrinsicID::GetCpuMode: // TODO: Implement properly
 		case IntrinsicID::ReadPC: // TODO: Implement properly
@@ -457,7 +457,7 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 
 			_vmstate.SetStatementValue(&stmt, IRConstant::Integer(result));
 
-			if (stmt.GetID() == IntrinsicID::ADC32_Flags) {
+			if (stmt.GetDescriptor().GetID() == IntrinsicID::ADC32_Flags) {
 				uint32_t N = (result & 0x80000000) != 0;
 				uint32_t Z = ((uint32_t)result) == 0;
 				uint32_t C = result > 0xffffffff;
@@ -473,7 +473,7 @@ void SSAInterpreterStatementVisitor::VisitIntrinsicStatement(SSAIntrinsicStateme
 				_machine_state.RegisterFile().Write8(v_offset, V);
 				_machine_state.RegisterFile().Write8(z_offset, Z);
 				_machine_state.RegisterFile().Write8(n_offset, N);
-			} else if(stmt.GetID() == IntrinsicID::ADC64_Flags) {
+			} else if(stmt.GetDescriptor().GetID() == IntrinsicID::ADC64_Flags) {
 				UNIMPLEMENTED;
 			}
 

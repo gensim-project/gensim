@@ -6,6 +6,7 @@
 #include "genC/ssa/statement/SSAIntrinsicStatement.h"
 #include "genC/ssa/statement/SSAConstantStatement.h"
 #include "genC/ssa/SSABlock.h"
+#include "genC/Intrinsics.h"
 
 using namespace gensim::genc::ssa;
 using namespace gensim::genc::ssa::analysis;
@@ -56,7 +57,7 @@ bool FeatureDominanceAnalysis::StatementIsDominatingSetFeature(uint32_t feature,
 	// Try casting the statement to an intrinsic...
 	if (auto check_intrinsic = dynamic_cast<const SSAIntrinsicStatement *>(check_stmt)) {
 		// And, check to see if the intrinsic is a set-feature...
-		if (check_intrinsic->GetID() == IntrinsicID::SetFeature) {
+		if (check_intrinsic->GetDescriptor().GetID() == IntrinsicID::SetFeature) {
 			// And, extract the feature id being set by this statement...
 			auto set_stmt_feature_id = dynamic_cast<const SSAConstantStatement *>(check_intrinsic->Args(0));
 

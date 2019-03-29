@@ -202,7 +202,7 @@ ssa::SSAContext *GenCContext::EmitSSA()
 {
 	if (!Valid) return NULL;
 
-	auto context = new ssa::SSAContext(ISA, Arch, type_manager_);
+	auto context = new ssa::SSAContext(ISA, Arch, type_manager_, intrinsic_manager_);
 
 	for (std::map<std::string, IRHelperAction *>::const_iterator ci = HelperTable.begin(); ci != HelperTable.end(); ++ci) {
 		auto ssa_form = ci->second->GetSSAForm(*context);
@@ -237,7 +237,7 @@ FileContents::FileContents(const std::string& filename, std::shared_ptr<std::ist
 
 }
 
-GenCContext::GenCContext(const gensim::arch::ArchDescription &arch, const isa::ISADescription &isa, DiagnosticContext &diag_ctx) : Valid(true), Arch(arch), ISA(isa), GlobalScope(IRScope::CreateGlobalScope(*this)), diag_ctx(diag_ctx)
+GenCContext::GenCContext(const gensim::arch::ArchDescription &arch, const isa::ISADescription &isa, IntrinsicManager &intrinsics, DiagnosticContext &diag_ctx) : Valid(true), Arch(arch), ISA(isa), GlobalScope(IRScope::CreateGlobalScope(*this)), diag_ctx(diag_ctx), intrinsic_manager_(intrinsics)
 {
 	type_manager_ = std::shared_ptr<ssa::SSATypeManager>(new ssa::SSATypeManager());
 

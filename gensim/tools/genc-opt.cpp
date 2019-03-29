@@ -49,7 +49,8 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	gensim::genc::ssa::SSAContext *ctx = new gensim::genc::ssa::SSAContext(*isa, *arch);
+	gensim::genc::IntrinsicManager *intrinsics = new gensim::genc::IntrinsicManager(*arch);
+	gensim::genc::ssa::SSAContext *ctx = new gensim::genc::ssa::SSAContext(*isa, *arch, *intrinsics);
 
 	gensim::genc::ssa::io::AssemblyReader ar;
 	gensim::genc::ssa::io::AssemblyFileContext *afc = nullptr;

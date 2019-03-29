@@ -21,17 +21,16 @@ using namespace gensim;
 using namespace gensim::genc;
 using namespace gensim::genc::ssa;
 
-SSAContext::SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch) : SSAContext(isa, arch, std::shared_ptr<ssa::SSATypeManager>(new ssa::SSATypeManager()))
+SSAContext::SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch, const IntrinsicManager &intrinsics) : SSAContext(isa, arch, std::shared_ptr<ssa::SSATypeManager>(new ssa::SSATypeManager()), intrinsics)
 {
 
 }
-
 
 /**
  * Constructs a new SSAContext, and associates it with the given architecture description.
  * @param arch The architecture description to associate the SSA context with.
  */
-SSAContext::SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch, std::shared_ptr<SSATypeManager> type_manager) : arch_(arch), isa_(isa), parallel_optimise_(false), test_optimise_(false), type_manager_(type_manager)
+SSAContext::SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch, std::shared_ptr<SSATypeManager> type_manager, const IntrinsicManager &intrinsics) : arch_(arch), isa_(isa), parallel_optimise_(false), test_optimise_(false), type_manager_(type_manager), intrinsics_(intrinsics)
 {
 #ifdef MULTITHREAD
 	SetParallelOptimise(true);
@@ -52,6 +51,11 @@ SSAContext::~SSAContext()
 	for(auto i : actions_) {
 		delete i.second;
 	}
+}
+
+const IntrinsicManager &SSAContext::GetIntrinsics() const
+{
+	return intrinsics_;
 }
 
 static bool OptimiseAction(SSAFormAction *action, SSAPass *pass)
