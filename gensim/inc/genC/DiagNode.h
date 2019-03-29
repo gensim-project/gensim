@@ -5,10 +5,10 @@
 #include <string>
 #include <ostream>
 
-#include <flexbison_harness.h>
-
 struct ANTLR3_BASE_TREE_struct;
 typedef struct ANTLR3_BASE_TREE_struct *pANTLR3_BASE_TREE;
+
+class location_data;
 
 namespace gensim
 {

@@ -16,16 +16,12 @@ namespace GenC
 {
 	using AstNode = astnode<GenCNodeType>;
 
-	class GenCScanner : public yyFlexLexer
+	class GenCScanner : public LexerTemplate<yyFlexLexer, GenCParser>
 	{
 	public:
-		GenCScanner(std::istream *input) : yyFlexLexer(input) {}
+		GenCScanner(std::istream *input) : BaseT(input) {}
 
-		virtual int yylex(typename GenCParser::semantic_type *const lval, typename GenCParser::location_type *location);
-
-	private:
-		typename GenCParser::semantic_type *yylval = nullptr;
-		//typename GenCParser::location_type *loc = nullptr;
+		virtual int yylex(typename GenCParser::semantic_type *const lval, typename GenCParser::location_type *location) override;
 	};
 
 }

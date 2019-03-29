@@ -48,35 +48,36 @@ static IRConstant parse_constant_value(const GenCSSA::AstNode &tree)
 
 static SSAType parse_type(SSAContext &ctx, const GenCSSA::AstNode &tree)
 {
-	UNIMPLEMENTED;
-	/*
 	gensim::genc::IRType out;
-	char *text = (char*)tree->getText(tree)->chars;
 
-	if(!gensim::genc::IRType::ParseType(text, out)) {
-		if(ctx.GetTypeManager().HasStructType(text)) {
-			out = ctx.GetTypeManager().GetStructType(text);
-		} else {
-			throw std::logic_error("Unknown type");
-		}
-	}
-
-	for(unsigned i = 0; i < tree->getChildCount(tree); ++i) {
-		auto childnode = (pANTLR3_BASE_TREE)tree->getChild(tree, i);
-		switch(childnode->getType(childnode)) {
-			case SSAASM_TYPE_VECTOR:
-				out.VectorWidth = parse_constant_value((pANTLR3_BASE_TREE)childnode->getChild(childnode, 0)).Int();
-				break;
-			case SSAASM_TYPE_REF:
-				out.Reference = true;
-				break;
-			default:
-				UNREACHABLE;
-		}
+	switch(tree.GetType()) {
+		case GenCSSANodeType::BasicType:
+			if(!gensim::genc::IRType::ParseType(tree[0].GetString(), out)) {
+				throw std::logic_error("Unknown type");
+			}
+			break;
+		case GenCSSANodeType::StructType:
+			if(!ctx.GetTypeManager().HasStructType(tree[0].GetString())) {
+				throw std::logic_error("Unknown type");
+			} else {
+				out = ctx.GetTypeManager().GetStructType(tree[0].GetString());
+			}
+			break;
+		case GenCSSANodeType::VectorType:
+			if(!gensim::genc::IRType::ParseType(tree[0].GetString(), out)) {
+				throw std::logic_error("Unknown type");
+			}
+			out.VectorWidth = tree[1].GetInt();
+			break;
+		case GenCSSANodeType::ReferenceType:
+			out = parse_type(ctx, tree[0]);
+			out.Reference = true;
+			break;
+		default:
+			UNEXPECTED;
 	}
 
 	return out;
-	*/
 }
 
 
@@ -94,8 +95,7 @@ bool ContextAssembler::Assemble(AssemblyFileContext &afc, DiagnosticContext &dc)
 
 	try {
 		ActionAssembler actionasm;
-		// ExternalActionAssembler xactionasm;
-		for(auto childPtr : tree) {
+		for(auto childPtr : tree[0]) {
 			auto &child = *childPtr;
 			SSAActionBase *action = nullptr;
 
@@ -362,10 +362,10 @@ SSACastStatement::CastOption parse_cast_option(const GenCSSA::AstNode &node)
 
 SSAStatement *StatementAssembler::parse_cast_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	auto &type_node = tree[0];
-	auto &expr_node = tree[1];
-	auto &cast_type_node = tree[2];
-	auto &option_node = tree[3];
+	auto &cast_type_node = tree[0];
+	auto &option_node = tree[1];
+	auto &type_node = tree[2];
+	auto &expr_node = tree[3];
 
 	SSACastStatement::CastType ctype = parse_cast_type(cast_type_node);
 
@@ -503,10 +503,12 @@ SSAStatement *StatementAssembler::parse_raise_statement(const GenCSSA::AstNode &
 SSAStatement *StatementAssembler::parse_return_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
 	if(tree.GetType() == GenCSSANodeType::StatementReturn) {
-		return new SSAReturnStatement(block, nullptr);
-	} else {
 		auto &target_name_node = tree[0];
 		return new SSAReturnStatement(block, get_statement(target_name_node));
+	} else if(tree.GetType() == GenCSSANodeType::StatementReturnVoid) {
+		return new SSAReturnStatement(block, nullptr);
+	} else {
+		UNEXPECTED;
 	}
 }
 

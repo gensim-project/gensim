@@ -17,15 +17,12 @@ namespace ArchCBehaviours
 {
 	using AstNode = astnode<ArchCBehavioursNodeType>;
 
-	class ArchCBehavioursScanner : public yyFlexLexer
+	class ArchCBehavioursScanner : public LexerTemplate<yyFlexLexer, ArchCBehavioursParser>
 	{
 	public:
-		ArchCBehavioursScanner(std::istream *input) : yyFlexLexer(input) {}
+		ArchCBehavioursScanner(std::istream *input) : BaseT(input) {}
 
-		virtual int yylex(typename ArchCBehavioursParser::semantic_type *const lval, typename ArchCBehavioursParser::location_type *location);
-
-	private:
-		typename ArchCBehavioursParser::semantic_type *yylval = nullptr;
+		virtual int yylex(typename ArchCBehavioursParser::semantic_type *const lval, typename ArchCBehavioursParser::location_type *location) override;
 	};
 
 }

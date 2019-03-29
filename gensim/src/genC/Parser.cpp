@@ -324,6 +324,12 @@ bool GenCContext::Parse_File(GenC::AstNode &File)
 			case GenCNodeType::Helper:
 				success &= Parse_Helper(*child);
 				break;
+			case GenCNodeType::Typename:
+				success &= Parse_Typename(*child);
+				break;
+			case GenCNodeType::Constant:
+				success &= Parse_Constant(*child);
+				break;
 			default:
 				Diag().Error("Parse error: Expected helper, execute or behaviour node", DiagNode(CurrFilename));
 				success = false;

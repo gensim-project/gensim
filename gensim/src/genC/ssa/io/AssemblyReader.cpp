@@ -16,7 +16,10 @@ using namespace gensim::genc::ssa::io;
 
 bool AssemblyReader::Parse(const std::string& filename, gensim::DiagnosticContext& diag, AssemblyFileContext*& target) const
 {
-	std::ifstream file (filename, std::ios::in | std::ios::binary | std::ios::ate);
+	std::ifstream file (filename, std::ios::in | std::ios::binary);
+	if(!file) {
+		return false;
+	}
 
 	GenCSSA::GenCSSAScanner scanner(&file);
 	GenCSSA::AstNode root (GenCSSANodeType::ROOT);

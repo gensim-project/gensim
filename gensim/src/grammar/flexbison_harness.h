@@ -8,6 +8,9 @@
 #include <vector>
 #include <iostream>
 
+// Flex/bison creates a separate position/location data class for each grammar.
+// In order to avoid dealing with this, define a single position and location
+// class which we can convert these into.
 class position_data
 {
 public:
@@ -32,6 +35,30 @@ template<typename stream_type> static stream_type &operator<<(stream_type &str, 
 	str << location.begin.Filename << ":" << location.begin.Line;
 	return str;
 }
+
+// Flex/bison creates a completely separate base class for each lexer which
+// makes it difficult to reason about and abstract away these classes. So,
+// use a templated class to join these together into a common interface and
+// common implementations for helper methods and diagnostics.
+template<typename BaseLexerT, typename BaseParserT> class LexerTemplate : public BaseLexerT
+{
+public:
+	using BaseT = LexerTemplate<BaseLexerT, BaseParserT>;
+	using BaseLexer = BaseLexerT;
+	using BaseParser = BaseParserT;
+
+	LexerTemplate(std::istream *input) : BaseLexer(input) {}
+
+	virtual void LexerError( const char* msg ) override
+	{
+		std::cerr << msg;
+		throw std::logic_error(msg);
+	}
+	virtual int yylex(typename BaseParser::semantic_type *const lval, typename BaseParser::location_type *location) = 0;
+
+protected:
+	typename BaseParser::semantic_type *yylval;
+};
 
 template<typename nodeclass> class astnode
 {

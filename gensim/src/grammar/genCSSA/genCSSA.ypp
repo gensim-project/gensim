@@ -43,14 +43,14 @@
 %define parse.error verbose
 
 %token<sval> ACTION_ATTRIBUTE_EXPORT ACTION_ATTRIBUTE_GLOBAL ACTION_ATTRIBUTE_HELPER ACTION_ATTRIBUTE_NOINLINE
-%token ACTION BLOCK
-%token OANGLE CANGLE OBRACKET CBRACKET OPAREN CPAREN OBRACE CBRACE
+%token ACTION BLOCK STRUCT
+%token OBRACKET CBRACKET OPAREN CPAREN OBRACE CBRACE
 %token EQUALS SEMICOLON COLON
 %token STATEMENT_BANKREGREAD STATEMENT_BANKREGWRITE STATEMENT_BINOP STATEMENT_CALL STATEMENT_CAST STATEMENT_CONSTANT STATEMENT_DEVREAD STATEMENT_DEVWRITE
 %token STATEMENT_IF STATEMENT_INTRINSIC STATEMENT_JUMP STATEMENT_MEMREAD STATEMENT_MEMWRITE STATEMENT_PHI STATEMENT_RAISE STATEMENT_READ STATEMENT_REGREAD
 %token STATEMENT_REGWRITE STATEMENT_RETURN STATEMENT_SELECT STATEMENT_STRUCT STATEMENT_SWITCH STATEMENT_UNOP STATEMENT_VEXTRACT STATEMENT_VINSERT STATEMENT_WRITE
 
-%token<sval> BINOP_PLUS NEGATIVE BINOP_MUL BINOP_DIV BINOP_MOD AMPERSAND BINOP_OR BINOP_XOR BINOP_SHR BINOP_SAR BINOP_SHL CMP_EQUALS CMP_NOTEQUALS CMP_GT CMP_GTE CMP_LT CMP_LTE BINOP_ROL BINOP_ROR
+%token<sval> OANGLE CANGLE BINOP_PLUS NEGATIVE BINOP_MUL BINOP_DIV BINOP_MOD AMPERSAND BINOP_OR BINOP_XOR BINOP_SHR BINOP_SAR BINOP_SHL CMP_EQUALS CMP_NOTEQUALS CMP_GT CMP_GTE CMP_LT CMP_LTE BINOP_ROL BINOP_ROR
 %token<sval> EXCLAMATION COMPLEMENT
 
 %token<sval> SSA_ID SSA_TYPE
@@ -59,7 +59,7 @@
 %token<dval> SSA_DOUBLE
 
 %type<sval> binary_op_inner
-%type<ast_node> type id binary_op unary_op
+%type<ast_node> basic_type type id binary_op unary_op
 %type<ast_node> context action asm_file context_entry context_entry_list action_attribute action_attribute_list action_parameter action_parameter_list action_symbol action_symbol_list
 %type<ast_node> action_symbol_list_inner action_parameter_list_inner action_block_def_list action_block_def_list_inner block action_block_list action_block_list_inner
 %type<ast_node> block_statement_list block_statement_list_inner statement valued_statement valueless_statement valued_statement_body valueless_statement_body
@@ -75,14 +75,11 @@ asm_file :
     context { root->AddChild($1); }
 
 context :
-    context_entry_list;
+    context_entry_list { $$ = CreateNode(GenCSSANodeType::Context, {$1}); }
 
 context_entry_list :
-    context_entry_list context_entry { $$ = $1; $$->AddChild($2); } |
+    context_entry_list action { $$ = $1; $$->AddChild($2); } |
     %empty { $$ = CreateNode(GenCSSANodeType::List); }
-
-context_entry :
-    action;
 
 action :
     ACTION type id action_attribute_list action_parameter_list action_symbol_list action_block_def_list action_block_list { $$ = CreateNode(GenCSSANodeType::Action, {$2, $3, $4, $5, $6, $7, $8}); }
@@ -91,7 +88,13 @@ id :
     SSA_ID { $$ = CreateStrNode<GenCSSANodeType>($1); }
 
 type :
-    SSA_TYPE { $$ = CreateStrNode<GenCSSANodeType>($1); }
+    basic_type |
+    basic_type AMPERSAND { $$ = CreateNode(GenCSSANodeType::ReferenceType, {$1}); }
+
+basic_type :
+    SSA_TYPE { $$ = CreateNode(GenCSSANodeType::BasicType, {CreateStrNode<GenCSSANodeType>($1)}); } |
+    STRUCT id { $$ = CreateNode(GenCSSANodeType::StructType, {$2}); } |
+    SSA_TYPE OBRACKET constant_value CBRACKET { $$ = CreateNode(GenCSSANodeType::VectorType, {CreateStrNode<GenCSSANodeType>($1), $3}); }
 
 action_attribute :
     ACTION_ATTRIBUTE_NOINLINE { $$ = CreateNode(GenCSSANodeType::AttributeNoinline); } |
@@ -117,7 +120,7 @@ action_symbol :
     type id { $$ = CreateNode(GenCSSANodeType::List, {$1, $2}); }
 
 action_symbol_list :
-    OPAREN action_symbol_list_inner CPAREN { $$ = $2; }
+    OBRACKET action_symbol_list_inner CBRACKET { $$ = $2; }
 
 action_symbol_list_inner :
     action_symbol_list_inner action_symbol { $$ = $1; $$->AddChild($2); } |
@@ -167,7 +170,7 @@ binary_op :
     binary_op_inner { $$ = CreateStrNode<GenCSSANodeType>($1); }
 
 binary_op_inner :
-    BINOP_PLUS | NEGATIVE | BINOP_MUL | BINOP_DIV | BINOP_MOD | AMPERSAND | BINOP_OR | BINOP_XOR | BINOP_SHR | BINOP_SAR | BINOP_SHL | CMP_EQUALS | CMP_NOTEQUALS | CMP_GT | CMP_GTE | CMP_LT | CMP_LTE | BINOP_ROL | BINOP_ROR;
+    BINOP_PLUS | NEGATIVE | BINOP_MUL | BINOP_DIV | BINOP_MOD | AMPERSAND | BINOP_OR | BINOP_XOR | BINOP_SHR | BINOP_SAR | BINOP_SHL | CMP_EQUALS | CMP_NOTEQUALS | CANGLE | CMP_GTE | OANGLE | CMP_LTE | BINOP_ROL | BINOP_ROR;
 
 constant_statement : STATEMENT_CONSTANT type constant_value { $$ = CreateNode(GenCSSANodeType::StatementConstant, {$2, $3}); }
 
@@ -193,7 +196,7 @@ phi_statement : STATEMENT_PHI type OBRACKET id_list CBRACKET { $$ = CreateNode(G
 
 select_statement : STATEMENT_SELECT id id id { $$ = CreateNode(GenCSSANodeType::StatementSelect, {$2, $3, $4}); };
 
-struct_member_statement : STATEMENT_STRUCT id id { $$ = CreateNode(GenCSSANodeType::StatementStructMember, {$2, $3}); };
+struct_member_statement : STRUCT id id { $$ = CreateNode(GenCSSANodeType::StatementStructMember, {$2, $3}); };
 
 unary_statement : STATEMENT_UNOP unary_op id { $$ = CreateNode(GenCSSANodeType::StatementUnary, {$2, $3}); }
 
