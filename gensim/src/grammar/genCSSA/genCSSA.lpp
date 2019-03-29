@@ -76,6 +76,7 @@ using token = GenCSSA::GenCSSAParser::token;
 "/" { yylval->sval = strdup(yytext); return token::BINOP_DIV; }
 "%" { yylval->sval = strdup(yytext); return token::BINOP_MOD; }
 "+" { yylval->sval = strdup(yytext); return token::BINOP_PLUS; }
+"*" { yylval->sval = strdup(yytext); return token::BINOP_MUL; }
 "|" { yylval->sval = strdup(yytext); return token::BINOP_OR; }
 "^" { yylval->sval = strdup(yytext); return token::BINOP_XOR; }
 "<<" { yylval->sval = strdup(yytext); return token::BINOP_SHL; }
@@ -95,9 +96,12 @@ using token = GenCSSA::GenCSSAParser::token;
 "cast" return token::STATEMENT_CAST;
 "call" return token::STATEMENT_CALL;
 "constant" return token::STATEMENT_CONSTANT;
+"devread" return token::STATEMENT_DEVREAD;
 "if" return token::STATEMENT_IF;
 "intrinsic" return token::STATEMENT_INTRINSIC;
 "jump" return token::STATEMENT_JUMP;
+"memread" return token::STATEMENT_MEMREAD;
+"memwrite" return token::STATEMENT_MEMWRITE;
 "read" return token::STATEMENT_READ;
 "regread" return token::STATEMENT_REGREAD;
 "regwrite" return token::STATEMENT_REGWRITE;
@@ -105,6 +109,8 @@ using token = GenCSSA::GenCSSAParser::token;
 "select" return token::STATEMENT_SELECT;
 "switch" return token::STATEMENT_SWITCH;
 "unary" return token::STATEMENT_UNOP;
+"vextract" return token::STATEMENT_VEXTRACT;
+"vinsert" return token::STATEMENT_VINSERT;
 "write" return token::STATEMENT_WRITE;
 
 "uint8" { yylval->sval = strdup(yytext); return token::SSA_TYPE; }

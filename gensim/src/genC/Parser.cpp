@@ -68,9 +68,13 @@ IRHelperAction *GenCContext::GetHelper(const std::string& name) const
 
 IRIntrinsicAction *GenCContext::GetIntrinsic(const std::string& name) const
 {
-	if (IntrinsicTable.find(name) != IntrinsicTable.end()) return IntrinsicTable.at(name);
+	auto intrinsic = intrinsic_manager_.GetByName(name);
 
-	return nullptr;
+	if(intrinsic == nullptr) {
+		return nullptr;
+	}
+
+	return IntrinsicTable.at(intrinsic->GetID());
 }
 
 bool GenCContext::AddFile(std::string filename)
@@ -249,6 +253,13 @@ GenCContext::GenCContext(const gensim::arch::ArchDescription &arch, const isa::I
 	LoadFeatureNames();
 	LoadStandardConstants();
 	LoadIntrinsics();
+}
+
+void GenCContext::LoadIntrinsics()
+{
+	for(auto intrinsic : intrinsic_manager_) {
+		IntrinsicTable[intrinsic->GetID()] = new IRIntrinsicAction(*intrinsic, *this);
+	}
 }
 
 bool GenCContext::RegisterInstruction(isa::InstructionDescription* insn, std::string execute)

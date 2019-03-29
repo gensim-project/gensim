@@ -420,11 +420,9 @@ SSAStatement *StatementAssembler::parse_if_statement(const GenCSSA::AstNode &tre
 SSAStatement *StatementAssembler::parse_intrinsic_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
 	auto &id_node = tree[0];
-	uint32_t id = parse_constant_value(id_node).Int();
+	std::string intrinsic_name = id_node.GetString();
 
-	UNIMPLEMENTED;
-
-	/*SSAIntrinsicStatement *intrinsic = new SSAIntrinsicStatement(block, (gensim::genc::ssa::SSAIntrinsicStatement::IntrinsicType)id);
+	SSAIntrinsicStatement *intrinsic = new SSAIntrinsicStatement(block, (gensim::genc::ssa::SSAIntrinsicStatement::IntrinsicType)id);
 
 	auto &paramListNode = tree[1];
 	for(auto paramNode : paramListNode) {

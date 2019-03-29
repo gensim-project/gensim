@@ -22,7 +22,6 @@
 
 #include "genC/ir/IRType.h"
 #include "genC/ir/IRSignature.h"
-#include "genC/ssa/statement/SSAIntrinsicStatement.h"
 #include "genC/ssa/SSATypeManager.h"
 #include "DiagnosticContext.h"
 #include "ir/IRAction.h"
@@ -113,7 +112,6 @@ namespace gensim
 		public:
 			typedef std::multiset<ParserOutput, ParserOutputSorter> FileOutputCollection;
 			typedef std::map<std::string, FileOutputCollection> OutputCollection;
-			typedef ssa::SSAStatement *(*IntrinsicEmitterFn)(const IRIntrinsicAction *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr, const IRType &wordtype);
 
 			GenCContext(const gensim::arch::ArchDescription &arch, const isa::ISADescription &isa, DiagnosticContext &diag_ctx);
 
@@ -174,12 +172,12 @@ namespace gensim
 
 			bool Valid;
 
-			std::map<std::string, IRIntrinsicAction *> IntrinsicTable;
-			std::map<IntrinsicID, IRIntrinsicAction *> IntrinsicIDMap;
-
 			std::map<std::string, IRHelperAction *> HelperTable;
 			std::map<std::string, IRExecuteAction *> ExecuteTable;
 			std::map<std::string, isa::InstructionDescription*> InstructionTable;
+
+			IntrinsicManager intrinsic_manager_;
+			std::map<IntrinsicID, IRIntrinsicAction*> IntrinsicTable;
 
 			std::shared_ptr<ssa::SSATypeManager> type_manager_;
 
@@ -203,7 +201,6 @@ namespace gensim
 
 			void BuildStructTypes();
 
-			void AddIntrinsic(const std::string& name, IntrinsicID id, IRIntrinsicAction::SignatureFactory signatureFactory, IRIntrinsicAction::SSAEmitter emitter, IRIntrinsicAction::FixednessResolver fixednessResolver);
 		};
 	}
 }
