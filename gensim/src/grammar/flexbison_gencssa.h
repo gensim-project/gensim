@@ -16,16 +16,12 @@ namespace GenCSSA
 {
 	using AstNode = astnode<GenCSSANodeType>;
 
-	class GenCSSAScanner : public yyFlexLexer
+	class GenCSSAScanner : public LexerTemplate<yyFlexLexer, GenCSSAParser>
 	{
 	public:
-		GenCSSAScanner(std::istream *input) : yyFlexLexer(input) {}
+		GenCSSAScanner(std::istream *input) : BaseT(input) {}
 
-		virtual int yylex(typename GenCSSAParser::semantic_type *const lval, typename GenCSSAParser::location_type *location);
-
-	private:
-		typename GenCSSAParser::semantic_type *yylval = nullptr;
-		//typename GenCParser::location_type *loc = nullptr;
+		virtual int yylex(typename BaseParser::semantic_type *const lval, typename BaseParser::location_type *location);
 	};
 
 }

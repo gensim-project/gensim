@@ -16,15 +16,12 @@ namespace ArchC
 {
 	using AstNode = astnode<ArchCNodeType>;
 
-	class ArchCScanner : public yyFlexLexer
+	class ArchCScanner : public LexerTemplate<yyFlexLexer, ArchCParser>
 	{
 	public:
-		ArchCScanner(std::istream *input) : yyFlexLexer(input) {}
+		ArchCScanner(std::istream *input) : BaseT(input) {}
 
-		virtual int yylex(typename ArchCParser::semantic_type *const lval, typename ArchCParser::location_type *location);
-
-	private:
-		typename ArchCParser::semantic_type *yylval = nullptr;
+		virtual int yylex(typename BaseParser::semantic_type *const lval, typename BaseParser::location_type *location) override;
 	};
 
 }

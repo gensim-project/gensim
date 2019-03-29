@@ -3,6 +3,7 @@
 #include <antlr3.h>
 
 #include "genC/DiagNode.h"
+#include <flexbison_harness.h>
 
 gensim::DiagNode::DiagNode(const std::string& filename, pANTLR3_BASE_TREE node) : filename_(filename), line_number_(node->getLine(node)), column_(node->getCharPositionInLine(node))
 {

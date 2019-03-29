@@ -11,6 +11,7 @@
 
 #include "DiagnosticContext.h"
 
+#include "flexbison_harness.h"
 #include "flexbison_archc_ast.h"
 #include "flexbison_archc.h"
 
