@@ -30,7 +30,7 @@ static const IRType &WordType(const arch::ArchDescription *arch)
 	}
 }
 
-static ssa::SSAStatement *DefaultIntrinsicEmitter(const IRIntrinsicAction *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr)
+static ssa::SSAStatement *DefaultIntrinsicEmitter(const IntrinsicDescriptor *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr)
 {
 	std::vector<SSAStatement *> arg_statements;
 
@@ -53,9 +53,7 @@ static ssa::SSAStatement *DefaultIntrinsicEmitter(const IRIntrinsicAction *intri
 		arg_statements.push_back(arg_statement);
 	}
 
-	SSAIntrinsicStatement *stmt = new SSAIntrinsicStatement(&bldr.GetBlock(), intrinsic->GetID(), signature, [intrinsic](const SSAIntrinsicStatement *what) {
-		return intrinsic->ResolveFixedness(what);
-	});
+	SSAIntrinsicStatement *stmt = new SSAIntrinsicStatement(&bldr.GetBlock(), *intrinsic, signature.GetType());
 	stmt->SetDiag(call->Diag());
 
 	for (const auto& arg : arg_statements) {
@@ -65,9 +63,9 @@ static ssa::SSAStatement *DefaultIntrinsicEmitter(const IRIntrinsicAction *intri
 	return stmt;
 }
 
-static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr)
+static ssa::SSAStatement *MemoryIntrinsicEmitter(const IntrinsicDescriptor *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr)
 {
-	const IRType &ArchWordType = WordType(&intrinsic->Context.Arch);
+	const IRType &ArchWordType = WordType(&intrinsic->GetArch());
 
 	bool is_memory_write;
 	uint8_t data_width;
@@ -165,7 +163,7 @@ static ssa::SSAStatement *MemoryIntrinsicEmitter(const IRIntrinsicAction *intrin
 	}
 }
 
-static ssa::SSAStatement *EmitReadDevice(const IRIntrinsicAction *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr, const IRType &datatype)
+static ssa::SSAStatement *EmitReadDevice(const IntrinsicDescriptor *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr, const IRType &datatype)
 {
 	SSAStatement *dev_id = call->Args[0]->EmitSSAForm(bldr);
 	SSAStatement *addr = call->Args[1]->EmitSSAForm(bldr);
@@ -192,7 +190,7 @@ static ssa::SSAStatement *EmitReadDevice(const IRIntrinsicAction *intrinsic, con
 	return stmt;
 }
 
-static ssa::SSAStatement *EmitWriteDevice(const IRIntrinsicAction *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr, const IRType &datatype)
+static ssa::SSAStatement *EmitWriteDevice(const IntrinsicDescriptor *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr, const IRType &datatype)
 {
 	SSAStatement *dev_id = call->Args[0]->EmitSSAForm(bldr);
 	SSAStatement *addr = call->Args[1]->EmitSSAForm(bldr);
@@ -216,9 +214,7 @@ static ssa::SSAStatement *EmitWriteDevice(const IRIntrinsicAction *intrinsic, co
 		data->SetDiag(dn);
 	}
 
-	SSAIntrinsicStatement *stmt = new SSAIntrinsicStatement(&bldr.GetBlock(), intrinsic->GetID(), intrinsic->GetSignature(call), [intrinsic](const SSAIntrinsicStatement *what) {
-		return intrinsic->ResolveFixedness(what);
-	});
+	SSAIntrinsicStatement *stmt = new SSAIntrinsicStatement(&bldr.GetBlock(), *intrinsic, intrinsic->GetSignature(call).GetType());
 	stmt->AddArg(dev_id);
 	stmt->AddArg(addr);
 	stmt->AddArg(data);
@@ -226,7 +222,7 @@ static ssa::SSAStatement *EmitWriteDevice(const IRIntrinsicAction *intrinsic, co
 	return stmt;
 }
 
-static ssa::SSAStatement *DeviceIntrinsicEmitter(const IRIntrinsicAction *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr)
+static ssa::SSAStatement *DeviceIntrinsicEmitter(const IntrinsicDescriptor *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr)
 {
 	switch (intrinsic->GetID()) {
 		case IntrinsicID::ReadDevice32:
@@ -242,7 +238,7 @@ static ssa::SSAStatement *DeviceIntrinsicEmitter(const IRIntrinsicAction *intrin
 	}
 }
 
-static ssa::SSAStatement *CastIntrinsicEmitter(const IRIntrinsicAction *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr)
+static ssa::SSAStatement *CastIntrinsicEmitter(const IntrinsicDescriptor *intrinsic, const IRCallExpression *call, ssa::SSABuilder &bldr)
 {
 	IRType from, to;
 	SSACastStatement::CastType type;
@@ -275,46 +271,29 @@ static ssa::SSAStatement *CastIntrinsicEmitter(const IRIntrinsicAction *intrinsi
 	return stmt;
 }
 
-void GenCContext::AddIntrinsic(const std::string& name, IntrinsicID id, IRIntrinsicAction::SignatureFactory signatureFactory, IRIntrinsicAction::SSAEmitter emitter, IRIntrinsicAction::FixednessResolver fixednessResolver)
-{
-	if (IntrinsicTable.count(name) != 0) {
-		throw std::logic_error("Intrinsic with the name '" + name + "' is already registered by name.");
-	}
-
-	if (IntrinsicIDMap.count(id) != 0) {
-		throw std::logic_error("Intrinsic with the name '" + name + "' is already registered by id.");
-	}
-
-
-	IRIntrinsicAction *action = new IRIntrinsicAction(name, id, signatureFactory, emitter, fixednessResolver, *this);
-
-	IntrinsicTable[name] = action;
-	IntrinsicIDMap[id] = action;
-}
-
-static IRIntrinsicAction::SignatureFactory Signature(IRType returnType, std::initializer_list<IRType> paramTypes = {})
+static IntrinsicDescriptor::SignatureFactory Signature(IRType returnType, std::initializer_list<IRType> paramTypes = {})
 {
 	std::vector<IRParam> params;
 	for (const auto& paramType : paramTypes) {
 		params.push_back(IRParam("__param", paramType));
 	}
 
-	return [returnType, params](const IRIntrinsicAction *intrinsic, const IRCallExpression *call) {
+	return [returnType, params](const IntrinsicDescriptor *intrinsic, const IRCallExpression *call) {
 		return IRSignature(intrinsic->GetName(), returnType, params);
 	};
 }
 
-static bool NeverFixed(const SSAIntrinsicStatement *intrinsicStmt, const IRIntrinsicAction *intrinsic)
+static bool NeverFixed(const SSAIntrinsicStatement *intrinsicStmt, const IntrinsicDescriptor *intrinsic)
 {
 	return false;
 }
 
-static bool AlwaysFixed(const SSAIntrinsicStatement *intrinsicStmt, const IRIntrinsicAction *intrinsic)
+static bool AlwaysFixed(const SSAIntrinsicStatement *intrinsicStmt, const IntrinsicDescriptor *intrinsic)
 {
 	return true;
 }
 
-static bool AutoFixedness(const SSAIntrinsicStatement *intrinsicStmt, const IRIntrinsicAction *intrinsic)
+static bool AutoFixedness(const SSAIntrinsicStatement *intrinsicStmt, const IntrinsicDescriptor *intrinsic)
 {
 	bool fixed = true;
 	for (int i = 0; i < intrinsicStmt->ArgCount(); i++) {
@@ -324,13 +303,42 @@ static bool AutoFixedness(const SSAIntrinsicStatement *intrinsicStmt, const IRIn
 	return fixed;
 }
 
-void GenCContext::LoadIntrinsics()
+IntrinsicDescriptor::IntrinsicDescriptor(const std::string &name, IntrinsicID id, const gensim::arch::ArchDescription &arch, const SignatureFactory &factory, const SSAEmitter &emitter, const FixednessResolver &resolver)
+	: name_(name), id_(id), arch_(arch), resolver_(resolver), sig_fact_(factory), emitter_(emitter) 
 {
-	const IRType &ArchWordType = WordType(&Arch);
+	
+}
+
+bool IntrinsicManager::AddIntrinsic(const std::string& name, IntrinsicID id, const IntrinsicDescriptor::SignatureFactory &signatureFactory, const IntrinsicDescriptor::SSAEmitter &emitter, const IntrinsicDescriptor::FixednessResolver &fixednessResolver)
+{
+	if (name_to_descriptor_.count(name) != 0) {
+		throw std::logic_error("Intrinsic with the name '" + name + "' is already registered by name.");
+	}
+
+	if (id_to_descriptor_.count(id) != 0) {
+		throw std::logic_error("Intrinsic with the name '" + name + "' is already registered by id.");
+	}
+
+
+	IntrinsicDescriptor *descriptor = new IntrinsicDescriptor(name, id, GetArch(), signatureFactory, emitter, fixednessResolver);
+
+	name_to_descriptor_[name] = descriptor;
+	id_to_descriptor_[id] = descriptor;
+
+	intrinsics_.push_back(descriptor);
+
+	return true;
+}
+
+bool IntrinsicManager::LoadIntrinsics() 
+{
+	const IRType &ArchWordType = WordType(&GetArch());
 
 #define Intrinsic(name, id, sig, emitter, fixedness) AddIntrinsic(name, IntrinsicID::id, sig, emitter, fixedness);
 #include "genC/Intrinsics.def"
 #undef Intrinsic
+
+	return true;
 
 	/*const IRType &wordtype = WordType(&Arch);
 	AddIntrinsic("read_pc", wordtype, {}, DefaultIntrinsicEmitter, SSAIntrinsicStatement::SSAIntrinsic_ReadPc);

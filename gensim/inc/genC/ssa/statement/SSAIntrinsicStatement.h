@@ -4,7 +4,6 @@
 
 #include "genC/ssa/statement/SSAStatement.h"
 #include "genC/ir/IRSignature.h"
-#include "genC/Intrinsics.h"
 
 #include <functional>
 
@@ -12,6 +11,8 @@ namespace gensim
 {
 	namespace genc
 	{
+		class IntrinsicDescriptor;
+
 		namespace ssa
 		{
 			/**
@@ -23,8 +24,8 @@ namespace gensim
 			public:
 				using SSAFixednessResolver = std::function<bool(const SSAIntrinsicStatement *)>;
 
-				SSAIntrinsicStatement(SSABlock *parent, IntrinsicID id, const IRSignature& signature, SSAFixednessResolver fixednessResolver, SSAStatement *before = NULL)
-					: SSAStatement(Class_Unknown, 0, parent, before), id_(id), signature_(signature), fixedness_resolver_(fixednessResolver) { }
+				SSAIntrinsicStatement(SSABlock *parent, const gensim::genc::IntrinsicDescriptor &descriptor, const SSAType &return_type, SSAStatement *before = NULL)
+					: SSAStatement(Class_Unknown, 0, parent, before), descriptor_(descriptor), return_type_(return_type) { }
 
 				SSAStatement *Args(int idx)
 				{
@@ -56,32 +57,16 @@ namespace gensim
 
 				const SSAType GetType() const override
 				{
-					return signature_.GetType();
+					return return_type_;
 				}
 
-				virtual bool IsFixed() const override
-				{
-					return fixedness_resolver_(this);
-				}
+				const IntrinsicDescriptor &GetDescriptor() const { return descriptor_; }
 
-				IntrinsicID GetID() const
-				{
-					return id_;
-				}
-				const IRSignature& GetSignature() const
-				{
-					return signature_;
-				}
-
-				SSAFixednessResolver GetFixednessResolverFunction() const
-				{
-					return fixedness_resolver_;
-				}
+				virtual bool IsFixed() const override;
 
 			private:
-				IntrinsicID id_;
-				const IRSignature signature_;
-				SSAFixednessResolver fixedness_resolver_;
+				const IntrinsicDescriptor &descriptor_;
+				SSAType return_type_;
 			};
 		}
 	}

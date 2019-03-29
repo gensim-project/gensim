@@ -60,7 +60,7 @@
 
 %type<sval> binary_op_inner
 %type<ast_node> basic_type type id binary_op unary_op
-%type<ast_node> context action asm_file context_entry context_entry_list action_attribute action_attribute_list action_parameter action_parameter_list action_symbol action_symbol_list
+%type<ast_node> context action asm_file context_entry_list action_attribute action_attribute_list action_parameter action_parameter_list action_symbol action_symbol_list
 %type<ast_node> action_symbol_list_inner action_parameter_list_inner action_block_def_list action_block_def_list_inner block action_block_list action_block_list_inner
 %type<ast_node> block_statement_list block_statement_list_inner statement valued_statement valueless_statement valued_statement_body valueless_statement_body
 %type<ast_node> binary_statement constant_statement constant_value cast_statement dev_read_statement dev_write_statement register_read_statement bank_register_read_statement 
@@ -190,7 +190,7 @@ id_list :
     id_list id { $$ = $1; $$->AddChild($2); } |
     %empty { $$ = CreateNode(GenCSSANodeType::List); }
 
-intrinsic_statement : STATEMENT_INTRINSIC constant_value id_list { $$ = CreateNode(GenCSSANodeType::StatementIntrinsic, {$2, $3}); };
+intrinsic_statement : STATEMENT_INTRINSIC id id_list { $$ = CreateNode(GenCSSANodeType::StatementIntrinsic, {$2, $3}); };
 
 phi_statement : STATEMENT_PHI type OBRACKET id_list CBRACKET { $$ = CreateNode(GenCSSANodeType::StatementPhi, {$2,$4}); };
 

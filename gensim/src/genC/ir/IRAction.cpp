@@ -48,7 +48,7 @@ IRHelperAction::IRHelperAction(const IRSignature& signature, HelperScope scope, 
 	}
 }
 
-IRIntrinsicAction::IRIntrinsicAction(const std::string& name, IntrinsicID id, SignatureFactory factory, SSAEmitter ssaEmitter, FixednessResolver fixednessResolver, GenCContext& context)
-	: IRCallableAction(context), name_(name), id_(id), factory_(factory), emitter_(ssaEmitter), resolver_(fixednessResolver)
+IRIntrinsicAction::IRIntrinsicAction(IntrinsicDescriptor &descriptor, GenCContext& context)
+	: IRCallableAction(context), descriptor_(descriptor)
 {
 }

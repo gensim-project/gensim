@@ -10,6 +10,11 @@
 using namespace gensim::genc::ssa;
 using gensim::genc::IRType;
 
+bool SSAIntrinsicStatement::IsFixed() const
+{
+	return descriptor_.GetFixedness(this);
+}
+
 #if 0
 
 const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const

@@ -99,45 +99,37 @@ namespace gensim
 		class IRIntrinsicAction : public IRCallableAction
 		{
 		public:
-			using SignatureFactory = std::function<IRSignature(const IRIntrinsicAction *, const IRCallExpression *)>;
-			using SSAEmitter = std::function<genc::ssa::SSAStatement *(const IRIntrinsicAction *, const IRCallExpression *, ssa::SSABuilder &)>;
-			using FixednessResolver = std::function<bool(const genc::ssa::SSAIntrinsicStatement *, const IRIntrinsicAction *)>;
-
-			IRIntrinsicAction(const std::string& name, IntrinsicID id, SignatureFactory factory, SSAEmitter ssaEmitter, FixednessResolver fixednessResolver, GenCContext& context);
+			IRIntrinsicAction(IntrinsicDescriptor &descriptor, GenCContext &ctx);
 			virtual ~IRIntrinsicAction() { }
 
 			virtual void PrettyPrintHeader(std::ostringstream& out) const override;
 
 			IRSignature GetSignature(const IRCallExpression *callExpression) const override
 			{
-				return factory_(this, callExpression);
+				return descriptor_.GetSignature(callExpression);
 			}
 
 			const std::string& GetName() const
 			{
-				return name_;
+				return descriptor_.GetName();
 			}
 			IntrinsicID GetID() const
 			{
-				return id_;
+				return descriptor_.GetID();
 			}
 
 			bool ResolveFixedness(const genc::ssa::SSAIntrinsicStatement *intrinsicStmt) const
 			{
-				return resolver_(intrinsicStmt, this);
+				return descriptor_.GetFixedness(intrinsicStmt);
 			}
 
 			ssa::SSAStatement *Emit(const IRCallExpression *callExpression, ssa::SSABuilder& builder) const
 			{
-				return emitter_(this, callExpression, builder);
+				return descriptor_.EmitSSA(callExpression, builder);
 			}
 
 		private:
-			std::string name_;
-			IntrinsicID id_;
-			SignatureFactory factory_;
-			SSAEmitter emitter_;
-			FixednessResolver resolver_;
+			IntrinsicDescriptor &descriptor_;
 		};
 
 		class IRExecuteAction : public IRAction
