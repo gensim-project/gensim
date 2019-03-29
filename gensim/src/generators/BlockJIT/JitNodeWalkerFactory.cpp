@@ -941,7 +941,7 @@ namespace gensim
 					const SSANodeWalker *arg0 = nullptr;
 					if (Statement.ArgCount() > 0) arg0 = Factory.GetOrCreate(Statement.Args(0));
 
-					switch (Statement.GetID()) {
+					switch (Statement.GetDescriptor().GetID()) {
 						case IntrinsicID::ReadPC:
 							assert(false && "ReadPC cannot be fixed");
 							break;
@@ -977,7 +977,7 @@ namespace gensim
 							return EmitDynamicCode(output, end_label, fully_fixed);
 
 						default:
-							throw std::logic_error("Unrecognised intrinsic: " + Statement.GetSignature().GetName());
+							throw std::logic_error("Unrecognised intrinsic: " + Statement.GetDescriptor().GetName());
 					}
 
 					return true;
@@ -996,7 +996,7 @@ namespace gensim
 					const SSANodeWalker *arg2 = NULL;
 					if (Statement.ArgCount() > 2) arg2 = Factory.GetOrCreate(Statement.Args(2));
 
-					switch (Statement.GetID()) {
+					switch (Statement.GetDescriptor().GetID()) {
 						case IntrinsicID::PopCount32:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.popcnt(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << ");";
@@ -1151,7 +1151,7 @@ namespace gensim
 				{
 					const SSAIntrinsicStatement &Statement = static_cast<const SSAIntrinsicStatement &> (this->Statement);
 
-					switch (Statement.GetID()) {
+					switch (Statement.GetDescriptor().GetID()) {
 //					case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
 //						return Statement.GetName();
 						case IntrinsicID::GetCpuMode:

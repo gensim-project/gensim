@@ -587,7 +587,7 @@ namespace gensim
 					const SSANodeWalker *arg0 = nullptr;
 					if (Statement.ArgCount() > 0) arg0 = Factory.GetOrCreate(Statement.Args(0));
 
-					switch (Statement.GetID()) {
+					switch (Statement.GetDescriptor().GetID()) {
 						case IntrinsicID::PopCount32:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = __builtin_popcount(" << arg0->GetFixedValue() << ");";
 							break;
@@ -601,7 +601,7 @@ namespace gensim
 							break;
 
 						default:
-							throw std::logic_error("Unimplemented fixed intrinsic: " + Statement.GetSignature().GetName());
+							throw std::logic_error("Unimplemented fixed intrinsic: " + Statement.GetDescriptor().GetName());
 					}
 
 					return true;
@@ -620,7 +620,7 @@ namespace gensim
 					const SSANodeWalker *arg2 = NULL;
 					if (Statement.ArgCount() > 2) arg2 = Factory.GetOrCreate(Statement.Args(2));
 
-					switch (Statement.GetID()) {
+					switch (Statement.GetDescriptor().GetID()) {
 						case IntrinsicID::CLZ32:
 						case IntrinsicID::CLZ64:
 							output << "auto " << Statement.GetName() << " = emitter.clz(" << operand_for_node(*arg0) << ");";
@@ -764,7 +764,7 @@ namespace gensim
 								output << "auto " << Statement.GetName() << " = ";
 							}
 
-							output << "emitter.call(__captive_" << Statement.GetSignature().GetName();
+							output << "emitter.call(__captive_" << Statement.GetDescriptor().GetName();
 
 							for (int i = 0; i < Statement.ArgCount(); i++) {
 								const SSANodeWalker *arg = nullptr;
@@ -790,7 +790,7 @@ namespace gensim
 				{
 					const SSAIntrinsicStatement &Statement = static_cast<const SSAIntrinsicStatement &> (this->Statement);
 
-					switch (Statement.GetID()) {
+					switch (Statement.GetDescriptor().GetID()) {
 						case IntrinsicID::ReadPC:
 							return Statement.GetName();
 

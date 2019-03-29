@@ -50,7 +50,8 @@ TEST(SSA_Assembler_Reassemble, ExternalFunction)
 
 	ASSERT_EQ(true, success);
 
-	gensim::genc::ssa::SSAContext *out_ctx = new gensim::genc::ssa::SSAContext(gencctx->ISA, gencctx->Arch);
+	gensim::genc::IntrinsicManager *out_intrinsics = new gensim::genc::IntrinsicManager(gencctx->Arch);
+	gensim::genc::ssa::SSAContext *out_ctx = new gensim::genc::ssa::SSAContext(gencctx->ISA, gencctx->Arch, *out_intrinsics);
 	gensim::genc::ssa::io::ContextAssembler ca;
 	ca.SetTarget(out_ctx);
 	bool result = ca.Assemble(*afc, root_context);

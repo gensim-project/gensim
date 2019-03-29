@@ -304,9 +304,29 @@ static bool AutoFixedness(const SSAIntrinsicStatement *intrinsicStmt, const Intr
 }
 
 IntrinsicDescriptor::IntrinsicDescriptor(const std::string &name, IntrinsicID id, const gensim::arch::ArchDescription &arch, const SignatureFactory &factory, const SSAEmitter &emitter, const FixednessResolver &resolver)
-	: name_(name), id_(id), arch_(arch), resolver_(resolver), sig_fact_(factory), emitter_(emitter) 
+	: name_(name), id_(id), arch_(arch), resolver_(resolver), sig_fact_(factory), emitter_(emitter)
 {
-	
+
+}
+
+IntrinsicManager::IntrinsicManager(const gensim::arch::ArchDescription &arch) : arch_(arch)
+{
+	LoadIntrinsics();
+}
+
+const IntrinsicDescriptor *IntrinsicManager::GetByName(const std::string &name) const
+{
+	if(name_to_descriptor_.count(name) == 0) {
+		return nullptr;
+	}
+	return name_to_descriptor_.at(name);
+}
+const IntrinsicDescriptor *IntrinsicManager::GetByID(IntrinsicID id) const
+{
+	if(id_to_descriptor_.count(id) == 0) {
+		return nullptr;
+	}
+	return id_to_descriptor_.at(id);
 }
 
 bool IntrinsicManager::AddIntrinsic(const std::string& name, IntrinsicID id, const IntrinsicDescriptor::SignatureFactory &signatureFactory, const IntrinsicDescriptor::SSAEmitter &emitter, const IntrinsicDescriptor::FixednessResolver &fixednessResolver)
@@ -330,7 +350,7 @@ bool IntrinsicManager::AddIntrinsic(const std::string& name, IntrinsicID id, con
 	return true;
 }
 
-bool IntrinsicManager::LoadIntrinsics() 
+bool IntrinsicManager::LoadIntrinsics()
 {
 	const IRType &ArchWordType = WordType(&GetArch());
 

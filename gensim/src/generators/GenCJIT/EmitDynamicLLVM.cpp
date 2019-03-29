@@ -812,7 +812,7 @@ namespace gensim
 						arg0 = Factory.GetOrCreate(Statement.Args(0));
 					}
 
-					switch (Statement.GetID()) {
+					switch (Statement.GetDescriptor().GetID()) {
 						case IntrinsicID::ReadPC: {
 							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = " << GetLLVMValue(pc_desc->GetIRType(), "phys_pc.Get()") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
@@ -852,9 +852,9 @@ namespace gensim
 					if (Statement.ArgCount() > 2) arg2 = Factory.GetOrCreate(Statement.Args(2));
 					if (Statement.ArgCount() > 3) arg3 = Factory.GetOrCreate(Statement.Args(3));
 
-					output << "//emit intrinsic here " << Statement.GetSignature().GetName() << "\n";
+					output << "//emit intrinsic here " << Statement.GetDescriptor().GetName() << "\n";
 					// if (HasValue()) output << GetType().GetCType() << " " << GetName() << " = 0;";
-					switch (Statement.GetID()) {
+					switch (Statement.GetDescriptor().GetID()) {
 						case IntrinsicID::ReadPC: {
 							auto pc_desc = Statement.Parent->Parent->Arch->GetRegFile().GetTaggedRegSlot("PC");
 							output << "llvm::Value *" << Statement.GetName() << " = " << GetLLVMValue(pc_desc->GetIRType(), "phys_pc.Get()") << ";";// EmitRegisterRead(ctx, (void*)&__irBuilder, " << pc_desc->GetWidth() << ", " << pc_desc->GetRegFileOffset() << ");";
@@ -1046,7 +1046,7 @@ namespace gensim
 						case IntrinsicID::ADC32_Flags:
 						case IntrinsicID::ADC64_Flags:
 							output << "EmitAdcWithFlags(__irBuilder, ctx, ";
-							switch(Statement.GetID()) {
+							switch(Statement.GetDescriptor().GetID()) {
 								case IntrinsicID::ADC8_Flags:
 									output << "8";
 									break;
@@ -1070,7 +1070,7 @@ namespace gensim
 						case IntrinsicID::SBC32_Flags:
 						case IntrinsicID::SBC64_Flags:
 							output << "EmitSbcWithFlags(__irBuilder, ctx, ";
-							switch(Statement.GetID()) {
+							switch(Statement.GetDescriptor().GetID()) {
 								case IntrinsicID::SBC8_Flags:
 									output << "8";
 									break;
@@ -1128,7 +1128,7 @@ namespace gensim
 				{
 					const SSAIntrinsicStatement &Statement = static_cast<const SSAIntrinsicStatement &>(this->Statement);
 
-					switch (Statement.GetID()) {
+					switch (Statement.GetDescriptor().GetID()) {
 						case IntrinsicID::CLZ32:
 						case IntrinsicID::CLZ64:
 						case IntrinsicID::CTZ32:

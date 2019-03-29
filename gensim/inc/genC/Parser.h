@@ -113,7 +113,7 @@ namespace gensim
 			typedef std::multiset<ParserOutput, ParserOutputSorter> FileOutputCollection;
 			typedef std::map<std::string, FileOutputCollection> OutputCollection;
 
-			GenCContext(const gensim::arch::ArchDescription &arch, const isa::ISADescription &isa, DiagnosticContext &diag_ctx);
+			GenCContext(const gensim::arch::ArchDescription &arch, const isa::ISADescription &isa, IntrinsicManager &intrinsics, DiagnosticContext &diag_ctx);
 
 			void LoadStandardConstants();
 
@@ -176,12 +176,10 @@ namespace gensim
 			std::map<std::string, IRExecuteAction *> ExecuteTable;
 			std::map<std::string, isa::InstructionDescription*> InstructionTable;
 
-			IntrinsicManager intrinsic_manager_;
+			IntrinsicManager &intrinsic_manager_;
 			std::map<IntrinsicID, IRIntrinsicAction*> IntrinsicTable;
 
 			std::shared_ptr<ssa::SSATypeManager> type_manager_;
-
-			GenCContext(pANTLR3_BASE_TREE file, std::ostringstream &error_stream, gensim::arch::ArchDescription &arch);
 
 			bool Parse_File(GenC::AstNode &File);
 			bool Parse_Constant(GenC::AstNode &Node);

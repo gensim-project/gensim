@@ -422,14 +422,21 @@ SSAStatement *StatementAssembler::parse_intrinsic_statement(const GenCSSA::AstNo
 	auto &id_node = tree[0];
 	std::string intrinsic_name = id_node.GetString();
 
-	SSAIntrinsicStatement *intrinsic = new SSAIntrinsicStatement(block, (gensim::genc::ssa::SSAIntrinsicStatement::IntrinsicType)id);
+	auto &type_node = tree[1];
+	SSAType type = parse_type(block->GetContext(), type_node);
+
+	auto intrinsic_descriptor = block->GetContext().GetIntrinsics().GetByName(intrinsic_name);
+	if(intrinsic_descriptor == nullptr) {
+		throw std::logic_error("Unknown intrinsic");
+	}
+	SSAIntrinsicStatement *intrinsic = new SSAIntrinsicStatement(block, *intrinsic_descriptor, type);
 
 	auto &paramListNode = tree[1];
 	for(auto paramNode : paramListNode) {
 		intrinsic->AddArg(get_statement(*paramNode));
 	}
 
-	return intrinsic;*/
+	return intrinsic;
 }
 
 SSAStatement *StatementAssembler::parse_jump_statement(const GenCSSA::AstNode &tree, SSABlock *block)

@@ -13,7 +13,9 @@ using gensim::genc::GenCContext;
 
 GenCContext *TestContext::GetTestContext(bool include_instruction, gensim::DiagnosticContext &diag_ctx)
 {
-	GenCContext *gencctx = new GenCContext(*gensim::arch::testing::GetTestArch(), *gensim::isa::testing::GetTestISA(include_instruction), diag_ctx);
+	auto test_arch = gensim::arch::testing::GetTestArch();
+	IntrinsicManager *intrinsics = new IntrinsicManager(*test_arch);
+	GenCContext *gencctx = new GenCContext(*test_arch, *gensim::isa::testing::GetTestISA(include_instruction), *intrinsics, diag_ctx);
 	return gencctx;
 }
 

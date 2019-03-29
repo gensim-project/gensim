@@ -368,9 +368,9 @@ public:
 	void VisitIntrinsicStatement(SSAIntrinsicStatement& stmt) override
 	{
 		if(stmt.HasValue()) {
-			str_ << Header(stmt) << " = intrinsic " << stmt.GetSignature().GetName();
+			str_ << Header(stmt) << " = intrinsic "<< DisassembleType(stmt.GetType()) << " " << stmt.GetDescriptor().GetName();
 		} else {
-			str_ << Header(stmt) << ": intrinsic " << stmt.GetSignature().GetName();
+			str_ << Header(stmt) << ": intrinsic " << DisassembleType(stmt.GetType()) << " " << stmt.GetDescriptor().GetName();
 		}
 		for(unsigned i = 0; i < stmt.ArgCount(); ++i) {
 			str_ << " " << stmt.Args(i)->GetName();

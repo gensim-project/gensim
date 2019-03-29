@@ -5,6 +5,7 @@
 #include "SSAFormAction.h"
 #include "SSAValueNamespace.h"
 #include "SSATypeManager.h"
+#include "genC/Intrinsics.h"
 
 #include <list>
 #include <map>
@@ -39,8 +40,8 @@ namespace gensim
 				typedef ActionList::iterator ActionListIterator;
 				typedef ActionList::const_iterator ActionListConstIterator;
 
-				SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch);
-				SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch, std::shared_ptr<SSATypeManager> type_manager);
+				SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch, const IntrinsicManager &intrinsics);
+				SSAContext(const gensim::isa::ISADescription& isa, const gensim::arch::ArchDescription& arch, std::shared_ptr<SSATypeManager> type_manager, const IntrinsicManager &intrinsics);
 				virtual ~SSAContext();
 
 				const gensim::arch::ArchDescription& GetArchDescription() const
@@ -123,6 +124,7 @@ namespace gensim
 					test_optimise_ = o;
 				}
 
+				const IntrinsicManager &GetIntrinsics() const;
 
 				void Optimise();
 			private:
@@ -131,6 +133,8 @@ namespace gensim
 				const gensim::arch::ArchDescription& arch_;
 				const gensim::isa::ISADescription& isa_;
 				ActionList actions_;
+
+				const IntrinsicManager &intrinsics_;
 
 				SSAValueNamespace vns_;
 				std::shared_ptr<SSATypeManager> type_manager_;

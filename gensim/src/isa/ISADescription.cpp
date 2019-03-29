@@ -14,6 +14,7 @@
 #include "isa/HelperFnDescriptionParser.h"
 #include "genC/ssa/SSAContext.h"
 #include "Util.h"
+#include "genC/Intrinsics.h"
 
 #include "antlr-ver.h"
 #include "genC/Parser.h"
@@ -46,7 +47,8 @@ bool ISADescription::BuildSSAContext(gensim::arch::ArchDescription *arch, gensim
 	}
 
 	bool success = true;
-	genc::GenCContext *context = new genc::GenCContext(*arch, *this, diag_ctx);
+	genc::IntrinsicManager *intrinsics = new genc::IntrinsicManager(*arch);
+	genc::GenCContext *context = new genc::GenCContext(*arch, *this, *intrinsics, diag_ctx);
 	for (std::vector<std::string>::const_iterator ci = ExecuteFiles.begin(); ci != ExecuteFiles.end(); ci++) {
 		if(!context->AddFile(*ci)) {
 			success = false;
