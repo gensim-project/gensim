@@ -34,6 +34,10 @@ namespace gensim
 
 		void DecodeGenerator::DrawDotNode(const DecodeNode *tree, std::stringstream &target) const
 		{
+			if(tree == nullptr) {
+				UNEXPECTED;
+			}
+
 			if (tree->target == NULL)
 				target << "\tnode_" << tree->node_number << ";\n";
 			else
@@ -53,6 +57,10 @@ namespace gensim
 
 		bool DecodeGenerator::GenerateDecodeDiagram(std::stringstream &stream) const
 		{
+			if(this->decode_trees.empty()) {
+				UNEXPECTED;
+			}
+
 			stream << "digraph Decode {\n";
 			DrawDotNode(this->decode_trees.begin()->second, stream);
 			stream << "}\n";

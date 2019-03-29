@@ -2148,7 +2148,7 @@ execute(clz)
 		if (rn == 0) {
 			write_gpr(0, inst.rd, 32);
 		} else {
-			write_gpr(0, inst.rd, (uint64)__builtin_clz(rn));
+ 			write_gpr(0, inst.rd, (uint64)__builtin_clz(rn));
 		}
 	}
 }

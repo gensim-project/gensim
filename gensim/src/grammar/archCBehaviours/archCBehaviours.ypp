@@ -1,0 +1,107 @@
+%{
+
+#include <stdint.h>
+#include "flexbison_harness.h"
+#include "flexbison_archcbehaviours_ast.h"
+
+#define YYERROR_VERBOSE 1
+%}
+
+%code requires {
+    namespace ArchCBehaviours {
+        class ArchCBehavioursScanner;
+    }
+}
+
+%skeleton "lalr1.cc"
+
+%defines
+%locations
+%define api.namespace {ArchCBehaviours}
+%define api.prefix {ArchCBehaviours}
+%define parser_class_name {ArchCBehavioursParser}
+
+%union {
+    uint64_t ival;
+    char *sval;
+    float fval;
+    double dval;
+    astnode<ArchCBehavioursNodeType> *ast_node;
+}
+
+%parse-param { ArchCBehavioursScanner &scanner } { astnode<ArchCBehavioursNodeType> * root }
+
+%code {
+#include "flexbison_archcbehaviours.h"
+#undef yylex 
+#define yylex scanner.ArchCBehaviourslex
+
+}
+
+%token<sval> WS CHARSEQ SPECIALCHAR OBRACKET CBRACKET PERCENT DOTS BEHAVIOUR OBRACE CBRACE CONSTANT DECODE OPAREN CPAREN EQUALS SEMICOLON
+
+%type<ast_node> behaviours_file behaviour_entry_list behaviour_entry constant decode_behaviour generic_behaviour fn_body code_list code attr_list
+%type<sval> atom id
+
+%define parse.assert
+%define parse.error verbose
+
+%%
+
+behaviours_file :
+    behaviour_entry_list { root->AddChild($1); }
+
+behaviour_entry_list :
+    behaviour_entry_list behaviour_entry { $$ = $1; $$->AddChild($2); } |
+    behaviour_entry_list WS { $$ = $1; } |
+    %empty { $$ = CreateNode(ArchCBehavioursNodeType::List); }
+
+behaviour_entry :
+    constant |
+    decode_behaviour |
+    generic_behaviour;
+
+constant :
+    CONSTANT id id EQUALS id SEMICOLON { $$ = CreateNode(ArchCBehavioursNodeType::Constant, {CreateStrNode<ArchCBehavioursNodeType>($2), CreateStrNode<ArchCBehavioursNodeType>($3), CreateStrNode<ArchCBehavioursNodeType>($5)}); }
+
+decode_behaviour :
+    DECODE OPAREN id CPAREN fn_body { $$ = CreateNode(ArchCBehavioursNodeType::DecodeBehaviour, {CreateStrNode<ArchCBehavioursNodeType>($3), $5}); } 
+
+generic_behaviour :
+    BEHAVIOUR OPAREN id CPAREN attr_list fn_body { $$ = CreateNode(ArchCBehavioursNodeType::GenericBehaviour, {CreateStrNode<ArchCBehavioursNodeType>($3), $5, $6}); }
+
+attr_list : 
+    attr_list id { $$ = $1; $$->AddChild(CreateStrNode<ArchCBehavioursNodeType>($2)); } |
+    %empty { $$ = CreateNode(ArchCBehavioursNodeType::List); }
+
+fn_body :
+    OBRACE code_list CBRACE { $$ = CreateNode(ArchCBehavioursNodeType::List, {CreateStrNode<ArchCBehavioursNodeType>($1), $2, CreateStrNode<ArchCBehavioursNodeType>($3)}); }
+
+id :
+    CHARSEQ
+
+code_list :
+    code_list code { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(ArchCBehavioursNodeType::List); }
+
+code :
+    fn_body |
+    atom { $$ = CreateStrNode<ArchCBehavioursNodeType>($1); }
+
+atom :
+    CHARSEQ |
+    OBRACKET |
+    CBRACKET |
+    OPAREN |
+    CPAREN |
+    EQUALS |
+    SPECIALCHAR |
+    WS;
+
+%%
+
+void ArchCBehaviours::ArchCBehavioursParser::error(const ArchCBehaviours::location &location, const std::string &error)
+{
+    std::cerr << location << ":" << error << std::endl;
+    //fprintf(stderr, "%s:%u: %s\n", location.begin.filename, location.begin.line, error.c_str());
+}

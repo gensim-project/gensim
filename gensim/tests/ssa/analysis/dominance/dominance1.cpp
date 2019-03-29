@@ -39,6 +39,8 @@ block b_1 {
 )||";
 	
 	auto action = CompileAsm(ssaasm, "dominance_test");
+
+	ASSERT_NE(action, nullptr);
 	
 	gensim::genc::ssa::analysis::SSADominance dcalc;
 	auto dominance = dcalc.Calculate(action);

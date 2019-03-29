@@ -6,9 +6,7 @@
 #include <cstdio>
 #include <math.h>
 #include <string.h>
-
-#include <antlr3.h>
-#include <antlr-ver.h>
+#include <fstream>
 
 #include "genC/Parser.h"
 #include "genC/ir/IR.h"
@@ -20,11 +18,6 @@
 
 #include "arch/ArchDescription.h"
 #include "isa/ISADescription.h"
-
-#include <genC/genCLexer.h>
-#include <genC/genCParser.h>
-
-#include "antlr-ver.h"
 
 using namespace gensim::genc;
 
@@ -97,7 +90,7 @@ GenCContext::IntrinsicEmitterFn GenCContext::GetIntrinsicEmitter(const std::stri
 
 bool GenCContext::AddFile(std::string filename)
 {
-	file_list.push_back(FileContents(filename));
+	file_list.push_back(FileContents(filename, std::make_shared<std::ifstream>(filename.c_str())));
 	return true;
 }
 
@@ -107,30 +100,6 @@ bool GenCContext::AddFile(const FileContents &file)
 	return true;
 }
 
-static pANTLR3_INPUT_STREAM GetFile(const std::string &str)
-{
-	FILE *f = fopen(str.c_str(), "r");
-	if(f == nullptr) {
-		return nullptr;
-	}
-	fseek(f, 0, SEEK_END);
-	size_t size = ftell(f);
-	fseek(f, 0, SEEK_SET);
-
-	char *data = (char*)malloc(size);
-	fread(data, 1, size, f);
-
-	// check data
-	for(size_t i = 0; i < size; ++i) {
-		char c= data[i];
-		if(!isascii(c)) {
-			return nullptr;
-		}
-	}
-
-	return antlr3StringStreamNew((pANTLR3_UINT8)data, ANTLR3_ENC_8BIT, size, (pANTLR3_UINT8)strdup(str.c_str()));
-}
-
 bool GenCContext::Parse()
 {
 	bool success = true;
@@ -138,33 +107,19 @@ bool GenCContext::Parse()
 	for (auto file : file_list) {
 		CurrFilename = file.Filename;
 
-		pANTLR3_INPUT_STREAM pts = file.TokenStream;
+		GenC::GenCScanner scanner(file.Stream.get());
 
-		if (!pts) {
-			Diag().Error(Format("Couldn't open file '%s'", CurrFilename.c_str()), DiagNode(CurrFilename));
-			return false;
-		}
-		pgenCLexer lexer = genCLexerNew(pts);
+		GenC::AstNode root(GenCNodeType::ROOT);
+		GenC::GenCParser parser(scanner, &root);
 
-		pANTLR3_COMMON_TOKEN_STREAM tstream = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(lexer));
-		pgenCParser parser = genCParserNew(tstream);
+		int result = parser.parse();
 
-		genCParser_action_file_return arch_return = parser->action_file(parser);
-
-		if (parser->pParser->rec->getNumberOfSyntaxErrors(parser->pParser->rec) > 0 || lexer->pLexer->rec->getNumberOfSyntaxErrors(lexer->pLexer->rec)) {
+		if (result != 0) {
 			Diag().Error("Syntax errors detected in ISA behaviour", DiagNode());
 			return false;
 		}
 
-		pANTLR3_COMMON_TREE_NODE_STREAM nodes = antlr3CommonTreeNodeStreamNewTree(arch_return.tree, ANTLR3_SIZE_HINT);
-
-		success &= Parse_File(nodes->root);
-
-		nodes->free(nodes);
-		parser->free(parser);
-		tstream->free(tstream);
-		lexer->free(lexer);
-		pts->free(pts);
+		success &= Parse_File(root);
 	}
 
 	// Register any instructions to their specified execute actions
@@ -288,16 +243,10 @@ void GenCContext::BuildStructTypes()
 	}
 }
 
-FileContents::FileContents(const std::string& filename) : Filename(filename), TokenStream(GetFile(filename))
+FileContents::FileContents(const std::string& filename, std::shared_ptr<std::istream> stream) : Filename(filename), Stream(stream)
 {
 
 }
-
-FileContents::FileContents(const std::string& filename, const std::string& filetext) : Filename(filename)
-{
-	TokenStream = antlr3StringStreamNew((pANTLR3_UINT8)filetext.c_str(), ANTLR3_ENC_8BIT, filetext.length(), (pANTLR3_UINT8)filename.c_str());
-}
-
 
 GenCContext::GenCContext(const gensim::arch::ArchDescription &arch, const isa::ISADescription &isa, DiagnosticContext &diag_ctx) : Valid(true), Arch(arch), ISA(isa), GlobalScope(IRScope::CreateGlobalScope(*this)), diag_ctx(diag_ctx)
 {
@@ -358,28 +307,28 @@ std::pair<IRSymbol*, IRConstant> GenCContext::GetConstant(std::string name) cons
 }
 
 
-bool GenCContext::Parse_File(pANTLR3_BASE_TREE File)
+bool GenCContext::Parse_File(GenC::AstNode &File)
 {
-	assert(File->getType(File) == FILETOK);
+	assert(File.GetType() == GenCNodeType::ROOT);
+
+	// get definition list out of root node
+	auto deflist = File.GetChildren().at(0);
+	assert(deflist->GetType() == GenCNodeType::DefinitionList);
 
 	bool success = true;
-	for (uint32_t i = 0; i < File->getChildCount(File); ++i) {
-		pANTLR3_BASE_TREE node = (pANTLR3_BASE_TREE) File->getChild(File, i);
-		switch (node->getType(node)) {
-			case CONSTANT:
-				success &= Parse_Constant(node);
+	for (auto child : *deflist) {
+		switch (child->GetType()) {
+			case GenCNodeType::Execute:
+				success &= Parse_Execute(*child);
 				break;
-			case TYPEDEF:
-				success &= Parse_Typename(node);
+			case GenCNodeType::Helper:
+				success &= Parse_Helper(*child);
 				break;
-			case HELPER:
-				success &= Parse_Helper(node);
+			case GenCNodeType::Typename:
+				success &= Parse_Typename(*child);
 				break;
-			case EXECUTE:
-				success &= Parse_Execute(node);
-				break;
-			case BEHAVIOUR:
-				success &= Parse_Behaviour(node);
+			case GenCNodeType::Constant:
+				success &= Parse_Constant(*child);
 				break;
 			default:
 				Diag().Error("Parse error: Expected helper, execute or behaviour node", DiagNode(CurrFilename));
@@ -391,35 +340,35 @@ bool GenCContext::Parse_File(pANTLR3_BASE_TREE File)
 	return success;
 }
 
-bool GenCContext::Parse_Execute(pANTLR3_BASE_TREE Execute)
+bool GenCContext::Parse_Execute(GenC::AstNode &Execute)
 {
-	assert(Execute->getType(Execute) == EXECUTE);
-	assert(Execute->getChildCount(Execute) == 2);
+	assert(Execute.GetType() == GenCNodeType::Execute);
+	assert(Execute.GetChildren().size() == 2);
 
-	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE) Execute->getChild(Execute, 0);
-	pANTLR3_BASE_TREE bodyNode = (pANTLR3_BASE_TREE) Execute->getChild(Execute, 1);
+	auto nameNode = Execute.GetChildren().at(0);
+	auto bodyNode = Execute.GetChildren().at(1);
 
-	std::string nameStr = (char *) nameNode->getText(nameNode)->chars;
+	std::string nameStr = nameNode->GetString();
 
 	if (ExecuteTable.count(nameStr)) {
-		diag_ctx.Error("Execute action " + nameStr + " redefined", DiagNode("", nameNode));
+		diag_ctx.Error("Execute action " + nameStr + " redefined", DiagNode("", nameNode->GetLocation()));
 		return false;
 	}
 
 	if(GetIntrinsic(nameStr) != nullptr) {
-		diag_ctx.Error("The name " + nameStr + " is reserved by an intrinsic function", DiagNode("", nameNode));
+		diag_ctx.Error("The name " + nameStr + " is reserved by an intrinsic function", DiagNode("", nameNode->GetLocation()));
 		return false;
 	}
 
 	if(GetExternal(nameStr) != nullptr) {
-		diag_ctx.Error("The name " + nameStr + " is reserved by an external function", DiagNode("", nameNode));
+		diag_ctx.Error("The name " + nameStr + " is reserved by an external function", DiagNode("", nameNode->GetLocation()));
 		return false;
 	}
 
 	IRExecuteAction *execute = new IRExecuteAction(nameStr, *this, GetTypeManager()->GetStructType("Instruction"));
-	execute->SetDiag(DiagNode("", Execute));
+	execute->SetDiag(DiagNode("", Execute.GetLocation()));
 
-	IRBody *body = Parse_Body(bodyNode, *execute->GetFunctionScope());
+	IRBody *body = Parse_Body(*bodyNode, *execute->GetFunctionScope());
 	if (body == NULL) return false;
 	execute->body = body;
 
@@ -434,7 +383,7 @@ bool GenCContext::Parse_Execute(pANTLR3_BASE_TREE Execute)
 	}
 
 	if (execute->body == NULL) {
-		Diag().Error(Format("Parse error in %s", nameStr.c_str()), DiagNode(CurrFilename, Execute));
+		Diag().Error(Format("Parse error in %s", nameStr.c_str()), DiagNode(CurrFilename, Execute.GetLocation()));
 		return false;
 	}
 
@@ -442,47 +391,46 @@ bool GenCContext::Parse_Execute(pANTLR3_BASE_TREE Execute)
 	return true;
 }
 
-bool GenCContext::Parse_Behaviour(pANTLR3_BASE_TREE Action)
+bool GenCContext::Parse_Behaviour(GenC::AstNode &Action)
 {
 	// Do nothing since behaviour actions are handled elsewhere
 	return true;
 }
 
-bool GenCContext::Parse_Constant(pANTLR3_BASE_TREE Node)
+bool GenCContext::Parse_Constant(GenC::AstNode &Node)
 {
-	assert(Node->getType(Node) == CONSTANT);
-	assert(Node->getChildCount(Node) == 2);
+	assert(Node.GetType() == GenCNodeType::Constant);
+	assert(Node.GetChildren().size() == 2);
 	bool success = true;
 
-	pANTLR3_BASE_TREE declarationNode = (pANTLR3_BASE_TREE) Node->getChild(Node, 0);
-	pANTLR3_BASE_TREE constantNode = (pANTLR3_BASE_TREE) Node->getChild(Node, 1);
-
-	pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) declarationNode->getChild(declarationNode, 0);
-	pANTLR3_BASE_TREE idNode = (pANTLR3_BASE_TREE) declarationNode->getChild(declarationNode, 1);
+	GenC::AstNode *nameNode = Node.GetChildren().at(0);
+	GenC::AstNode *typeNode = Node.GetChildren().at(1);
+	GenC::AstNode *valueNode = Node.GetChildren().at(2);
 
 	IRType type;
-	success &= Parse_Type(typeNode, type);
+	success &= Parse_Type(*typeNode, type);
 	type.Const = true;
-	std::string id = (char *) (idNode->getText(idNode)->chars);
-	uint32_t constant = Parse_ConstantInt(constantNode);
+	std::string id = nameNode->GetString();
+	uint32_t constant = Parse_ConstantInt(*valueNode);
 
 	InsertConstant(id, type, IRConstant::Integer(constant));
 
 	return success;
 }
 
-bool GenCContext::Parse_Typename(pANTLR3_BASE_TREE Node)
+bool GenCContext::Parse_Typename(GenC::AstNode &Node)
 {
-	assert(Node->getType(Node) == TYPEDEF);
-	assert(Node->getChildCount(Node) == 2);
+	assert(Node.GetType() == GenCNodeType::Typename);
+	assert(Node.GetChildren().size() == 2);
 	bool success = true;
 
-	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE)Node->getChild(Node, 0);
-	const std::string name = (char*)nameNode->getText(nameNode)->chars;
+	auto nameNode = Node.GetChildren().at(0);
+	auto typeNode = Node.GetChildren().at(1);
 
-	pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE)Node->getChild(Node, 1);
+	std::string name = nameNode->GetString();
+
 	IRType target_type;
-	success &= Parse_Type(typeNode, target_type);
+	success &= Parse_Type(*typeNode, target_type);
 
 	if(GetTypeManager()->HasNamedBasicType(name) || GetTypeManager()->HasStructType(name)) {
 		Diag().Error("Duplicate type name " + name + ".");
@@ -494,40 +442,35 @@ bool GenCContext::Parse_Typename(pANTLR3_BASE_TREE Node)
 }
 
 
-bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
+bool GenCContext::Parse_Helper(GenC::AstNode &node)
 {
-	assert(node->getType(node) == HELPER);
+	assert(node.GetType() == GenCNodeType::Helper);
 
-	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-	pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
-	pANTLR3_BASE_TREE scopeNode = (pANTLR3_BASE_TREE) node->getChild(node, 2);
-	pANTLR3_BASE_TREE paramsNode = (pANTLR3_BASE_TREE) node->getChild(node, 3);
+	auto scopeNode = node.GetChildren().at(0);
+	auto typeNode = node.GetChildren().at(1);
+	auto nameNode = node.GetChildren().at(2);
+	auto paramsNode = node.GetChildren().at(3);
+	auto attrsNode = node.GetChildren().at(4);
+	auto bodyNode = node.GetChildren().at(5);
 
-	if (scopeNode->getType(scopeNode) == PARAMS) {
-		paramsNode = scopeNode;
-		scopeNode = NULL;
-	}
-
-	std::string helpername = std::string((char*) nameNode->getText(nameNode)->chars);
+	std::string helpername = nameNode->GetString();
 	if (HelperTable.count(helpername)) {
-		diag_ctx.Error("Helper function " + helpername + " redefined", DiagNode("", nameNode));
+		diag_ctx.Error("Helper function " + helpername + " redefined", DiagNode("", nameNode->GetLocation()));
 		return false;
 	}
 
-	pANTLR3_BASE_TREE bodyNode = (pANTLR3_BASE_TREE) node->getChild(node, node->getChildCount(node) - 1);
-
 	std::vector<IRParam> param_list;
 
-	for (uint32_t i = 0; i < paramsNode->getChildCount(paramsNode); ++i) {
-		pANTLR3_BASE_TREE paramNode = (pANTLR3_BASE_TREE) paramsNode->getChild(paramsNode, i);
+	for (uint32_t i = 0; i < paramsNode->GetChildren().size(); ++i) {
+		auto paramNode = paramsNode->GetChildren().at(i);
 
-		pANTLR3_BASE_TREE paramTypeNode = (pANTLR3_BASE_TREE) paramNode->getChild(paramNode, 0);
-		pANTLR3_BASE_TREE paramNameNode = (pANTLR3_BASE_TREE) paramNode->getChild(paramNode, 1);
+		auto paramTypeNode = paramNode->GetChildren().at(0);
+		auto paramNameNode = paramNode->GetChildren().at(1);
 
-		std::string paramName = (char *) paramNameNode->getText(paramNameNode)->chars;
+		std::string paramName = paramNameNode->GetString();
 
 		IRType paramType;
-		if(!Parse_Type(paramTypeNode, paramType)) {
+		if(!Parse_Type(*paramTypeNode, paramType)) {
 			return false;
 		}
 
@@ -543,42 +486,38 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 	bool noinlined = false;
 	bool exported = false;
 	IRConstness::IRConstness helper_constness = IRConstness::never_const;
-	for (uint32_t i = 3; i < node->getChildCount(node) - 1; ++i) {
+	for (uint32_t i = 0; i < attrsNode->GetChildren().size(); ++i) {
+		auto attrNode = attrsNode->GetChildren().at(i);
 
-		pANTLR3_BASE_TREE attrNode = (pANTLR3_BASE_TREE) node->getChild(node, i);
-		switch (attrNode->getType(attrNode)) {
-			case GENC_ATTR_INLINE: {
-				inlined = true;
-				break;
-			}
-			case GENC_ATTR_NOINLINE: {
-				noinlined = true;
-				break;
-			}
-			case GENC_ATTR_EXPORT: {
-				exported = true;
-				break;
-			}
+		std::string attr_name = attrNode->GetString();
+
+		if(attr_name == "inline") {
+			inlined = true;
+		} else if(attr_name == "noinline") {
+			noinlined = true;
+		} else if(attr_name == "export") {
+			exported = true;
+		} else if(attr_name == "global") {
+			// Probably need to do something here?
+		} else {
+			diag_ctx.Warning("Unknown attribute: " + attr_name);
 		}
 	}
 
 	HelperScope scope = InternalScope;
-	if (scopeNode != NULL) {
-		switch (scopeNode->getType(scopeNode)) {
-			case GENC_SCOPE_PRIVATE:
-				scope = PrivateScope;
-				break;
-			case GENC_SCOPE_INTERNAL:
-				scope = InternalScope;
-				break;
-			case GENC_SCOPE_PUBLIC:
-				scope = PublicScope;
-				break;
-		}
+	std::string scopename = scopeNode->GetChildren().at(0)->GetString();
+	if(scopename == "default") {
+		scope = InternalScope;
+	} else if(scopename == "internal") {
+		scope = InternalScope;
+	} else if(scopename == "private") {
+		scope = PrivateScope;
+	} else if(scopename == "public") {
+		scope = PublicScope;
 	}
 
 	IRType return_type;
-	if(!Parse_Type(typeNode, return_type)) {
+	if(!Parse_Type(*typeNode, return_type)) {
 		return false;
 	}
 	if(return_type.Reference) {
@@ -586,7 +525,7 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 		return false;
 	}
 
-	std::string name = (char *) nameNode->getText(nameNode)->chars;
+	std::string name = nameNode->GetString();
 	IRSignature sig(name, return_type, param_list);
 	if (noinlined) {
 		sig.AddAttribute(ActionAttribute::NoInline);
@@ -598,7 +537,7 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 
 	IRHelperAction *helper = new IRHelperAction(sig, scope, *this);
 
-	helper->body = Parse_Body(bodyNode, *helper->GetFunctionScope());
+	helper->body = Parse_Body(*bodyNode, *helper->GetFunctionScope());
 	if (helper->body == NULL) return false;
 
 	HelperTable[helper->GetSignature().GetName()] = helper;
@@ -606,85 +545,98 @@ bool GenCContext::Parse_Helper(pANTLR3_BASE_TREE node)
 	return true;
 }
 
-bool GenCContext::Parse_Type(pANTLR3_BASE_TREE node, IRType &out_type)
+bool GenCContext::Parse_Type(GenC::AstNode &node, IRType &out_type)
 {
-	assert(node->getType(node) == TYPE);
-	assert(node->getChildCount(node) >= 1);
-
-	pANTLR3_BASE_TREE classNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-	pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE) classNode->getChild(classNode, 0);
+	assert(node.GetType() == GenCNodeType::Type);
 
 	bool success = true;
 	out_type = GetTypeManager()->GetVoidType();
-	std::string typeName = (char *) nameNode->getText(nameNode)->chars;
 
-	switch(classNode->getType(classNode)) {
-		case GENC_BASICTYPE:
-			if(GetTypeManager()->HasNamedBasicType(typeName)) {
-				out_type = GetTypeManager()->GetBasicTypeByName(typeName);
+	auto rootNode = node.GetChildren().at(0);
+
+	switch(rootNode->GetType()) {
+		case GenCNodeType::Type: {
+			auto type_name = rootNode->GetChildren().at(0)->GetString();
+			if(GetTypeManager()->HasNamedBasicType(type_name)) {
+				out_type = GetTypeManager()->GetBasicTypeByName(type_name);
 			} else {
-				Diag().Error("Unknown basic type " + typeName, DiagNode(CurrFilename, nameNode));
-				success = false;
+				Diag().Error("Unknown basic type " + type_name, DiagNode(CurrFilename, node.GetLocation()));
+				return false;
 			}
 			break;
-		case GENC_TYPENAME:
-			if(GetTypeManager()->HasNamedBasicType(typeName)) {
-				out_type = GetTypeManager()->GetBasicTypeByName(typeName);
+		}
+		case GenCNodeType::Struct: {
+			auto type_name = rootNode->GetChildren().at(0)->GetString();
+			if(GetTypeManager()->HasStructType(type_name)) {
+				out_type = GetTypeManager()->GetStructType(type_name);
 			} else {
-				Diag().Error("Unknown typename " + typeName, DiagNode(CurrFilename, nameNode));
-				success = false;
+				Diag().Error("Unknown struct type " + type_name, DiagNode(CurrFilename, node.GetLocation()));
+				return false;
 			}
 			break;
-		case GENC_STRUCT:
-			if(GetTypeManager()->HasStructType(typeName)) {
-				out_type = GetTypeManager()->GetStructType(typeName);
+		}
+		case GenCNodeType::Typename: {
+			auto type_name = rootNode->GetChildren().at(0)->GetString();
+			if(GetTypeManager()->HasNamedBasicType(type_name)) {
+				out_type = GetTypeManager()->GetBasicTypeByName(type_name);
 			} else {
-				Diag().Error("Unknown struct type " + typeName, DiagNode(CurrFilename, nameNode));
-				success = false;
+				Diag().Error("Unknown typename " + type_name, DiagNode(CurrFilename, node.GetLocation()));
+				return false;
 			}
 			break;
-	}
+		}
 
-	for (uint32_t i = 1; i < node->getChildCount(node); ++i) {
-		pANTLR3_BASE_TREE annotationNode = (pANTLR3_BASE_TREE) node->getChild(node, i);
-
-		std::string annotation = (char *) annotationNode->getText(annotationNode)->chars;
-		if (annotation == "&") {
-			out_type.Reference = true;
-		} else if (annotationNode->getType(annotationNode) == VECTOR) {
-			pANTLR3_BASE_TREE widthNode = (pANTLR3_BASE_TREE) annotationNode->getChild(annotationNode, 0);
-			out_type.VectorWidth = strtol((char*) widthNode->getText(widthNode)->chars, NULL, 10);
-		} else {
-			Diag().Error("Unrecognized type annotation " + annotation, DiagNode(CurrFilename, node));
-			success = false;
+		default: {
+			UNEXPECTED;
 		}
 	}
 
-	return success;
+	// parse annotations if they're there
+	if(node.GetChildren().size() > 1) {
+		auto annotationsList = node.GetChildren().at(1);
+		assert(annotationsList->GetType() == GenCNodeType::Annotation);
+
+		for(auto annotation : *annotationsList) {
+			switch(annotation->GetType()) {
+				case GenCNodeType::Vector:  {
+					auto vectorwidth = annotation->GetChildren().at(0);
+					out_type.VectorWidth = strtol(vectorwidth->GetString().c_str(), nullptr, 0);
+					break;
+				}
+				case GenCNodeType::Reference:
+					out_type.Reference = true;
+					break;
+				default:
+					UNEXPECTED;
+			}
+		}
+	}
+
+	return true;
 }
 
-IRBody *GenCContext::Parse_Body(pANTLR3_BASE_TREE node, IRScope &containing_scope, IRScope *override_scope)
+IRBody *GenCContext::Parse_Body(GenC::AstNode &node, IRScope &containing_scope, IRScope *override_scope)
 {
-	assert(node->getType(node) == BODY);
+	assert(node.GetType() == GenCNodeType::Body);
 	IRBody *body;
 	if (override_scope != NULL)
 		body = IRBody::CreateBodyWithScope(*override_scope);
 	else
 		body = new IRBody(containing_scope);
 
-	body->SetDiag(DiagNode(CurrFilename, node));
+	body->SetDiag(DiagNode(CurrFilename, node.GetLocation()));
 
-	for (uint32_t i = 0; i < node->getChildCount(node); ++i) {
-		pANTLR3_BASE_TREE statementNode = (pANTLR3_BASE_TREE) node->getChild(node, i);
-		IRStatement *statement = Parse_Statement(statementNode, (body->Scope));
+	for (uint32_t i = 0; i < node.GetChildren().size(); ++i) {
+		auto statementNode = node.GetChildren().at(i);
+		IRStatement *statement = Parse_Statement(*statementNode, (body->Scope));
 		if (statement == NULL) return NULL;
 
 		body->Statements.push_back(statement);
 
 		if (auto ret = dynamic_cast<IRFlowStatement*> (statement)) {
 			if (ret->Type == IRFlowStatement::FLOW_RETURN_VALUE || ret->Type == IRFlowStatement::FLOW_RETURN_VOID) {
-				if (i < (node->getChildCount(node) - 1)) {
-					Diag().Error("Return statement should be at end of block", DiagNode(CurrFilename, node));
+				if (i < (node.GetChildren().size() - 1)) {
+					Diag().Error("Return statement should be at end of block", DiagNode(CurrFilename, node.GetLocation()));
 					return NULL;
 				}
 			}
@@ -694,89 +646,89 @@ IRBody *GenCContext::Parse_Body(pANTLR3_BASE_TREE node, IRScope &containing_scop
 	return body;
 }
 
-IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &containing_scope)
+IRStatement *GenCContext::Parse_Statement(GenC::AstNode &node, IRScope &containing_scope)
 {
-	GASSERT(node != nullptr);
+	auto node_location = node.GetLocation();
 
-	switch (node->getType(node)) {
-		case BODY: {
+	switch (node.GetType()) {
+		case GenCNodeType::Body: {
 			return Parse_Body(node, containing_scope, NULL);
 		}
-		case CASE: {
+		case GenCNodeType::Case: {
 			if (containing_scope.Type != IRScope::SCOPE_SWITCH) {
-				Diag().Error("Case not in switch statement", DiagNode(CurrFilename, node));
+				Diag().Error("Case not in switch statement", DiagNode(CurrFilename, node_location));
 				break;
 			}
 			IRFlowStatement *c = new IRFlowStatement(containing_scope);
-			c->SetDiag(DiagNode(CurrFilename, node));
+			c->SetDiag(DiagNode(CurrFilename, node_location));
 			c->Type = IRFlowStatement::FLOW_CASE;
-			c->Expr = Parse_Expression((pANTLR3_BASE_TREE) node->getChild(node, 0), containing_scope);
+			c->Expr = Parse_Expression(*node.GetChildren().at(0), containing_scope);
 			if(c->Expr == nullptr) {
 				return nullptr;
 			}
 			if(dynamic_cast<IRConstExpression*>(c->Expr) == nullptr) {
-				Diag().Error("Case statement expression must be a constant\n", DiagNode(CurrFilename, node));
+				Diag().Error("Case statement expression must be a constant\n", DiagNode(CurrFilename, node_location));
 				return nullptr;
 			}
 
 			IRScope *CaseScope = new IRScope(containing_scope, IRScope::SCOPE_CASE);
-			c->Body = Parse_Body((pANTLR3_BASE_TREE) node->getChild(node, 1), containing_scope, CaseScope);
+			c->Body = Parse_Body(*node.GetChildren().at(1), containing_scope, CaseScope);
 			if (c->Body == NULL) return NULL;
 			return c;
 		}
-		case DEFAULT: {
+		case GenCNodeType::Default: {
 			if (containing_scope.Type != IRScope::SCOPE_SWITCH) {
-				Diag().Error("Default not in switch statement", DiagNode(CurrFilename, node));
+				Diag().Error("Default not in switch statement", DiagNode(CurrFilename, node_location));
 				break;
 			}
 
 			IRFlowStatement *c = new IRFlowStatement(containing_scope);
-			c->SetDiag(DiagNode(CurrFilename, node));
+			c->SetDiag(DiagNode(CurrFilename, node_location));
 			c->Type = IRFlowStatement::FLOW_DEFAULT;
 			IRScope *CaseScope = new IRScope(containing_scope, IRScope::SCOPE_CASE);
-			c->Body = Parse_Body((pANTLR3_BASE_TREE) node->getChild(node, 0), containing_scope, CaseScope);
+			c->Body = Parse_Body(*node.GetChildren().at(0), containing_scope, CaseScope);
 			if (c->Body == NULL) return NULL;
 			return c;
 		}
-		case BREAK: {
+		case GenCNodeType::Break: {
 			if (!containing_scope.ScopeBreakable()) {
-				Diag().Error("Break not in breakable context", DiagNode(CurrFilename, node));
+				Diag().Error("Break not in breakable context", DiagNode(CurrFilename, node_location));
 				break;
 			}
 			IRFlowStatement *c = new IRFlowStatement(containing_scope);
-			c->SetDiag(DiagNode(CurrFilename, node));
+			c->SetDiag(DiagNode(CurrFilename, node_location));
 			c->Type = IRFlowStatement::FLOW_BREAK;
 			return c;
 		}
-		case CONTINUE: {
+		case GenCNodeType::Continue: {
 			if (!containing_scope.ScopeContinuable()) {
-				Diag().Error("Continue not in continuable context", DiagNode(CurrFilename, node));
+				Diag().Error("Continue not in continuable context", DiagNode(CurrFilename, node_location));
 				break;
 			}
 			IRFlowStatement *c = new IRFlowStatement(containing_scope);
-			c->SetDiag(DiagNode(CurrFilename, node));
+			c->SetDiag(DiagNode(CurrFilename, node_location));
 			c->Type = IRFlowStatement::FLOW_CONTINUE;
 			return c;
 		}
-		case RAISE: {
+		case GenCNodeType::Raise: {
 			IRFlowStatement *ret = new IRFlowStatement(containing_scope);
-			ret->SetDiag(DiagNode(CurrFilename, node));
+			ret->SetDiag(DiagNode(CurrFilename, node_location));
 			ret->Type = IRFlowStatement::FLOW_RAISE;
 
 			return ret;
 		}
-		case RETURN: {
+		case GenCNodeType::Return: {
 			IRFlowStatement *ret = new IRFlowStatement(containing_scope);
-			ret->SetDiag(DiagNode(CurrFilename, node));
+			ret->SetDiag(DiagNode(CurrFilename, node_location));
 
-			if (node->getChildCount(node) != 0) {
+			if (node.GetChildren().size() != 0) {
 				if(!containing_scope.GetContainingAction().GetSignature().HasReturnValue()) {
 					Diag().Error("Tried to return a value from a function with a void return type", ret->Diag());
 					return nullptr;
 				}
 
 				ret->Type = IRFlowStatement::FLOW_RETURN_VALUE;
-				ret->Expr = Parse_Expression((pANTLR3_BASE_TREE) node->getChild(node, 0), containing_scope);
+				ret->Expr = Parse_Expression(*node.GetChildren().at(0), containing_scope);
 				if(ret->Expr == nullptr) {
 					return nullptr;
 				}
@@ -790,70 +742,60 @@ IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &conta
 
 			return ret;
 		}
-		case WHILE: {
-			pANTLR3_BASE_TREE exprNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			pANTLR3_BASE_TREE bodyNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
+		case GenCNodeType::While: {
+			auto exprNode = node.GetChildren().at(0);
+			auto bodyNode = node.GetChildren().at(1);
 
 			IRScope *scope = new IRScope(containing_scope, IRScope::SCOPE_LOOP);
-			auto expr = Parse_Expression(exprNode, containing_scope);
+			auto expr = Parse_Expression(*exprNode, containing_scope);
 			if(expr == nullptr) {
 				return nullptr;
 			}
-			auto stmt = Parse_Statement(bodyNode, containing_scope);
+			auto stmt = Parse_Statement(*bodyNode, containing_scope);
 			if(stmt == nullptr) {
 				return nullptr;
 			}
 			IRIterationStatement *iter = IRIterationStatement::CreateWhile(*scope, *expr, *stmt);
-			iter->SetDiag(DiagNode(CurrFilename, node));
+			iter->SetDiag(DiagNode(CurrFilename, node_location));
 			return iter;
 		}
-		case DO: {
-			pANTLR3_BASE_TREE exprNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
-			pANTLR3_BASE_TREE bodyNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
+		case GenCNodeType::Do: {
+			auto exprNode = node.GetChildren().at(1);
+			auto bodyNode = node.GetChildren().at(0);
 
 			IRScope *scope = new IRScope(containing_scope, IRScope::SCOPE_LOOP);
 
-			IRExpression *expr = Parse_Expression(exprNode, *scope);
+			IRExpression *expr = Parse_Expression(*exprNode, *scope);
 			if(expr == nullptr) {
 				return nullptr;
 			}
-			IRStatement *body = Parse_Statement(bodyNode, *scope);
+			IRStatement *body = Parse_Statement(*bodyNode, *scope);
 			if(body == nullptr) {
 				return nullptr;
 			}
 
 			IRIterationStatement *iter = IRIterationStatement::CreateDoWhile(*scope, *expr, *body);
-			iter->SetDiag(DiagNode(CurrFilename, node));
+			iter->SetDiag(DiagNode(CurrFilename, node_location));
 			return iter;
 		}
-		case FOR: {
+		case GenCNodeType::For: {
 			IRExpression *start = nullptr;
 			IRExpression *check = nullptr;
 			IRExpression *post = nullptr;
 
 			IRScope *scope = new IRScope(containing_scope, IRScope::SCOPE_LOOP);
-			for(int i = 0; i < node->getChildCount(node)-1; ++i) {
-				pANTLR3_BASE_TREE child = (pANTLR3_BASE_TREE)node->getChild(node, i);
-				switch(child->getType(child)) {
-					case FOR_PRE:
-						if(child->getChildCount(child) > 0) {
-							start = Parse_Expression((pANTLR3_BASE_TREE)child->getChild(child,0), *scope);
-						}
-						break;
-					case FOR_CHECK:
-						if(child->getChildCount(child) > 0) {
-							check = Parse_Expression((pANTLR3_BASE_TREE)child->getChild(child,0), *scope);
-						}
-						break;
-					case FOR_POST:
-						if(child->getChildCount(child) > 0) {
-							post = Parse_Expression((pANTLR3_BASE_TREE)child->getChild(child,0), *scope);
-						}
-						break;
-					default:
-						UNEXPECTED;
-				}
-			}
+
+			auto for_pre = node.GetChildren().at(0);
+			auto for_check = node.GetChildren().at(1);
+			auto for_post = node.GetChildren().at(2);
+
+			// for_ptr and for_post are expression statements, not expressions, so dereference them to expressions
+			for_pre = for_pre->GetChildren().at(0);
+			for_post = for_post->GetChildren().at(0);
+
+			start = Parse_Expression(*for_pre, *scope);
+			check = Parse_Expression(*for_check, *scope);
+			post  = Parse_Expression(*for_post, *scope);
 
 			IRExpression *post_expression = post;
 			if(start == nullptr) {
@@ -866,30 +808,33 @@ IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &conta
 				post = new IRConstExpression(*scope, IRTypes::UInt8, IRConstant::Integer(0));
 			}
 
-			pANTLR3_BASE_TREE bodyNode = (pANTLR3_BASE_TREE)node->getChild(node, node->getChildCount(node)-1);
+			auto bodyNode = node.GetChildren().at(3);
 			GASSERT(bodyNode != nullptr);
 
-			IRIterationStatement *iter = IRIterationStatement::CreateFor(*scope, *start, *check, *post_expression, *Parse_Statement(bodyNode, *scope));
-			iter->SetDiag(DiagNode(CurrFilename, node));
+			IRIterationStatement *iter = IRIterationStatement::CreateFor(*scope, *start, *check, *post_expression, *Parse_Statement(*bodyNode, *scope));
+			iter->SetDiag(DiagNode(CurrFilename, node_location));
 			return iter;
 		}
-		case IF: {
-			pANTLR3_BASE_TREE exprNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			pANTLR3_BASE_TREE thenNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
+		case GenCNodeType::If: {
+			auto exprNode = node.GetChildren().at(0);
+			auto thenNode = node.GetChildren().at(1);
 
 			IRSelectionStatement *stmt;
 
-			auto expr = Parse_Expression(exprNode, containing_scope);
-			auto then_stmt = Parse_Statement(thenNode, containing_scope);
+			// exprnode is an expression statement so dereference it
+			exprNode = exprNode->GetChildren().at(0);
+
+			auto expr = Parse_Expression(*exprNode, containing_scope);
+			auto then_stmt = Parse_Statement(*thenNode, containing_scope);
 
 			if(dynamic_cast<IRDefineExpression*>(expr)) {
-				Diag().Error("Cannot define variable in if statement expression", DiagNode(CurrFilename, node));
+				Diag().Error("Cannot define variable in if statement expression", DiagNode(CurrFilename, node_location));
 				return nullptr;
 			}
 
-			if (node->getChildCount(node) == 3) {
-				pANTLR3_BASE_TREE elseNode = (pANTLR3_BASE_TREE) node->getChild(node, 2);
-				auto else_stmt = Parse_Statement(elseNode, containing_scope);
+			if (node.GetChildren().size() == 3) {
+				auto elseNode = node.GetChildren().at(2);
+				auto else_stmt = Parse_Statement(*elseNode, containing_scope);
 				if(expr == nullptr || then_stmt == nullptr || else_stmt == nullptr) {
 					return nullptr;
 				}
@@ -902,17 +847,17 @@ IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &conta
 				stmt = new IRSelectionStatement(containing_scope, IRSelectionStatement::SELECT_IF, *expr, *then_stmt, NULL);
 			}
 
-			stmt->SetDiag(DiagNode(CurrFilename, exprNode));
+			stmt->SetDiag(DiagNode(CurrFilename, exprNode->GetLocation()));
 			return stmt;
 		}
-		case SWITCH: {
-			pANTLR3_BASE_TREE exprNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			pANTLR3_BASE_TREE bodyNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
+		case GenCNodeType::Switch: {
+			auto exprNode = node.GetChildren().at(0);
+			auto bodyNode = node.GetChildren().at(1);
 
 			IRScope *scope = new IRScope(containing_scope, IRScope::SCOPE_SWITCH);
 
-			auto expr = Parse_Expression(exprNode, containing_scope);
-			auto body = Parse_Body(bodyNode, containing_scope, scope);
+			auto expr = Parse_Expression(*exprNode, containing_scope);
+			auto body = Parse_Body(*bodyNode, containing_scope, scope);
 
 			if(expr == nullptr || body == nullptr) {
 				return nullptr;
@@ -928,20 +873,20 @@ IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &conta
 			}
 
 			IRSelectionStatement *sel = new IRSelectionStatement(containing_scope, IRSelectionStatement::SELECT_SWITCH, *expr, *body, NULL);
-			sel->SetDiag(DiagNode(CurrFilename, exprNode));
+			sel->SetDiag(DiagNode(CurrFilename, exprNode->GetLocation()));
 
 			return sel;
 		}
-		case EXPR_STMT: {
-			pANTLR3_BASE_TREE exprNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
+		case GenCNodeType::ExprStmt: {
+			auto exprNode = node.GetChildren().at(0);
 
-			auto expression = Parse_Expression(exprNode, containing_scope);
+			auto expression = Parse_Expression(*exprNode, containing_scope);
 			if(expression == nullptr) {
 				return nullptr;
 			}
 
 			IRExpressionStatement *expr = new IRExpressionStatement(containing_scope, *expression);
-			expr->SetDiag(DiagNode(CurrFilename, node));
+			expr->SetDiag(DiagNode(CurrFilename, node_location));
 			return expr;
 		}
 		default: {
@@ -951,22 +896,9 @@ IRStatement *GenCContext::Parse_Statement(pANTLR3_BASE_TREE node, IRScope &conta
 	return NULL;
 }
 
-uint64_t GenCContext::Parse_ConstantInt(pANTLR3_BASE_TREE node)
+uint64_t GenCContext::Parse_ConstantInt(GenC::AstNode &node)
 {
-	switch (node->getType(node)) {
-		case INT_CONST:
-			return atoi((char *) (node->getText(node)->chars));
-		case HEX_VAL:
-			int64_t value;
-			uint64_t uvalue;
-			sscanf((char *) node->getText(node)->chars, "0x%lx", &uvalue);
-
-			value = (int64_t) uvalue;
-
-			return value;
-	}
-	assert(false && "Unrecognized constant");
-	UNEXPECTED;
+	return strtol(node.GetChildren().at(0)->GetString().c_str(), nullptr, 0);
 }
 
 static bool can_be_int32(uint64_t v)
@@ -979,27 +911,26 @@ static bool can_be_int64(uint64_t v)
 	return v <= std::numeric_limits<int64_t>::max();
 }
 
-IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &containing_scope)
+IRExpression *GenCContext::Parse_Expression(GenC::AstNode &node, IRScope &containing_scope)
 {
-	switch (node->getType(node)) {
+	auto node_location = node.GetLocation();
+
+	switch (node.GetType()) {
 		// BODY node type represents empty expression
-		case BODY: {
-			assert(node->getChildCount(node) == 0);
+		case GenCNodeType::Body: {
+			assert(node.GetChildren().size() == 0);
 			EmptyExpression *expr = new EmptyExpression(containing_scope);
-			expr->SetDiag(DiagNode(CurrFilename, node));
+			expr->SetDiag(DiagNode(CurrFilename, node_location));
 			return expr;
 		}
-		case INT_CONST:
-		case HEX_VAL: {
-			assert(node->getChildCount(node) == 0);
-
+		case GenCNodeType::INT: {
 			// final type of constant depends on if it has any type length specifiers
 			bool unsigned_specified = false;
 			bool long_specified = false;
 			bool is_signed = true;
 			bool is_long = false;
 
-			std::string text = (char *) node->getText(node)->chars;
+			std::string text = node.GetChildren().at(0)->GetString();
 			for (auto i : text) {
 				if (isdigit(i)) continue;
 				else if (tolower(i) == 'u') {
@@ -1057,56 +988,68 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 
 			IRConstant iv = IRConstant::Integer(final_value);
 			if (IRType::Cast(iv, type, type) != iv) {
-				Diag().Warning("Constant value truncated", DiagNode(CurrFilename, node));
+				Diag().Warning("Constant value truncated", DiagNode(CurrFilename, node_location));
 			}
 			auto expr = new IRConstExpression(containing_scope, type, iv);
-			expr->SetDiag(DiagNode(CurrFilename, node));
+			expr->SetDiag(DiagNode(CurrFilename, node_location));
+			return expr;
+
+		}
+
+		case GenCNodeType::FLOAT: {
+			auto valNode = node.GetChildren().at(0);
+
+			IRConstant iv = IRConstant::Float(strtof(valNode->GetString().c_str(), nullptr));
+			auto expr = new IRConstExpression(containing_scope, IRTypes::Float, iv);
+			expr->SetDiag(DiagNode(CurrFilename, node_location));
 			return expr;
 		}
 
-		case FLOAT_CONST: {
-			assert(node->getChildCount(node) == 0);
-			double value = atof((char *) node->getText(node)->chars);
-			IRType Type = IRTypes::Double;
-			Type.Const = true;
-			auto expr = new IRConstExpression(containing_scope, Type, IRConstant::Double(value));
-			expr->SetDiag(DiagNode(CurrFilename, node));
+		case GenCNodeType::DOUBLE: {
+			auto valNode = node.GetChildren().at(0);
+
+			IRConstant iv = IRConstant::Double(strtod(valNode->GetString().c_str(), nullptr));
+			auto expr = new IRConstExpression(containing_scope, IRTypes::Double, iv);
+			expr->SetDiag(DiagNode(CurrFilename, node_location));
 			return expr;
 		}
-		case GENC_ID: {
-			assert(node->getChildCount(node) == 0);
-			std::string id = (char *) node->getText(node)->chars;
+
+		case GenCNodeType::Variable: {
+			assert(node.GetChildren().size() == 1);
+
+			auto nameNode = node.GetChildren().at(0);
+			std::string id = nameNode->GetString();
 
 			IRVariableExpression *expr = new IRVariableExpression(id, containing_scope);
-			expr->SetDiag(DiagNode(CurrFilename, node));
+			expr->SetDiag(DiagNode(CurrFilename, node_location));
 
 			return expr;
 		}
-		case DECL: {
-			assert(node->getChildCount(node) == 2);
-			pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
+		case GenCNodeType::Declare: {
+			assert(node.GetChildren().size() == 2);
+			auto typeNode = node.GetChildren().at(0);
+			auto nameNode = node.GetChildren().at(1);
 
 			IRType type;
-			if(!Parse_Type(typeNode, type)) {
+			if(!Parse_Type(*typeNode, type)) {
 				return nullptr;
 			}
 
-			std::string name = (char *) nameNode->getText(nameNode)->chars;
+			std::string name = nameNode->GetString();
 
 			IRDefineExpression *expr = new IRDefineExpression(containing_scope, type, name);
-			expr->SetDiag(DiagNode(CurrFilename, node));
+			expr->SetDiag(DiagNode(CurrFilename, node_location));
 
 			return expr;
 		}
 
-		case CALL: {
-			pANTLR3_BASE_TREE nameNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
+		case GenCNodeType::Call: {
+			auto nameNode = node.GetChildren().at(0);
 
 			IRCallExpression *call;
 
 			// TODO: these should be handled as intrinsics
-			std::string targetName = (char *) nameNode->getText(nameNode)->chars;
+			std::string targetName = nameNode->GetString();
 			if (targetName == "read_register")
 				call = new IRRegisterSlotReadExpression(containing_scope);
 			else if (targetName == "write_register")
@@ -1118,12 +1061,15 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 			else
 				call = new IRCallExpression(containing_scope);
 
-			call->SetDiag(DiagNode(CurrFilename, node));
+			call->SetDiag(DiagNode(CurrFilename, node_location));
 			call->TargetName = targetName;
 
+			auto paramListNode = node.GetChildren().at(1);
+
 			bool success = true;
-			for (uint32_t i = 1; i < node->getChildCount(node); ++i) {
-				IRExpression *argexpr = Parse_Expression((pANTLR3_BASE_TREE) node->getChild(node, i), containing_scope);
+			for (uint32_t i = 0; i < paramListNode->GetChildren().size(); ++i) {
+				auto argNode = paramListNode->GetChildren().at(i);
+				IRExpression *argexpr = Parse_Expression(*argNode, containing_scope);
 				if(argexpr == nullptr) {
 					success = false;
 				}
@@ -1141,76 +1087,69 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 			}
 		}
 
-		case BITCAST: {
-			assert(node->getChildCount(node) == 2);
+		case GenCNodeType::BitCast: {
+			auto typeNode = node.GetChildren().at(0);
+			auto innerNode = node.GetChildren().at(1);
 
-			pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			pANTLR3_BASE_TREE innerNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
-
-			assert(typeNode->getType(typeNode) == TYPE);
-
-			IRExpression *innerExpr = Parse_Expression(innerNode, containing_scope);
+			IRExpression *innerExpr = Parse_Expression(*innerNode, containing_scope);
 			if(innerExpr == nullptr) {
 				return nullptr;
 			}
 
 			//TODO: this should be a syntax error
 			if(dynamic_cast<IRDefineExpression*>(innerExpr)) {
-				Diag().Error("Cannot cast a definition", DiagNode(CurrFilename, node));
+				Diag().Error("Cannot cast a definition", DiagNode(CurrFilename, node_location));
 				return nullptr;
 			}
 
 			IRType target_type;
-			if(!Parse_Type(typeNode, target_type)) {
+			if(!Parse_Type(*typeNode, target_type)) {
 				return nullptr;
 			}
 
 			IRCastExpression *gce = new IRCastExpression(containing_scope, target_type, IRCastExpression::Bitcast);
-			gce->SetDiag(DiagNode(CurrFilename, node));
+			gce->SetDiag(DiagNode(CurrFilename, node_location));
 			gce->Expr = innerExpr;
 
 			return gce;
 		}
-		case CAST: {
-			assert(node->getChildCount(node) == 2);
+		case GenCNodeType::Cast: {
+			auto typeNode = node.GetChildren().at(0);
+			auto innerNode = node.GetChildren().at(1);
 
-			pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			pANTLR3_BASE_TREE innerNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
-
-			assert(typeNode->getType(typeNode) == TYPE);
-
-			IRExpression *innerExpr = Parse_Expression(innerNode, containing_scope);
+			IRExpression *innerExpr = Parse_Expression(*innerNode, containing_scope);
 			if(innerExpr == nullptr) {
 				return nullptr;
 			}
 
 			//TODO: this should be a syntax error
 			if(dynamic_cast<IRDefineExpression*>(innerExpr)) {
-				Diag().Error("Cannot cast a definition", DiagNode(CurrFilename, node));
+				Diag().Error("Cannot cast a definition", DiagNode(CurrFilename, node_location));
 				return nullptr;
 			}
 
-			IRType cast_type;
-			if(!Parse_Type(typeNode, cast_type)) {
+			IRType target_type;
+			if(!Parse_Type(*typeNode, target_type)) {
 				return nullptr;
 			}
-			IRCastExpression *gce = new IRCastExpression(containing_scope, cast_type);
-			gce->SetDiag(DiagNode(CurrFilename, node));
+
+			IRCastExpression *gce = new IRCastExpression(containing_scope, target_type);
+			gce->SetDiag(DiagNode(CurrFilename, node_location));
 			gce->Expr = innerExpr;
 
 			return gce;
 		}
 
-		case PREFIX: {
-			assert(node->getChildCount(node) == 2);
+		case GenCNodeType::Prefix: {
+			assert(node.GetChildren().size() == 2);
 
-			pANTLR3_BASE_TREE typeNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			pANTLR3_BASE_TREE innerNode = (pANTLR3_BASE_TREE) node->getChild(node, 1);
+			auto typeNode = node.GetChildren().at(0);
+			auto innerNode = node.GetChildren().at(1);
 
 			IRUnaryExpression *unary = new IRUnaryExpression(containing_scope);
 
-			std::string typeString = (char *) typeNode->getText(typeNode)->chars;
-			unary->BaseExpression = Parse_Expression(innerNode, containing_scope);
+			std::string typeString = typeNode->GetString();
+			unary->BaseExpression = Parse_Expression(*innerNode, containing_scope);
 			if(unary->BaseExpression == nullptr) {
 				return nullptr;
 			}
@@ -1228,7 +1167,7 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 			else if (typeString == "+") {
 				unary->Type = IRUnaryOperator::Positive;
 			} else {
-				Diag().Error("Unrecognized prefix operator " + typeString, DiagNode(CurrFilename, node));
+				Diag().Error("Unrecognized prefix operator " + typeString, DiagNode(CurrFilename, node_location));
 				return nullptr;
 			}
 
@@ -1239,123 +1178,114 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 				}
 			}
 
-			unary->SetDiag(DiagNode(CurrFilename, node));
+			unary->SetDiag(DiagNode(CurrFilename, node_location));
 			return unary;
 		}
-		case POSTFIX: {
-			pANTLR3_BASE_TREE innerNode = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			IRExpression *innerExpression = Parse_Expression(innerNode, containing_scope);
+		case GenCNodeType::Postfix: {
+			auto opNode = node.GetChildren().at(0);
+			auto innerNode = node.GetChildren().at(1);
+
+			IRExpression *innerExpression = Parse_Expression(*innerNode, containing_scope);
 			if(innerExpression == nullptr) {
 				return nullptr;
 			}
-			for (uint32_t i = 1; i < node->getChildCount(node); ++i) {
-				pANTLR3_BASE_TREE postfixNode = (pANTLR3_BASE_TREE) node->getChild(node, i);
-				std::string op = (char *) postfixNode->getText(postfixNode)->chars;
 
-				IRUnaryExpression *unaryExpr = new IRUnaryExpression(containing_scope);
-				unaryExpr->BaseExpression = innerExpression;
+			IRUnaryExpression *unaryExpr = new IRUnaryExpression(containing_scope);
+			unaryExpr->BaseExpression = innerExpression;
 
+			switch (opNode->GetType()) {
+				case GenCNodeType::VectorElement: {
+					auto index_expression = opNode->GetChildren().at(0);
 
-				switch (postfixNode->getType(postfixNode)) {
-					case IDX: {
-						pANTLR3_BASE_TREE index_expression = (pANTLR3_BASE_TREE) postfixNode->getChild(postfixNode, 0);
+					unaryExpr->Type = IRUnaryOperator::Index;
+					unaryExpr->Arg = Parse_Expression(*index_expression, containing_scope);
 
-						if (index_expression->getType(index_expression) == IDX_ELEM) {
-							pANTLR3_BASE_TREE argNode = (pANTLR3_BASE_TREE) index_expression->getChild(index_expression, 0);
-							unaryExpr->Type = IRUnaryOperator::Index;
-							unaryExpr->Arg = Parse_Expression(argNode, containing_scope);
-						} else if (index_expression->getType(index_expression) == IDX_BITS) {
-							pANTLR3_BASE_TREE from_node = (pANTLR3_BASE_TREE) index_expression->getChild(index_expression, 0);
-							pANTLR3_BASE_TREE to_node = (pANTLR3_BASE_TREE) index_expression->getChild(index_expression, 1);
+					break;
+				}
+				case GenCNodeType::BitExtract: {
+					auto fromNode = opNode->GetChildren().at(0);
+					auto toNode = opNode->GetChildren().at(1);
 
-							unaryExpr->Type = IRUnaryOperator::Sequence;
-							unaryExpr->Arg = new IRConstExpression(containing_scope, IRTypes::Int32, IRConstant::Integer(Parse_ConstantInt(from_node)));
-							unaryExpr->Arg2 = new IRConstExpression(containing_scope, IRTypes::Int32, IRConstant::Integer(Parse_ConstantInt(to_node)));
-						} else {
-							assert(false);
-						}
+					unaryExpr->Type = IRUnaryOperator::Sequence;
+					unaryExpr->Arg = new IRConstExpression(containing_scope, IRTypes::Int32, IRConstant::Integer(Parse_ConstantInt(*fromNode)));
+					unaryExpr->Arg2 = new IRConstExpression(containing_scope, IRTypes::Int32, IRConstant::Integer(Parse_ConstantInt(*toNode)));
+					break;
+				}
+				case GenCNodeType::Member: {
+					auto memberNode = opNode->GetChildren().at(0);
+					unaryExpr->MemberStr = memberNode->GetString();
 
-						break;
-					}
-					case MEMBER: {
-						pANTLR3_BASE_TREE argNode = (pANTLR3_BASE_TREE) postfixNode->getChild(postfixNode, 0);
-						unaryExpr->MemberStr = (char *) argNode->getText(argNode)->chars;
+					unaryExpr->Type = IRUnaryOperator::Member;
 
-						unaryExpr->Type = IRUnaryOperator::Member;
-
-						break;
-					}
-					case PTR: {
-						pANTLR3_BASE_TREE argNode = (pANTLR3_BASE_TREE) postfixNode->getChild(postfixNode, 0);
-						unaryExpr->MemberStr = (char *) argNode->getText(argNode)->chars;
-
-						unaryExpr->Type = IRUnaryOperator::Ptr;
-
-						break;
-					}
-
-					default:
-						if (op == "++")
-							unaryExpr->Type = IRUnaryOperator::Postincrement;
-						else if (op == "--")
-							unaryExpr->Type = IRUnaryOperator::Postdecrement;
-						else
-							Diag().Error("Unrecognized postfix operator " + op, DiagNode(CurrFilename, node));
+					break;
 				}
 
-				if(unaryExpr->Type == IRUnaryOperator::Postincrement || unaryExpr->Type == IRUnaryOperator::Postdecrement) {
-					if(dynamic_cast<IRVariableExpression*>(unaryExpr->BaseExpression) == nullptr) {
-						Diag().Error("Operator can only be applied to a variable");
-						return nullptr;
-					}
+				case GenCNodeType::STRING: {
+					// try and
+					auto opName = opNode->GetString();
+					if (opName == "++")
+						unaryExpr->Type = IRUnaryOperator::Postincrement;
+					else if (opName == "--")
+						unaryExpr->Type = IRUnaryOperator::Postdecrement;
+					else
+						Diag().Error("Unrecognized postfix operator " + opName, DiagNode(CurrFilename, node_location));
+					break;
 				}
 
-				unaryExpr->SetDiag(DiagNode(CurrFilename, postfixNode));
-
-				innerExpression = unaryExpr;
+				default: {
+					UNEXPECTED;
+				}
 			}
 
-			return innerExpression;
-		}
-		case TERNARY: {
-			assert(node->getChildCount(node) == 3);
-			pANTLR3_BASE_TREE cond = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			pANTLR3_BASE_TREE left = (pANTLR3_BASE_TREE) node->getChild(node, 1);
-			pANTLR3_BASE_TREE right = (pANTLR3_BASE_TREE) node->getChild(node, 2);
+			if(unaryExpr->Type == IRUnaryOperator::Postincrement || unaryExpr->Type == IRUnaryOperator::Postdecrement) {
+				if(dynamic_cast<IRVariableExpression*>(unaryExpr->BaseExpression) == nullptr) {
+					Diag().Error("Operator can only be applied to a variable");
+					return nullptr;
+				}
+			}
 
-			IRExpression *condExpr = Parse_Expression(cond, containing_scope);
-			IRExpression *leftExpr = Parse_Expression(left, containing_scope);
-			IRExpression *rightExpr = Parse_Expression(right, containing_scope);
+			unaryExpr->SetDiag(DiagNode(CurrFilename, node.GetLocation()));
+
+			return unaryExpr;
+		}
+		case GenCNodeType::Ternary: {
+			auto condNode = node.GetChildren().at(0);
+			auto leftNode = node.GetChildren().at(1);
+			auto rightNode = node.GetChildren().at(2);
+
+			IRExpression *condExpr = Parse_Expression(*condNode, containing_scope);
+			IRExpression *leftExpr = Parse_Expression(*leftNode, containing_scope);
+			IRExpression *rightExpr = Parse_Expression(*rightNode, containing_scope);
 
 			if(condExpr == nullptr || leftExpr == nullptr || rightExpr == nullptr) {
 				return nullptr;
 			}
 
 			IRTernaryExpression *expr = new IRTernaryExpression(containing_scope, condExpr, leftExpr, rightExpr);
-			expr->SetDiag(DiagNode(CurrFilename, node));
+			expr->SetDiag(DiagNode(CurrFilename, node_location));
 
 			return expr;
 		}
-		case VECTOR: {
+		case GenCNodeType::Vector: {
 			std::vector<IRExpression *> elements;
 
-			for(int i = 0; i < node->getChildCount(node); ++i) {
-				pANTLR3_BASE_TREE child = (pANTLR3_BASE_TREE)node->getChild(node, i);
+			for(auto child : node.GetChildren()) {
 
-				auto element = Parse_Expression(child, containing_scope);
+				auto element = Parse_Expression(*child, containing_scope);
 				elements.push_back(element);
 			}
 
 			IRVectorExpression *vector = new IRVectorExpression(containing_scope, elements);
 			return vector;
 		}
-		default: {
-			assert(node->getChildCount(node) == 2);
-			pANTLR3_BASE_TREE left = (pANTLR3_BASE_TREE) node->getChild(node, 0);
-			pANTLR3_BASE_TREE right = (pANTLR3_BASE_TREE) node->getChild(node, 1);
 
-			IRExpression *leftExpr = Parse_Expression(left, containing_scope);
-			IRExpression *rightExpr = Parse_Expression(right, containing_scope);
+		case GenCNodeType::Binary: {
+			auto opNode = node.GetChildren().at(0);
+			auto leftNode = node.GetChildren().at(1);
+			auto rightNode = node.GetChildren().at(2);
+
+			IRExpression *leftExpr = Parse_Expression(*leftNode, containing_scope);
+			IRExpression *rightExpr = Parse_Expression(*rightNode, containing_scope);
 
 			if(leftExpr == nullptr || rightExpr == nullptr) {
 				return nullptr;
@@ -1368,10 +1298,10 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 			}
 
 			// binary operators
-			std::string op = (char *) node->getText(node)->chars;
+			std::string op = opNode->GetString();
 
 			IRBinaryExpression *exp = new IRBinaryExpression(containing_scope);
-			exp->SetDiag(DiagNode(CurrFilename, node));
+			exp->SetDiag(DiagNode(CurrFilename, node_location));
 			exp->Left = leftExpr;
 			exp->Right = rightExpr;
 
@@ -1450,10 +1380,17 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 			else if(op == "::") {
 				exp->Type = BinaryOperator::VConcatenate;
 			} else {
-				Diag().Error("Unrecognized operator " + op, DiagNode(CurrFilename, node));
+				Diag().Error("Unrecognized operator " + op, DiagNode(CurrFilename, node_location));
 				return nullptr;
 			}
 
+			// If we're a RMW, then the LHS cannot be a declaration
+			if(BinaryOperator::IsRMW(exp->Type)) {
+				if(dynamic_cast<IRDefineExpression*>(exp->Left) != nullptr) {
+					Diag().Error("Cannot have declaration on left hand side of RMW operator", exp->Diag());
+					return nullptr;
+				}
+			}
 
 			// If we're a set operation, then the LHS must be settable
 			if(BinaryOperator::IsAssignment(exp->Type)) {
@@ -1465,16 +1402,17 @@ IRExpression *GenCContext::Parse_Expression(pANTLR3_BASE_TREE node, IRScope &con
 				// check to make sure we're not doing something crazy like adding to a definition
 				// TODO: this should be a syntax error
 				if(dynamic_cast<IRDefineExpression*>(exp->Left) || dynamic_cast<IRDefineExpression*>(exp->Right)) {
-					Diag().Error("Cannot perform arithmetic on value of this type", DiagNode(CurrFilename, node));
+					Diag().Error("Cannot perform arithmetic on value of this type", DiagNode(CurrFilename, node_location));
 					return nullptr;
 				}
 			}
 
 			return exp;
 		}
-
+		default: {
+			UNEXPECTED;
+		}
 	}
-
 }
 
 IRBody *IRBody::CreateBodyWithScope(IRScope &scope)

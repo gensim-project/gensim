@@ -2,8 +2,6 @@
 
 #include "genC/ssa/io/Assembler.h"
 #include "genC/ssa/io/AssemblyReader.h"
-#include "ssa_asm/ssa_asmLexer.h"
-#include "ssa_asm/ssa_asmParser.h"
 
 #include "genC/ssa/SSAContext.h"
 #include "genC/ssa/SSABlock.h"
@@ -32,16 +30,15 @@ void AssemblyContext::AddPhiPlaceholder(SSAPhiStatement* stmt, const std::string
 }
 
 using gensim::genc::IRConstant;
-static IRConstant parse_constant_value(pANTLR3_BASE_TREE tree)
+static IRConstant parse_constant_value(const GenCSSA::AstNode &tree)
 {
-	auto text = (char*)tree->getText(tree)->chars;
-	switch(tree->getType(tree)) {
-		case SSAASM_INT:
-			return IRConstant::Integer(strtoull(text, nullptr, 10));
-		case SSAASM_FLOAT:
-			return IRConstant::Float(strtof(text, nullptr));
-		case SSAASM_DOUBLE:
-			return IRConstant::Double(strtod(text, nullptr));
+	switch(tree.GetType()) {
+		case GenCSSANodeType::INT:
+			return IRConstant::Integer(tree.GetInt());
+		case GenCSSANodeType::FLOAT:
+			return IRConstant::Float(tree.GetFloat());
+		case GenCSSANodeType::DOUBLE:
+			return IRConstant::Double(tree.GetDouble());
 		default:
 			UNREACHABLE;
 	}
@@ -49,32 +46,35 @@ static IRConstant parse_constant_value(pANTLR3_BASE_TREE tree)
 
 }
 
-static SSAType parse_type(SSAContext &ctx, pANTLR3_BASE_TREE tree)
+static SSAType parse_type(SSAContext &ctx, const GenCSSA::AstNode &tree)
 {
-	GASSERT(tree->getType(tree) == NUMERIC_TYPE || tree->getType(tree) == SSAASM_ID);
 	gensim::genc::IRType out;
-	char *text = (char*)tree->getText(tree)->chars;
 
-	if(!gensim::genc::IRType::ParseType(text, out)) {
-		if(ctx.GetTypeManager().HasStructType(text)) {
-			out = ctx.GetTypeManager().GetStructType(text);
-		} else {
-			throw std::logic_error("Unknown type");
-		}
-	}
-
-	for(unsigned i = 0; i < tree->getChildCount(tree); ++i) {
-		auto childnode = (pANTLR3_BASE_TREE)tree->getChild(tree, i);
-		switch(childnode->getType(childnode)) {
-			case SSAASM_TYPE_VECTOR:
-				out.VectorWidth = parse_constant_value((pANTLR3_BASE_TREE)childnode->getChild(childnode, 0)).Int();
-				break;
-			case SSAASM_TYPE_REF:
-				out.Reference = true;
-				break;
-			default:
-				UNREACHABLE;
-		}
+	switch(tree.GetType()) {
+		case GenCSSANodeType::BasicType:
+			if(!gensim::genc::IRType::ParseType(tree[0].GetString(), out)) {
+				throw std::logic_error("Unknown type");
+			}
+			break;
+		case GenCSSANodeType::StructType:
+			if(!ctx.GetTypeManager().HasStructType(tree[0].GetString())) {
+				throw std::logic_error("Unknown type");
+			} else {
+				out = ctx.GetTypeManager().GetStructType(tree[0].GetString());
+			}
+			break;
+		case GenCSSANodeType::VectorType:
+			if(!gensim::genc::IRType::ParseType(tree[0].GetString(), out)) {
+				throw std::logic_error("Unknown type");
+			}
+			out.VectorWidth = tree[1].GetInt();
+			break;
+		case GenCSSANodeType::ReferenceType:
+			out = parse_type(ctx, tree[0]);
+			out.Reference = true;
+			break;
+		default:
+			UNEXPECTED;
 	}
 
 	return out;
@@ -88,30 +88,30 @@ void ContextAssembler::SetTarget(SSAContext* target)
 
 bool ContextAssembler::Assemble(AssemblyFileContext &afc, DiagnosticContext &dc)
 {
-	pANTLR3_BASE_TREE tree = (pANTLR3_BASE_TREE)afc.GetTree();
-	if(tree->getType(tree) != CONTEXT) {
+	auto tree = afc.GetTree()[0];
+	if(tree.GetType() != GenCSSANodeType::Context) {
 		throw std::logic_error("");
 	}
 
 	try {
 		ActionAssembler actionasm;
-		ExternalActionAssembler xactionasm;
-		for(unsigned i = 0; i < tree->getChildCount(tree); ++i) {
-			auto action_node = (pANTLR3_BASE_TREE)tree->getChild(tree, i);
+		for(auto childPtr : tree[0]) {
+			auto &child = *childPtr;
 			SSAActionBase *action = nullptr;
-			if(action_node->getType(action_node) == ACTION) {
-				action = actionasm.Assemble(action_node, *target_);
-			} else if(action_node->getType(action_node) == ACTION_EXTERNAL) {
-				action = xactionasm.Assemble(action_node, *target_);
-			} else {
-				throw std::logic_error("Unexpected node type");
+
+			switch(child.GetType()) {
+				case GenCSSANodeType::Action:
+					action = actionasm.Assemble(child, *target_);
+					break;
+				default:
+					UNEXPECTED;
 			}
 			target_->AddAction(action);
 		}
-	} catch (std::exception &e) {
+	} catch(gensim::Exception &e) {
 		dc.Error(e.what());
 		return false;
-	} catch(gensim::Exception &e) {
+	} catch (std::exception &e) {
 		dc.Error(e.what());
 		return false;
 	}
@@ -119,72 +119,27 @@ bool ContextAssembler::Assemble(AssemblyFileContext &afc, DiagnosticContext &dc)
 	return true;
 }
 
-SSAExternalAction* ExternalActionAssembler::Assemble(pANTLR3_BASE_TREE tree, SSAContext& context)
+SSAFormAction* ActionAssembler::Assemble(const GenCSSA::AstNode &tree, SSAContext &context)
 {
-	if(tree->getType(tree) != ACTION_EXTERNAL) {
+	if(tree.GetType() != GenCSSANodeType::Action) {
 		throw std::logic_error("");
 	}
 	AssemblyContext ctx;
-	auto action_id_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	std::string action_id = (char*)action_id_node->getText(action_id_node)->chars;
+	auto action_id_node = tree[1];
+	std::string action_id = action_id_node.GetString();
 
-	auto action_rtype_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
+	auto &action_rtype_node = tree[0];
 	SSAType return_type = parse_type(context, action_rtype_node);
 
-	auto attribute_list_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
+	auto &attribute_list_node = tree[2];
 
 	IRSignature::param_type_list_t params;
-	auto action_params_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 3);
-	for(unsigned i = 0; i < action_params_node->getChildCount(action_params_node); i += 1) {
-		auto type_node = (pANTLR3_BASE_TREE)action_params_node->getChild(action_params_node,i);
-		std::string name = "p" + std::to_string(i);
-
-		IRParam param (name, parse_type(context, type_node));
-		params.push_back(param);
-	}
-
-	IRSignature signature (action_id, return_type, params);
-	signature.AddAttribute(gensim::genc::ActionAttribute::External);
-
-	for(unsigned i = 0; i < attribute_list_node->getChildCount(attribute_list_node); ++i) {
-		auto attribute_node = (pANTLR3_BASE_TREE)attribute_list_node->getChild(attribute_list_node, i);
-		switch(attribute_node->getType(attribute_node)) {
-			case ATTRIBUTE_NOINLINE:
-				signature.AddAttribute(ActionAttribute::NoInline);
-				break;
-			case ATTRIBUTE_HELPER:
-				signature.AddAttribute(ActionAttribute::Helper);
-				break;
-			default:
-				UNREACHABLE;
-		}
-	}
-
-	SSAActionPrototype prototype (signature);
-	return new SSAExternalAction(context, prototype);
-}
-
-
-SSAFormAction* ActionAssembler::Assemble(pANTLR3_BASE_TREE tree, SSAContext &context)
-{
-	if(tree->getType(tree) != ACTION) {
-		throw std::logic_error("");
-	}
-	AssemblyContext ctx;
-	auto action_id_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	std::string action_id = (char*)action_id_node->getText(action_id_node)->chars;
-
-	auto action_rtype_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	SSAType return_type = parse_type(context, action_rtype_node);
-
-	auto attribute_list_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
-
-	IRSignature::param_type_list_t params;
-	auto action_params_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 3);
-	for(unsigned i = 0; i < action_params_node->getChildCount(action_params_node); i += 2) {
-		auto type_node = (pANTLR3_BASE_TREE)action_params_node->getChild(action_params_node,i);
-		auto name_node = (pANTLR3_BASE_TREE)action_params_node->getChild(action_params_node,i+1);
-		auto name_string = (char*)name_node->getText(name_node)->chars;
+	auto &action_params_node = tree[3];
+	for(auto &paramPtr : action_params_node) {
+		auto &paramNode = *paramPtr;
+		auto &type_node = paramNode[0];
+		auto &name_node = paramNode[1];
+		auto name_string = name_node.GetString();;
 
 		IRParam param (name_string, parse_type(context, type_node));
 		params.push_back(param);
@@ -192,17 +147,18 @@ SSAFormAction* ActionAssembler::Assemble(pANTLR3_BASE_TREE tree, SSAContext &con
 
 	IRSignature signature (action_id, return_type, params);
 
-	for(unsigned i = 0; i < attribute_list_node->getChildCount(attribute_list_node); ++i) {
-		auto attribute_node = (pANTLR3_BASE_TREE)attribute_list_node->getChild(attribute_list_node, i);
-		switch(attribute_node->getType(attribute_node)) {
-			case ATTRIBUTE_NOINLINE:
+	for(auto attributeNodePtr : attribute_list_node) {
+		auto &attributeNode = *attributeNodePtr;
+
+		switch(attributeNode.GetType()) {
+			case GenCSSANodeType::AttributeNoinline:
 				signature.AddAttribute(ActionAttribute::NoInline);
 				break;
-			case ATTRIBUTE_HELPER:
+			case GenCSSANodeType::AttributeHelper:
 				signature.AddAttribute(ActionAttribute::Helper);
 				break;
 			default:
-				UNREACHABLE;
+				UNEXPECTED;
 		}
 	}
 
@@ -212,20 +168,23 @@ SSAFormAction* ActionAssembler::Assemble(pANTLR3_BASE_TREE tree, SSAContext &con
 	action->Isa = &context.GetIsaDescription();
 
 	// map parameter names to params
-	for(unsigned i = 0; i < action_params_node->getChildCount(action_params_node); i += 2) {
-		auto name_node = (pANTLR3_BASE_TREE)action_params_node->getChild(action_params_node,i+1);
-		auto name_string = (char*)name_node->getText(name_node)->chars;
+	for(unsigned paramIdx = 0; paramIdx < action_params_node.GetChildren().size(); ++paramIdx) {
+		auto &paramNode = action_params_node[paramIdx];
 
-		action->ParamSymbols.at(i/2)->SetName(name_string);
-		ctx.Put(name_string, action->ParamSymbols.at(i/2));
+		auto name_node = paramNode[1];
+		auto name_string = name_node.GetString();
+
+		action->ParamSymbols.at(paramIdx)->SetName(name_string);
+		ctx.Put(name_string, action->ParamSymbols.at(paramIdx));
 	}
 
-	auto action_syms_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 4);
+	auto &action_syms_node = tree[4];
 	// 2 nodes per symbol: type, name
-	for(unsigned i = 0; i < action_syms_node->getChildCount(action_syms_node); i += 2) {
-		auto type_node = (pANTLR3_BASE_TREE)action_syms_node->getChild(action_syms_node,i);
-		auto name_node = (pANTLR3_BASE_TREE)action_syms_node->getChild(action_syms_node,i+1);
-		auto name_string = (char*)name_node->getText(name_node)->chars;
+	for(auto actionSymPtr : action_syms_node) {
+		auto &actionSymNode = *actionSymPtr;
+		auto &type_node = actionSymNode[0];
+		auto &name_node = actionSymNode[1];
+		auto name_string = name_node.GetString();
 
 		SSASymbol *sym = new SSASymbol(context, name_string, parse_type(context, type_node), Symbol_Local);
 		sym->SetName(name_string);
@@ -234,21 +193,21 @@ SSAFormAction* ActionAssembler::Assemble(pANTLR3_BASE_TREE tree, SSAContext &con
 	}
 
 	// Parse blocks
-	auto block_def_list_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 5);
-	for(unsigned i = 0; i < block_def_list_node->getChildCount(block_def_list_node); ++i) {
-		auto block_name_node = (pANTLR3_BASE_TREE)block_def_list_node->getChild(block_def_list_node, i);
+	auto &block_def_list_node = tree[5];
+	for(unsigned i = 0; i < block_def_list_node.GetChildren().size(); ++i) {
+		auto &block_node = block_def_list_node[i];
 		SSABlock *block = new SSABlock(action->GetContext(), *action);
-		ctx.Put((char*)block_name_node->getText(block_name_node)->chars, block);
+		ctx.Put(block_node.GetString(), block);
 
 		if(i == 0) {
 			action->EntryBlock = block;
 		}
 	}
 
-	auto block_list_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 6);
+	auto &block_list_node = tree[6];
 	BlockAssembler ba (ctx);
-	for(unsigned i = 0; i < block_list_node->getChildCount(block_list_node); ++i) {
-		ba.Assemble((pANTLR3_BASE_TREE)block_list_node->getChild(block_list_node, i), *action);
+	for(auto blockNode : block_list_node) {
+		ba.Assemble(*blockNode, *action);
 	}
 
 	ctx.ProcessPhiStatements();
@@ -262,78 +221,35 @@ BlockAssembler::BlockAssembler(AssemblyContext& ctx) : ctx_(ctx)
 }
 
 
-SSABlock* BlockAssembler::Assemble(pANTLR3_BASE_TREE tree, SSAFormAction &action)
+SSABlock* BlockAssembler::Assemble(const GenCSSA::AstNode &tree, SSAFormAction &action)
 {
-	if(tree->getType(tree) != BLOCK) {
+	if(tree.GetType() != GenCSSANodeType::Block) {
 		throw std::logic_error("");
 	}
 
 	// parse block name
-	auto block_name_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	std::string block_name = (char*)block_name_node->getText(block_name_node)->chars;
+	auto &block_name_node = tree[0];
+	std::string block_name = block_name_node.GetString();
 
 	SSABlock *block = dynamic_cast<SSABlock*>(ctx_.Get(block_name));
 	if(block == nullptr) {
 		throw std::logic_error("");
 	}
 
-	auto block_statement_list = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	if(block_statement_list->getType(block_statement_list) != BLOCK_STATEMENTS) {
-		throw std::logic_error("");
-	}
+	auto &block_statement_list = tree[1];
+
 	StatementAssembler sa (action, ctx_);
-	for(unsigned i = 0; i < block_statement_list->getChildCount(block_statement_list); ++i) {
-		sa.Assemble((pANTLR3_BASE_TREE)block_statement_list->getChild(block_statement_list, i), block);
+	for(auto childPtr : block_statement_list) {
+		sa.Assemble(*childPtr, block);
 	}
 
 	return block;
 }
 
-static gensim::genc::BinaryOperator::EBinaryOperator parse_binop(pANTLR3_BASE_TREE tree)
+static gensim::genc::BinaryOperator::EBinaryOperator parse_binop(const GenCSSA::AstNode &tree)
 {
 	using namespace gensim::genc::BinaryOperator;
-	switch(tree->getType(tree)) {
-		case BINOP_PLUS :
-			return Add;
-		case NEGATIVE :
-			return Subtract;
-		case BINOP_MUL :
-			return Multiply;
-		case BINOP_DIV :
-			return Divide;
-		case BINOP_MOD :
-			return Modulo;
-		case BINOP_SAR:
-			return SignedShiftRight;
-		case BINOP_SHR:
-			return ShiftRight;
-		case BINOP_SHL:
-			return ShiftLeft;
-		case BINOP_ROR:
-			return RotateRight;
-		case BINOP_ROL:
-			return RotateLeft;
-		case AMPERSAND:
-			return Bitwise_And;
-		case BINOP_OR:
-			return Bitwise_Or;
-		case BINOP_XOR:
-			return Bitwise_XOR;
-		case CMP_EQUALS:
-			return Equality;
-		case CMP_NOTEQUALS:
-			return Inequality;
-		case CMP_GT:
-			return GreaterThan;
-		case CMP_GTE:
-			return GreaterThanEqual;
-		case CMP_LT:
-			return LessThan;
-		case CMP_LTE:
-			return LessThanEqual;
-		default:
-			throw std::logic_error("Unexpected binary operator " + std::string((char*)tree->getText(tree)->chars));
-	}
+	return gensim::genc::BinaryOperator::ParseOperator(tree.GetString());
 }
 
 StatementAssembler::StatementAssembler(SSAFormAction& action, AssemblyContext &ctx) : action_(action), ctx_(ctx)
@@ -341,12 +257,10 @@ StatementAssembler::StatementAssembler(SSAFormAction& action, AssemblyContext &c
 
 }
 
-SSAStatement *StatementAssembler::parse_bank_reg_read_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_bank_reg_read_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_BANKREGREAD);
-
-	auto bank_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto index_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
+	auto &bank_node = tree[0];
+	auto &index_node = tree[1];
 
 	IRConstant bank = parse_constant_value(bank_node);
 	SSAStatement *idx = get_statement(index_node);
@@ -354,13 +268,11 @@ SSAStatement *StatementAssembler::parse_bank_reg_read_statement(pANTLR3_BASE_TRE
 	return SSARegisterStatement::CreateBankedRead(block, bank.Int(), idx);
 }
 
-SSAStatement *StatementAssembler::parse_bank_reg_write_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_bank_reg_write_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_BANKREGWRITE);
-
-	auto bank_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto index_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	auto value_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
+	auto &bank_node = tree[0];
+	auto &index_node = tree[1];
+	auto &value_node = tree[2];
 
 	IRConstant bank = parse_constant_value(bank_node);
 	SSAStatement *idx = get_statement(index_node);
@@ -369,13 +281,11 @@ SSAStatement *StatementAssembler::parse_bank_reg_write_statement(pANTLR3_BASE_TR
 	return SSARegisterStatement::CreateBankedWrite(block, bank.Int(), idx, value);
 }
 
-SSAStatement *StatementAssembler::parse_binary_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_binary_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_BINOP);
-
-	auto op_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto lhs_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	auto rhs_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
+	auto &op_node = tree[0];
+	auto &lhs_node = tree[1];
+	auto &rhs_node = tree[2];
 
 	auto lhs_statement = get_statement(lhs_node);
 	auto rhs_statement = get_statement(rhs_node);
@@ -388,32 +298,29 @@ SSAStatement *StatementAssembler::parse_binary_statement(pANTLR3_BASE_TREE tree,
 	return new SSABinaryArithmeticStatement(block, lhs_statement, rhs_statement, statement_type);
 }
 
-SSAStatement *StatementAssembler::parse_call_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_call_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_CALL);
-
-	auto target_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	std::string target_name = (char*)target_node->getText(target_node)->chars;
+	auto target_node = tree[0];
+	std::string target_name = target_node.GetString();
 	SSAActionBase *target = action_.GetContext().GetAction(target_name);
 
 	std::vector<SSAValue*> params;
-	for(unsigned i = 1; i < tree->getChildCount(tree); ++i) {
-		int param_index = i-1;
-		auto &param = target->GetPrototype().ParameterTypes().at(param_index);
+	auto &paramNode = target_node[1];
+	for(unsigned i = 0; i < paramNode.GetChildren().size(); ++i) {
+		auto &param = target->GetPrototype().ParameterTypes().at(i);
 		if(param.Reference) {
-			params.push_back(get_symbol((pANTLR3_BASE_TREE)tree->getChild(tree, i)));
+			params.push_back(get_symbol(paramNode[i]));
 		} else {
-			params.push_back(get_statement((pANTLR3_BASE_TREE)tree->getChild(tree, i)));
+			params.push_back(get_statement(paramNode[i]));
 		}
 	}
 
 	return new SSACallStatement(block, (SSAFormAction*)target, params);
 }
 
-SSACastStatement::CastType parse_cast_type(pANTLR3_BASE_TREE node)
+SSACastStatement::CastType parse_cast_type(const GenCSSA::AstNode &node)
 {
-	GASSERT(node->getType(node) == SSAASM_ID);
-	std::string node_text = (char*)node->getText(node)->chars;
+	std::string node_text = node.GetString();
 
 	if(node_text == "zextend") {
 		return SSACastStatement::Cast_ZeroExtend;
@@ -432,10 +339,9 @@ SSACastStatement::CastType parse_cast_type(pANTLR3_BASE_TREE node)
 	}
 }
 
-SSACastStatement::CastOption parse_cast_option(pANTLR3_BASE_TREE node)
+SSACastStatement::CastOption parse_cast_option(const GenCSSA::AstNode &node)
 {
-	GASSERT(node->getType(node) == SSAASM_ID);
-	std::string node_text = (char*)node->getText(node)->chars;
+	std::string node_text = node.GetString();
 
 	if(node_text == "none") {
 		return SSACastStatement::Option_None;
@@ -454,21 +360,16 @@ SSACastStatement::CastOption parse_cast_option(pANTLR3_BASE_TREE node)
 	}
 }
 
-SSAStatement *StatementAssembler::parse_cast_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_cast_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_CAST);
-
-	auto type_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto expr_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	auto cast_type_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
+	auto &cast_type_node = tree[0];
+	auto &option_node = tree[1];
+	auto &type_node = tree[2];
+	auto &expr_node = tree[3];
 
 	SSACastStatement::CastType ctype = parse_cast_type(cast_type_node);
 
-	SSACastStatement::CastOption option = SSACastStatement::Option_None;
-	if(tree->getChildCount(tree) == 4) {
-		auto option_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 3);
-		option = parse_cast_option(option_node);
-	}
+	SSACastStatement::CastOption option = parse_cast_option(option_node);
 
 	auto target_type = parse_type(action_.GetContext(), type_node);
 	auto statement = get_statement(expr_node);
@@ -478,12 +379,10 @@ SSAStatement *StatementAssembler::parse_cast_statement(pANTLR3_BASE_TREE tree, S
 	return cast_statement;
 }
 
-SSAStatement *StatementAssembler::parse_constant_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_constant_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_CONSTANT);
-
-	auto type_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto value_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
+	auto &type_node = tree[0];
+	auto &value_node = tree[1];
 
 	IRConstant constant_value = parse_constant_value(value_node);
 	SSAType constant_type = parse_type(action_.GetContext(), type_node);
@@ -495,77 +394,58 @@ SSAStatement *StatementAssembler::parse_constant_statement(pANTLR3_BASE_TREE tre
 	return new SSAConstantStatement(block, constant_value, constant_type);
 }
 
-SSAStatement *StatementAssembler::parse_devread_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_devread_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_DEVREAD);
-
-	auto dev_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto addr_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	auto target_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
+	auto &dev_node = tree[0];
+	auto &addr_node = tree[1];
+	auto &target_node = tree[2];
 
 	return new SSADeviceReadStatement(block, get_statement(dev_node), get_statement(addr_node), get_symbol(target_node));
 }
 
-SSAStatement *StatementAssembler::parse_devwrite_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_devwrite_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	UNIMPLEMENTED;
-	/*
-	GASSERT(tree->getType(tree) == STATEMENT_DEVWRITE);
-
-	auto dev_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto addr_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	auto value_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
-
-	return new SSADeviceWriteStatement(block, get_statement(dev_node), get_statement(addr_node), get_statement(value_node));
-	 */
+	UNEXPECTED; // this is an intrinsic now
 }
 
-SSAStatement *StatementAssembler::parse_if_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_if_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_IF);
-
-	auto expr_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto true_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	auto false_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
+	auto &expr_node = tree[0];
+	auto &true_node = tree[1];
+	auto &false_node = tree[2];
 
 	return new SSAIfStatement(block, get_statement(expr_node), *get_block(true_node), *get_block(false_node));
 }
 
-SSAStatement *StatementAssembler::parse_intrinsic_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_intrinsic_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_INTRINSIC);
-
-	auto id_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
+	auto &id_node = tree[0];
 	uint32_t id = parse_constant_value(id_node).Int();
 
 	SSAIntrinsicStatement *intrinsic = new SSAIntrinsicStatement(block, (gensim::genc::ssa::SSAIntrinsicStatement::IntrinsicType)id);
 
-	for(unsigned i = 1; i < tree->getChildCount(tree); ++i) {
-		auto stmt_node = (pANTLR3_BASE_TREE)tree->getChild(tree, i);
-		intrinsic->AddArg(get_statement(stmt_node));
+	auto &paramListNode = tree[1];
+	for(auto paramNode : paramListNode) {
+		intrinsic->AddArg(get_statement(*paramNode));
 	}
 
 	return intrinsic;
 }
 
-SSAStatement *StatementAssembler::parse_jump_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_jump_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_JUMP);
-
-	auto target_name_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
+	auto &target_name_node = tree[0];
 
 	SSABlock *target = get_block(target_name_node);
 
 	return new SSAJumpStatement(block, *target);
 }
 
-SSAStatement *StatementAssembler::parse_mem_read_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_mem_read_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_MEMREAD);
-
-	auto width_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto addr_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	auto target_name_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
+	auto &width_node = tree[0];
+	auto &addr_node = tree[1];
+	auto &target_name_node = tree[2];
 
 	IRConstant width = parse_constant_value(width_node);
 	SSAStatement *addr = get_statement(addr_node);
@@ -576,13 +456,11 @@ SSAStatement *StatementAssembler::parse_mem_read_statement(pANTLR3_BASE_TREE tre
 	return &SSAMemoryReadStatement::CreateRead(block, addr, target, width.Int(), false, interface);
 }
 
-SSAStatement *StatementAssembler::parse_mem_write_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_mem_write_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_MEMWRITE);
-
-	auto width_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto addr_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	auto value_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
+	auto &width_node = tree[0];
+	auto &addr_node = tree[1];
+	auto &value_node = tree[2];
 
 	IRConstant width = parse_constant_value(width_node);
 	SSAStatement *addr = get_statement(addr_node);
@@ -593,71 +471,61 @@ SSAStatement *StatementAssembler::parse_mem_write_statement(pANTLR3_BASE_TREE tr
 	return &SSAMemoryWriteStatement::CreateWrite(block, addr, target, width.Int(), interface);
 }
 
-SSAStatement *StatementAssembler::parse_read_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_read_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_READ);
-
-	auto target_name_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
+	auto &target_name_node = tree[0];
 	return new SSAVariableReadStatement(block, get_symbol(target_name_node));
 }
 
 
-SSAStatement *StatementAssembler::parse_reg_read_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_reg_read_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_REGREAD);
-
-	auto target_reg_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
+	auto &target_reg_node = tree[0];
 	auto target_regid = parse_constant_value(target_reg_node);
 
 	return SSARegisterStatement::CreateRead(block, target_regid.Int());
 }
 
-SSAStatement *StatementAssembler::parse_reg_write_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_reg_write_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_REGWRITE);
-
-	auto target_reg_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
+	auto &target_reg_node = tree[0];
 	auto target_regid = parse_constant_value(target_reg_node);
-	auto value_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
+	auto &value_node = tree[1];
 
 	return SSARegisterStatement::CreateWrite(block, target_regid.Int(), get_statement(value_node));
 }
 
-SSAStatement *StatementAssembler::parse_raise_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_raise_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_RAISE);
 	return new SSARaiseStatement(block, nullptr);
 }
 
-SSAStatement *StatementAssembler::parse_return_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_return_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_RETURN);
-
-	if(tree->getChildCount(tree) == 0) {
+	if(tree.GetType() == GenCSSANodeType::StatementReturn) {
+		auto &target_name_node = tree[0];
+		return new SSAReturnStatement(block, get_statement(target_name_node));
+	} else if(tree.GetType() == GenCSSANodeType::StatementReturnVoid) {
 		return new SSAReturnStatement(block, nullptr);
 	} else {
-		auto target_name_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-		return new SSAReturnStatement(block, get_statement(target_name_node));
+		UNEXPECTED;
 	}
 }
 
-SSAStatement *StatementAssembler::parse_select_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_select_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_SELECT);
-
-	auto expr_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto true_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	auto false_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
+	auto &expr_node = tree[0];
+	auto &true_node = tree[1];
+	auto &false_node = tree[2];
 
 	return new SSASelectStatement(block, get_statement(expr_node), get_statement(true_node), get_statement(false_node));
 }
 
-SSAStatement *StatementAssembler::parse_struct_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_struct_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_STRUCT);
-	auto struct_var_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto member_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	auto member_name = (char*)member_node->getText(member_node)->chars;
+	auto struct_var_node = tree[0];
+	auto member_node = tree[1];
+	auto member_name = member_node.GetString();
 
 	auto struct_symbol = get_symbol(struct_var_node);
 	GASSERT(struct_symbol->GetType().IsStruct());
@@ -666,16 +534,18 @@ SSAStatement *StatementAssembler::parse_struct_statement(pANTLR3_BASE_TREE tree,
 	return new SSAReadStructMemberStatement(block, get_symbol(struct_var_node), {member_name});
 }
 
-SSAStatement *StatementAssembler::parse_switch_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_switch_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_SWITCH);
-	auto expr_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto default_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
+	auto expr_node = tree[0];
+	auto default_node = tree[1];
 
 	SSASwitchStatement *stmt = new SSASwitchStatement(block, get_statement(expr_node), get_block(default_node));
-	for(unsigned i = 2; i < tree->getChildCount(tree); i += 2) {
-		auto value_node = (pANTLR3_BASE_TREE)tree->getChild(tree, i);
-		auto target_node = (pANTLR3_BASE_TREE)tree->getChild(tree, i+1);
+
+	auto &listNode = tree[2];
+	for(auto switchEntryPtr : listNode) {
+		auto &switchEntry = *switchEntryPtr;
+		auto value_node = switchEntry[0];
+		auto target_node = switchEntry[1];
 
 		stmt->AddValue(get_statement(value_node), get_block(target_node));
 	}
@@ -683,162 +553,149 @@ SSAStatement *StatementAssembler::parse_switch_statement(pANTLR3_BASE_TREE tree,
 	return stmt;
 }
 
-SSAStatement *StatementAssembler::parse_unop_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_unop_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_UNOP);
-
-	auto op_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto expr_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
+	auto op_node = tree[0];
+	auto expr_node = tree[1];
 
 	SSAUnaryOperator::ESSAUnaryOperator op_type;
 
-	switch(op_node->getType(op_node)) {
-		case EXCLAMATION:
-			op_type = SSAUnaryOperator::OP_NEGATE;
-			break;
-		case COMPLEMENT:
-			op_type = SSAUnaryOperator::OP_COMPLEMENT;
-			break;
-		case NEGATIVE:
-			op_type = SSAUnaryOperator::OP_NEGATIVE;
-			break;
-		default:
-			UNREACHABLE;
+	if(op_node.GetString() == "!") {
+		op_type = SSAUnaryOperator::OP_NEGATE;
+	} else if(op_node.GetString() == "~") {
+		op_type = SSAUnaryOperator::OP_COMPLEMENT;
+	} else if(op_node.GetString() == "-") {
+		op_type = SSAUnaryOperator::OP_NEGATIVE;
+	}  else {
+		UNEXPECTED;
 	}
 
 	return new SSAUnaryArithmeticStatement(block, get_statement(expr_node), op_type);
 }
 
-SSAStatement *StatementAssembler::parse_vextract_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_vextract_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_VEXTRACT);
-
-	auto base_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto index_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
+	auto &base_node = tree[0];
+	auto &index_node = tree[1];
 
 	return new SSAVectorExtractElementStatement(block, get_statement(base_node), get_statement(index_node));
 }
 
-SSAStatement *StatementAssembler::parse_vinsert_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_vinsert_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_VINSERT);
-
-	auto base_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto index_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
-	auto value_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 2);
+	auto &base_node =  tree[0];
+	auto &index_node = tree[1];
+	auto &value_node = tree[2];
 
 	return new SSAVectorInsertElementStatement(block, get_statement(base_node), get_statement(index_node), get_statement(value_node));
 }
 
-SSAStatement *StatementAssembler::parse_write_statement(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement *StatementAssembler::parse_write_statement(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_WRITE);
-
-	auto target_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
+	auto &target_node = tree[0];
 	auto target = get_symbol(target_node);
 
-	auto value_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
+	auto &value_node = tree[1];
 	auto value = get_statement(value_node);
 
 	return new SSAVariableWriteStatement(block, target, value);
 }
 
-SSAStatement* StatementAssembler::parse_phi_statement(pANTLR3_BASE_TREE tree, SSABlock* block)
+SSAStatement* StatementAssembler::parse_phi_statement(const GenCSSA::AstNode &tree, SSABlock* block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT_PHI);
-
-	auto type_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
+	auto type_node = tree[0];
 	auto type = parse_type(block->GetContext(), type_node);
 
 	auto phistatement = new SSAPhiStatement(block, type);
 
-	for(unsigned i = 1; i < tree->getChildCount(tree); ++i) {
-		auto childnode = (pANTLR3_BASE_TREE)tree->getChild(tree, i);
-		ctx_.AddPhiPlaceholder(phistatement, (char*)childnode->getText(childnode)->chars);
+	auto listNode = tree[1];
+	for(auto phiEntryNodePtr : listNode) {
+		ctx_.AddPhiPlaceholder(phistatement, phiEntryNodePtr->GetString());
 	}
 
 	return phistatement;
 }
 
 
-SSAStatement* StatementAssembler::parse_statement(pANTLR3_BASE_TREE statement_body, SSABlock* block)
+SSAStatement* StatementAssembler::parse_statement(const GenCSSA::AstNode &statement_body, SSABlock* block)
 {
-	switch(statement_body->getType(statement_body)) {
-		case STATEMENT_BANKREGREAD:
+	switch(statement_body.GetType()) {
+		case GenCSSANodeType::StatementBankRegRead:
 			return parse_bank_reg_read_statement(statement_body, block);
-		case STATEMENT_BANKREGWRITE:
-			return parse_bank_reg_write_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_BINOP:
-			return parse_binary_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_CALL:
-			return parse_call_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_CAST:
-			return parse_cast_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_CONSTANT:
-			return parse_constant_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_DEVREAD:
-			return parse_devread_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_DEVWRITE:
-			return parse_devread_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_IF:
-			return parse_if_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_INTRINSIC:
-			return parse_intrinsic_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_JUMP:
-			return parse_jump_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_MEMREAD:
-			return parse_mem_read_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_MEMWRITE:
-			return parse_mem_write_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_READ:
-			return parse_read_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_REGREAD:
-			return parse_reg_read_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_REGWRITE:
-			return parse_reg_write_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_SELECT:
-			return parse_select_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_STRUCT:
-			return parse_struct_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_SWITCH:
-			return parse_switch_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_UNOP:
-			return parse_unop_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_VEXTRACT:
-			return parse_vextract_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_VINSERT:
-			return parse_vinsert_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_WRITE:
-			return parse_write_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_RAISE:
-			return parse_raise_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case  STATEMENT_RETURN:
-			return parse_return_statement((pANTLR3_BASE_TREE)statement_body, block);
-		case STATEMENT_PHI:
-			return parse_phi_statement((pANTLR3_BASE_TREE)statement_body, block);
+		case GenCSSANodeType::StatementBankRegWrite:
+			return parse_bank_reg_write_statement(statement_body, block);
+		case GenCSSANodeType::StatementBinary:
+			return parse_binary_statement(statement_body, block);
+		case GenCSSANodeType::StatementCall:
+			return parse_call_statement(statement_body, block);
+		case GenCSSANodeType::StatementCast:
+			return parse_cast_statement(statement_body, block);
+		case GenCSSANodeType::StatementConstant:
+			return parse_constant_statement(statement_body, block);
+		case GenCSSANodeType::StatementDevRead:
+			return parse_devread_statement(statement_body, block);
+		case GenCSSANodeType::StatementDevWrite:
+			return parse_devread_statement(statement_body, block);
+		case GenCSSANodeType::StatementIf:
+			return parse_if_statement(statement_body, block);
+		case GenCSSANodeType::StatementIntrinsic:
+			return parse_intrinsic_statement(statement_body, block);
+		case GenCSSANodeType::StatementJump:
+			return parse_jump_statement(statement_body, block);
+		case GenCSSANodeType::StatementMemRead:
+			return parse_mem_read_statement(statement_body, block);
+		case GenCSSANodeType::StatementMemWrite:
+			return parse_mem_write_statement(statement_body, block);
+		case GenCSSANodeType::StatementVariableRead:
+			return parse_read_statement(statement_body, block);
+		case GenCSSANodeType::StatementRegRead:
+			return parse_reg_read_statement(statement_body, block);
+		case GenCSSANodeType::StatementRegWrite:
+			return parse_reg_write_statement(statement_body, block);
+		case GenCSSANodeType::StatementSelect:
+			return parse_select_statement(statement_body, block);
+		case GenCSSANodeType::StatementStructMember:
+			return parse_struct_statement(statement_body, block);
+		case GenCSSANodeType::StatementSwitch:
+			return parse_switch_statement(statement_body, block);
+		case GenCSSANodeType::StatementUnary:
+			return parse_unop_statement(statement_body, block);
+		case GenCSSANodeType::StatementVExtract:
+			return parse_vextract_statement(statement_body, block);
+		case GenCSSANodeType::StatementVInsert:
+			return parse_vinsert_statement(statement_body, block);
+		case GenCSSANodeType::StatementVariableWrite:
+			return parse_write_statement(statement_body, block);
+		case GenCSSANodeType::StatementRaise:
+			return parse_raise_statement(statement_body, block);
+		case  GenCSSANodeType::StatementReturn:
+			return parse_return_statement(statement_body, block);
+		case  GenCSSANodeType::StatementReturnVoid:
+			return parse_return_statement(statement_body, block);
+		case GenCSSANodeType::StatementPhi:
+			return parse_phi_statement(statement_body, block);
 		default:
-			throw std::logic_error("Unknown assembly statement type " + std::string((char*)statement_body->getText(statement_body)->chars));
+			UNEXPECTED;
 	}
 }
 
 
-SSAStatement* StatementAssembler::Assemble(pANTLR3_BASE_TREE tree, SSABlock *block)
+SSAStatement* StatementAssembler::Assemble(const GenCSSA::AstNode &tree, SSABlock *block)
 {
-	GASSERT(tree->getType(tree) == STATEMENT);
+	GASSERT(tree.GetType() == GenCSSANodeType::Statement);
 
-	auto stmt_name_node = (pANTLR3_BASE_TREE)tree->getChild(tree, 0);
-	auto stmt_name = (char*)stmt_name_node->getText(stmt_name_node)->chars;
-	auto statement_body = (pANTLR3_BASE_TREE)tree->getChild(tree, 1);
+	auto stmt_name = tree[0].GetString();
+	auto &statement_body = tree[1];
 
 	SSAStatement *stmt = parse_statement(statement_body, block);
-	stmt->SetDiag(DiagNode("asm", tree));
+	// stmt->SetDiag(DiagNode("asm", tree));
 	ctx_.Put(stmt_name, stmt);
 	return stmt;
 }
 
-SSAStatement* StatementAssembler::get_statement(pANTLR3_BASE_TREE stmt_id_node)
+SSAStatement* StatementAssembler::get_statement(const GenCSSA::AstNode &stmt_id_node)
 {
-	auto stmt_name = (char*)stmt_id_node->getText(stmt_id_node)->chars;
+	auto stmt_name = stmt_id_node.GetString();
 	auto uncast_stmt = ctx_.Get(stmt_name);
 	auto stmt = dynamic_cast<SSAStatement*>(uncast_stmt);
 
@@ -849,9 +706,9 @@ SSAStatement* StatementAssembler::get_statement(pANTLR3_BASE_TREE stmt_id_node)
 	return stmt;
 }
 
-SSASymbol* StatementAssembler::get_symbol(pANTLR3_BASE_TREE sym_id_node)
+SSASymbol* StatementAssembler::get_symbol(const GenCSSA::AstNode &sym_id_node)
 {
-	auto sym_name = (char*)sym_id_node->getText(sym_id_node)->chars;
+	auto sym_name = sym_id_node.GetString();
 	auto sym = dynamic_cast<SSASymbol*>(ctx_.Get(sym_name));
 
 	if(sym == nullptr) {
@@ -861,9 +718,9 @@ SSASymbol* StatementAssembler::get_symbol(pANTLR3_BASE_TREE sym_id_node)
 	return sym;
 }
 
-SSABlock* StatementAssembler::get_block(pANTLR3_BASE_TREE block_id_node)
+SSABlock* StatementAssembler::get_block(const GenCSSA::AstNode &block_id_node)
 {
-	auto block_name = (char*)block_id_node->getText(block_id_node)->chars;
+	auto block_name = block_id_node.GetString();
 	auto target = dynamic_cast<SSABlock*>(ctx_.Get(block_name));
 	if(target == nullptr) {
 		throw std::invalid_argument("Could not find block");

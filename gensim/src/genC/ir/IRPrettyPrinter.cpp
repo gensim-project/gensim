@@ -6,6 +6,46 @@
 #include "Util.h"
 #include "genC/Parser.h"
 
+
+static std::map<gensim::genc::BinaryOperator::EBinaryOperator, std::string> *op_to_string = nullptr;
+static std::map<std::string, gensim::genc::BinaryOperator::EBinaryOperator> *string_to_op = nullptr;
+
+static void BuildMaps()
+{
+	if(op_to_string != nullptr) {
+		return;
+	}
+
+	op_to_string = new std::map<gensim::genc::BinaryOperator::EBinaryOperator, std::string>();
+	string_to_op = new std::map<std::string, gensim::genc::BinaryOperator::EBinaryOperator>();
+
+	using namespace gensim::genc::BinaryOperator;
+#define MAP(op,string) (*op_to_string)[op] = string; (*string_to_op)[string] = op;
+	MAP(Set, "=");
+	MAP(Logical_Or, "||");
+	MAP(Logical_And, "&&");
+	MAP(Bitwise_Or, "|")
+	MAP(Bitwise_And, "&")
+	MAP(Bitwise_XOR, "^")
+	MAP(Equality, "==")
+	MAP(Inequality, "!=")
+	MAP(LessThan, "<")
+	MAP(GreaterThan, ">")
+	MAP(LessThanEqual, "<=")
+	MAP(GreaterThanEqual, ">=")
+	MAP(ShiftLeft, "<<")
+	MAP(ShiftRight, ">>")
+	MAP(SignedShiftRight, "->>")
+	MAP(Add, "+")
+	MAP(Subtract, "-")
+	MAP(Multiply, "*")
+	MAP(Divide, "/")
+	MAP(Modulo, "%")
+	MAP(RotateLeft, "<<<")
+	MAP(RotateRight, ">>>")
+#undef MAP
+}
+
 namespace gensim
 {
 	namespace genc
@@ -13,56 +53,18 @@ namespace gensim
 
 		namespace BinaryOperator
 		{
+
+
+			BinaryOperator::EBinaryOperator ParseOperator(const std::string &str)
+			{
+				BuildMaps();
+				return string_to_op->at(str);
+			}
+
 			std::string PrettyPrintOperator(BinaryOperator::EBinaryOperator op)
 			{
-				switch (op) {
-					case Set:
-						return "=";
-					case Logical_Or:
-						return "||";
-					case Logical_And:
-						return "&&";
-					case Bitwise_Or:
-						return "|";
-					case Bitwise_And:
-						return "&";
-					case Bitwise_XOR:
-						return "^";
-					case Equality:
-						return "==";
-					case Inequality:
-						return "!=";
-					case LessThan:
-						return "<";
-					case GreaterThan:
-						return ">";
-					case LessThanEqual:
-						return "<=";
-					case GreaterThanEqual:
-						return ">=";
-					case ShiftLeft:
-						return "<<";
-					case ShiftRight:
-						return ">>";
-					case SignedShiftRight:
-						return "->>";
-					case Add:
-						return "+";
-					case Subtract:
-						return "-";
-					case Multiply:
-						return "*";
-					case Divide:
-						return "/";
-					case Modulo:
-						return "%";
-					case RotateLeft:
-						return "<<<";
-					case RotateRight:
-						return ">>>";
-					default:
-						return "<?>";
-				}
+				BuildMaps();
+				return op_to_string->at(op);
 			}
 		}
 

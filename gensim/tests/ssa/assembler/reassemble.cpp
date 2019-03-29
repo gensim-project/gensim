@@ -46,7 +46,9 @@ TEST(SSA_Assembler_Reassemble, ExternalFunction)
 // reassemble code
 	gensim::genc::ssa::io::AssemblyReader ar;
 	gensim::genc::ssa::io::AssemblyFileContext *afc;
-	ar.ParseText(str.str(), root_context, afc);
+	bool success = ar.ParseText(str.str(), root_context, afc);
+
+	ASSERT_EQ(true, success);
 
 	gensim::genc::ssa::SSAContext *out_ctx = new gensim::genc::ssa::SSAContext(gencctx->ISA, gencctx->Arch);
 	gensim::genc::ssa::io::ContextAssembler ca;

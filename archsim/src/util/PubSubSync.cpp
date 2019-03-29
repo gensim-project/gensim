@@ -120,7 +120,7 @@ PubSubscription *PubSubContext::Subscribe(PubSubType::PubSubType type, PubSubCal
 
 void PubSubContext::Publish(PubSubType::PubSubType type, const void *data)
 {
-//	LC_INFO(LogPubSub) << "Publishing " << PubSubType::GetPubTypeName(type) << " " << std::hex << (uint64_t)data;
+	LC_DEBUG4(LogPubSub) << "Publishing " << PubSubType::GetPubTypeName(type) << " " << std::hex << (uint64_t)data;
 
 	PubSubInstance *instance = _instances[type];
 	if(!instance) return;

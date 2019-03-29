@@ -1,0 +1,138 @@
+%{
+
+#include <iostream>
+#include <stdint.h>
+
+#define yyerminate() return ENDOFFILE
+
+#include "flexbison_harness.h"
+#include "flexbison_archc_ast.h"
+#include "archC.tabs.h"
+#include "flexbison_archc.h"
+
+#undef YY_DECL
+#define YY_DECL int ArchC::ArchCScanner::yylex(typename ArchC::ArchCParser::semantic_type *const lval, typename ArchC::ArchCParser::location_type *location)
+#define YY_NO_UNISTD_H
+
+#define YY_USER_ACTION location->step(); location->columns(yyleng);
+
+using token = ArchC::ArchCParser::token;
+
+%}
+
+%option c++
+%option noyywrap
+%option nodefault
+%option yylineno
+%option yyclass="ArchC::ArchCScanner"
+%option prefix="ArchC"
+
+%x ARCHC_COMMENT
+%x ARCHC_LINE_COMMENT
+%x ARCHC_STRING
+
+%%
+
+%{ 
+    yylval = lval; 
+%}
+
+"/*" BEGIN(ARCHC_COMMENT);
+<ARCHC_COMMENT>"*/" BEGIN(INITIAL);
+<ARCHC_COMMENT>[ \t\r] ;
+<ARCHC_COMMENT>"\n" location->lines();
+<ARCHC_COMMENT>. ;
+
+"//" BEGIN(ARCHC_LINE_COMMENT);
+<ARCHC_LINE_COMMENT>"\n" BEGIN(INITIAL); location->lines();
+<ARCHC_LINE_COMMENT>. ;
+
+[ \t\r]+ {}
+"\n" location->lines();
+";" return token::SEMICOLON;
+"." return token::PERIOD;
+
+"(" return token::OPAREN;
+")" return token::CPAREN;
+"[" return token::OBRACKET;
+"]" return token::CBRACKET;
+"{" return token::OBRACE;
+"}" return token::CBRACE;
+"<" return token::OANGLE;
+">" return token::CANGLE;
+
+"@" return token::AC_AT;
+"+" { yylval->sval = strdup("+"); return token::AC_PLUS; }
+"-" { yylval->sval = strdup("-"); return token::AC_MINUS; }
+"^" { yylval->sval = strdup("^"); return token::AC_CARET; }
+
+".." return token::GROUPING;
+"," return token::COMMA;
+"=" { yylval->sval = strdup("="); return token::EQUALS; }
+"!=" { yylval->sval = strdup("!="); return token::NOTEQUALS; }
+"&" { yylval->sval = strdup("&");return token::AMPERSAND; }
+
+\"(\\.|[^"\\])*\" { yylval->sval = yytext; return token::AC_STRING; }
+
+"AC_ARCH" return token::AC_ARCH;
+
+"ac_format" return token::AC_FORMAT;
+"ac_wordsize" return token::AC_WORDSIZE;
+"ac_fetchsize" return token::AC_FETCHSIZE;
+"ac_predicated" return token::AC_PREDICATED;
+"ac_mem" return token::AC_MEM;
+"include" return token::AC_INCLUDE;
+
+"ac_regspace" return token::AC_REGSPACE;
+"slot" return token::AC_REG_VIEW_SLOT;
+"bank" return token::AC_REG_VIEW_BANK;
+
+"ac_pc" return token::AC_PC;
+
+"ARCH_CTOR" return token::ARCH_CTOR;
+"ac_isa" return token::ARCH_ISA;
+
+"set_endian" return token::SET_ENDIAN;
+"AC_ISA" return token::AC_ISA_BLOCK;
+
+"ac_instr" return token::AC_INSTR;
+"ac_field" return token::AC_FIELD;
+"ac_behaviour" return token::AC_BEHAVIOUR;
+
+"ISA_CTOR" return token::ISA_CTOR;
+"ac_asm_map" return token::AC_ASM_MAP;
+
+"set_asm" return token::SET_ASM;
+"set_decoder" return token::SET_DECODER;
+"set_behaviour" return token::SET_BEHAVIOUR;
+"set_end_of_block" return token::SET_END_OF_BLOCK;
+"set_fixed_jump" return token::SET_JUMP_FIXED;
+"set_fixed_predicated_jump" return token::SET_JUMP_FIXED_PREDICATED;
+"set_variable_jump" return token::SET_JUMP_VARIABLE;
+"set_reads_pc" return token::SET_USES_PC;
+"set_block_cond" return token::SET_BLOCK_COND;
+
+"FIXED" return token::FIXED;
+"RELATIVE" return token::RELATIVE;
+
+"ac_behaviours" return token::AC_BEHAVIOURS;
+"ac_decode" return token::AC_DECODE;
+"ac_execute" return token::AC_EXECUTE;
+
+"set_typename" return token::AC_TYPENAME;
+"set_constant" return token::AC_CONSTANT;
+"ac_features" return token::AC_FEATURES;
+"feature" return token::AC_FEATURE_LEVEL;
+"flag" return token::AC_FEATURE_FLAG;
+"set_feature" return token::AC_SET_FEATURE;
+
+"struct" return token::AC_STRUCT;
+
+[a-zA-Z_][a-zA-Z0-9_]* { yylval->sval = strdup(yytext); return token::AC_ID; }
+
+[0-9]+"U"?"L"* { yylval->ival = strtol(yytext, nullptr, 0); return token::AC_INT; }
+"0x"[0-9a-fA-F]+"U"?"L"* { yylval->ival = strtol(yytext, nullptr, 0); return token::AC_INT; }
+
+. { printf("Unmatched character '%s' at line ???\n", yytext); }
+
+%%

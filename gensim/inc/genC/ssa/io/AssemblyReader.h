@@ -11,6 +11,9 @@
 #define ASSEMBLYREADER_H
 
 #include "DiagnosticContext.h"
+#include "flexbison_harness.h"
+#include "flexbison_gencssa_ast.h"
+#include "flexbison_gencssa.h"
 
 #include <string>
 
@@ -28,13 +31,13 @@ namespace gensim
 				class AssemblyFileContext
 				{
 				public:
-					AssemblyFileContext(void * tree) : tree_(tree) {}
-					void * GetTree()
+					AssemblyFileContext(const GenCSSA::AstNode &tree) : tree_(tree) {}
+					const GenCSSA::AstNode &GetTree() const
 					{
 						return tree_;
 					}
 				private:
-					void * tree_;
+					GenCSSA::AstNode tree_;
 				};
 
 				class AssemblyReader
