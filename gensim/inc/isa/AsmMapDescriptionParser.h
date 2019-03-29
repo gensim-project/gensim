@@ -12,6 +12,10 @@
 
 #include "isa/AsmMapDescription.h"
 
+#include "flexbison_harness.h"
+#include "flexbison_archc_ast.h"
+#include "flexbison_archc.h"
+
 namespace gensim
 {
 	namespace isa
@@ -19,7 +23,7 @@ namespace gensim
 		class AsmMapDescriptionParser
 		{
 		public:
-			static AsmMapDescription Parse(void *pnode);
+			static AsmMapDescription Parse(const ArchC::AstNode &pnode);
 		};
 	}
 }

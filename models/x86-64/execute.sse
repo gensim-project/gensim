@@ -441,7 +441,7 @@ execute(mulss) {
 	write_operand_sse_scalar32(inst.op0, uresult);
 }
 
-uint8[16] saturate_sw_ub(sint16[16] value)
+helper uint8[16] saturate_sw_ub(sint16[16] value)
 {
 	uint8[16] mask_1 = value > (sint16[16])0xff;
 	uint8[16] mask_0 = (value >= 0) & value;

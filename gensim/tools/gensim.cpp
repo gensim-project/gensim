@@ -15,6 +15,7 @@
 
 #include "arch/ArchDescription.h"
 #include "arch/ArchDescriptionParser.h"
+#include "isa/ISADescription.h"
 #include "genC/ssa/SSAContext.h"
 #include "DiagnosticContext.h"
 
@@ -29,41 +30,11 @@
 #include "generators/GenerationManager.h"
 
 #include "genC/Parser.h"
-#include "UArchDescription.h"
 
 using namespace gensim;
 using namespace gensim::generator;
 using namespace gensim::util;
 
-void PrettyPrintUArch(gensim::uarch::UArchDescription &u)
-{
-	using namespace gensim::uarch;
-	std::cout << "uArch Groups:\n";
-	for (std::map<std::string, InstructionDetails *>::iterator i = u.Details.begin(); i != u.Details.end(); ++i) {
-		std::cout << "\t" << i->first << "\n";
-
-		uint32_t stage_num = 0;
-		for (std::vector<PipelineStage>::iterator stage = u.Pipeline_Stages.begin(); stage != u.Pipeline_Stages.end(); ++stage) {
-			std::cout << "\t\t" << stage_num << " " << stage->Name << ":\n";
-
-			PipelineDetails &pipeline = u.GetOrCreatePipelineDetails(i->first, stage_num);
-
-			// TODO: Print sources and dests here
-
-			if (pipeline.default_latency != NULL)
-				std::cout << "\t\t\tDefault Latency: " << pipeline.default_latency->Print() << "\n";
-			else
-				std::cout << "\t\t\tDefault Latency: " << u.Pipeline_Stages[stage_num].Default_Latency << "\n";
-
-			std::cout << "\t\t\tPredicated Latencies: \n";
-			for (std::vector<PredicatedLatency>::iterator pred = pipeline.predicated_latency.begin(); pred != pipeline.predicated_latency.end(); ++pred) {
-				std::cout << "\t\t\t\tOn " << pred->Predicate->Print() << ": " << pred->Latency->Print() << "\n";
-			}
-
-			stage_num++;
-		}
-	}
-}
 
 void PrettyPrintArch(arch::ArchDescription &description)
 {

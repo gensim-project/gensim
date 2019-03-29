@@ -1,0 +1,2 @@
+ADD_SUBDIRECTORY(genc-tests)
+ADD_SUBDIRECTORY(archc-tests)

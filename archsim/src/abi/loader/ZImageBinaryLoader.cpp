@@ -68,17 +68,24 @@ bool ZImageBinaryLoader::ProcessBinary(bool load_symbols)
 	// Load symbols from the map file (if we have to, and we can)
 	if (load_symbols && _symbol_map != "") {
 		if (!LoadSymbolMap(_symbol_map))
-			return false;
+			LC_ERROR(LogZImage) << "Failed to load symbol map";
+		return false;
 	}
 
 	// Check ZImage magic number
 	struct zimage_header *hdr = (struct zimage_header *)(_binary_data);
 	if (hdr->magic_number != 0x016F2818) {
-		LC_WARNING(LogZImage) << "[ZIMAGE] Attempted to load a non-zImage as a zImage binary";
+		LC_ERROR(LogZImage) << "[ZIMAGE] Attempted to load a non-zImage as a zImage binary";
 		return false;
 	}
 
 	_entry_point = _base_addr;
 
-	return _emulation_model.GetMemoryModel().Poke(_base_addr, (uint8_t *)_binary_data, _binary_size) == 0;
+	bool success = _emulation_model.GetMemoryModel().Poke(_base_addr, (uint8_t *)_binary_data, _binary_size) == 0;
+	if(!success) {
+		LC_ERROR(LogZImage) << "Failed to insert zimage into memory";
+		return false;
+	}
+
+	return true;
 }

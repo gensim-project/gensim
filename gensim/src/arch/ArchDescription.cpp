@@ -5,7 +5,6 @@
 
 #include "arch/ArchDescription.h"
 #include "isa/ISADescription.h"
-#include "UArchDescription.h"
 
 #include "genC/Parser.h"
 #include "genC/ir/IR.h"

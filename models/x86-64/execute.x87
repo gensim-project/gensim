@@ -41,7 +41,7 @@ execute(fsubp)
 	write_x87_operand(inst.op0, <uint64>(result));
 }
 
-uint128 read_x87_operand(struct Operand &op)
+helper uint128 read_x87_operand(struct Operand &op)
 {
 	if(op.is_reg && op.reg.regclass == 2) {
 		if(op.reg.index == 0x10) {
@@ -54,7 +54,7 @@ uint128 read_x87_operand(struct Operand &op)
 	}
 }
 
-void write_x87_operand(struct Operand &op, uint128 d)
+helper void write_x87_operand(struct Operand &op, uint128 d)
 {
 	if(op.is_reg && op.reg.regclass == 2) {
 		if(op.reg.index == 0x20) {
@@ -70,20 +70,20 @@ void write_x87_operand(struct Operand &op, uint128 d)
 }
 
 
-void write_x87_stack_entry(uint8 index, uint128 value)
+helper void write_x87_stack_entry(uint8 index, uint128 value)
 {
 	write_register_bank(FPSTACK, (read_register(STACKTOP) + index) % 8, value);
 	return;
 }
 
 
-uint128 read_x87_stack_entry(uint8 index)
+helper uint128 read_x87_stack_entry(uint8 index)
 {
 	return read_register_bank(FPSTACK, (read_register(STACKTOP) + index) % 8);
 }
 
 // Stack is full descending
-void push_stack(uint128 i)
+helper void push_stack(uint128 i)
 {
 	uint8 stacktop = read_register(STACKTOP);
 	stacktop -= 1;
@@ -94,12 +94,12 @@ void push_stack(uint128 i)
 	return;
 }
 
-uint128 read_stack()
+helper uint128 read_stack()
 {
 	return read_x87_stack_entry(0);
 }
 
-uint128 pop_stack()
+helper uint128 pop_stack()
 {
 	uint128 value = read_x87_stack_entry(0);
 	

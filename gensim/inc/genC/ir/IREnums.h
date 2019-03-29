@@ -158,6 +158,7 @@ namespace gensim
 			}
 
 			std::string PrettyPrintOperator(BinaryOperator::EBinaryOperator);
+			BinaryOperator::EBinaryOperator ParseOperator(const std::string &operatorString);
 			inline BinaryOperator::EBinaryOperator ReverseOperator(BinaryOperator::EBinaryOperator op)
 			{
 				switch (op) {
@@ -193,6 +194,10 @@ namespace gensim
 			inline bool IsAssignment(BinaryOperator::EBinaryOperator op)
 			{
 				return (op > START_OF_ASSIGNMENT_OPERATORS) && (op < END_OF_ASSIGNMENT_OPERATORS);
+			}
+			inline bool IsRMW(BinaryOperator::EBinaryOperator op)
+			{
+				return IsAssignment(op) && op != Set;
 			}
 		}
 	}

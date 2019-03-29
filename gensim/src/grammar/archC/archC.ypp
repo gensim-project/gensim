@@ -1,0 +1,369 @@
+%{
+
+#include <stdint.h>
+#include "flexbison_harness.h"
+#include "flexbison_archc_ast.h"
+
+#define YYERROR_VERBOSE 1
+%}
+
+%code requires {
+    namespace ArchC {
+        class ArchCScanner;
+    }
+}
+
+%skeleton "lalr1.cc"
+
+%defines
+%locations
+%define api.namespace {ArchC}
+%define api.prefix {ArchC}
+%define parser_class_name {ArchCParser}
+
+%union {
+    uint64_t ival;
+    char *sval;
+    float fval;
+    double dval;
+    astnode<ArchCNodeType> *ast_node;
+}
+
+%parse-param { ArchCScanner &scanner } { astnode<ArchCNodeType> * root }
+
+%code {
+#include "flexbison_archc.h"
+#undef yylex 
+#define yylex scanner.ArchClex
+}
+
+%token AC_ARCH AC_FORMAT AC_WORDSIZE AC_FETCHSIZE AC_PREDICATED AC_MEM AC_INCLUDE AC_REGSPACE AC_REG_VIEW_SLOT AC_REG_VIEW_BANK AC_PC ARCH_CTOR ARCH_ISA 
+%token SET_ENDIAN AC_ISA_BLOCK AC_INSTR AC_FIELD AC_BEHAVIOUR ISA_CTOR AC_ASM_MAP SET_ASM SET_DECODER SET_BEHAVIOUR SET_END_OF_BLOCK SET_JUMP_FIXED 
+%token SET_JUMP_FIXED_PREDICATED SET_JUMP_VARIABLE SET_USES_PC SET_BLOCK_COND FIXED RELATIVE AC_BEHAVIOURS AC_DECODE AC_EXECUTE 
+%token AC_TYPENAME AC_CONSTANT AC_FEATURES AC_FEATURE_LEVEL AC_FEATURE_FLAG AC_SET_FEATURE AC_STRUCT 
+
+%token OPAREN CPAREN
+%token OBRACKET CBRACKET
+%token OANGLE CANGLE
+%token OBRACE CBRACE
+%token GROUPING
+
+%token AC_AT
+
+%token AC_PLUS AC_MINUS AC_ASTERIX AC_CARET
+
+%token COMMA PERIOD SEMICOLON
+%token AMPERSAND
+%token EQUALS NOTEQUALS
+
+%token <sval> AC_ID
+%token <ival> AC_INT
+%token <sval> AC_STRING
+
+%type <sval> operator
+%type <ast_node> int string id string_list_nonempty id_list id_list_nonempty
+%type <ast_node> file arch_file arch_resource_list arch_resource arch_ctor
+%type <ast_node> ar_wordsize ar_mem ar_regspace ar_pc ar_features ar_reg_view_tag ar_feature_list ar_feature
+%type <ast_node> ar_reg_view_list ar_reg_view
+%type <ast_node> arch_ctor_resource_list arch_ctor_resource
+%type <ast_node> ac_isa ac_endianness ac_feature_set ac_typename ac_constant 
+%type <ast_node> isa_file isa_resource_list isa_resource ar_fetchsize ar_include format def_attr_list_nonempty def_attr_list def_attr isa_instruction isa_field
+%type <ast_node> field_type isa_behaviour
+%type <ast_node> asm_arg asm_arg_list isa_asm_map isa_mapping_list isa_mapping isa_mapping_group isa_mapping_group_lrule  group isa_mapping_strings_lrule isa_mapping_strings
+%type <ast_node> isa_CTOR ctor_resource_list ctor_resource behaviours_resource decodes_resource execute_resource
+%type <ast_node> decoder_resource assembler_resource behaviour_resource end_of_block_resource jump_variable_resource jump_fixed_resource expression_list fixed_jump_type
+%type <ast_node> expression_list_nonempty expression ar_predicated
+%type <ast_node> isa_struct_definition isa_struct_definition_entry_list isa_struct_definition_entry uses_pc_resource jump_fixed_predicated_resource block_condition_resource
+
+%define parse.assert
+%define parse.error verbose
+
+%%
+
+file : 
+    arch_file { root->AddChild($1); } | 
+    isa_file { root->AddChild($1); }
+
+int : AC_INT { $$ = CreateIntNode<ArchCNodeType>($1); }
+string : AC_STRING { $$ = CreateStrNode<ArchCNodeType>($1); }
+id : AC_ID { $$ = CreateNode(ArchCNodeType::Identifier, {CreateStrNode<ArchCNodeType>($1)}); }
+
+arch_file : AC_ARCH OPAREN id CPAREN OBRACE arch_resource_list arch_ctor CBRACE SEMICOLON { $$ = CreateNode(ArchCNodeType::Arch, {$3, $6, $7}); }
+
+arch_resource_list :
+    arch_resource_list arch_resource { $$ = $1; $$->AddChild($2); }  |
+    %empty { $$ = CreateNode(ArchCNodeType::List); }
+
+arch_resource :
+    ar_wordsize | 
+    ar_mem | 
+    ar_regspace | 
+    ar_pc | 
+    ar_features;
+
+ar_wordsize :
+    AC_WORDSIZE int SEMICOLON { $$ = CreateNode(ArchCNodeType::WordSize, {$2}); }
+
+ar_mem :
+    AC_MEM id OPAREN int COMMA int COMMA id COMMA int CPAREN SEMICOLON { $$ = CreateNode(ArchCNodeType::MemInterface, {$2, $4, $6, $8, $10}); } 
+
+ar_regspace :
+    AC_REGSPACE OPAREN int CPAREN OBRACE ar_reg_view_list CBRACE { $$ = CreateNode(ArchCNodeType::RegSpace, {$3, $6}); }
+
+ar_reg_view_list :
+    ar_reg_view_list ar_reg_view {$$ = $1; $$->AddChild($2); }  |
+    %empty { $$ = CreateNode(ArchCNodeType::List); };
+
+ar_reg_view :
+    AC_REG_VIEW_BANK id OPAREN id COMMA int COMMA int COMMA int COMMA int COMMA int COMMA int CPAREN SEMICOLON { $$ = CreateNode(ArchCNodeType::RegViewBank, { $2, $4, $6, $8, $10, $12, $14, $16 }); } |
+    AC_REG_VIEW_SLOT id OPAREN id COMMA int COMMA int CPAREN SEMICOLON { $$ = CreateNode(ArchCNodeType::RegViewSlot, {$2, $4, $6, $8}); }  |
+    AC_REG_VIEW_SLOT id OPAREN id COMMA int COMMA int CPAREN id SEMICOLON { $$ = CreateNode(ArchCNodeType::RegViewSlot, {$2, $4, $6, $8, $10}); } 
+
+ar_pc :
+    AC_PC id OPAREN int CPAREN SEMICOLON { $$ = CreateNode(ArchCNodeType::PC, {$2, $4}); }
+
+ar_features :
+    AC_FEATURES OBRACE ar_feature_list CBRACE { $$ = CreateNode(ArchCNodeType::Features, {$3}); }
+
+ar_feature_list :
+    ar_feature_list ar_feature { $$ = $1; $$->AddChild($2); } |
+    %empty {$$ = CreateNode(ArchCNodeType::List); }
+
+ar_feature :
+    AC_FEATURE_LEVEL id SEMICOLON { $$ = $2; }
+
+arch_ctor : ARCH_CTOR OPAREN id CPAREN OBRACE arch_ctor_resource_list CBRACE SEMICOLON { $$ = CreateNode(ArchCNodeType::ArchCtor, {$3, $6}); }
+
+arch_ctor_resource_list :
+    arch_ctor_resource_list arch_ctor_resource SEMICOLON { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(ArchCNodeType::List); };
+
+arch_ctor_resource :
+    ac_isa |
+    ac_endianness |
+    ac_feature_set |
+    ac_typename |
+    ac_constant;
+
+ac_isa :
+    ARCH_ISA OPAREN string CPAREN { $$ = CreateNode(ArchCNodeType::AcIsa, {$3}); }
+
+ac_endianness :
+    SET_ENDIAN OPAREN string CPAREN  { $$ = CreateNode(ArchCNodeType::AcEndianness, {$3}); }
+
+ac_feature_set :
+    AC_SET_FEATURE OPAREN id COMMA int CPAREN  { $$ = CreateNode(ArchCNodeType::SetFeature, {$3, $5}); }
+
+ac_typename :
+    AC_TYPENAME OPAREN id COMMA id CPAREN  { $$ = CreateNode(ArchCNodeType::AcTypename, {$3, $5}); }
+
+ac_constant :
+    AC_CONSTANT OPAREN id COMMA id COMMA int CPAREN  { $$ = CreateNode(ArchCNodeType::AcConstant, {$3, $5, $7}); }
+
+isa_file : AC_ISA_BLOCK OPAREN id CPAREN OBRACE isa_resource_list CBRACE SEMICOLON { $$ = CreateNode(ArchCNodeType::IsaFile, { $3, $6}); }
+
+isa_resource_list :
+    isa_resource_list isa_resource { $$ = $1; $$->AddChild($2); }  |
+    %empty { $$ = CreateNode(ArchCNodeType::List); }
+
+isa_resource :
+    ar_fetchsize |
+    ar_include |
+    format |
+    isa_instruction |
+    isa_field |
+    isa_behaviour |
+    isa_CTOR |
+    isa_asm_map |
+    ar_predicated |
+    isa_struct_definition ;
+
+ar_fetchsize :
+    AC_FETCHSIZE int SEMICOLON { $$ = CreateNode(ArchCNodeType::FetchSize, {$2}); }
+
+ar_include :
+    AC_INCLUDE OPAREN string CPAREN SEMICOLON { $$ = CreateNode(ArchCNodeType::Include, {$3}); }
+
+format :
+    def_attr_list AC_FORMAT id EQUALS string SEMICOLON { $$ = CreateNode(ArchCNodeType::Format, {$3, $5, $1}); }
+
+def_attr_list :
+    def_attr_list_nonempty { $$ = $1; }  |
+    %empty { $$ = CreateNode(ArchCNodeType::List); }
+
+def_attr_list_nonempty :
+    def_attr_list_nonempty def_attr { $$ = $1; $$->AddChild($1); }  |
+    def_attr { $$ = CreateNode(ArchCNodeType::List, {$1}); }
+
+def_attr :
+    AC_AT id { $$ = $2; }
+
+isa_instruction :
+    AC_INSTR OANGLE id CANGLE id_list SEMICOLON { $$ = CreateNode(ArchCNodeType::Instruction, {$3, $5}); } 
+
+isa_field :
+    AC_FIELD OANGLE field_type CANGLE id SEMICOLON { $$ = CreateNode(ArchCNodeType::Field, {$5, $3}); }
+
+field_type :
+    id |
+    id AC_ASTERIX;
+
+isa_behaviour :
+    AC_BEHAVIOUR id_list SEMICOLON { $$ = CreateNode(ArchCNodeType::BehavioursList, {$2}); }
+
+isa_CTOR :
+    ISA_CTOR OPAREN id CPAREN OBRACE ctor_resource_list CBRACE SEMICOLON { $$ = CreateNode(ArchCNodeType::IsaCtor, {$3, $6}); }
+
+ctor_resource_list :
+    ctor_resource_list ctor_resource SEMICOLON {$$ = $1; $$->AddChild($2);} |
+    %empty {$$ = CreateNode(ArchCNodeType::List);}
+
+ctor_resource :
+    instr_resource |
+    behaviours_resource |
+    decodes_resource |
+    execute_resource;
+
+instr_resource :
+    decoder_resource |
+    assembler_resource |
+    behaviour_resource |
+    end_of_block_resource |
+    jump_variable_resource |
+    jump_fixed_resource |
+    jump_fixed_predicated_resource |
+    uses_pc_resource |
+    block_condition_resource;
+
+behaviours_resource :
+    AC_BEHAVIOURS OPAREN string CPAREN { $$ = CreateNode(ArchCNodeType::BehavioursFile, {$3}); }
+
+decodes_resource :
+    AC_DECODE OPAREN string CPAREN { $$ = CreateNode(ArchCNodeType::DecodesFile, {$3}); }
+
+execute_resource :
+    AC_EXECUTE OPAREN string CPAREN { $$ = CreateNode(ArchCNodeType::ExecutesFile, {$3}); }
+
+decoder_resource :
+    id PERIOD SET_DECODER OPAREN expression_list CPAREN { $$ = CreateNode(ArchCNodeType::Decoder, {$1, $5}); }
+
+assembler_resource :
+    id PERIOD SET_ASM OPAREN string asm_arg_list CPAREN { $$ = CreateNode(ArchCNodeType::Assembler, {$1, $5, $6}); }
+
+behaviour_resource :
+    id PERIOD SET_BEHAVIOUR OPAREN id CPAREN { $$ = CreateNode(ArchCNodeType::Behaviour, {$1, $5}); }
+
+end_of_block_resource :
+    id PERIOD SET_END_OF_BLOCK OPAREN expression_list CPAREN { $$ = CreateNode(ArchCNodeType::EndOfBlock, {$1, $5}); }
+
+jump_variable_resource :
+    id PERIOD SET_JUMP_VARIABLE OPAREN CPAREN { $$ = CreateNode(ArchCNodeType::JumpVariable, {$1}); }
+
+jump_fixed_resource :
+    id PERIOD SET_JUMP_FIXED OPAREN id COMMA fixed_jump_type COMMA int CPAREN { $$ = CreateNode(ArchCNodeType::JumpFixed, {$1, $5, $7, $9}); }
+
+fixed_jump_type :
+    FIXED { $$ = CreateStrNode<ArchCNodeType>("Fixed"); } |
+    RELATIVE { $$ = CreateStrNode<ArchCNodeType>("Relative"); }
+
+jump_fixed_predicated_resource :
+    id PERIOD SET_JUMP_FIXED_PREDICATED OPAREN id COMMA fixed_jump_type COMMA int CPAREN { $$ = CreateNode(ArchCNodeType::JumpFixedPredicated, {$1, $5, $7, $9}); }
+
+uses_pc_resource :
+    id PERIOD SET_USES_PC OPAREN expression_list CPAREN { $$ = CreateNode(ArchCNodeType::UsesPc, {$1, $5}); }
+
+block_condition_resource :
+    id PERIOD SET_BLOCK_COND OPAREN CPAREN { $$ = CreateNode(ArchCNodeType::BlockCond, {$1}); }
+
+asm_arg_list :
+    asm_arg_list COMMA asm_arg { $$ = $1; $$->AddChild($3); } |
+    %empty { $$ = CreateNode(ArchCNodeType::List); }
+
+asm_arg :
+    expression;
+
+isa_asm_map :
+    AC_ASM_MAP id OBRACE isa_mapping_list CBRACE { $$ = CreateNode(ArchCNodeType::AsmMap, {$2, $4}); }
+
+isa_mapping_list :
+    isa_mapping_list isa_mapping { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(ArchCNodeType::List); }
+
+isa_mapping :
+    isa_mapping_group SEMICOLON |
+    isa_mapping_strings SEMICOLON
+
+isa_mapping_group :
+    isa_mapping_group_lrule EQUALS group { $$ = CreateNode(ArchCNodeType::AsmMapGroup, {$1, $3}); }
+
+isa_mapping_group_lrule :
+    string group { $$ = CreateNode(ArchCNodeType::AsmMapGroupLRule, {$1, $2}); }
+
+group :
+    OBRACKET int GROUPING int CBRACKET { $$ = CreateNode(ArchCNodeType::AsmMapGrouping, {$2, $4}); }
+
+isa_mapping_strings :
+    isa_mapping_strings_lrule EQUALS int { $$ = CreateNode(ArchCNodeType::AsmMapGroup, {$1, $3}); }
+
+isa_mapping_strings_lrule :
+    string;
+
+ar_predicated :
+    AC_PREDICATED string SEMICOLON { $$ = CreateNode(ArchCNodeType::AcPredicated, {$2}); }
+
+isa_struct_definition :
+    AC_STRUCT id OBRACE isa_struct_definition_entry_list CBRACE SEMICOLON { $$ = CreateNode(ArchCNodeType::Struct, {$2, $4}); }
+
+isa_struct_definition_entry_list :
+    isa_struct_definition_entry_list isa_struct_definition_entry SEMICOLON { $$ = $1; $$->AddChild($2); } |
+    %empty { $$ = CreateNode(ArchCNodeType::List); }
+
+isa_struct_definition_entry :
+    id id { $$ = CreateNode(ArchCNodeType::StructField, {$1, $2}); }
+
+/* String list */
+
+string_list_nonempty :
+    string_list_nonempty COMMA string { $$ = $1; $$->AddChild($3); } |
+    string { $$ = CreateNode(ArchCNodeType::List, {$1}); }
+
+/* ID List */
+
+id_list :
+    id_list_nonempty { $$ = $1; } |
+    %empty { $$ = CreateNode(ArchCNodeType::List); } 
+
+id_list_nonempty :
+    id_list_nonempty COMMA id { $$ = $1; $$->AddChild($3); } |
+    id { $$ = CreateNode(ArchCNodeType::List, {$1}); } 
+
+/* Expression Handling */
+
+expression :
+    expression operator expression { $$ = CreateNode(ArchCNodeType::Expression, {CreateStrNode<ArchCNodeType>($2), $1, $3}); } |
+    id |
+    int;
+
+operator :
+    AC_PLUS |
+    AC_MINUS |
+    AMPERSAND |
+    AC_CARET |
+    EQUALS |
+    NOTEQUALS;
+
+expression_list :
+    expression_list_nonempty { $$ = $1; } |
+    %empty { $$ = CreateNode(ArchCNodeType::List); }
+
+expression_list_nonempty :
+    expression_list_nonempty COMMA expression { $$ = $1; $$->AddChild($3); } |
+    expression { $$ = CreateNode(ArchCNodeType::List, {$1}); }
+
+%%
+
+void ArchC::ArchCParser::error(const ArchC::location &location, const std::string &error)
+{
+    std::cerr << location << ":" << error << std::endl;
+    //fprintf(stderr, "%s:%u: %s\n", location.begin.filename, location.begin.line, error.c_str());
+}

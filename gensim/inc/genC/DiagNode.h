@@ -8,6 +8,8 @@
 struct ANTLR3_BASE_TREE_struct;
 typedef struct ANTLR3_BASE_TREE_struct *pANTLR3_BASE_TREE;
 
+class location_data;
+
 namespace gensim
 {
 
@@ -27,6 +29,7 @@ namespace gensim
 		}
 
 		DiagNode(const std::string& filename, pANTLR3_BASE_TREE node);
+		DiagNode(const std::string& filename, const location_data &node);
 
 		DiagNode(const DiagNode& o) : line_number_(o.line_number_), column_(o.column_), filename_(o.filename_) { }
 		DiagNode(DiagNode&& o) : line_number_(o.line_number_), column_(o.column_), filename_(std::move(o.filename_)) { }

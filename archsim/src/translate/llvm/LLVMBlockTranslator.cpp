@@ -18,7 +18,9 @@ void TranslateInstructionPredicated(llvm::IRBuilder<> &builder, LLVMTranslationC
 	auto virt_next_pc = builder.CreateAdd(virt_insn_addr, llvm::ConstantInt::get(virt_insn_addr->getType(), decode->Instr_Length));
 
 	if(archsim::options::Trace) {
-		builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(builder), virt_insn_addr, llvm::ConstantInt::get(ctx.Types.i32, decode->ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
+		auto trace_insn_addr = builder.CreateZExt(virt_insn_addr, ctx.Types.i64);
+		auto insn_pc_constant = llvm::ConstantInt::get(ctx.Types.i64, phys_insn_pc.Get());
+		builder.CreateCall(ctx.Functions.cpuTraceInstruction, {ctx.GetThreadPtr(builder), insn_pc_constant, llvm::ConstantInt::get(ctx.Types.i32, decode->ir), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 0), llvm::ConstantInt::get(ctx.Types.i32, 1)});
 	}
 
 	gensim::JumpInfo ji;
@@ -88,7 +90,10 @@ llvm::BasicBlock *LLVMBlockTranslator::TranslateBlock(Address block_base, Transl
 		} else {
 			auto virt_insn_addr = txlt_->EmitRegisterRead(builder, ctx_, ctx_.GetThread()->GetArch().GetRegisterFileDescriptor().GetTaggedEntry("PC"), nullptr);
 			if(archsim::options::Trace) {
-				builder.CreateCall(ctx_.Functions.cpuTraceInstruction, {ctx_.GetThreadPtr(builder), virt_insn_addr, llvm::ConstantInt::get(ctx_.Types.i32, insn->GetDecode().ir), llvm::ConstantInt::get(ctx_.Types.i32, 0), llvm::ConstantInt::get(ctx_.Types.i32, 0), llvm::ConstantInt::get(ctx_.Types.i32, 1)});
+				auto trace_insn_addr = builder.CreateZExt(virt_insn_addr, ctx_.Types.i64);
+				// XXX HAX
+				auto insn_pc_constant = llvm::ConstantInt::get(ctx_.Types.i64, insn_pc.Get());
+				builder.CreateCall(ctx_.Functions.cpuTraceInstruction, {ctx_.GetThreadPtr(builder), insn_pc_constant, llvm::ConstantInt::get(ctx_.Types.i32, insn->GetDecode().ir), llvm::ConstantInt::get(ctx_.Types.i32, 0), llvm::ConstantInt::get(ctx_.Types.i32, 0), llvm::ConstantInt::get(ctx_.Types.i32, 1)});
 			}
 
 			txlt_->TranslateInstruction(builder, ctx_, ctx_.GetThread(), &insn->GetDecode(), insn_pc, target_fn_);
