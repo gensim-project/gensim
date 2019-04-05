@@ -184,6 +184,8 @@ namespace gensim
 
 					str << "public:\n";
 
+					fprintf(stderr, "ISA: %u\n", arch.ISAs.front()->HelperFns.size());
+
 					for (const auto& helper : arch.ISAs.front()->HelperFns) {
 
 						fprintf(stderr, "HELPER: %s\n", helper.name.c_str());

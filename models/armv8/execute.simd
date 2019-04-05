@@ -2894,15 +2894,16 @@ execute(ushl)
 {
 	if (inst.SCALAR) {
 		uint64 rn = read_vector_reg64(inst.rn);
-		sint64 rm = read_vector_reg64(inst.rm);
-		
-		uint64 rnl = rn << rm;
-		uint64 rnr = rn >> -rm;
-		
-		if (rm < 0) {
-			write_vector_reg64(inst.rd, rnr);
+		sint8 rm = (sint8)read_vector_reg64(inst.rm);
+				
+		if (rm > 63) {
+			write_vector_reg64(inst.rd, 0);
+		} else if (rm > 0) {
+			write_vector_reg64(inst.rd, rn << rm);
+		} else if (rm < -63) {
+			write_vector_reg64(inst.rd, 0);
 		} else {
-			write_vector_reg64(inst.rd, rnl);
+			write_vector_reg64(inst.rd, rn >> -rm);
 		}
 	} else {
 		switch (inst.arrangement) {
