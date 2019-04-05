@@ -21,6 +21,7 @@ namespace gensim
 				PRIVATE,
 				PUBLIC,
 				INTERNAL,
+				STRUCT,
 
 				HELPER,
 
@@ -97,6 +98,7 @@ namespace gensim
 			HelperFnDescription *ParsePrototype(const std::string& body);
 			std::string ParseType();
 			std::string ParseTypeSpec();
+			std::string ParseTypeQual();
 			std::string ParseTypeName();
 
 			typedef std::pair<std::string, std::string> ParamType;

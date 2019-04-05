@@ -84,10 +84,11 @@ namespace gensim
 					} else if (node.Statement.GetType().VectorWidth > 1) {
 						auto t = node.Statement.GetType();
 						if (t.IsFloating()) {
-							return "emitter.constant_vector_splat_f(" + node.GetFixedValue() + ", " + type_for_statement(node.Statement) + ")";
+							return "emitter.constant_vector_splat_f(" + node.GetFixedValue() + "[0], " + type_for_statement(node.Statement) + ")";
 						} else {
-							return "emitter.constant_vector_splat(" + node.GetFixedValue() + ", " + type_for_statement(node.Statement) + ")";
+							return "emitter.constant_vector_splat(" + node.GetFixedValue() + "[0], " + type_for_statement(node.Statement) + ")";
 						}
+						//return "emitter.const_vector(" + node.GetFixedValue() + ", " + type_for_statement(node.Statement) + ")";
 					} else {
 						fprintf(stderr, "node type: %s @ %s:%d\n", node.Statement.GetType().GetUnifiedType().c_str(), node.Statement.GetDiag().Filename().c_str(), node.Statement.GetDiag().Line());
 						assert(false && "Unsupported node type");
@@ -380,6 +381,37 @@ namespace gensim
 						case IRConstant::Type_Vector:
 							break;
 
+						/*case IRConstant::Type_Vector: {
+							IRConstant splat_value = stmt.Constant.GetVector().GetElement(0);
+
+							output << "auto " << stmt.GetName() << " = wutils::Vector<" << stmt.GetType().GetElementType().GetCType() << ", " << (uint32_t)stmt.GetType().VectorWidth << ">(";
+							if (splat_value.Type() == IRConstant::Type_Integer) {
+								output << splat_value.Int();
+							} else if (splat_value.Type() == IRConstant::Type_Float_Single) {
+								output << splat_value.Flt();
+							} else if (splat_value.Type() == IRConstant::Type_Float_Double) {
+								output << splat_value.Dbl();
+							} else {
+								throw std::logic_error("Unsupported vector splat element type");
+							}
+
+							output << ");";
+
+							/*output << "auto " << stmt.GetName() << " = ";
+
+							if (splat_value.Type() == IRConstant::Type_Integer) {
+								output << "emitter.constant_vector_splat(" << splat_value.Int() << ", " << type_for_statement(stmt) << ");";
+							} else if (splat_value.Type() == IRConstant::Type_Float_Single) {
+								output << "emitter.constant_vector_splat_f((dbt_f32)" << splat_value.Flt() << ", " << type_for_statement(stmt) << ");";
+							} else if (splat_value.Type() == IRConstant::Type_Float_Double) {
+								output << "emitter.constant_vector_splat_f((dbt_f64)" << splat_value.Dbl() << ", " << type_for_statement(stmt) << ");";
+							} else {
+								throw std::logic_error("Unsupported vector splat element type");
+							}* /
+
+							break;
+						}*/
+
 						default:
 							throw std::logic_error("Unsupported conversion constant type: " + std::to_string(stmt.Constant.Type()));
 					}
@@ -418,22 +450,42 @@ namespace gensim
 							str << "(" << stmt.GetType().GetCType() << ")" << stmt.Constant.Int() << "ULL";
 							return str.str();
 						case IRConstant::Type_Vector: {
-							IRConstant splat_value = stmt.Constant.GetVector().GetElement(0);
+							const auto& vector = stmt.Constant.GetVector();
+							const auto& splat_elem = vector.GetElement(0);
 
-							// "(" << stmt.GetType().GetElementType().GetCType() << ")"
-							switch (splat_value.Type()) {
+							switch (splat_elem.Type()) {
 								case IRConstant::Type_Integer:
-									str << "(dbt_u64)" << splat_value.Int() << "ULL";
-									break;
+									return stmt.GetType().GetCType() + "(" + std::to_string(vector.GetElement(0).Int()) + ")";
 								case IRConstant::Type_Float_Single:
-									str << "(dbt_f32)" << splat_value.Flt();
-									break;
+									return stmt.GetType().GetCType() + "(" + std::to_string(vector.GetElement(0).Flt()) + ")";
 								case IRConstant::Type_Float_Double:
-									str << "(dbt_f64)" << splat_value.Dbl();
-									break;
+									return stmt.GetType().GetCType() + "(" + std::to_string(vector.GetElement(0).Dbl()) + ")";
+								default:
+									throw std::logic_error("Unsupported vector element type");
 							}
 
-							return str.str();
+
+
+							/*str << "{";
+
+							for (int i = 0; i < vector.Width(); i++) {
+								if (i > 0) str << ", ";
+
+								const auto& value = vector.GetElement(i);
+
+								if (value.Type() == IRConstant::Type_Integer) {
+									str << value.Int();
+								} else if (value.Type() == IRConstant::Type_Float_Single) {
+									str << value.Flt();
+								} else if (value.Type() == IRConstant::Type_Float_Double) {
+									str << value.Dbl();
+								} else {
+									throw std::logic_error("Unsupported constant vector element type");
+								}
+							}
+
+							str << "}";
+							return str.str();*/
 						}
 						default:
 							break;
@@ -453,6 +505,14 @@ namespace gensim
 
 				bool EmitFixedCode(util::cppformatstream &output, std::string end_label /* = 0 */, bool fully_fixed) const
 				{
+					const SSACastStatement &Statement = static_cast<const SSACastStatement &> (this->Statement);
+
+					if (Statement.GetType().VectorWidth > 1) {
+						SSANodeWalker *expr = Factory.GetOrCreate(Statement.Expr());
+
+						output << "auto " << Statement.GetName() << " = " << Statement.GetType().GetCType() << "(" << expr->GetFixedValue() << ");";
+					}
+
 					return true;
 				}
 
@@ -511,7 +571,20 @@ namespace gensim
 					const SSACastStatement &Statement = static_cast<const SSACastStatement &> (this->Statement);
 
 					// HACK HACK HACK
-					if (Statement.GetType().VectorWidth > 1) return Factory.GetOrCreate(Statement.Expr())->GetFixedValue() ;
+					if (Statement.GetType().VectorWidth > 1) {
+						//return Factory.GetOrCreate(Statement.Expr())->GetFixedValue();
+						if (auto constant = dynamic_cast<const genc::ssa::SSAConstantStatement *>(Statement.Expr())) {
+							// If it's a cast of a constant to a vector, then it's a splat
+							auto t = Statement.GetType();
+							if (t.IsFloating()) {
+								return "emitter.constant_vector_splat_f(" + Factory.GetOrCreate(constant)->GetFixedValue() + ", " + type_for_statement(Statement) + ")";
+							} else {
+								return "emitter.constant_vector_splat(" + Factory.GetOrCreate(constant)->GetFixedValue() + ", " + type_for_statement(Statement) + ")";
+							}
+						}
+
+						return Statement.GetName();
+					}
 
 					std::stringstream str;
 
