@@ -37,6 +37,9 @@ decode(SIMD_COPY)
 		width = 64;
 		size = 3;
 	}
+	
+	eindex = imm5 >> (size + 1);
+	eindex2 = imm4 >> (size);
 }
 
 decode(SIMD_ACROSS_LANES)
@@ -96,6 +99,39 @@ decode(SIMD_TWO_REG_MISC)
 	}
 }
 
+decode(SIMD_PERMUTE)
+{
+	if (size == 0 && Q == 0) {
+		arrangement = 0;							// 8B
+		elemcnt = 8;
+		elemsize = 1;
+	} else if (size == 0 && Q == 1) {
+		arrangement = 1;							// 16B
+		elemcnt = 16;
+		elemsize = 1;
+	} else if (size == 1 && Q == 0) {
+		arrangement = 2;							// 4H
+		elemcnt = 4;
+		elemsize = 2;
+	} else if (size == 1 && Q == 1) {
+		arrangement = 3;							// 8H
+		elemcnt = 8;
+		elemsize = 2;
+	} else if (size == 2 && Q == 0) {
+		arrangement = 4;							// 2S
+		elemcnt = 2;
+		elemsize = 4;
+	} else if (size == 2 && Q == 1) {
+		arrangement = 5;							// 4S
+		elemcnt = 4;
+		elemsize = 4;
+	} else if (size == 3 && Q == 1) {
+		arrangement = 6;							// 2D
+		elemcnt = 2;
+		elemsize = 8;
+	}
+}
+
 decode(SIMD_LS_MULT)
 {
 	if (size == 0 && Q == 0) {
@@ -128,13 +164,13 @@ decode(SIMD_LS_MULT)
 		elemsize = 8;
 	}
 	
-	if (opcode == 2) {
+	if (opcode == 2 || opcode == 0) {
 		regcnt = 4;
-	} else if (opcode == 6) {
+	} else if (opcode == 6 || opcode == 4) {
 		regcnt = 3;
 	} else if (opcode == 7) {
 		regcnt = 1;
-	} else if (opcode == 10) {
+	} else if (opcode == 10 || opcode == 8) {
 		regcnt = 2;
 	}
 }
@@ -184,7 +220,32 @@ decode(SIMD_LS_MULT_PI)
 
 decode(SIMD_SHIFT_IMM)
 {
-	shift_amount = 128 - ((immh << 3) | immb);
+	if (SCALAR) {
+		shift_amount = ((immh << 3) | immb) - 64;
+	} else {
+		if (immh == 1 && Q == 0) {				// 8B
+			arrangement = 0;
+			shift_amount = ((immh << 3) | immb) - 8;
+		} else if (immh == 1 && Q == 1) {		// 16B
+			arrangement = 1;
+			shift_amount = ((immh << 3) | immb) - 8;
+		} else if ((immh & 0xe) == 2 && Q == 0) {	// 4H
+			arrangement = 2;
+			shift_amount = ((immh << 3) | immb) - 16;
+		} else if ((immh & 0xe) == 2 && Q == 1) {	// 8H
+			arrangement = 3;
+			shift_amount = ((immh << 3) | immb) - 16;
+		} else if ((immh & 0xc) == 4 && Q == 0) {	// 2S
+			arrangement = 4;
+			shift_amount = ((immh << 3) | immb) - 32;
+		} else if ((immh & 0xc) == 4 && Q == 1) {	// 4S
+			arrangement = 5;
+			shift_amount = ((immh << 3) | immb) - 32;
+		} else if ((immh & 0x8) == 8 && Q == 1) {	// 2D
+			arrangement = 6;
+			shift_amount = ((immh << 3) | immb) - 64;
+		}
+	}
 }
 
 decode(SIMD_MOD_IMM)
@@ -233,8 +294,8 @@ decode(SIMD_MOD_IMM)
 		} else if (((cmode & 1) == 1) && op == 0) {
 			uint32_t tmp32 = a << 31;
 			tmp32 |= (!b) << 30;
-			tmp32 |= b ? 0x3d000000 : 0;
-			tmp32 |= (tmp & 0x3f) << 24;
+			tmp32 |= b ? 0x3e000000 : 0;
+			tmp32 |= (tmp & 0x3f) << 19;
 			
 			immu64 = ((uint64_t)tmp32 << 32) | tmp32;
 		} else if (((cmode & 1) == 1) && op == 1) {
@@ -246,6 +307,33 @@ decode(SIMD_MOD_IMM)
 			immu64 = ((uint64_t)tmp32 << 32);
 		}
 		break;
+				
+	/*case 15:
+		if (op == 0) {
+			uint32_t tmp32;
+			tmp32 = (tmp & 0x80) << 5;
+			tmp32 |= ((~tmp) & 0x40) << 5;
+			if (tmp & 0x40) {
+				tmp32 |= 0x1f << 6;
+			}
+			
+			tmp32 |= (tmp & 0x3f);
+			tmp32 <<= 19;
+			
+			immu64 = (uint64_t)tmp32 | ((uint64_t)tmp32 << 32);
+		} else if (op == 1) {
+			immu64 = (tmp & 0x80) << 8;
+			immu64 |= ((~tmp) & 0x40) << 8;
+			if (tmp & 0x40) {
+				immu64 |= 0xff << 6;
+			}
+			
+			immu64 |= (tmp & 0x3f);
+			
+			immu64 <<= 48;
+		}
+		
+		break;*/
 	}
 }
 
@@ -263,17 +351,57 @@ decode(SIMD_THREE_DIFF)
 {
 	if (size == 0) {
 		ta = 0;							// 8H
+	} else if (size == 1) {
+		ta = 1;							// 4S
+	} else if (size == 2) {
+		ta = 2;							// 2D
 	} else if (size == 3) {
-		ta = 1;							// 1Q
+		ta = 3;							// 1Q
 	}
 	
 	if (size == 0 && Q == 0) {
 		tb = 0;							// 8B
 	} else if (size == 0 && Q == 1) {
 		tb = 1;							// 16B
+	} else if (size == 1 && Q == 0) {
+		tb = 2;							// 4H
+	} else if (size == 1 && Q == 1) {
+		tb = 3;							// 8H
+	} else if (size == 2 && Q == 0) {
+		tb = 4;							// 2S
+	} else if (size == 2 && Q == 1) {
+		tb = 5;							// 4S
 	} else if (size == 3 && Q == 0) {
-		tb = 2;							// 1D
+		tb = 6;							// 1D
 	} else if (size == 3 && Q == 1) {
-		tb = 3;							// 2D
+		tb = 7;							// 2D
+	}
+}
+
+decode(SIMD_VECTOR_IDX)
+{
+	if (size == 1) {
+		eindex = (H << 2) | (L << 1) | M;
+		arrangement = Q ? 3 : 2;
+		rmr = rm;
+	} else if (size == 2) {
+		eindex = (H << 1) | L;
+		arrangement = Q ? 5 : 4;
+		rmr = rm + (M ? 16 : 0);
+	}
+}
+
+decode(SIMD_LS_SINGLE)
+{
+	if (opcode == 0) {
+		eindex = Q << 3 | S << 2 | size;
+	} else if (opcode == 2) {
+		eindex = Q << 2 | S << 1 | (size >> 1);
+	} else if (opcode == 4) {
+		if (size == 0) {
+			eindex = Q << 1 | S;
+		} else {
+			eindex = Q;
+		}
 	}
 }

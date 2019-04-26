@@ -139,6 +139,7 @@ static bool verbose_flag = false;
 
 static struct option long_options[] = {
 	{"arch", required_argument, 0, 'a'},
+	{"ssa_opt", required_argument, 0, 'f'},
 	{"help", no_argument, 0, 'h'},
 	{"stage_opt", required_argument, 0, 'o'},
 	{"verbose", optional_argument, 0, 'v'},
@@ -222,7 +223,7 @@ int main(int argc, char **argv)
 
 	while (1) {
 		int option_index = 0;
-		int c = getopt_long(argc, argv, "a:ho:s:t:v:", long_options, &option_index);
+		int c = getopt_long(argc, argv, "a:f:ho:s:t:v:", long_options, &option_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -273,6 +274,13 @@ int main(int argc, char **argv)
 					component_options[component][option] = value;
 				}
 
+				break;
+			}
+			case 'f': {
+				std::string option_string = optarg;
+				auto opt_tokens = Util::Tokenize(optarg, ",", false);
+
+				Util::GenC_Options.insert(opt_tokens.begin(), opt_tokens.end());
 				break;
 			}
 			case 't': {

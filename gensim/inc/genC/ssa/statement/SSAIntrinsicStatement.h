@@ -3,6 +3,10 @@
 #pragma once
 
 #include "genC/ssa/statement/SSAStatement.h"
+#include "genC/ir/IRSignature.h"
+#include "genC/Intrinsics.h"
+
+#include <functional>
 
 namespace gensim
 {
@@ -17,13 +21,10 @@ namespace gensim
 			class SSAIntrinsicStatement : public SSAStatement
 			{
 			public:
-#define __DEFINE_INTRINSIC_ENUM
-#include "genC/ssa/statement/SSAIntrinsicEnum.h"
-#undef __DEFINE_INTRINSIC_ENUM
+				using SSAFixednessResolver = std::function<bool(const SSAIntrinsicStatement *)>;
 
-				IntrinsicType Type;
-
-				SSAIntrinsicStatement(SSABlock *parent, IntrinsicType type, SSAStatement *before = NULL) : SSAStatement(Class_Unknown, 0, parent, before), Type(type) { }
+				SSAIntrinsicStatement(SSABlock *parent, IntrinsicID id, const IRSignature& signature, SSAFixednessResolver fixednessResolver, SSAStatement *before = NULL)
+					: SSAStatement(Class_Unknown, 0, parent, before), id_(id), signature_(signature), fixedness_resolver_(fixednessResolver) { }
 
 				SSAStatement *Args(int idx)
 				{
@@ -45,8 +46,6 @@ namespace gensim
 					AddOperand(arg);
 				}
 
-				virtual bool IsFixed() const override;
-
 				virtual void PrettyPrint(std::ostringstream &) const override;
 
 				virtual std::set<SSASymbol *> GetKilledVariables() override;
@@ -57,11 +56,32 @@ namespace gensim
 
 				const SSAType GetType() const override
 				{
-					return ResolveType(Type);
+					return signature_.GetType();
+				}
+
+				virtual bool IsFixed() const override
+				{
+					return fixedness_resolver_(this);
+				}
+
+				IntrinsicID GetID() const
+				{
+					return id_;
+				}
+				const IRSignature& GetSignature() const
+				{
+					return signature_;
+				}
+
+				SSAFixednessResolver GetFixednessResolverFunction() const
+				{
+					return fixedness_resolver_;
 				}
 
 			private:
-				const SSAType& ResolveType(IntrinsicType kind) const;
+				IntrinsicID id_;
+				const IRSignature signature_;
+				SSAFixednessResolver fixedness_resolver_;
 			};
 		}
 	}

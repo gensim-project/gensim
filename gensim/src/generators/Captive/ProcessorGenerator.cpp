@@ -178,14 +178,13 @@ namespace gensim
 					str << "}\n";
 
 					str << "protected:\n";
-					str << "bool decode_instruction_virt(uint8_t isa, gva_t addr, Decode *insn) override;";
-					str << "bool decode_instruction_phys(uint8_t isa, gpa_t addr, Decode *insn) override;";
-					str << "JumpInfo get_instruction_jump_info(const Decode *insn) override;";
 
 					str << "void __builtin_set_feature(" << EnumNameForFeatures() << " feature, uint32_t value) { feature_manager().set_feature(feature, value); }";
 					str << "uint32_t __builtin_get_feature(" << EnumNameForFeatures() << " feature) const { return feature_manager().get_feature(feature); }";
 
 					str << "public:\n";
+
+					fprintf(stderr, "ISA: %u\n", arch.ISAs.front()->HelperFns.size());
 
 					for (const auto& helper : arch.ISAs.front()->HelperFns) {
 
@@ -214,7 +213,7 @@ namespace gensim
 					str << "#include <" << arch.Name << "-env.h>\n";
 					str << "#include <" << arch.Name << "-decode.h>\n";
 					str << "#include <" << arch.Name << "-disasm.h>\n";
-					str << "#include <" << arch.Name << "-jit2.h>\n";
+					str << "#include <" << arch.Name << "-dbt.h>\n";
 
 					str << "using namespace captive::arch::" << arch.Name << ";";
 
@@ -318,8 +317,8 @@ namespace gensim
 					str << "{";
 
 					str << "_trace = new Trace(*new " << arch.Name << "_disasm());";
-					str << "_dbt = new " << arch.Name << "_jit2<false>();";
-					str << "_tracing_dbt = new " << arch.Name << "_jit2<true>();";
+					str << "_dbt = new " << arch.Name << "_dbt<false>();";
+					str << "_tracing_dbt = new " << arch.Name << "_dbt<true>();";
 
 					/*str << "jit_state.registers = &regs;";
 					str << "jit_state.registers_size = sizeof(regs);";
@@ -330,48 +329,17 @@ namespace gensim
 
 					str << "}";
 
-					str << "bool " << ClassNameForCPU() << "::decode_instruction_virt(uint8_t isa, gva_t addr, Decode* insn)";
-					str << "{";
-					str << "switch (isa) {";
-
-					for (auto isa : arch.ISAs) {
-						str << "case " << (uint32_t) isa->isa_mode_id << ":\n";
-						str << "return ((" << ClassNameForDecoder() << " *)insn)->decode(" << ClassNameForDecoder() << "::" << arch.Name << "_" << isa->ISAName << ", addr, (uint8_t *)(uint64_t)addr);";
-					}
-
-					str << "default:\n";
-					str << "return false;";
-					str << "}";
-					str << "}";
-
-					str << "bool " << ClassNameForCPU() << "::decode_instruction_phys(uint8_t isa, gpa_t addr, Decode* insn)";
-					str << "{";
-					str << "switch (isa) {";
-
-					for (auto isa : arch.ISAs) {
-						str << "case " << (uint32_t) isa->isa_mode_id << ":\n";
-						str << "return ((" << ClassNameForDecoder() << " *)insn)->decode(" << ClassNameForDecoder() << "::" << arch.Name << "_" << isa->ISAName << ", addr, (uint8_t *)(guest_phys_to_vm_virt((uint64_t)addr)));";
-					}
-
-					str << "default:\n";
-					str << "return false;";
-					str << "}";
-					str << "}";
-
-					str << "captive::arch::JumpInfo " << ClassNameForCPU() << "::get_instruction_jump_info(const Decode *insn)";
-					str << "{";
-					str << "return " << ClassNameForDecoder() << "::get_jump_info((const " << ClassNameForDecoder() << " *)insn);";
-					str << "}";
-
 					// Behaviours
 					str << "#define read_register(__REG) (*reg_offsets.__REG)\n";
 					str << "#define read_register_bank(__RB, __REG) (reg_offsets.__RB[__REG])\n";
 					str << "#define write_register(__REG, __VAL) (*reg_offsets.__REG) = (__VAL)\n";
 					str << "#define write_register_bank(__RB, __REG, __VAL) reg_offsets.__RB[__REG] = (__VAL)\n\n";
 
+					str << "typedef uint64_t uint64;";
 					str << "typedef uint32_t uint32;";
 					str << "typedef uint16_t uint16;";
 					str << "typedef uint8_t uint8;";
+					str << "typedef int64_t sint64;";
 					str << "typedef int32_t sint32;";
 					str << "typedef int16_t sint16;";
 					str << "typedef int8_t sint8;";

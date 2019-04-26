@@ -77,7 +77,7 @@ behaviour
 vector_spec: '[' constant_value ']';
 
 type
-    :   'const'? BE_ID vector_spec? ('*'|'&')? 'const'?;
+    :   'const'? 'struct'? BE_ID vector_spec? ('*'|'&')? 'const'?;
     
 arg
     :   type BE_ID | BE_ID;

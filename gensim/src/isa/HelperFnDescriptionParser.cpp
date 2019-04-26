@@ -66,6 +66,8 @@ const HelperFnDescriptionToken* HelperFnDescriptionLexer::ReadIdentifier()
 		return new HelperFnDescriptionToken(HelperFnDescriptionToken::INTERNAL, ident);
 	} else if (ident == "public") {
 		return new HelperFnDescriptionToken(HelperFnDescriptionToken::PUBLIC, ident);
+	} else if (ident == "struct") {
+		return new HelperFnDescriptionToken(HelperFnDescriptionToken::STRUCT, ident);
 	} else {
 		return new HelperFnDescriptionToken(HelperFnDescriptionToken::IDENTIFIER, ident);
 	}
@@ -100,7 +102,8 @@ char HelperFnDescriptionLexer::PopChar()
 }
 
 // type_name : IDENT
-// type_spec : type_name | type_name LBRACKET INTEGER RBRACKET
+// type_qual : type_name | struct type_name
+// type_spec : type_qual | type_qual LBRACKET INTEGER RBRACKET
 // type : type_spec | type_spec AMP
 // prototype : type IDENT LPAREN params RPAREN attributes
 // params : | param | param ',' params
@@ -176,16 +179,27 @@ std::string HelperFnDescriptionParser::ParseType()
 
 std::string HelperFnDescriptionParser::ParseTypeSpec()
 {
-	std::string type_name = ParseTypeName();
+	std::string type_qual = ParseTypeQual();
 
 	if (Match(HelperFnDescriptionToken::LBRACKET)) {
 		auto size = Expect(HelperFnDescriptionToken::NUMBER)->GetValue();
 		Expect(HelperFnDescriptionToken::RBRACKET);
 
-		return type_name + "[" + size + "]";
+		return type_qual + "[" + size + "]";
 	}
 
-	return type_name;
+	return type_qual;
+}
+
+std::string HelperFnDescriptionParser::ParseTypeQual()
+{
+	std::string prefix = "";
+
+	if (Match(HelperFnDescriptionToken::STRUCT)) {
+		prefix = "struct ";
+	}
+
+	return prefix + Expect(HelperFnDescriptionToken::IDENTIFIER)->GetValue();
 }
 
 std::string HelperFnDescriptionParser::ParseTypeName()

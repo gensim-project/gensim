@@ -58,15 +58,6 @@ void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& st
 
 	str << "action ";
 
-	bool is_external = false;
-	if(baseaction->GetPrototype().HasAttribute(gensim::genc::ActionAttribute::External)) {
-		is_external = true;
-	}
-
-	if(is_external) {
-		str << "external ";
-	}
-
 	td.Disassemble(baseaction->GetPrototype().ReturnType(), str);
 	str << " " << baseaction->GetPrototype().GetIRSignature().GetName();
 
@@ -86,71 +77,57 @@ void ActionDisassembler::Disassemble(SSAActionBase* baseaction, std::ostream& st
 
 
 
-	if(!is_external) {
-		const SSAFormAction *action = dynamic_cast<const SSAFormAction*>(baseaction);
+	const SSAFormAction *action = dynamic_cast<const SSAFormAction*>(baseaction);
 
-		str <<" (";
-		// parameters
-		for(SSASymbol *param : action->ParamSymbols) {
+	str <<" (";
+	// parameters
+	for(SSASymbol *param : action->ParamSymbols) {
 
-			str << std::endl << indent << indent;
-			td.Disassemble(param->GetType(), str);
-			str << " " << param->GetName();
-		}
-
-		str << std::endl << indent << ")";
-
-		str << "[";
-		// symbols
-		// build an ordered list of symbols
-		std::map<std::string, SSASymbol*> ordered_syms;
-
-		for(SSASymbol *sym : action->Symbols()) {
-			if(sym->SType == Symbol_Parameter) {
-				continue;
-			}
-			ordered_syms[sym->GetName()] = sym;
-		}
-
-		for(auto pr : ordered_syms) {
-			SSASymbol *sym = pr.second;
-			str << std::endl << indent << indent;
-			td.Disassemble(sym->GetType(), str);
-			str << " " << pr.first;
-		}
-
-		str << std::endl << indent << "] ";
-
-		str << "<" << std::endl;
-		str << indent << indent << action->EntryBlock->GetName() << std::endl;
-		for(auto block : action->GetBlocks()) {
-			if(block == action->EntryBlock) {
-				continue;
-			}
-			str << indent<< indent << block->GetName() << std::endl;
-		}
-		str<< indent << ">";
-
-		str << " {" << std::endl;
-		// blocks
-		BlockDisassembler bd;
-		for(auto block : action->GetBlocks()) {
-			bd.Disassemble(block, str);
-		}
-		str << "}" << std::endl;
-	} else {
-		str <<" (";
-		// parameters
-		for(auto param : baseaction->GetPrototype().ParameterTypes()) {
-
-			str << std::endl << indent << indent;
-			td.Disassemble(param, str);
-		}
-
-		str << std::endl << indent << ");";
-
-		str << std::endl;
+		str << std::endl << indent << indent;
+		td.Disassemble(param->GetType(), str);
+		str << " " << param->GetName();
 	}
+
+	str << std::endl << indent << ")";
+
+	str << "[";
+	// symbols
+	// build an ordered list of symbols
+	std::map<std::string, SSASymbol*> ordered_syms;
+
+	for(SSASymbol *sym : action->Symbols()) {
+		if(sym->SType == Symbol_Parameter) {
+			continue;
+		}
+		ordered_syms[sym->GetName()] = sym;
+	}
+
+	for(auto pr : ordered_syms) {
+		SSASymbol *sym = pr.second;
+		str << std::endl << indent << indent;
+		td.Disassemble(sym->GetType(), str);
+		str << " " << pr.first;
+	}
+
+	str << std::endl << indent << "] ";
+
+	str << "<" << std::endl;
+	str << indent << indent << action->EntryBlock->GetName() << std::endl;
+	for(auto block : action->GetBlocks()) {
+		if(block == action->EntryBlock) {
+			continue;
+		}
+		str << indent<< indent << block->GetName() << std::endl;
+	}
+	str<< indent << ">";
+
+	str << " {" << std::endl;
+	// blocks
+	BlockDisassembler bd;
+	for(auto block : action->GetBlocks()) {
+		bd.Disassemble(block, str);
+	}
+	str << "}" << std::endl;
 }
 
 
@@ -391,9 +368,9 @@ public:
 	void VisitIntrinsicStatement(SSAIntrinsicStatement& stmt) override
 	{
 		if(stmt.HasValue()) {
-			str_ << Header(stmt) << " = intrinsic " << stmt.Type;
+			str_ << Header(stmt) << " = intrinsic " << stmt.GetSignature().GetName();
 		} else {
-			str_ << Header(stmt) << ": intrinsic " << stmt.Type;
+			str_ << Header(stmt) << ": intrinsic " << stmt.GetSignature().GetName();
 		}
 		for(unsigned i = 0; i < stmt.ArgCount(); ++i) {
 			str_ << " " << stmt.Args(i)->GetName();

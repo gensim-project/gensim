@@ -12,7 +12,7 @@
 using namespace gensim;
 using namespace gensim::isa;
 
-InstructionFormatChunk ParseChunk(char *tok, uint8_t &length)
+InstructionFormatChunk ParseChunk(const std::string &format_name, char *tok, uint8_t &length)
 {
 	// return a new instruction format chunk:
 	//  name has the initial % trimmed off
@@ -45,6 +45,12 @@ InstructionFormatChunk ParseChunk(char *tok, uint8_t &length)
 		}
 		length = chunk.length;
 		chunk.is_constrained = true;
+
+		if (chunk.constrained_value > (1ull << chunk.length)-1) {
+			fprintf(stderr, "constrained value greater than chunk width in format %s\n", format_name.c_str());
+			exit(1);
+		}
+
 		return chunk;
 	}
 	fprintf(stderr, "Invalid format chunk syntax '%s'\n", tok);
@@ -99,7 +105,7 @@ bool InstructionFormatDescriptionParser::Parse(const std::string &name, const st
 	char *tok = strtok(format_tok, " ");
 	uint8_t chunkLength;
 	while (tok != NULL) {
-		description->AddChunk(ParseChunk(tok, chunkLength));
+		description->AddChunk(ParseChunk(name, tok, chunkLength));
 		tok = strtok(NULL, " ");
 	}
 
