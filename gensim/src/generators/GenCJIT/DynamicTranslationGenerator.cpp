@@ -584,7 +584,6 @@ namespace gensim
 				// loop through each emittable action
 				for (const auto& execute_item : isa->GetSSAContext().Actions()) {
 					if (execute_item.second->HasAttribute(genc::ActionAttribute::Helper)) continue;
-					if (execute_item.second->HasAttribute(genc::ActionAttribute::External)) continue;
 
 					auto execute = dynamic_cast<const SSAFormAction *>(execute_item.second);
 					EmitDynamicEmitter(action_chunks[action_index % chunk_count], hstream, *execute, prefix.str());

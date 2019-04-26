@@ -31,7 +31,7 @@ decode(LOGICAL_IMM)
 
 decode(LS_REG_UIMM)
 {
-	if (size == 0 && opc == 2 && V == 1) {
+	if (size == 0 && (opc == 2 || opc == 3) && V == 1) {
 		immu64 = ((uint64_t)imm12) << 4;
 	} else {
 		immu64 = ((uint64_t)imm12) << size;

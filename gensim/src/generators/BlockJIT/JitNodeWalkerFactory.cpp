@@ -941,30 +941,43 @@ namespace gensim
 					const SSANodeWalker *arg0 = nullptr;
 					if (Statement.ArgCount() > 0) arg0 = Factory.GetOrCreate(Statement.Args(0));
 
-					switch (Statement.Type) {
-						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
+					switch (Statement.GetID()) {
+						case IntrinsicID::ReadPC:
 							assert(false && "ReadPC cannot be fixed");
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
+						case IntrinsicID::PopCount32:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = __builtin_popcount(" << arg0->GetFixedValue() << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
+						case IntrinsicID::CLZ32:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = __builtin_clz(" << arg0->GetFixedValue() << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode:
+						case IntrinsicID::GetCpuMode:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = GetIsaMode();";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_GetFeature:
+						case IntrinsicID::GetFeature:
 							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = GetFeatureLevel(" << arg0->GetFixedValue() <<");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
-						case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
-						case SSAIntrinsicStatement::SSAIntrinsic_Trap:
+						case IntrinsicID::SetCpuMode:
+						case IntrinsicID::TakeException:
+						case IntrinsicID::Trap:
 							break;
+
+						case IntrinsicID::UpdateZNFlags32:
+						case IntrinsicID::UpdateZNFlags64:
+						case IntrinsicID::ADC8_Flags:
+						case IntrinsicID::ADC16_Flags:
+						case IntrinsicID::ADC32_Flags:
+						case IntrinsicID::ADC64_Flags:
+						case IntrinsicID::ADC8:
+						case IntrinsicID::ADC16:
+						case IntrinsicID::ADC32:
+						case IntrinsicID::ADC64:
+							return EmitDynamicCode(output, end_label, fully_fixed);
+
 						default:
-							assert(false && "Unimplemented Intrinsic");
+							throw std::logic_error("Unrecognised intrinsic: " + Statement.GetSignature().GetName());
 					}
 
 					return true;
@@ -983,56 +996,56 @@ namespace gensim
 					const SSANodeWalker *arg2 = NULL;
 					if (Statement.ArgCount() > 2) arg2 = Factory.GetOrCreate(Statement.Args(2));
 
-					switch (Statement.Type) {
-						case SSAIntrinsicStatement::SSAIntrinsic_Popcount32:
+					switch (Statement.GetID()) {
+						case IntrinsicID::PopCount32:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.popcnt(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_BSwap32:
-						case SSAIntrinsicStatement::SSAIntrinsic_BSwap64:
+						case IntrinsicID::BSwap32:
+						case IntrinsicID::BSwap64:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.bswap(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz32:
-						case SSAIntrinsicStatement::SSAIntrinsic_Clz64:
+						case IntrinsicID::CLZ32:
+						case IntrinsicID::CLZ64:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.clz(" << operand_for_node(*arg0) << ", " << operand_for_stmt(Statement) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_SetCpuMode:
+						case IntrinsicID::SetCpuMode:
 							output << "SetIsaMode(" << operand_for_node(*arg0) << ", builder);";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Trap:
+						case IntrinsicID::Trap:
 							output << "builder.trap();";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_PendIRQ:
+						case IntrinsicID::PendInterrupt:
 //							output << "UNIMPLEMENTED; // pendirq\n";
 							output << "builder.call(IROperand::const32(0), IROperand::func((void*)cpuPendInterrupt));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_PopInterrupt:
+						case IntrinsicID::PopInterrupt:
 							// XXX TODO FIXME
 							output << "builder.trap();";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_PushInterrupt:
+						case IntrinsicID::PushInterrupt:
 							// XXX TODO FIXME
 							output << "builder.trap();";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_HaltCpu:
+						case IntrinsicID::HaltCpu:
 							// XXX TODO FIXME
 							output << "builder.trap();";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_ProbeDevice:
+						case IntrinsicID::ProbeDevice:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.probe_device(" << operand_for_node(*arg0) << ", IROperand::vreg(" << Statement.GetName() << "));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_WriteDevice:
+						case IntrinsicID::WriteDevice32:
 							output << "builder.write_device(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
+						case IntrinsicID::ReadPC:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.ldpc(IROperand::vreg(" << Statement.GetName() << ", " << Statement.GetType().SizeInBytes() << "));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_WritePc: {
+						case IntrinsicID::WritePC: {
 							auto pc_descriptor = Statement.Parent->Parent->GetAction()->Context.Arch.GetRegFile().GetTaggedRegSlot("PC");
 
 							output << "builder.streg(" << operand_for_node(*arg0) << ", IROperand::const32(" << pc_descriptor->GetRegFileOffset() << "));";
@@ -1040,78 +1053,80 @@ namespace gensim
 							break;
 						}
 
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc8WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc16WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_AdcWithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc64WithFlags:
+						case IntrinsicID::ADC8_Flags:
+						case IntrinsicID::ADC16_Flags:
+						case IntrinsicID::ADC32_Flags:
+						case IntrinsicID::ADC64_Flags:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.adc_with_flags(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc8WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc16WithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_SbcWithFlags:
-						case SSAIntrinsicStatement::SSAIntrinsic_Sbc64WithFlags:
+						case IntrinsicID::SBC8_Flags:
+						case IntrinsicID::SBC16_Flags:
+						case IntrinsicID::SBC32_Flags:
+						case IntrinsicID::SBC64_Flags:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.sbc_with_flags(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ", " << operand_for_node(*arg2) << ");";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc:
-						case SSAIntrinsicStatement::SSAIntrinsic_Adc64:
+						case IntrinsicID::ADC8:
+						case IntrinsicID::ADC16:
+						case IntrinsicID::ADC32:
+						case IntrinsicID::ADC64:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.mov(" << operand_for_node(*arg0) << ", " << operand_for_node(*this) << ");";
 							output << "builder.add(" << operand_for_node(*arg1) << ", " << operand_for_node(*this) << ");";
 							output << "builder.add(" << operand_for_node(*arg2) << ", " << operand_for_node(*this) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_TakeException:
+						case IntrinsicID::TakeException:
 							output << "builder.take_exception(" << operand_for_node(*arg0) << ", " << operand_for_node(*arg1) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_EnterKernelMode:
+						case IntrinsicID::EnterKernelMode:
 							output << "UNIMPLEMENTED; // enterkernelmode\n";
 //							output << "builder.call(IROperand::func((void*)cpuEnterKernelMode));";
 							break;
-						case SSAIntrinsicStatement::SSAIntrinsic_EnterUserMode:
+						case IntrinsicID::EnterUserMode:
 							output << "UNIMPLEMENTED; // enterusermode\n";
 //							output << "builder.call(IROperand::func((void*)cpuEnterUserMode));";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN32:
-						case SSAIntrinsicStatement::SSAIntrinsic_UpdateZN64:
+						case IntrinsicID::UpdateZNFlags32:
+						case IntrinsicID::UpdateZNFlags64:
 							output << "builder.updatezn(" << operand_for_node(*arg0) << ");";
 							break;
 
 
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleAbs:
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatAbs:
+						case IntrinsicID::FloatAbs:
+						case IntrinsicID::DoubleAbs:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.fabs(" << operand_for_node(*arg0) << ", " << operand_for_node(*this) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_FPGetRounding:
+						case IntrinsicID::FPGetRounding:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.fctrl_get_round(" << operand_for_node(*this) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_FPSetRounding:
+						case IntrinsicID::FPSetRounding:
 							output << "builder.fctrl_set_round(" << operand_for_node(*arg0) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_FPGetFlush:
+						case IntrinsicID::FPGetFlush:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.fctrl_get_flush(" << operand_for_node(*this) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_FPSetFlush:
+						case IntrinsicID::FPSetFlush:
 							output << "builder.fctrl_set_flush(" << operand_for_node(*arg0) << ");";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_SetFeature:
+						case IntrinsicID::SetFeature:
 							output << "SetFeatureLevel(" << arg0->GetFixedValue() << ", " << arg1->GetFixedValue() << ", builder);";
 							if(!Statement.Parent->IsFixed() != BLOCK_ALWAYS_CONST) output << "InvalidateFeatures();";
 							break;
 
-						case SSAIntrinsicStatement::SSAIntrinsic_FloatSqrt:
-						case SSAIntrinsicStatement::SSAIntrinsic_DoubleSqrt:
+						case IntrinsicID::FloatSqrt:
+						case IntrinsicID::DoubleSqrt:
 							output << "IRRegId " << Statement.GetName() << " = builder.alloc_reg(" << Statement.GetType().SizeInBytes() << ");\n";
 							output << "builder.fsqrt(" << operand_for_node(*arg0) << ", " << operand_for_node(*this) << ");";
 							break;
@@ -1136,10 +1151,10 @@ namespace gensim
 				{
 					const SSAIntrinsicStatement &Statement = static_cast<const SSAIntrinsicStatement &> (this->Statement);
 
-					switch (Statement.Type) {
+					switch (Statement.GetID()) {
 //					case SSAIntrinsicStatement::SSAIntrinsic_ReadPc:
 //						return Statement.GetName();
-						case SSAIntrinsicStatement::SSAIntrinsic_GetCpuMode:
+						case IntrinsicID::GetCpuMode:
 							return "IROperand::const32(GetIsaMode())";
 
 						default:
@@ -1907,11 +1922,7 @@ namespace gensim
 					assert(Statement.ArgCount() <= 5);
 
 					std::string function_name;
-					if(Statement.Target()->HasAttribute(ActionAttribute::External)) {
-						function_name = "jit_" + Statement.Target()->GetPrototype().GetIRSignature().GetName();
-					} else {
-						function_name = "helper_" + Statement.Target()->GetContext().GetIsaDescription().ISAName + "_" + Statement.Target()->GetPrototype().GetIRSignature().GetName() + "<false>";
-					}
+					function_name = "helper_" + Statement.Target()->GetContext().GetIsaDescription().ISAName + "_" + Statement.Target()->GetPrototype().GetIRSignature().GetName() + "<false>";
 
 					if (Statement.Target()->GetPrototype().GetIRSignature().GetName() == "flush") {
 						output << "builder.flush();\n";

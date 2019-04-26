@@ -50,7 +50,6 @@ namespace gensim
 		class IRExpression;
 		class IRHelperAction;
 		class IRIntrinsicAction;
-		class IRExternalAction;
 		class IRCallableAction;
 		class IRExecuteAction;
 		class IRCallExpression;
@@ -64,7 +63,6 @@ namespace gensim
 			class SSAContext;
 			class SSABuilder;
 			class SSAStatement;
-			class SSAExternalAction;
 		}
 
 		class ParserOutput
@@ -126,14 +124,11 @@ namespace gensim
 			void PrettyPrint(std::ostringstream &out) const;
 
 			IRCallableAction *GetCallable(const std::string& name) const;
-			IRExternalAction *GetExternal(const std::string& name) const;
 			IRIntrinsicAction *GetIntrinsic(const std::string& name) const;
-			IntrinsicEmitterFn GetIntrinsicEmitter(const std::string& name) const;
 			IRHelperAction *GetHelper(const std::string& name) const;
 
 			bool Resolve();
 			void LoadIntrinsics();
-			void LoadExternalFunctions();
 			void LoadRegisterNames();
 			void LoadFeatureNames();
 			ssa::SSAContext *EmitSSA();
@@ -174,10 +169,11 @@ namespace gensim
 
 			bool Valid;
 
-			std::map<std::string, std::pair<IRIntrinsicAction *, IntrinsicEmitterFn>> IntrinsicTable;
+			std::map<std::string, IRIntrinsicAction *> IntrinsicTable;
+			std::map<IntrinsicID, IRIntrinsicAction *> IntrinsicIDMap;
+
 			std::map<std::string, IRHelperAction *> HelperTable;
 			std::map<std::string, IRExecuteAction *> ExecuteTable;
-			std::map<std::string, IRExternalAction *> ExternalTable;
 			std::map<std::string, isa::InstructionDescription*> InstructionTable;
 
 			std::shared_ptr<ssa::SSATypeManager> type_manager_;
@@ -202,8 +198,7 @@ namespace gensim
 
 			void BuildStructTypes();
 
-			void AddIntrinsic(const std::string& name, const IRType& retty, const IRSignature::param_type_list_t& ptl, IntrinsicEmitterFn emitter, ssa::SSAIntrinsicStatement::IntrinsicType);
-			void AddExternalFunction(const std::string& name, const IRType& retty, const IRSignature::param_type_list_t& ptl);
+			void AddIntrinsic(const std::string& name, IntrinsicID id, IRIntrinsicAction::SignatureFactory signatureFactory, IRIntrinsicAction::SSAEmitter emitter, IRIntrinsicAction::FixednessResolver fixednessResolver);
 		};
 	}
 }

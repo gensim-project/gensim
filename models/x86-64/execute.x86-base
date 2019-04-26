@@ -908,7 +908,7 @@ helper uint64 addition(uint64 op0, uint64 op1, uint8 carry, uint8 op_size)
 	switch(op_size) {
 		case 8: { __builtin_adc8_flags(op0, op1, carry); break; }
 		case 16: { __builtin_adc16_flags(op0, op1, carry); break; }
-		case 32: { __builtin_adc_flags(op0, op1, carry); break; } 
+		case 32: { __builtin_adc32_flags(op0, op1, carry); break; } 
 		case 64: { __builtin_adc64_flags(op0, op1, carry); break; }
 		default: { trap(); }
 	}
@@ -1088,7 +1088,7 @@ helper uint64 subtract(uint64 op0, uint64 op1, uint8 carry, uint8 size)
 	switch(size) {
 		case 8: { __builtin_sbc8_flags(op0, op1, carry); break; }
 		case 16: { __builtin_sbc16_flags(op0, op1, carry); break; }
-		case 32: { __builtin_sbc_flags(op0, op1, carry); break; } 
+		case 32: { __builtin_sbc32_flags(op0, op1, carry); break; } 
 		case 64: { __builtin_sbc64_flags(op0, op1, carry); break; }
 		default: { trap(); }
 	}
@@ -1543,7 +1543,7 @@ helper void update_zs_flags(uint64 value, uint8 width)
 
 helper void update_parity(uint8 value)
 {
-	write_register(PF, (__builtin_popcount((uint8)value) & (uint32)1) == 0);
+	write_register(PF, (__builtin_popcount32((uint8)value) & (uint32)1) == 0);
 	return;
 }
 

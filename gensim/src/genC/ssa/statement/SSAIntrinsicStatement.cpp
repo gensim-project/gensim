@@ -10,6 +10,8 @@
 using namespace gensim::genc::ssa;
 using gensim::genc::IRType;
 
+#if 0
+
 const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 {
 	switch (kind) {
@@ -56,18 +58,6 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 		case SSAIntrinsic_Sbc16WithFlags:
 			return IRTypes::UInt16;
 
-		case SSAIntrinsic_Adc:
-		case SSAIntrinsic_Sbc:
-		case SSAIntrinsic_AdcWithFlags:
-		case SSAIntrinsic_SbcWithFlags:
-			return IRTypes::UInt32;
-
-		case SSAIntrinsic_Adc64:
-		case SSAIntrinsic_Sbc64:
-		case SSAIntrinsic_Adc64WithFlags:
-		case SSAIntrinsic_Sbc64WithFlags:
-			return IRTypes::UInt64;
-
 		case SSAIntrinsic_BSwap32:
 			return IRTypes::UInt32;
 		case SSAIntrinsic_BSwap64:
@@ -79,18 +69,6 @@ const SSAType& SSAIntrinsicStatement::ResolveType(IntrinsicType kind) const
 		case SSAIntrinsic_Clz64:
 		case SSAIntrinsic_Ctz64:
 			return IRTypes::UInt64;
-
-		case SSAIntrinsic_UMULL:
-		case SSAIntrinsic_UMULH:
-		case SSAIntrinsic_SMULL:
-		case SSAIntrinsic_SMULH:
-			return IRTypes::UInt64;
-
-		case SSAIntrinsic_FMA32:
-			return IRTypes::Float;
-
-		case SSAIntrinsic_FMA64:
-			return IRTypes::Double;
 
 		case SSAIntrinsic_MemMonitorWrite8:
 		case SSAIntrinsic_MemMonitorWrite16:
@@ -126,6 +104,7 @@ bool SSAIntrinsicStatement::IsFixed() const
 			return false;
 	}
 }
+#endif
 
 SSAIntrinsicStatement::~SSAIntrinsicStatement()
 {

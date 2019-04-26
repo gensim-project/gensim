@@ -33,16 +33,19 @@ AC_ARCH(aarch64)
 		bank VBL (uint64, 0, 32, 16, 1, 8, 8);
 		bank VBH (uint64, 8, 32, 16, 1, 8, 8);
 		
-		//bank VQ (uint128, 0, 32, 16, 1, 16, 16);
-		
 		bank VB    (uint8,  0, 32, 16, 1, 1, 1);
 		bank VH    (uint16, 0, 32, 16, 1, 2, 2);
 		bank VS    (uint32, 0, 32, 16, 1, 4, 4);
 		bank VD    (uint64, 0, 32, 16, 1, 8, 8);
+		bank VQ   (uint128, 0, 32, 16, 1, 16, 16);
 
 		bank FS    (float,  0, 32, 16, 1, 4, 4);
 		bank FSH   (uint32, 4, 32, 16, 1, 4, 4);
 		bank FD    (double, 0, 32, 16, 1, 8, 8);
+		
+		bank VF2S  (float,  0, 32, 16, 2, 4, 4);
+		bank VF4S  (float,  0, 32, 16, 4, 4, 4);
+		bank VF2D  (double, 0, 32, 16, 2, 8, 8);
 		
 		bank VB8B  (uint8,  0, 32, 16, 8, 1, 1);
 		bank VB16B (uint8,  0, 32, 16, 16, 1, 1);
@@ -56,6 +59,8 @@ AC_ARCH(aarch64)
 		bank VB2D  (uint64, 0, 32, 16, 2, 8, 8);
 		
 		bank VB1Q  (uint128, 0, 32, 16, 1, 16, 16);
+		
+		bank TBL   (uint8, 0, 512, 1, 1, 1, 1);
 	}
 
 	ac_regspace(16) {

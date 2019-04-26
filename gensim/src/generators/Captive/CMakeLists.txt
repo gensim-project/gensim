@@ -3,5 +3,7 @@ TARGET_ADD_SOURCES(gensim-lib
 	DisasmGenerator.cpp
 	JITv2Generator.cpp
 	JITv2NodeWalker.cpp
+	JITv3Generator.cpp
+	JITv3NodeWalker.cpp
 	ProcessorGenerator.cpp
 )

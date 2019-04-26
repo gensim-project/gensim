@@ -298,7 +298,9 @@ namespace gensim
 					}
 
 					str << "case " << ClassNameForDecoder() << "::" << arch.Name << "_unknown: ";
-					str << "// printf(\"*** unknown instruction: %08x\\n\", insn.ir);";
+					str << "#ifdef CONFIG_PRINT_UNKNOWN_INSTRUCTIONS\n";
+					str << "printf(\"*** unknown instruction: %08x\\n\", insn.ir);";
+					str << "#endif\n";
 					str << "emitter.call((void *)&__behaviour_trampoline_undef);";
 					str << "emitter.leave();";
 					str << "return true;";
@@ -486,17 +488,33 @@ namespace gensim
 						if(sym->GetType().Reference || sym->SType == Symbol_Parameter) {
 							continue;
 						}
-						src_stream << sym->GetType().GetCType() << " CV_" << sym->GetName() << ";\n";
-						src_stream << "auto DV_" << sym->GetName() << " = emitter.alloc_local(emitter.context().types()." << sym->GetType().GetUnifiedType() << "(), ";
 
-						bool is_global = sym->HasDynamicUses();
+						bool symbol_has_fixed_uses = false;
+						bool symbol_has_dynamic_uses = false;
 
-						src_stream << (is_global ? "true" : "false");
-						src_stream << ");\n";
+						SSAValue *sym_val = (SSAValue *)sym;
+						for (const auto use : sym_val->GetUses()) {
+							if (auto use_stmt = dynamic_cast<SSAStatement *>(use)) {
+								if (use_stmt->IsFixed()) {
+									symbol_has_fixed_uses = true;
+								} else {
+									symbol_has_dynamic_uses = true;
+								}
+							}
+						}
 
-						/*if (!is_global) {
-							src_stream << "dbt::el::Value *CVR_" << sym->GetName() << " = nullptr;";
-						}*/
+						if (symbol_has_fixed_uses) {
+							src_stream << sym->GetType().GetCType() << " CV_" << sym->GetName() << ";\n";
+						}
+
+						if (symbol_has_dynamic_uses) {
+							src_stream << "auto DV_" << sym->GetName() << " = emitter.alloc_local(emitter.context().types()." << sym->GetType().GetUnifiedType() << "(), ";
+
+							bool is_global = sym->HasDynamicUses();
+
+							src_stream << (is_global ? "true" : "false");
+							src_stream << ");\n";
+						}
 					}
 
 					src_stream << "goto fixed_block_" << action.EntryBlock->GetName() << ";\n";

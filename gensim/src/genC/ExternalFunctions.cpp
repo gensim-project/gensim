@@ -1,4 +1,5 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
+#if 0
 
 #include "define.h"
 #include "genC/Intrinsics.h"
@@ -88,6 +89,32 @@ void GenCContext::LoadExternalFunctions()
 
 	AddExternalFunction("__builtin_polymul8", IRTypes::UInt16, {IRParam("a", IRTypes::UInt8), IRParam("b", IRTypes::UInt8)});
 	AddExternalFunction("__builtin_polymul64", IRTypes::UInt128, {IRParam("a", IRTypes::UInt64), IRParam("b", IRTypes::UInt64)});
+
+	AddExternalFunction("__builtin_update_zn_flags", IRTypes::Void, {IRParam("value", IRTypes::UInt32)});
+	AddExternalFunction("__builtin_update_zn_flags64", IRTypes::Void, {IRParam("value", IRTypes::UInt64)});
+
+	// Carry + Flags Optimisation: TODO New GenSim flag-capturing operator stuff
+	AddExternalFunction("__builtin_adc", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_adc_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_sbc", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_sbc_flags", IRTypes::UInt32, {IRParam("lhs", IRTypes::UInt32), IRParam("rhs", IRTypes::UInt32), IRParam("carry_in", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_adc64", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_adc64_flags", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_sbc64", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)});
+	AddExternalFunction("__builtin_sbc64_flags", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64), IRParam("carry_in", IRTypes::UInt8)});
+
+	// Wide multiplication: TODO support 128-bit types
+	AddExternalFunction("__builtin_umull", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64)});
+	AddExternalFunction("__builtin_umulh", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64)});
+	AddExternalFunction("__builtin_smull", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64)});
+	AddExternalFunction("__builtin_smulh", IRTypes::UInt64, {IRParam("lhs", IRTypes::UInt64), IRParam("rhs", IRTypes::UInt64)});
+	AddExternalFunction("__builtin_fma32", IRTypes::Float, {IRParam("a", IRTypes::Float), IRParam("b", IRTypes::Float), IRParam("c", IRTypes::Float)});
+	AddExternalFunction("__builtin_fma64", IRTypes::Double, {IRParam("a", IRTypes::Double), IRParam("b", IRTypes::Double), IRParam("c", IRTypes::Double)});
+
+	AddExternalFunction("__builtin_abs", IRTypes::UInt64, {IRParam("a", IRTypes::Int64)});
+
+	AddExternalFunction("invalidate_translations", IRTypes::Void, {});
+	AddExternalFunction("invalidate_translation", IRTypes::Void, {IRParam("addr", wordtype)});
 }
 
 SSAStatement *IRCallExpression::EmitExternalCall(SSABuilder &bldr, const gensim::arch::ArchDescription &Arch) const
@@ -130,3 +157,5 @@ SSAStatement *IRCallExpression::EmitExternalCall(SSABuilder &bldr, const gensim:
 
 	return stmt;
 }
+
+#endif
