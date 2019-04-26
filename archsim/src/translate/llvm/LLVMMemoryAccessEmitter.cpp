@@ -55,6 +55,7 @@ llvm::Value* BaseLLVMMemoryAccessEmitter::EmitMemoryRead(llvm::IRBuilder<>& buil
 			UNIMPLEMENTED;
 	}
 
+	address = builder.CreateZExtOrTrunc(address, llvm::IntegerType::get(GetCtx().LLVMCtx, 64));
 	llvm::Value *value = builder.CreateCall(fn_ptr, {GetCtx().Values.state_block_ptr, address, llvm::ConstantInt::get(GetCtx().Types.i32, interface)});
 
 	if(archsim::options::Trace) {
@@ -91,6 +92,8 @@ void BaseLLVMMemoryAccessEmitter::EmitMemoryWrite(llvm::IRBuilder<>& builder, ll
 			UNIMPLEMENTED;
 	}
 
+	value = builder.CreateZExtOrTrunc(value, llvm::IntegerType::get(GetCtx().LLVMCtx, size_in_bytes*8));
+	address = builder.CreateZExtOrTrunc(address, llvm::IntegerType::get(GetCtx().LLVMCtx, 64));
 	builder.CreateCall(fn_ptr, {GetCtx().GetThreadPtr(builder), llvm::ConstantInt::get(GetCtx().Types.i32, interface), address, value});
 
 	if(archsim::options::Trace) {
