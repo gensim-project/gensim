@@ -4001,6 +4001,11 @@ execute(fadd)
 		float result = n + m;
 		write_float_reg32(inst.rd, result);
 	} else {
+		/*uint64 n = read_register_bank(VD, inst.rn);
+		uint64 m = read_register_bank(VD, inst.rm);
+		uint64 d = __softfp_add64(n, m);
+		write_register_bank(VD, inst.rd, d);*/
+	
 		// f64
 		double n = read_float_reg64(inst.rn);
 		double m = read_float_reg64(inst.rm);

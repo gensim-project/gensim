@@ -28,6 +28,8 @@ Intrinsic("mem_lock", MemLock, Signature(IRTypes::Void, { IRTypes::UInt32 }), De
 Intrinsic("mem_unlock", MemUnlock, Signature(IRTypes::Void, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
 
 Intrinsic("mem_monitor_acquire", MemMonitorAcquire, Signature(IRTypes::Void, { IRTypes::UInt32, ArchWordType }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_monitor_release", MemMonitorRelease, Signature(IRTypes::UInt8, { IRTypes::UInt32, ArchWordType }), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("mem_monitor_release_all", MemMonitorReleaseAll, Signature(IRTypes::UInt8, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
 Intrinsic("mem_monitor_write_8", MemMonitorWrite8, Signature(IRTypes::UInt8, { IRTypes::UInt32, ArchWordType, IRTypes::UInt8 }), DefaultIntrinsicEmitter, NeverFixed)
 Intrinsic("mem_monitor_write_16", MemMonitorWrite16, Signature(IRTypes::UInt8, { IRTypes::UInt32, ArchWordType, IRTypes::UInt16 }), DefaultIntrinsicEmitter, NeverFixed)
 Intrinsic("mem_monitor_write_32", MemMonitorWrite32, Signature(IRTypes::UInt8, { IRTypes::UInt32, ArchWordType, IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
@@ -150,3 +152,6 @@ Intrinsic("__builtin_fcvt_f64_u64", FPConvertF64U64, Signature(IRTypes::UInt64, 
 // ** Conversions ** //
 Intrinsic("__builtin_cast_float_to_u32_truncate", CastFloatToU32Truncate, Signature(IRTypes::UInt32, { IRTypes::Float }), CastIntrinsicEmitter, AutoFixedness)
 Intrinsic("__builtin_cast_double_to_u64_truncate", CastDoubleToU64Truncate, Signature(IRTypes::UInt64, { IRTypes::Double }), CastIntrinsicEmitter, AutoFixedness)
+
+// ** Specials ** //
+Intrinsic("__softfp_add64", SoftFPAdd64, Signature(IRTypes::UInt64, { IRTypes::UInt64, IRTypes::UInt64 }), DefaultIntrinsicEmitter, AutoFixedness)
