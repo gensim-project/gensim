@@ -512,7 +512,7 @@ execute(sys)
 
 execute(clrex)
 {
-	//
+	mem_monitor_release_all(Data);
 }
 
 // ----------------------------------------------------------------------------
@@ -607,15 +607,25 @@ execute(prfm_lit)
 execute(stxrb)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	mem_store(address, inst.rt, 8, 0, 1);	
-	write_gpr(0, inst.rs, (uint64)0);
+
+	if (mem_monitor_release(Data, address)) {
+		mem_store(address, inst.rt, 8, 0, 1);	
+		write_gpr32(inst.rs, (uint64)0);
+	} else {
+		write_gpr32(inst.rs, (uint64)1);
+	}
 }
 		
 execute(stlxrb)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	mem_store(address, inst.rt, 8, 1, 1);	
-	write_gpr(0, inst.rs, (uint64)0);
+
+	if (mem_monitor_release(Data, address)) {
+		mem_store(address, inst.rt, 8, 1, 1);	
+		write_gpr32(inst.rs, (uint64)0);
+	} else {
+		write_gpr32(inst.rs, (uint64)1);
+	}
 }
 		
 execute(ldxrb)
@@ -645,15 +655,25 @@ execute(ldarb)
 execute(stxrh)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	mem_store(address, inst.rt, 16, 0, 1);
-	write_gpr(0, inst.rs, (uint64)0);
+
+	if (mem_monitor_release(Data, address)) {
+		mem_store(address, inst.rt, 16, 0, 1);
+		write_gpr32(inst.rs, (uint64)0);
+	} else {
+		write_gpr32(inst.rs, (uint64)1);
+	}
 }
 
 execute(stlxrh)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	mem_store(address, inst.rt, 16, 1, 1);
-	write_gpr(0, inst.rs, (uint64)0);
+
+	if (mem_monitor_release(Data, address)) {
+		mem_store(address, inst.rt, 16, 1, 1);
+		write_gpr32(inst.rs, (uint64)0);
+	} else {
+		write_gpr32(inst.rs, (uint64)1);
+	}
 }
 
 execute(ldxrh)
@@ -683,14 +703,22 @@ execute(ldarh)
 execute(stxr)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.size == 2) {
-		mem_store(address, inst.rt, 32, 0, 1);
+		if (mem_monitor_release(Data, address)) {
+			mem_store(address, inst.rt, 32, 0, 1);
+			write_gpr32(inst.rs, 0);
+		} else {
+			write_gpr32(inst.rs, 1);
+		}
 	} else {
-		mem_store(address, inst.rt, 64, 0, 1);
+		if (mem_monitor_release(Data, address)) {
+			mem_store(address, inst.rt, 64, 0, 1);
+			write_gpr32(inst.rs, 0);
+		} else {
+			write_gpr32(inst.rs, 1);
+		}
 	}
-	
-	write_gpr(0, inst.rs, 0);
 }
 
 execute(stlxr)
@@ -698,12 +726,20 @@ execute(stlxr)
 	uint64 address = read_gpr_sp(1, inst.rn);
 	
 	if (inst.size == 2) {
-		mem_store(address, inst.rt, 32, 1, 1);
+		if (mem_monitor_release(Data, address)) {
+			mem_store(address, inst.rt, 32, 1, 1);
+			write_gpr32(inst.rs, 0);
+		} else {
+			write_gpr32(inst.rs, 1);
+		}
 	} else {
-		mem_store(address, inst.rt, 64, 1, 1);
-	}
-	
-	write_gpr(0, inst.rs, 0);
+		if (mem_monitor_release(Data, address)) {
+			mem_store(address, inst.rt, 64, 1, 1);
+			write_gpr32(inst.rs, 0);
+		} else {
+			write_gpr32(inst.rs, 1);
+		}
+	}	
 }
 
 execute(stxp)
@@ -711,14 +747,22 @@ execute(stxp)
 	uint64 address = read_gpr_sp(1, inst.rn);
 	
 	if (inst.size == 2) {
-		mem_store(address, inst.rt, 32, 0, 1);
-		mem_store(address+4, inst.rt2, 32, 0, 1);
+		if (mem_monitor_release(Data, address)) {
+			mem_store(address, inst.rt, 32, 0, 1);
+			mem_store(address+4, inst.rt2, 32, 0, 1);
+			write_gpr32(inst.rs, 0);
+		} else {
+			write_gpr32(inst.rs, 1);
+		}
 	} else {
-		mem_store(address, inst.rt, 64, 0, 1);
-		mem_store(address+8, inst.rt2, 64, 0, 1);
-	}
-	
-	write_gpr(0, inst.rs, 0);
+		if (mem_monitor_release(Data, address)) {
+			mem_store(address, inst.rt, 64, 0, 1);
+			mem_store(address+8, inst.rt2, 64, 0, 1);
+			write_gpr32(inst.rs, 0);
+		} else {
+			write_gpr32(inst.rs, 1);
+		}
+	}	
 }
 
 execute(stlxp)
@@ -726,14 +770,22 @@ execute(stlxp)
 	uint64 address = read_gpr_sp(1, inst.rn);
 	
 	if (inst.size == 2) {
-		mem_store(address, inst.rt, 32, 1, 1);
-		mem_store(address+4, inst.rt2, 32, 1, 1);
+		if (mem_monitor_release(Data, address)) {
+			mem_store(address, inst.rt, 32, 1, 1);
+			mem_store(address+4, inst.rt2, 32, 1, 1);
+			write_gpr32(inst.rs, 0);
+		} else {
+			write_gpr32(inst.rs, 1);
+		}
 	} else {
-		mem_store(address, inst.rt, 64, 1, 1);
-		mem_store(address+8, inst.rt2, 64, 1, 1);
+		if (mem_monitor_release(Data, address)) {
+			mem_store(address, inst.rt, 64, 1, 1);
+			mem_store(address+8, inst.rt2, 64, 1, 1);
+			write_gpr32(inst.rs, 0);
+		} else {
+			write_gpr32(inst.rs, 1);
+		}
 	}
-	
-	write_gpr(0, inst.rs, 0);
 }
 
 execute(ldxr)
@@ -1668,6 +1720,7 @@ helper void mem_load(uint64 address, uint8 dest_reg, uint8 width, uint8 sign_ext
 	}
 	}
 	
+	mem_monitor_acquire(Data, address);
 	return;
 }
 
