@@ -24,7 +24,7 @@ if(${ARCHSIM_BUILD_ARM_SYSTEM})
 
 	cross_compile_bin(
 			arm
-			"-march=armv5"
+			"-march=armv5t"
 			ArmBootloader.S
 			bootloader
 	)
