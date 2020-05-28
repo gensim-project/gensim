@@ -12,6 +12,7 @@
 
 #include <map>
 #include <set>
+#include <string>
 
 #include "util/VSet.h"
 

@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <malloc.h>
 #include <string>
+#include <stdexcept>
 
 using namespace wulib;
 

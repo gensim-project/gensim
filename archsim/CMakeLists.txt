@@ -97,6 +97,7 @@ TARGET_COMPILE_DEFINITIONS(archsim-core PUBLIC "-DARCHSIM_CONFIGSTRING=${CONFIGS
 
 # Process the configuration files
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-scm.h.in ${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-scm.h)
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/inc/cmake-config.h)
 
 # Determing the simulation host that we're building for
 IF(NOT ARCHSIM_SIMULATION_HOST)

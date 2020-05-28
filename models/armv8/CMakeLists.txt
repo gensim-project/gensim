@@ -1,5 +1,5 @@
 
-define_model(
+define_captive_model(
 	model-armv8 
 	aarch64
 	aarch64.ac

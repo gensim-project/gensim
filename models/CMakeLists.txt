@@ -96,6 +96,23 @@ function(define_model target-name arch-name arch-file)
 	
 endfunction()
 
+function(define_captive_model target-name arch-name arch-file)
+	# Figure out correct optimisation level depending on build type
+	IF(${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
+		SET(MODEL_OPT "0")
+	ELSEIF(${CMAKE_BUILD_TYPE} STREQUAL "DEBUGOPT")
+		SET(MODEL_OPT "2")
+	ELSEIF(${CMAKE_BUILD_TYPE} STREQUAL "RELEASE")
+		SET(MODEL_OPT "3")
+	ENDIF()
+
+	SET(gensim-components "captive_decoder,captive_cpu,captive_jitv2,captive_disasm")
+	SET(gensim-component-options "captive_decoder.GenerateDotGraph=1,captive_decoder.OptimisationEnabled=1,captive_decoder.OptimisationMinPrefixLength=8,captive_decoder.OptimisationMinPrefixMembers=4,captive_decoder.InlineHints=1")
+
+	SET(gensim-options -s ${gensim-components} -o ${gensim-component-options})
+
+endfunction()
+
 ADD_SUBDIRECTORY(armv7)
 ADD_SUBDIRECTORY(armv8)
 ADD_SUBDIRECTORY(risc-v)

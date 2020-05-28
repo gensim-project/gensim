@@ -447,6 +447,11 @@ namespace gensim
 						output << "thread->PendIRQ();";
 						break;
 
+					case IntrinsicID::Abs32:
+					case IntrinsicID::Abs64:
+						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = abs(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
+						break;
+
 					case IntrinsicID::DoubleAbs:
 					case IntrinsicID::FloatAbs:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = fabs(" << Factory.GetOrCreate(stmt.Args(0))->GetFixedValue() << ");";
@@ -684,6 +689,10 @@ namespace gensim
 					// Unimplemented
 					case IntrinsicID::ProbeDevice:
 						output << stmt.GetType().GetCType() << " " << stmt.GetName() << " = 0;";
+						output << "UNIMPLEMENTED;";
+						break;
+
+					case IntrinsicID::MemMonitorReleaseAll:
 						output << "UNIMPLEMENTED;";
 						break;
 

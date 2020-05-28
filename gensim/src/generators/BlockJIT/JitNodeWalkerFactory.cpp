@@ -976,6 +976,11 @@ namespace gensim
 						case IntrinsicID::ADC64:
 							return EmitDynamicCode(output, end_label, fully_fixed);
 
+						case IntrinsicID::Abs32:
+						case IntrinsicID::Abs64:
+							output << Statement.GetType().GetCType() << " " << Statement.GetName() << " = abs(" << arg0->GetFixedValue() << ");";
+							break;
+
 						default:
 							throw std::logic_error("Unrecognised intrinsic: " + Statement.GetSignature().GetName());
 					}
