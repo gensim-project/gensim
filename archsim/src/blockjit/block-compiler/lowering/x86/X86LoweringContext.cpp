@@ -377,10 +377,10 @@ void X86LoweringContext::encode_operand_function_argument(const IROperand *oper,
 //		} else
 		if (oper->is_alloc_reg()) {
 			auto &reg = get_allocable_register(oper->alloc_data, 8);
-			GetEncoder().mov(X86Memory::get(REG_RSP, stack_map.at(&reg)), target_reg);
+			GetEncoder().lea(X86Memory::get(REG_RSP, stack_map.at(&reg)), target_reg);
 		} else {
 			int64_t stack_offset = (stack_offset_adjust + oper->alloc_data + (8*stack_map.size()));
-			GetEncoder().mov(X86Memory::get(REG_RSP, stack_offset), target_reg);
+			GetEncoder().lea(X86Memory::get(REG_RSP, stack_offset), target_reg);
 		}
 	} else {
 		assert(false);
