@@ -5,6 +5,7 @@ archsim/inc/cmake-scm.h
 
 nbproject/
 *.vscode
+*.code-workspace
 
 CMakeFiles/
 
@@ -23,3 +24,5 @@ CMakeCache.txt
 
 dist/
 gtest/
+
+models/*/output*
