@@ -84,10 +84,10 @@ AC_ISA(a64)
 	ac_format SIMD_THREE_SAME = "0x0:1 %Q:1 %U:1 %SCALAR:1 0xe:4 %size:2 0x1:1 %rm:5 %opcode:5 0x1:1 %rn:5 %rd:5";
 	ac_instr<SIMD_THREE_SAME> add_vector, sub_vector, addp_vector, and_vector, orr_vector, eor_vector, orn_vector, bic_vector, mul_vector, mla_vector;
 	ac_instr<SIMD_THREE_SAME> fsub_vector, fmul_vector;
-	ac_instr<SIMD_THREE_SAME> cmeq_reg, cmhi_reg, cmtst, fabd, bsl, bit, bif, smax, smin, sshl, ushl;
+	ac_instr<SIMD_THREE_SAME> cmeq_reg, cmhi_reg, cmhs_reg, cmtst, fabd, bsl, bit, bif, smax, smin, sshl, ushl;
 	ac_behaviour add_vector, sub_vector, addp_vector, and_vector, orr_vector, eor_vector, orn_vector, bic_vector, mul_vector, mla_vector;
 	ac_behaviour fsub_vector, fmul_vector;
-	ac_behaviour cmeq_reg, cmhi_reg, cmtst, fabd, bsl, bit, bif, smax, smin, sshl, ushl;
+	ac_behaviour cmeq_reg, cmhi_reg, cmhs_reg, cmtst, fabd, bsl, bit, bif, smax, smin, sshl, ushl;
 
 	// C4.6.11 Advanced SIMD scalar two-register misc
 	// C4.6.17 Advanced SIMD two-register misc
@@ -137,8 +137,8 @@ AC_ISA(a64)
 	
 	// C4.6.29 Conversion between floating-point and fixed-point
 	ac_format CVT_FP_FXP = "%sf:1 0x0:1 %S:1 0x1e:5 %type:2 0x0:1 %rmode:2 %opcode:3 %scale:6 %rn:5 %rd:5";
-	ac_instr<CVT_FP_FXP> fcvtz_fxp;
-	ac_behaviour fcvtz_fxp;
+	ac_instr<CVT_FP_FXP> fcvtz_fxp, ucvtf_fxp;
+	ac_behaviour fcvtz_fxp, ucvtf_fxp;
 
 	// C4.6.30 Conversion between floating-point and integer
 	ac_format CVT_FP_I = "%sf:1 0x0:1 %S:1 0x1e:5 %type:2 0x1:1 %rmode:2 %opcode:3 0x0:6 %rn:5 %rd:5";
@@ -586,6 +586,12 @@ AC_ISA(a64)
 		cmhi_reg.set_asm("cmhi %dreg, %dreg, %dreg", rd, rn, rm, Q=1, SCALAR=1, size=3);
 		cmhi_reg.set_asm("cmhi %vreg.%arrg, %vreg.%arrg, %vreg.%arrg", rd, arrangement, rn, arrangement, rm, arrangement, SCALAR=0);
 		cmhi_reg.set_behaviour(cmhi_reg);
+
+		cmhs_reg.set_decoder(Q=1, U=1, opcode=7, SCALAR=1, size=3);
+		cmhs_reg.set_decoder(U=1, opcode=7, SCALAR=0);
+		cmhs_reg.set_asm("cmhs %dreg, %dreg, %dreg", rd, rn, rm, Q=1, SCALAR=1, size=3);
+		cmhs_reg.set_asm("cmhs %vreg.%arrg, %vreg.%arrg, %vreg.%arrg", rd, arrangement, rn, arrangement, rm, arrangement, SCALAR=0);
+		cmhs_reg.set_behaviour(cmhs_reg);
 		
 		cmtst.set_decoder(Q=1, U=0, opcode=17, SCALAR=1, size=3);
 		cmtst.set_decoder(U=0, opcode=17, SCALAR=0);
@@ -963,6 +969,15 @@ AC_ISA(a64)
 		fcvtz_fxp.set_asm("fcvtzu %regx, %dreg, %imm", rd, rn, immu64, sf=1, type=1, opcode=1);
 		
 		fcvtz_fxp.set_behaviour(fcvtz_fxp);
+		
+		ucvtf_fxp.set_decoder(sf=0, S=0, type=3, rmode=0, opcode=3);	// u32 -> f16
+		ucvtf_fxp.set_decoder(sf=0, S=0, type=0, rmode=0, opcode=3);	// u32 -> f32
+		ucvtf_fxp.set_decoder(sf=0, S=0, type=1, rmode=0, opcode=3);	// u32 -> f64
+		ucvtf_fxp.set_decoder(sf=1, S=0, type=3, rmode=0, opcode=3);	// u64 -> f16
+		ucvtf_fxp.set_decoder(sf=1, S=0, type=0, rmode=0, opcode=3);	// u64 -> f32
+		ucvtf_fxp.set_decoder(sf=1, S=0, type=1, rmode=0, opcode=3);	// u64 -> f64
+		
+		ucvtf_fxp.set_behaviour(ucvtf_fxp);
 		
 		// -----------
 		// C4.6.30

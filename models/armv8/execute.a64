@@ -17,7 +17,7 @@ execute(addi)
 {
 	uint64 imm = decode_imm(inst.imm12, inst.shift);
 	uint64 op1 = read_gpr_sp(inst.sf, inst.rn);
-	
+
 	if (inst.S) {
 		if (inst.sf == 0) {
 			write_gpr32(inst.rd, __builtin_adc32_flags((uint32)op1, (uint32)imm, 0));
@@ -33,7 +33,7 @@ execute(subi)
 {
 	uint64 imm = decode_imm(inst.imm12, inst.shift);
 	uint64 op1 = read_gpr_sp(inst.sf, inst.rn);
-	
+
 	if (inst.S) {
 		if (inst.sf == 0) {
 			write_gpr32(inst.rd, __builtin_sbc32_flags((uint32)op1, (uint32)imm, 0));
@@ -55,7 +55,7 @@ execute(sbfm)
 	//bits(datasize) bot = ROR(src, R) AND wmask;
 	//bits(datasize) top = Replicate(src<S>);
 	//X[d] = (top AND NOT(tmask)) OR (bot AND tmask);
-		
+
 	if (inst.immr == 0 && inst.imms == 7 && inst.sf == inst.N) {
 		// sxtb
 		write_gpr(inst.sf, inst.rd, (uint64)(sint64)(sint8)read_gpr(0, inst.rn));
@@ -67,17 +67,17 @@ execute(sbfm)
 		write_gpr(1, inst.rd, (uint64)(sint64)(sint32)read_gpr(0, inst.rn));
 	} else {
 		uint64 value = read_gpr(inst.sf, inst.rn);
-		
+
 		if (inst.imms >= inst.immr) {
 			uint8 lsb = inst.immr;
 			uint8 width = (inst.imms - inst.immr) + 1;
-			
+
 			value = bit_extract(value, lsb, width);
 			value = (uint64)sign_extend(value, width);
 		} else {
 			uint8 lsb = (-inst.immr) % ((inst.sf == 0) ? 32 : 64);
 			uint8 width = inst.imms + 1;
-		
+
 			value = bit_extract(value, 0, width);
 			value = (uint64)sign_extend(value, width);
 			value <<= lsb;
@@ -92,7 +92,7 @@ execute(bfm)
 	uint64 bits;
 	uint8 pos;
 	uint8 len;
-	
+
 	if (inst.imms >= inst.immr) {
 		bits = bit_extract(read_gpr(inst.sf, inst.rn), inst.immr, ((uint8)inst.imms - (uint8)inst.immr) + 1);
 		pos = 0;
@@ -108,7 +108,7 @@ execute(bfm)
 }
 
 execute(ubfm)
-{	
+{
 	if (((inst.sf == 0 && inst.imms != 31) || (inst.sf == 1 && inst.imms != 63)) && (inst.imms + 1) == inst.immr) {
 		// LSL
 		uint8 amount = ((inst.sf == 0) ? 31 : 63) - inst.imms;
@@ -125,16 +125,16 @@ execute(ubfm)
 		write_gpr(0, inst.rd, (uint64)(uint16)read_gpr(0, inst.rn));
 	} else {
 		uint64 value = read_gpr(inst.sf, inst.rn);
-		
+
 		if (inst.imms >= inst.immr) {
 			uint8 lsb = inst.immr;
 			uint8 width = (inst.imms - inst.immr) + 1;
-			
+
 			value = bit_extract(value, lsb, width);
 		} else {
 			uint8 lsb = (-inst.immr) % ((inst.sf == 0) ? 32 : 64);
 			uint8 width = inst.imms + 1;
-		
+
 			value = bit_extract(value, 0, width);
 			value <<= lsb;
 		}
@@ -150,20 +150,20 @@ execute(extr)
 {
 	if (inst.rn == inst.rm) {
 		uint64 v = read_gpr(inst.sf, inst.rn);
-		
+
 		if (inst.sf == 0) {
 			v = (uint64)(((uint32)v) >>> inst.imms);
 		} else {
 			v = v >>> inst.imms;
 		}
-		
+
 		write_gpr(inst.sf, inst.rd, v);
 	} else {
 		uint64 rn = read_gpr(inst.sf, inst.rn);
 		uint64 rm = read_gpr(inst.sf, inst.rm);
-		
+
 		uint64 v = rm >> inst.imms;
-		
+
 		if (inst.sf) {
 			if (inst.imms > 0) {
 				v |= rn << (64 - inst.imms);
@@ -171,7 +171,7 @@ execute(extr)
 		} else {
 			v |= rn << (32 - inst.imms);
 		}
-		
+
 		write_gpr(inst.sf, inst.rd, v);
 	}
 }
@@ -182,13 +182,13 @@ execute(extr)
 execute(andi)
 {
 	uint64 op1 = read_gpr(inst.sf, inst.rn);
-	
+
 	if (inst.sf) {
 		uint64 result = op1 & inst.immu64;
-		
+
 		if (inst.opc == 3) {
 			write_gpr(1, inst.rd, result);
-			
+
 			__builtin_update_zn_flags64(result);
 			write_register(C, 0);
 			write_register(V, 0);
@@ -197,10 +197,10 @@ execute(andi)
 		}
 	} else {
 		uint32 result = (uint32)op1 & inst.immu32;
-		
+
 		if (inst.opc == 3) {
 			write_gpr(0, inst.rd, result);
-			
+
 			__builtin_update_zn_flags32(result);
 			write_register(C, 0);
 			write_register(V, 0);
@@ -213,7 +213,7 @@ execute(andi)
 execute(orri)
 {
 	uint64 op1 = read_gpr(inst.sf, inst.rn);
-	
+
 	if (inst.sf) {
 		uint64 result = op1 | inst.immu64;
 		write_gpr_sp(1, inst.rd, result);
@@ -226,7 +226,7 @@ execute(orri)
 execute(eori)
 {
 	uint64 op1 = read_gpr(inst.sf, inst.rn);
-	
+
 	if (inst.sf) {
 		uint64 result = op1 ^ inst.immu64;
 		write_gpr_sp(1, inst.rd, result);
@@ -255,7 +255,7 @@ execute(movk)
 {
 	uint64 result = read_gpr(inst.sf, inst.rd) & ~((uint64)0xffff << inst.shift_amount);
 	result |= ((uint64)inst.imm16) << inst.shift_amount;
-	
+
 	write_gpr(inst.sf, inst.rd, result);
 }
 
@@ -265,11 +265,11 @@ execute(movk)
 execute(adr)
 {
 	sint64 base = (sint64)read_pc();
-	
+
 	if (inst.op == 1) {
 		base &= ~(uint64)0xfff;
 	}
-	
+
 	write_gpr(1, inst.rd, (uint64)(base + inst.imms64));
 }
 
@@ -283,18 +283,18 @@ execute(adr)
 execute(cbz)
 {
 	uint64 test_val = read_gpr(inst.sf, inst.rt);
-	
+
 	if (inst.op == 0) {
 		if (test_val == 0) {
-			write_pc((uint64)((sint64)read_pc() + inst.imms64));
+			branch_taken((uint64)((sint64)read_pc() + inst.imms64));
 		} else {
-			write_pc((uint64)read_pc() + 4);
+			branch_not_taken();
 		}
 	} else {
 		if (test_val != 0) {
-			write_pc((uint64)((sint64)read_pc() + inst.imms64));
+			branch_taken((uint64)((sint64)read_pc() + inst.imms64));
 		} else {
-			write_pc((uint64)read_pc() + 4);
+			branch_not_taken();
 		}
 	}
 }
@@ -304,7 +304,48 @@ execute(cbz)
 // ----------------------------------------------------------------------------
 execute(bcond)
 {
-	write_pc((uint64)((sint64)read_pc() + inst.imms64));
+	uint8 state = 0;
+
+	switch(inst.cond >> 1) {
+	case 0: {
+		state = read_register(Z);
+		break;
+	}
+	case 1: {
+		state = read_register(C);
+		break;
+	}
+	case 2: {
+		state = read_register(N);
+		break;
+	}
+	case 3: {
+		state = read_register(V);
+		break;
+	}
+	case 4: {
+		state = read_register(C) & !read_register(Z);
+		break;
+	}
+	case 5: {
+		state = read_register(N) == read_register(V);
+		break;
+	}
+	case 6: {
+		state = (read_register(N) == read_register(V)) & !read_register(Z);
+		break;
+	}
+	case 7: {
+		state = 1;
+		break;
+	}
+	}
+
+	if (state ^ (inst.cond & 1)) {
+		branch_taken((uint64)((sint64)read_pc() + inst.imms64));
+	} else {
+		branch_not_taken();
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -316,6 +357,8 @@ execute(exgen)
 		software_breakpoint(inst.imm16);
 	} else if (inst.opc == 0 && inst.ll == 1) {
 		call_supervisor(inst.imm16);
+	} else if (inst.opc == 0 && inst.ll == 2) {
+		call_hypervisor(inst.imm16);
 	} else if (inst.opc == 0 && inst.ll == 3) {
 		write_device64(17, 0, 0);
 		write_pc(read_pc() + 4);
@@ -358,22 +401,22 @@ execute(msr_imm)
 execute(msr_reg)
 {
 	uint64 value = read_gpr64(inst.rt);
-	
+
 	if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 2 && inst.crm == 0 && inst.op2 == 0) {
 		write_register(TTBR0, value);
-		
+
 		if (__builtin_get_feature(A64_A1) == 0) {
 			mmu_notify_asid_change((uint32)(value >> 48));
 		}
-		
+
 		mmu_notify_pgt_change();
 	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 2 && inst.crm == 0 && inst.op2 == 1) {
 		write_register(TTBR1, value);
-		
+
 		if (__builtin_get_feature(A64_A1) == 1) {
 			mmu_notify_asid_change((uint32)(value >> 48));
 		}
-		
+
 		mmu_notify_pgt_change();
 	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 4 && inst.crm == 2 && inst.op2 == 0) {
 		update_spsel((uint8)value);
@@ -397,16 +440,20 @@ execute(msr_reg)
 		write_register(TPIDR_EL0, value);
 	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 13 && inst.crm == 0 && inst.op2 == 4) {
 		write_register(TPIDR_EL1, value);
+	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 13 && inst.crm == 0 && inst.op2 == 3) {
+		write_register(TPIDRRO_EL0, value);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 7 && inst.crm == 4 && inst.op2 == 0) {
+		write_register(PAR_EL1, value);
 	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 2 && inst.op2 == 0) {
 		// NZCV
-		
+
 		write_register(N, ((uint32)value & 0x80000000U) == 0x80000000U);
 		write_register(Z, ((uint32)value & 0x40000000U) == 0x40000000U);
 		write_register(C, ((uint32)value & 0x20000000U) == 0x20000000U);
 		write_register(V, ((uint32)value & 0x10000000U) == 0x10000000U);
 	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 2 && inst.op2 == 1) {
 		// DAIF
-		
+
 		write_register(D, ((uint32)value & 0x200) == 0x200);
 		write_register(A, ((uint32)value & 0x100) == 0x100);
 		write_register(I, ((uint32)value & 0x080) == 0x080);
@@ -414,7 +461,7 @@ execute(msr_reg)
 		trigger_irq();
 	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 4 && inst.op2 == 0) {
 		write_register(FPCR, (uint32)value);
-		
+
 		uint8 rounding_mode = (value >> 22) & 3;
 		__builtin_set_fp_rounding(rounding_mode);
 	} else {
@@ -432,7 +479,7 @@ execute(msr_sctlr)
 execute(mrs)
 {
 	uint64 value;
-		
+
 	if (inst.op0 == 2 && (inst.op1 == 0 || inst.op1 == 4 || inst.op1 == 6) && inst.crn == 2 && inst.crm == 0 && inst.op2 == 0) {
 		value = read_register(TTBR0);
 	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 2 && inst.crm == 0 && inst.op2 == 1) {
@@ -459,6 +506,8 @@ execute(mrs)
 		value = read_register(TPIDR_EL0);
 	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 13 && inst.crm == 0 && inst.op2 == 4) {
 		value = read_register(TPIDR_EL1);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 7 && inst.crm == 4 && inst.op2 == 0) {
+		value = read_register(PAR_EL1);
 	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 2 && inst.op2 == 0) {
 		// NZCV
 		value = ((uint64)read_register(N) << 31) | ((uint64)read_register(Z) << 30) | ((uint64)read_register(C) << 29) | ((uint64)read_register(V) << 28);
@@ -467,6 +516,14 @@ execute(mrs)
 		value = ((uint64)read_register(D) << 9) | ((uint64)read_register(A) << 8) | ((uint64)read_register(I) << 7) | ((uint64)read_register(F) << 6);
 	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 4 && inst.crm == 4 && inst.op2 == 0) {
 		value = (uint64)read_register(FPCR);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 6 && inst.crm == 0 && inst.op2 == 0) {
+		value = (uint64)read_register(FAR_EL1);
+	} else if (inst.op0 == 3 && inst.op1 == 0 && inst.crn == 5 && inst.crm == 2 && inst.op2 == 0) {
+		value = (uint64)read_register(ESR_EL1);
+	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 13 && inst.crm == 0 && inst.op2 == 3) {
+		value = read_register(TPIDRRO_EL0);
+	} else if (inst.op0 == 3 && inst.op1 == 3 && inst.crn == 0 && inst.crm == 0 && inst.op2 == 7) {
+		value = 0x11; // DCZID
 	} else {
 		read_device64(16, inst.ir, value);
 	}
@@ -489,7 +546,7 @@ execute(sys)
 	if (inst.crn == 7) {
 		if (inst.op1 == 3 && inst.crm == 4 && inst.op2 == 1) {
 			// DC ZVA
-			
+
 			uint64 addr = read_gpr64(inst.rt);
 			mem_write_64(Data, addr, 0);
 		} else if (inst.op1 == 0 && (inst.crm == 1 || inst.crm == 5) && inst.op2 == 0) {
@@ -499,14 +556,14 @@ execute(sys)
 		}
 	} else if (inst.crn == 8) {
 		// TLBI
-		
+
 		if ((inst.op2 & 3) == 1) {
 			mmu_flush_va(read_gpr64(inst.rt));
 		} else {
 			mmu_flush_all();
 		}
 	}
-	
+
 	//not_implemented();
 }
 
@@ -515,19 +572,31 @@ execute(clrex)
 	mem_monitor_release_all(Data);
 }
 
+internal helper void branch_taken(uint64 target)
+{
+	write_pc(target);
+	__branch_taken();
+	return;
+}
+
+internal helper void branch_not_taken()
+{
+	write_pc(read_pc() + 4);
+	__branch_not_taken();
+	return;
+}
+
 // ----------------------------------------------------------------------------
 // C4.3.5	Test & branch (immediate)
 // ----------------------------------------------------------------------------
 execute(tbz)
 {
 	uint64 operand = read_gpr(inst.b5, inst.rt);
-	
-	uint64 base = read_pc();
-	
+
 	if (((operand >> inst.bit_pos) & ((uint64)1)) == inst.op) {
-		write_pc((uint64)((sint64)base + inst.imms64));
+		branch_taken((uint64)((sint64)read_pc() + inst.imms64));
 	} else {
-		write_pc(base + 4);
+		branch_not_taken();
 	}
 }
 
@@ -539,9 +608,9 @@ execute(b)
 	if (inst.op) {
 		write_gpr(1, 30, read_pc() + 4);
 	}
-	
+
 	uint64 target = (uint64)((sint64)read_pc() + inst.imms64);
-	write_pc(target);
+	branch_taken(target);
 }
 
 // ----------------------------------------------------------------------------
@@ -552,15 +621,15 @@ execute(br)
 	if (inst.opc == 1) {
 		write_gpr(1, 30, read_pc() + 4);
 	}
-	
+
 	uint64 target = read_gpr(1, inst.rn);
-	write_pc(target);
+	branch_taken(target);
 }
 
 execute(ret)
 {
 	uint64 target = read_gpr(1, inst.rn);
-	write_pc(target);
+	branch_taken(target);
 }
 
 execute(eret)
@@ -583,7 +652,7 @@ execute(drps)
 execute(ldr_lit)
 {
 	uint64 address = read_pc() + inst.label;
-	
+
 	if (inst.opc == 0) {
 		mem_load(address, inst.rt, 32, 0, 0, 0);
 	} else {
@@ -609,25 +678,25 @@ execute(stxrb)
 	uint64 address = read_gpr_sp(1, inst.rn);
 
 	if (mem_monitor_release(Data, address)) {
-		mem_store(address, inst.rt, 8, 0, 1);	
+		mem_store(address, inst.rt, 8, 0, 1);
 		write_gpr32(inst.rs, (uint64)0);
 	} else {
 		write_gpr32(inst.rs, (uint64)1);
 	}
 }
-		
+
 execute(stlxrb)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
 
 	if (mem_monitor_release(Data, address)) {
-		mem_store(address, inst.rt, 8, 1, 1);	
+		mem_store(address, inst.rt, 8, 1, 1);
 		write_gpr32(inst.rs, (uint64)0);
 	} else {
 		write_gpr32(inst.rs, (uint64)1);
 	}
 }
-		
+
 execute(ldxrb)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
@@ -724,7 +793,7 @@ execute(stxr)
 execute(stlxr)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.size == 2) {
 		if (mem_monitor_release(Data, address)) {
 			mem_store(address, inst.rt, 32, 1, 1);
@@ -739,13 +808,13 @@ execute(stlxr)
 		} else {
 			write_gpr32(inst.rs, 1);
 		}
-	}	
+	}
 }
 
 execute(stxp)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.size == 2) {
 		if (mem_monitor_release(Data, address)) {
 			mem_store(address, inst.rt, 32, 0, 1);
@@ -762,13 +831,13 @@ execute(stxp)
 		} else {
 			write_gpr32(inst.rs, 1);
 		}
-	}	
+	}
 }
 
 execute(stlxp)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.size == 2) {
 		if (mem_monitor_release(Data, address)) {
 			mem_store(address, inst.rt, 32, 1, 1);
@@ -791,7 +860,7 @@ execute(stlxp)
 execute(ldxr)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.size == 2) {
 		mem_load(address, inst.rt, 32, 0, 0, 1);
 	} else {
@@ -802,7 +871,7 @@ execute(ldxr)
 execute(ldaxr)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.size == 2) {
 		mem_load(address, inst.rt, 32, 0, 1, 1);
 	} else {
@@ -813,7 +882,7 @@ execute(ldaxr)
 execute(ldxp)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.size == 2) {
 		mem_load(address, inst.rt, 32, 0, 0, 1);
 		mem_load(address + 4, inst.rt2, 32, 0, 0, 1);
@@ -826,7 +895,7 @@ execute(ldxp)
 execute(ldaxp)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.size == 2) {
 		mem_load(address, inst.rt, 32, 0, 1, 1);
 		mem_load(address + 4, inst.rt2, 32, 0, 1, 1);
@@ -839,7 +908,7 @@ execute(ldaxp)
 execute(stlr)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.size == 2) {
 		mem_store(address, inst.rt, 32, 1, 0);
 	} else {
@@ -850,7 +919,7 @@ execute(stlr)
 execute(ldar)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.size == 2) {
 		mem_load(address, inst.rt, 32, 0, 1, 0);
 	} else {
@@ -864,7 +933,7 @@ execute(ldar)
 execute(stnp)
 {
 	uint64 addr = read_gpr_sp(1, inst.rn) + inst.imms64;
-	
+
 	if (inst.opc == 0) {
 		mem_store(addr, inst.rt, 32, 0, 0);
 		mem_store(addr+4, inst.rt2, 32, 0, 0);
@@ -877,7 +946,7 @@ execute(stnp)
 execute(ldnp)
 {
 	uint64 addr = read_gpr_sp(1, inst.rn) + inst.imms64;
-	
+
 	if (inst.opc == 0) {
 		mem_load(addr, inst.rt, 32, 0, 0, 0);
 		mem_load(addr+4, inst.rt2, 32, 0, 0, 0);
@@ -893,11 +962,11 @@ execute(ldnp)
 execute(ldrb)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	if (inst.X) {
 		if (inst.L) {
 			mem_load(address, inst.rt, 8, 1, 0, 0);
@@ -907,22 +976,22 @@ execute(ldrb)
 	} else {
 		mem_load(address, inst.rt, 8, 0, 0, 0);
 	}
-		
+
 	if (!inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	write_gpr_sp(1, inst.rn, address);
 }
 
 execute(ldrh)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	if (inst.X) {
 		if (inst.L) {
 			mem_load(address, inst.rt, 16, 1, 0, 0);
@@ -932,22 +1001,22 @@ execute(ldrh)
 	} else {
 		mem_load(address, inst.rt, 16, 0, 0, 0);
 	}
-	
+
 	if (!inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	write_gpr_sp(1, inst.rn, address);
 }
 
 execute(ldr)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	if (inst.V == 0) {
 		if (inst.size == 2) {
 			mem_load(address, inst.rt, 32, 0, 0, 0);
@@ -967,75 +1036,75 @@ execute(ldr)
 			mem_load_simd(address, inst.rt, 64);
 		}
 	}
-	
+
 	if (!inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	write_gpr_sp(1, inst.rn, address);
 }
 
 execute(ldrsw)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	mem_load(address, inst.rt, 32, 1, 0, 0);
-	
+
 	if (!inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	write_gpr_sp(1, inst.rn, address);
 }
 
 execute(strb)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	uint8 value = (uint8)read_gpr(0, inst.rt);
 	mem_write_8(Data, address, value);
-		
+
 	if (!inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	write_gpr_sp(1, inst.rn, address);
 }
 
 execute(strh)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	uint16 value = (uint16)read_gpr(0, inst.rt);
 	mem_write_16(Data, address, value);
-		
+
 	if (!inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	write_gpr_sp(1, inst.rn, address);
 }
 
 execute(str)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	if (inst.V == 0) {
 		if (inst.size == 2) {
 			mem_store(address, inst.rt, 32, 0, 0);
@@ -1055,11 +1124,11 @@ execute(str)
 			mem_store_simd(address, inst.rt, 64);
 		}
 	}
-		
+
 	if (!inst.P) {
 		address += inst.imms64;
 	}
-	
+
 	write_gpr_sp(1, inst.rn, address);
 }
 
@@ -1086,12 +1155,12 @@ execute(ldrb_reg)
 		rm = 0;
 		trap();
 	}
-	
+
 	uint64 address = read_gpr_sp(1, inst.rn) + rm;
-	
+
 	uint8 value;
 	mem_read_8(Data, address, value);
-	
+
 	if (inst.X) {
 		if (inst.L == 0) {
 			write_gpr(1, inst.rt, (uint64)(sint64)(sint8)value);
@@ -1118,9 +1187,9 @@ execute(strb_reg)
 		rm = 0;
 		trap();
 	}
-	
+
 	uint64 address = read_gpr_sp(1, inst.rn) + rm;
-	
+
 	mem_write_8(Data, address, (uint8)read_gpr(0, inst.rt));
 }
 
@@ -1139,12 +1208,12 @@ execute(ldrh_reg)
 		rm = 0;
 		trap();
 	}
-	
+
 	uint64 address = read_gpr_sp(1, inst.rn) + rm;
-	
+
 	uint16 value;
 	mem_read_16(Data, address, value);
-	
+
 	if (inst.X) {
 		if (inst.L == 0) {
 			write_gpr(1, inst.rt, (uint64)(sint64)(sint16)value);
@@ -1171,16 +1240,16 @@ execute(strh_reg)
 		rm = 0;
 		trap();
 	}
-	
+
 	uint64 address = read_gpr_sp(1, inst.rn) + rm;
-	
+
 	mem_write_16(Data, address, (uint16)read_gpr(0, inst.rt));
 }
 
 execute(ldr_reg)
 {
 	uint8 shift = (inst.S == 0) ? (uint8)0 : (uint8)inst.size;
-	
+
 	uint64 rm;
 	if (inst.option0 == 0 && inst.option21 == 1) {			// UXTW
 		rm = extend_reg(0, inst.rm, 2, shift);
@@ -1194,19 +1263,19 @@ execute(ldr_reg)
 		rm = 0;
 		trap();
 	}
-	
+
 	uint64 address = read_gpr_sp(1, inst.rn) + rm;
-	
+
 	uint64 value;
 	if (inst.size == 3) {
 		mem_read_64(Data, address, value);
 	} else {
 		uint32 v32;
 		mem_read_32(Data, address, v32);
-		
+
 		value = (uint64)v32;
 	}
-	
+
 	if (inst.X == 1) {
 		write_gpr(1, inst.rt, (uint64)(sint64)(sint32)value);
 	} else {
@@ -1217,7 +1286,7 @@ execute(ldr_reg)
 execute(str_reg)
 {
 	uint8 shift = (inst.S == 0) ? (uint8)0 : (uint8)inst.size;
-	
+
 	uint64 rm;
 	if (inst.option0 == 0 && inst.option21 == 1) {			// UXTW
 		rm = extend_reg(0, inst.rm, 2, shift);
@@ -1231,9 +1300,9 @@ execute(str_reg)
 		rm = 0;
 		trap();
 	}
-	
+
 	uint64 address = read_gpr_sp(1, inst.rn) + rm;
-	
+
 	uint64 rt = read_gpr(inst.size == 3, inst.rt);
 	if (inst.size == 3) {
 		mem_write_64(Data, address, rt);
@@ -1293,7 +1362,7 @@ execute(sturb)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
 	address += inst.imms64;
-	
+
 	mem_write_8(Data, address, (uint8)read_gpr(0, inst.rt));
 }
 
@@ -1301,10 +1370,10 @@ execute(ldurb)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
 	address += inst.imms64;
-	
+
 	uint8 value;
 	mem_read_8(Data, address, value);
-	
+
 	if (inst.opc == 1) { // ldurb
 		write_gpr(0, inst.rt, (uint64)value);
 	} else if (inst.opc == 2) { // ldursb
@@ -1320,7 +1389,7 @@ execute(sturh)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
 	address += inst.imms64;
-	
+
 	mem_write_16(Data, address, (uint16)read_gpr(0, inst.rt));
 }
 
@@ -1328,10 +1397,10 @@ execute(ldurh)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
 	address += inst.imms64;
-	
+
 	uint16 value;
 	mem_read_16(Data, address, value);
-	
+
 	if (inst.opc == 1) { // ldurh
 		write_gpr(0, inst.rt, (uint64)value);
 	} else if (inst.opc == 2) { // ldursh
@@ -1347,9 +1416,9 @@ execute(stur)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
 	address += inst.imms64;
-	
+
 	uint64 value = read_gpr(inst.size == 3, inst.rt);
-	
+
 	if (inst.size == 3) {
 		mem_write_64(Data, address, value);
 	} else {
@@ -1361,7 +1430,7 @@ execute(ldur)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
 	address += inst.imms64;
-	
+
 	uint64 value;
 	if (inst.size == 3) {
 		mem_read_64(Data, address, value);
@@ -1370,7 +1439,7 @@ execute(ldur)
 		mem_read_32(Data, address, v32);
 		value = (uint64)v32;
 	}
-	
+
 	write_gpr(inst.size == 3, inst.rt, value);
 }
 
@@ -1378,10 +1447,10 @@ execute(ldursw)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
 	address += inst.imms64;
-	
+
 	uint32 value;
 	mem_read_32(Data, address, value);
-	
+
 	write_gpr(1, inst.rt, (uint64)(sint64)(sint32)value);
 }
 
@@ -1392,7 +1461,7 @@ execute(ldursw)
 execute(strbi)
 {
 	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
-	
+
 	uint64 value = read_gpr(0, inst.rt);
 	mem_write_8(Data, addr, (uint8)value);
 }
@@ -1400,10 +1469,10 @@ execute(strbi)
 execute(ldrbi)
 {
 	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
-	
+
 	uint8 value;
 	mem_read_8(Data, addr, value);
-	
+
 	if (inst.opc == 1) {
 		write_gpr(0, inst.rt, (uint64)value);
 	} else if (inst.opc == 2) {
@@ -1418,7 +1487,7 @@ execute(ldrbi)
 execute(strhi)
 {
 	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
-	
+
 	uint64 value = read_gpr(0, inst.rt);
 	mem_write_16(Data, addr, (uint16)value);
 }
@@ -1426,10 +1495,10 @@ execute(strhi)
 execute(ldrhi)
 {
 	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
-	
+
 	uint16 value;
 	mem_read_16(Data, addr, value);
-	
+
 	if (inst.opc == 1) {
 		write_gpr(0, inst.rt, (uint64)value);
 	} else if (inst.opc == 2) {
@@ -1445,7 +1514,7 @@ execute(stri)
 {
 	uint64 value = read_gpr(inst.size == 3, inst.rt);
 	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
-	
+
 	if (inst.size == 3) {
 		mem_write_64(Data, addr, value);
 	} else if (inst.size == 2) {
@@ -1456,30 +1525,30 @@ execute(stri)
 execute(ldri)
 {
 	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
-	
+
 	uint64 value;
 	if (inst.size == 3) {
 		mem_read_64(Data, addr, value);
 	} else if (inst.size == 2) {
 		uint32 v2;
 		mem_read_32(Data, addr, v2);
-		
+
 		value = (uint64)v2;
 	} else {
 		value = 0;
 		trap();
 	}
-	
+
 	write_gpr(inst.size == 3, inst.rt, value);
 }
 
 execute(ldrswi)
 {
 	uint64 addr = read_gpr_sp(1, inst.rn) + inst.immu64;
-	
+
 	uint32 value;
 	mem_read_32(Data, addr, value);
-	
+
 	write_gpr(1, inst.rt, (uint64)(sint64)(sint32)value);
 }
 
@@ -1496,13 +1565,13 @@ execute(stp)
 {
 	uint8 scale = 2 + ((inst.opc >> 1) & 1);
 	sint64 offset = sign_extend(inst.imm7, 7) << scale;
-	
+
 	uint64 address = read_gpr_sp(1, inst.rn);
 	address += offset;
-	
+
 	uint64 data1 = read_gpr(inst.opc == 2, inst.rt);
 	uint64 data2 = read_gpr(inst.opc == 2, inst.rt2);
-	
+
 	if (inst.opc == 2) {
 		mem_write_64(Data, address, data1);
 		mem_write_64(Data, address + 8, data2);
@@ -1516,23 +1585,23 @@ execute(ldp)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
 	address += inst.imms64;
-	
+
 	if (inst.opc == 2) {
 		uint64 data1;
 		uint64 data2;
-		
+
 		mem_read_64(Data, address, data1);
 		mem_read_64(Data, address + 8, data2);
-		
+
 		write_gpr(1, inst.rt, data1);
 		write_gpr(1, inst.rt2, data2);
 	} else {
 		uint32 data1;
 		uint32 data2;
-		
+
 		mem_read_32(Data, address, data1);
 		mem_read_32(Data, address + 4, data2);
-		
+
 		write_gpr(0, inst.rt, data1);
 		write_gpr(0, inst.rt2, data2);
 	}
@@ -1542,15 +1611,15 @@ execute(ldpsw)
 {
 	uint8 scale = 2 + ((inst.opc >> 1) & 1);
 	sint64 offset = sign_extend(inst.imm7, 7) << scale;
-	
+
 	uint64 address = read_gpr_sp(1, inst.rn);
 	address += offset;
-	
+
 	uint32 data1;
 	uint32 data2;
 	mem_read_32(Data, address, data1);
 	mem_read_32(Data, address + 4, data2);
-	
+
 	write_gpr(1, inst.rt, (uint64)(sint64)(sint32)data1);
 	write_gpr(1, inst.rt2, (uint64)(sint64)(sint32)data2);
 }
@@ -1566,14 +1635,14 @@ execute(prfum)
 execute(stpi)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.P) {
 		address += inst.immu64;
 	}
-	
+
 	uint64 data1 = read_gpr(inst.opc==2, inst.rt);
 	uint64 data2 = read_gpr(inst.opc==2, inst.rt2);
-	
+
 	if (inst.opc == 0) { // 32
 		mem_write_32(Data, address, (uint32)data1);
 		mem_write_32(Data, address + 4, (uint32)data2);
@@ -1581,32 +1650,32 @@ execute(stpi)
 		mem_write_64(Data, address, data1);
 		mem_write_64(Data, address + 8, data2);
 	}
-	
+
 	if (!inst.P) {
 		address += inst.immu64;
 	}
-		
+
 	write_gpr_sp(1, inst.rn, address);
 }
 
 execute(ldpi)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.P) {
 		address += inst.immu64;
 	}
-	
+
 	uint64 data1;
 	uint64 data2;
-	
+
 	if (inst.opc == 0) { // 32
 		uint32 d132;
 		uint32 d232;
-		
+
 		mem_read_32(Data, address, d132);
 		mem_read_32(Data, address + 4, d232);
-		
+
 		data1 = (uint64)d132;
 		data2 = (uint64)d232;
 	} else if (inst.opc == 2) { // 64
@@ -1617,38 +1686,38 @@ execute(ldpi)
 		data2 = 0;
 		trap();
 	}
-	
+
 	if (!inst.P) {
 		address += inst.immu64;
 	}
-	
+
 	write_gpr(inst.opc==2, inst.rt, data1);
 	write_gpr(inst.opc==2, inst.rt2, data2);
-	
+
 	write_gpr_sp(1, inst.rn, address);
 }
 
 execute(ldpswi)
 {
 	uint64 address = read_gpr_sp(1, inst.rn);
-	
+
 	if (inst.P) {
 		address += inst.immu64;
 	}
-	
+
 	uint32 d1;
 	uint32 d2;
-		
+
 	mem_read_32(Data, address, d1);
 	mem_read_32(Data, address + 4, d2);
-	
+
 	if (!inst.P) {
 		address += inst.immu64;
 	}
-	
+
 	write_gpr(1, inst.rt, (uint64)(sint64)(sint32)d1);
 	write_gpr(1, inst.rt2, (uint64)(sint64)(sint32)d2);
-	
+
 	write_gpr_sp(1, inst.rn, address);
 }
 
@@ -1658,7 +1727,7 @@ helper void mem_load(uint64 address, uint8 dest_reg, uint8 width, uint8 sign_ext
 	case 8: {
 		uint8 data8;
 		mem_read_8(Data, address, data8);
-		
+
 		if (sign_extend == 0) {
 			write_gpr(0, dest_reg, (uint64)data8);
 		} else if (sign_extend == 1) {
@@ -1668,11 +1737,11 @@ helper void mem_load(uint64 address, uint8 dest_reg, uint8 width, uint8 sign_ext
 		}
 		break;
 	}
-	
+
 	case 16: {
 		uint16 data16;
 		mem_read_16(Data, address, data16);
-		
+
 		if (sign_extend == 0) {
 			write_gpr(0, dest_reg, (uint64)data16);
 		} else if (sign_extend == 1) {
@@ -1682,11 +1751,11 @@ helper void mem_load(uint64 address, uint8 dest_reg, uint8 width, uint8 sign_ext
 		}
 		break;
 	}
-	
+
 	case 32: {
 		uint32 data32;
 		mem_read_32(Data, address, data32);
-		
+
 		if (sign_extend) {
 			write_gpr(1, dest_reg, (uint64)(sint64)(sint32)data32);
 		} else {
@@ -1694,7 +1763,7 @@ helper void mem_load(uint64 address, uint8 dest_reg, uint8 width, uint8 sign_ext
 		}
 		break;
 	}
-	
+
 	case 64: {
 		uint64 data64;
 		mem_read_64(Data, address, data64);
@@ -1708,18 +1777,18 @@ helper void mem_load(uint64 address, uint8 dest_reg, uint8 width, uint8 sign_ext
 
 		uint64 data64_2;
 		mem_read_64(Data, address + 8, data64_2);
-		
+
 		write_gpr(1, dest_reg, data64_1);
 		write_gpr(1, dest_reg+1, data64_2);
 		break;
 	}
-	
+
 	default: {
 		trap();
 		break;
 	}
 	}
-	
+
 	mem_monitor_acquire(Data, address);
 	return;
 }
@@ -1733,21 +1802,21 @@ helper void mem_load_simd(uint64 address, uint8 dest_reg, uint8 width)
 		write_vector_reg8(dest_reg, data8);
 		break;
 	}
-	
+
 	case 16: {
 		uint16 data16;
 		mem_read_16(Data, address, data16);
 		write_vector_reg16(dest_reg, data16);
 		break;
 	}
-	
+
 	case 32: {
 		uint32 data32;
 		mem_read_32(Data, address, data32);
 		write_vector_reg32(dest_reg, data32);
 		break;
 	}
-	
+
 	case 64: {
 		uint64 data64;
 		mem_read_64(Data, address, data64);
@@ -1761,17 +1830,17 @@ helper void mem_load_simd(uint64 address, uint8 dest_reg, uint8 width)
 
 		uint64 data128_2;
 		mem_read_64(Data, address + 8, data128_2);
-		
+
 		write_vector_reg128(dest_reg, data128_1, data128_2);
 		break;
 	}
-	
+
 	default: {
 		trap();
 		break;
 	}
 	}
-	
+
 	return;
 }
 
@@ -1782,17 +1851,17 @@ helper void mem_store(uint64 address, uint8 src_reg, uint8 width, uint8 release,
 		mem_write_8(Data, address, (uint8)read_gpr(0, src_reg));
 		break;
 	}
-	
+
 	case 16: {
 		mem_write_16(Data, address, (uint16)read_gpr(0, src_reg));
 		break;
 	}
-	
+
 	case 32: {
 		mem_write_32(Data, address, (uint32)read_gpr(0, src_reg));
 		break;
 	}
-	
+
 	case 64: {
 		mem_write_64(Data, address, read_gpr(1, src_reg));
 		break;
@@ -1803,13 +1872,13 @@ helper void mem_store(uint64 address, uint8 src_reg, uint8 width, uint8 release,
 		mem_write_64(Data, address+8, read_gpr(1, src_reg+1));
 		break;
 	}
-	
+
 	default: {
 		trap();
 		break;
 	}
 	}
-	
+
 	return;
 }
 
@@ -1820,17 +1889,17 @@ helper void mem_store_simd(uint64 address, uint8 src_reg, uint8 width)
 		mem_write_8(Data, address, read_vector_reg8(src_reg));
 		break;
 	}
-	
+
 	case 16: {
 		mem_write_16(Data, address, read_vector_reg16(src_reg));
 		break;
 	}
-	
+
 	case 32: {
 		mem_write_32(Data, address, read_vector_reg32(src_reg));
 		break;
 	}
-	
+
 	case 64: {
 		mem_write_64(Data, address, read_vector_reg64(src_reg));
 		break;
@@ -1839,20 +1908,20 @@ helper void mem_store_simd(uint64 address, uint8 src_reg, uint8 width)
 	case 128: {
 		uint64 vh;
 		uint64 vl;
-		
+
 		read_vector_reg128(src_reg, vl, vh);
-		
+
 		mem_write_64(Data, address, vl);
 		mem_write_64(Data, address+8, vh);
 		break;
 	}
-	
+
 	default: {
 		trap();
 		break;
 	}
 	}
-	
+
 	return;
 }
 
@@ -1867,7 +1936,7 @@ execute(add_ereg)
 {
 	uint64 rn = read_gpr_sp(inst.sf, inst.rn);
 	uint64 rm = extend_reg((inst.option & 3) == 3, inst.rm, inst.option, inst.imm3);
-	
+
 	if (inst.S) {
 		if (inst.sf) {
 			write_gpr(1, inst.rd, __builtin_adc64_flags(rn, rm, 0));
@@ -1883,7 +1952,7 @@ execute(sub_ereg)
 {
 	uint64 rn = read_gpr_sp(inst.sf, inst.rn);
 	uint64 rm = extend_reg((inst.option & 3) == 3, inst.rm, inst.option, inst.imm3);
-	
+
 	if (inst.S) {
 		if (inst.sf) {
 			write_gpr(1, inst.rd, __builtin_sbc64_flags(rn, rm, 0));
@@ -1902,54 +1971,54 @@ execute(add_sreg)
 {
 	uint64 op1 = read_gpr(inst.sf, inst.rn);
 	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
-	
+
 	if (inst.sf) {
 		uint64 result;
-		
+
 		if (inst.S) {
 			result = __builtin_adc64_flags(op1, op2, 0);
 		} else {
 			result = op1 + op2;
 		}
-		
-		write_gpr(1, inst.rd, result);	
+
+		write_gpr(1, inst.rd, result);
 	} else {
 		uint32 result;
-		
+
 		if (inst.S) {
 			result = __builtin_adc32_flags((uint32)op1, (uint32)op2, 0);
 		} else {
 			result = (uint32)op1 + (uint32)op2;
 		}
-		
-		write_gpr(0, inst.rd, (uint64)result);	
+
+		write_gpr(0, inst.rd, (uint64)result);
 	}
 }
 
 execute(sub_sreg)
 {
 	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
-	
+
 	if (inst.sf) {
 		uint64 result;
-		
+
 		if (inst.S) {
 			result = __builtin_sbc64_flags(read_gpr64(inst.rn), op2, 0);
 		} else {
 			result = read_gpr64(inst.rn) - op2;
 		}
-		
-		write_gpr64(inst.rd, result);	
+
+		write_gpr64(inst.rd, result);
 	} else {
 		uint32 result;
-		
+
 		if (inst.S) {
 			result = __builtin_sbc32_flags(read_gpr32(inst.rn), (uint32)op2, 0);
 		} else {
 			result = read_gpr32(inst.rn) - (uint32)op2;
 		}
-		
-		write_gpr32(inst.rd, result);	
+
+		write_gpr32(inst.rd, result);
 	}
 }
 
@@ -1960,26 +2029,26 @@ execute(adc)
 {
 	uint64 op1 = read_gpr(inst.sf, inst.rn);
 	uint64 op2 = read_gpr(inst.sf, inst.rm);
-	
+
 	if (inst.sf) {
 		uint64 result;
-		
+
 		if (inst.S) {
 			result = __builtin_adc64_flags(op1, op2, read_register(C));
 		} else {
 			result = __builtin_adc64(op1, op2, read_register(C));
 		}
-		
+
 		write_gpr(1, inst.rd, result);
 	} else {
 		uint32 result;
-		
+
 		if (inst.S) {
 			result = __builtin_adc32_flags((uint32)op1, (uint32)op2, read_register(C));
 		} else {
 			result = __builtin_adc32((uint32)op1, (uint32)op2, read_register(C));
 		}
-		
+
 		write_gpr(0, inst.rd, (uint64)result);
 	}
 }
@@ -1988,26 +2057,26 @@ execute(sbc)
 {
 	uint64 op1 = read_gpr(inst.sf, inst.rn);
 	uint64 op2 = read_gpr(inst.sf, inst.rm);
-	
+
 	if (inst.sf) {
 		uint64 result;
-		
+
 		if (inst.S) {
 			result = __builtin_sbc64_flags(op1, op2, !read_register(C));
 		} else {
 			result = __builtin_sbc64(op1, op2, !read_register(C));
 		}
-		
+
 		write_gpr(1, inst.rd, result);
 	} else {
 		uint32 result;
-		
+
 		if (inst.S) {
 			result = __builtin_sbc32_flags((uint32)op1, (uint32)op2, !read_register(C));
 		} else {
 			result = __builtin_sbc32((uint32)op1, (uint32)op2, !read_register(C));
 		}
-		
+
 		write_gpr(0, inst.rd, (uint64)result);
 	}
 }
@@ -2018,10 +2087,10 @@ execute(sbc)
 execute(ccmpi)
 {
 	uint8 check = check_cond(inst.cond);
-	
+
 	if (check != 0) {
 		uint64 rn = read_gpr(inst.sf, inst.rn);
-		
+
 		if (inst.sf == 0) {
 			__builtin_adc32_flags((uint32)rn, ~(uint32)inst.imm5, 1);
 		} else {
@@ -2038,10 +2107,10 @@ execute(ccmpi)
 execute(ccmni)
 {
 	uint8 check = check_cond(inst.cond);
-	
+
 	if (check != 0) {
 		uint64 rn = read_gpr(inst.sf, inst.rn);
-		
+
 		if (inst.sf == 0) {
 			__builtin_adc32_flags((uint32)rn, (uint32)inst.imm5, 0);
 		} else {
@@ -2064,7 +2133,7 @@ execute(ccmpr)
 	if (check != 0) {
 		uint64 rn = read_gpr(inst.sf, inst.rn);
 		uint64 rm = read_gpr(inst.sf, inst.rm);
-		
+
 		if (inst.sf == 0) {
 			__builtin_adc32_flags((uint32)rn, ~(uint32)rm, 1);
 		} else {
@@ -2084,7 +2153,7 @@ execute(ccmnr)
 	if (check != 0) {
 		uint64 rn = read_gpr(inst.sf, inst.rn);
 		uint64 rm = read_gpr(inst.sf, inst.rm);
-		
+
 		if (inst.sf == 0) {
 			__builtin_adc32_flags((uint32)rn, (uint32)rm, 0);
 		} else {
@@ -2104,7 +2173,7 @@ execute(ccmnr)
 execute(csel)
 {
 	uint8 check = check_cond(inst.cond);
-	
+
 	if (check == 0) {
 		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rm));
 	} else {
@@ -2115,9 +2184,9 @@ execute(csel)
 execute(csinc)
 {
 	uint8 check = check_cond(inst.cond);
-	
+
 	if (check == 0) {
-		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rm) + 1);	
+		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rm) + 1);
 	} else {
 		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn));
 	}
@@ -2126,22 +2195,22 @@ execute(csinc)
 execute(csinv)
 {
 	uint8 check = check_cond(inst.cond);
-	
+
 	if (check == 0) {
 		write_gpr(inst.sf, inst.rd, ~read_gpr(inst.sf, inst.rm));
 	} else {
-		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn));		
+		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn));
 	}
 }
 
 execute(csneg)
 {
 	uint8 check = check_cond(inst.cond);
-	
+
 	if (check == 0) {
 		write_gpr(inst.sf, inst.rd, (~read_gpr(inst.sf, inst.rm)) + 1);
 	} else {
-		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn));		
+		write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn));
 	}
 }
 
@@ -2153,16 +2222,16 @@ execute(rbit)
 {
 	uint64 output = 0;
 	uint64 input = read_gpr(inst.sf, inst.rn);
-	
+
 	if (inst.sf == 0) {
 		output = (uint64)bitrev32((uint32)input);
 	} else {
 		output = bitrev64(input);
 	}
-	
+
 	write_gpr(inst.sf, inst.rd, output);
 }
-		
+
 execute(rev)
 {
 	if (inst.sf) {
@@ -2175,25 +2244,25 @@ execute(rev)
 execute(rev16)
 {
 	uint64 value = read_gpr(inst.sf, inst.rn);
-	
+
 	uint64 result = value;
 	result >>= 8;
 	result &= 0x00ff00ff00ff00ff;
-	
+
 	value <<= 8;
 	value &= 0xff00ff00ff00ff00;
 	result |= value;
-	
+
 	write_gpr(inst.sf, inst.rd, result);
 }
 
 execute(rev32)
 {
 	uint64 rn = read_gpr(1, inst.rn);
-	
+
 	uint64 lo = (uint64)__builtin_bswap32((uint32)rn);
 	uint64 hi = ((uint64)__builtin_bswap32((uint32)(rn >> 32)) << 32);
-	
+
 	write_gpr(1, inst.rd, (hi | lo));
 }
 
@@ -2220,7 +2289,7 @@ execute(cls)
 {
 	if (inst.sf) {
 		uint64 rn = read_gpr64(inst.rn);
-		
+
 		if (rn == 0) {
 			write_gpr64(inst.rd, 63);
 		} else {
@@ -2229,7 +2298,7 @@ execute(cls)
 		}
 	} else {
 		uint32 rn = read_gpr32(inst.rn);
-		
+
 		if (rn == 0) {
 			write_gpr32(inst.rd, 31);
 		} else {
@@ -2246,14 +2315,14 @@ execute(udiv)
 {
 	uint64 rn = read_gpr(inst.sf, inst.rn);
 	uint64 rm = read_gpr(inst.sf, inst.rm);
-	
+
 	uint64 result;
 	if (rm == 0) {
 		result = 0;
 	} else {
 		result = rn / rm;
 	}
-	
+
 	write_gpr(inst.sf, inst.rd, result);
 }
 
@@ -2261,7 +2330,7 @@ execute(sdiv)
 {
 	sint64 rn = read_gpr_sx(inst.sf, inst.rn);
 	sint64 rm = read_gpr_sx(inst.sf, inst.rm);
-	
+
 	sint64 result;
 	if (rm == 0) {
 		result = (sint64)0;
@@ -2272,7 +2341,7 @@ execute(sdiv)
 			result = (sint64)((sint32)rn / (sint32)rm);
 		}
 	}
-	
+
 	write_gpr(inst.sf, inst.rd, (uint64)result);
 }
 
@@ -2284,7 +2353,7 @@ execute(lslv)
 	} else {
 		amount &= 0x1f;
 	}
-	
+
 	write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn) << amount);
 }
 
@@ -2296,7 +2365,7 @@ execute(lsrv)
 	} else {
 		amount &= (uint64)0x1f;
 	}
-	
+
 	write_gpr(inst.sf, inst.rd, read_gpr(inst.sf, inst.rn) >> amount);
 }
 
@@ -2308,7 +2377,7 @@ execute(asrv)
 	} else {
 		amount &= 0x1f;
 	}
-	
+
 	write_gpr(inst.sf, inst.rd, (uint64)(((sint64)read_gpr_sx(inst.sf, inst.rn)) >> amount));
 }
 
@@ -2349,7 +2418,7 @@ execute(msub)
 	uint64 rn = read_gpr(inst.sf, inst.rn);
 	uint64 rm = read_gpr(inst.sf, inst.rm);
 	uint64 ra = read_gpr(inst.sf, inst.ra);
-	
+
 	uint64 result = ra - ((uint64)rn * rm);
 	write_gpr(inst.sf, inst.rd, result);
 }
@@ -2359,7 +2428,7 @@ execute(smaddl)
 	sint64 rn = read_gpr_sx(0, inst.rn);
 	sint64 rm = read_gpr_sx(0, inst.rm);
 	sint64 ra = read_gpr_sx(1, inst.ra);
-	
+
 	write_gpr(1, inst.rd, (uint64)(ra + ((sint64)rn * rm)));
 }
 
@@ -2368,7 +2437,7 @@ execute(smsubl)
 	sint64 rn = read_gpr_sx(0, inst.rn);
 	sint64 rm = read_gpr_sx(0, inst.rm);
 	sint64 ra = read_gpr_sx(1, inst.ra);
-	
+
 	write_gpr(1, inst.rd, (uint64)(ra - ((sint64)rn * rm)));
 }
 
@@ -2376,13 +2445,13 @@ execute(smulh)
 {
 	sint64 x = (sint64)read_gpr(1, inst.rn);
 	sint64 y = (sint64)read_gpr(1, inst.rm);
-	
+
 	uint64 result = (uint64)__builtin_smulh(x, y);
 	write_gpr(1, inst.rd, result);
 
 	/*sint64 x = (sint64)read_gpr(1, inst.rn);
 	sint64 y = (sint64)read_gpr(1, inst.rm);
-	
+
 	sint64 x0 = (sint64)(uint32)x;
 	sint64 x1 = (sint64)(sint32)((sint64)x >> 32);
 	sint64 y0 = (sint64)(uint32)y;
@@ -2404,7 +2473,7 @@ execute(umaddl)
 	uint64 rn = read_gpr(0, inst.rn);
 	uint64 rm = read_gpr(0, inst.rm);
 	uint64 ra = read_gpr(1, inst.ra);
-	
+
 	write_gpr(1, inst.rd, ((uint64)ra + ((uint64)rn * (uint64)rm)));
 }
 
@@ -2413,7 +2482,7 @@ execute(umsubl)
 	uint64 rn = read_gpr(0, inst.rn);
 	uint64 rm = read_gpr(0, inst.rm);
 	uint64 ra = read_gpr(1, inst.ra);
-	
+
 	write_gpr(1, inst.rd, ((uint64)ra - ((uint64)rn * (uint64)rm)));
 }
 
@@ -2421,7 +2490,7 @@ execute(umulh)
 {
 	uint64 x = read_gpr(1, inst.rn);
 	uint64 y = read_gpr(1, inst.rm);
-	
+
 	uint64 result = __builtin_umulh(x, y);
 	write_gpr(1, inst.rd, result);
 }
@@ -2433,17 +2502,17 @@ execute(andsr)
 {
 	uint64 op1 = read_gpr(inst.sf, inst.rn);
 	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
-	
+
 	uint64 result = op1 & op2;
 	write_gpr(inst.sf, inst.rd, result);
-	
+
 	if (inst.opc == 3) {
 		if (inst.sf) {
 			__builtin_update_zn_flags64(result);
 		} else {
 			__builtin_update_zn_flags32((uint32)result);
 		}
-		
+
 		write_register(C, 0);
 		write_register(V, 0);
 	}
@@ -2453,17 +2522,17 @@ execute(bicsr)
 {
 	uint64 op1 = read_gpr(inst.sf, inst.rn);
 	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
-	
+
 	uint64 result = op1 & (~op2);
 	write_gpr(inst.sf, inst.rd, result);
-	
+
 	if (inst.opc == 3) {
 		if (inst.sf) {
 			__builtin_update_zn_flags64(result);
 		} else {
 			__builtin_update_zn_flags32((uint32)result);
 		}
-		
+
 		write_register(C, 0);
 		write_register(V, 0);
 	}
@@ -2473,11 +2542,11 @@ execute(orrsr)
 {
 	uint64 op1 = read_gpr(inst.sf, inst.rn);
 	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
-	
+
 	if (inst.N) op2 = ~op2;
-	
+
 	uint64 result = op1 | op2;
-		
+
 	write_gpr(inst.sf, inst.rd, result);
 }
 
@@ -2492,11 +2561,11 @@ execute(eorsr)
 {
 	uint64 op1 = read_gpr(inst.sf, inst.rn);
 	uint64 op2 = shift_reg(inst.sf, inst.rm, inst.shift, inst.imm6);
-	
+
 	if (inst.N) op2 = ~op2;
-	
+
 	uint64 result = op1 ^ op2;
-		
+
 	write_gpr(inst.sf, inst.rd, result);
 }
 
@@ -2520,24 +2589,24 @@ internal helper uint64 bit_deposit(uint64 src, uint64 bits, uint8 to, uint8 len)
 internal helper uint64 bitrev64(uint64 src)
 {
 	uint64 tmp = src;
-	
+
 	src &= 0xaaaaaaaaaaaaaaaaUL;
 	src = src >>> 2;
 	tmp &= 0x5555555555555555UL;
 	src |= tmp;
-	
+
 	tmp = src;
 	src &= 0x6666666666666666UL;
 	src = src >>> 4;
 	tmp &= 0x9999999999999999UL;
 	src |= tmp;
-	
+
 	tmp = src;
 	src &= 0x1e1e1e1e1e1e1e1eUL;
 	src = src >>> 8;
 	tmp &= 0xe1e1e1e1e1e1e1e1UL;
 	src |= tmp;
-	
+
 	src = src <<< 7;
 	return __builtin_bswap64(src);
 }
@@ -2545,24 +2614,24 @@ internal helper uint64 bitrev64(uint64 src)
 internal helper uint32 bitrev32(uint32 src)
 {
 	uint32 tmp = src;
-	
+
 	src &= 0xaaaaaaaaU;
 	src = src >>> 2;
 	tmp &= 0x55555555U;
 	src |= tmp;
-	
+
 	tmp = src;
 	src &= 0x66666666U;
 	src = src >>> 4;
 	tmp &= 0x99999999U;
 	src |= tmp;
-	
+
 	tmp = src;
 	src &= 0x1e1e1e1eU;
 	src = src >>> 8;
 	tmp &= 0xe1e1e1e1U;
 	src |= tmp;
-	
+
 	src = src <<< 7;
 	return __builtin_bswap32(src);
 }
@@ -2570,7 +2639,7 @@ internal helper uint32 bitrev32(uint32 src)
 internal helper uint64 shift_reg(uint8 sf, uint8 gpr, uint8 type, uint8 amount)
 {
 	if (amount == 0) return read_gpr(sf, gpr);
-	
+
 	switch (type) {
 	case 0: // LSL
 	{
@@ -2593,7 +2662,7 @@ internal helper uint64 shift_reg(uint8 sf, uint8 gpr, uint8 type, uint8 amount)
 		}
 	}
 	}
-	
+
 	trap();
 	return 0;
 }
@@ -2601,7 +2670,7 @@ internal helper uint64 shift_reg(uint8 sf, uint8 gpr, uint8 type, uint8 amount)
 internal helper uint64 extend_reg(uint8 sf, uint8 gpr, uint8 type, uint8 shift)
 {
 	uint64 value = read_gpr(sf, gpr);
-	
+
 	switch (type) {
 	case 0:	// UXTB
 	{
@@ -2636,7 +2705,7 @@ internal helper uint64 extend_reg(uint8 sf, uint8 gpr, uint8 type, uint8 shift)
 		return value << shift;
 	}
 	}
-	
+
 	trap();
 	return 0;
 }
@@ -2672,16 +2741,16 @@ internal helper sint64 read_gpr_sx(uint8 sf, uint8 gpr)
 internal helper void write_gpr32(uint8 gpr, uint32 value)
 {
 	if (gpr == 31) return;
-	
-	write_register_bank(RBX, gpr, (uint64)value);	
+
+	write_register_bank(RBX, gpr, (uint64)value);
 	return;
 }
 
 internal helper void write_gpr64(uint8 gpr, uint64 value)
 {
 	if (gpr == 31) return;
-	
-	write_register_bank(RBX, gpr, value);	
+
+	write_register_bank(RBX, gpr, value);
 	return;
 }
 
@@ -2692,7 +2761,7 @@ internal helper void write_gpr(uint8 sf, uint8 gpr, uint64 value)
 	} else {
 		write_gpr64(gpr, (uint32)value);
 	}
-	
+
 	return;
 }
 
@@ -2720,7 +2789,7 @@ internal helper void write_sp(uint64 value)
 			write_register(SP_EL1, value);
 		}
 	}
-	
+
 	return;
 }
 
@@ -2746,13 +2815,13 @@ internal helper void write_gpr_sp(uint8 sf, uint8 gpr, uint64 value)
 	if (!sf) {
 		value &= (uint64)0xffffffffU;
 	}
-	
+
 	if (gpr == 31) {
 		write_sp(value);
 	} else {
 		write_register_bank(RBX, gpr, value);
 	}
-	
+
 	return;
 }
 
@@ -2789,7 +2858,7 @@ internal helper sint64 sign_extend(uint64 immz, uint8 bits)
 internal helper uint8 check_cond(uint8 cond)
 {
 	uint8 state = 0;
-	
+
 	switch (cond >> 1) {
 	case 0: {
 		state = read_register(Z);
@@ -2824,7 +2893,7 @@ internal helper uint8 check_cond(uint8 cond)
 		break;
 	}
 	}
-	
+
 	if (((cond & 1) == 1) && (cond != 0xf)) {
 		return !state;
 	} else {
@@ -2835,8 +2904,8 @@ internal helper uint8 check_cond(uint8 cond)
 internal helper uint32 get_psr_from_pstate() global
 {
 	return (uint32)read_register(N) << 31 |
-		(uint32)read_register(Z) << 30 | 
-		(uint32)read_register(C) << 29 | 
+		(uint32)read_register(Z) << 30 |
+		(uint32)read_register(C) << 29 |
 		(uint32)read_register(V) << 28 |
 		(uint32)read_register(D) << 9 |
 		(uint32)read_register(A) << 8 |
@@ -2852,16 +2921,16 @@ internal helper void set_pstate_from_psr(uint32 psr)
 	write_register(Z, (psr & (uint32)0x40000000U) == 0x40000000U);
 	write_register(C, (psr & (uint32)0x20000000U) == 0x20000000U);
 	write_register(V, (psr & (uint32)0x10000000U) == 0x10000000U);
-	
+
 	write_register(D, (psr & (uint32)0x00000200U) == 0x00000200U);
 	write_register(A, (psr & (uint32)0x00000100U) == 0x00000100U);
 	write_register(I, (psr & (uint32)0x00000080U) == 0x00000080U);
 	write_register(F, (psr & (uint32)0x00000040U) == 0x00000040U);
-	
+
 	uint8 el = (uint8)(psr >> 2) & (uint8)3;
 	set_el(el);
 	update_spsel((uint8)(psr & 1));
-	
+
 	return;
 }
 
@@ -2869,7 +2938,7 @@ internal helper void software_breakpoint(uint16 imm)
 {
 	uint64 addr = read_pc();
 	uint64 vect_offset = 0;
-		
+
 	take_arm_exception(1, 0, (uint32)imm, addr, addr, vect_offset);
 	return;
 }
@@ -2885,17 +2954,25 @@ internal helper void call_supervisor(uint16 imm)
 	} else {
 		uint64 addr = read_pc() + 4;
 		uint64 vect_offset = 0;
-		
+
 		take_arm_exception(1, 3, (uint32)imm, addr, addr, vect_offset);
 	}
-	
+
+	return;
+}
+
+internal helper void call_hypervisor(uint16 imm)
+{
+	write_device64(19, 2, imm);
+	write_pc(read_pc() + 4);
+
 	return;
 }
 
 internal helper uint32 get_exception_class(uint8 current_el, uint8 target_el, uint8 type) global
 {
 	uint32 ec = 0;
-	
+
 	switch(type) {
 	case 0:	{ // Software Breakpoint
 		ec = 0x38 + 4;
@@ -2938,7 +3015,7 @@ internal helper uint32 get_exception_class(uint8 current_el, uint8 target_el, ui
 		break;
 	}
 	}
-	
+
 	return ec;
 }
 
@@ -2967,19 +3044,19 @@ public helper void take_arm_exception(uint8 target_el, uint8 type, uint32 syndro
 
 	// Update the execution level
 	set_el(target_el);
-	
+
 	// Update spsel
 	update_spsel(1);
-		
+
 	if (target_el == 1) {
 		write_register(SPSR_EL1, spsr);
 		write_register(ELR_EL1, retaddr);
-		
+
 		// If it's NOT an IRQ...
 		if (type != 255) {
 			uint32 ec = get_exception_class(current_el, target_el, type);
 			write_register(ESR_EL1, ((uint32)ec << 26) | ((uint32)1 << 25) | (syndrome & 0x1ffffff));
-		
+
 			if (type == 1 || type == 4) {
 				write_register(FAR_EL1, vaddr);
 			}
@@ -2987,12 +3064,12 @@ public helper void take_arm_exception(uint8 target_el, uint8 type, uint32 syndro
 	} else {
 		trap();
 	}
-	
+
 	write_register(D, 1);
 	write_register(A, 1);
 	write_register(I, 1);
 	write_register(F, 1);
-	
+
 	uint64 vbar = read_register(VBAR);
 	//write_register(PC, vbar + voff);
 	write_pc(vbar + voff);
@@ -3003,7 +3080,7 @@ internal helper void return_from_exception(uint64 retaddr, uint32 spsr)
 {
 	set_pstate_from_psr(spsr);
 	write_pc(retaddr);
-	
+
 	return;
 }
 
@@ -3018,55 +3095,14 @@ internal helper void set_el(uint8 el) global
 	return;
 }
 
-internal helper uint8 instruction_is_predicated(struct Instruction &inst) 
+internal helper uint8 instruction_is_predicated(struct Instruction &inst)
 {
-	return (inst.ir & 0xff000010) == 0x54000000;
+	return 0;
 }
 
 internal helper uint8 instruction_predicate(struct Instruction &inst)
 {
-	uint8 state = 0;
-	
-	switch(inst.cond >> 1) {
-	case 0: {
-		state = read_register(Z);
-		break;
-	}
-	case 1: {
-		state = read_register(C);
-		break;
-	}
-	case 2: {
-		state = read_register(N);
-		break;
-	}
-	case 3: {
-		state = read_register(V);
-		break;
-	}
-	case 4: {
-		state = read_register(C) & !read_register(Z);
-		break;
-	}
-	case 5: {
-		state = read_register(N) == read_register(V);
-		break;
-	}
-	case 6: {
-		state = (read_register(N) == read_register(V)) & !read_register(Z);
-		break;
-	}
-	case 7: {
-		state = 1;
-		break;
-	}
-	}
-	
-	if (inst.cond & 1) {
-		return !state;
-	} else {
-		return state;
-	}
+	return 1;
 }
 
 internal helper void not_implemented()

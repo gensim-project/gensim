@@ -41,7 +41,6 @@ AC_ISA(a64)
 	ac_instr<CMP_B_IMM> cbz;
 	ac_behaviour cbz;
 	
-	@predicated
 	ac_format COND_B_IMM = "0x2a:7 %o1:1 %imm19:19 %o0:1 %cond:4";
 	ac_instr<COND_B_IMM> bcond;
 	ac_behaviour bcond;

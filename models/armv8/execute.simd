@@ -248,7 +248,77 @@ execute(umaxv)
 
 execute(uminv)
 {
-	not_implemented();
+	switch (inst.arrangement) {
+	case 0: {	// 8b
+		uint8[8] rn = read_register_bank(VB8B, inst.rn);
+
+		uint8 min = rn[0];
+		for (uint8 i = 1; i < 8; i++) {
+			if (rn[i] < min) {
+				min = rn[i];
+			}
+		}
+
+		write_vector_reg8(inst.rd, min);
+		break;
+	}
+	case 1: {	// 16b
+		uint8[16] rn = read_register_bank(VB16B, inst.rn);
+
+		uint8 min = rn[0];
+		for (uint8 i = 1; i < 16; i++) {
+			if (rn[i] < min) {
+				min = rn[i];
+			}
+		}
+
+		write_vector_reg8(inst.rd, min);
+		break;
+	}
+	case 2: {	// 4h
+		uint16[4] rn = read_register_bank(VB4H, inst.rn);
+
+		uint16 min = rn[0];
+		for (uint8 i = 1; i < 4; i++) {
+			if (rn[i] < min) {
+				min = rn[i];
+			}
+		}
+
+		write_vector_reg16(inst.rd, min);
+		break;
+	}
+	case 3: {	// 8h
+		uint16[8] rn = read_register_bank(VB8H, inst.rn);
+
+		uint16 min = rn[0];
+		for (uint8 i = 1; i < 8; i++) {
+			if (rn[i] < min) {
+				min = rn[i];
+			}
+		}
+
+		write_vector_reg16(inst.rd, min);
+		break;
+	}
+	case 5: {	// 4s
+		uint32[4] rn = read_register_bank(VB4S, inst.rn);
+
+		uint32 min = rn[0];
+		for (uint8 i = 1; i < 4; i++) {
+			if (rn[i] < min) {
+				min = rn[i];
+			}
+		}
+
+		write_vector_reg32(inst.rd, min);
+		break;
+	}
+	default: {
+		trap();
+		break;
+	}
+	}
 }
 
 execute(fmaxnmv)
@@ -1543,6 +1613,93 @@ execute(cmhi_reg)
 			uint64[2] rm = read_register_bank(VB2D, inst.rm);
 			
 			uint64[2] rd = rn > rm;
+			
+			write_register_bank(VB2D, inst.rd, rd);
+			break;
+		}
+		default: {
+			trap();
+			break;
+		}
+		}
+	}
+}
+
+execute(cmhs_reg)
+{
+	if (inst.SCALAR) {
+		uint64 rn = read_vector_reg64(inst.rn);
+		uint64 rm = read_vector_reg64(inst.rm);
+		
+		if (rn >= rm) {
+			write_vector_reg64(inst.rd, (uint64)0xffffffffffffffff);
+		} else {
+			write_vector_reg64(inst.rd, 0);
+		}
+	} else {
+		switch (inst.arrangement) {
+		case 0: {	// 8b
+			uint8[8] rn = read_register_bank(VB8B, inst.rn);
+			uint8[8] rm = read_register_bank(VB8B, inst.rm);
+			
+			uint8[8] rd = rn >= rm;
+			write_register_bank(VB8B, inst.rd, rd);
+			write_register_bank(VBH, inst.rd, 0);
+			
+			break;
+		}
+		case 1: {	// 16b
+			uint8[16] rn = read_register_bank(VB16B, inst.rn);
+			uint8[16] rm = read_register_bank(VB16B, inst.rm);
+			
+			uint8[16] rd = rn >= rm;
+			write_register_bank(VB16B, inst.rd, rd);
+			
+			break;
+		}
+		case 2: {	// 4h
+			uint16[4] rn = read_register_bank(VB4H, inst.rn);
+			uint16[4] rm = read_register_bank(VB4H, inst.rm);
+			
+			uint16[4] rd = rn > rm;
+			write_register_bank(VB4H, inst.rd, rd);
+			write_register_bank(VBH, inst.rd, 0);
+			
+			break;
+		}
+		case 3: {	// 8h
+			uint16[8] rn = read_register_bank(VB8H, inst.rn);
+			uint16[8] rm = read_register_bank(VB8H, inst.rm);
+			
+			uint16[8] rd = rn >= rm;
+			
+			write_register_bank(VB8H, inst.rd, rd);
+			break;
+		}
+		case 4: {	// 2s
+			uint32[2] rn = read_register_bank(VB2S, inst.rn);
+			uint32[2] rm = read_register_bank(VB2S, inst.rm);
+			
+			uint32[2] rd = rn >= rm;
+			write_register_bank(VB2S, inst.rd, rd);
+			write_register_bank(VBH, inst.rd, 0);
+			
+			break;
+		}
+		case 5: {	// 4s
+			uint32[4] rn = read_register_bank(VB4S, inst.rn);
+			uint32[4] rm = read_register_bank(VB4S, inst.rm);
+			
+			uint32[4] rd = rn >= rm;
+			
+			write_register_bank(VB4S, inst.rd, rd);
+			break;
+		}
+		case 6: {	// 2d
+			uint64[2] rn = read_register_bank(VB2D, inst.rn);
+			uint64[2] rm = read_register_bank(VB2D, inst.rm);
+			
+			uint64[2] rd = rn >= rm;
 			
 			write_register_bank(VB2D, inst.rd, rd);
 			break;
@@ -4436,6 +4593,37 @@ execute (fcvtz_fxp)
 				// f64 to u64
 				write_gpr64(inst.rd, __builtin_fcvt_f64_u64(read_float_reg64(inst.rn) * mulp, inst.rmode));
 			}
+		}
+	}
+}
+
+execute(ucvtf_fxp)
+{
+	if (inst.sf == 0) {
+		uint32 intval = read_gpr32(inst.rn);
+		uint32 realval = intval >> inst.immu64;
+		
+		if (inst.type == 0) {
+			// u32 to f32
+			write_float_reg32(inst.rd, (float)realval);
+		} else if (inst.type == 1) {
+			// u32 to f64
+			write_float_reg64(inst.rd, (double)realval);
+		} else {
+			trap();
+		}
+	} else if (inst.sf == 1) {
+		uint64 intval = read_gpr32(inst.rn);
+		uint64 realval = intval >> inst.immu64;
+	
+		if (inst.type == 0) {
+			// u64 to f32
+			write_float_reg32(inst.rd, (float)realval);
+		} else if (inst.type == 1) {
+			// u64 to f64
+			write_float_reg64(inst.rd, (double)realval);
+		} else {
+			trap();
 		}
 	}
 }

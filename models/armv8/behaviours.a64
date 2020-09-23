@@ -123,27 +123,11 @@ decode(MOVE_WIDE_IMM)
 
 behaviour(is_predicated)
 {
-	//return internal_opcode() == opcodes::aarch64_a64_bcond;
-	return opcode == aarch64_a64_bcond;
+	return false;
 }
 
 behaviour(instruction_predicate)
 {
-	uint8 state = 0;
-	
-	switch(cond >> 1) {
-	case 0: {
-		state = read_register(Z);
-		break;
-	}
-	
-	}
-	
-	if (cond & 1) {
-		return !state;
-	} else {
-		return state;
-	}
 }
 
 behaviour(handle_exception) global
