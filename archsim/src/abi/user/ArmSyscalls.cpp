@@ -1512,8 +1512,8 @@ static int sys_nop()
 	return 0;
 }
 
-DEFINE_SYSCALL(arm, __NR_arm_exit, sys_exit, "exit()");
-DEFINE_SYSCALL(arm, __NR_arm_exit_group, sys_exit, "exit_group()");
+DEFINE_SYSCALL(arm, __NR_arm_exit, sys_exit, "exit(%d)");
+DEFINE_SYSCALL(arm, __NR_arm_exit_group, sys_exit, "exit_group(%d)");
 
 DEFINE_SYSCALL(arm, __NR_arm_open, sys_open, "open(path=%p, mode=%d, flags=%d)");
 DEFINE_SYSCALL(arm, __NR_arm_openat, sys_openat, "open(dirfd=%u, path=%p, mode=%d, flags=%d)");
