@@ -2,6 +2,9 @@
 Intrinsic("read_pc", ReadPC, Signature(ArchWordType), DefaultIntrinsicEmitter, NeverFixed)
 Intrinsic("write_pc", WritePC, Signature(IRTypes::Void, { ArchWordType }), DefaultIntrinsicEmitter, NeverFixed)
 
+Intrinsic("__branch_taken", BranchTakenHint, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+Intrinsic("__branch_not_taken", BranchNotTakenHint, Signature(IRTypes::Void), DefaultIntrinsicEmitter, NeverFixed)
+
 Intrinsic("__builtin_set_feature", SetFeature, Signature(IRTypes::Void, { IRTypes::UInt32, IRTypes::UInt32 }), DefaultIntrinsicEmitter, NeverFixed)
 Intrinsic("__builtin_get_feature", GetFeature, Signature(IRTypes::UInt32, { IRTypes::UInt32 }), DefaultIntrinsicEmitter, AlwaysFixed)
 

@@ -545,7 +545,7 @@ namespace gensim
 									output << "emitter.reinterpret(" << operand_for_node(*expr) << ", " << type_for_statement(Statement) << ");";
 								} else {
 									// HMMMMMMM this probably should be a copy
-									output << "(dbt::el::Value *)" << operand_for_node(*expr) << ";";
+									output << "(captive::arch::dbt::el::Value *)" << operand_for_node(*expr) << ";";
 								}
 							} else if (Statement.GetType().SizeInBytes() > Statement.Expr()->GetType().SizeInBytes()) {
 								//Otherwise we need to sign extend
@@ -647,12 +647,12 @@ namespace gensim
 							output << "goto " << end_label << ";";
 					} else {
 						output << "{";
-						output << "dbt::el::Block *true_target;";
+						output << "captive::arch::dbt::el::Block *true_target;";
 						output << "{";
 						CreateBlock(output, "block_" + Statement.TrueTarget()->GetName());
 						output << "true_target = block;";
 						output << "}";
-						output << "dbt::el::Block *false_target;";
+						output << "captive::arch::dbt::el::Block *false_target;";
 						output << "{";
 						CreateBlock(output, "block_" + Statement.FalseTarget()->GetName());
 						output << "false_target = block;";
@@ -749,7 +749,7 @@ namespace gensim
 						case IntrinsicID::WriteDevice32:
 						case IntrinsicID::WriteDevice64:
 							output << "if (TRACE) {";
-							output << "emitter.trace(dbt::el::TraceEvent::STORE_DEVICE,"
+							output << "emitter.trace(captive::arch::dbt::el::TraceEvent::STORE_DEVICE,"
 							       << operand_for_node(*arg0)
 							       << ", "
 							       << operand_for_node(*arg1)
@@ -959,7 +959,7 @@ namespace gensim
 					output << "emitter.store_local(" << operand_for_symbol(*Statement.Target()) << ", " << operand_for_stmt(Statement) << ");";
 
 					output << "if (TRACE) {";
-					output << "emitter.trace(dbt::el::TraceEvent::LOAD_MEMORY, " << operand_for_node(*address) << ", " << Statement.GetName() << ", emitter.const_u8(" << (uint32_t) Statement.Width << "));\n";
+					output << "emitter.trace(captive::arch::dbt::el::TraceEvent::LOAD_MEMORY, " << operand_for_node(*address) << ", " << Statement.GetName() << ", emitter.const_u8(" << (uint32_t) Statement.Width << "));\n";
 					output << "}";
 
 					return true;
@@ -991,7 +991,7 @@ namespace gensim
 					SSANodeWalker *value = Factory.GetOrCreate(Statement.Value());
 
 					output << "if (TRACE) {";
-					output << "emitter.trace(dbt::el::TraceEvent::STORE_MEMORY, " << operand_for_node(*address) << ", " << operand_for_node(*value) << ", emitter.const_u8(" << (uint32_t) Statement.Width << "));\n";
+					output << "emitter.trace(captive::arch::dbt::el::TraceEvent::STORE_MEMORY, " << operand_for_node(*address) << ", " << operand_for_node(*value) << ", emitter.const_u8(" << (uint32_t) Statement.Width << "));\n";
 					output << "}";
 
 					output << "emitter.store_memory(" << operand_for_node(*address) << ", " << operand_for_node(*value) << ");\n";
@@ -1085,7 +1085,7 @@ namespace gensim
 
 					if (rd.RegNum()->IsFixed()) {
 						output << "if (TRACE) {";
-						output << "emitter.trace(dbt::el::TraceEvent::STORE_REGISTER,"
+						output << "emitter.trace(captive::arch::dbt::el::TraceEvent::STORE_REGISTER,"
 						       << "emitter.const_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
 						       << operand_for_node(*Value) << ","
 						       << "emitter.const_u8(" << register_width << ")"
@@ -1120,14 +1120,14 @@ namespace gensim
 						output << "auto " << Statement.GetName() << " = emitter.load_register(emitter.const_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))), " << type_for_statement(Statement) << ");\n";
 
 						output << "if (TRACE) {";
-						output << "emitter.trace(dbt::el::TraceEvent::LOAD_REGISTER, "
+						output << "emitter.trace(captive::arch::dbt::el::TraceEvent::LOAD_REGISTER, "
 						       << "emitter.const_u32((uint32_t)(" << offset << " + (" << stride << " * " << RegNum->GetFixedValue() << "))),"
 						       << operand_for_stmt(Statement) << ","
 						       << "emitter.const_u8(" << register_width << ")"
 						       << ");";
 						output << "}";
 					} else {
-						output << "dbt::el::Value *" << Statement.GetName() << ";";
+						output << "captive::arch::dbt::el::Value *" << Statement.GetName() << ";";
 
 						output << "{";
 						output << "auto mulp = emitter.mul(emitter.const_u32(" << stride << "), " << operand_for_node(*RegNum) << ");";
@@ -1154,7 +1154,7 @@ namespace gensim
 					uint32_t offset = slot->GetRegFileOffset();
 
 					output << "if (TRACE) {";
-					output << "emitter.trace(dbt::el::TraceEvent::STORE_REGISTER, emitter.const_u32(" << offset << "), " << operand_for_node(*Value) << ", emitter.const_u8(" << register_width << "));";
+					output << "emitter.trace(captive::arch::dbt::el::TraceEvent::STORE_REGISTER, emitter.const_u32(" << offset << "), " << operand_for_node(*Value) << ", emitter.const_u8(" << register_width << "));";
 					output << "}";
 
 					if (Value->Statement.GetType().SizeInBytes() > register_width) {
@@ -1190,7 +1190,7 @@ namespace gensim
 #endif
 
 					output << "if (TRACE) {";
-					output << "emitter.trace(dbt::el::TraceEvent::LOAD_REGISTER, emitter.const_u32(" << offset << "), " << operand_for_stmt(Statement) << ", emitter.const_u8(" << register_width << "));";
+					output << "emitter.trace(captive::arch::dbt::el::TraceEvent::LOAD_REGISTER, emitter.const_u32(" << offset << "), " << operand_for_stmt(Statement) << ", emitter.const_u8(" << register_width << "));";
 					output << "}";
 
 					return true;
@@ -1325,7 +1325,7 @@ namespace gensim
 					const SSANodeWalker *if_true = Factory.GetOrCreate(Statement.TrueVal());
 					const SSANodeWalker *if_false = Factory.GetOrCreate(Statement.FalseVal());
 
-					output << "dbt::el::Value *" << Statement.GetName() << ";";
+					output << "captive::arch::dbt::el::Value *" << Statement.GetName() << ";";
 
 					if (Statement.Cond()->IsFixed()) {
 						output << Statement.GetName() << " = (" << cond->GetFixedValue() << ") ? (" << Statement.TrueVal()->GetName() << ") : (" << Statement.FalseVal()->GetName() << ");";
@@ -1725,7 +1725,7 @@ namespace gensim
 					output << "emitter.store_local(" << operand_for_symbol(*target) << ", tmp);";
 
 					output << "if (TRACE) {";
-					output << "emitter.trace(dbt::el::TraceEvent::LOAD_DEVICE,"
+					output << "emitter.trace(captive::arch::dbt::el::TraceEvent::LOAD_DEVICE,"
 					       << operand_for_node(*device_id)
 					       << ", "
 					       << operand_for_node(*addr)
@@ -1783,7 +1783,7 @@ namespace gensim
 							if (stmt.GetType().SizeInBytes() == 1) {
 								output << "auto " << stmt.GetName() << " = emitter.cmp_eq(" << operand_for_node(*Factory.GetOrCreate(stmt.Expr())) << ", emitter.const_u8(0));";
 							} else {
-								output << "dbt::el::Value *" << stmt.GetName() << ";";
+								output << "captive::arch::dbt::el::Value *" << stmt.GetName() << ";";
 								output << "{";
 								output << "auto tmp = emitter.cmp_eq(" << operand_for_node(*Factory.GetOrCreate(stmt.Expr())) << ", emitter.const_u";
 								output << (uint32_t) (stmt.GetType().SizeInBytes() * 8) << "(0));";

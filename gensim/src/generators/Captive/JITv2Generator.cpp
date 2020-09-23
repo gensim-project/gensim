@@ -196,7 +196,7 @@ namespace gensim
 					str << "public:\n";
 					str << ClassNameForJIT() << "();";
 					str << "~" << ClassNameForJIT() << "();";
-					str << "bool translate(const Decode *decode_obj, dbt::el::Emitter& emitter) override;";
+					str << "bool translate(const Decode *decode_obj, captive::arch::dbt::el::Emitter& emitter) override;";
 
 					str << "private:\n";
 
@@ -211,12 +211,12 @@ namespace gensim
 							}
 
 							if (generate_predicate_generator) {
-								str << "dbt::el::Value *generate_predicate_" << isa->ISAName << "_" << fmt.second->GetName() << "(const " << ClassNameForFormatDecoder(*fmt.second) << "& insn, dbt::el::Emitter& emitter);\n";
+								str << "captive::arch::dbt::el::Value *generate_predicate_" << isa->ISAName << "_" << fmt.second->GetName() << "(const " << ClassNameForFormatDecoder(*fmt.second) << "& insn, captive::arch::dbt::el::Emitter& emitter);\n";
 							}
 						}
 
 						for (auto insn : isa->Instructions) {
-							str << "bool translate_" << isa->ISAName << "_" << insn.second->Name << "(const " << ClassNameForFormatDecoder(*insn.second->Format) << "& insn, dbt::el::Emitter& emitter);";
+							str << "bool translate_" << isa->ISAName << "_" << insn.second->Name << "(const " << ClassNameForFormatDecoder(*insn.second->Format) << "& insn, captive::arch::dbt::el::Emitter& emitter);";
 						}
 					}
 
@@ -284,7 +284,7 @@ namespace gensim
 					str << ClassNameForJIT() << "<TRACE>::~" << ClassNameForJIT() << "() { }";
 
 					str << "template<bool TRACE>";
-					str << "bool " << ClassNameForJIT() << "<TRACE>::translate(const Decode *decode_obj, dbt::el::Emitter& emitter)";
+					str << "bool " << ClassNameForJIT() << "<TRACE>::translate(const Decode *decode_obj, captive::arch::dbt::el::Emitter& emitter)";
 
 					str << "{";
 					str << "const " << ClassNameForDecoder() << "& insn = *((const " << ClassNameForDecoder() << " *)decode_obj);";
@@ -333,12 +333,12 @@ namespace gensim
 				bool GeneratePredicateFunction(util::cppformatstream& str, const isa::ISADescription& isa, const isa::InstructionFormatDescription& fmt) const
 				{
 					str << "template<bool TRACE>";
-					str << "dbt::el::Value *" << ClassNameForJIT() << "<TRACE>::generate_predicate_" << isa.ISAName << "_" << fmt.GetName() << "(const " << ClassNameForFormatDecoder(fmt) << "& insn, dbt::el::Emitter& emitter)";
+					str << "captive::arch::dbt::el::Value *" << ClassNameForJIT() << "<TRACE>::generate_predicate_" << isa.ISAName << "_" << fmt.GetName() << "(const " << ClassNameForFormatDecoder(fmt) << "& insn, captive::arch::dbt::el::Emitter& emitter)";
 					str << "{";
 
-					str << "std::queue<dbt::el::Block *> dynamic_block_queue;";
-					str << "dbt::el::Block *__exit_block = emitter.context().create_block();";
-					str << "dbt::el::Value *__result = emitter.alloc_local(emitter.context().types().u8(), true);";
+					str << "std::queue<captive::arch::dbt::el::Block *> dynamic_block_queue;";
+					str << "captive::arch::dbt::el::Block *__exit_block = emitter.context().create_block();";
+					str << "captive::arch::dbt::el::Value *__result = emitter.alloc_local(emitter.context().types().u8(), true);";
 
 					EmitJITFunction(str, *(SSAFormAction *)isa.GetSSAContext().GetAction("instruction_predicate"));
 
@@ -390,7 +390,7 @@ namespace gensim
 					/////////
 
 					src_stream << "template<bool TRACE>";
-					src_stream << "bool " << ClassNameForJIT() << "<TRACE>::translate_" << isa.ISAName << "_" << insn.Name << "(const " << ClassNameForFormatDecoder(*insn.Format) << "&insn, dbt::el::Emitter& emitter)"
+					src_stream << "bool " << ClassNameForJIT() << "<TRACE>::translate_" << isa.ISAName << "_" << insn.Name << "(const " << ClassNameForFormatDecoder(*insn.Format) << "&insn, captive::arch::dbt::el::Emitter& emitter)"
 					           << "{";
 
 					FeatureUseAnalysis fua;
@@ -408,10 +408,10 @@ namespace gensim
 					}
 
 					if (have_dynamic_blocks) {
-						src_stream << "std::queue<dbt::el::Block *> dynamic_block_queue;";
+						src_stream << "std::queue<captive::arch::dbt::el::Block *> dynamic_block_queue;";
 					}
 
-					src_stream << "dbt::el::Block *__exit_block = emitter.context().create_block();";
+					src_stream << "captive::arch::dbt::el::Block *__exit_block = emitter.context().create_block();";
 
 					bool generate_predicate_executor = isa.GetDefaultPredicated();
 
@@ -431,7 +431,7 @@ namespace gensim
 						src_stream << "emitter.branch(predicate_result, __predicate_taken, __predicate_not_taken);\n";
 
 						src_stream << "emitter.set_current_block(__predicate_not_taken);";
-						src_stream << "emitter.trace(dbt::el::TraceEvent::NOT_TAKEN);";
+						src_stream << "emitter.trace(captive::arch::dbt::el::TraceEvent::NOT_TAKEN);";
 
 						src_stream << "if (insn.end_of_block) {";
 						src_stream << "emitter.inc_pc(emitter.const_u8(" << (insn.Format->GetLength() / 8) << "));";
@@ -560,10 +560,10 @@ namespace gensim
 						//src_stream << "} else {";
 
 						src_stream << "if (dynamic_block_queue.size() > 0) {\n";
-						src_stream << "std::set<dbt::el::Block *> emitted_blocks;";
+						src_stream << "std::set<captive::arch::dbt::el::Block *> emitted_blocks;";
 						src_stream << "while (dynamic_block_queue.size() > 0) {\n";
 
-						src_stream << "dbt::el::Block *block_index = dynamic_block_queue.front();"
+						src_stream << "captive::arch::dbt::el::Block *block_index = dynamic_block_queue.front();"
 						           << "dynamic_block_queue.pop();"
 						           << "if (emitted_blocks.count(block_index)) continue;"
 						           << "emitted_blocks.insert(block_index);";

@@ -123,6 +123,11 @@ namespace gensim
 			 */
 			PromoteResult AutoPromote(const IRType &PromoteTo) const;
 
+			bool IsInteger() const
+			{
+				return DataType == PlainOldData && BaseType.PlainOldDataType > IRPlainOldDataType::VOID && BaseType.PlainOldDataType < IRPlainOldDataType::FLOAT;
+			}
+
 			bool IsFloating() const
 			{
 				return DataType == PlainOldData && BaseType.PlainOldDataType >= IRPlainOldDataType::FLOAT;
