@@ -1384,7 +1384,7 @@ namespace gensim
 								output << "builder.mov(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 8));";
 							}
 
-							output << "builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), IROperand::const32(" << register_width << "), IROperand::vreg(tmp,8));";
+							output << "builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankWriteValue), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), IROperand::const32(" << register_width << "), IROperand::vreg(tmp,8));";
 							output << "}";
 						}
 						return true;
@@ -1398,7 +1398,7 @@ namespace gensim
 
 						output << "builder.streg(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 8));\n";
 						if(register_width <= 8) {
-							output << "if(trace) builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankWrite), IROperand::const8(" << (uint32_t)write.Bank << "), " << operand_for_node(*RegNum) << ", IROperand::const32(" << register_width << "), " << operand_for_node(*Value) << ");";
+							output << "if(trace) builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankWriteValue), IROperand::const8(" << (uint32_t)write.Bank << "), " << operand_for_node(*RegNum) << ", IROperand::const32(" << register_width << "), " << operand_for_node(*Value) << ");";
 						}
 						output << "}";
 					}
@@ -1419,7 +1419,7 @@ namespace gensim
 
 					if (write.RegNum()->IsFixed()) {
 						output << "builder.ldreg(IROperand::const32((uint32_t)(" << offset << " + (" << register_stride << " * " << RegNum->GetFixedValue() << "))), " << operand_for_stmt(Statement) << ");\n";
-						output << "if(trace) builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), IROperand::const32(" << register_width << "), " << operand_for_stmt(Statement) << ");";
+						output << "if(trace) builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankReadValue), IROperand::const8(" << (uint32_t)write.Bank << "), IROperand::const8(" << RegNum->GetFixedValue() << "), IROperand::const32(" << register_width << "), " << operand_for_stmt(Statement) << ");";
 						return true;
 					} else {
 						output << "{";
@@ -1433,7 +1433,7 @@ namespace gensim
 
 						output <<
 						       "if(trace) {"
-						       "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankRead), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*RegNum) << ", IROperand::const32(" << register_width << "), " << operand_for_stmt(Statement) << ");"
+						       "  builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankReadValue), IROperand::const8(" << (uint32_t)write.Bank << ")," << operand_for_node(*RegNum) << ", IROperand::const32(" << register_width << "), " << operand_for_stmt(Statement) << ");"
 						       "}";
 
 						output << "}";

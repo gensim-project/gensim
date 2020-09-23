@@ -97,9 +97,11 @@ extern "C" {
 	void cpuTraceRegRead(archsim::core::thread::ThreadInstance *cpu, uint8_t reg, uint64_t value);
 
 	void cpuTraceRegBankWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint8_t *value_ptr);
+	void cpuTraceRegBankWriteValue(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint64_t value);
 	void cpuTraceRegBank0Write(archsim::core::thread::ThreadInstance *cpu, uint32_t reg, uint64_t value);
 
 	void cpuTraceRegBankRead(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint8_t *value_ptr);
+	void cpuTraceRegBankReadValue(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint64_t value);
 	void cpuTraceRegBank0Read(archsim::core::thread::ThreadInstance *cpu, uint32_t reg, uint64_t value);
 
 	char cpuTraceMemRead8(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint32_t* value);

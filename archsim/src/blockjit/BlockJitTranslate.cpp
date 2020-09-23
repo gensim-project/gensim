@@ -249,7 +249,7 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 	if(processor->GetTraceSource()) {
 		IRRegId pc_reg = builder.alloc_reg(8);
 		builder.ldpc(IROperand::vreg(pc_reg, 8));
-		builder.bitwise_and(IROperand::const64(0xfffffffffffff000), IROperand::vreg(pc_reg, 8));
+		builder.bitwise_and(IROperand::const64(0xfffffffffffff000ull), IROperand::vreg(pc_reg, 8));
 		builder.bitwise_or(IROperand::const64(pc.GetPageOffset()), IROperand::vreg(pc_reg, 8));
 		builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceInstruction), IROperand::vreg(pc_reg, 8), IROperand::const32(decode->GetIR()), IROperand::const8(decode->isa_mode), IROperand::const8(0));
 	}

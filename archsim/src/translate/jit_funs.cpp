@@ -464,14 +464,22 @@ extern "C" {
 
 	void cpuTraceRegBankWrite(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint8_t *value_ptr)
 	{
-//		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
 		cpu->GetTraceSource()->Trace_Bank_Reg_Write(true, bank, reg, (char*)value_ptr, size);
 	}
 
 	void cpuTraceRegBankRead(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint8_t *value_ptr)
 	{
-//		auto &descriptor = cpu->GetArch().GetRegisterFileDescriptor().GetByID(reg);
 		cpu->GetTraceSource()->Trace_Bank_Reg_Read(true, bank, reg, (char*)value_ptr, size);
+	}
+
+	void cpuTraceRegBankWriteValue(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint64_t value)
+	{
+		cpu->GetTraceSource()->Trace_Bank_Reg_Write(true, bank, reg, (char*)&value, size);
+	}
+
+	void cpuTraceRegBankReadValue(archsim::core::thread::ThreadInstance *cpu, uint8_t bank, uint32_t reg, uint32_t size, uint64_t value)
+	{
+		cpu->GetTraceSource()->Trace_Bank_Reg_Read(true, bank, reg, (char*)&value, size);
 	}
 
 	void cpuTraceOnlyMemRead8(archsim::core::thread::ThreadInstance *cpu, uint64_t addr, uint32_t value)
