@@ -6,6 +6,7 @@
 #include "libtrace/TraceRecordStream.h"
 #include "libtrace/TraceRecordPacketVisitor.h"
 #include "libtrace/RecordReader.h"
+#include "libtrace/disasm/Disassembler.h"
 
 #include <cassert>
 #include <iomanip>
@@ -14,7 +15,7 @@
 
 using namespace libtrace;
 
-InstructionPrinter::InstructionPrinter()
+InstructionPrinter::InstructionPrinter() : _disasm(nullptr)
 {
 	SetDisplayAll();
 }
@@ -100,7 +101,12 @@ bool InstructionPrinter::PrintInstruction(std::ostream& str, TracePacketStreamIn
 	InstructionHeaderReader hdr  (*(InstructionHeaderRecord*)&header_packet.GetRecord(), header_packet.GetExtensions());
 	InstructionCodeReader   code (*(InstructionCodeRecord*)&code_packet.GetRecord(), code_packet.GetExtensions());
 
-	str << "[" << std::hex << std::setw(16) << std::setfill('0') << hdr.GetPC() << "] " << std::hex << std::setw(8) << std::setfill('0') << code.GetCode().AsU32() << " ";
+	str << "[" << std::hex << std::setw(16) << std::setfill('0') << hdr.GetPC() << "] ";
+	str << std::hex << std::setw(8) << std::setfill('0') << code.GetCode().AsU32() << " ";
+
+	if (_disasm != nullptr) {
+		str << std::left << std::setw(20) << std::setfill(' ') << _disasm->Disassemble(code) << " ";
+	}
 
 	while(stream->Good() && (stream->Peek().GetRecord().GetType() != InstructionHeader)) {
 		TraceRecordPacket next_packet = stream->Get();
@@ -185,4 +191,3 @@ bool InstructionPrinter::PrintMemWrite(std::ostream &str, RecordIterator &it, co
 	str << "([" << addr->GetAddress() << "](" << (uint32_t)addr->GetWidth() << ") <= " << data->GetData() << ")";
 	return true;
 }
-

@@ -1,6 +1,7 @@
 /* This file is Copyright University of Edinburgh 2018. For license details, see LICENSE. */
 #include "libtrace/RecordFile.h"
 #include "libtrace/InstructionPrinter.h"
+#include "libtrace/disasm/CapstoneDisassembler.h"
 
 #include <map>
 #include <string>
@@ -12,6 +13,7 @@
 #include <ncurses.h>
 
 using namespace libtrace;
+using namespace libtrace::disasm;
 
 #define BOOKMARK_WIDTH 10000
 
@@ -19,6 +21,7 @@ int64_t top_index = 0;
 int64_t left_offset = 0;
 
 RecordFile *open_file = nullptr;
+Disassembler *disassembler = nullptr;
 
 uint32_t terminal_height, terminal_width;
 
@@ -370,6 +373,8 @@ bool DrawScreen()
 	// Draw instruction info
 	InstructionPrinter ip;
 
+	ip.SetDisassembler(disassembler);
+
 	if(display_mode == Display_OnlyMem) {
 		ip.SetDisplayNone();
 		ip.SetDisplayMem();
@@ -406,11 +411,31 @@ bool DrawScreen()
 int main(int argc, char **argv)
 {
 	if(argc == 1) {
-		fprintf(stderr, "Usage: %s [record file]\n", argv[0]);
+		fprintf(stderr, "Usage: %s [-d <arch>] [record file]\n", argv[0]);
 		return 1;
 	}
 
-	FILE *file = fopen(argv[1], "r");
+	std::string arch;
+	std::string filename;
+
+	if (argv[1][0] == '-') {
+		if (argv[1][1] == 'd') {
+			if (argc != 4) {
+				fprintf(stderr, "Usage: %s [-d <arch>] [record file]\n", argv[0]);
+				return 1;
+			} else {
+				arch = argv[2];
+				filename = argv[3];
+			}
+		} else {
+			fprintf(stderr, "Usage: %s [-d <arch>] [record file]\n", argv[0]);
+			return 1;
+		}
+	} else {
+		filename = argv[1];
+	}
+
+	FILE *file = fopen(filename.c_str(), "r");
 	if(!file) {
 		perror("Could not open file");
 		return 1;
@@ -418,10 +443,16 @@ int main(int argc, char **argv)
 
 	open_file = new RecordFile(file);
 
+	if (arch != "") {
+		disassembler = new CapstoneDisassembler(arch);
+	}
+
 	SetupScreen();
 	while(DrawScreen()) ;
 	ReleaseScreen();
 
+	delete disassembler;
 	delete open_file;
+
 	return 0;
 }
