@@ -443,9 +443,11 @@ int main(int argc, char **argv)
 
 	open_file = new RecordFile(file);
 
+#if HAVE_CAPSTONE == 1
 	if (arch != "") {
 		disassembler = new CapstoneDisassembler(arch);
 	}
+#endif
 
 	SetupScreen();
 	while(DrawScreen()) ;
