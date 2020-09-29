@@ -1,11 +1,15 @@
 PROJECT(libtrace)
 
 FIND_PACKAGE(Curses QUIET)
-pkg_check_modules(CAPSTONE capstone)
+
+FIND_PACKAGE(PkgConfig QUIET)
+if(PKGCONFIG_FOUND)
+	pkg_check_modules(CAPSTONE QUIET capstone)
+endif()
 
 FILE(GLOB LIBTRACE_SOURCES lib/*.cpp)
 
-if(CAPSTONE_FOUND==1)
+if(CAPSTONE_FOUND)
 	MESSAGE(STATUS "Found Capstone so including diassembler")
 	FILE(GLOB LIBTRACE_DISASM_SOURCES lib/disasm/*.cpp)
 endif()
@@ -17,7 +21,7 @@ SET(INCLUDEDIRS inc/)
 TARGET_INCLUDE_DIRECTORIES(trace PUBLIC inc/ ${CURSES_INCLUDE_DIR} ${CAPSTONE_INCLUDE_DIR})
 TARGET_COMPILE_OPTIONS(trace PRIVATE -fno-rtti)
 
-if(CAPSTONE_FOUND==1)
+if(CAPSTONE_FOUND)
 	TARGET_LINK_LIBRARIES(trace ${CAPSTONE_LIBRARIES})
 endif()
 
@@ -36,7 +40,7 @@ function(add_trace_tool tool-name)
 
 	TARGET_LINK_LIBRARIES(${tool-name} trace ${CURSES_LIBRARIES})
 
-	if(CAPSTONE_FOUND==1)
+	if(CAPSTONE_FOUND)
 		target_compile_definitions(${tool-name} PRIVATE HAVE_CAPSTONE=1)
 	endif()
 endfunction()
