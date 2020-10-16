@@ -14,7 +14,7 @@ uint32_t RiscVDecodeContext::DecodeSync(archsim::MemoryInterface &interface, Add
 	return arch_.GetISA(mode).DecodeInstr(address, &interface, *target);
 }
 
-class RiscVDecodeTranslationContext : public gensim::DecodeTranslateContext
+class RiscV32DecodeTranslationContext : public gensim::DecodeTranslateContext
 {
 	void Translate(archsim::core::thread::ThreadInstance *cpu, const gensim::BaseDecode &insn, gensim::DecodeContext &decode, captive::shared::IRBuilder &builder) override
 	{
@@ -23,5 +23,14 @@ class RiscVDecodeTranslationContext : public gensim::DecodeTranslateContext
 
 };
 
-//RegisterComponent(gensim::DecodeContext, RiscVDecodeContext, "riscv", "risc v", archsim::core::thread::ThreadInstance*);
-RegisterComponent(gensim::DecodeTranslateContext, RiscVDecodeTranslationContext, "riscv", "risc v");
+class RiscV64DecodeTranslationContext : public gensim::DecodeTranslateContext
+{
+	void Translate(archsim::core::thread::ThreadInstance *cpu, const gensim::BaseDecode &insn, gensim::DecodeContext &decode, captive::shared::IRBuilder &builder) override
+	{
+		// nothing necessary here
+	}
+
+};
+
+RegisterComponent(gensim::DecodeTranslateContext, RiscV32DecodeTranslationContext, "riscv32", "risc v 32");
+RegisterComponent(gensim::DecodeTranslateContext, RiscV64DecodeTranslationContext, "riscv64", "risc v 64");
