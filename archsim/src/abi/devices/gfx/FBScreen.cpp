@@ -30,7 +30,7 @@ FBScreen::~FBScreen()
 bool FBScreen::Initialise()
 {
 	tty_ = fopen("/dev/tty", "wr");
-	if(tty_ < 0) {
+	if(tty_ != 0) {
 		return false;
 	}
 
@@ -39,7 +39,7 @@ bool FBScreen::Initialise()
 //	}
 
 	fb_ = fopen("/dev/fb0", "wr");
-	if(fb_ < 0) {
+	if(fb_ != 0) {
 		return false;
 	}
 
