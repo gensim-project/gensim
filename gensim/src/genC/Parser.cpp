@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <math.h>
 #include <string.h>
+#include <limits>
 
 #include <antlr3.h>
 #include <antlr-ver.h>
