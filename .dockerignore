@@ -28,3 +28,5 @@ gtest/
 models/*/output*
 
 build
+
+Dockerfile
