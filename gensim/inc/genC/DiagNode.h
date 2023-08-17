@@ -4,6 +4,7 @@
 
 #include <string>
 #include <ostream>
+#include <cstdint>
 
 struct ANTLR3_BASE_TREE_struct;
 typedef struct ANTLR3_BASE_TREE_struct *pANTLR3_BASE_TREE;

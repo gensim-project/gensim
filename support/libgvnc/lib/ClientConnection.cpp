@@ -2,7 +2,7 @@
 #include "libgvnc/ClientConnection.h"
 #include "libgvnc/Framebuffer.h"
 #include "libgvnc/Server.h"
-
+#include <stdexcept>
 #include <arpa/inet.h>
 
 using namespace libgvnc;

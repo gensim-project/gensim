@@ -31,6 +31,7 @@
 #include <mutex>
 #include <queue>
 #include <set>
+#include <array>
 
 #include <cstring>
 
@@ -245,4 +246,3 @@ namespace archsim
 }
 
 #endif	/* TRANSLATIONMANAGER_H */
-

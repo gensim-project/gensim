@@ -13,6 +13,7 @@
 #include <string>
 #include <list>
 #include <map>
+#include <cstdint>
 
 namespace archsim
 {
@@ -144,4 +145,3 @@ namespace archsim
 }
 
 #endif	/* SIMOPTIONS_H */
-
