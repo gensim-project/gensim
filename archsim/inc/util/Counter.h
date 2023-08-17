@@ -16,6 +16,7 @@
 #define INC_UTIL_COUNTER_H_
 
 #include <string>
+#include <cstdint>
 
 #if CONFIG_LLVM
 #include <llvm/IR/IRBuilder.h>

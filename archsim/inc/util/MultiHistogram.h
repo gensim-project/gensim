@@ -45,6 +45,7 @@
 #include <map>
 #include <stack>
 #include <string>
+#include <cstdint>
 
 namespace archsim
 {

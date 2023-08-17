@@ -15,6 +15,7 @@
 #include <vector>
 #include <cstring>
 #include <map>
+#include <cstdint>
 
 namespace archsim
 {
@@ -106,4 +107,3 @@ namespace archsim
 }
 
 #endif /* STATEBLOCK_H */
-
