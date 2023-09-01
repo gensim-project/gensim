@@ -182,6 +182,7 @@ SSAStatement *IRBinaryExpression::EmitSSAForm(SSABuilder &bldr) const
 			IRType maxType = IRType::Resolve(BinaryOperator::Add, left->GetType(), right->GetType());
 
 			if (left->GetType() != maxType) {
+				maxType.Signed = signedshift;
 				left = new SSACastStatement(&bldr.GetBlock(), maxType, left);
 				left->SetDiag(Diag());
 			}

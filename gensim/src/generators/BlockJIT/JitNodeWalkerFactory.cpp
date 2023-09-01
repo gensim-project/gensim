@@ -795,7 +795,17 @@ namespace gensim
 
 						str << "(" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ")";
 					} else {
-						str << "((" << Statement.GetType().GetCType() << ")" << Factory.GetOrCreate(Statement.Expr())->GetFixedValue() << ")";
+						std::string cast_stmt = Factory.GetOrCreate(Statement.Expr())->GetFixedValue();
+
+						// if we are switching signedness, change signedness  before extending
+						if(Statement.Expr()->GetType().Signed != Statement.GetType().Signed) {
+							SSAType partial_type = Statement.Expr()->GetType();
+							partial_type.Signed = Statement.GetType().Signed;
+							cast_stmt = "((" + partial_type.GetCType() + ")" + cast_stmt + ")";
+						}
+						cast_stmt = "((" + Statement.GetType().GetCType() + ")" + cast_stmt + ")";
+
+						str << cast_stmt;
 					}
 
 					return str.str();
@@ -1390,13 +1400,13 @@ namespace gensim
 						return true;
 					} else {
 						output << "{";
-						output << "IRRegId tmp = builder.alloc_reg(8);\n";
+						output << "IRRegId tmp = builder.alloc_reg(4);\n";
 
-						output << "builder.mov(" << operand_for_node(*RegNum) << ", IROperand::vreg(tmp, 8));";
-						output << "builder.imul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 8));";
-						output << "builder.add(IROperand::const32(" << offset << "), IROperand::vreg(tmp, 8));";
+						output << "builder.mov(" << operand_for_node(*RegNum) << ", IROperand::vreg(tmp, 4));";
+						output << "builder.imul(IROperand::const32((uint32_t)" << register_stride << "), IROperand::vreg(tmp, 4));";
+						output << "builder.add(IROperand::const32(" << offset << "), IROperand::vreg(tmp, 4));";
 
-						output << "builder.streg(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 8));\n";
+						output << "builder.streg(" << operand_for_node(*Value) << ", IROperand::vreg(tmp, 4));\n";
 						if(register_width <= 8) {
 							output << "if(trace) builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceRegBankWriteValue), IROperand::const8(" << (uint32_t)write.Bank << "), " << operand_for_node(*RegNum) << ", IROperand::const32(" << register_width << "), " << operand_for_node(*Value) << ");";
 						}
