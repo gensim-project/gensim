@@ -256,13 +256,13 @@ bool BaseBlockJITTranslate::emit_instruction_decoded(archsim::core::thread::Thre
 
 	translate_instruction(decode, builder, processor->GetTraceSource() != nullptr);
 
-	if(decode_txlt_ctx == nullptr) {
-		if(!GetComponentInstance(processor->GetArch().GetName(), decode_txlt_ctx)) {
-			throw std::logic_error("Could not get DTC");
-		}
-	}
+	// if(decode_txlt_ctx == nullptr) {
+	// 	if(!GetComponentInstance(processor->GetArch().GetName(), decode_txlt_ctx)) {
+	// 		throw std::logic_error("Could not get DTC");
+	// 	}
+	// }
 
-	decode_txlt_ctx->Translate(processor, *decode, *_decode_ctx, builder);
+	// decode_txlt_ctx->Translate(processor, *decode, *_decode_ctx, builder);
 
 	if(processor->GetTraceSource()) {
 		builder.call(IROperand::const32(0), IROperand::func((void*)cpuTraceInsnEnd));
