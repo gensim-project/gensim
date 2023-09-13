@@ -7,9 +7,9 @@
 #include "gensim/gensim_decode.h"
 
 UseLogContext(LogEmulationModel)
-DeclareChildLogContext(LogEmulationModelAarch64LinuxUser, LogEmulationModel, "Aarch64")
+	DeclareChildLogContext(LogEmulationModelAarch64LinuxUser, LogEmulationModel, "Aarch64")
 
-namespace archsim
+		namespace archsim
 {
 	namespace arch
 	{
@@ -21,17 +21,19 @@ namespace archsim
 			public:
 				Aarch64DecodeContext(const ArchDescriptor &arch) : arch_(arch) {}
 
-				uint32_t DecodeSync(archsim::MemoryInterface& mem_interface, archsim::Address address, uint32_t mode, gensim::BaseDecode *&target) override
+				uint32_t DecodeSync(archsim::MemoryInterface &mem_interface, archsim::Address address, uint32_t mode, gensim::BaseDecode *&target) override
 				{
 					target = arch_.GetISA(mode).GetNewDecode();
 					auto result = arch_.GetISA(0).DecodeInstr(address, &mem_interface, *target);
 
-					if((target->ir & 0xff000010) == 0x54000000) {
+					if ((target->ir & 0xff000010) == 0x54000000)
+					{
 						target->SetIsPredicated();
 					}
 
 					return result;
 				}
+
 			private:
 				const ArchDescriptor &arch_;
 			};
@@ -42,7 +44,7 @@ namespace archsim
 				Aarch64LinuxUserEmulationModel() : archsim::abi::LinuxUserEmulationModel("aarch64", true, archsim::abi::AuxVectorEntries("aarch64", 0, 0)) {}
 				virtual ~Aarch64LinuxUserEmulationModel() {}
 
-				gensim::DecodeContext* GetNewDecodeContext(archsim::core::thread::ThreadInstance& cpu) override
+				gensim::DecodeContext *GetNewDecodeContext(archsim::core::thread::ThreadInstance &cpu) override
 				{
 					return new archsim::arch::aarch64::Aarch64DecodeContext(cpu.GetArch());
 				}
@@ -50,14 +52,15 @@ namespace archsim
 				{
 					UNIMPLEMENTED;
 				}
-				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance* thread, uint64_t category, uint64_t data) override
+				archsim::abi::ExceptionAction HandleException(archsim::core::thread::ThreadInstance *thread, uint64_t category, uint64_t data) override
 				{
-					if(category == 3) {
+					if (category == 3)
+					{
 						// emulate system call
-						auto bank = thread->GetRegisterFileInterface().GetEntry<uint64_t>("RBX");
-						uint64_t* registers = (uint64_t*)bank;
+						auto bank = thread->GetRegisterFileInterface().GetEntry<uint64_t>("reg_RB");
+						uint64_t *registers = (uint64_t *)bank;
 
-						archsim::abi::SyscallRequest request {0, thread, 0, 0, 0, 0, 0, 0};
+						archsim::abi::SyscallRequest request{0, thread, 0, 0, 0, 0, 0, 0};
 
 						abi::SyscallResponse response;
 						response.action = abi::ResumeNext;
@@ -70,9 +73,12 @@ namespace archsim
 						request.arg4 = registers[4];
 						request.arg5 = registers[5];
 
-						if (EmulateSyscall(request, response)) {
+						if (EmulateSyscall(request, response))
+						{
 							registers[0] = response.result;
-						} else {
+						}
+						else
+						{
 							LC_WARNING(LogEmulationModelAarch64LinuxUser) << "Syscall not supported: " << std::hex << request.syscall;
 							registers[0] = -1;
 						}
@@ -84,9 +90,10 @@ namespace archsim
 					return abi::AbortSimulation;
 				}
 
-				bool PrepareBoot(System& system) override
+				bool PrepareBoot(System &system) override
 				{
-					if(!LinuxUserEmulationModel::PrepareBoot(system)) {
+					if (!LinuxUserEmulationModel::PrepareBoot(system))
+					{
 						return false;
 					}
 
@@ -99,7 +106,7 @@ namespace archsim
 					return true;
 				}
 
-				void PrintStatistics(std::ostream& stream) override
+				void PrintStatistics(std::ostream &stream) override
 				{
 					UNIMPLEMENTED;
 				}
@@ -108,7 +115,6 @@ namespace archsim
 		}
 	}
 }
-
 
 using archsim::arch::aarch64::Aarch64LinuxUserEmulationModel;
 RegisterComponent(archsim::abi::EmulationModel, Aarch64LinuxUserEmulationModel, "aarch64-user", "ARM Linux user emulation model");
